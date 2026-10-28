@@ -56,7 +56,6 @@ const tables = new Map<string, Row[]>([
 			{
 				id: VERSION,
 				code: 'XX',
-				jurisdiction_code: 'XX',
 				name: 'Fixture jurisdiction',
 				sources: { entries: [], instructions: 'Synthetic roster planning fixture.' },
 				effective_range: { from: '2026-01-01', to: null },

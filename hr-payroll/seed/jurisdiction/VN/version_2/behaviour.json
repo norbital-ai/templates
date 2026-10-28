@@ -1,0 +1,1480 @@
+[
+	{
+		"id": "68a0a907-170e-5f52-82d7-d7d152d5cc55",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "hold-payslips",
+		"order": 100,
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"when": "has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0",
+		"fields": ["holds"],
+		"reads": {
+			"slips": {
+				"collection": "payslip",
+				"where": {
+					"payroll_run_id": {
+						"eq": "event.row.id"
+					},
+					"status": {
+						"eq": "\"DRAFT\""
+					}
+				},
+				"select": ["id", "employment_id"]
+			}
+		},
+		"effect": "event.row.holds.map(h, { \"collection\": \"payslip\", \"operation\": \"update\", \"data\": { \"target\": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), \"set\": { \"status\": \"ON_HOLD\" } } }).filter(w, size(w.data.target) > 0)"
+	},
+	{
+		"id": "365891a8-4b1e-5fd4-8879-79b041c4bc40",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "retract-exit-effects",
+		"order": 200,
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"when": "has(event.row.before) && event.row.before != null && (\"effective_range\" in event.row.before || \"exit_ground\" in event.row.before || \"exit_facts\" in event.row.before)",
+		"fields": ["before", "exit_facts", "exit_ground", "effective_range"],
+		"reads": {
+			"movements": {
+				"collection": "leave_catalog_entry",
+				"where": {
+					"employment_id": {
+						"eq": "event.row.id"
+					},
+					"payslip_id": {
+						"isNull": true
+					}
+				},
+				"select": ["reference"]
+			},
+			"tasks": {
+				"collection": "regulatory_task",
+				"where": {
+					"subject_id": {
+						"eq": "event.row.id"
+					},
+					"state": {
+						"eq": "\"OPEN\""
+					}
+				},
+				"select": ["occurrence_key", "facts"]
+			},
+			"exit_pay": {
+				"collection": "adhoc_catalog_entry",
+				"where": {
+					"employment_id": {
+						"eq": "event.row.id"
+					},
+					"payslip_id": {
+						"isNull": true
+					}
+				},
+				"select": ["facts"]
+			}
+		},
+		"effect": "movements.filter(m, m.reference != null && m.reference.startsWith(\"exit:\" + event.row.id + \":\") && !((event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\") != \"\" && m.reference.endsWith(\":\" + (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")))).map(m, { \"collection\": \"leave_catalog_entry\", \"operation\": \"delete\", \"data\": { \"target\": [m.id] } }) + tasks.filter(t, t.facts != null && has(t.facts.exit_key) && t.facts.exit_key != (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")).map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The exit it answered was changed on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } }) + exit_pay.filter(e, e.facts != null && has(e.facts.source) && string(e.facts.source).startsWith(\"exit:\" + event.row.id + \":\") && !((event.row.effective_range.to != null && has(event.row.exit_ground) && event.row.exit_ground != null && event.row.exit_ground != \"\" ? string(event.row.effective_range.to) + \"/\" + event.row.exit_ground : \"\") != \"\" && string(e.facts.source).endsWith(\":\" + (event.row.effective_range.to != null && has(event.row.exit_ground) && event.row.exit_ground != null && event.row.exit_ground != \"\" ? string(event.row.effective_range.to) + \"/\" + event.row.exit_ground : \"\")))).map(e, { \"collection\": \"adhoc_catalog_entry\", \"operation\": \"delete\", \"data\": { \"target\": [e.id] } })"
+	},
+	{
+		"id": "23e66545-4aeb-5531-a658-35b77c0e98e1",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "encash-leave-on-exit",
+		"order": 300,
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"when": "event.row.exit_facts != null && event.row.effective_range.to != null",
+		"fields": ["exit_facts", "effective_range"],
+		"reads": {
+			"catalogues": {
+				"collection": "leave_catalog",
+				"where": {
+					"settings_id": {
+						"eq": "event.settings_id"
+					},
+					"encash_on_exit": {
+						"eq": true
+					}
+				},
+				"select": ["id", "code", "unit", "entitlement"]
+			},
+			"movements": {
+				"collection": "leave_catalog_entry",
+				"where": {
+					"employment_id": {
+						"eq": "event.row.id"
+					}
+				},
+				"select": ["catalog_id", "activity", "days", "reference"]
+			}
+		},
+		"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.remaining))) } }).filter(w, w.data.days > 0)"
+	},
+	{
+		"id": "83fc9acb-85fe-5f0d-a3f1-ac07921738fc",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "SI_HI_UI_MONTHLY_REMITTANCE",
+		"name": "SI_HI_UI_MONTHLY_REMITTANCE",
+		"order": 401,
+		"references": [
+			{
+				"title": "Law 41/2024/QH15 arts.13(4), 34(4)(a), 40(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law 74/2025/QH15 art.33(2)–(3): UI is paid at the time SI is paid https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Deduct the employee shares of SI, HI and UI from the salary and remit them with the employer shares; late payment carries 0.03% a day. The engine computes the employee and employer SI, HI and UI shares on each payslip; the remittance is outside it. When: Each contribution month. Due: By the last day of the month following the contribution month.",
+			"schemes": ["SI", "HI", "UI"],
+			"due": "month_end(add_months(period.from, 1))"
+		}
+	},
+	{
+		"id": "59107a3d-3031-5961-a899-406437f92ef2",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "PIT_WITHHOLDING_DECLARATION",
+		"name": "PIT_WITHHOLDING_DECLARATION",
+		"order": 402,
+		"references": [
+			{
+				"title": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) (monthly by the 20th of the next month; quarterly by the last day of the first month of the next quarter), art.55(1) (payment by the filing deadline), art.59 (late-payment interest 0.03% a day); Decree 126/2020/NĐ-CP arts.8(1), 9 (monthly, or quarterly for an employer eligible to file VAT quarterly)"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Declare and pay the PIT withheld from salaries (form 05/KK-TNCN). Engine: the monthly withholding is computed; the declaration and payment are outside. When: Each month (or quarter) in which PIT was withheld. Due: Monthly by the 20th of the following month, or quarterly by the last day of the first month of the following quarter; payment by the same day.",
+			"schemes": ["PIT"],
+			"due": "(has(company.facts.pit_quarterly_filer) && company.facts.pit_quarterly_filer == true) ? month_end(add_months(month_start(period.from), 3 - (int(period.from.substring(5, 7)) - 1) % 3)) : add_days(period.to, 20)"
+		}
+	},
+	{
+		"id": "e59b3a9e-b224-590f-867d-9912c3196b1f",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "UNION_FEE_REMITTANCE",
+		"name": "UNION_FEE_REMITTANCE",
+		"order": 403,
+		"references": [
+			{
+				"title": "Law on Trade Unions 50/2024/QH15",
+				"locator": "art.29(1)(b), (2)",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm"
+			},
+			{
+				"title": "Decree 191/2013/NĐ-CP",
+				"locator": "arts.5–6"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Pay the trade union fee (kinh phí công đoàn) of 2% of the SI salary fund, whether or not a grassroots union exists. Engine: UNION_FEE computes 2% of the insured salaries as one company line; the payment is outside. When: Each contribution month. Due: Monthly, at the same time as compulsory SI (Decree 191/2013/NĐ-CP art.6)",
+			"schemes": ["UNION_FEE"],
+			"due": "month_end(add_months(period.from, 1))"
+		}
+	},
+	{
+		"id": "825eadf3-b1df-53a7-8b34-1e24fc6dd9d2",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "UNION_DUES_TRANSFER",
+		"name": "UNION_DUES_TRANSFER",
+		"order": 404,
+		"references": [
+			{
+				"title": "Law on Trade Unions 50/2024/QH15",
+				"locator": "art.29(1)(a)",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm"
+			},
+			{
+				"title": "Quyết định 61/QĐ-TLĐ, in force 1 July 2025",
+				"url": "https://pbgdpl.cantho.gov.vn/quyet-dinh-61qd-tld-ve-dieu-chinh-giam-muc-dong-doan-phi-cong-doan"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Deduct the dues of union members who so authorise and transfer them to the grassroots union: 0.5% of the SI salary, capped at 10% of the base salary. Engine: UNION_DUES deducts the dues where the `union_member` election is true; the transfer is outside. When: A union member on payroll. Due: Each month.",
+			"schemes": ["UNION_DUES"],
+			"due": "add_days(period.to, 0)"
+		}
+	},
+	{
+		"id": "414906bb-cf1b-560b-b998-e0bbe1304e31",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "encash-leave-at-window-end",
+		"order": 500,
+		"target_collection": "calendar",
+		"events": ["daily"],
+		"when": "size(event.leave_balances) > 0",
+		"reads": {
+			"catalogues": {
+				"collection": "leave_catalog",
+				"where": {
+					"settings_id": {
+						"eq": "event.settings_id"
+					},
+					"encash_at_window_end": {
+						"eq": true
+					}
+				},
+				"select": ["id", "code"]
+			},
+			"movements": {
+				"collection": "leave_catalog_entry",
+				"where": {
+					"employment_id": {
+						"eq": "event.row.id"
+					},
+					"activity": {
+						"eq": "\"ENCASHMENT\""
+					}
+				},
+				"select": ["reference"]
+			}
+		},
+		"effect": "catalogues.filter(c, !movements.exists(m, m.reference == \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.day, \"activity\": \"ENCASHMENT\", \"reference\": \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code && b.window_to == event.day).map(b, b.remaining))) } }).filter(w, w.data.days > 0)"
+	},
+	{
+		"id": "db8dbe9a-1cee-5087-9a9d-d1e2ce8980fa",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "SI_HI_UI_REGISTRATION",
+		"name": "SI_HI_UI_REGISTRATION",
+		"order": 601,
+		"references": [
+			{
+				"title": "Law on Social Insurance 41/2024/QH15 arts.13(1), 28(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law on Employment 74/2025/QH15 art.32(1): UI registration is made together with the compulsory SI registration https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Register each employee for compulsory social, health and unemployment insurance with Vietnam Social Security (the SI book is issued on it). When: An employee becomes a compulsory participant: a labour contract of one month or more; a foreigner on a contract of twelve months or more. Due: Within 30 days of the day the employee becomes a compulsory participant.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"due": "add_days(hired_on, 30)"
+		}
+	},
+	{
+		"id": "3dbf83a5-6f2b-5daa-aff5-4e8a18c8ebd6",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "SI_HI_UI_CHANGE_DECLARATION",
+		"name": "SI_HI_UI_CHANGE_DECLARATION",
+		"order": 602,
+		"references": [
+			{
+				"title": "Law 41/2024/QH15",
+				"locator": "arts.29(1), 33(5), 34(3)",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Declare changes to a participant's registration: salary changes, suspension for 14 or more unpaid working days, departure. When: A change in the registered information or in the contribution status. Due: When the change occurs, before the month's contribution is settled.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"due": "month_end(add_months(period.from, 1))"
+		}
+	},
+	{
+		"id": "41c8f0b0-de61-5064-990b-4477c87b6c18",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "SI_BENEFIT_CLAIMS",
+		"name": "SI_BENEFIT_CLAIMS",
+		"order": 603,
+		"references": [
+			{
+				"title": "Law 41/2024/QH15",
+				"locator": "arts.13(2), 48(1)–(2), 62(1)",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
+			}
+		],
+		"target_collection": "leave_catalog_entry",
+		"events": ["created"],
+		"definition": {
+			"description": "Compile sickness and maternity benefit claims for Vietnam Social Security; the fund, not payroll, pays the benefit. When: An employee returns from fund-paid sickness or maternity leave and hands in the claim file (within 45 days). Due: Within 7 working days of receiving the complete file from the employee. Engine: raised when a sick, maternity or paternity entry is recorded, due 7 working days after the leave ends (the earliest the file can be complete: never later than the law).",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"events": ["created"]
+			},
+			"due": "add_working_days(has(row.to) && row.to != null ? row.to : today, 7, holidays, [\"SATURDAY\", \"SUNDAY\"])",
+			"when": "row.catalog_code in [\"SICK_LEAVE\", \"MATERNITY_LEAVE\", \"PATERNITY_LEAVE\"]"
+		}
+	},
+	{
+		"id": "82b291f4-0d1d-5e31-be59-be9b16452065",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "INSURANCE_EQUIVALENT_PAYMENT",
+		"name": "INSURANCE_EQUIVALENT_PAYMENT",
+		"order": 604,
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.168(3)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Pay an employee outside compulsory SI, HI and UI an amount equal to the employer's contributions with each wage. Engine: the INSURANCE_EQUIVALENT allowance class prices it each month once HR raises the standing row. When: An employee who is not a compulsory participant. Due: With each wage payment.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"due": "add_days(period.to, 0)"
+		}
+	},
+	{
+		"id": "845c852e-ff5d-53ce-8c57-23554d09a657",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "LABOUR_CONTRACT",
+		"name": "LABOUR_CONTRACT",
+		"order": 605,
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "arts.13(2), 14(1), 21(1)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Conclude a written labour contract, in two copies, with the content art.21 requires, before the employee starts work. When: Hiring for work of one month or more. Due: Before the employee starts work.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"due": "add_days(hired_on, 0)"
+		}
+	},
+	{
+		"id": "fbcd9406-1abc-5e5a-a39b-ee62189ed872",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "LABOUR_MANAGEMENT_BOOK",
+		"name": "LABOUR_MANAGEMENT_BOOK",
+		"order": 606,
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.12(1)"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP",
+				"locator": "art.3",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Keep the labour management book (paper or electronic) and produce it to the authorities on request. When: Each employee from the day work starts. Due: From the first day of work, updated on every change.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"due": "add_days(hired_on, 0)"
+		}
+	},
+	{
+		"id": "6b2d6583-36f6-50c6-b360-51a535ca1a4f",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "LABOUR_USE_REPORT",
+		"name": "LABOUR_USE_REPORT",
+		"order": 607,
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.12(2)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP",
+				"locator": "art.4(1)–(2)",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Declare the use of labour on starting operations and report changes in labour to the provincial labour authority, notifying Social Security. When: Start of operations; each half-year and year. Due: Declaration within 30 days of starting operations; half-yearly report before 5 June and annual report before 5 December (form 01/PLI, National Public Service Portal).",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["05", "11"],
+			"due": "add_days(period.to, 4)"
+		}
+	},
+	{
+		"id": "eb8cbf78-0556-5c27-9c32-0be6e74be27c",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "INTERNAL_LABOUR_RULES",
+		"name": "INTERNAL_LABOUR_RULES",
+		"order": 608,
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "arts.118, 119(1)–(2)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Issue written internal labour rules and register them with the provincial labour authority. When: An employer using 10 or more employees. Due: File the registration within 10 days of issuing the rules. Engine: raised each December while the entity has 10 or more contracts in force.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["12"],
+			"due": "add_days(period.to, 0)",
+			"applies_when": "headcount >= 10"
+		}
+	},
+	{
+		"id": "30beeeb6-6110-5475-a3ac-4d178c326743",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "WAGE_SCALE_AND_NORMS",
+		"name": "WAGE_SCALE_AND_NORMS",
+		"order": 609,
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.93",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Build the salary scale, pay table and labour norms, consult the employee representative organisation, and post them at the workplace. When: Before applying a salary scale or a change to it. Due: Published at the workplace before implementation.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["12"],
+			"due": "add_days(period.to, 0)"
+		}
+	},
+	{
+		"id": "081e94ce-658e-50c1-8f11-68cf57858ca2",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "MINIMUM_WAGE",
+		"name": "MINIMUM_WAGE",
+		"order": 610,
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.91"
+			},
+			{
+				"title": "Decree 293/2025/NĐ-CP from 1 January 2026 (5,310,000 / 4,730,000 / 4,140,000 / 3,700,000 a month; 25,500 / 22,700 / 20,000 / 17,800 an hour)",
+				"url": "https://xaydungchinhsach.chinhphu.vn/nghi-dinh-so-293-2025-nd-cp-quy-dinh-muc-luong-toi-thieu-doi-voi-nguoi-lao-dong-lam-viec-theo-hop-dong-lao-dong-119251110172808433.htm"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Pay a covered employee at least the regional minimum wage — monthly for monthly-paid work, hourly for hourly-paid work. Engine: the run warns on a contract below the monthly regional table; an hourly-paid contract is refused below the regional hourly minimum on its term fact hourly_rate (HOURLY_MINIMUM_WAGE, Decree 293/2025 art.3(2)); a part-time contract without an hourly rate is compared on the monthly table. When: Each wage agreement and payment. Due: Continuously; the version's regional table.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"due": "add_days(period.to, 0)"
+		}
+	},
+	{
+		"id": "c46f5fec-4701-59cb-bef3-5ab910057683",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "WAGE_PAYMENT_TIMING",
+		"name": "WAGE_PAYMENT_TIMING",
+		"order": 611,
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "arts.94(1), 97",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Pay wages directly, in full and on time: monthly or half-monthly on a fixed periodic date; hourly, daily or weekly wages at most every 15 days. Engine: the run pays on the operator's pay date; periodicity and the late-payment interest are not checked. When: Each pay period. Due: On the agreed periodic date; a delay caused by force majeure may not exceed 30 days, and a delay of 15 days or more owes interest at the bank's one-month deposit rate.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"due": "add_days(period.to, 0)"
+		}
+	},
+	{
+		"id": "9a82ff13-d606-5971-9e09-08aca22c8529",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "WAGE_STATEMENT",
+		"name": "WAGE_STATEMENT",
+		"order": 612,
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.95(3)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Give the employee a wage statement at every payment showing the salary, overtime pay, night pay and each deduction with its amount. Engine: the payslip carries the salary, overtime, night-premium and deduction lines. When: Each wage payment. Due: At each payment.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"due": "add_days(period.to, 0)"
+		}
+	},
+	{
+		"id": "ad6e617c-8f92-5fd8-b0dc-76a872f92194",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "WAGE_DEDUCTION_LIMIT",
+		"name": "WAGE_DEDUCTION_LIMIT",
+		"order": 613,
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "arts.102, 129",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Deduct from wages only to compensate damage to the employer's tools, equipment or property, tell the employee why, and keep the monthly deduction within 30% of the wage actually paid after SI, HI, UI and PIT. When: A damage-compensation deduction. Due: Each month the deduction runs.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"due": "add_days(period.to, 0)"
+		}
+	},
+	{
+		"id": "80839337-fb18-5f8a-b6d0-d90e9b37651d",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "OVERTIME_CONSENT_AND_LIMITS",
+		"name": "OVERTIME_CONSENT_AND_LIMITS",
+		"order": 614,
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.107(2)–(4)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP",
+				"locator": "arts.59–62",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Obtain the employee's consent to overtime and keep it within 50% of the normal day (12 hours in total under a weekly regime), 40 hours a month and 200 hours a year (300 in the listed sectors and cases); notify the provincial labour authority in writing when organising overtime above 200 hours. Engine: the daily, monthly and yearly limits are work-rule warnings; consent and the notice are not recorded. When: Any overtime; overtime above 200 hours a year. Due: Consent before the overtime; the written notice when the above-200-hour overtime is organised.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"due": "add_days(period.to, 0)"
+		}
+	},
+	{
+		"id": "57a3a8cf-f25a-5ada-a11a-c7713faaffb4",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "NIGHT_OVERTIME_STATEMENT",
+		"name": "NIGHT_OVERTIME_STATEMENT",
+		"order": 615,
+		"references": [
+			{
+				"title": "Decree 253/2026/NĐ-CP art.26(1) paragraph 2, applied to resident salary income from tax year 2026 by art.69(1)(a)",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Keep a statement of the night and overtime hours worked and the pay for them, to support the PIT exemption, and produce it to the tax authority on request. Engine: the payslip lines carry each day's overtime and night hours and amounts; a separate statement is not produced. When: Night work or overtime paid. Due: Kept with the payroll records for each period.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"due": "add_days(period.to, 0)"
+		}
+	},
+	{
+		"id": "df46f1e3-6367-5128-9584-19a0c26bdc38",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "ANNUAL_LEAVE_SCHEDULE",
+		"name": "ANNUAL_LEAVE_SCHEDULE",
+		"order": 616,
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.113(3)–(4)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP",
+				"locator": "art.67",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Set the annual-leave schedule after consulting employees and notify it in advance; pay untaken leave on termination. Engine: untaken leave is encashed on exit; the schedule is outside. When: Each leave year; termination with untaken leave. Due: Schedule notified before the leave; untaken leave paid with the final settlement.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["01"],
+			"due": "add_days(period.to, 0)"
+		}
+	},
+	{
+		"id": "251d1771-2d3e-55f2-970d-7d6da5dba0a2",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "WORKPLACE_DIALOGUE",
+		"name": "WORKPLACE_DIALOGUE",
+		"order": 617,
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.63(2)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Hold workplace dialogue with employees or their representative organisation. When: Periodically; on request; on the art.63(2)(c) events (restructuring, pay scale, bonus rules, internal rules). Due: At least once a year, and when an art.63(2)(b)–(c) event arises.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["12"],
+			"due": "add_days(period.to, 0)"
+		}
+	},
+	{
+		"id": "1856c878-38b9-5f73-aa61-b4c86d1f7196",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "TERMINATION_NOTICE",
+		"name": "TERMINATION_NOTICE",
+		"order": 618,
+		"references": [
+			{
+				"title": "Labour Code 2019 arts.36(2), 45(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.7 (special roles: 120 days / a quarter of the term) https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf p.6"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Give written notice of the end of a labour contract, and the notice period for an employer's unilateral termination. When: The contract ends (other than art.34(4)–(8)); a unilateral termination under art.36(1)(a), (b), (c), (đ), (g). Due: Notice at least 45 days (indefinite contract), 30 days (12–36 months), 3 working days (under 12 months, or long illness). Engine: the notice by the contract’s term — 45 days for an indefinite (INDEFINITE, or PERMANENT with no contract_type), 30 for an agreed term of 12–36 months, 3 working days (Sunday the weekly rest) for one under 12 months; an unrecorded term gives the longest, 45. A long illness (exit fact long_illness, art.36(1)(b)) takes 3 working days whatever the term (art.36(2)(c)). A special-role contract (contract-term fact special_role_notice: an enterprise manager, aircrew, aircraft maintenance staff, ship crew and the other roles of Decree 145/2020 art.7) takes at least 120 days for an indefinite or 12-month-plus contract and a quarter of the agreed term, rounded up to a whole day, for a shorter one (art.36(2)(d)). No notice duty arises on imprisonment or an employer closure (art.34(4), (7)).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "!(contract.exit_ground in [\"DEATH\", \"DISMISSAL\", \"EMPLOYER_CLOSURE\", \"IMPRISONMENT\"])",
+			"due": "contract.exit_ground == \"UNILATERAL\" ? ((contract.exit_facts != null && has(contract.exit_facts.long_illness) && contract.exit_facts.long_illness == true) ? add_working_days(exit_on, -3, holidays, [\"SUNDAY\"]) : (has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.special_role_notice) && t.facts.special_role_notice == true) ? ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, ((has(t.facts) && has(t.facts.contract_type)) && t.facts.contract_type == \"INDEFINITE\") || (!(has(t.facts) && has(t.facts.contract_type)) && has(t.employment_type) && t.employment_type == \"PERMANENT\")) ? add_days(exit_on, -120) : ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) < 12.0) && !(has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) >= 12.0)) ? add_days(exit_on, -int(round(double(calendar_distance_days(add_months(exit_on, -int(first((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.facts) && has(t.facts.agreed_term_months)).map(t, double(t.facts.agreed_term_months))))), exit_on)) / 4.0, 1.0, \"UP\"))) : add_days(exit_on, -120)) : (has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, ((has(t.facts) && has(t.facts.contract_type)) && t.facts.contract_type == \"INDEFINITE\") || (!(has(t.facts) && has(t.facts.contract_type)) && has(t.employment_type) && t.employment_type == \"PERMANENT\")) ? add_days(exit_on, -45) : ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) < 12.0) && !(has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) >= 12.0) ? add_working_days(exit_on, -3, holidays, [\"SUNDAY\"]) : ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) >= 12.0) ? add_days(exit_on, -30) : add_days(exit_on, -45)))) : add_days(exit_on, 0)"
+		}
+	},
+	{
+		"id": "2b836e96-7dc2-549c-9f3f-196c027151a4",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "RESTRUCTURING_LABOUR_PLAN",
+		"name": "RESTRUCTURING_LABOUR_PLAN",
+		"order": 619,
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "arts.42(3)–(6), 44",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Where restructuring, technological change or economic reasons affect many employees, adopt a labour-use plan, consult the representative organisation and notify before dismissal. When: Dismissals for restructuring, technology or economic reasons (art.42), or on a merger, division or sale (art.43). Due: 30 days' notice to the provincial People's Committee and to the employees before the dismissals.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "contract.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]",
+			"due": "add_days(exit_on, -30)"
+		}
+	},
+	{
+		"id": "c6e77e46-93f0-5208-af1f-79e432d58ed0",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "FINAL_SETTLEMENT",
+		"name": "FINAL_SETTLEMENT",
+		"order": 620,
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "arts.46, 47, 48(1)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP",
+				"locator": "art.8",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Settle every amount due to the leaver: final wages, untaken leave, severance or job-loss allowance. Engine: the run prices final pay, encashment and the separation allowances and warns when paid after final_pay_deadlines. When: Termination of the labour contract. Due: Within 14 working days of termination; up to 30 days in the cases of art.48(1)(a)–(d).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "(has(contract.exit_facts.final_settlement_extended) && contract.exit_facts.final_settlement_extended == true) ? add_days(exit_on, 30) : add_working_days(exit_on, 14, holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "88a36977-57a4-5dd4-8dc2-71bab96f77d0",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "SI_CONFIRMATION_ON_TERMINATION",
+		"name": "SI_CONFIRMATION_ON_TERMINATION",
+		"order": 621,
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.48(3)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Law 41/2024/QH15",
+				"locator": "art.13(3)",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Complete the confirmation of the SI and UI contribution periods and return the SI book and any original documents held; provide copies of work records on request. When: Termination of the labour contract. Due: Within the art.48(1) settlement period.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "(has(contract.exit_facts.final_settlement_extended) && contract.exit_facts.final_settlement_extended == true) ? add_days(exit_on, 30) : add_working_days(exit_on, 14, holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "d2278610-52f3-5e67-b4e4-223574478d87",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "PIT_TAX_REGISTRATION",
+		"name": "PIT_TAX_REGISTRATION",
+		"order": 622,
+		"references": [
+			{
+				"title": "Law 38/2019/QH14 art.33: the income payer registers tax on behalf of an employee (and the dependants the employee declares) within 10 working days of the obligation arising; Circular 86/2024/TT-BTC: the personal identification number is the tax code from 1 July 2025"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Register the tax code of an employee without one, and the dependants the employee declares for family deduction, on the employee's authorisation. When: First salary payment to an employee without a tax code; a dependant declaration. Due: Within 10 working days of the tax obligation arising.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"due": "add_days(hired_on, 10)"
+		}
+	},
+	{
+		"id": "5a007513-33ce-54db-af43-036df4c11785",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "PIT_SHORT_CONTRACT_COMMITMENT",
+		"name": "PIT_SHORT_CONTRACT_COMMITMENT",
+		"order": 623,
+		"references": [
+			{
+				"title": "Decree 253/2026/NĐ-CP",
+				"locator": "art.50(2)",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Keep the employee's commitment form (08/CK-TNCN) that suspends the 10% withholding on a contract under three months, and report the income in the finalisation. Engine: the PIT `commitment_form` election suspends the 10% rule; the signed form is kept outside. When: A resident on no contract or a contract under three months who expects income below the taxable threshold. Due: Before the payment that is not withheld.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"due": "add_days(period.to, 0)"
+		}
+	},
+	{
+		"id": "279ff8dc-347d-5377-99a6-9656dfae12f4",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "PIT_ANNUAL_FINALISATION",
+		"name": "PIT_ANNUAL_FINALISATION",
+		"order": 624,
+		"references": [
+			{
+				"title": "Law 38/2019/QH14 art.44(2)(a): an organisation's annual finalisation by the last day of the third month after the calendar year; Decree 126/2020/NĐ-CP art.8(6)(d): finalisation on behalf of an employee on a contract of three months or more who authorises it"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "File the employer's annual PIT finalisation (05/QTT-TNCN with its schedules), finalising on behalf of each employee who authorises it. Engine: the last-of-year rule trues up the year's withholding on the annual table; the authorisation and the filing are outside. When: End of the tax year. Due: By the last day of the third month after the tax year (31 March).",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["12"],
+			"due": "month_end(add_months(period.from, 3))"
+		}
+	},
+	{
+		"id": "c8b2bc14-5c06-5763-8b87-ef8f298bfd12",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "PIT_WITHHOLDING_CERTIFICATE",
+		"name": "PIT_WITHHOLDING_CERTIFICATE",
+		"order": 625,
+		"references": [
+			{
+				"title": "Decree 123/2020/NĐ-CP arts.31–32 as amended by Decree 70/2025/NĐ-CP (electronic withholding certificates)"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Issue the employee a PIT withholding certificate for the tax withheld. When: The employee requests it; an employee who has not authorised the employer to finalise. Due: On request.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "add_days(exit_on, 0)"
+		}
+	},
+	{
+		"id": "c312fc67-0c82-5c55-b46d-b91dd5cb3f02",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "FOREIGN_WORK_PERMIT",
+		"name": "FOREIGN_WORK_PERMIT",
+		"order": 626,
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "arts.151–155",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 219/2025/NĐ-CP (in force 7 August 2025)",
+				"url": "https://vanban.chinhphu.vn/?pageid=27160&docid=214840"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Obtain a work permit (with the integrated approval of the demand for foreign labour) or a certificate of exemption before a foreign employee starts work; the contract term may not exceed the permit. When: Hiring or extending a foreign employee. Due: Before the employee starts work; renewal before the permit expires.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"applies_when": "!(employee.nationality in [\"VN\", \"VNM\", \"VIETNAM\", \"VIETNAMESE\", \"Vietnam\", \"Vietnamese\"])",
+			"due": "add_days(hired_on, 0)"
+		}
+	},
+	{
+		"id": "83dcb6d0-0b7e-5ada-81c9-2a2a34cc70cb",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "WORK_PERMIT_EXTENSION",
+		"name": "WORK_PERMIT_EXTENSION",
+		"order": 627,
+		"references": [
+			{
+				"title": "Decree 219/2025/NĐ-CP arts.27(1), 28(1), 29 (in force 7 August 2025), Official Gazette Công báo 1073+1074 of 20 August 2025",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2025/8/45798/58141-1-20251073-1074219-2025-nd-cp.pdf"
+			}
+		],
+		"target_collection": "calendar",
+		"events": ["daily"],
+		"definition": {
+			"description": "Apply to extend a foreign employee's work permit at least 10 and at most 45 days before it expires, with the report explaining the continued need for foreign labour (Form 03). A permit is extended once, for at most two years. Raised by the daily tick 45 days before the permit's expiry (terms fact work_permit_valid_until); due 10 days before it.",
+			"trigger": {
+				"collection": "calendar",
+				"events": ["daily"]
+			},
+			"when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && t.facts != null && has(t.facts.work_permit_valid_until) && add_days(t.facts.work_permit_valid_until, -45) == today)",
+			"due": "add_days(first(contract.facts.contract_terms.filter(t, has(t.facts) && t.facts != null && has(t.facts.work_permit_valid_until) && add_days(t.facts.work_permit_valid_until, -45) == today)).facts.work_permit_valid_until, -10)"
+		}
+	},
+	{
+		"id": "f008ddad-c8df-58c0-a4ba-945234c485aa",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "WORK_PERMIT_RETURN",
+		"name": "WORK_PERMIT_RETURN",
+		"order": 628,
+		"references": [
+			{
+				"title": "Decree 219/2025/NĐ-CP",
+				"locator": "arts.30(1), 31(1)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2025/8/45798/58141-1-20251073-1074219-2025-nd-cp.pdf"
+			},
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.156(2)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "The work permit lapses when the labour contract ends (Labour Code art.156(2)): within 15 days the employer recovers it and returns it to the authority that issued it, with a written report of the case (or the reason it could not be recovered). Raised on the exit of an employee whose terms record a work permit (work_permit_valid_until); an exemption certificate is not revoked on this ground (art.32).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && t.facts != null && has(t.facts.work_permit_valid_until))",
+			"due": "add_days(exit_on, 15)"
+		}
+	},
+	{
+		"id": "ce166521-a697-5451-afd5-06bb1a667ffa",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "OCCUPATIONAL_HEALTH_CHECK",
+		"name": "OCCUPATIONAL_HEALTH_CHECK",
+		"order": 629,
+		"references": [
+			{
+				"title": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.21(1); art.21(2): workers in jobs exposed to occupational disease are also examined for it (Decree 44/2016/NĐ-CP)."
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Arrange periodic health checks for employees. When: Each year; every six months for heavy, hazardous or dangerous work, minors, the disabled and the elderly. Due: At least once a year (twice for the listed groups).",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["06", "12"],
+			"applies_when": "period.key.endsWith(\"-12\") || (has(company.facts.six_monthly_health_checks) && company.facts.six_monthly_health_checks == true)",
+			"due": "add_days(period.to, 0)"
+		}
+	},
+	{
+		"id": "4c579aab-16ff-55b2-ad12-d6f62e39d9b8",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "OCCUPATIONAL_ACCIDENT_REPORT",
+		"name": "OCCUPATIONAL_ACCIDENT_REPORT",
+		"order": 630,
+		"references": [
+			{
+				"title": "Law on Occupational Safety and Hygiene 84/2015/QH13",
+				"locator": "art.36"
+			},
+			{
+				"title": "Decree 39/2016/NĐ-CP art.24(1) (Công báo 397+398 of 21 June 2016)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2016/5/19831/14231-1-392016nd-cp14302pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Send the summary report on occupational accidents (form Appendix XII), with or without accidents in the period, to the provincial labour authority where the head office is: before 5 July for the first half-year and before 10 January for the year. Raised with the June and December runs.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["06", "12"],
+			"due": "period.key.endsWith(\"-06\") ? add_days(period.to, 4) : add_days(period.to, 9)"
+		}
+	},
+	{
+		"id": "39fc16b7-fc3c-5373-a1fb-97d31f165e85",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "OSH_ANNUAL_REPORT",
+		"name": "OSH_ANNUAL_REPORT",
+		"order": 631,
+		"references": [
+			{
+				"title": "Circular 07/2016/TT-BLĐTBXH art.10(1)–(2) (Công báo 797+798 of 8 July 2016)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2016/5/20377/14868-1-072016tt-bldtbxh14949pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Send the annual report on occupational safety and hygiene work (form Appendix II) to the provincial labour authority and the Department of Health before 10 January of the next year, from the OSH statistics book the employer keeps. Raised with the December run.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["12"],
+			"due": "add_days(period.to, 9)"
+		}
+	},
+	{
+		"id": "ed22466b-633a-5263-96e1-6fb19bf2c155",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "RECORD_RETENTION",
+		"name": "RECORD_RETENTION",
+		"order": 632,
+		"references": [
+			{
+				"title": "Accounting Law 88/2015/QH13",
+				"locator": "art.41(3),(5)(a)-(b)"
+			},
+			{
+				"title": "Decree 174/2016/NĐ-CP",
+				"locator": "arts.12(1)-(2), 13(1), 15(1)"
+			},
+			{
+				"title": "Law on Personal Data Protection 91/2025/QH15, in force 1 January 2026"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Retain payroll sheets, timesheets and supporting accounting documents according to their accounting use; protect employee personal data under the data-protection law. When: Each payroll period. Due: Archive within 12 months after the accounting year or accounting task ends. Retain documents used directly for bookkeeping and financial statements at least 10 years; management-only accounting documents at least 5 years, measured from accounting year end.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["12"],
+			"due": "add_months(period.to, 12)"
+		}
+	},
+	{
+		"id": "5f77eb26-cd89-5cb3-86bb-2b4a90cf9155",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "PDPL_CONSENT",
+		"name": "PDPL_CONSENT",
+		"order": 633,
+		"references": [
+			{
+				"title": "Law on Personal Data Protection 91/2025/QH15 arts.9, 10, 19 (in force 1 January 2026, art.38(1)) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803); Decree 356/2025/NĐ-CP (https://vanban.chinhphu.vn/?pageid=27160&docid=216387); consents given under Decree 13/2023 remain valid (art.39(1))"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Process an employee's personal data only with their consent, given voluntarily, informed of the data types, purpose, controller and rights, expressed in a verifiable form (written or electronic), for each purpose separately; silence is not consent; consent may be withdrawn or processing restricted on request. Processing without consent is limited to the cases in art.19. When: Collection or processing of a candidate's or employee's personal data. Due: Before processing",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"due": "add_days(hired_on, 0)"
+		}
+	},
+	{
+		"id": "3048f728-cb9c-59dd-91dd-90075d6b9c75",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "PDPL_RECRUITMENT_AND_EMPLOYMENT",
+		"name": "PDPL_RECRUITMENT_AND_EMPLOYMENT",
+		"order": 634,
+		"references": [
+			{
+				"title": "Law on Personal Data Protection 91/2025/QH15",
+				"locator": "art.25",
+				"url": "https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Request from candidates only information that serves recruitment and use it only for that purpose (with consent); delete a rejected candidate's data unless agreed otherwise; keep employee data for the period set by law or agreement; delete it when the contract ends unless law or agreement requires otherwise; use technical monitoring of employees only where lawful and made known to them. When: Recruitment, employment, contract termination, or technical monitoring of employees. Due: Candidate data: on the recruitment decision; employee data: on termination, subject to statutory retention",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "add_days(exit_on, 0)"
+		}
+	},
+	{
+		"id": "bbd5f242-fa78-5f94-a88b-b822bb8cdd5e",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "PDPL_IMPACT_ASSESSMENT",
+		"name": "PDPL_IMPACT_ASSESSMENT",
+		"order": 635,
+		"references": [
+			{
+				"title": "Law on Personal Data Protection 91/2025/QH15",
+				"locator": "arts.20, 21, 22, 38(2)–(3), 39(2)",
+				"url": "https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803"
+			},
+			{
+				"title": "Decree 356/2025/NĐ-CP",
+				"url": "https://vanban.chinhphu.vn/?pageid=27160&docid=216387"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Prepare and keep a personal data processing impact assessment dossier and send one original to the specialised personal data protection agency (Ministry of Public Security); update it every 6 months when it changes, or immediately on reorganisation, a change of the data-protection service provider, or a change of business lines related to processing. A cross-border transfer impact assessment is also required, except for storing employees' data on cloud services (art.20(6)(b)). Small enterprises and startups may opt out for 5 years from 1 January 2026, and household businesses and micro-enterprises are exempt, unless they process sensitive or large-volume data. When: Start of personal data processing (and any cross-border transfer). Due: Within 60 days from the start of processing; updates as stated",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["06", "12"],
+			"applies_when": "!(has(company.facts.pdpl_exempt) && company.facts.pdpl_exempt == true)",
+			"due": "add_days(period.to, 0)"
+		}
+	},
+	{
+		"id": "1288aa2b-b8f0-5946-afa4-4a5b71a02e31",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "PDPL_BREACH_NOTIFICATION",
+		"name": "PDPL_BREACH_NOTIFICATION",
+		"order": 636,
+		"references": [
+			{
+				"title": "Law on Personal Data Protection 91/2025/QH15",
+				"locator": "art.23",
+				"url": "https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803"
+			},
+			{
+				"title": "Decree 356/2025/NĐ-CP",
+				"url": "https://vanban.chinhphu.vn/?pageid=27160&docid=216387"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "On discovering a violation of personal data protection rules that may harm national defence, security or social order, or infringe the life, health, honour, dignity or property of data subjects, notify the specialised personal data protection agency and record the violation in minutes; a processor that discovers a violation must promptly inform the controller. Decree 356/2025 adds notice to data subjects for location and biometric data. When: A PERSONAL_DATA_BREACH workplace case is opened on the day of discovery of a personal data protection violation. Due: 72 hours (three days after the case opens) from discovery",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"due": "add_days(row.opened_on, 3)",
+			"when": "row.kind == \"PERSONAL_DATA_BREACH\""
+		}
+	},
+	{
+		"id": "ead53d52-d6ad-5411-9756-520434fff35d",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "PDPL_DATA_PROTECTION_PERSONNEL",
+		"name": "PDPL_DATA_PROTECTION_PERSONNEL",
+		"order": 637,
+		"references": [
+			{
+				"title": "Law on Personal Data Protection 91/2025/QH15",
+				"locator": "arts.33(2), 38(2)–(3)",
+				"url": "https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Designate a department or personnel qualified in personal data protection, or engage a licensed personal data protection service provider. Small enterprises and startups may opt out for 5 years from 1 January 2026, and household businesses and micro-enterprises are exempt, unless they process sensitive or large-volume data. When: The employer processes personal data. Due: Continuous",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["12"],
+			"applies_when": "!(has(company.facts.pdpl_exempt) && company.facts.pdpl_exempt == true)",
+			"due": "add_days(period.to, 0)"
+		}
+	},
+	{
+		"id": "16e9638e-da8c-5aed-8803-8839a9e4557d",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "LABOUR_USE_DECLARATION",
+		"name": "LABOUR_USE_DECLARATION",
+		"order": 638,
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.12(2): within 30 days of starting operations; Decree 145/2020/NĐ-CP art.4(1). Engine: raised when the entity is created, due 30 days from the first day of that month (never later than the law)."
+			}
+		],
+		"target_collection": "entity",
+		"events": ["created"],
+		"definition": {
+			"description": "Declare the use of labour to the provincial labour authority on starting operations (through the business-registration procedure of Decree 122/2020).",
+			"trigger": {
+				"collection": "entity",
+				"events": ["created"]
+			},
+			"due": "add_days(period.from, 30)"
+		}
+	},
+	{
+		"id": "ada07c40-94dc-530c-ba69-3ee41975f47c",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "FOREIGN_EXIT_PIT_FINALISATION",
+		"name": "FOREIGN_EXIT_PIT_FINALISATION",
+		"order": 639,
+		"references": [
+			{
+				"title": "Circular 111/2013/TT-BTC art.25(1)(c) and Decree 126/2020/NĐ-CP art.8(6)(d): a foreigner ending the contract finalises before exit."
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "A foreign resident ending the assignment finalises PIT before leaving Vietnam, directly or by authorising the employer.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "!(employee.nationality == \"\" || employee.nationality in [\"VN\", \"VNM\", \"VIETNAM\", \"VIETNAMESE\", \"Vietnam\", \"Vietnamese\"])",
+			"due": "add_days(exit_on, 0)"
+		}
+	},
+	{
+		"id": "aefc2e53-4322-5a68-a7fb-fe7beef7a7f6",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "OSH_INDUCTION_TRAINING",
+		"name": "OSH_INDUCTION_TRAINING",
+		"order": 640,
+		"references": [
+			{
+				"title": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.14(2)–(3): the employer trains workers in OSH on recruitment and before assigning a job; Decree 44/2016/NĐ-CP."
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Train a new worker in occupational safety and hygiene before assigning the work.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"due": "add_days(hired_on, 0)"
+		}
+	},
+	{
+		"id": "cec6fb20-5cd9-59c3-a777-c3fa5e48b27b",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "PERSONAL_DATA_DISPOSAL",
+		"name": "PERSONAL_DATA_DISPOSAL",
+		"order": 641,
+		"references": [
+			{
+				"title": "Law on Personal Data Protection 91/2025/QH15",
+				"locator": "art.25(2)(b)–(c)",
+				"url": "https://bocongan.gov.vn/media/bca-media/photo-library/20250728100402_a4c3955c-ea1d-48a0-9998-c262b14864af-Lu%E1%BA%ADt-B%E1%BA%A3o-v%E1%BB%87-d%E1%BB%AF-li%E1%BB%87u-c%C3%A1-nh%C3%A2n.pdf"
+			},
+			{
+				"title": "Accounting Law 88/2015/QH13",
+				"locator": "art.41(5)(b)"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Delete or destroy a former employee's personal data once the statutory retention ends (anonymise the profile: employment_profile_anonymise), unless an agreement provides otherwise. Raised on the exit; due on the record_retention date (10 years after the exit year ends).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "add_years(exit_on.substring(0, 4) + \"-12-31\", 10)"
+		}
+	},
+	{
+		"id": "7baf678e-594e-5819-9aa6-8d50526134c3",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "write-public-holidays",
+		"order": 700,
+		"target_collection": "entity",
+		"events": ["created", "calendar"],
+		"when": "true",
+		"reads": {
+			"calendar": {
+				"collection": "rule_set",
+				"where": {
+					"settings_id": {
+						"eq": "event.settings_id"
+					},
+					"family": {
+						"eq": "\"PARAMETERS\""
+					},
+					"code": {
+						"eq": "\"public_holidays\""
+					}
+				},
+				"select": ["rules"]
+			},
+			"held": {
+				"collection": "holiday",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					}
+				},
+				"select": ["date"]
+			}
+		},
+		"effect": "calendar.exists(c, has(c.rules.holidays)) ? first(calendar).rules.holidays.filter(h, (!has(h.regions) || event.row.region in h.regions) && !held.exists(x, x.date == h.date)).map(h, { \"collection\": \"holiday\", \"operation\": \"create\", \"data\": { \"company_id\": event.company_id, \"date\": h.date, \"name\": h.name, \"kind\": has(h.kind) ? h.kind : \"PUBLIC_HOLIDAY\", \"replaces\": has(h.replaces) ? h.replaces : null, \"given_to\": has(h.given_to) ? h.given_to : \"EVERYONE\" } }) : []"
+	},
+	{
+		"id": "40ac1039-f30c-54f5-b1d0-de0d365f78ee",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "obligation-program",
+		"name": "Every obligation row's program",
+		"order": 401,
+		"events": [],
+		"when": "true",
+		"fields": ["period", "company_id"],
+		"reads": {
+			"company": {
+				"collection": "entity",
+				"where": {
+					"id": {
+						"eq": "event.company_id"
+					}
+				},
+				"select": ["name", "region", "risk_class", "time_zone", "facts"]
+			},
+			"holidays": {
+				"collection": "holiday",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					},
+					"published_at": {
+						"isNull": false
+					},
+					"date": {
+						"gte": "add_days(event.day, -31)",
+						"lte": "add_days(event.day, 400)"
+					}
+				},
+				"select": ["date", "name", "kind"]
+			},
+			"raised": {
+				"collection": "obligation",
+				"where": {
+					"trigger_ref": {
+						"eq": "event.row.id"
+					}
+				},
+				"select": ["duty_code"]
+			}
+		},
+		"effect": "[{ \"code\": behaviour.code, \"name\": behaviour.name, \"references\": behaviour.references, \"rules\": behaviour.definition }].filter(d, (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }) == true) && !raised.exists(o, o.duty_code == d.code)).map(d, { \"collection\": \"obligation\", \"operation\": \"create\", \"data\": { \"duty_code\": d.code, \"references\": d.references, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }), \"amount_due\": has(d.rules.amount) ? configured_eval(d.rules.amount, { \"rules\": event.rules, \"total\": sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), \"run\": run, \"period\": event.period, \"company\": first(company), \"headcount_months\": event.headcount_months }) : round(sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), 0.01), \"occurrence_key\": d.code + \":\" + event.row.id } }).filter(w, w.data.amount_due > 0.0)"
+	},
+	{
+		"id": "8190d064-e8c3-57e7-8bda-1ee27333b60b",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "task-program",
+		"name": "Every task row's program",
+		"order": 601,
+		"events": [],
+		"when": "true",
+		"fields": [
+			"period",
+			"company_id",
+			"employment_id",
+			"status",
+			"employee_id",
+			"effective_range",
+			"facts"
+		],
+		"reads": {
+			"company": {
+				"collection": "entity",
+				"where": {
+					"id": {
+						"eq": "event.company_id"
+					}
+				},
+				"select": ["name", "region", "risk_class", "time_zone", "registration_number", "facts"]
+			},
+			"contract": {
+				"collection": "employment_contract",
+				"where": {
+					"id": {
+						"in": "(event.employment_id == null ? [] : [event.employment_id])"
+					}
+				},
+				"select": [
+					"id",
+					"company_id",
+					"employee_id",
+					"effective_range",
+					"prior_service_months",
+					"engagement",
+					"exit_ground",
+					"exit_facts",
+					"facts"
+				]
+			},
+			"employee": {
+				"collection": "employment_profile",
+				"where": {
+					"id": {
+						"in": "(event.employee_id == null ? [] : [event.employee_id])"
+					}
+				},
+				"select": ["nationality", "gender", "date_of_birth", "marital_status", "children", "facts"]
+			},
+			"holidays": {
+				"collection": "holiday",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					},
+					"published_at": {
+						"isNull": false
+					},
+					"date": {
+						"gte": "add_days(event.day, -31)",
+						"lte": "add_days(event.day, 400)"
+					}
+				},
+				"select": ["date", "name", "kind"]
+			},
+			"raised": {
+				"collection": "regulatory_task",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					},
+					"triggered_on": {
+						"gte": "add_days(event.day, -400)"
+					}
+				},
+				"select": ["occurrence_key"]
+			},
+			"subject_tasks": {
+				"collection": "regulatory_task",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					},
+					"subject_id": {
+						"eq": "event.row.id"
+					}
+				},
+				"select": ["occurrence_key"]
+			}
+		},
+		"effect": "[{ \"code\": behaviour.code, \"name\": behaviour.name, \"references\": behaviour.references, \"rules\": behaviour.definition }].filter(d, has(d.rules.trigger) && d.rules.trigger.collection == event.collection && event.action in d.rules.trigger.events && (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.when) || configured_eval(d.rules.when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && !(raised + subject_tasks).exists(t, t.occurrence_key == d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)))).map(d, { \"collection\": \"regulatory_task\", \"operation\": \"create\", \"data\": { \"facts\": (event.collection in [\"employment_contract\", \"calendar\"] && has(event.row.exit_facts) && event.row.exit_facts != null && has(event.row.effective_range) && event.row.effective_range.to != null ? { \"exit_key\": string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") } : {}), \"code\": d.code, \"title\": d.name, \"references\": d.references, \"subject_collection\": event.collection, \"subject_id\": event.row.id, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }), \"occurrence_key\": d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)) } })"
+	}
+]

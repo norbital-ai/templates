@@ -11,6 +11,23 @@
 		"encash_on_exit": true,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [
+			{
+				"code": "ENCASHMENT",
+				"name": "Pay for untaken annual leave",
+				"references": [
+					{
+						"title": "Labour Protection Act B.E. 2541 (1998) s.64 (untaken annual leave the employer did not carry forward) and s.67 (on termination other than under s.119, the year's annual leave in proportion plus accumulated leave) at the day wage (s.68). Employment income under Revenue Code s.40(1); not SSO wage. A piece worker's day is the average day of the last payment period (Labour Protection Act B.E. 2541 s.60)."
+					}
+				],
+				"eligibility": "leave.rows.exists(r, r.can_encash && r.activity == \"ENCASHMENT\" && r.days > 0.0)",
+				"quantity": "sum(leave.rows.filter(r, r.can_encash && r.activity == \"ENCASHMENT\").map(r, r.days))",
+				"rate": "((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\") ? terms.base_salary : ((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\") ? (has(earned.previous_month.PIECE_WORK) && has(hours.previous_month.worked_hours) && hours.previous_month.worked_hours > 0.0 ? earned.previous_month.PIECE_WORK / (hours.previous_month.worked_hours / (has(terms.facts.normal_hours_per_day) ? double(terms.facts.normal_hours_per_day) : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0))) : 0.0) : terms.monthly_wage / 30.0))",
+				"destination": "PAY",
+				"direction": "ADD",
+				"counts_toward": ["PND1"]
+			}
+		],
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 s.30: not less than 6 working days a year after one year of continuous service; the employer and employee may agree to carry untaken days forward (contract fact annual_leave_carry_forward_days, customer input); s.56 pays the days. s.67 as amended by LPA (No. 2) B.E. 2551: para 1 — when the employer terminates without a s.119 ground, the leave of the year of termination in proportion to the year served (6 × the days to the exit day ÷ the days of the year); para 2 — on any exit, including resignation and a s.119 dismissal, the accumulated untaken leave carried forward. The amended Thai text was read only in a secondary copy; the Council of State translation shows para 1.",
@@ -39,6 +56,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.32: leave for actual sickness; a medical certificate may be required for three working days or more; s.57: wages for up to 30 working days a year. s.32 para 3: days lost to a work injury or work illness, and maternity days, are not sick leave (WORK_INJURY_LEAVE, MATERNITY_LEAVE). Office of the Council of State English translation.",
@@ -65,6 +83,7 @@
 		"encash_on_exit": false,
 		"is_npl": true,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.32 with s.57: sick leave is not capped, but wages are owed for at most 30 working days a year; the further days are unpaid."
@@ -83,6 +102,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.34: not less than 3 working days a year for necessary business; s.57/1: paid for up to 3 days a year."
@@ -108,6 +128,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.33: leave for sterilisation and for the period a physician certifies; s.57 para 2: paid."
@@ -126,6 +147,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.35: leave to be inspected, call-up or trained under the military service law; s.58: paid for up to 60 days a year."
@@ -151,6 +173,7 @@
 		"encash_on_exit": false,
 		"is_npl": true,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.36: leave for training or development under the rules the Ministerial Regulation prescribes; the Act owes no wages for it."
@@ -169,6 +192,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.52: an employee under 18 may take leave to attend a meeting, seminar, training, practice or other course run by an educational institution or a state or private agency approved by the Director-General, notifying the employer in advance with evidence; the employer pays the working-day wage for the leave, up to 30 days a year. Office of the Council of State English translation.",
@@ -194,6 +218,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "Labour Protection Act (No. 9) B.E. 2568 (Royal Gazette 7 November 2025, in force 7 December 2025) s.41 para 1: up to 120 days for each pregnancy, including prenatal examination and holidays; s.59: wages for up to 60 days. Metered per pregnancy (entry.facts.event_id): the employer-paid days here, the rest as MATERNITY_LEAVE_SSO. s.41 para 3 (unamended by No. 9): the leave counts the holidays within it, so the days are calendar days."
@@ -219,6 +244,7 @@
 		"encash_on_exit": false,
 		"is_npl": true,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "The days of s.41 maternity leave beyond the employer's s.59 wages; 120 less 60 days. Social Security Act B.E. 2533 (1990) s.67: the insured mother receives the maternity cash benefit from the Social Security Fund (50% of wages for 90 days). s.41 para 3 (unamended by No. 9): the leave counts the holidays within it, so the days are calendar days."
@@ -245,6 +271,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.29: not less than 13 days a year including National Labour Day (1 May), announced in advance; a holiday falling on a weekly holiday is replaced on the next working day; s.56(2): paid."
@@ -263,6 +290,23 @@
 		"encash_on_exit": false,
 		"is_npl": true,
 		"pay_fraction": "",
+		"pay": [
+			{
+				"code": "NO_PAY_LEAVE",
+				"name": "No-pay leave",
+				"references": [
+					{
+						"title": "Labour Protection Act B.E. 2541 (1998) s.68: a day of a monthly-paid employee is the monthly wage divided by 30; unpaid leave beyond the paid entitlements (ss.57-59) is deducted at that rate, and a partly paid leave day (child-care leave at 50%, s.59/1) deducts its unpaid share (1 - the class's pay fraction)."
+					}
+				],
+				"eligibility": "!(has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\") && !(has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\") && sum(leave.rows.filter(r, r.activity == \"TIME_OFF\").map(r, r.is_npl ? r.days : r.days * (1.0 - r.pay_fraction))) > 0.0",
+				"quantity": "sum(leave.rows.filter(r, r.activity == \"TIME_OFF\").map(r, r.is_npl ? r.days : r.days * (1.0 - r.pay_fraction)))",
+				"rate": "((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\") ? terms.base_salary : ((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\") ? (has(earned.previous_month.PIECE_WORK) && has(hours.previous_month.worked_hours) && hours.previous_month.worked_hours > 0.0 ? earned.previous_month.PIECE_WORK / (hours.previous_month.worked_hours / (has(terms.facts.normal_hours_per_day) ? double(terms.facts.normal_hours_per_day) : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0))) : 0.0) : terms.monthly_wage / 30.0))",
+				"destination": "PAY",
+				"direction": "SUBTRACT",
+				"counts_toward": ["SSO", "WCF", "PND1", "PVD", "EWF"]
+			}
+		],
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.5 and s.70: wages are owed for work and for the paid leave the Act lists (ss.56-59); other leave agreed with the employer is unpaid."
@@ -281,6 +325,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "0.5",
+		"pay": [],
 		"references": [
 			{
 				"title": "Labour Protection Act (No. 9) B.E. 2568 (Royal Gazette vol.142 part 74 Kor, 7 November 2025, in force 7 December 2025) https://ratchakitcha.soc.go.th/documents/89818.pdf s.41 para 4: up to 15 further consecutive days after maternity leave where the child is ill, at risk of complications, abnormal or disabled, on a medical certificate; s.59/1: wages at 50% (pay fraction 0.5; the unpaid half is deducted by NO_PAY_LEAVE). Working days: s.41 para 3 (\"วันลาตามวรรคหนึ่ง ให้นับรวมวันหยุดที่มีในระหว่างวันลาด้วย\") counts holidays only in the paragraph-one maternity leave, not in the paragraph-four child-care leave, and s.59/1 pays half the working-day wage, so a weekly or traditional holiday inside the leave is neither metered nor docked.",
@@ -308,6 +353,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "Labour Protection Act (No. 9) B.E. 2568 (Royal Gazette vol.142 part 74 Kor, 7 November 2025, in force 7 December 2025) https://ratchakitcha.soc.go.th/documents/89818.pdf s.41/1: \"ให้ลูกจ้างมีสิทธิลาเพื่อช่วยเหลือคู่สมรสซึ่งคลอดบุตร\" — any employee whose spouse gives birth — up to 15 days, before or within 90 days after the birth, per birth; s.59/2: wages for the leave, at most 15 days. The entry records the birth (or expected birth) date as facts.birth_date and its child as facts.child_id.",
@@ -335,6 +381,7 @@
 		"id": "9fd13486-74cb-504f-b682-f392c45ccddd",
 		"code": "WORK_INJURY_LEAVE",
 		"name": "Work-injury absence (WCF compensation)",
+		"pay": [],
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 s.32 para 3: a day the employee cannot work through injury or sickness from work is not sick leave (Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)). WCA B.E. 2537 s.18(1): compensation of 70% of the monthly wage while unable to work for more than three days, paid by the Workmen's Compensation Fund for a registered employer (https://www.sso.go.th/wpr/download/download_by_pool_file/47436; SSO WCF guide \"ค่าทดแทนร้อยละ 70 ของค่าจ้างรายเดือน\" https://www.sso.go.th/wpr/assets/upload/files_storage/sso_th/21f9d80408a598636551a7c559cd7920.pdf); the employer pays no wage for the days. An entry raises the s.48 notice."
@@ -353,6 +400,7 @@
 		"id": "9b70bd2b-1a7c-588d-b259-e760921727f3",
 		"code": "TEMPORARY_SHUTDOWN",
 		"name": "Temporary cessation of business (75% pay)",
+		"pay": [],
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 s.75 as amended by LPA (No. 2) B.E. 2551: when the employer must temporarily cease all or part of the business for a reason other than force majeure, it pays at least 75% of the working-day wage for the whole period, and notifies the employees and the labour inspector in writing beforehand (the Council of State translation shows the earlier 50%; 75% from the amended Thai text, secondary copy https://legardy.com/thai-law/labor-law/labor-law-section-5). The unpaid 25% is deducted by NO_PAY_LEAVE.",
@@ -379,6 +427,7 @@
 			"overdraw": "0",
 			"window": "EVENT"
 		},
+		"pay": [],
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 s.116: suspension during an investigation only if the work rules or agreement allow, by written order, at most 7 days, paid at not less than 50% of the working-day wage; s.117: if the employee is cleared, the full wage for the period with 15% a year interest (adhoc SUSPENSION_BACK_PAY, LATE_PAYMENT_INTEREST). Office of the Council of State English translation.",

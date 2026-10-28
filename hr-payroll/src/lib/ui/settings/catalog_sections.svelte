@@ -35,6 +35,7 @@
 		...CEL_KEYS,
 		'entitlement',
 		'bands',
+		'pay',
 		'references',
 		'counts_toward',
 		'rules',

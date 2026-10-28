@@ -34,7 +34,6 @@ export const PAYROLL = {
 	permanent_when: 'true',
 	monthly_wage: 'terms.base_salary + sum(terms.allowances.map(a, a.amount))',
 	negative_net: 'refuse',
-	exit_raise_when: 'employment.exit_date >= add_months(period.from, -1)',
 	exit_overpayment: 'note',
 	history_months: 12,
 	attendance: {
@@ -80,95 +79,100 @@ const WHEN = {
 	PIT: 'base.assessed > 0.0'
 };
 
-/** The engine's own behaviour records: admit a run, pin what it settled, hold what a validation held, write holidays. */
-const BEHAVIOURS = {
-	version: 1,
-	rules: [
-		{
-			id: 'payroll-run',
-			catalog: 'WORK',
-			events: ['PAYROLL_CREATE'],
-			when: 'event.data.request.kind in ["REGULAR", "OFF_CYCLE"]'
+/** One `XX` behaviour row: its code, its run order and the rule. */
+export const behaviourRow = (code: string, order: number, rule: Row): Row => ({
+	id: id('behaviour', code),
+	settings_id: VERSION,
+	code,
+	order,
+	...rule
+});
+/** The engine's own behaviour rows: hold what a validation held, write holidays. */
+const BEHAVIOURS = [
+	behaviourRow('hold-payslips', 100, {
+		target_collection: 'payroll_run',
+		events: ['created'],
+		when: 'has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0',
+		fields: ['holds'],
+		reads: {
+			slips: {
+				collection: 'payslip',
+				where: { payroll_run_id: { eq: 'event.row.id' }, status: { eq: '"DRAFT"' } },
+				select: ['id', 'employment_id']
+			}
 		},
-		{
-			id: 'pin-settled-entries',
-			target_collection: 'payroll_run',
-			events: ['created'],
-			when: 'true',
-			fields: ['pins'],
-			reads: {
-				slips: {
-					collection: 'payslip',
-					where: { payroll_run_id: { eq: 'event.row.id' } },
-					select: ['id', 'employment_id']
-				}
-			},
-			effect:
-				'event.row.pins.map(p, { "collection": p.collection, "operation": "update", "data": { "target": [p.id], "set": { "payslip_id": first(slips.filter(s, s.employment_id == p.employment_id).map(s, s.id)) } } }).filter(w, w.data.set.payslip_id != null)'
-		},
-		{
-			id: 'hold-payslips',
-			target_collection: 'payroll_run',
-			events: ['created'],
-			when: 'has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0',
-			fields: ['holds'],
-			reads: {
-				slips: {
-					collection: 'payslip',
-					where: { payroll_run_id: { eq: 'event.row.id' }, status: { eq: '"DRAFT"' } },
-					select: ['id', 'employment_id']
-				}
-			},
-			effect:
-				'event.row.holds.map(h, { "collection": "payslip", "operation": "update", "data": { "target": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), "set": { "status": "ON_HOLD" } } }).filter(w, size(w.data.target) > 0)'
-		},
-		{
-			id: 'write-public-holidays',
-			target_collection: 'entity',
-			events: ['created', 'calendar'],
-			when: 'true',
-			reads: {
-				calendar: {
-					collection: 'rule_set',
-					where: {
-						settings_id: { eq: 'event.settings_id' },
-						family: { eq: '"PAYROLL"' },
-						code: { eq: '"public_holidays"' }
-					},
-					select: ['rules']
+		effect:
+			'event.row.holds.map(h, { "collection": "payslip", "operation": "update", "data": { "target": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), "set": { "status": "ON_HOLD" } } }).filter(w, size(w.data.target) > 0)'
+	}),
+	behaviourRow('write-public-holidays', 800, {
+		target_collection: 'entity',
+		events: ['created', 'calendar'],
+		when: 'true',
+		reads: {
+			calendar: {
+				collection: 'rule_set',
+				where: {
+					settings_id: { eq: 'event.settings_id' },
+					family: { eq: '"PARAMETERS"' },
+					code: { eq: '"public_holidays"' }
 				},
-				held: {
-					collection: 'holiday',
-					where: { company_id: { eq: 'event.company_id' } },
-					select: ['date']
-				}
+				select: ['rules']
 			},
-			effect:
-				'calendar.exists(c, has(c.rules.holidays)) ? first(calendar).rules.holidays.filter(h, !held.exists(x, x.date == h.date)).map(h, { "collection": "holiday", "operation": "create", "data": { "company_id": event.company_id, "date": h.date, "name": h.name, "kind": "PUBLIC_HOLIDAY", "replaces": null, "given_to": "EVERYONE" } }) : []'
-		}
-	]
-};
+			held: {
+				collection: 'holiday',
+				where: { company_id: { eq: 'event.company_id' } },
+				select: ['date']
+			}
+		},
+		effect:
+			'calendar.exists(c, has(c.rules.holidays)) ? first(calendar).rules.holidays.filter(h, !held.exists(x, x.date == h.date)).map(h, { "collection": "holiday", "operation": "create", "data": { "company_id": event.company_id, "date": h.date, "name": h.name, "kind": "PUBLIC_HOLIDAY", "replaces": null, "given_to": "EVERYONE" } }) : []'
+	})
+];
 
 const rule = (family: string, code: string, rules: Row): Row => ({
 	id: id('rule_set', code),
 	settings_id: VERSION,
 	family,
-	scope: 'JURISDICTION',
 	code,
 	name: code,
 	rules
 });
 const work = (code: string, row: Row): Row => ({
-	id: id('work_catalog', code),
-	settings_id: VERSION,
 	code,
 	name: code,
-	component_code: code,
 	destination: 'PAY',
 	direction: 'ADD',
 	counts_toward: SCHEMES,
 	...row
 });
+/** The `XX` version's `time_pay` lines, by reserved kind: one line each, under the kind's own code. */
+export const TIME_PAY = {
+	BASIC: [
+		work('BASIC', {
+			// a part month pays its covered working days over the month's working days; a whole month pays one
+			quantity:
+				'employment.start_date > period.month_from || period.covered_working_days < period.working_days ? double(period.covered_working_days) / double(period.month_working_days + period.month_holiday_work_days) : 1.0',
+			rate: 'terms.base_salary',
+			eligibility: 'true',
+			prorated: true,
+			denominator: 'double(period.month_working_days + period.month_holiday_work_days)'
+		})
+	],
+	OVERTIME: [
+		work('OVERTIME', {
+			quantity: 'work.overtime_hours',
+			rate: '15.0',
+			eligibility: 'work.overtime_hours > 0.0'
+		})
+	],
+	HOLIDAY_WORK: [
+		work('HOLIDAY_WORK', {
+			quantity: 'double(size(work.days.filter(d, d.holiday_kind == "PUBLIC_HOLIDAY")))',
+			rate: '100.0',
+			eligibility: 'work.days.exists(d, d.holiday_kind == "PUBLIC_HOLIDAY")'
+		})
+	]
+};
 const entryClass = (row: Row & { readonly id: string; readonly code: string }): Row => ({
 	settings_id: VERSION,
 	name: row.code,
@@ -186,65 +190,41 @@ export function law(): Tables {
 				{
 					id: VERSION,
 					code: 'XX',
-					jurisdiction_code: 'XX',
 					name: 'Fixture jurisdiction',
 					effective_range: { from: '2020-01-01', to: null },
 					sealed_at: '2020-01-01T00:00:00.000Z',
 					voided_at: null,
 					sources: { entries: [] },
 					payroll: PAYROLL,
-					behaviours: BEHAVIOURS
+					time_pay: TIME_PAY
 				}
 			]
 		],
+		['behaviour', BEHAVIOURS],
 		[
 			'rule_set',
 			[
-				rule('PAYROLL', 'record_retention', { until: 'add_years(employment.exit_date, 6)' }),
-				rule('PAYROLL', 'exit_grounds', { kinds: [{ code: 'RESIGNATION', name: 'Resignation' }] }),
-				rule('PAYROLL', 'holiday_kinds', {
+				rule('PARAMETERS', 'record_retention', { until: 'add_years(employment.exit_date, 6)' }),
+				rule('PARAMETERS', 'exit_grounds', {
+					kinds: [{ code: 'RESIGNATION', name: 'Resignation' }]
+				}),
+				rule('PARAMETERS', 'holiday_kinds', {
 					kinds: [{ code: 'PUBLIC_HOLIDAY', name: 'Public holiday' }]
 				}),
-				rule('PAYROLL', 'public_holidays', {
+				rule('PARAMETERS', 'public_holidays', {
 					holidays: [{ date: '2026-03-25', name: 'Founders Day' }]
+				}),
+				rule('VALIDATIONS', 'PAYROLL_RUN_KINDS', {
+					site: 'payroll_run',
+					kind: 'allow',
+					when: 'run.kind in ["REGULAR", "OFF_CYCLE"]',
+					message: 'A regular or off-cycle run.'
 				}),
 				rule('VALIDATIONS', 'HELD_PAY', {
 					site: 'payslip',
 					kind: 'hold',
 					when: 'has(employee.facts.held) && employee.facts.held == true',
 					message: 'Pay is held for review.'
-				})
-			]
-		],
-		[
-			'work_catalog',
-			[
-				work('BASIC', {
-					// a part month pays its covered working days over the month's working days; a whole month pays one
-					quantity:
-						'employment.start_date > period.month_from || period.covered_working_days < period.working_days ? double(period.covered_working_days) / double(period.month_working_days + period.month_holiday_work_days) : 1.0',
-					rate: 'terms.base_salary',
-					eligibility: 'true',
-					prorated: true,
-					denominator: 'double(period.month_working_days + period.month_holiday_work_days)'
-				}),
-				work('OVERTIME', {
-					quantity: 'work.overtime_hours',
-					rate: '15.0',
-					eligibility: 'work.overtime_hours > 0.0'
-				}),
-				work('HOLIDAY', {
-					quantity: 'double(size(work.days.filter(d, d.holiday_kind == "PUBLIC_HOLIDAY")))',
-					rate: '100.0',
-					eligibility: 'work.days.exists(d, d.holiday_kind == "PUBLIC_HOLIDAY")'
-				}),
-				work('NO_PAY_LEAVE', {
-					quantity:
-						'sum(leave.rows.filter(r, r.activity == "TIME_OFF").map(r, r.is_npl ? r.days : r.days * (1.0 - r.pay_fraction)))',
-					rate: 'terms.monthly_wage / double(period.month_working_days + period.month_holiday_work_days)',
-					eligibility:
-						'leave.rows.exists(r, r.activity == "TIME_OFF" && r.days > 0.0 && (r.is_npl || r.pay_fraction < 1.0))',
-					direction: 'SUBTRACT'
 				})
 			]
 		],
@@ -335,7 +315,21 @@ export function law(): Tables {
 					can_encash: false,
 					is_npl: true,
 					pay_fraction: '',
-					entitlement: null
+					entitlement: null,
+					pay: [
+						{
+							code: 'NO_PAY_LEAVE',
+							name: 'NO_PAY_LEAVE',
+							quantity:
+								'sum(leave.rows.filter(r, r.activity == "TIME_OFF").map(r, r.is_npl ? r.days : r.days * (1.0 - r.pay_fraction)))',
+							rate: 'terms.monthly_wage / double(period.month_working_days + period.month_holiday_work_days)',
+							eligibility:
+								'leave.rows.exists(r, r.activity == "TIME_OFF" && r.days > 0.0 && (r.is_npl || r.pay_fraction < 1.0))',
+							destination: 'PAY',
+							direction: 'SUBTRACT',
+							counts_toward: SCHEMES
+						}
+					]
 				}
 			]
 		],

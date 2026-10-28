@@ -15,56 +15,71 @@ import {
 	unverifiedQuotes
 } from '../src/lib/payroll_engine/statutory_drift.ts';
 
-const rule = (family: string, code: string, name = code) => ({
-	scope: 'JURISDICTION',
-	family,
+const rule = (family: string, code: string, name = code) => ({ family, code, name, rules: {} });
+/** A behaviour row: an obligation row (its `definition`) is the obligations agent's, an event rule the behaviour agent's. */
+const behaviour = (code: string, name = code, definition?: object) => ({
 	code,
 	name,
-	rules: {}
+	order: 1,
+	events: [],
+	...(definition === undefined ? {} : { definition })
 });
-const snapshot = (rules: readonly ReturnType<typeof rule>[]) =>
+const snapshot = (
+	rules: readonly ReturnType<typeof rule>[],
+	behaviours: readonly ReturnType<typeof behaviour>[] = []
+) =>
 	Schema.decodeUnknownSync(SnapshotSchema)({
-		settings: { code: 'XX', jurisdiction_code: 'XX', name: 'Fixture', payroll: {} },
+		settings: { code: 'XX', name: 'Fixture', payroll: {} },
 		adhoc_catalog: [],
 		allowance_catalog: [],
 		claim_catalog: [],
 		leave_catalog: [],
 		loan_catalog: [],
-		work_catalog: [],
 		statutory_contribution_catalog: [],
-		suspension_kind: [],
+		suspension_catalog: [],
 		rule_set: rules,
-		behaviour_rule: []
+		behaviour: behaviours
 	});
-const merged = snapshot([rule('PAYROLL', 'retention'), rule('TASKS', 'filing')]);
-const names = (value: typeof merged) => value.rule_set.map((row) => [row.code, row.name]);
+const DUTY = { due: 'period.end' };
+const merged = snapshot(
+	[rule('PARAMETERS', 'retention')],
+	[behaviour('exit'), behaviour('filing', 'filing', DUTY)]
+);
+const names = (rows: readonly { readonly code: string; readonly name?: string | null | undefined }[]) =>
+	rows.map((row) => [row.code, row.name]);
 
 it('an agent drafts from its own rows only', () => {
 	const rules = agentDraft(merged, 'rules');
-	assert.deepEqual(
-		rules.rule_set.map((row) => row.code),
-		['retention']
-	);
+	assert.deepEqual(names(rules.rule_set), [['retention', 'retention']]);
+	assert.deepEqual(rules.behaviour, []);
 	assert.equal(rules.settings, undefined);
+	assert.deepEqual(names(agentDraft(merged, 'behaviour').behaviour), [['exit', 'exit']]);
+	assert.deepEqual(names(agentDraft(merged, 'obligations').behaviour), [['filing', 'filing']]);
 	assert.deepEqual(agentDraft(merged, 'settings').rule_set, []);
 	assert.equal(agentDraft(merged, 'settings').settings?.code, 'XX');
 });
 
 it("an agent's answer merges only its own rows: edits in place, additions after, another agent's rows untouched", () => {
-	const answer = snapshot([
-		rule('PAYROLL', 'retention', 'Retention (edited)'),
-		rule('TASKS', 'filing', 'Filing (edited)'),
-		rule('VALIDATIONS', 'minimum_wage')
-	]);
-	assert.deepEqual(names(mergeAgent(merged, 'rules', answer)), [
+	const answer = snapshot(
+		[rule('PARAMETERS', 'retention', 'Retention (edited)'), rule('VALIDATIONS', 'minimum_wage')],
+		[behaviour('exit', 'Exit (edited)'), behaviour('filing', 'Filing (edited)', DUTY)]
+	);
+	const rules = mergeAgent(merged, 'rules', answer);
+	assert.deepEqual(names(rules.rule_set), [
 		['retention', 'Retention (edited)'],
-		['filing', 'filing'],
 		['minimum_wage', 'minimum_wage']
 	]);
+	assert.deepEqual(names(rules.behaviour), names(merged.behaviour));
+	assert.deepEqual(names(mergeAgent(merged, 'obligations', answer).behaviour), [
+		['exit', 'exit'],
+		['filing', 'Filing (edited)']
+	]);
 	// the catalog agent owns no rule_set row: nothing of its rule_set edit is taken
-	assert.deepEqual(names(mergeAgent(merged, 'catalog', answer)), names(merged));
+	assert.deepEqual(names(mergeAgent(merged, 'catalog', answer).rule_set), names(merged.rule_set));
 	// an own row left out of the answer is removed
-	assert.deepEqual(names(mergeAgent(merged, 'rules', snapshot([]))), [['filing', 'filing']]);
+	assert.deepEqual(names(mergeAgent(merged, 'behaviour', snapshot([])).behaviour), [
+		['filing', 'filing']
+	]);
 });
 
 it('a changed row carries only the evidence its own references newly cite; a removed row refuses', () => {

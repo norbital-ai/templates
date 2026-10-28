@@ -52,7 +52,7 @@ export default model('holiday', {
 		},
 		kind: {
 			kind: 'text',
-			help: 'A kind the version governing the day lists (`rule_set` PAYROLL `holiday_kinds`): what the work and leave records price it as.'
+			help: 'A kind the version governing the day lists (`rule_set` PARAMETERS `holiday_kinds`): what the work and leave records price it as.'
 		},
 		published_at: {
 			kind: 'instant',

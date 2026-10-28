@@ -2,7 +2,6 @@
 	{
 		"id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
 		"code": "PH",
-		"jurisdiction_code": "PH",
 		"name": "Philippines — 6 January 2026 (RR 29-2025)",
 		"sealed_at": "2026-09-30T00:00:00.000Z",
 		"voided_at": null,
@@ -13,27 +12,167 @@
 		"payroll": {
 			"currency": "PHP",
 			"timezone": "Asia/Manila",
-			"tax_year_start_month": 1,
-			"pay_date": "period.to",
 			"week_start": 0,
-			"semi_monthly_split": 15,
 			"roster_week": "ROLLING",
-			"rolling_hours_months": 3,
-			"base_salary_required": true,
-			"off_cycle_families": ["ADHOC", "CLAIM"],
-			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
-			"negative_net": "refuse",
-			"exit_raise_when": "employment.exit_date >= add_months(period.from, -1)",
-			"exit_overpayment": "note",
-			"history_months": 12,
-			"attendance": {
-				"step_hours": 0.5,
-				"rounding": "DOWN",
-				"overtime_window": "AFTER_SHIFT",
-				"untimed_credit_day_types": ["REST", "OFF"]
-			},
-			"ten_day_splits": [10, 20],
-			"permanent_when": "!(has(terms.facts) && has(terms.facts.fixed_term) && terms.facts.fixed_term == true)"
+			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))"
+		},
+		"time_pay": {
+			"BASIC": [
+				{
+					"code": "BASIC",
+					"name": "Basic salary",
+					"references": [
+						{
+							"title": "Labor Code art.82; Omnibus Rules Book III Rule IV s.2: a monthly salary is prorated by the paid days of the settlement period (`terms.base_salary ÷ period.parts × paid_days ÷ days`); a daily-paid contract (`terms.facts.rate_basis` DAILY, customer input) is paid its daily rate for each ordinary WORK day worked and each paid-leave day."
+						}
+					],
+					"eligibility": "true",
+					"quantity": "(has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? double(size(work.days.filter(d, d.worked && d.day_type in [\"WORK\", \"OFF\"] && d.holiday_kind == \"\"))) + sum(leave.rows.filter(r, !r.is_npl && r.activity == \"TIME_OFF\").map(r, r.days)) : period.paid_days / period.days",
+					"rate": "(has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? terms.base_salary : terms.base_salary / period.parts",
+					"prorated": true,
+					"denominator": "double(period.days)",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "PHIC", "HDMF", "WTAX.WAGE"]
+				}
+			],
+			"OVERTIME": [
+				{
+					"code": "OVERTIME",
+					"name": "Overtime",
+					"references": [
+						{
+							"title": "Labor Code art.87; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.4 §C and ch.1 §A: hours beyond eight a day at 125% of the hourly rate on an ordinary day, 169% on a rest or special day, 195% on a special day that is the rest day or on a double special day, 253.5% on a double special rest day, 260% / 338% on a regular holiday (rest day), 390% / 507% on a double holiday (the day’s paid hours beyond eight, `work.days[].worked_hours` − 8 and never more than its derived `overtime_hours`: the first eight hours of a rest day, holiday or off day are priced once, by its day line). Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2).",
+							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
+						}
+					],
+					"eligibility": "employment.classification != \"MANAGERIAL\" && terms.employment_type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"TASK_BASIS\", \"PIECE_RATE\"]) && sum(work.days.map(d, min(d.overtime_hours, max(0.0, d.worked_hours - 8.0)) * (d.holiday_kind == \"DOUBLE_HOLIDAY\" ? (d.day_type == \"REST\" ? 5.07 : 3.9) : d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"] ? (d.day_type == \"REST\" ? 3.38 : 2.6) : d.holiday_kind == \"DOUBLE_SPECIAL\" ? (d.day_type == \"REST\" ? 2.535 : 1.95) : d.holiday_kind == \"SPECIAL_HOLIDAY\" ? (d.day_type == \"REST\" ? 1.95 : 1.69) : d.day_type == \"REST\" ? 1.69 : 1.25))) > 0.0",
+					"quantity": "sum(work.days.map(d, min(d.overtime_hours, max(0.0, d.worked_hours - 8.0)) * (d.holiday_kind == \"DOUBLE_HOLIDAY\" ? (d.day_type == \"REST\" ? 5.07 : 3.9) : d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"] ? (d.day_type == \"REST\" ? 3.38 : 2.6) : d.holiday_kind == \"DOUBLE_SPECIAL\" ? (d.day_type == \"REST\" ? 2.535 : 1.95) : d.holiday_kind == \"SPECIAL_HOLIDAY\" ? (d.day_type == \"REST\" ? 1.95 : 1.69) : d.day_type == \"REST\" ? 1.69 : 1.25)))",
+					"rate": "(((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? terms.base_salary : terms.base_salary * 12.0 / (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0)) / (has(terms.facts.hours_per_day) ? double(terms.facts.hours_per_day) : 8.0))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.WAGE"]
+				}
+			],
+			"REST_DAY_WORK": [
+				{
+					"code": "REST_DAY_WORK",
+					"name": "Rest-day work",
+					"references": [
+						{
+							"title": "Labor Code art.93(a)–(b); DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.3 §D: work on the scheduled rest day is paid at least 130% for its first eight hours. WTAX: part of the minimum wage earner’s exempt pay (`WTAX.WAGE`) — NIRC s.24(A)(2) as amended by RA 10963 and RR 2-98 s.2.78.1(B)(13) as amended by RR 11-2018 exempt the statutory minimum wage with the holiday pay, overtime pay, night shift differential and hazard pay an MWE earns; owner ruling (binding, 2026-10-07): the rest-day and special-day premiums are within that holiday and premium pay, so an MWE is not taxed on them. A non-MWE is taxed on them as on all wage pay. Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2).",
+							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
+						}
+					],
+					"eligibility": "employment.classification != \"MANAGERIAL\" && terms.employment_type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"TASK_BASIS\", \"PIECE_RATE\"]) && sum(work.days.filter(d, d.day_type == \"REST\" && d.holiday_kind == \"\" && d.worked).map(d, min(d.worked_hours, 8.0) * (1.3 - ((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? 0.0 : ((has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0) == 365.0 ? 1.0 : 0.0))))) > 0.0",
+					"quantity": "sum(work.days.filter(d, d.day_type == \"REST\" && d.holiday_kind == \"\" && d.worked).map(d, min(d.worked_hours, 8.0) * (1.3 - ((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? 0.0 : ((has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0) == 365.0 ? 1.0 : 0.0)))))",
+					"rate": "(((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? terms.base_salary : terms.base_salary * 12.0 / (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0)) / (has(terms.facts.hours_per_day) ? double(terms.facts.hours_per_day) : 8.0))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.WAGE"]
+				},
+				{
+					"code": "OFF_DAY_WORK",
+					"name": "Work on an unpaid off day",
+					"references": [
+						{
+							"title": "DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.2 §E: on a 261 or 253 factor the salary pays 241 ordinary working days, so the week’s second non-working day (`day_type` OFF) is unpaid; hours worked on it are paid at 100% for the first eight. On 365/313/305 factors the day is inside the salary. Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2).",
+							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
+						}
+					],
+					"eligibility": "!(has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") && employment.classification != \"MANAGERIAL\" && terms.employment_type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"TASK_BASIS\", \"PIECE_RATE\"]) && ((has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0) in [261.0, 253.0] ? 1.0 : 0.0) * sum(work.days.filter(d, d.day_type == \"OFF\" && d.holiday_kind == \"\" && d.worked).map(d, min(d.worked_hours, 8.0))) > 0.0",
+					"quantity": "((has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0) in [261.0, 253.0] ? 1.0 : 0.0) * sum(work.days.filter(d, d.day_type == \"OFF\" && d.holiday_kind == \"\" && d.worked).map(d, min(d.worked_hours, 8.0)))",
+					"rate": "(((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? terms.base_salary : terms.base_salary * 12.0 / (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0)) / (has(terms.facts.hours_per_day) ? double(terms.facts.hours_per_day) : 8.0))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.WAGE"]
+				}
+			],
+			"HOLIDAY_WORK": [
+				{
+					"code": "HOLIDAY_WORK",
+					"name": "Regular-holiday work",
+					"references": [
+						{
+							"title": "Labor Code art.94; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.2 §D and ch.1 §A: work on a regular holiday is paid 200% for its first eight hours (260% on the rest day, 300% / 390% on a double holiday). Holiday pay excludes retail and service establishments regularly employing fewer than ten (entity fact `retail_or_service_establishment` with `company.headcount`), kasambahay, managerial staff and field / task workers (Omnibus Rules Book III Rule IV s.1). Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2).",
+							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
+						}
+					],
+					"eligibility": "employment.classification != \"MANAGERIAL\" && terms.employment_type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"TASK_BASIS\", \"PIECE_RATE\"]) && !((has(company.facts.retail_or_service_establishment) && company.facts.retail_or_service_establishment) && company.headcount < 10.0) && sum(work.days.filter(d, (d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"] || d.holiday_kind == \"DOUBLE_HOLIDAY\") && d.worked).map(d, min(d.worked_hours, 8.0) * ((d.holiday_kind == \"DOUBLE_HOLIDAY\" ? (d.day_type == \"REST\" ? 3.9 : 3.0) : d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"] ? (d.day_type == \"REST\" ? 2.6 : 2.0) : d.holiday_kind == \"DOUBLE_SPECIAL\" ? (d.day_type == \"REST\" ? 1.95 : 1.5) : d.holiday_kind == \"SPECIAL_HOLIDAY\" ? (d.day_type == \"REST\" ? 1.5 : 1.3) : d.day_type == \"REST\" ? 1.3 : 1.0) - ((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? 0.0 : 1.0)))) > 0.0",
+					"quantity": "sum(work.days.filter(d, (d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"] || d.holiday_kind == \"DOUBLE_HOLIDAY\") && d.worked).map(d, min(d.worked_hours, 8.0) * ((d.holiday_kind == \"DOUBLE_HOLIDAY\" ? (d.day_type == \"REST\" ? 3.9 : 3.0) : d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"] ? (d.day_type == \"REST\" ? 2.6 : 2.0) : d.holiday_kind == \"DOUBLE_SPECIAL\" ? (d.day_type == \"REST\" ? 1.95 : 1.5) : d.holiday_kind == \"SPECIAL_HOLIDAY\" ? (d.day_type == \"REST\" ? 1.5 : 1.3) : d.day_type == \"REST\" ? 1.3 : 1.0) - ((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? 0.0 : 1.0))))",
+					"rate": "(((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? terms.base_salary : terms.base_salary * 12.0 / (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0)) / (has(terms.facts.hours_per_day) ? double(terms.facts.hours_per_day) : 8.0))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.WAGE"]
+				},
+				{
+					"code": "SPECIAL_HOLIDAY_WORK",
+					"name": "Special-day work",
+					"references": [
+						{
+							"title": "Labor Code art.93(c) with the yearly holiday proclamation; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.3 §D and ch.1 §A: a special (non-working) day worked is paid 130% for its first eight hours (150% on the rest day); a double special day 150% (195% on the rest day); unworked, no work no pay. WTAX: part of the minimum wage earner’s exempt pay (`WTAX.WAGE`) — NIRC s.24(A)(2) as amended by RA 10963 and RR 2-98 s.2.78.1(B)(13) as amended by RR 11-2018 exempt the statutory minimum wage with the holiday pay, overtime pay, night shift differential and hazard pay an MWE earns; owner ruling (binding, 2026-10-07): the rest-day and special-day premiums are within that holiday and premium pay, so an MWE is not taxed on them. A non-MWE is taxed on them as on all wage pay. Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2).",
+							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
+						}
+					],
+					"eligibility": "employment.classification != \"MANAGERIAL\" && terms.employment_type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"TASK_BASIS\", \"PIECE_RATE\"]) && sum(work.days.filter(d, d.holiday_kind in [\"SPECIAL_HOLIDAY\", \"DOUBLE_SPECIAL\"] && d.worked).map(d, min(d.worked_hours, 8.0) * ((d.holiday_kind == \"DOUBLE_HOLIDAY\" ? (d.day_type == \"REST\" ? 3.9 : 3.0) : d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"] ? (d.day_type == \"REST\" ? 2.6 : 2.0) : d.holiday_kind == \"DOUBLE_SPECIAL\" ? (d.day_type == \"REST\" ? 1.95 : 1.5) : d.holiday_kind == \"SPECIAL_HOLIDAY\" ? (d.day_type == \"REST\" ? 1.5 : 1.3) : d.day_type == \"REST\" ? 1.3 : 1.0) - (d.day_type == \"REST\" ? ((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? 0.0 : ((has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0) == 365.0 ? 1.0 : 0.0)) : ((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? 0.0 : ((has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0) in [365.0, 313.0, 261.0] ? 1.0 : 0.0)))))) > 0.0",
+					"quantity": "sum(work.days.filter(d, d.holiday_kind in [\"SPECIAL_HOLIDAY\", \"DOUBLE_SPECIAL\"] && d.worked).map(d, min(d.worked_hours, 8.0) * ((d.holiday_kind == \"DOUBLE_HOLIDAY\" ? (d.day_type == \"REST\" ? 3.9 : 3.0) : d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"] ? (d.day_type == \"REST\" ? 2.6 : 2.0) : d.holiday_kind == \"DOUBLE_SPECIAL\" ? (d.day_type == \"REST\" ? 1.95 : 1.5) : d.holiday_kind == \"SPECIAL_HOLIDAY\" ? (d.day_type == \"REST\" ? 1.5 : 1.3) : d.day_type == \"REST\" ? 1.3 : 1.0) - (d.day_type == \"REST\" ? ((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? 0.0 : ((has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0) == 365.0 ? 1.0 : 0.0)) : ((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? 0.0 : ((has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0) in [365.0, 313.0, 261.0] ? 1.0 : 0.0))))))",
+					"rate": "(((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? terms.base_salary : terms.base_salary * 12.0 / (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0)) / (has(terms.facts.hours_per_day) ? double(terms.facts.hours_per_day) : 8.0))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.WAGE"]
+				}
+			],
+			"NIGHT_WORK": [
+				{
+					"code": "NIGHT_SHIFT_DIFFERENTIAL",
+					"name": "Night-shift differential",
+					"references": [
+						{
+							"title": "Labor Code art.86; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.5 and ch.1 §A: 10% of the hour’s own rate for each hour worked between 10:00 p.m. and 6:00 a.m. (`hours_between(d.intervals, \"22:00\", \"06:00\")`) — on the day’s multiple for an ordinary night hour and on the overtime multiple for a night hour that is also overtime (ordinary day 125% × 110%); a night hour that is also overtime is read from the overtime’s own span (`d.overtime_intervals`), up to the hours beyond eight that OVERTIME prices; on a 0-hour rest day or holiday, whose overtime span is the whole day, those hours are taken inside the night window first. Retail and service establishments regularly employing not more than five workers are outside it (headcount, or entity fact `nsd_small_retail_exempt`). Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2).",
+							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
+						}
+					],
+					"eligibility": "employment.classification != \"MANAGERIAL\" && terms.employment_type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"TASK_BASIS\", \"PIECE_RATE\"]) && !((has(company.facts.nsd_small_retail_exempt) && company.facts.nsd_small_retail_exempt) || ((has(company.facts.retail_or_service_establishment) && company.facts.retail_or_service_establishment) && company.headcount <= 5.0)) && sum(work.days.map(d, (max(0.0, hours_between(d.intervals, \"22:00\", \"06:00\") - min(hours_between(d.overtime_intervals, \"22:00\", \"06:00\"), min(d.overtime_hours, max(0.0, d.worked_hours - 8.0)))) * (d.holiday_kind == \"DOUBLE_HOLIDAY\" ? (d.day_type == \"REST\" ? 3.9 : 3.0) : d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"] ? (d.day_type == \"REST\" ? 2.6 : 2.0) : d.holiday_kind == \"DOUBLE_SPECIAL\" ? (d.day_type == \"REST\" ? 1.95 : 1.5) : d.holiday_kind == \"SPECIAL_HOLIDAY\" ? (d.day_type == \"REST\" ? 1.5 : 1.3) : d.day_type == \"REST\" ? 1.3 : 1.0) + min(hours_between(d.overtime_intervals, \"22:00\", \"06:00\"), min(d.overtime_hours, max(0.0, d.worked_hours - 8.0))) * (d.holiday_kind == \"DOUBLE_HOLIDAY\" ? (d.day_type == \"REST\" ? 5.07 : 3.9) : d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"] ? (d.day_type == \"REST\" ? 3.38 : 2.6) : d.holiday_kind == \"DOUBLE_SPECIAL\" ? (d.day_type == \"REST\" ? 2.535 : 1.95) : d.holiday_kind == \"SPECIAL_HOLIDAY\" ? (d.day_type == \"REST\" ? 1.95 : 1.69) : d.day_type == \"REST\" ? 1.69 : 1.25)) * 0.1)) > 0.0",
+					"quantity": "sum(work.days.map(d, (max(0.0, hours_between(d.intervals, \"22:00\", \"06:00\") - min(hours_between(d.overtime_intervals, \"22:00\", \"06:00\"), min(d.overtime_hours, max(0.0, d.worked_hours - 8.0)))) * (d.holiday_kind == \"DOUBLE_HOLIDAY\" ? (d.day_type == \"REST\" ? 3.9 : 3.0) : d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"] ? (d.day_type == \"REST\" ? 2.6 : 2.0) : d.holiday_kind == \"DOUBLE_SPECIAL\" ? (d.day_type == \"REST\" ? 1.95 : 1.5) : d.holiday_kind == \"SPECIAL_HOLIDAY\" ? (d.day_type == \"REST\" ? 1.5 : 1.3) : d.day_type == \"REST\" ? 1.3 : 1.0) + min(hours_between(d.overtime_intervals, \"22:00\", \"06:00\"), min(d.overtime_hours, max(0.0, d.worked_hours - 8.0))) * (d.holiday_kind == \"DOUBLE_HOLIDAY\" ? (d.day_type == \"REST\" ? 5.07 : 3.9) : d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"] ? (d.day_type == \"REST\" ? 3.38 : 2.6) : d.holiday_kind == \"DOUBLE_SPECIAL\" ? (d.day_type == \"REST\" ? 2.535 : 1.95) : d.holiday_kind == \"SPECIAL_HOLIDAY\" ? (d.day_type == \"REST\" ? 1.95 : 1.69) : d.day_type == \"REST\" ? 1.69 : 1.25)) * 0.1))",
+					"rate": "(((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? terms.base_salary : terms.base_salary * 12.0 / (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0)) / (has(terms.facts.hours_per_day) ? double(terms.facts.hours_per_day) : 8.0))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.WAGE"]
+				}
+			],
+			"PAID_HOLIDAY": [
+				{
+					"code": "DOUBLE_HOLIDAY_UNWORKED",
+					"name": "Double holiday not worked",
+					"references": [
+						{
+							"title": "Labor Code art.94; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.2 holiday pay §D.3: \"If the employee does not work on a double regular holiday, the employer shall pay 200%\" — the salary (or, daily-paid, the DAILY_HOLIDAY_PAY line) pays one of the two holidays and this line the second. Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2).",
+							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
+						}
+					],
+					"eligibility": "employment.classification != \"MANAGERIAL\" && terms.employment_type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"TASK_BASIS\", \"PIECE_RATE\"]) && !((has(company.facts.retail_or_service_establishment) && company.facts.retail_or_service_establishment) && company.headcount < 10.0) && double(size(work.days.filter(d, d.holiday_kind == \"DOUBLE_HOLIDAY\" && !d.worked && (!(has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") || !work.days.exists(p, p.date < d.date && p.day_type == \"WORK\" && (p.holiday_kind == \"\" || p.worked) && !work.days.exists(q, q.date > p.date && q.date < d.date && q.day_type == \"WORK\" && (q.holiday_kind == \"\" || q.worked)) && !p.worked && !leave.rows.exists(r, !r.is_npl && has(r.from) && r.from != null && r.from <= p.date && ((has(r.to) && r.to != null) ? r.to : r.from) >= p.date)))))) > 0.0",
+					"quantity": "double(size(work.days.filter(d, d.holiday_kind == \"DOUBLE_HOLIDAY\" && !d.worked && (!(has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") || !work.days.exists(p, p.date < d.date && p.day_type == \"WORK\" && (p.holiday_kind == \"\" || p.worked) && !work.days.exists(q, q.date > p.date && q.date < d.date && q.day_type == \"WORK\" && (q.holiday_kind == \"\" || q.worked)) && !p.worked && !leave.rows.exists(r, !r.is_npl && has(r.from) && r.from != null && r.from <= p.date && ((has(r.to) && r.to != null) ? r.to : r.from) >= p.date))))))",
+					"rate": "((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? terms.base_salary : terms.base_salary * 12.0 / (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.WAGE"]
+				},
+				{
+					"code": "DAILY_HOLIDAY_PAY",
+					"name": "Regular holiday pay (daily-paid)",
+					"references": [
+						{
+							"title": "Labor Code art.94; Omnibus Rules Implementing the Labor Code (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819) Book III Rule IV ss.2, 6, 10; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 (https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf) ch.2: a daily-paid employee is paid 100% for an unworked regular holiday (a double holiday adds the DOUBLE_HOLIDAY_UNWORKED line), unless on leave without pay on the working day immediately before it — a rest day or non-working day in between is skipped (s.6(c)), and of two successive holidays the second is paid when the first is worked (s.10). Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2)."
+						}
+					],
+					"eligibility": "(has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") && employment.classification != \"MANAGERIAL\" && terms.employment_type != \"DOMESTIC\" && !(terms.statutory_work_category in [\"FIELD_PERSONNEL\", \"TASK_BASIS\", \"PIECE_RATE\"]) && !((has(company.facts.retail_or_service_establishment) && company.facts.retail_or_service_establishment) && company.headcount < 10.0) && double(size(work.days.filter(d, (d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"] || d.holiday_kind == \"DOUBLE_HOLIDAY\") && !d.worked && !work.days.exists(p, p.date < d.date && p.day_type == \"WORK\" && (p.holiday_kind == \"\" || p.worked) && !work.days.exists(q, q.date > p.date && q.date < d.date && q.day_type == \"WORK\" && (q.holiday_kind == \"\" || q.worked)) && !p.worked && !leave.rows.exists(r, !r.is_npl && has(r.from) && r.from != null && r.from <= p.date && ((has(r.to) && r.to != null) ? r.to : r.from) >= p.date))))) > 0.0",
+					"quantity": "double(size(work.days.filter(d, (d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"] || d.holiday_kind == \"DOUBLE_HOLIDAY\") && !d.worked && !work.days.exists(p, p.date < d.date && p.day_type == \"WORK\" && (p.holiday_kind == \"\" || p.worked) && !work.days.exists(q, q.date > p.date && q.date < d.date && q.day_type == \"WORK\" && (q.holiday_kind == \"\" || q.worked)) && !p.worked && !leave.rows.exists(r, !r.is_npl && has(r.from) && r.from != null && r.from <= p.date && ((has(r.to) && r.to != null) ? r.to : r.from) >= p.date)))))",
+					"rate": "((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? terms.base_salary : terms.base_salary * 12.0 / (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.WAGE"]
+				}
+			]
 		},
 		"sources": {
 			"entries": [
@@ -169,397 +308,6 @@
 		},
 		"cloned_from_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
 		"change_summary": "RR 29-2025 (dated 27 October 2025, posted on the BIR website 22 December 2025, in force fifteen days later, 6 January 2026; s.3) raises every de minimis ceiling of RR 2-98 s.2.78.1(A)(3): monetised leave 10 → 12 days, dependants’ medical ₱1,500 → ₱2,000 a semester, rice ₱2,000 → ₱2,500 and laundry ₱300 → ₱400 a month, uniform ₱7,000 → ₱8,000, medical assistance, achievement awards and CBA/productivity ₱10,000 → ₱12,000, Christmas gifts ₱5,000 → ₱6,000, the overtime/night meal 25% → 30% of the regional minimum wage. Later regional wage orders are dated entries of the PAYROLL rule `minimum_wage`, not versions.",
-		"behaviours": {
-			"version": 1,
-			"rules": [
-				{
-					"id": "payroll-run",
-					"catalog": "WORK",
-					"events": ["PAYROLL_CREATE"],
-					"when": "event.data.request.kind in [\"REGULAR\", \"OFF_CYCLE\"]"
-				},
-				{
-					"id": "pin-settled-entries",
-					"target_collection": "payroll_run",
-					"events": ["created"],
-					"when": "true",
-					"fields": ["pins"],
-					"reads": {
-						"slips": {
-							"collection": "payslip",
-							"where": {
-								"payroll_run_id": {
-									"eq": "event.row.id"
-								}
-							},
-							"select": ["id", "employment_id"]
-						}
-					},
-					"effect": "event.row.pins.map(p, { \"collection\": p.collection, \"operation\": \"update\", \"data\": { \"target\": [p.id], \"set\": { \"payslip_id\": first(slips.filter(s, s.employment_id == p.employment_id).map(s, s.id)) } } }).filter(w, w.data.set.payslip_id != null)"
-				},
-				{
-					"id": "hold-payslips",
-					"target_collection": "payroll_run",
-					"events": ["created"],
-					"when": "has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0",
-					"fields": ["holds"],
-					"reads": {
-						"slips": {
-							"collection": "payslip",
-							"where": {
-								"payroll_run_id": {
-									"eq": "event.row.id"
-								},
-								"status": {
-									"eq": "\"DRAFT\""
-								}
-							},
-							"select": ["id", "employment_id"]
-						}
-					},
-					"effect": "event.row.holds.map(h, { \"collection\": \"payslip\", \"operation\": \"update\", \"data\": { \"target\": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), \"set\": { \"status\": \"ON_HOLD\" } } }).filter(w, size(w.data.target) > 0)"
-				},
-				{
-					"id": "retract-exit-effects",
-					"target_collection": "employment_contract",
-					"events": ["updated"],
-					"when": "has(event.row.before) && event.row.before != null && (\"effective_range\" in event.row.before || \"exit_ground\" in event.row.before || \"exit_facts\" in event.row.before)",
-					"fields": ["before", "exit_facts", "exit_ground", "effective_range"],
-					"reads": {
-						"movements": {
-							"collection": "leave_catalog_entry",
-							"where": {
-								"employment_id": {
-									"eq": "event.row.id"
-								},
-								"payslip_id": {
-									"isNull": true
-								}
-							},
-							"select": ["reference"]
-						},
-						"tasks": {
-							"collection": "regulatory_task",
-							"where": {
-								"subject_id": {
-									"eq": "event.row.id"
-								},
-								"state": {
-									"eq": "\"OPEN\""
-								}
-							},
-							"select": ["occurrence_key", "facts"]
-						}
-					},
-					"effect": "movements.filter(m, m.reference != null && m.reference.startsWith(\"exit:\" + event.row.id + \":\") && !((event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\") != \"\" && m.reference.endsWith(\":\" + (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")))).map(m, { \"collection\": \"leave_catalog_entry\", \"operation\": \"delete\", \"data\": { \"target\": [m.id] } }) + tasks.filter(t, t.facts != null && has(t.facts.exit_key) && t.facts.exit_key != (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")).map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The exit it answered was changed on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
-				},
-				{
-					"id": "encash-leave-on-exit",
-					"target_collection": "employment_contract",
-					"events": ["updated"],
-					"when": "event.row.exit_facts != null && event.row.effective_range.to != null",
-					"fields": ["exit_facts", "effective_range"],
-					"reads": {
-						"catalogues": {
-							"collection": "leave_catalog",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"encash_on_exit": {
-									"eq": true
-								}
-							},
-							"select": ["id", "code", "unit", "entitlement"]
-						},
-						"movements": {
-							"collection": "leave_catalog_entry",
-							"where": {
-								"employment_id": {
-									"eq": "event.row.id"
-								}
-							},
-							"select": ["catalog_id", "activity", "days", "reference"]
-						}
-					},
-					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))) } }).filter(w, w.data.days > 0)"
-				},
-				{
-					"id": "raise-obligations",
-					"target_collection": "payroll_run",
-					"events": ["created"],
-					"when": "true",
-					"fields": ["period", "company_id"],
-					"reads": {
-						"duties": {
-							"collection": "rule_set",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"family": {
-									"eq": "\"OBLIGATIONS\""
-								}
-							},
-							"select": ["code", "name", "references", "rules"]
-						},
-						"company": {
-							"collection": "entity",
-							"where": {
-								"id": {
-									"eq": "event.company_id"
-								}
-							},
-							"select": ["name", "region", "risk_class", "time_zone", "facts"]
-						},
-						"holidays": {
-							"collection": "holiday",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								},
-								"published_at": {
-									"isNull": false
-								},
-								"date": {
-									"gte": "add_days(event.day, -31)",
-									"lte": "add_days(event.day, 400)"
-								}
-							},
-							"select": ["date", "name", "kind"]
-						},
-						"raised": {
-							"collection": "obligation",
-							"where": {
-								"trigger_ref": {
-									"eq": "event.row.id"
-								}
-							},
-							"select": ["duty_code"]
-						}
-					},
-					"effect": "duties.filter(d, (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }) == true) && !raised.exists(o, o.duty_code == d.code)).map(d, { \"collection\": \"obligation\", \"operation\": \"create\", \"data\": { \"duty_code\": d.code, \"references\": d.references, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }), \"amount_due\": has(d.rules.amount) ? configured_eval(d.rules.amount, { \"rules\": event.rules, \"total\": sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), \"run\": run, \"period\": event.period, \"company\": first(company), \"headcount_months\": event.headcount_months }) : round(sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), 0.01), \"occurrence_key\": d.code + \":\" + event.row.id } }).filter(w, w.data.amount_due > 0.0)"
-				},
-				{
-					"id": "withdraw-run-duties",
-					"target_collection": "payroll_run",
-					"events": ["deleted"],
-					"reads": {
-						"obligations": {
-							"collection": "obligation",
-							"where": {
-								"trigger_ref": {
-									"eq": "event.row.id"
-								},
-								"state": {
-									"eq": "\"OPEN\""
-								}
-							},
-							"select": ["amount_settled"]
-						},
-						"tasks": {
-							"collection": "regulatory_task",
-							"where": {
-								"subject_id": {
-									"eq": "event.row.id"
-								},
-								"state": {
-									"eq": "\"OPEN\""
-								}
-							},
-							"select": ["occurrence_key"]
-						}
-					},
-					"effect": "obligations.filter(o, o.amount_settled == null).map(o, { \"collection\": \"obligation\", \"operation\": \"delete\", \"data\": { \"target\": [o.id] } }) + tasks.map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The payroll run that raised it was deleted on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
-				},
-				{
-					"id": "encash-leave-at-window-end",
-					"target_collection": "calendar",
-					"events": ["daily"],
-					"when": "size(event.leave_balances) > 0",
-					"reads": {
-						"catalogues": {
-							"collection": "leave_catalog",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"encash_at_window_end": {
-									"eq": true
-								}
-							},
-							"select": ["id", "code"]
-						},
-						"movements": {
-							"collection": "leave_catalog_entry",
-							"where": {
-								"employment_id": {
-									"eq": "event.row.id"
-								},
-								"activity": {
-									"eq": "\"ENCASHMENT\""
-								}
-							},
-							"select": ["reference"]
-						}
-					},
-					"effect": "catalogues.filter(c, !movements.exists(m, m.reference == \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.day, \"activity\": \"ENCASHMENT\", \"reference\": \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code && b.window_to == event.day).map(b, b.available))) } }).filter(w, w.data.days > 0)"
-				},
-				{
-					"id": "raise-tasks",
-					"when": "true",
-					"fields": [
-						"period",
-						"company_id",
-						"employment_id",
-						"status",
-						"employee_id",
-						"effective_range",
-						"facts"
-					],
-					"reads": {
-						"tasks": {
-							"collection": "rule_set",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"family": {
-									"eq": "\"TASKS\""
-								}
-							},
-							"select": ["code", "name", "references", "rules"]
-						},
-						"company": {
-							"collection": "entity",
-							"where": {
-								"id": {
-									"eq": "event.company_id"
-								}
-							},
-							"select": [
-								"name",
-								"region",
-								"risk_class",
-								"time_zone",
-								"registration_number",
-								"facts"
-							]
-						},
-						"contract": {
-							"collection": "employment_contract",
-							"where": {
-								"id": {
-									"in": "(event.employment_id == null ? [] : [event.employment_id])"
-								}
-							},
-							"select": [
-								"id",
-								"company_id",
-								"employee_id",
-								"effective_range",
-								"prior_service_months",
-								"engagement",
-								"exit_ground",
-								"exit_facts",
-								"facts"
-							]
-						},
-						"employee": {
-							"collection": "employment_profile",
-							"where": {
-								"id": {
-									"in": "(event.employee_id == null ? [] : [event.employee_id])"
-								}
-							},
-							"select": [
-								"nationality",
-								"gender",
-								"date_of_birth",
-								"marital_status",
-								"children",
-								"facts"
-							]
-						},
-						"holidays": {
-							"collection": "holiday",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								},
-								"published_at": {
-									"isNull": false
-								},
-								"date": {
-									"gte": "add_days(event.day, -31)",
-									"lte": "add_days(event.day, 400)"
-								}
-							},
-							"select": ["date", "name", "kind"]
-						},
-						"raised": {
-							"collection": "regulatory_task",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								},
-								"triggered_on": {
-									"gte": "add_days(event.day, -400)"
-								}
-							},
-							"select": ["occurrence_key"]
-						},
-						"subject_tasks": {
-							"collection": "regulatory_task",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								},
-								"subject_id": {
-									"eq": "event.row.id"
-								}
-							},
-							"select": ["occurrence_key"]
-						}
-					},
-					"effect": "tasks.filter(d, has(d.rules.trigger) && d.rules.trigger.collection == event.collection && event.action in d.rules.trigger.events && (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.when) || configured_eval(d.rules.when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && !(raised + subject_tasks).exists(t, t.occurrence_key == d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)))).map(d, { \"collection\": \"regulatory_task\", \"operation\": \"create\", \"data\": { \"facts\": (event.collection in [\"employment_contract\", \"calendar\"] && has(event.row.exit_facts) && event.row.exit_facts != null && has(event.row.effective_range) && event.row.effective_range.to != null ? { \"exit_key\": string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") } : {}), \"code\": d.code, \"title\": d.name, \"references\": d.references, \"subject_collection\": event.collection, \"subject_id\": event.row.id, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }), \"occurrence_key\": d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)) } })",
-					"events": ["created", "updated", "daily", "after_exit", "calendar"]
-				},
-				{
-					"id": "write-public-holidays",
-					"target_collection": "entity",
-					"events": ["created", "calendar"],
-					"when": "true",
-					"reads": {
-						"calendar": {
-							"collection": "rule_set",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"family": {
-									"eq": "\"PAYROLL\""
-								},
-								"code": {
-									"eq": "\"public_holidays\""
-								}
-							},
-							"select": ["rules"]
-						},
-						"held": {
-							"collection": "holiday",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								}
-							},
-							"select": ["date"]
-						}
-					},
-					"effect": "calendar.exists(c, has(c.rules.holidays)) ? first(calendar).rules.holidays.filter(h, (!has(h.regions) || event.row.region in h.regions) && !held.exists(x, x.date == h.date)).map(h, { \"collection\": \"holiday\", \"operation\": \"create\", \"data\": { \"company_id\": event.company_id, \"date\": h.date, \"name\": h.name, \"kind\": has(h.kind) ? h.kind : \"PUBLIC_HOLIDAY\", \"replaces\": has(h.replaces) ? h.replaces : null, \"given_to\": has(h.given_to) ? h.given_to : \"EVERYONE\" } }) : []"
-				}
-			]
-		},
 		"employee_input_schema": {
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
 			"type": "object",
@@ -1038,71 +786,6 @@
 					"description": "Customer input: the issue date of the current NPC Certificate of Registration (NPC Circular 2022-04 s.18: valid one year, renewed in the thirty days before it expires)."
 				}
 			}
-		},
-		"suspension_kinds": [
-			{
-				"code": "BONA_FIDE_SUSPENSION",
-				"name": "Bona fide suspension of operations",
-				"counts_as_attended": "false",
-				"scheduled": "false",
-				"pay": "",
-				"references": [
-					{
-						"title": "Labor Code art.301; Omnibus Rules Book VI Rule I s.12 as amended by DO 215-20, https://web.archive.org/web/2021id_/https://www.dole.gov.ph/php_assets/uploads/2020/10/DO-215-20-Rule-Amending-Section-12-of-Rule-I-Rules-Implementing-Book-VI-of-the-Labor-Code-on-Suspension-of-Employment-Relationship.pdf: the employment relationship is suspended up to six months, extendable by six in a declared national emergency; no wages unless agreement or policy; not attended, not a scheduled day",
-						"url": "https://web.archive.org/web/2021id_/https://www.dole.gov.ph/php_assets/uploads/2020/10/DO-215-20-Rule-Amending-Section-12-of-Rule-I-Rules-Implementing-Book-VI-of-the-Labor-Code-on-Suspension-of-Employment-Relationship.pdf"
-					}
-				]
-			},
-			{
-				"code": "FORCE_MAJEURE",
-				"name": "Natural disaster, calamity or other force majeure stopping work",
-				"counts_as_attended": "false",
-				"scheduled": "false",
-				"pay": "",
-				"references": [
-					{
-						"title": "no work, no pay — DOLE Handbook 2024 ch.2 §I,; a suspension of operation under art.301 when it lasts; not attended, not a scheduled day",
-						"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
-					}
-				]
-			},
-			{
-				"code": "STRIKE",
-				"name": "Strike",
-				"counts_as_attended": "false",
-				"scheduled": "false",
-				"pay": "",
-				"references": [
-					{
-						"title": "the employees absent from work: no work, no pay; any backwages are adjudicated, not payroll; not attended, not a scheduled day"
-					}
-				]
-			},
-			{
-				"code": "LOCKOUT",
-				"name": "Lockout by the employer",
-				"counts_as_attended": "false",
-				"scheduled": "false",
-				"pay": "",
-				"references": [
-					{
-						"title": "a lawful lockout pays no wage — no work, no pay; an unlawful one is adjudicated; not attended, not a scheduled day"
-					}
-				]
-			},
-			{
-				"code": "WORK_STOPPAGE_ORDER",
-				"name": "DOLE work stoppage order or OSH suspension for imminent danger",
-				"counts_as_attended": "true",
-				"scheduled": "true",
-				"pay": "day.day_type == \"WORK\" && !day.worked && (has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? terms.base_salary : 0.0",
-				"references": [
-					{
-						"title": "DO 198-18 s.24, OSH Standards 2020 edition, https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf: the employer at fault — presumed when the order follows an imminent danger — pays the affected workers their wages during the stoppage; attended and scheduled, the daily-paid paid the day",
-						"url": "https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf"
-					}
-				]
-			}
-		]
+		}
 	}
 ]

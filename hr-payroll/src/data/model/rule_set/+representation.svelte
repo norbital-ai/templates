@@ -113,7 +113,7 @@
 						{
 							name: 'identity',
 							title: t('section.identity'),
-							fields: ['scope', 'family', 'code', 'name', 'references']
+							fields: ['family', 'code', 'name', 'references']
 						},
 						{ name: 'rules', title: t('section.rules'), fields: ['rules'] },
 						{

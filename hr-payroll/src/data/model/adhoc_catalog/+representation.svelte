@@ -39,7 +39,6 @@
 							name: 'rules',
 							title: t('section.rules'),
 							fields: [
-								'raise_on_exit',
 								'payable_after_exit',
 								'eligibility',
 								'qualifies_when',

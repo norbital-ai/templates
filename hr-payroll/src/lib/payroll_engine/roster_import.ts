@@ -307,7 +307,7 @@ const loadSheetScope = Effect.fnUntraced(function* (
 			fields: ['employment_id', 'payroll_run_id']
 		},
 		rule_set: {
-			where: { settings_id: { in: settingsIds }, family: { in: ['VALIDATIONS', 'PAYROLL'] } },
+			where: { settings_id: { in: settingsIds }, family: { in: ['VALIDATIONS', 'PARAMETERS'] } },
 			fields: [...RULES, 'family', 'settings_id']
 		},
 		leave_catalog: { where: { settings_id: { in: settingsIds } }, fields: ['code', 'settings_id'] }

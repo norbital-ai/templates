@@ -5,10 +5,35 @@ export const SETTINGS = [
 	'effective_range',
 	'sealed_at',
 	'voided_at',
-	'payroll',
-	'behaviours',
-	'suspension_kinds'
+	'payroll'
 ] as const satisfies Fields<'jurisdiction_settings'>;
+
+/** A behaviour row as the runner plans it. */
+export const BEHAVIOUR = [
+	'code',
+	'name',
+	'references',
+	'order',
+	'target_collection',
+	'events',
+	'when',
+	'fields',
+	'reads',
+	'effect',
+	'definition'
+] as const satisfies Fields<'behaviour'>;
+
+export const SUSPENSION = [
+	'settings_id',
+	'code',
+	'name',
+	'counts_as_attended',
+	'scheduled',
+	'eligibility',
+	'quantity',
+	'rate',
+	'pay'
+] as const satisfies Fields<'suspension_catalog'>;
 
 export const ENTITY = [
 	'name',
@@ -190,7 +215,6 @@ export const CATALOG = {
 		'qualifies_when',
 		'bands',
 		'payable_after_exit',
-		'raise_on_exit',
 		'amount_required'
 	],
 	claim_catalog: [
@@ -213,7 +237,8 @@ export const CATALOG = {
 		'is_npl',
 		'can_encash',
 		'pay_fraction',
-		'share_by'
+		'share_by',
+		'pay'
 	],
 	loan_catalog: [
 		'settings_id',
@@ -233,21 +258,8 @@ export const CATALOG = {
 		'direction',
 		'counts_toward',
 		'eligibility',
-		'amount'
-	],
-	work_catalog: [
-		'settings_id',
-		'code',
-		'name',
-		'component_code',
-		'eligibility',
-		'quantity',
-		'rate',
-		'prorated',
-		'denominator',
-		'destination',
-		'direction',
-		'counts_toward'
+		'amount',
+		'automatic'
 	]
 } as const satisfies {
 	adhoc_catalog: Fields<'adhoc_catalog'>;
@@ -255,7 +267,6 @@ export const CATALOG = {
 	leave_catalog: Fields<'leave_catalog'>;
 	loan_catalog: Fields<'loan_catalog'>;
 	allowance_catalog: Fields<'allowance_catalog'>;
-	work_catalog: Fields<'work_catalog'>;
 };
 
 /** Every scalar field the row taps expose to their rules; biometric and file payloads stay out. */
@@ -569,7 +580,6 @@ export const CATALOG_DETAILS = {
 		'qualifies_when',
 		'amount_required',
 		'counts_toward',
-		'raise_on_exit',
 		'payable_after_exit'
 	],
 	claim_catalog: [
@@ -598,7 +608,8 @@ export const CATALOG_DETAILS = {
 		'is_npl',
 		'pay_fraction',
 		'share_by',
-		'consumes_code'
+		'consumes_code',
+		'pay'
 	],
 	loan_catalog: [
 		'code',

@@ -1,10 +1,16 @@
-import { Effect, Option, Schema } from 'effect';
+import { Effect } from 'effect';
 import { automation } from '@norbital-ai/bolt';
 import { behavioursOf, triggerMatches } from '../lib/payroll_engine/behaviours.js';
 import { payrollSetting } from '../lib/payroll_engine/foundation.js';
 import { classFromRow, windowEndsOn } from '../lib/payroll_engine/leave.js';
 import { addDays, PlainDate } from '@norbital-ai/std/date';
-import { CONTRACT, LEAVE_CLASS, RULE_SET, SETTINGS } from '../lib/payroll_engine/rows.js';
+import {
+	BEHAVIOUR,
+	CONTRACT,
+	LEAVE_CLASS,
+	RULE_SET,
+	SETTINGS
+} from '../lib/payroll_engine/rows.js';
 import { idsOf } from '../lib/payroll_engine/payslip/context.js';
 import {
 	type BehaviourEvent,
@@ -16,17 +22,13 @@ import {
 	staffingLookup,
 	versionLookup
 } from '../lib/payroll_engine/behaviour_runner.js';
-/** A `TASKS` row's `rules.trigger`: the model and the events it answers. */
-const TaskRules = Schema.Struct({
-	trigger: Schema.Struct({ collection: Schema.String, events: Schema.Array(Schema.String) })
-});
 // ponytail: a calendar row carries the time off of the two years before today; a longer look-back needs more.
 const LEAVE_LOOKBACK_DAYS = 731;
 /**
  * The daily tick: every employment in force today runs the governing version's behaviour rules as the row event
  * `calendar`/`daily` (its contract the row, with its time off of the last two years as `leave[]`, today the day), so
- * anniversaries, age-reached duties, leave-year ends and repeats while on leave are `TASKS` rows with
- * `trigger: { collection: 'calendar', events: ['daily'] }`; every open `workplace_case` runs as `workplace_case`/`daily`
+ * anniversaries, age-reached duties, leave-year ends and repeats while on leave are task behaviour rows (a
+ * `definition`) answering `calendar`/`daily`; every open `workplace_case` runs as `workplace_case`/`daily`
  * (a case still open after its deadline). A version with a `calendar`/`after_exit` task also runs every ended
  * employment as `calendar`/`after_exit` (a certificate or a disposal N days after the exit). A contract whose `encash_at_window_end` class's window closes today carries
  * its balances, which the canonical `encash-leave-at-window-end` rule encashes. One pass per entity; an entity whose version holds no such task is skipped
@@ -66,9 +68,10 @@ export default automation('calendar_tick', {
 					fields: SETTINGS
 				},
 				'jurisdiction_settings.rule_set': {
-					where: { family: { in: ['TASKS', 'PAYROLL'] } },
+					where: { family: { eq: 'PARAMETERS' } },
 					fields: RULE_SET
 				},
+				'jurisdiction_settings.behaviour': { fields: BEHAVIOUR },
 				'jurisdiction_settings.leave_catalog': {
 					where: { encash_at_window_end: { eq: true } },
 					fields: LEAVE_CLASS
@@ -99,7 +102,6 @@ export default automation('calendar_tick', {
 				entities,
 				contracts: held.employment_contract,
 				versions: held.jurisdiction_settings,
-				rules: { rows: held.jurisdiction_settings.rows.flatMap((version) => version.rule_set) },
 				encashed: {
 					rows: held.jurisdiction_settings.rows.flatMap((version) => version.leave_catalog)
 				},
@@ -144,11 +146,8 @@ export default automation('calendar_tick', {
 				const version = (yield* versionFor(company_id, today)) ?? governing;
 				const subject = { company_id, employment_id: null, employee_id: null };
 				const entityRule = { kind: 'row' as const, collection: 'entity', event: 'calendar' };
-				if (
-					behavioursOf(version['behaviours'])?.rules.some((rule) =>
-						triggerMatches(rule, entityRule)
-					)
-				)
+				const behaviours = yield* Effect.fromResult(behavioursOf(version.behaviour));
+				if (behaviours.some((rule) => triggerMatches(rule, entityRule)))
 					groups.entity.push({
 						row: entity,
 						day: today,
@@ -157,18 +156,20 @@ export default automation('calendar_tick', {
 							return {};
 						})
 					});
-				// Each of the version's duties with its trigger, decoded once; a duty naming none answers no event.
-				const duties = got.rules.rows.flatMap((duty) => {
-					if (duty.family !== 'TASKS' || duty.settings_id !== version.id) return [];
-					const decoded = Schema.decodeUnknownOption(TaskRules)(duty.rules);
-					return Option.isNone(decoded)
+				// The version's duties (a behaviour row raising one task: its `definition`), each with the model it answers.
+				const duties = behaviours.flatMap((rule) =>
+					rule.definition == null || rule.target_collection == null
 						? []
-						: [{ trigger: decoded.value.trigger, rules: duty.rules }];
-				});
+						: [
+								{
+									collection: rule.target_collection,
+									events: rule.events,
+									definition: rule.definition
+								}
+							]
+				);
 				const daily = new Set(
-					duties.flatMap(({ trigger }) =>
-						trigger.events.includes('daily') ? [trigger.collection] : []
-					)
+					duties.flatMap(({ collection, events }) => (events.includes('daily') ? [collection] : []))
 				);
 				if (daily.has('workplace_case'))
 					for (const row of got.cases.rows.filter((row) => row.company_id === company_id)) {
@@ -194,14 +195,13 @@ export default automation('calendar_tick', {
 					.map(classFromRow);
 				// A version with a `calendar`/`after_exit` task also ticks every ended employment (a duty N days after exit).
 				const afterExit = duties.some(
-					({ trigger }) =>
-						trigger.collection === 'calendar' && trigger.events.includes('after_exit')
+					({ collection, events }) => collection === 'calendar' && events.includes('after_exit')
 				);
 				if (!daily.has('calendar') && encashed.length === 0 && !afterExit) return;
 				// Balances (with each class's attendance) only for a version whose daily tasks read them.
 				const readsBalances = duties.some(
-					({ trigger, rules }) =>
-						trigger.collection === 'calendar' && JSON.stringify(rules).includes('leave_balances')
+					({ collection, definition }) =>
+						collection === 'calendar' && JSON.stringify(definition).includes('leave_balances')
 				);
 				const since = addDays(today, -LEAVE_LOOKBACK_DAYS);
 				const contracts = got.contracts.rows.filter((row) => row.company_id === company_id);

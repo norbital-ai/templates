@@ -76,7 +76,7 @@ describe('payroll export', () => {
 });
 
 describe('statutory returns as records', () => {
-	it('an EXPORTS row renders one CSV row per employment over the selected runs, its columns CEL', () => {
+	it('an export layout renders one CSV row per employment over the selected runs, its columns CEL', () => {
 		const template = {
 			code: 'ANNUAL_RETURN',
 			rules: {

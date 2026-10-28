@@ -47,7 +47,7 @@ export default model('work_suspension', {
 	fields: {
 		kind: {
 			kind: 'text',
-			help: 'A code of the governing version’s suspension_kinds rule.'
+			help: 'A code of the governing version’s suspension_catalog.'
 		},
 		starts_on: {
 			kind: 'date'

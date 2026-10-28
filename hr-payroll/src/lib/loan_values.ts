@@ -2,6 +2,7 @@ import { Decimal } from '@norbital-ai/std/decimal';
 import { inputSchema } from '@norbital-ai/std/kind';
 import { Schema } from 'effect';
 import type { Masked, Row } from '@norbital-ai/bolt';
+import { PAYROLL_DEFAULTS } from './payroll_engine/foundation.js';
 import { currencyScale } from './payroll_engine/payslip/context.js';
 
 const amount = inputSchema({ kind: 'decimal', scale: 2 });
@@ -26,7 +27,7 @@ export const loanRuleFacts = (loan: {
 });
 
 /** The money and calendar a loan schedule keeps, from the version governing its class: the version's minor units (else
- * its currency's) and its semi-monthly split. `null` when the version states neither currency nor split. */
+ * its currency's) and its semi-monthly split (else the engine's). `null` when the version states no currency. */
 export const loanCalendar = (
 	payroll:
 		| {
@@ -37,9 +38,9 @@ export const loanCalendar = (
 		| null
 		| undefined
 ): { readonly scale: number; readonly semi_monthly_split: number } | null =>
-	payroll?.currency == null || payroll.semi_monthly_split == null
+	payroll?.currency == null
 		? null
 		: {
 				scale: payroll.minor_units ?? currencyScale(payroll.currency),
-				semi_monthly_split: payroll.semi_monthly_split
+				semi_monthly_split: payroll.semi_monthly_split ?? PAYROLL_DEFAULTS.semi_monthly_split
 			};

@@ -148,7 +148,7 @@ export default model('obligation', {
 		}
 	},
 	delete: {
-		// an open obligation is withdrawn when the run that raised it is deleted (`withdraw-run-duties`); a settled or
+		// an open obligation is withdrawn when the run that raised it is deleted (`payroll_run_bookkeeping`); a settled or
 		// waived one stays
 		check: function* (rows, ctx) {
 			const row = rows.findIndex((held) => held.state !== 'OPEN');

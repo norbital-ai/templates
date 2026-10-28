@@ -183,4 +183,43 @@ layer(world(rows).layer)('catalogue entries', (it) => {
 				);
 			})
 	);
+
+	it.effect(
+		'a controller’s ad hoc pay awaiting review is neither paid nor pinned; once approved, a rebuilt run pays it',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				// the review routes to the HR Manager team: its approver is a member of it
+				const hr = t.as(t.member(['hr_manager'], { teams: ['hr_manager'] }));
+				const controller = t.as(t.member(['hr_controller']));
+				const held = yield* controller.act('adhoc_catalog_entry.create', [
+					{
+						catalog_id: CATALOG.BONUS,
+						employment_id: L,
+						occurred_on: PlainDate('2026-04-10'),
+						amount: Decimal.of('500')
+					}
+				]);
+				assert.equal(held.kind, 'pendingApproval');
+				if (held.kind !== 'pendingApproval') return;
+
+				// April follows the March run above
+				yield* hr.act('payroll_run.create', [run('2026-04')]);
+				const waiting = yield* runOf(hr, '2026-04');
+				assert.deepEqual(waiting.slip('l').lines, { BASIC: 3000 });
+				assert.ok(
+					!waiting.pins.some(
+						(pin) => pin.collection === 'adhoc_catalog_entry' && pin.employment_id === L
+					)
+				);
+
+				yield* hr.approvals.decide(held.requestId, { decision: 'approve' });
+				yield* hr.act('payroll_run.delete', [{ target: waiting.id }]);
+				yield* hr.act('payroll_run.create', [run('2026-04')]);
+				assert.deepEqual((yield* runOf(hr, '2026-04')).slip('l').lines, {
+					BASIC: 3000,
+					BONUS: 500
+				});
+			})
+	);
 });

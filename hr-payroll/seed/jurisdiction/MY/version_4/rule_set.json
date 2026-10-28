@@ -1,532 +1,8 @@
 [
 	{
-		"id": "e3c41b41-204f-542b-be82-5573215a7d8b",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "EPF_MONTHLY_CONTRIBUTION",
-		"name": "EPF_MONTHLY_CONTRIBUTION",
-		"references": [
-			{
-				"title": "Employees Provident Fund Act 1991 (Act 452)",
-				"locator": "ss.43, 45, 47, 49",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf"
-			},
-			{
-				"title": "Third Schedule as amended by Act A1760 s.10",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf"
-			},
-			{
-				"title": "KWSP, EPF Act 1991",
-				"locator": "Third Schedule",
-				"url": "https://www.kwsp.gov.my/en/epf-act-1991-third-schedule"
-			},
-			{
-				"title": "KWSP, Employer Mandatory Contribution",
-				"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution"
-			}
-		],
-		"rules": {
-			"description": "Pay the month’s EPF contributions (employer and employee shares) with the contribution statement (Form A / i-Akaun) on or before the 15th day of the following month; late payment attracts the late payment charge and the employer share is not recoverable from the employee.",
-			"schemes": ["EPF", "EPF_PR", "EPF_NON_CITIZEN"],
-			"due": "add_days(period.to, 15)"
-		}
-	},
-	{
-		"id": "b2956fad-00b8-5afb-90c1-87f450e00246",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "SOCSO_EIS_MONTHLY_CONTRIBUTION",
-		"name": "SOCSO_EIS_MONTHLY_CONTRIBUTION",
-		"references": [
-			{
-				"title": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)"
-			}
-		],
-		"rules": {
-			"description": "Pay the month’s SOCSO and EIS contributions and the SKBBK (LINDUNG 24 Jam) employee contribution with the monthly data through ASSIST not later than the 15th day of the following month; interest at 6% a year runs on each day unpaid.",
-			"schemes": ["SOCSO", "SKBBK", "EIS"],
-			"due": "add_days(period.to, 15)"
-		}
-	},
-	{
-		"id": "ec0aea64-f69c-5eca-bf3e-be06af9cc893",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "HRD_LEVY_MONTHLY",
-		"name": "HRD_LEVY_MONTHLY",
-		"references": [
-			{
-				"title": "Pembangunan Sumber Manusia Berhad Act 2001",
-				"locator": "ss.13(1), 14"
-			},
-			{
-				"title": "HRD Corp Employers FAQ",
-				"url": "https://web.archive.org/web/2026/https://hrdcorp.gov.my/faq"
-			}
-		],
-		"rules": {
-			"description": "Pay the HRD levy on the month’s wages of Malaysian employees (1% compulsory, 0.5% optional class) by the 15th of the following month; it may not be deducted from wages. Raised for an employer whose recorded HRD class is COMPULSORY or OPTIONAL (unrecorded is compulsory) and not out of scope.",
-			"schemes": ["HRDF"],
-			"applies_when": "!((company.facts != null && has(company.facts.hrd_scope)) && company.facts.hrd_scope == \"OUT_OF_SCOPE\") && (!(company.facts != null && has(company.facts.hrd_registration_class)) || company.facts.hrd_registration_class in [\"COMPULSORY\", \"OPTIONAL\"])",
-			"due": "add_days(period.to, 15)"
-		}
-	},
-	{
-		"id": "bd73e3a5-d58d-523d-a100-a58a72948e56",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "PCB_REMITTANCE",
-		"name": "PCB_REMITTANCE",
-		"references": [
-			{
-				"title": "Income Tax Act 1967 (Act 53)",
-				"locator": "s.107(1)-(4)",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
-			},
-			{
-				"title": "Income Tax (Deduction from Remuneration) Rules 1994"
-			},
-			{
-				"title": "LHDN, Employer’s Responsibility",
-				"url": "https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/"
-			}
-		],
-		"rules": {
-			"description": "Remit the month’s MTD/PCB deductions (and any CP38 instalments directed by LHDN) with the MTD data (e-PCB / e-Data PCB / CP39) on or before the 15th day of the following month.",
-			"schemes": ["PCB"],
-			"due": "add_days(period.to, 15)"
-		}
-	},
-	{
-		"id": "e4ad2535-a84f-55fc-b78c-9625e7870f01",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WAGE_PAYMENT_DEADLINE",
-		"name": "WAGE_PAYMENT_DEADLINE",
-		"references": [
-			{
-				"title": "Employment Act 1955 (Act 265)",
-				"locator": "ss.18(1), 19(1)-(3)",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"rules": {
-			"description": "Pay the wages of the wage period not later than the seventh day after its last day; rest-day, public-holiday and overtime wages not later than the last day of the next wage period.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "add_days(period.to, 7)"
-		}
-	},
-	{
-		"id": "e3b18301-5c4d-507a-a717-c5bda8894c5b",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "EA_FORM",
-		"name": "EA_FORM",
-		"references": [
-			{
-				"title": "Income Tax Act 1967 (Act 53)",
-				"locator": "s.83(1A)",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
-			},
-			{
-				"title": "LHDN, Employer’s Responsibility",
-				"url": "https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/"
-			}
-		],
-		"rules": {
-			"description": "Raised on the January run: give every employee paid in the previous calendar year the statement of remuneration (Form EA) on or before the last day of February.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["01"],
-			"due": "month_end(add_months(period.from, 1))"
-		}
-	},
-	{
-		"id": "f0cc23c7-3edc-5ce0-827e-e3c697a75b1c",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "FORM_E_CP8D",
-		"name": "FORM_E_CP8D",
-		"references": [
-			{
-				"title": "Income Tax Act 1967 (Act 53)",
-				"locator": "s.83(1)",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
-			},
-			{
-				"title": "LHDN, Employer’s Responsibility",
-				"url": "https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/"
-			}
-		],
-		"rules": {
-			"description": "Raised on the January run: furnish the employer’s return (Form E) for the previous year with C.P.8D by e-Filing on or before 31 March.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["01"],
-			"due": "month_end(add_months(period.from, 2))"
-		}
-	},
-	{
-		"id": "69b0611d-f7fc-5297-b7c9-1d4c7e3dfeed",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PUBLIC_HOLIDAY_NOTICE",
-		"name": "PUBLIC_HOLIDAY_NOTICE",
-		"references": [
-			{
-				"title": "Employment Act 1955",
-				"locator": "s.60D(1A)",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"rules": {
-			"description": "Raised on the December run: exhibit conspicuously at the place of employment, before the next calendar year begins, the notice of the gazetted public holidays the employer grants for that year.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["12"],
-			"due": "period.to"
-		}
-	},
-	{
-		"id": "c07a3254-a3a8-59f2-b748-97082cd502dd",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "TERMS_PARTICULARS_ISSUE",
-		"name": "TERMS_PARTICULARS_ISSUE",
-		"references": [
-			{
-				"title": "Employment Regulations 1957 [P.U.(A) 333/1983] reg. 8(1)-(2) with reg. 5(b)",
-				"url": "https://jtksm.mohr.gov.my/sites/default/files/2023-03/1.%20EMPLOYMENT%20REGULATIONS%201957_0.pdf"
-			}
-		],
-		"rules": {
-			"description": "Give the employee a certified copy of the terms and conditions of employment (Employment Regulations 1957 reg.5(b) particulars) on or before the date of commencing employment.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 0)"
-		}
-	},
-	{
-		"id": "5597c87b-522a-59ef-b854-104b61a7da77",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "EPF_EMPLOYEE_REGISTRATION",
-		"name": "EPF_EMPLOYEE_REGISTRATION",
-		"references": [
-			{
-				"title": "Employees Provident Fund Act 1991 (Act 452)",
-				"locator": "s.43",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf"
-			},
-			{
-				"title": "Part VIIA s.70A as substituted by Act A1760 s.3",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf"
-			},
-			{
-				"title": "KWSP, Employer Mandatory Contribution",
-				"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution"
-			}
-		],
-		"rules": {
-			"description": "Register a new employee who is not yet an EPF member (citizens, permanent residents and, from October 2025, non-citizens) before the first contribution for the employee falls due — the 15th of the month after the first wage month.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(month_end(hired_on), 15)"
-		}
-	},
-	{
-		"id": "aff42668-473c-558c-bdfb-825a03073e11",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SOCSO_EIS_EMPLOYEE_REGISTRATION",
-		"name": "SOCSO_EIS_EMPLOYEE_REGISTRATION",
-		"references": [
-			{
-				"title": "Employment Insurance System Act 2017 (Act 800)",
-				"locator": "s.16(1)(b) and First Schedule",
-				"url": "https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf"
-			},
-			{
-				"title": "PERKESO, Employer Registration",
-				"url": "https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html"
-			}
-		],
-		"rules": {
-			"description": "Register the employee with PERKESO within thirty days of entering employment, irrespective of wages; a foreign employee is registered under Act 4 only.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 30)"
-		}
-	},
-	{
-		"id": "2e2f4a28-1d18-5831-aabe-93205d5d0eb4",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "CP22_NEW_EMPLOYEE",
-		"name": "CP22_NEW_EMPLOYEE",
-		"references": [
-			{
-				"title": "Income Tax Act 1967 (Act 53)",
-				"locator": "s.83(2)",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
-			},
-			{
-				"title": "LHDN, Notification of New Employees",
-				"url": "https://www.hasil.gov.my/en/majikan/pemberitahuan-pekerja-baharu/"
-			}
-		],
-		"rules": {
-			"description": "Notify LHDN of a new employee who is or is likely to be chargeable to tax (e-CP22) within thirty days after the employment commences.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 30)"
-		}
-	},
-	{
-		"id": "bfd67c9a-9084-591d-a901-317c8d04e9d2",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "FOREIGN_EMPLOYEE_PARTICULARS",
-		"name": "FOREIGN_EMPLOYEE_PARTICULARS",
-		"references": [
-			{
-				"title": "Employment Act 1955 (Act 265)",
-				"locator": "ss.60K(1)-(3), 60O",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"rules": {
-			"description": "Furnish the Director General of Labour with the particulars of a foreign employee within fourteen days of the date of employment (prior approval is needed before employing). Raised where the contract terms record the employee as a FOREIGNER (a permanent resident is not a foreign employee, EA s.60O).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"applies_when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.residency_status) && t.residency_status == \"FOREIGNER\")",
-			"due": "add_days(hired_on, 14)"
-		}
-	},
-	{
-		"id": "98296f1f-13c5-5c15-9c64-5383455b7c79",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "CP22A_CESSATION_AND_WITHHOLDING",
-		"name": "CP22A_CESSATION_AND_WITHHOLDING",
-		"references": [
-			{
-				"title": "Income Tax Act 1967 (Act 53)",
-				"locator": "s.83(3), (5)",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
-			},
-			{
-				"title": "LHDN, Notification of Cessation of Employment",
-				"url": "https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/"
-			}
-		],
-		"rules": {
-			"description": "Notify LHDN of the cessation (CP22A, e-SPC) not less than thirty days before it — for an employee retiring, leaving Malaysia permanently, not subject to MTD with deduction made, or (within thirty days of being informed) deceased — and withhold money payable until ninety days after LHDN receives the notice or a tax clearance letter arrives. Raised on a RETIREMENT or DEATH exit or exit_facts.leaving_malaysia. Due: not less than thirty days before the cessation; on a death not more than thirty days after the employer is informed of it (ITA s.83(3); exit_facts.death_informed_on).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract.exit_ground in [\"RETIREMENT\", \"EMPLOYEE_RETIREMENT\", \"DEATH\"] || (contract.exit_facts != null && has(contract.exit_facts.leaving_malaysia) && contract.exit_facts.leaving_malaysia == true)",
-			"due": "contract.exit_ground == \"DEATH\" ? add_days(contract.exit_facts != null && has(contract.exit_facts.death_informed_on) ? contract.exit_facts.death_informed_on : exit_on, 30) : add_days(exit_on, -30)"
-		}
-	},
-	{
-		"id": "cfc841a1-f055-57a1-86d0-ada40ae19717",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "CP21_LEAVING_MALAYSIA",
-		"name": "CP21_LEAVING_MALAYSIA",
-		"references": [
-			{
-				"title": "Income Tax Act 1967 (Act 53)",
-				"locator": "s.83(4)-(5)",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
-			},
-			{
-				"title": "LHDN, Notification of Cessation of Employment",
-				"url": "https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/"
-			}
-		],
-		"rules": {
-			"description": "Notify LHDN (CP21, e-SPC) not less than thirty days before an employee leaves Malaysia for more than three months and withhold money payable where there is no intention of returning. Raised on exit_facts.leaving_malaysia.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "(contract.exit_facts != null && has(contract.exit_facts.leaving_malaysia) && contract.exit_facts.leaving_malaysia == true)",
-			"due": "add_days(exit_on, -30)"
-		}
-	},
-	{
-		"id": "0e369778-606c-500e-86ca-f82fe275a45e",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "TERMINATION_BENEFITS_FINAL_WAGES",
-		"name": "TERMINATION_BENEFITS_FINAL_WAGES",
-		"references": [
-			{
-				"title": "Employment Act 1955 (Act 265)",
-				"locator": "ss.20-21",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"rules": {
-			"description": "Pay the final wages not later than the day the contract terminates (by notice, expiry, or employer termination without notice); not later than the third day after where the employee terminated without notice (exit_facts.terminated_without_notice).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "(contract.exit_facts != null && has(contract.exit_facts.terminated_without_notice) && contract.exit_facts.terminated_without_notice == true) ? add_days(exit_on, 3) : add_days(exit_on, 0)"
-		}
-	},
-	{
-		"id": "cb1d7523-8b1a-596e-bacb-343edb5f8091",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "TERMINATION_BENEFIT_PAYMENT",
-		"name": "TERMINATION_BENEFIT_PAYMENT",
-		"references": [
-			{
-				"title": "Employment (Termination and Lay-Off Benefits) Regulations 1980 regs. 3-6, 11, 12 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20(TERMINATION%20&%20LAY%20OFF%20BENEFITS)%20REGULATIONS%201980_0.pdf); Employment Act 1955 First Schedule paras 1A, 2(5); ss.13(2), 14(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)"
-			}
-		],
-		"rules": {
-			"description": "Pay termination or lay-off benefits not later than seven days after the relevant date with a written statement of the amount and its calculation. Raised for twelve months' continuous service ending by retrenchment, redundancy, the employer's unilateral termination, a dismissal other than for misconduct after due inquiry, or a resignation under s.13(2) / s.14(3), where the terms in force at the exit are within the First Schedule (wages of RM4,000 a month or less, a manual, supervisory, vehicle or vessel category, or premia by contract; not a domestic employee).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "calendar_completed_months(contract.effective_range.from, exit_on) >= 12 && (contract.exit_ground in [\"RETRENCHMENT\", \"RETRENCHMENT_TERM_CONTRACT\", \"UNILATERAL\", \"BREACH_BY_EMPLOYER\"] || (contract.exit_ground in [\"DISMISSAL\", \"UNSATISFACTORY_PROBATION\"] && !(contract.exit_facts != null && has(contract.exit_facts.misconduct_dismissal) && contract.exit_facts.misconduct_dismissal == true)) || (contract.exit_ground in [\"RESIGNATION\", \"BREACH_BY_EMPLOYEE\"] && contract.exit_facts != null && has(contract.exit_facts.notice_exception) && contract.exit_facts.notice_exception in [\"OTHER_PARTY_WILFUL_BREACH\", \"IMMEDIATE_DANGER\"])) && contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.effective_range) && t.effective_range.from <= exit_on && (t.effective_range.to == null || t.effective_range.to >= exit_on) && !(has(t.employment_type) && t.employment_type == \"DOMESTIC\") && ((has(t.base_salary) ? double(t.base_salary.value) : 0.0) + (has(t.allowances) ? sum(t.allowances.map(a, has(a.amount) && has(a.amount.value) ? double(a.amount.value) : 0.0)) : 0.0) <= 4000.0 || (has(t.statutory_work_category) && t.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\", \"VEHICLE_OPERATOR\", \"VESSEL_CREW\"]) || (has(t.facts) && t.facts != null && has(t.facts.overtime_by_contract) && t.facts.overtime_by_contract == true)))",
-			"due": "add_days(exit_on, 7)"
-		}
-	},
-	{
-		"id": "fe330c61-f748-59b8-bd2f-540ec3f69834",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "FOREIGN_EMPLOYEE_TERMINATION_NOTICE",
-		"name": "FOREIGN_EMPLOYEE_TERMINATION_NOTICE",
-		"references": [
-			{
-				"title": "Employment Act 1955 (Act 265)",
-				"locator": "s.60KA(1)-(2)",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"rules": {
-			"description": "Notify the Director General of Labour within thirty days of a foreign employee’s termination by the employer, expiry of the employment pass or repatriation (within fourteen days of the employee’s own termination or absconding). Raised where the contract terms record the employee as a FOREIGNER (a permanent resident is not a foreign employee, EA s.60O).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.residency_status) && t.residency_status == \"FOREIGNER\")",
-			"due": "add_days(exit_on, 30)"
-		}
-	},
-	{
-		"id": "aad3c5af-09d9-57d3-a6fa-de0d7d0d5f15",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "RETRENCHMENT_NOTIFICATION",
-		"name": "RETRENCHMENT_NOTIFICATION",
-		"references": [
-			{
-				"title": "Pemberitahuan Pemberhentian Pekerja 2004 (Borang PK) [P.U.(B) 430/2004] under Employment Act 1955",
-				"locator": "s.63"
-			},
-			{
-				"title": "JTKSM, Employees’ Retrenchment FAQ",
-				"url": "https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment"
-			}
-		],
-		"rules": {
-			"description": "Lodge Borang PK with Lampiran 1 at the nearest Labour Department office at least thirty days before a retrenchment (or voluntary separation scheme, temporary lay-off or pay cut) takes effect. Raised on a RETRENCHMENT or RETRENCHMENT_TERM_CONTRACT exit.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract.exit_ground in [\"RETRENCHMENT\", \"RETRENCHMENT_TERM_CONTRACT\"]",
-			"due": "add_days(exit_on, -30)"
-		}
-	},
-	{
-		"id": "da017372-2ac5-5729-97f3-2d9c5d78fd2f",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "FOREIGN_WORKER_LEVY",
-		"name": "FOREIGN_WORKER_LEVY",
-		"references": [
-			{
-				"title": "Immigration Department of Malaysia, Foreign Worker service page (levy table),; levy imposed under the Fees Act 1951 (Act 209); Employment Act 1955 s.24 (lawful deductions).",
-				"url": "https://www.imi.gov.my/index.php/en/main-services/foreign-worker/"
-			}
-		],
-		"rules": {
-			"description": "Pay the foreign worker levy to the Director General of Immigration when the foreign worker's Visit Pass (Temporary Employment) is issued and at each renewal (RM1,850 a year for manufacturing, construction and services, RM640 for plantation and agriculture in Peninsular Malaysia); it is borne by the employer and is not a lawful deduction from wages. Raised where the contract terms record the employee as a FOREIGNER.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"applies_when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.residency_status) && t.residency_status == \"FOREIGNER\")",
-			"due": "add_days(hired_on, 0)"
-		}
-	},
-	{
 		"id": "6ad7f6af-eafb-56af-98a6-6b567e2f344e",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "record_retention",
 		"name": "Record retention after exit",
 		"references": [
@@ -553,8 +29,7 @@
 	{
 		"id": "7d8f5e9a-aabf-52e3-aab4-79df4e8bf02a",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "minimum_wage",
 		"name": "minimum_wage",
 		"references": [
@@ -575,7 +50,6 @@
 		"id": "2d567a99-3150-5fd7-aadb-44c544adc472",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MINIMUM_WAGE_MONTHLY",
 		"name": "MINIMUM_WAGE_MONTHLY",
 		"rules": {
@@ -590,7 +64,6 @@
 		"id": "a15503ef-4136-5b16-8000-b67abd42c857",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MINIMUM_WAGE_HOURLY_PART_TIME",
 		"name": "MINIMUM_WAGE_HOURLY_PART_TIME",
 		"rules": {
@@ -605,7 +78,6 @@
 		"id": "44f67c0c-9525-5ae0-8aaa-8aece1187cb4",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "DEDUCTION_CEILING",
 		"name": "DEDUCTION_CEILING",
 		"rules": {
@@ -620,7 +92,6 @@
 		"id": "91923467-74aa-5f06-ad61-8fa3c7788891",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "OVERTIME_LIMIT",
 		"name": "OVERTIME_LIMIT",
 		"rules": {
@@ -632,132 +103,9 @@
 		}
 	},
 	{
-		"id": "c4104ed8-9e2b-58a4-b085-774a59da76c6",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "EPF_EMPLOYER_REGISTRATION",
-		"name": "EPF_EMPLOYER_REGISTRATION",
-		"references": [
-			{
-				"title": "Employees Provident Fund Act 1991 s.41(1) (\"before the end of the first week in the first month in which he is paying wages\", https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); s.41(3) notice on ceasing to be an employer.",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf"
-			}
-		],
-		"rules": {
-			"description": "Register with KWSP before the end of the first week of the first month in which wages attracting EPF contributions are paid. Raised when the entity is recorded; the first wage month is taken as the month the entity starts (the next month where it starts after the first week).",
-			"trigger": {
-				"collection": "entity",
-				"events": ["created"]
-			},
-			"due": "(has(row.effective_range) && row.effective_range != null && has(row.effective_range.from) ? row.effective_range.from : period.from) > add_days(month_start((has(row.effective_range) && row.effective_range != null && has(row.effective_range.from) ? row.effective_range.from : period.from)), 6) ? add_days(month_start(add_months((has(row.effective_range) && row.effective_range != null && has(row.effective_range.from) ? row.effective_range.from : period.from), 1)), 6) : add_days(month_start((has(row.effective_range) && row.effective_range != null && has(row.effective_range.from) ? row.effective_range.from : period.from)), 6)"
-		}
-	},
-	{
-		"id": "74bfe420-e257-5908-9aac-37b8069f7141",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "HRD_EMPLOYER_REGISTRATION",
-		"name": "HRD_EMPLOYER_REGISTRATION",
-		"references": [
-			{
-				"title": "Pembangunan Sumber Manusia Berhad Act 2001",
-				"locator": "ss.13–14 and First Schedule"
-			},
-			{
-				"title": "PSMB (Registration of Employers and Payment of Levy) Regulations",
-				"locator": "reg.4(1)"
-			},
-			{
-				"title": "HRD Corp Employers FAQ",
-				"url": "https://web.archive.org/web/2026/https://hrdcorp.gov.my/faq"
-			}
-		],
-		"rules": {
-			"description": "Register with HRD Corp within thirty days of becoming liable (ten or more Malaysian employees in a First Schedule industry). Raised when the entity is recorded as a COMPULSORY registrant; the liability day is taken as the entity start.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["created"]
-			},
-			"applies_when": "company != null && company.facts != null && has(company.facts.hrd_registration_class) && company.facts.hrd_registration_class == \"COMPULSORY\"",
-			"due": "add_days((has(row.effective_range) && row.effective_range != null && has(row.effective_range.from) ? row.effective_range.from : period.from), 30)"
-		}
-	},
-	{
-		"id": "4714c937-cdbf-5a8b-84d6-0878ed592482",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "REST_DAY_ROSTER",
-		"name": "REST_DAY_ROSTER",
-		"references": [
-			{
-				"title": "Employment Act 1955",
-				"locator": "s.59(2)–(3)",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"rules": {
-			"description": "Prepare, before the next month begins, the roster informing each employee of the rest days appointed for that month (or display the fixed rest-day notice), and keep it six years. Raised on the month's payroll run for the month that follows.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "period.to"
-		}
-	},
-	{
-		"id": "5cd6b887-31ee-53f5-b547-05ed75e6c0c2",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "OVERTIME_REST_HOLIDAY_WAGES_DEADLINE",
-		"name": "OVERTIME_REST_HOLIDAY_WAGES_DEADLINE",
-		"references": [
-			{
-				"title": "Employment Act 1955",
-				"locator": "s.19(2)",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"rules": {
-			"description": "Pay the month's rest-day, public-holiday and overtime wages not later than the last day of the next wage period.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "month_end(add_months(period.from, 1))"
-		}
-	},
-	{
-		"id": "99a77088-60f0-5a6a-b383-361baa10588f",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SOCSO_ACCIDENT_REPORT",
-		"name": "SOCSO_ACCIDENT_REPORT",
-		"references": [
-			{
-				"title": "Employees' Social Security Act 1969 ss.94(e), 94A(3); PERKESO, accident reporting within 48 hours of notification.",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf"
-			}
-		],
-		"rules": {
-			"description": "Report to PERKESO (Borang 34) within 48 hours of being notified an insured employee suffered an employment injury — a work accident, a commuting accident or an occupational disease (entry fact work_injury, its kind in work_injury_kind). Raised on any leave entry recorded as a work injury.",
-			"trigger": {
-				"collection": "leave_catalog_entry",
-				"events": ["created"]
-			},
-			"when": "row != null && has(row.facts) && row.facts != null && has(row.facts.work_injury) && row.facts.work_injury == true",
-			"due": "add_days(row.occurred_on, 2)"
-		}
-	},
-	{
 		"id": "1c8f890f-a3d2-5148-a655-3131b8b158c1",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "LABOUR_ORDINANCE_TERRITORY",
 		"name": "LABOUR_ORDINANCE_TERRITORY",
 		"rules": {
@@ -769,102 +117,9 @@
 		}
 	},
 	{
-		"id": "598896cb-e507-566c-8b62-673c547b4616",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SOCSO_EIS_EMPLOYER_REGISTRATION",
-		"name": "SOCSO_EIS_EMPLOYER_REGISTRATION",
-		"references": [
-			{
-				"title": "Employees' Social Security Act 1969 s.4 and Employees' Social Security (General) Regulations 1971; Employment Insurance System Act 2017 s.14(1); PERKESO, Social Security Protection leaflet (2020): \"not later than 30 days on which the Act becomes applicable\".",
-				"url": "https://www.perkeso.gov.my/images/dokumen/SEPT_2020-RISALAH_EN.pdf"
-			}
-		],
-		"rules": {
-			"description": "Register the employer (Borang 1, ASSIST) and its employees with PERKESO for SOCSO and EIS not later than 30 days after the Acts become applicable — the day the first employee is employed. Raised on the entity’s first employment contract.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"applies_when": "headcount <= 1",
-			"due": "add_days(hired_on, 30)"
-		}
-	},
-	{
-		"id": "08f520de-251d-5c40-9697-94ef67dc89f0",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PERKESO_CESSATION_NOTICE",
-		"name": "PERKESO_CESSATION_NOTICE",
-		"references": [
-			{
-				"title": "PERKESO, Social Security Protection leaflet (2020): \"within 30 days from of such cessation\"; PERKESO, Employer Registration — Cessation of Being An Employer.",
-				"url": "https://www.perkeso.gov.my/images/dokumen/SEPT_2020-RISALAH_EN.pdf"
-			}
-		],
-		"rules": {
-			"description": "On ceasing to be an employer, submit Borang 1A (Act 4) and SIP 3 (Act 800) with the supporting documents through ASSIST within 30 days of the cessation. Raised when the entity’s effective range is closed.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["updated"]
-			},
-			"when": "row != null && has(row.effective_range) && row.effective_range != null && has(row.effective_range.to) && row.effective_range.to != null",
-			"due": "add_days(row.effective_range.to, 30)"
-		}
-	},
-	{
-		"id": "c95eae9a-9601-5460-9381-9a86b5d3c5f3",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "EPF_CESSATION_NOTICE",
-		"name": "EPF_CESSATION_NOTICE",
-		"references": [
-			{
-				"title": "Employees Provident Fund Act 1991 (Act 452) s.41(3): within the period and in the manner prescribed by the Board (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); KWSP, Update & Maintain Records — Termination Of Operations: \"within 30 days\" by Form KWSP 6 (Form B) (https://www.kwsp.gov.my/en/employer/responsibilities/records), last updated 4 June 2026, read 2026-10-08 in the browser."
-			}
-		],
-		"rules": {
-			"description": "On ceasing to be an employer (terminating operations, or no longer employing and not intending to employ), notify the EPF with Form KWSP 6 (Borang B), by mail, e-mail or the designated channels, within 30 days. Raised when the entity’s effective range is closed. An employer with no employees for a month only informs the EPF; the Board may cancel the employer number after six months without liability.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["updated"]
-			},
-			"when": "row != null && has(row.effective_range) && row.effective_range != null && has(row.effective_range.to) && row.effective_range.to != null",
-			"due": "add_days(row.effective_range.to, 30)"
-		}
-	},
-	{
-		"id": "7726ba8d-d92d-5a55-8be3-31b8554f1642",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "HRD_CESSATION_NOTICE",
-		"name": "HRD_CESSATION_NOTICE",
-		"references": [
-			{
-				"title": "Pembangunan Sumber Manusia Berhad Act 2001 and its Registration of Employers and Payment of Levy Regulations; HRD Corp FAQ: \"within 30 days after the company stops operating\".",
-				"url": "https://web.archive.org/web/20241207133132/https://hrdcorp.gov.my/faq"
-			}
-		],
-		"rules": {
-			"description": "Notify HRD Corp of the cessation (deregistration) within 30 days after the company stops operating. Raised when a registered entity’s effective range is closed.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["updated"]
-			},
-			"when": "row != null && has(row.effective_range) && row.effective_range != null && has(row.effective_range.to) && row.effective_range.to != null",
-			"applies_when": "company != null && company.facts != null && has(company.facts.hrd_registration_class) && company.facts.hrd_registration_class in [\"COMPULSORY\", \"OPTIONAL\"]",
-			"due": "add_days(row.effective_range.to, 30)"
-		}
-	},
-	{
 		"id": "d103f881-aa23-53a2-9202-5231cae6db66",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "public_holidays",
 		"name": "public_holidays",
 		"references": [
@@ -987,7 +242,6 @@
 		"id": "432ae3de-460d-51a1-ba9d-7d182a7343e0",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "DAILY_HOURS_CAP",
 		"name": "DAILY_HOURS_CAP",
 		"rules": {
@@ -1002,7 +256,6 @@
 		"id": "2e0b9ef7-1282-56d1-a416-a69a93378bd0",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "CONTINUOUS_HOURS",
 		"name": "CONTINUOUS_HOURS",
 		"rules": {
@@ -1017,7 +270,6 @@
 		"id": "5cb6bdee-2c74-5595-9559-aa4fbbd1d787",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "SPREAD_OVER",
 		"name": "SPREAD_OVER",
 		"rules": {
@@ -1032,7 +284,6 @@
 		"id": "e66d4596-4dd2-54c1-9c40-323084d3ac94",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "NORMAL_HOURS_DAY",
 		"name": "NORMAL_HOURS_DAY",
 		"rules": {
@@ -1047,7 +298,6 @@
 		"id": "adbd6ef2-608b-5e1d-a913-dfc6ee3f4ec0",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "NORMAL_HOURS_WEEK",
 		"name": "NORMAL_HOURS_WEEK",
 		"rules": {
@@ -1062,7 +312,6 @@
 		"id": "7eed73cb-5227-5183-9949-9934e0bd8e0d",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "WEEKLY_REST_DAY",
 		"name": "WEEKLY_REST_DAY",
 		"rules": {
@@ -1077,7 +326,6 @@
 		"id": "63a95944-7631-5522-8ecc-979de95950f6",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "HOLIDAY_ON_REST_DAY",
 		"name": "HOLIDAY_ON_REST_DAY",
 		"rules": {
@@ -1092,7 +340,6 @@
 		"id": "38586770-e7f1-5573-837e-0937728f3e1a",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MINIMUM_WAGE_DAILY",
 		"name": "MINIMUM_WAGE_DAILY",
 		"rules": {
@@ -1107,7 +354,6 @@
 		"id": "2eae84fd-2808-5824-9727-501b22f27a27",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MINIMUM_WAGE_WEEKLY",
 		"name": "MINIMUM_WAGE_WEEKLY",
 		"rules": {
@@ -1122,7 +368,6 @@
 		"id": "a62573a4-6db4-5f04-b09f-2f19fc06160f",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MINIMUM_WAGE_HOURLY",
 		"name": "MINIMUM_WAGE_HOURLY",
 		"rules": {
@@ -1137,7 +382,6 @@
 		"id": "c783afb3-58c6-5f01-8ed0-a8ecd41f0f3d",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MINIMUM_WAGE_PIECE",
 		"name": "MINIMUM_WAGE_PIECE",
 		"rules": {
@@ -1152,7 +396,6 @@
 		"id": "611b15ad-5f8e-5e1b-928b-64dd34c86e60",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "WAGE_PERIOD",
 		"name": "WAGE_PERIOD",
 		"rules": {
@@ -1167,7 +410,6 @@
 		"id": "e2807f25-bf78-5438-a43e-f24b49e331c1",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "WAGE_PAYMENT_METHOD",
 		"name": "WAGE_PAYMENT_METHOD",
 		"rules": {
@@ -1182,7 +424,6 @@
 		"id": "7162c966-f3ec-5e43-9211-f62e041292fb",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_CONTINUOUS_HOURS",
 		"name": "ROSTER_CONTINUOUS_HOURS",
 		"references": [
@@ -1204,7 +445,6 @@
 		"id": "9f92e986-3c3f-5c4f-8c1a-e9b7978d7c96",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_NORMAL_HOURS_DAY",
 		"name": "ROSTER_NORMAL_HOURS_DAY",
 		"references": [
@@ -1226,7 +466,6 @@
 		"id": "9c061ddb-5b61-5035-84ed-0a9a3cf0f44f",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_SPREAD_OVER",
 		"name": "ROSTER_SPREAD_OVER",
 		"references": [
@@ -1248,7 +487,6 @@
 		"id": "cd560699-05db-5428-a133-55f3c958e519",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_NORMAL_HOURS_WEEK",
 		"name": "ROSTER_NORMAL_HOURS_WEEK",
 		"references": [
@@ -1270,7 +508,6 @@
 		"id": "0cb14815-5756-52b1-a4bd-055c429b76e0",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_DAILY_TOTAL",
 		"name": "ROSTER_DAILY_TOTAL",
 		"references": [
@@ -1292,7 +529,6 @@
 		"id": "0aebd06b-4dd2-53dc-8750-9e788919dbd6",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_WEEKLY_REST",
 		"name": "ROSTER_WEEKLY_REST",
 		"references": [
@@ -1311,304 +547,9 @@
 		}
 	},
 	{
-		"id": "e106d884-8740-5d67-9353-3bf82bdc0f6c",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "MATERNITY_PROTECTION_REVIEW",
-		"name": "MATERNITY_PROTECTION_REVIEW",
-		"references": [
-			{
-				"title": "EA",
-				"locator": "ss.41A and 42",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"rules": {
-			"description": "Stop: it is an offence to terminate, or give notice to, a pregnant employee or one ill from her pregnancy except for wilful breach (s.13(2)), misconduct (s.14(1)) or closure of the business; during the 90 days after maternity leave while certified unfit (s.42) the same applies. The employer bears the burden of proof.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "has(contract.exit_facts.pregnant_or_pregnancy_illness) && contract.exit_facts.pregnant_or_pregnancy_illness == true && !((contract.exit_ground == \"DISMISSAL_MISCONDUCT\" || (contract.exit_ground in [\"DISMISSAL\", \"UNSATISFACTORY_PROBATION\"] && has(contract.exit_facts.misconduct_dismissal) && contract.exit_facts.misconduct_dismissal == true))) && !(has(contract.exit_facts.notice_exception) && contract.exit_facts.notice_exception == \"OTHER_PARTY_WILFUL_BREACH\") && !(has(contract.exit_facts.notice_structural_ground) && contract.exit_facts.notice_structural_ground == \"BUSINESS_CLOSURE\")",
-			"due": "add_days(exit_on, 0)"
-		}
-	},
-	{
-		"id": "50bc9c05-1922-52a8-8d13-060ea85744bc",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "RETIREMENT_AGE_REVIEW",
-		"name": "RETIREMENT_AGE_REVIEW",
-		"references": [
-			{
-				"title": "Minimum Retirement Age Act 2012 (Act 753)",
-				"locator": "s.4"
-			}
-		],
-		"rules": {
-			"description": "Stop: an employee may not be retired before the minimum retirement age of 60.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract.exit_ground in [\"RETIREMENT\", \"EMPLOYEE_RETIREMENT\"] && employee != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, exit_on) < 60",
-			"due": "add_days(exit_on, 0)"
-		}
-	},
-	{
-		"id": "a2fb57a1-b416-50d8-a5c9-75b95976a49a",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "RETRENCHMENT_FOREIGN_FIRST",
-		"name": "RETRENCHMENT_FOREIGN_FIRST",
-		"references": [
-			{
-				"title": "EA",
-				"locator": "ss.60N–60O",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"rules": {
-			"description": "Before retrenching a local employee, confirm every foreign employee employed in a similar capacity has been terminated first (a permanent resident is not a foreign employee).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract.exit_ground in [\"RETRENCHMENT\", \"RETRENCHMENT_TERM_CONTRACT\"] && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.residency_status) && t.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"])",
-			"due": "add_days(exit_on, -30)"
-		}
-	},
-	{
-		"id": "c057d1d9-613e-5b99-9a35-997d4aac37db",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "FLEXIBLE_WORKING_REPLY",
-		"name": "FLEXIBLE_WORKING_REPLY",
-		"references": [
-			{
-				"title": "EA",
-				"locator": "ss.60P–60Q",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"rules": {
-			"description": "Approve or refuse in writing, stating any ground of refusal, an application for a flexible working arrangement within sixty days of receiving it.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"]
-			},
-			"when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.flexible_working_applied_on))",
-			"due": "has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.flexible_working_applied_on)) ? first(contract.facts.contract_terms.filter(t, has(t.facts) && has(t.facts.flexible_working_applied_on)).map(t, add_days(t.facts.flexible_working_applied_on, 60))) : add_days(today, 60)"
-		}
-	},
-	{
-		"id": "983fb417-5c8b-5cd9-832e-9ba3c45b3a7c",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SEXUAL_HARASSMENT_NOTICE",
-		"name": "SEXUAL_HARASSMENT_NOTICE",
-		"references": [
-			{
-				"title": "EA",
-				"locator": "s.81H",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"rules": {
-			"description": "Exhibit conspicuously at the place of employment, at all times, a notice raising awareness of sexual harassment.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["created"]
-			},
-			"due": "today"
-		}
-	},
-	{
-		"id": "d7a6d389-a569-5962-ae4c-ec213baeb1ac",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "EMPLOYEE_REGISTER",
-		"name": "EMPLOYEE_REGISTER",
-		"references": [
-			{
-				"title": "EA",
-				"locator": "s.61(1)–(2)",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			},
-			{
-				"title": "Employment Regulations 1957"
-			}
-		],
-		"rules": {
-			"description": "Keep the register of employees with the month's particulars of each employee; every particular stays available for inspection for at least six years.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "period.to"
-		}
-	},
-	{
-		"id": "a01ca55a-3890-5e92-98c5-0809e4b208be",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PAYSLIP_ISSUE",
-		"name": "PAYSLIP_ISSUE",
-		"references": [
-			{
-				"title": "Employment Regulations 1957 (statement of wages); EPF Act 1991 s.42(1)."
-			}
-		],
-		"rules": {
-			"description": "Give each employee a statement of the wages for the wage period — rate, days, overtime, rest-day and holiday work, leave pay, allowances, advances, each deduction, the balance and the date of payment — on or before the day of payment.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "add_days(period.to, 7)"
-		}
-	},
-	{
-		"id": "2b9d7947-55b2-5e13-9cd4-fc65fc00e0c5",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "TAX_RECORDS_RETENTION",
-		"name": "TAX_RECORDS_RETENTION",
-		"references": [
-			{
-				"title": "Income Tax Act 1967",
-				"locator": "s.82",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
-			}
-		],
-		"rules": {
-			"description": "Keep the payroll, TP1/TP3 declarations, CP38 directions and MTD records of the past year for seven years and produce them to LHDN on request. Raised on the January run.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["01"],
-			"due": "month_end(period.from)"
-		}
-	},
-	{
-		"id": "fdcf6161-ddee-57dc-b105-9700e17fffd2",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORKERS_ACCOMMODATION_CERTIFICATE",
-		"name": "WORKERS_ACCOMMODATION_CERTIFICATE",
-		"references": [
-			{
-				"title": "Workers' Minimum Standards of Housing, Accommodations and Amenities Act 1990 (Act 446) s.24D and its regulations."
-			}
-		],
-		"rules": {
-			"description": "Before housing the employee, hold the Director General's certificate for the accommodation and keep it to the minimum standards.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"applies_when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.employer_provided_accommodation) && t.facts.employer_provided_accommodation == true)",
-			"due": "add_days(hired_on, 0)"
-		}
-	},
-	{
-		"id": "8b7baba2-0aeb-5658-9e5a-a975fc2a41d7",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORK_PASS_RENEWAL",
-		"name": "WORK_PASS_RENEWAL",
-		"references": [
-			{
-				"title": "Immigration Department of Malaysia, Foreign Worker service page; levy imposed under the Fees Act 1951 (Act 209). Read 2026-10-07: the renewal documents (FOMEMA, SPIKPA, FWCS).",
-				"url": "https://www.imi.gov.my/index.php/en/main-services/foreign-worker/"
-			}
-		],
-		"rules": {
-			"description": "Apply to renew the foreign worker's Visit Pass (Temporary Employment) — from three months before expiry — and pay the year's levy with it. The renewal needs the FOMEMA fitness certificate (2nd and 3rd-year extensions), the SPIKPA hospitalisation and surgical insurance policy (except the plantation sector) and the Foreign Workers Compensation Scheme (FWCS) slip.",
-			"trigger": {
-				"collection": "calendar",
-				"events": ["daily"]
-			},
-			"when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.work_pass_valid_until) && add_days(t.facts.work_pass_valid_until, -90) == today)",
-			"due": "add_days(today, 90)"
-		}
-	},
-	{
-		"id": "661fcf21-2c6b-5262-8f56-bc729f9878d1",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PERSONAL_DATA_DISPOSAL",
-		"name": "PERSONAL_DATA_DISPOSAL",
-		"references": [
-			{
-				"title": "Personal Data Protection Act 2010",
-				"locator": "s.10(1)–(2)",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf"
-			},
-			{
-				"title": "Income Tax Act 1967",
-				"locator": "s.82(1)(a)"
-			}
-		],
-		"rules": {
-			"description": "Destroy or permanently delete a former employee's personal data once no purpose needs it — at the end of the statutory retention (anonymise the profile: employment_profile_anonymise). Raised on the exit; due on the record_retention date (seven years after the exit year ends).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "add_years(exit_on.substring(0, 4) + \"-12-31\", 7)"
-		}
-	},
-	{
-		"id": "aec3ccd5-44ed-5a1e-8b6e-7d2f9257b648",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "CP58_AGENT_STATEMENT",
-		"name": "CP58_AGENT_STATEMENT",
-		"references": [
-			{
-				"title": "Income Tax Act 1967",
-				"locator": "s.83A(1)–(4)",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
-			}
-		],
-		"rules": {
-			"description": "Give each agent, dealer or distributor the company paid in the past year the CP58 statement of those payments, with its name and address, by 31 March, and keep a copy for LHDN. Raised by the daily tick in January for a payee engagement (engagement PAYEE) whose terms record an agent, dealer or distributor role (term fact payee_role), once a year; due 31 March.",
-			"trigger": {
-				"collection": "calendar",
-				"events": ["daily"]
-			},
-			"when": "contract != null && has(contract.engagement) && contract.engagement == \"PAYEE\" && today.substring(5, 7) == \"01\" && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && t.facts != null && has(t.facts.payee_role) && t.facts.payee_role in [\"AGENT\", \"DEALER\", \"DISTRIBUTOR\"])",
-			"repeat_key": "string(int(today.substring(0, 4)) - 1)",
-			"due": "today.substring(0, 4) + \"-03-31\""
-		}
-	},
-	{
 		"id": "65ae7e3e-c542-5723-8857-e31a6b5a4a9b",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "exit_grounds",
 		"name": "Exit grounds",
 		"rules": {
@@ -1705,8 +646,7 @@
 	{
 		"id": "8ce7c585-ae85-5f51-b9a6-b0866cceaf56",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "holiday_kinds",
 		"name": "Holiday kinds",
 		"rules": {
@@ -1730,8 +670,7 @@
 	{
 		"id": "764116e2-409e-5313-a212-c6021d1b029c",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "case_kinds",
 		"name": "Workplace case kinds",
 		"references": [
@@ -1753,309 +692,9 @@
 		}
 	},
 	{
-		"id": "52fb5812-d69f-5349-8460-7b0f4ef9735a",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PDPA_PRIVACY_NOTICE",
-		"name": "PDPA s.7 privacy notice",
-		"references": [
-			{
-				"title": "Personal Data Protection Act 2010 (Act 709) s.7(1)–(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf, reprint 2026, read 2026-10-07); s.6 General Principle.",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf"
-			}
-		],
-		"rules": {
-			"description": "Give the employee the written personal data notice, in Bahasa Malaysia and English, as soon as practicable when the personal data is first asked for or collected: that it is processed and a description of it, the purposes, its source, the right to access and correct and how to contact the employer, the classes of third parties it is disclosed to, the choices for limiting processing, and whether supplying it is obligatory and the consequences if not. Raised on every new engagement; due the start day.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 0)"
-		}
-	},
-	{
-		"id": "4e57faf1-f55c-599a-9c5e-1f385ac8a6dd",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PDPA_DPO_APPOINTMENT",
-		"name": "Appoint and register a data protection officer",
-		"references": [
-			{
-				"title": "Personal Data Protection Act 2010 s.12A(1)–(4) as inserted by Act A1727, in force 1 June 2025 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf, read 2026-10-07); Personal Data Protection Commissioner, Guideline on the Appointment of Data Protection Officer paras 4.2, 7.1 (https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2025/08/GP_DPO_ENG.pdf, read 2026-10-07)."
-			}
-		],
-		"rules": {
-			"description": "Appoint one or more data protection officers accountable for compliance with the Act and register the appointment and the officer's business contact with the Commissioner (SPDP) within 21 days of the appointment. Required where the employer processes the personal data of more than 20,000 data subjects, sensitive personal data including financial information of more than 10,000, or carries on regular and systematic monitoring (entity fact pdpa_dpo_required); payroll holds every employee's financial data, so more than 10,000 employees raises it too. Raised when the entity is recorded.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["created"]
-			},
-			"when": "(has(company.facts) && company.facts != null && has(company.facts.pdpa_dpo_required) && company.facts.pdpa_dpo_required == true) || headcount > 10000",
-			"due": "add_days(today, 21)"
-		}
-	},
-	{
-		"id": "7e30ba4d-2712-5820-a8fc-dc69663a78cc",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PDPA_DPO_APPOINTMENT_UPDATE",
-		"name": "Appoint and register a data protection officer (scope reached)",
-		"references": [
-			{
-				"title": "Personal Data Protection Act 2010 s.12A as inserted by Act A1727 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf); Guideline on the Appointment of Data Protection Officer paras 4.2, 7.1 (https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2025/08/GP_DPO_ENG.pdf, read 2026-10-07)."
-			}
-		],
-		"rules": {
-			"description": "The s.12A duty when the entity comes within the Commissioner's conditions after it is recorded: raised when its pdpa_dpo_required fact is set to true; due 21 days later.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["updated"]
-			},
-			"when": "row != null && has(row.before) && row.before != null && \"facts\" in row.before && has(row.facts) && row.facts != null && has(row.facts.pdpa_dpo_required) && row.facts.pdpa_dpo_required == true && !(row.before.facts != null && has(row.before.facts.pdpa_dpo_required) && row.before.facts.pdpa_dpo_required == true)",
-			"due": "add_days(today, 21)"
-		}
-	},
-	{
-		"id": "fc3f6db0-cb64-5fe9-8a72-1ac2288ad638",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PDPA_BREACH_COMMISSIONER_NOTICE",
-		"name": "Notify the Commissioner of a personal data breach",
-		"references": [
-			{
-				"title": "Personal Data Protection Act 2010 s.12B(1), (3) as inserted by Act A1727, in force 1 June 2025 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf, read 2026-10-07); Personal Data Protection Commissioner, Guideline on Data Breach Notification paras 6.1, 14.1 (https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2025/08/GP_DBN_ENG.pdf, read 2026-10-07)."
-			}
-		],
-		"rules": {
-			"description": "Notify the Personal Data Protection Commissioner of a personal data breach as soon as practicable and no later than 72 hours from its occurrence (opened_on = the day it occurred or was detected), and keep it in the breach register for at least two years from the notification. Record the notification day as facts.commissioner_notified_on. Raised when a PERSONAL_DATA_BREACH case is opened.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind == \"PERSONAL_DATA_BREACH\"",
-			"due": "add_days(row.opened_on, 3)"
-		}
-	},
-	{
-		"id": "e818ccaf-b7fd-5507-9c3e-ab38eefe7022",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PDPA_BREACH_DATA_SUBJECT_NOTICE",
-		"name": "Notify affected employees of a personal data breach",
-		"references": [
-			{
-				"title": "Personal Data Protection Act 2010 s.12B(2) as inserted by Act A1727 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf, read 2026-10-07); Guideline on Data Breach Notification paras 8.1, 9.1 (https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2025/08/GP_DBN_ENG.pdf, read 2026-10-07)."
-			}
-		],
-		"rules": {
-			"description": "Where the breach causes or is likely to cause significant harm (facts.significant_harm), notify each affected data subject without unnecessary delay and not later than seven days after the notification to the Commissioner (facts.commissioner_notified_on). Raised when both are recorded on the PERSONAL_DATA_BREACH case.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["updated"]
-			},
-			"when": "row.kind == \"PERSONAL_DATA_BREACH\" && has(row.facts) && row.facts != null && has(row.facts.significant_harm) && row.facts.significant_harm == true && has(row.facts.commissioner_notified_on)",
-			"due": "add_days(row.facts.commissioner_notified_on, 7)"
-		}
-	},
-	{
-		"id": "fb18a26f-fa06-55ce-9ea8-8e899dd4dc5e",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SEXUAL_HARASSMENT_INQUIRY",
-		"name": "Inquire into a sexual harassment complaint",
-		"references": [
-			{
-				"title": "Employment Act 1955 ss.81A, 81B(1)–(3), 81F(a)–(b) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"rules": {
-			"description": "Inquire into a complaint of sexual harassment in the prescribed manner; or, refusing to inquire (previously inquired and not proven, or frivolous, vexatious or not in good faith), inform the complainant in writing of the refusal and its reasons as soon as practicable and not later than thirty days after receiving the complaint (opened_on). Raised when a SEXUAL_HARASSMENT_COMPLAINT case is opened.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind == \"SEXUAL_HARASSMENT_COMPLAINT\"",
-			"due": "add_days(row.opened_on, 30)"
-		}
-	},
-	{
-		"id": "ba58310b-a494-585c-a119-a2b905295ee0",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SEXUAL_HARASSMENT_DG_INQUIRY_REPORT",
-		"name": "Inquire when directed by the Director General and report",
-		"references": [
-			{
-				"title": "Employment Act 1955 ss.81B(4)–(5), 81D(1)–(2), 81F(c)–(d) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"rules": {
-			"description": "When the Director General directs the employer to inquire into a complaint (on a referral of the employer's refusal, s.81B(5)(a), or a complaint made to the Director General, s.81D(1)), inquire and submit the report of the inquiry within thirty days of the direction (facts.dg_directed_on on the SEXUAL_HARASSMENT_COMPLAINT case).",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["updated"]
-			},
-			"when": "row.kind == \"SEXUAL_HARASSMENT_COMPLAINT\" && has(row.facts) && row.facts != null && has(row.facts.dg_directed_on)",
-			"due": "add_days(row.facts.dg_directed_on, 30)"
-		}
-	},
-	{
-		"id": "0fb0accd-5a29-5a78-9dd4-513efe0d2f19",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SEXUAL_HARASSMENT_FINDING_ACTION",
-		"name": "Act on a proven sexual harassment finding",
-		"references": [
-			{
-				"title": "Employment Act 1955 s.81C(a)–(b) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"rules": {
-			"description": "Where the employer's inquiry proves sexual harassment (facts.inquiry_outcome PROVEN): against an employee, take disciplinary action (dismissal without notice, downgrading, or a lesser punishment, suspension without wages at most two weeks); against a non-employee, recommend the person be brought before the appropriate disciplinary authority. Raised on the case update recording the finding; due that day.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["updated"]
-			},
-			"when": "row.kind == \"SEXUAL_HARASSMENT_COMPLAINT\" && has(row.facts) && row.facts != null && has(row.facts.inquiry_outcome) && row.facts.inquiry_outcome == \"PROVEN\"",
-			"due": "today"
-		}
-	},
-	{
-		"id": "aeba1b98-f760-518d-9ae5-6ed91be8547d",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "FOREIGN_DOMESTIC_EMPLOYMENT_NOTICE",
-		"name": "Inform the Director General of a foreign domestic employee",
-		"references": [
-			{
-				"title": "Employment Act 1955 s.57A(1)–(2) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"rules": {
-			"description": "Inform the Director General of Labour of the employment of a foreign domestic employee within thirty days of the employment (separate from the s.60K particulars; it applies to domestic employees although Part XII does not). Raised where the terms record a FOREIGNER on a DOMESTIC employment.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"applies_when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.residency_status) && t.residency_status == \"FOREIGNER\" && has(t.employment_type) && t.employment_type == \"DOMESTIC\")",
-			"due": "add_days(hired_on, 30)"
-		}
-	},
-	{
-		"id": "e254b55c-3376-5525-af44-509aad7bf273",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "FOREIGN_DOMESTIC_TERMINATION_NOTICE",
-		"name": "Inform the Director General of a foreign domestic employee's termination",
-		"references": [
-			{
-				"title": "Employment Act 1955 s.57B(1)–(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"rules": {
-			"description": "Inform the Director General of Labour within thirty days of the termination of a foreign domestic employee's service — by the employer, by the employee (absconding included), on the expiry of the employment pass, or by repatriation or deportation.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.residency_status) && t.residency_status == \"FOREIGNER\" && has(t.employment_type) && t.employment_type == \"DOMESTIC\")",
-			"due": "add_days(exit_on, 30)"
-		}
-	},
-	{
-		"id": "52cc35b0-603e-5f20-8849-bc7f1069442c",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "CP58_AGENT_STATEMENT_ON_EXIT",
-		"name": "CP58 statement for an agent whose engagement ended",
-		"references": [
-			{
-				"title": "Income Tax Act 1967 s.83A(1)–(4) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf, read 2026-10-07)",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
-			}
-		],
-		"rules": {
-			"description": "The CP58 statement of the year's payments for an agent, dealer or distributor whose engagement ends during the year (the January tick reaches only engagements still in force): raised on the engagement's end for a PAYEE whose terms record an AGENT, DEALER or DISTRIBUTOR role, once for the year it ends; due 31 March of the next year.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null && has(contract.engagement) && contract.engagement == \"PAYEE\" && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && t.facts != null && has(t.facts.payee_role) && t.facts.payee_role in [\"AGENT\", \"DEALER\", \"DISTRIBUTOR\"])",
-			"repeat_key": "exit_on.substring(0, 4)",
-			"due": "string(int(exit_on.substring(0, 4)) + 1) + \"-03-31\""
-		}
-	},
-	{
-		"id": "34bfef6f-ba55-52d3-9d4d-5611521c3e8f",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "FOREIGN_WORKER_MEDICAL_EXAMINATION",
-		"name": "FOMEMA medical examination of a new foreign worker",
-		"references": [
-			{
-				"title": "Immigration Department of Malaysia, Foreign Worker service page (https://www.imi.gov.my/index.php/en/main-services/foreign-worker/, read 2026-10-07): \"employers are given a period of 30 days to conduct health examination of foreign workers at the registered health centre with FOMEMA\"; Immigration Act 1959/63 and Immigration Regulations 1963 (visit pass conditions).",
-				"url": "https://www.imi.gov.my/index.php/en/main-services/foreign-worker/"
-			}
-		],
-		"rules": {
-			"description": "Have the foreign worker examined at a FOMEMA-registered health centre and certified fit within 30 days (the Visit Pass (Temporary Employment) is issued only after it); repeat at the 2nd- and 3rd-year renewals (WORK_PASS_RENEWAL). Raised where the terms record a FOREIGNER; due 30 days after the start (taken as arrival).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"applies_when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.residency_status) && t.residency_status == \"FOREIGNER\")",
-			"due": "add_days(hired_on, 30)"
-		}
-	},
-	{
-		"id": "913d2c18-dea4-5b78-83e9-e4fb514611b1",
-		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "COMPULSORY_HOLIDAYS_CHECK",
-		"name": "Publish the five compulsory holidays",
-		"references": [
-			{
-				"title": "Employment Act 1955 s.60D(1)(a)–(b) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"rules": {
-			"description": "Of the eleven gazetted holidays the employer grants, five are compulsory: National Day, the Yang di-Pertuan Agong's birthday, the Ruler's birthday or Federal Territory Day of the State, Workers' Day and Malaysia Day. Raised on the December run when the published holidays of the next twelve months lack any of the four federal ones (Hari Kebangsaan, Hari Keputeraan Rasmi Seri Paduka Baginda Yang di-Pertuan Agong, Hari Pekerja, Hari Malaysia); the state Ruler's birthday or Federal Territory Day is the employer's state row to confirm.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["12"],
-			"when": "!([\"Hari Kebangsaan\", \"Hari Pekerja\", \"Hari Malaysia\"].all(n, holidays_named.exists(h, h.name == n)) && holidays_named.exists(h, h.name.startsWith(\"Hari Keputeraan Rasmi Seri Paduka Baginda Yang di-Pertuan Agong\")))",
-			"due": "period.to"
-		}
-	},
-	{
 		"id": "9d023a81-1ab1-588f-a1f2-a927aa1d50b4",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "EXPORTS",
-		"scope": "JURISDICTION",
 		"code": "CP8D_EMPLOYEE_FILE",
 		"name": "C.P.8D employee remuneration file (e-CP8D)",
 		"references": [
@@ -2249,7 +888,6 @@
 		"id": "828fd12e-f869-560c-9471-726a05fde8ea",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "YOUNG_WORKER_HOURS",
 		"name": "YOUNG_WORKER_HOURS",
 		"rules": {
@@ -2264,7 +902,6 @@
 		"id": "e5ea1e4f-9b1d-5d17-9e13-7b0cc344053f",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "CHILD_EMPLOYMENT",
 		"name": "CHILD_EMPLOYMENT",
 		"rules": {
@@ -2279,7 +916,6 @@
 		"id": "73d85b07-6bc7-5eef-a758-60605b9b829a",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "CHILD_WORK_KIND",
 		"name": "CHILD_WORK_KIND",
 		"rules": {
@@ -2294,7 +930,6 @@
 		"id": "ce27674a-a691-5b6b-af4f-aa0597a0984e",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "CHILD_LIGHT_WORK_AGE",
 		"name": "CHILD_LIGHT_WORK_AGE",
 		"rules": {
@@ -2309,7 +944,6 @@
 		"id": "c9f4dfd1-f3dc-579c-9544-4072a9c8453c",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MINOR_HAZARDOUS_WORK",
 		"name": "MINOR_HAZARDOUS_WORK",
 		"rules": {
@@ -2324,7 +958,6 @@
 		"id": "8a90a8ea-62f7-52bd-b9ae-fc01eebea9b6",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MINOR_PROHIBITED_EMPLOYMENT",
 		"name": "MINOR_PROHIBITED_EMPLOYMENT",
 		"rules": {
@@ -2339,7 +972,6 @@
 		"id": "a6e78df3-8032-54df-bbf2-7edb20d58a8e",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MINOR_WORK_REVIEW",
 		"name": "MINOR_WORK_REVIEW",
 		"rules": {
@@ -2353,8 +985,7 @@
 	{
 		"id": "d24dfd34-dad3-5a9b-b1ec-1f5c53bb09bc",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
-		"scope": "JURISDICTION",
-		"family": "PAYROLL",
+		"family": "PARAMETERS",
 		"code": "salary_report",
 		"name": "Salary report grouping and company payments",
 		"rules": {
@@ -2444,7 +1075,6 @@
 		"id": "ac1ea553-caac-56cf-bf22-1df9a1cc272e",
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_PATTERN_CYCLE",
 		"name": "Roster keeps its pattern cycle",
 		"rules": {
@@ -2453,6 +1083,19 @@
 			"when": "cycle.planned.WORK != cycle.expected.WORK || cycle.planned.REST != cycle.expected.REST || cycle.planned.OFF != cycle.expected.OFF",
 			"message": "Swap days inside the cycle instead.",
 			"description": "A roster swap moves a day inside its shift pattern cycle; it never adds a work day or drops a rest or off day. Severity follows entity.validation_severity."
+		}
+	},
+	{
+		"id": "6c9243f4-424a-5be0-8b4e-1151e9ff5358",
+		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
+		"family": "VALIDATIONS",
+		"code": "PAYROLL_RUN_KINDS",
+		"name": "PAYROLL_RUN_KINDS",
+		"rules": {
+			"site": "payroll_run",
+			"kind": "allow",
+			"when": "run.kind in [\"REGULAR\", \"OFF_CYCLE\"]",
+			"message": "The jurisdiction admits regular and off-cycle payroll runs."
 		}
 	}
 ]

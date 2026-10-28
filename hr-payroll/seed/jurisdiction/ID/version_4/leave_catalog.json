@@ -11,6 +11,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "SKB 3 Menteri No. 1497 Tahun 2025, No. 2 Tahun 2025 and No. 5 Tahun 2025 — 8 cuti bersama days for 2026. SKB 3 Menteri No. 1205 Tahun 2026, No. 3 Tahun 2026 and No. 2 Tahun 2026 (Lampiran B) — 8 cuti bersama days for 2027 (5 February; 9, 12, 15 and 25 March; 18 and 19 May; 24 December). For the private sector the SKB is guidance the employer implements, and a cuti bersama day taken is set against the annual leave entitlement. a cuti bersama day taken is set against the annual leave (SKB 3 Menteri; `consumes_code`)."
@@ -29,7 +30,8 @@
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": []
 	},
 	{
 		"id": "6b1d61b6-c3fb-5172-9086-2cc8388ed9fa",
@@ -43,6 +45,38 @@
 		"encash_on_exit": true,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [
+			{
+				"code": "ENCASHMENT",
+				"name": "Leave encashment",
+				"references": [
+					{
+						"title": "UU 13/2003 art.79 as amended by UU 6/2023 and PP 35/2021 art.40(4)(a): unused annual leave not yet lapsed is paid. Owner ruling (ID): a day is the usual wage (basic plus fixed allowances, PP 36/2021 art.46) ÷ the entity fact `leave_cash_out_day_divisor` (20 for KDIT, as its payroll pays). In service it is ordinary income under PPh 21 TER."
+					}
+				],
+				"eligibility": "leave.rows.exists(r, r.can_encash && r.activity == \"ENCASHMENT\" && r.days > 0.0 && !(employment.exit_date != \"\" && r.from == employment.exit_date))",
+				"quantity": "sum(leave.rows.filter(r, r.can_encash && r.activity == \"ENCASHMENT\" && !(employment.exit_date != \"\" && r.from == employment.exit_date)).map(r, r.days))",
+				"rate": "terms.monthly_wage / double(company.facts.leave_cash_out_day_divisor)",
+				"destination": "PAY",
+				"direction": "ADD",
+				"counts_toward": ["PPH21", "PPH26"]
+			},
+			{
+				"code": "EXIT_ENCASHMENT",
+				"name": "Leave paid on termination (uang penggantian hak)",
+				"references": [
+					{
+						"title": "PP 35/2021 art.40(4)(a): on termination the unused, unlapsed annual leave is paid as uang penggantian hak, at the usual wage (basic plus fixed allowances, PP 36/2021 art.46) ÷ `company.facts.leave_cash_out_day_divisor` (owner ruling). PP 68/2009 art.1 angka 4: \"Uang Pesangon\" includes the uang penggantian hak paid because the employment ends, so it is withheld under the final PP 68/2009 art.4 bands (PPH21_FINAL_SEVERANCE), not TER. The exit encashment is the leave movement the exit behaviour writes on the last day (`r.from == employment.exit_date`)."
+					}
+				],
+				"eligibility": "leave.rows.exists(r, r.can_encash && r.activity == \"ENCASHMENT\" && r.days > 0.0 && employment.exit_date != \"\" && r.from == employment.exit_date)",
+				"quantity": "sum(leave.rows.filter(r, r.can_encash && r.activity == \"ENCASHMENT\" && employment.exit_date != \"\" && r.from == employment.exit_date).map(r, r.days))",
+				"rate": "terms.monthly_wage / double(company.facts.leave_cash_out_day_divisor)",
+				"destination": "PAY",
+				"direction": "ADD",
+				"counts_toward": ["PPH21_FINAL_SEVERANCE", "PPH26"]
+			}
+		],
 		"references": [
 			{
 				"title": "Law 13/2003 Art. 79(3) as amended by Law 6/2023 Window: each year of service (`SERVICE_YEAR`): UU 13/2003 art.79(3) grants 12 days after each 12 months of continuous work. Owner ruling (ID): the balance resets each leave year and at most 5 unused days carry into the next (`carry_forward`), once. On exit the unused, unlapsed balance is paid (PP 35/2021 art.40(4)(a))."
@@ -75,6 +109,24 @@
 		"encash_on_exit": false,
 		"is_npl": true,
 		"pay_fraction": "",
+		"pay": [
+			{
+				"code": "NO_PAY_LEAVE",
+				"name": "No-pay leave",
+				"references": [
+					{
+						"title": "PP 36/2021 art.40(1): no wage is paid for a day not worked; the day of the wage — basic plus fixed allowances (`terms.monthly_wage`) — ÷ the days of the month is deducted for each unpaid day.",
+						"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+					}
+				],
+				"eligibility": "leave.rows.exists(r, r.is_npl && r.activity == \"TIME_OFF\" && r.days > 0.0)",
+				"quantity": "sum(leave.rows.filter(r, r.is_npl && r.activity == \"TIME_OFF\").map(r, r.days))",
+				"rate": "terms.monthly_wage / double(period.month_days)",
+				"destination": "PAY",
+				"direction": "SUBTRACT",
+				"counts_toward": ["JHT", "JP", "JKK", "JKM", "KESEHATAN", "JKP", "PPH21", "PPH26"]
+			}
+		],
 		"references": [
 			{
 				"title": "PP 36/2021 art.40(1): no wage for a day not worked — except the absences art.40(2)–(5) pays (illness, menstruation, family events, state duty, religious duty, union duty, company training, work withheld by the employer, rest and leave) and a suspension during dismissal (UU 13/2003 art.157A); an unpaid absence recorded with one of those reasons is refused. Breastfeeding time is working time (UU 13/2003 art.83; UU 4/2024 art.4(1)(c)) and is never booked as unpaid.",
@@ -94,6 +146,24 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "leave.month_index <= 4 ? 1.0 : (leave.month_index <= 8 ? 0.75 : (leave.month_index <= 12 ? 0.5 : 0.25))",
+		"pay": [
+			{
+				"code": "PARTIAL_PAY_LEAVE",
+				"name": "Leave paid at a reduced rate",
+				"references": [
+					{
+						"title": "Leave paid at less than the full wage: the class’s `pay_fraction` per leave row (on the row’s `month_index`). PP 36/2021 art.41(1): a sick worker is paid 100% of the wage for the first four months, 75% for the next four, 50% for the next four and 25% thereafter until dismissal; UU 4/2024 art.5(2): maternity leave in full for four months and 75% for the fifth and sixth; PP 44/2015 as amended by PP 82/2019: STMB in full for 12 months, then 50%. The unpaid share of each day is deducted at the wage (basic plus fixed allowances, “Upah”) ÷ the month’s days.",
+						"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+					}
+				],
+				"eligibility": "leave.rows.exists(r, r.activity == \"TIME_OFF\" && !r.is_npl && r.pay_fraction < 1.0 && r.days > 0.0)",
+				"quantity": "sum(leave.rows.filter(r, r.activity == \"TIME_OFF\" && !r.is_npl && r.pay_fraction < 1.0).map(r, r.days * (1.0 - r.pay_fraction)))",
+				"rate": "terms.monthly_wage / double(period.month_days)",
+				"destination": "PAY",
+				"direction": "SUBTRACT",
+				"counts_toward": ["JHT", "JP", "JKK", "JKM", "KESEHATAN", "JKP", "PPH21", "PPH26"]
+			}
+		],
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(3)(a), 41(1): 100% of the wage for the first four months of illness, 75% for the next four, 50% for the next four and 25% thereafter until dismissal (`pay_fraction` by month_index; PARTIAL_PAY_LEAVE).",
@@ -113,6 +183,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "leave.month_index <= 3 ? 1.0 : ((has(leave.facts.special_condition_certified) && leave.facts.special_condition_certified == true) ? (leave.month_index <= 4 ? 1.0 : (leave.month_index <= 6 ? 0.75 : 0.0)) : 0.0)",
+		"pay": [],
 		"references": [
 			{
 				"title": "UU 13/2003 art.82(1); UU 4/2024 (KIA) art.4(3)(a): three months of maternity leave, and up to three more where a doctor certifies a special condition of mother or child (`leave.facts.special_condition_certified`); art.5(2): paid in full for the first four months and 75% for the fifth and sixth. Months beyond the entitlement are unpaid (pay_fraction 0). PP 36/2021 art.40(5)(d)."
@@ -131,6 +202,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(3)(c)(5), 41(3)(e): two paid days when the wife gives birth or miscarries; UU 4/2024 art.6(1): two days for a birth, which may be extended by up to three more days or as agreed (PATERNITY_EXTENSION_LEAVE), two days for a miscarriage. Window EVENT.",
@@ -157,6 +229,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(3)(c), 41(3)(a): the paid days per event (3; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
@@ -183,6 +256,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(3)(c), 41(3)(b): the paid days per event (2; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
@@ -209,6 +283,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(3)(c), 41(3)(c): the paid days per event (2; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
@@ -235,6 +310,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(3)(c), 41(3)(d): the paid days per event (2; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
@@ -261,6 +337,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(3)(c), 41(3)(f): the paid days per event (2; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
@@ -287,6 +364,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(3)(c), 41(3)(g): the paid days per event (1; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
@@ -313,6 +391,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(3)(b), 41(2): a female worker sick on the first and second days of menstruation is paid for the days taken, at most 2; UU 13/2003 art.81(1).",
@@ -339,6 +418,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "UU 13/2003 art.82(2): 1.5 months of rest, or as the doctor or midwife certifies, after a miscarriage — read as one month and fifteen days from the first day (`entry.from`..`entry.to`); paid in full (PP 36/2021 art.40(5)(e), art.46, https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021); UU 4/2024 art.4(2)(b).",
@@ -357,7 +437,8 @@
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": []
 	},
 	{
 		"id": "2a923a94-b0b2-5454-acd6-ee92d7510546",
@@ -371,6 +452,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(4)(b), 43: the wage is paid while the worker performs a religious duty their religion commands, only once during the employment with the company: a second event (another `facts.event_id`, or none) is refused.",
@@ -384,6 +466,7 @@
 		"code": "WORK_ACCIDENT_LEAVE",
 		"name": "Work accident or occupational disease leave",
 		"description": "Absence after a work accident or occupational disease, while the worker cannot work (sementara tidak mampu bekerja).",
+		"pay": [],
 		"references": [
 			{
 				"title": "UU 13/2003 art.86; PP 44/2015 art.25 and Lampiran III as amended by PP 82/2019: while a worker is temporarily unable to work after a work accident or occupational disease the employer pays the wage (STMB) — 100% for the first 12 months, then 50% until recovery (secondary for the 50% tail; the official Lampiran could not be read) — and claims it back from BPJS Ketenagakerjaan."
@@ -409,6 +492,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "has(leave.facts.state_income_share) ? max(1.0 - double(leave.facts.state_income_share), 0.0) : 1.0",
+		"pay": [],
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(4)(a), 42: a worker performing a duty to the state for at most one year is paid the shortfall between the state’s pay and the usual wage (`leave.facts.state_income_share`, the state’s pay as a share of that wage; pay_fraction 1 − share); the worker notifies in writing (art.42(3)).",
@@ -428,6 +512,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(4)(c), 44: paid at the usual wage, with the employer’s consent shown by written notice (`entry.facts.employer_consent`).",
@@ -447,6 +532,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(4)(d), 45: paid at the usual wage.",
@@ -466,6 +552,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "PP 36/2021 art.40(2)(d): the worker was willing to do the agreed work but the employer did not employ them through its own fault or an avoidable obstacle — the wage is paid.",
@@ -485,6 +572,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "UU 13/2003 art.157A(1)–(3) as added by UU 6/2023: until the dismissal is settled both parties keep their obligations; a suspended worker keeps the wage and other rights."
@@ -503,6 +591,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "UU 4/2024 art.6(1)(a): the two days of a birth may be followed by up to three more days, or as agreed with the employer (`entry.facts.employer_agreed`); window EVENT, 3 days."
@@ -528,6 +617,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"references": [
 			{
 				"title": "UU 13/2003 art.79(5) as amended by UU 6/2023: long leave as the employment agreement, company regulation or collective agreement grants it (`company.facts.long_leave_granted`); PP 36/2021 arts.40(5)(c), 46: paid at the usual wage.",

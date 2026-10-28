@@ -132,6 +132,8 @@ type LeaveBalance = {
 	readonly taken: number;
 	/** The days still requestable: what is left plus the class's `overdraw`, never below zero. */
 	readonly available: number;
+	/** The days actually left, never below zero and never the `overdraw` advance: what an encashment may pay. */
+	readonly remaining: number;
 	/** A `window_key` class's key this view meters; blank for the class's own (next-event) view. */
 	readonly window_key: string;
 	/** The last day of the window this balance meters (blank for `LIFETIME` and `EVENT`). */
@@ -642,6 +644,7 @@ function balanceOf(cls: LeaveClass, input: BalanceInput, window_key: string): Le
 	const own = entitlement + carried - taken;
 	let limited = metered(cls);
 	let available = limited ? Math.max(0, own + overdrawOf(cls, input)) : 0;
+	let remaining = limited ? Math.max(0, own) : 0;
 	if (cls.consumes_code != null) {
 		const pool = input.classes.find((row) => row.code === cls.consumes_code);
 		if (pool != null && metered(pool)) {
@@ -658,7 +661,12 @@ function balanceOf(cls: LeaveClass, input: BalanceInput, window_key: string): Le
 						overdrawOf(pool, input)
 				) *
 					unitsPerDay(cls, input);
+			const poolRemaining =
+				free +
+				Math.max(0, classEntitlement(pool, input) + carriedInto(pool, input) - poolTaken) *
+					unitsPerDay(cls, input);
 			available = limited ? Math.min(available, poolAvailable) : poolAvailable;
+			remaining = limited ? Math.min(remaining, poolRemaining) : poolRemaining;
 			limited = true;
 		}
 	}
@@ -671,6 +679,7 @@ function balanceOf(cls: LeaveClass, input: BalanceInput, window_key: string): Le
 		carried,
 		taken,
 		available,
+		remaining,
 		window_key,
 		window_to: windowRange(cls.entitlement?.window ?? 'LIFETIME', input, cls)?.to ?? '',
 		...(readsAttendance(cls) ? { attendance: attendanceOf(cls, input) } : {})

@@ -3,9 +3,8 @@ import { loanRuleFacts } from '../loan_values.js';
 import type { Id } from '@norbital-ai/bolt';
 import type { Read } from './foundation.js';
 import type { ReadFailed } from '@norbital-ai/bolt/errors';
-import { type SuspensionKind } from './suspension_kinds.js';
 import { addMonths, monthOf } from '@norbital-ai/std/date';
-import { fieldValue, payrollSetting, Reads, Refusal, stableJson } from './foundation.js';
+import { fieldValue, PAYROLL_DEFAULTS, Reads, Refusal, stableJson } from './foundation.js';
 import { eventIdOf, chainStarts } from './leave.js';
 import {
 	inForce,
@@ -24,6 +23,7 @@ import {
 	type ShiftDefinitionRow,
 	type ShiftPatternRow,
 	type LeaveEventRow,
+	type SuspensionKind,
 	FAMILIES,
 	type EntryCollection,
 	evaluate,
@@ -36,6 +36,7 @@ import { CONTRACT, PROFILE, ENTRY, LOAN, STATUTORY, ROSTER, HOLIDAY, HISTORY } f
 import { CYCLES, payrollWindow } from './frequency.js';
 import { admitPayrollRun, payrollRulesOf, validationsOf, reservedPinsFrom } from './admit.js';
 import { buildPayslip } from './payslip/lines.js';
+import { TIME_PAY_KEYS } from './statutory_fields.js';
 const contractSpan = (periods: readonly string[], lookbackMonths: number) => {
 	const months = [...new Set(periods.map((period) => period.slice(0, 7)))]
 		.filter((month) => /^\d{4}-(0[1-9]|1[0-2])$/.test(month))
@@ -101,12 +102,7 @@ export const loadPayrollBuild = Effect.fnUntraced(function* (
 		claim_catalog_entry: { where: byContract, fields: ENTRY.claim_catalog_entry },
 		leave_catalog_entry: { where: byContract, fields: ENTRY.leave_catalog_entry },
 		loan_repayment_entry: { where: byContract, fields: ENTRY.loan_repayment_entry },
-		roster_entry: { where: byContract, fields: ROSTER },
-		jurisdiction_settings: {
-			where: { code: { in: idsOf(first.entity.rows.map((row) => row.settings_code)) } },
-			fields: ['code']
-		},
-		'jurisdiction_settings.statutory_contribution_catalog': { fields: STATUTORY }
+		roster_entry: { where: byContract, fields: ROSTER }
 	});
 	const catalogIds = <T extends string>(
 		rows: readonly { readonly catalog_id: Parameters<typeof idsOf<T>>[0][number] }[]
@@ -151,11 +147,6 @@ export const loadPayrollBuild = Effect.fnUntraced(function* (
 		definitions: first.shift_definition,
 		patterns: first.shift_pattern,
 		suspensions: first.work_suspension,
-		pay_rows: {
-			rows: second.jurisdiction_settings.rows.flatMap(
-				(version) => version.statutory_contribution_catalog
-			)
-		},
 		captured_allowances: first.allowance_catalog,
 		roster: second.roster_entry
 	};
@@ -176,6 +167,7 @@ export const buildPayrollRun = (
 			reservedPins,
 			runs,
 			lineage,
+			schemes,
 			governedRows,
 			switched
 		} = admitted ?? (yield* admitPayrollRun(request));
@@ -201,27 +193,22 @@ export const buildPayrollRun = (
 			});
 		const catalogue = (
 			name:
-				| 'work_catalog'
-				| 'allowance_catalog'
-				| 'adhoc_catalog'
-				| 'claim_catalog'
-				| 'leave_catalog'
-				| 'loan_catalog'
+				'allowance_catalog' | 'adhoc_catalog' | 'claim_catalog' | 'leave_catalog' | 'loan_catalog'
 		): readonly CatalogRow[] => governed?.[name] ?? [];
 		const ruleRows = governed?.rule_set ?? [];
 		const rules = yield* Effect.fromResult(
-			payrollRulesOf(ruleRows.filter((row) => row.family === 'PAYROLL'))
+			payrollRulesOf(ruleRows.filter((row) => row.family === 'PARAMETERS'))
 		);
 		const validations = yield* validationsOf(
 			ruleRows.filter((row) => row.family === 'VALIDATIONS'),
 			'payslip'
 		);
-		// The pay day: the request's, else the version's required `payroll.pay_date` CEL on the period and company.
+		// The pay day: the request's, else the version's `payroll.pay_date` CEL on the period and company.
 		const payDate =
 			request.pay_due_date ??
 			String(
 				yield* evaluate(
-					yield* Effect.fromResult(payrollSetting(version.code, payroll, 'pay_date')),
+					payroll?.pay_date ?? PAYROLL_DEFAULTS.pay_date,
 					{
 						period: {
 							key: request.period,
@@ -255,11 +242,64 @@ export const buildPayrollRun = (
 				held.statutory_contribution_catalog.map((row) => [row.id, row.code] as const)
 			)
 		);
-		const workRows = catalogue('work_catalog');
+		const suspensionRows = governed?.suspension_catalog ?? [];
+		// A kind's pricing of one suspended day reads the payslip context as a line does.
+		const suspensionPricing = suspensionRows.map((row) => [
+			row.eligibility,
+			row.quantity,
+			row.rate
+		]);
+		// The version's `time_pay` lines in reserved-kind order: each line's code is its component code.
+		const timePay = yield* Effect.fromResult(
+			fieldValue(governed.time_pay, 'jurisdiction_settings.time_pay')
+		);
+		const workRows: CatalogRow[] = TIME_PAY_KEYS.flatMap((key) =>
+			(timePay?.[key] ?? []).map((line) => ({
+				...line,
+				id: `${version.id}:${line.code}`,
+				component_code: line.code,
+				prorated: line.prorated === true
+			}))
+		);
 		const allowanceRows = catalogue('allowance_catalog');
+		// Each leave class's pay lines, priced once a slip in the whole leave context: a line's code is its component code.
+		const leavePay: CatalogRow[] = [];
+		for (const held of governed.leave_catalog)
+			for (const line of (yield* Effect.fromResult(fieldValue(held.pay, 'leave_catalog.pay'))) ??
+				[])
+				leavePay.push({
+					...line,
+					id: `${held.id}:${line.code}`,
+					component_code: line.code,
+					prorated: line.prorated === true
+				});
+		// Each suspension kind's pay lines, priced once a salary slip over every kind's suspended days.
+		const suspensionPay: CatalogRow[] = [];
+		for (const held of suspensionRows)
+			for (const line of (yield* Effect.fromResult(
+				fieldValue(held.pay, 'suspension_catalog.pay')
+			)) ?? [])
+				suspensionPay.push({
+					...line,
+					id: `${held.id}:${line.code}`,
+					component_code: line.code,
+					prorated: line.prorated === true
+				});
+		// Each scheme's wage adjustments, priced on a salary slip as unpaid lines toward the schemes they name.
+		const wageAdjustments: CatalogRow[] = periodRows.flatMap((row) =>
+			(row.configuration?.wage_adjustments ?? []).map((line) => ({
+				...line,
+				id: `${row.id}:${line.code}`,
+				component_code: line.code,
+				destination: 'EMPLOYER' as const
+			}))
+		);
 		const governingRows: CatalogRow[] = [
 			...workRows,
+			...wageAdjustments,
 			...allowanceRows,
+			...leavePay,
+			...suspensionPay,
 			...FAMILIES.flatMap((family) => catalogue(family.catalog))
 		];
 		// Roster and holiday reads serve the attendance window and `hours`: every approved roster day, paid or not,
@@ -271,7 +311,7 @@ export const buildPayrollRun = (
 		const readsWorked =
 			payVersionId !== undefined ||
 			/worked_days|worked_hours|suspended_days|leave_days/.test(
-				JSON.stringify([governingRows, periodRows, validations, rules])
+				JSON.stringify([governingRows, suspensionPricing, periodRows, validations, rules])
 			);
 		const span = {
 			gte: [
@@ -290,7 +330,9 @@ export const buildPayrollRun = (
 		// Suspensions are read only when a record of the version reads `suspended`.
 		const readsSuspended =
 			payVersionId !== undefined ||
-			JSON.stringify([governingRows, periodRows, validations, rules]).includes('suspended');
+			JSON.stringify([governingRows, suspensionPricing, periodRows, validations, rules]).includes(
+				'suspended'
+			);
 		// One read: the entity's calendar and every contract in force with its person and entries. Each
 		// entry carries its class's code (`catalog`), whatever version holds that class.
 		const got =
@@ -301,7 +343,17 @@ export const buildPayrollRun = (
 				[request.period],
 				Math.max(LONG_HISTORY_MONTHS, historyMonths, rollingMonths)
 			));
-		const payRows = got.pay_rows.rows.filter((row) => row.settings_id === payVersionId);
+		// a scheme governed by the pay day reads the version in force on it: one more read, only when that differs
+		const payRows =
+			payVersionId === undefined ||
+			!periodRows.some((row) => row.configuration?.governed_by === 'pay_date')
+				? []
+				: (yield* hostRead({
+						statutory_contribution_catalog: {
+							where: { settings_id: { eq: payVersionId } },
+							fields: STATUTORY
+						}
+					})).statutory_contribution_catalog.rows;
 		const statutoryRows = periodRows.map((row) =>
 			row.configuration?.governed_by === 'pay_date'
 				? (payRows.find((other) => other.code === row.code) ?? row)
@@ -406,6 +458,9 @@ export const buildPayrollRun = (
 							!(salaryRun || !leave) ||
 							(row.payslip_id == null && !reservedPins.has(`${family.collection}:${row.id}`))
 					)
+					// A write an open approval request holds (pending, or sent back for changes) waits: neither priced
+					// nor pinned until approved.
+					.filter((row) => !('$approval' in row) || row.$approval === undefined)
 					.map(strip)
 			);
 			if (!leave)
@@ -484,16 +539,8 @@ export const buildPayrollRun = (
 						row.ends_on >= span.gte
 				)
 			: [];
-		const suspension_kinds =
-			suspensions.length === 0
-				? []
-				: yield* Effect.fromResult(
-						fieldValue(governed?.suspension_kinds, 'jurisdiction_settings.suspension_kinds')
-					);
 		const kinds = new Map<string, SuspensionKind>(
-			suspensions.length === 0
-				? []
-				: (suspension_kinds ?? []).map((row) => [row.code, row] as const)
+			suspensions.length === 0 ? [] : suspensionRows.map((row) => [row.code, row] as const)
 		);
 		for (const row of timeOff) {
 			const event = eventIdOf(row.facts);
@@ -504,14 +551,10 @@ export const buildPayrollRun = (
 			if (held == null || day < held) eventStart.set(key, day);
 		}
 		const runKind = new Map(runs.map((run) => [run.id, run.kind ?? '']));
+		// each earlier run's schemes as configured then: admission read those its history reaches
 		const statutoryConfigurations = new Map(
 			runs.map(
-				(run) =>
-					[
-						run.id,
-						lineage.find((held) => held.id === run.settings_id)?.statutory_contribution_catalog ??
-							[]
-					] as const
+				(run) => [run.id, schemes.filter((row) => row.settings_id === run.settings_id)] as const
 			)
 		);
 		// each salary run's settlement window: a paid period an exit since moved or undone is repriced over its days
@@ -530,7 +573,6 @@ export const buildPayrollRun = (
 						]
 			)
 		);
-		const exitClasses = catalogue('adhoc_catalog').filter((row) => row.raise_on_exit === true);
 		const notes: string[] = [];
 		const selected = new Set(sources);
 		const parts = partsOf(governingRows);
@@ -549,10 +591,12 @@ export const buildPayrollRun = (
 					schemeCodes,
 					workRows,
 					allowanceRows,
+					leavePay,
+					suspensionPay,
+					wageAdjustments,
 					capturedAllowanceCodes,
 					classes,
 					parts,
-					exitClasses,
 					validations,
 					assessesWithoutWage: statutoryRows.some(
 						(row) => row.configuration?.assess_without_wage === true
@@ -617,7 +661,25 @@ export const buildPayrollRun = (
 				configuration_hash: stableJson({
 					settings: version.id,
 					statutory: statutoryRows.map((row) => [row.code, row.configuration ?? null]),
-					work: workRows.map((row) => [row.code, row.quantity, row.rate, row.counts_toward ?? null])
+					work: workRows.map((row) => [
+						row.code,
+						row.quantity,
+						row.rate,
+						row.counts_toward ?? null
+					]),
+					leave_pay: leavePay.map((row) => [
+						row.code,
+						row.quantity,
+						row.rate,
+						row.counts_toward ?? null
+					]),
+					suspension: suspensionRows.map((row) => [row.code, row.quantity, row.rate]),
+					suspension_pay: suspensionPay.map((row) => [
+						row.code,
+						row.quantity,
+						row.rate,
+						row.counts_toward ?? null
+					])
 				}),
 				pay_date: payDate,
 				pay_due_date: request.pay_due_date ?? payDate,

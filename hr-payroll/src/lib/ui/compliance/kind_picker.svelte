@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
 	 * A workplace case's or work suspension's kind, picked from the catalogue (`case_kinds` rule rows;
-	 * the version’s inline suspension kinds) of the chosen entity's lineage version governing the record's day (today until one is
+	 * the version’s `suspension_catalog` rows) of the chosen entity's lineage version governing the record's day (today until one is
 	 * set); without an entity yet, each lineage's version in force today, grouped by lineage. The model's
 	 * transform judges the kind on save. Readonly, the kind reads as its name.
 	 */
@@ -46,16 +46,21 @@
 		bolt.query({
 			jurisdiction_settings: {
 				where: { sealed_at: { isNull: false }, voided_at: { isNull: true } },
-				fields: ['code', 'effective_range', 'suspension_kinds']
+				fields: ['code', 'effective_range']
 			}
 		})
+	);
+	const suspensions = $derived.by(() =>
+		source !== 'suspension'
+			? null
+			: bolt.query({ suspension_catalog: { fields: ['settings_id', 'code', 'name'] } })
 	);
 	const cases = $derived.by(() =>
 		source !== 'case'
 			? null
 			: bolt.query({
 					rule_set: {
-						where: { family: { eq: 'PAYROLL' }, code: { eq: 'case_kinds' } },
+						where: { family: { eq: 'PARAMETERS' }, code: { eq: 'case_kinds' } },
 						fields: ['settings_id', 'rules']
 					}
 				})
@@ -74,13 +79,11 @@
 		);
 		const kinds: { settings_id: string; code: string; name: string }[] =
 			source === 'suspension'
-				? (versions?.current?.jurisdiction_settings.rows ?? []).flatMap((version) =>
-						(version.suspension_kinds ?? []).map((kind) => ({
-							settings_id: String(version.id),
-							code: kind.code,
-							name: kind.name ?? kind.code
-						}))
-					)
+				? (suspensions?.current?.suspension_catalog.rows ?? []).map((kind) => ({
+						settings_id: String(kind.settings_id),
+						code: kind.code,
+						name: kind.name ?? kind.code
+					}))
 				: (cases?.current?.rule_set.rows ?? []).flatMap((row) =>
 						kindsOf(row.rules).map((kind) => ({ settings_id: String(row.settings_id), ...kind }))
 					);

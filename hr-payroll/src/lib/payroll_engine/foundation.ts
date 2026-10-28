@@ -165,17 +165,45 @@ const sortValue = (value: unknown): unknown => {
 		);
 	return value;
 };
+type PayrollSettings = NonNullable<Exclude<Row<'jurisdiction_settings'>['payroll'], Masked>>;
+type DefaultedPayrollKey =
+	| 'tax_year_start_month'
+	| 'pay_date'
+	| 'semi_monthly_split'
+	| 'ten_day_splits'
+	| 'rolling_hours_months'
+	| 'history_months'
+	| 'base_salary_required'
+	| 'off_cycle_families'
+	| 'negative_net'
+	| 'exit_overpayment'
+	| 'attendance'
+	| 'permanent_when';
+/** The engine's value of each `payroll` key the law does not vary: a version states one only to override it. */
+export const PAYROLL_DEFAULTS: {
+	readonly [K in DefaultedPayrollKey]-?: NonNullable<PayrollSettings[K]>;
+} = {
+	tax_year_start_month: 1,
+	pay_date: 'period.to',
+	semi_monthly_split: 15,
+	ten_day_splits: [10, 20],
+	rolling_hours_months: 3,
+	history_months: 12,
+	base_salary_required: true,
+	off_cycle_families: ['ADHOC', 'CLAIM'],
+	negative_net: 'refuse',
+	exit_overpayment: 'note',
+	attendance: {
+		step_hours: 0.5,
+		rounding: 'DOWN',
+		overtime_window: 'AFTER_SHIFT',
+		untimed_credit_day_types: ['REST', 'OFF']
+	},
+	permanent_when:
+		'!(has(terms.facts) && has(terms.facts.fixed_term) && terms.facts.fixed_term == true)'
+};
 /** The `jurisdiction_settings.payroll` keys the engine requires: every seed version states each (tests/payroll-slots). */
-const REQUIRED_PAYROLL_SETTINGS = [
-	'currency',
-	'timezone',
-	'pay_date',
-	'off_cycle_families',
-	'ten_day_splits',
-	'permanent_when',
-	'exit_raise_when',
-	'exit_overpayment'
-] as const;
+const REQUIRED_PAYROLL_SETTINGS = ['currency', 'timezone'] as const;
 type RequiredPayrollSetting = (typeof REQUIRED_PAYROLL_SETTINGS)[number];
 /** A version's required `payroll.<key>`: absent or blank refuses, naming the version and the key. */
 export const payrollSetting = <
@@ -196,7 +224,7 @@ export const payrollSetting = <
 		: Result.succeed(value);
 };
 /**
- * The PAYROLL rule_set codes the engine reads by name: `required` ones every seed version declares
+ * The PARAMETERS rule_set codes the engine reads by name: `required` ones every seed version declares
  * (tests/payroll-slots), `optional` ones are read when present.
  */
 export const PAYROLL_SLOTS = {
@@ -239,9 +267,9 @@ export const payPeriodWindow = (
 		readonly pay_cutoff_day?: number;
 		/** The version's `payroll.week_start` (0 = Sunday … 6 = Saturday; default Sunday). */
 		readonly week_start?: number;
-		/** The version's `payroll.semi_monthly_split`: the first half's last day (default 15). */
+		/** The version's `payroll.semi_monthly_split`: the first half's last day (`PAYROLL_DEFAULTS`). */
 		readonly semi_monthly_split?: number;
-		/** The version's `payroll.ten_day_splits`: the first and second parts' last days (required for TEN_DAY). */
+		/** The version's `payroll.ten_day_splits`: the first and second parts' last days (`PAYROLL_DEFAULTS`). */
 		readonly ten_day_splits?: readonly number[];
 	}
 ): {
@@ -255,17 +283,17 @@ export const payPeriodWindow = (
 		return { start: `${month}-01`, end: monthEnd(month) };
 	if (frequency === 'SEMI_MONTHLY') {
 		const half = period.slice(8, 9) === '2' ? 2 : 1;
-		const split = String(Math.min(27, Math.max(1, options.semi_monthly_split ?? 15))).padStart(
-			2,
-			'0'
-		);
+		const split = String(
+			Math.min(27, Math.max(1, options.semi_monthly_split ?? PAYROLL_DEFAULTS.semi_monthly_split))
+		).padStart(2, '0');
 		return half === 1
 			? { start: `${month}-01`, end: `${month}-${split}` }
 			: { start: addDays(`${month}-${split}`, 1), end: monthEnd(month) };
 	}
 	if (frequency === 'TEN_DAY') {
-		const [first = 0, second = 0] = options.ten_day_splits ?? [];
-		if (options.ten_day_splits?.length !== 2 || first < 1 || second <= first || second > 27)
+		const splits = options.ten_day_splits ?? PAYROLL_DEFAULTS.ten_day_splits;
+		const [first = 0, second = 0] = splits;
+		if (splits.length !== 2 || first < 1 || second <= first || second > 27)
 			return refuseNow(
 				'A TEN_DAY period needs the version’s payroll.ten_day_splits: two rising days of the month, 1–27.'
 			);

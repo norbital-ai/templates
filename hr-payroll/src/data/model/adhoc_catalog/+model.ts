@@ -12,7 +12,6 @@ const create_columns = [
 	'qualifies_when',
 	'amount_required',
 	'counts_toward',
-	'raise_on_exit',
 	'payable_after_exit',
 	'settings_id'
 ] as const;
@@ -28,7 +27,6 @@ const update_columns = [
 	'qualifies_when',
 	'amount_required',
 	'counts_toward',
-	'raise_on_exit',
 	'payable_after_exit'
 ] as const;
 

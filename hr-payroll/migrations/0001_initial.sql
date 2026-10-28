@@ -1,4 +1,4 @@
--- 0001_initial.sql: 1510 step(s), from an empty database to c0122a06c008f915236d04980ed083962df9c43e382270c77d6b3c1b5714261c.
+-- 0001_initial.sql: 1564 step(s), from an empty database to 44d4227e35798d81d184a62a2aa360840a2e7f9080e180673a774fb5e2ab4eaa.
 -- Edit freely: `verify` replays every file on a scratch database and compares it with the schema.
 
 -- step create:extension:vector (additive)
@@ -500,6 +500,10 @@ create table "sys_config" ("key" text primary key);
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 create table "sys_conversation" ("id" text primary key);
 
+-- step create:table:sys_envoy (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+create table "sys_envoy" ("id" uuid primary key);
+
 -- step create:table:sys_file (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 create table "sys_file" ("id" text primary key);
@@ -563,6 +567,10 @@ create table "allowance_catalog" ("id" uuid primary key, revision int not null d
 -- step create:table:bank (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 create table "bank" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text);
+
+-- step create:table:behaviour (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+create table "behaviour" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text);
 
 -- step create:table:claim_catalog (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -652,9 +660,9 @@ create table "shift_pattern" ("id" uuid primary key, revision int not null defau
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 create table "statutory_contribution_catalog" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text);
 
--- step create:table:work_catalog (additive)
+-- step create:table:suspension_catalog (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
-create table "work_catalog" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text);
+create table "suspension_catalog" ("id" uuid primary key, revision int not null default 1, created_at timestamptz not null default now(), created_by text, updated_at timestamptz not null default now(), updated_by text);
 
 -- step create:table:work_suspension (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -911,6 +919,61 @@ alter table "sys_conversation" add column "revision" int default '1'::int;
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "sys_conversation" add column "updated_at" timestamptz default (now());
+
+-- step create:column:sys_envoy.name (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" add column "name" text;
+
+-- step create:column:sys_envoy.audience (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" add column "audience" text default 'private'::text;
+
+-- step create:column:sys_envoy.task (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" add column "task" text default ''::text;
+
+-- step create:column:sys_envoy.policies (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" add column "policies" text[] default '{}'::text[];
+
+-- step create:column:sys_envoy.group_messages (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" add column "group_messages" text default 'mention_or_reply'::text;
+
+-- step create:column:sys_envoy.delegation (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" add column "delegation" text default 'disabled'::text;
+
+-- step create:column:sys_envoy.triage (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" add column "triage" boolean default false;
+
+-- step create:column:sys_envoy.dm (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" add column "dm" text default 'union'::text;
+
+-- step create:column:sys_envoy.active (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" add column "active" boolean default true;
+
+-- step create:column:sys_envoy.created_at (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" add column "created_at" timestamptz default (now());
+
+-- step create:column:sys_envoy.revision (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" add column "revision" int default '1'::int;
 
 -- step create:column:sys_file.name (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -1776,11 +1839,6 @@ alter table "adhoc_catalog" add column "amount_required" boolean default true;
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "adhoc_catalog" add column "counts_toward" jsonb;
 
--- step create:column:adhoc_catalog.raise_on_exit (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "adhoc_catalog" add column "raise_on_exit" boolean default false;
-
 -- step create:column:adhoc_catalog.payable_after_exit (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
@@ -1815,6 +1873,12 @@ alter table "adhoc_catalog_entry" add column "label" text;
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "adhoc_catalog_entry" add column "facts" jsonb;
+
+-- step create:column:adhoc_catalog_entry.bolt_search (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: table-rewrite: may rewrite the table; disk use and work grow with existing data.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "adhoc_catalog_entry" add column bolt_search tsvector generated always as (bolt_search_document(coalesce("label"::text, ''))) stored;
 
 -- step create:column:allowance_catalog.code (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -1856,6 +1920,11 @@ alter table "allowance_catalog" add column "destination" text;
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "allowance_catalog" add column "direction" text;
 
+-- step create:column:allowance_catalog.automatic (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "allowance_catalog" add column "automatic" boolean default false;
+
 -- step create:column:bank.code (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
@@ -1885,6 +1954,61 @@ alter table "bank" add column "enabled" boolean default false;
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "bank" add column "template" jsonb default '{}'::jsonb;
+
+-- step create:column:behaviour.code (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "behaviour" add column "code" text;
+
+-- step create:column:behaviour.name (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "behaviour" add column "name" text;
+
+-- step create:column:behaviour.references (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "behaviour" add column "references" jsonb;
+
+-- step create:column:behaviour.order (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "behaviour" add column "order" int;
+
+-- step create:column:behaviour.target_collection (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "behaviour" add column "target_collection" text;
+
+-- step create:column:behaviour.events (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "behaviour" add column "events" jsonb default '[]'::jsonb;
+
+-- step create:column:behaviour.when (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "behaviour" add column "when" text;
+
+-- step create:column:behaviour.fields (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "behaviour" add column "fields" jsonb;
+
+-- step create:column:behaviour.reads (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "behaviour" add column "reads" jsonb;
+
+-- step create:column:behaviour.effect (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "behaviour" add column "effect" text;
+
+-- step create:column:behaviour.definition (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "behaviour" add column "definition" jsonb;
 
 -- step create:column:claim_catalog.code (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -1975,6 +2099,12 @@ alter table "claim_catalog_entry" add column "label" text;
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "claim_catalog_entry" add column "facts" jsonb;
+
+-- step create:column:claim_catalog_entry.bolt_search (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: table-rewrite: may rewrite the table; disk use and work grow with existing data.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "claim_catalog_entry" add column bolt_search tsvector generated always as (bolt_search_document(coalesce("label"::text, ''))) stored;
 
 -- step create:column:employment_contract.employee_number (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -2268,30 +2398,15 @@ alter table "holiday" add column "replaces" date;
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "holiday" add column "given_to" text default 'EVERYONE'::text;
 
--- step create:column:jurisdiction_settings.suspension_kinds (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "jurisdiction_settings" add column "suspension_kinds" jsonb default '[]'::jsonb;
-
 -- step create:column:jurisdiction_settings.code (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "jurisdiction_settings" add column "code" text;
 
--- step create:column:jurisdiction_settings.jurisdiction_code (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "jurisdiction_settings" add column "jurisdiction_code" text;
-
 -- step create:column:jurisdiction_settings.name (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "jurisdiction_settings" add column "name" text;
-
--- step create:column:jurisdiction_settings.references (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "jurisdiction_settings" add column "references" jsonb;
 
 -- step create:column:jurisdiction_settings.employee_input_schema (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -2302,11 +2417,6 @@ alter table "jurisdiction_settings" add column "employee_input_schema" jsonb;
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "jurisdiction_settings" add column "entity_input_schema" jsonb;
-
--- step create:column:jurisdiction_settings.behaviours (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "jurisdiction_settings" add column "behaviours" jsonb default '{"rules":[],"version":1}'::jsonb;
 
 -- step create:column:jurisdiction_settings.sealed_at (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -2323,15 +2433,15 @@ alter table "jurisdiction_settings" add column "voided_at" timestamptz;
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "jurisdiction_settings" add column "void_reason" text;
 
--- step create:column:jurisdiction_settings.reference_tables (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "jurisdiction_settings" add column "reference_tables" jsonb;
-
 -- step create:column:jurisdiction_settings.payroll (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "jurisdiction_settings" add column "payroll" jsonb;
+
+-- step create:column:jurisdiction_settings.time_pay (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "jurisdiction_settings" add column "time_pay" jsonb default '{}'::jsonb;
 
 -- step create:column:jurisdiction_settings.change_summary (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -2423,6 +2533,11 @@ alter table "leave_catalog" add column "share_by" text default 'WORKING_DAYS'::t
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "leave_catalog" add column "consumes_code" text;
 
+-- step create:column:leave_catalog.pay (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "leave_catalog" add column "pay" jsonb default '[]'::jsonb;
+
 -- step create:column:leave_catalog_entry.reference (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
@@ -2477,6 +2592,12 @@ alter table "leave_catalog_entry" add column "label" text;
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "leave_catalog_entry" add column "facts" jsonb;
+
+-- step create:column:leave_catalog_entry.bolt_search (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: table-rewrite: may rewrite the table; disk use and work grow with existing data.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "leave_catalog_entry" add column bolt_search tsvector generated always as (bolt_search_document(coalesce("reference"::text, '') || ' ' || coalesce("label"::text, ''))) stored;
 
 -- step create:column:loan_catalog.code (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -2913,11 +3034,6 @@ alter table "roster_entry" add column "worksite" text;
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "roster_entry" add column "facts" jsonb default '{}'::jsonb;
 
--- step create:column:rule_set.scope (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "rule_set" add column "scope" text default 'JURISDICTION'::text;
-
 -- step create:column:rule_set.family (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
@@ -3023,65 +3139,50 @@ alter table "statutory_contribution_catalog" add column "references" jsonb;
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "statutory_contribution_catalog" add column "configuration" jsonb;
 
--- step create:column:work_catalog.code (additive)
+-- step create:column:suspension_catalog.code (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "work_catalog" add column "code" text;
+alter table "suspension_catalog" add column "code" text;
 
--- step create:column:work_catalog.name (additive)
+-- step create:column:suspension_catalog.name (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "work_catalog" add column "name" text;
+alter table "suspension_catalog" add column "name" text;
 
--- step create:column:work_catalog.references (additive)
+-- step create:column:suspension_catalog.references (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "work_catalog" add column "references" jsonb;
+alter table "suspension_catalog" add column "references" jsonb;
 
--- step create:column:work_catalog.component_code (additive)
+-- step create:column:suspension_catalog.counts_as_attended (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "work_catalog" add column "component_code" text;
+alter table "suspension_catalog" add column "counts_as_attended" text;
 
--- step create:column:work_catalog.eligibility (additive)
+-- step create:column:suspension_catalog.scheduled (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "work_catalog" add column "eligibility" text;
+alter table "suspension_catalog" add column "scheduled" text;
 
--- step create:column:work_catalog.quantity (additive)
+-- step create:column:suspension_catalog.eligibility (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "work_catalog" add column "quantity" text;
+alter table "suspension_catalog" add column "eligibility" text;
 
--- step create:column:work_catalog.rate (additive)
+-- step create:column:suspension_catalog.quantity (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "work_catalog" add column "rate" text;
+alter table "suspension_catalog" add column "quantity" text;
 
--- step create:column:work_catalog.prorated (additive)
+-- step create:column:suspension_catalog.rate (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "work_catalog" add column "prorated" boolean default false;
+alter table "suspension_catalog" add column "rate" text;
 
--- step create:column:work_catalog.denominator (additive)
+-- step create:column:suspension_catalog.pay (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "work_catalog" add column "denominator" text;
-
--- step create:column:work_catalog.destination (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "work_catalog" add column "destination" text;
-
--- step create:column:work_catalog.direction (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "work_catalog" add column "direction" text;
-
--- step create:column:work_catalog.counts_toward (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "work_catalog" add column "counts_toward" jsonb default '[]'::jsonb;
+alter table "suspension_catalog" add column "pay" jsonb default '[]'::jsonb;
 
 -- step create:column:work_suspension.kind (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -3232,6 +3333,11 @@ alter table "adhoc_catalog_entry" add column "payslip_id" uuid;
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "allowance_catalog" add column "settings_id" uuid;
+
+-- step create:column:behaviour.settings_id (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "behaviour" add column "settings_id" uuid;
 
 -- step create:column:claim_catalog.settings_id (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -3448,10 +3554,10 @@ alter table "shift_pattern" add column "company_id" uuid;
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "statutory_contribution_catalog" add column "settings_id" uuid;
 
--- step create:column:work_catalog.settings_id (additive)
+-- step create:column:suspension_catalog.settings_id (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "work_catalog" add column "settings_id" uuid;
+alter table "suspension_catalog" add column "settings_id" uuid;
 
 -- step create:column:work_suspension.company_id (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -3527,6 +3633,56 @@ alter table "sys_conversation" alter column "revision" set default '1'::int;
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "sys_conversation" alter column "updated_at" set default (now());
+
+-- step create:default:sys_envoy.audience (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" alter column "audience" set default 'private'::text;
+
+-- step create:default:sys_envoy.task (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" alter column "task" set default ''::text;
+
+-- step create:default:sys_envoy.policies (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" alter column "policies" set default '{}'::text[];
+
+-- step create:default:sys_envoy.group_messages (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" alter column "group_messages" set default 'mention_or_reply'::text;
+
+-- step create:default:sys_envoy.delegation (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" alter column "delegation" set default 'disabled'::text;
+
+-- step create:default:sys_envoy.triage (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" alter column "triage" set default false;
+
+-- step create:default:sys_envoy.dm (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" alter column "dm" set default 'union'::text;
+
+-- step create:default:sys_envoy.active (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" alter column "active" set default true;
+
+-- step create:default:sys_envoy.created_at (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" alter column "created_at" set default (now());
+
+-- step create:default:sys_envoy.revision (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "sys_envoy" alter column "revision" set default '1'::int;
 
 -- step create:default:sys_file.revision (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -3688,11 +3844,6 @@ alter table "adhoc_catalog" alter column "eligibility" set default ''::text;
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "adhoc_catalog" alter column "amount_required" set default true;
 
--- step create:default:adhoc_catalog.raise_on_exit (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "adhoc_catalog" alter column "raise_on_exit" set default false;
-
 -- step create:default:adhoc_catalog.payable_after_exit (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
@@ -3707,6 +3858,11 @@ alter table "adhoc_catalog_entry" alter column "activity" set default 'AWARD'::t
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "allowance_catalog" alter column "counts_toward" set default '[]'::jsonb;
+
+-- step create:default:allowance_catalog.automatic (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "allowance_catalog" alter column "automatic" set default false;
 
 -- step create:default:bank.bank_codes (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -3727,6 +3883,11 @@ alter table "bank" alter column "enabled" set default false;
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "bank" alter column "template" set default '{}'::jsonb;
+
+-- step create:default:behaviour.events (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "behaviour" alter column "events" set default '[]'::jsonb;
 
 -- step create:default:claim_catalog.eligibility (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -3793,15 +3954,10 @@ alter table "entity" alter column "facts" set default '{}'::jsonb;
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "holiday" alter column "given_to" set default 'EVERYONE'::text;
 
--- step create:default:jurisdiction_settings.suspension_kinds (additive)
+-- step create:default:jurisdiction_settings.time_pay (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "jurisdiction_settings" alter column "suspension_kinds" set default '[]'::jsonb;
-
--- step create:default:jurisdiction_settings.behaviours (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "jurisdiction_settings" alter column "behaviours" set default '{"rules":[],"version":1}'::jsonb;
+alter table "jurisdiction_settings" alter column "time_pay" set default '{}'::jsonb;
 
 -- step create:default:leave_catalog.eligibility (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -3837,6 +3993,11 @@ alter table "leave_catalog" alter column "pay_fraction" set default ''::text;
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "leave_catalog" alter column "share_by" set default 'WORKING_DAYS'::text;
+
+-- step create:default:leave_catalog.pay (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+alter table "leave_catalog" alter column "pay" set default '[]'::jsonb;
 
 -- step create:default:leave_catalog_entry.activity (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -3918,20 +4079,10 @@ alter table "regulatory_task" alter column "facts" set default '{}'::jsonb;
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 alter table "roster_entry" alter column "facts" set default '{}'::jsonb;
 
--- step create:default:rule_set.scope (additive)
+-- step create:default:suspension_catalog.pay (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "rule_set" alter column "scope" set default 'JURISDICTION'::text;
-
--- step create:default:work_catalog.prorated (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "work_catalog" alter column "prorated" set default false;
-
--- step create:default:work_catalog.counts_toward (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
-alter table "work_catalog" alter column "counts_toward" set default '[]'::jsonb;
+alter table "suspension_catalog" alter column "pay" set default '[]'::jsonb;
 
 -- step create:default:work_suspension.employment_ids (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -4247,6 +4398,116 @@ do $store$ declare n bigint; begin
 	if n > 0 then raise exception 'notNull:sys_conversation.updated_at refuses % existing row(s)', n; end if;
 end $store$;
 alter table "sys_conversation" alter column "updated_at" set not null;
+
+-- step create:notNull:sys_envoy.name (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "sys_envoy" where "name" is null' into n;
+	if n > 0 then raise exception 'notNull:sys_envoy.name refuses % existing row(s)', n; end if;
+end $store$;
+alter table "sys_envoy" alter column "name" set not null;
+
+-- step create:notNull:sys_envoy.audience (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "sys_envoy" where "audience" is null' into n;
+	if n > 0 then raise exception 'notNull:sys_envoy.audience refuses % existing row(s)', n; end if;
+end $store$;
+alter table "sys_envoy" alter column "audience" set not null;
+
+-- step create:notNull:sys_envoy.task (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "sys_envoy" where "task" is null' into n;
+	if n > 0 then raise exception 'notNull:sys_envoy.task refuses % existing row(s)', n; end if;
+end $store$;
+alter table "sys_envoy" alter column "task" set not null;
+
+-- step create:notNull:sys_envoy.policies (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "sys_envoy" where "policies" is null' into n;
+	if n > 0 then raise exception 'notNull:sys_envoy.policies refuses % existing row(s)', n; end if;
+end $store$;
+alter table "sys_envoy" alter column "policies" set not null;
+
+-- step create:notNull:sys_envoy.group_messages (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "sys_envoy" where "group_messages" is null' into n;
+	if n > 0 then raise exception 'notNull:sys_envoy.group_messages refuses % existing row(s)', n; end if;
+end $store$;
+alter table "sys_envoy" alter column "group_messages" set not null;
+
+-- step create:notNull:sys_envoy.delegation (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "sys_envoy" where "delegation" is null' into n;
+	if n > 0 then raise exception 'notNull:sys_envoy.delegation refuses % existing row(s)', n; end if;
+end $store$;
+alter table "sys_envoy" alter column "delegation" set not null;
+
+-- step create:notNull:sys_envoy.triage (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "sys_envoy" where "triage" is null' into n;
+	if n > 0 then raise exception 'notNull:sys_envoy.triage refuses % existing row(s)', n; end if;
+end $store$;
+alter table "sys_envoy" alter column "triage" set not null;
+
+-- step create:notNull:sys_envoy.dm (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "sys_envoy" where "dm" is null' into n;
+	if n > 0 then raise exception 'notNull:sys_envoy.dm refuses % existing row(s)', n; end if;
+end $store$;
+alter table "sys_envoy" alter column "dm" set not null;
+
+-- step create:notNull:sys_envoy.active (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "sys_envoy" where "active" is null' into n;
+	if n > 0 then raise exception 'notNull:sys_envoy.active refuses % existing row(s)', n; end if;
+end $store$;
+alter table "sys_envoy" alter column "active" set not null;
+
+-- step create:notNull:sys_envoy.created_at (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "sys_envoy" where "created_at" is null' into n;
+	if n > 0 then raise exception 'notNull:sys_envoy.created_at refuses % existing row(s)', n; end if;
+end $store$;
+alter table "sys_envoy" alter column "created_at" set not null;
+
+-- step create:notNull:sys_envoy.revision (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "sys_envoy" where "revision" is null' into n;
+	if n > 0 then raise exception 'notNull:sys_envoy.revision refuses % existing row(s)', n; end if;
+end $store$;
+alter table "sys_envoy" alter column "revision" set not null;
 
 -- step create:notNull:sys_file.name (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -5018,16 +5279,6 @@ do $store$ declare n bigint; begin
 end $store$;
 alter table "adhoc_catalog" alter column "counts_toward" set not null;
 
--- step create:notNull:adhoc_catalog.raise_on_exit (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
--- operational risk: table-scan: may scan existing rows; work grows with the table.
-do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "adhoc_catalog" where "raise_on_exit" is null' into n;
-	if n > 0 then raise exception 'notNull:adhoc_catalog.raise_on_exit refuses % existing row(s)', n; end if;
-end $store$;
-alter table "adhoc_catalog" alter column "raise_on_exit" set not null;
-
 -- step create:notNull:adhoc_catalog.payable_after_exit (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
@@ -5108,6 +5359,16 @@ do $store$ declare n bigint; begin
 end $store$;
 alter table "allowance_catalog" alter column "direction" set not null;
 
+-- step create:notNull:allowance_catalog.automatic (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "allowance_catalog" where "automatic" is null' into n;
+	if n > 0 then raise exception 'notNull:allowance_catalog.automatic refuses % existing row(s)', n; end if;
+end $store$;
+alter table "allowance_catalog" alter column "automatic" set not null;
+
 -- step create:notNull:bank.code (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
@@ -5167,6 +5428,36 @@ do $store$ declare n bigint; begin
 	if n > 0 then raise exception 'notNull:bank.template refuses % existing row(s)', n; end if;
 end $store$;
 alter table "bank" alter column "template" set not null;
+
+-- step create:notNull:behaviour.code (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "behaviour" where "code" is null' into n;
+	if n > 0 then raise exception 'notNull:behaviour.code refuses % existing row(s)', n; end if;
+end $store$;
+alter table "behaviour" alter column "code" set not null;
+
+-- step create:notNull:behaviour.order (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "behaviour" where "order" is null' into n;
+	if n > 0 then raise exception 'notNull:behaviour.order refuses % existing row(s)', n; end if;
+end $store$;
+alter table "behaviour" alter column "order" set not null;
+
+-- step create:notNull:behaviour.events (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "behaviour" where "events" is null' into n;
+	if n > 0 then raise exception 'notNull:behaviour.events refuses % existing row(s)', n; end if;
+end $store$;
+alter table "behaviour" alter column "events" set not null;
 
 -- step create:notNull:claim_catalog.code (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -5468,16 +5759,6 @@ do $store$ declare n bigint; begin
 end $store$;
 alter table "holiday" alter column "given_to" set not null;
 
--- step create:notNull:jurisdiction_settings.suspension_kinds (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
--- operational risk: table-scan: may scan existing rows; work grows with the table.
-do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "jurisdiction_settings" where "suspension_kinds" is null' into n;
-	if n > 0 then raise exception 'notNull:jurisdiction_settings.suspension_kinds refuses % existing row(s)', n; end if;
-end $store$;
-alter table "jurisdiction_settings" alter column "suspension_kinds" set not null;
-
 -- step create:notNull:jurisdiction_settings.code (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
@@ -5487,16 +5768,6 @@ do $store$ declare n bigint; begin
 	if n > 0 then raise exception 'notNull:jurisdiction_settings.code refuses % existing row(s)', n; end if;
 end $store$;
 alter table "jurisdiction_settings" alter column "code" set not null;
-
--- step create:notNull:jurisdiction_settings.jurisdiction_code (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
--- operational risk: table-scan: may scan existing rows; work grows with the table.
-do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "jurisdiction_settings" where "jurisdiction_code" is null' into n;
-	if n > 0 then raise exception 'notNull:jurisdiction_settings.jurisdiction_code refuses % existing row(s)', n; end if;
-end $store$;
-alter table "jurisdiction_settings" alter column "jurisdiction_code" set not null;
 
 -- step create:notNull:jurisdiction_settings.name (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -5508,16 +5779,6 @@ do $store$ declare n bigint; begin
 end $store$;
 alter table "jurisdiction_settings" alter column "name" set not null;
 
--- step create:notNull:jurisdiction_settings.behaviours (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
--- operational risk: table-scan: may scan existing rows; work grows with the table.
-do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "jurisdiction_settings" where "behaviours" is null' into n;
-	if n > 0 then raise exception 'notNull:jurisdiction_settings.behaviours refuses % existing row(s)', n; end if;
-end $store$;
-alter table "jurisdiction_settings" alter column "behaviours" set not null;
-
 -- step create:notNull:jurisdiction_settings.payroll (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
@@ -5527,6 +5788,16 @@ do $store$ declare n bigint; begin
 	if n > 0 then raise exception 'notNull:jurisdiction_settings.payroll refuses % existing row(s)', n; end if;
 end $store$;
 alter table "jurisdiction_settings" alter column "payroll" set not null;
+
+-- step create:notNull:jurisdiction_settings.time_pay (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "jurisdiction_settings" where "time_pay" is null' into n;
+	if n > 0 then raise exception 'notNull:jurisdiction_settings.time_pay refuses % existing row(s)', n; end if;
+end $store$;
+alter table "jurisdiction_settings" alter column "time_pay" set not null;
 
 -- step create:notNull:jurisdiction_settings.effective_range (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -5647,6 +5918,16 @@ do $store$ declare n bigint; begin
 	if n > 0 then raise exception 'notNull:leave_catalog.share_by refuses % existing row(s)', n; end if;
 end $store$;
 alter table "leave_catalog" alter column "share_by" set not null;
+
+-- step create:notNull:leave_catalog.pay (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "leave_catalog" where "pay" is null' into n;
+	if n > 0 then raise exception 'notNull:leave_catalog.pay refuses % existing row(s)', n; end if;
+end $store$;
+alter table "leave_catalog" alter column "pay" set not null;
 
 -- step create:notNull:leave_catalog_entry.occurred_on (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -6068,16 +6349,6 @@ do $store$ declare n bigint; begin
 end $store$;
 alter table "roster_entry" alter column "employment_id" set not null;
 
--- step create:notNull:rule_set.scope (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
--- operational risk: table-scan: may scan existing rows; work grows with the table.
-do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "rule_set" where "scope" is null' into n;
-	if n > 0 then raise exception 'notNull:rule_set.scope refuses % existing row(s)', n; end if;
-end $store$;
-alter table "rule_set" alter column "scope" set not null;
-
 -- step create:notNull:rule_set.family (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
@@ -6178,95 +6449,25 @@ do $store$ declare n bigint; begin
 end $store$;
 alter table "statutory_contribution_catalog" alter column "configuration" set not null;
 
--- step create:notNull:work_catalog.code (additive)
+-- step create:notNull:suspension_catalog.code (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 -- operational risk: table-scan: may scan existing rows; work grows with the table.
 do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "work_catalog" where "code" is null' into n;
-	if n > 0 then raise exception 'notNull:work_catalog.code refuses % existing row(s)', n; end if;
+	execute 'select count(*)::int as n from "suspension_catalog" where "code" is null' into n;
+	if n > 0 then raise exception 'notNull:suspension_catalog.code refuses % existing row(s)', n; end if;
 end $store$;
-alter table "work_catalog" alter column "code" set not null;
+alter table "suspension_catalog" alter column "code" set not null;
 
--- step create:notNull:work_catalog.component_code (additive)
+-- step create:notNull:suspension_catalog.pay (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 -- operational risk: table-scan: may scan existing rows; work grows with the table.
 do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "work_catalog" where "component_code" is null' into n;
-	if n > 0 then raise exception 'notNull:work_catalog.component_code refuses % existing row(s)', n; end if;
+	execute 'select count(*)::int as n from "suspension_catalog" where "pay" is null' into n;
+	if n > 0 then raise exception 'notNull:suspension_catalog.pay refuses % existing row(s)', n; end if;
 end $store$;
-alter table "work_catalog" alter column "component_code" set not null;
-
--- step create:notNull:work_catalog.eligibility (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
--- operational risk: table-scan: may scan existing rows; work grows with the table.
-do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "work_catalog" where "eligibility" is null' into n;
-	if n > 0 then raise exception 'notNull:work_catalog.eligibility refuses % existing row(s)', n; end if;
-end $store$;
-alter table "work_catalog" alter column "eligibility" set not null;
-
--- step create:notNull:work_catalog.quantity (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
--- operational risk: table-scan: may scan existing rows; work grows with the table.
-do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "work_catalog" where "quantity" is null' into n;
-	if n > 0 then raise exception 'notNull:work_catalog.quantity refuses % existing row(s)', n; end if;
-end $store$;
-alter table "work_catalog" alter column "quantity" set not null;
-
--- step create:notNull:work_catalog.rate (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
--- operational risk: table-scan: may scan existing rows; work grows with the table.
-do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "work_catalog" where "rate" is null' into n;
-	if n > 0 then raise exception 'notNull:work_catalog.rate refuses % existing row(s)', n; end if;
-end $store$;
-alter table "work_catalog" alter column "rate" set not null;
-
--- step create:notNull:work_catalog.prorated (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
--- operational risk: table-scan: may scan existing rows; work grows with the table.
-do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "work_catalog" where "prorated" is null' into n;
-	if n > 0 then raise exception 'notNull:work_catalog.prorated refuses % existing row(s)', n; end if;
-end $store$;
-alter table "work_catalog" alter column "prorated" set not null;
-
--- step create:notNull:work_catalog.destination (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
--- operational risk: table-scan: may scan existing rows; work grows with the table.
-do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "work_catalog" where "destination" is null' into n;
-	if n > 0 then raise exception 'notNull:work_catalog.destination refuses % existing row(s)', n; end if;
-end $store$;
-alter table "work_catalog" alter column "destination" set not null;
-
--- step create:notNull:work_catalog.direction (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
--- operational risk: table-scan: may scan existing rows; work grows with the table.
-do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "work_catalog" where "direction" is null' into n;
-	if n > 0 then raise exception 'notNull:work_catalog.direction refuses % existing row(s)', n; end if;
-end $store$;
-alter table "work_catalog" alter column "direction" set not null;
-
--- step create:notNull:work_catalog.counts_toward (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
--- operational risk: table-scan: may scan existing rows; work grows with the table.
-do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "work_catalog" where "counts_toward" is null' into n;
-	if n > 0 then raise exception 'notNull:work_catalog.counts_toward refuses % existing row(s)', n; end if;
-end $store$;
-alter table "work_catalog" alter column "counts_toward" set not null;
+alter table "suspension_catalog" alter column "pay" set not null;
 
 -- step create:notNull:work_suspension.kind (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -6447,6 +6648,16 @@ do $store$ declare n bigint; begin
 	if n > 0 then raise exception 'notNull:allowance_catalog.settings_id refuses % existing row(s)', n; end if;
 end $store$;
 alter table "allowance_catalog" alter column "settings_id" set not null;
+
+-- step create:notNull:behaviour.settings_id (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "behaviour" where "settings_id" is null' into n;
+	if n > 0 then raise exception 'notNull:behaviour.settings_id refuses % existing row(s)', n; end if;
+end $store$;
+alter table "behaviour" alter column "settings_id" set not null;
 
 -- step create:notNull:claim_catalog.settings_id (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -6728,15 +6939,15 @@ do $store$ declare n bigint; begin
 end $store$;
 alter table "statutory_contribution_catalog" alter column "settings_id" set not null;
 
--- step create:notNull:work_catalog.settings_id (additive)
+-- step create:notNull:suspension_catalog.settings_id (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 -- operational risk: table-scan: may scan existing rows; work grows with the table.
 do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "work_catalog" where "settings_id" is null' into n;
-	if n > 0 then raise exception 'notNull:work_catalog.settings_id refuses % existing row(s)', n; end if;
+	execute 'select count(*)::int as n from "suspension_catalog" where "settings_id" is null' into n;
+	if n > 0 then raise exception 'notNull:suspension_catalog.settings_id refuses % existing row(s)', n; end if;
 end $store$;
-alter table "work_catalog" alter column "settings_id" set not null;
+alter table "suspension_catalog" alter column "settings_id" set not null;
 
 -- step create:notNull:work_suspension.company_id (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -6977,6 +7188,66 @@ do $store$ declare n bigint; begin
 	if n > 0 then raise exception 'sys_conversation__ck__bfedbfd4 refuses % existing row(s)', n; end if;
 end $store$;
 alter table "sys_conversation" add constraint "sys_conversation__ck__bfedbfd4" check (isfinite("updated_at"));
+
+-- step create:constraint:sys_envoy.sys_envoy__ck__491bd369 (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "sys_envoy" where ("audience" in (''private'', ''public'')) is false' into n;
+	if n > 0 then raise exception 'sys_envoy__ck__491bd369 refuses % existing row(s)', n; end if;
+end $store$;
+alter table "sys_envoy" add constraint "sys_envoy__ck__491bd369" check ("audience" in ('private', 'public'));
+
+-- step create:constraint:sys_envoy.sys_envoy__ck__61930eb4 (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "sys_envoy" where (not jsonb_path_exists(to_jsonb("policies"), ''strict $[*] ? (@.type() != "string")'')) is false' into n;
+	if n > 0 then raise exception 'sys_envoy__ck__61930eb4 refuses % existing row(s)', n; end if;
+end $store$;
+alter table "sys_envoy" add constraint "sys_envoy__ck__61930eb4" check (not jsonb_path_exists(to_jsonb("policies"), 'strict $[*] ? (@.type() != "string")'));
+
+-- step create:constraint:sys_envoy.sys_envoy__ck__b5b45d76 (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "sys_envoy" where ("group_messages" in (''disabled'', ''mention_or_reply'', ''all'')) is false' into n;
+	if n > 0 then raise exception 'sys_envoy__ck__b5b45d76 refuses % existing row(s)', n; end if;
+end $store$;
+alter table "sys_envoy" add constraint "sys_envoy__ck__b5b45d76" check ("group_messages" in ('disabled', 'mention_or_reply', 'all'));
+
+-- step create:constraint:sys_envoy.sys_envoy__ck__de16f910 (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "sys_envoy" where ("delegation" in (''enabled'', ''disabled'')) is false' into n;
+	if n > 0 then raise exception 'sys_envoy__ck__de16f910 refuses % existing row(s)', n; end if;
+end $store$;
+alter table "sys_envoy" add constraint "sys_envoy__ck__de16f910" check ("delegation" in ('enabled', 'disabled'));
+
+-- step create:constraint:sys_envoy.sys_envoy__ck__62c03b05 (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "sys_envoy" where ("dm" in (''union'', ''envoy'')) is false' into n;
+	if n > 0 then raise exception 'sys_envoy__ck__62c03b05 refuses % existing row(s)', n; end if;
+end $store$;
+alter table "sys_envoy" add constraint "sys_envoy__ck__62c03b05" check ("dm" in ('union', 'envoy'));
+
+-- step create:constraint:sys_envoy.sys_envoy__ck__367d8eb4 (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "sys_envoy" where (isfinite("created_at")) is false' into n;
+	if n > 0 then raise exception 'sys_envoy__ck__367d8eb4 refuses % existing row(s)', n; end if;
+end $store$;
+alter table "sys_envoy" add constraint "sys_envoy__ck__367d8eb4" check (isfinite("created_at"));
 
 -- step create:constraint:sys_file.sys_file__ck__367d8eb4 (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -7938,6 +8209,66 @@ do $store$ declare n bigint; begin
 end $store$;
 alter table "bank" add constraint "bank__key__8afde2d7" unique ("code");
 
+-- step create:constraint:behaviour.behaviour__ck__8450a3da (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "behaviour" where (("references" is null or store_json_valid("references", ''{"kind":"custom","of":"references","optional":true}''::jsonb) is true)) is false' into n;
+	if n > 0 then raise exception 'behaviour__ck__8450a3da refuses % existing row(s)', n; end if;
+end $store$;
+alter table "behaviour" add constraint "behaviour__ck__8450a3da" check (("references" is null or store_json_valid("references", '{"kind":"custom","of":"references","optional":true}'::jsonb) is true));
+
+-- step create:constraint:behaviour.behaviour__ck__daed339c (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "behaviour" where (("events" is null or store_json_valid("events", ''{"default":[],"kind":"json","shape":{"kind":"list","of":{"kind":"text"}}}''::jsonb) is true)) is false' into n;
+	if n > 0 then raise exception 'behaviour__ck__daed339c refuses % existing row(s)', n; end if;
+end $store$;
+alter table "behaviour" add constraint "behaviour__ck__daed339c" check (("events" is null or store_json_valid("events", '{"default":[],"kind":"json","shape":{"kind":"list","of":{"kind":"text"}}}'::jsonb) is true));
+
+-- step create:constraint:behaviour.behaviour__ck__bc703465 (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "behaviour" where (("fields" is null or store_json_valid("fields", ''{"kind":"json","optional":true,"shape":{"kind":"list","of":{"kind":"text"}}}''::jsonb) is true)) is false' into n;
+	if n > 0 then raise exception 'behaviour__ck__bc703465 refuses % existing row(s)', n; end if;
+end $store$;
+alter table "behaviour" add constraint "behaviour__ck__bc703465" check (("fields" is null or store_json_valid("fields", '{"kind":"json","optional":true,"shape":{"kind":"list","of":{"kind":"text"}}}'::jsonb) is true));
+
+-- step create:constraint:behaviour.behaviour__ck__1114fd0e (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "behaviour" where (("reads" is null or store_json_valid("reads", ''{"kind":"json","optional":true,"shape":{"kind":"record","of":{"kind":"json"}}}''::jsonb) is true)) is false' into n;
+	if n > 0 then raise exception 'behaviour__ck__1114fd0e refuses % existing row(s)', n; end if;
+end $store$;
+alter table "behaviour" add constraint "behaviour__ck__1114fd0e" check (("reads" is null or store_json_valid("reads", '{"kind":"json","optional":true,"shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true));
+
+-- step create:constraint:behaviour.behaviour__ck__caf45b8e (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "behaviour" where (("definition" is null or store_json_valid("definition", ''{"help":"The one obligation or task this rule raises (due, schemes, amount, months, applies_when, trigger, …): its effect reads it as `behaviour.definition`.","kind":"json","optional":true}''::jsonb) is true)) is false' into n;
+	if n > 0 then raise exception 'behaviour__ck__caf45b8e refuses % existing row(s)', n; end if;
+end $store$;
+alter table "behaviour" add constraint "behaviour__ck__caf45b8e" check (("definition" is null or store_json_valid("definition", '{"help":"The one obligation or task this rule raises (due, schemes, amount, months, applies_when, trigger, …): its effect reads it as `behaviour.definition`.","kind":"json","optional":true}'::jsonb) is true));
+
+-- step create:constraint:behaviour.behaviour__uq__257c93dc (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select coalesce(sum(n - 1), 0)::int as n from (select count(*) as n from "behaviour" group by "settings_id", "code" having count(*) > 1) d' into n;
+	if n > 0 then raise exception 'behaviour__uq__257c93dc refuses % existing row(s)', n; end if;
+end $store$;
+alter table "behaviour" add constraint "behaviour__uq__257c93dc" unique nulls not distinct ("settings_id", "code") deferrable initially immediate;
+
 -- step create:constraint:claim_catalog.claim_catalog__ck__8450a3da (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
@@ -8468,26 +8799,6 @@ do $store$ declare n bigint; begin
 end $store$;
 alter table "holiday" add constraint "holiday__ck__8e19cf5d" check ("given_to" in ('EVERYONE', 'ONLY_IF_OFF_ON_REPLACED_DATE'));
 
--- step create:constraint:jurisdiction_settings.jurisdiction_settings__ck__42a87fd0 (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
--- operational risk: table-scan: may scan existing rows; work grows with the table.
-do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "jurisdiction_settings" where (("suspension_kinds" is null or store_json_valid("suspension_kinds", ''{"default":[],"kind":"custom","of":"suspension_kinds"}''::jsonb) is true)) is false' into n;
-	if n > 0 then raise exception 'jurisdiction_settings__ck__42a87fd0 refuses % existing row(s)', n; end if;
-end $store$;
-alter table "jurisdiction_settings" add constraint "jurisdiction_settings__ck__42a87fd0" check (("suspension_kinds" is null or store_json_valid("suspension_kinds", '{"default":[],"kind":"custom","of":"suspension_kinds"}'::jsonb) is true));
-
--- step create:constraint:jurisdiction_settings.jurisdiction_settings__ck__8450a3da (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
--- operational risk: table-scan: may scan existing rows; work grows with the table.
-do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "jurisdiction_settings" where (("references" is null or store_json_valid("references", ''{"kind":"custom","of":"references","optional":true}''::jsonb) is true)) is false' into n;
-	if n > 0 then raise exception 'jurisdiction_settings__ck__8450a3da refuses % existing row(s)', n; end if;
-end $store$;
-alter table "jurisdiction_settings" add constraint "jurisdiction_settings__ck__8450a3da" check (("references" is null or store_json_valid("references", '{"kind":"custom","of":"references","optional":true}'::jsonb) is true));
-
 -- step create:constraint:jurisdiction_settings.jurisdiction_settings__ck__de8d734c (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
@@ -8507,16 +8818,6 @@ do $store$ declare n bigint; begin
 	if n > 0 then raise exception 'jurisdiction_settings__ck__fd29e984 refuses % existing row(s)', n; end if;
 end $store$;
 alter table "jurisdiction_settings" add constraint "jurisdiction_settings__ck__fd29e984" check (("entity_input_schema" is null or store_json_valid("entity_input_schema", '{"kind":"json","optional":true}'::jsonb) is true));
-
--- step create:constraint:jurisdiction_settings.jurisdiction_settings__ck__a2dbe441 (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
--- operational risk: table-scan: may scan existing rows; work grows with the table.
-do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "jurisdiction_settings" where (("behaviours" is null or store_json_valid("behaviours", ''{"default":{"rules":[],"version":1},"kind":"json","shape":{"fields":{"rules":{"kind":"list","of":{"fields":{"catalog":{"kind":"text","optional":true},"effect":{"format":"cel","kind":"text","optional":true},"events":{"kind":"list","of":{"kind":"text"}},"fields":{"kind":"list","of":{"kind":"text"},"optional":true},"id":{"kind":"text"},"reads":{"kind":"record","of":{"kind":"json"},"optional":true},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true},"target_collection":{"kind":"text","optional":true},"when":{"format":"cel","kind":"text","optional":true}},"kind":"object"}},"version":{"kind":"int"}},"kind":"object"}}''::jsonb) is true)) is false' into n;
-	if n > 0 then raise exception 'jurisdiction_settings__ck__a2dbe441 refuses % existing row(s)', n; end if;
-end $store$;
-alter table "jurisdiction_settings" add constraint "jurisdiction_settings__ck__a2dbe441" check (("behaviours" is null or store_json_valid("behaviours", '{"default":{"rules":[],"version":1},"kind":"json","shape":{"fields":{"rules":{"kind":"list","of":{"fields":{"catalog":{"kind":"text","optional":true},"effect":{"format":"cel","kind":"text","optional":true},"events":{"kind":"list","of":{"kind":"text"}},"fields":{"kind":"list","of":{"kind":"text"},"optional":true},"id":{"kind":"text"},"reads":{"kind":"record","of":{"kind":"json"},"optional":true},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true},"target_collection":{"kind":"text","optional":true},"when":{"format":"cel","kind":"text","optional":true}},"kind":"object"}},"version":{"kind":"int"}},"kind":"object"}}'::jsonb) is true));
 
 -- step create:constraint:jurisdiction_settings.jurisdiction_settings__ck__21d50e17 (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -8538,25 +8839,25 @@ do $store$ declare n bigint; begin
 end $store$;
 alter table "jurisdiction_settings" add constraint "jurisdiction_settings__ck__572405f0" check (isfinite("voided_at"));
 
--- step create:constraint:jurisdiction_settings.jurisdiction_settings__ck__d956bfdd (additive)
+-- step create:constraint:jurisdiction_settings.jurisdiction_settings__ck__fa01ce3d (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 -- operational risk: table-scan: may scan existing rows; work grows with the table.
 do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "jurisdiction_settings" where (("reference_tables" is null or store_json_valid("reference_tables", ''{"kind":"json","optional":true,"shape":{"kind":"record","of":{"kind":"json"}}}''::jsonb) is true)) is false' into n;
-	if n > 0 then raise exception 'jurisdiction_settings__ck__d956bfdd refuses % existing row(s)', n; end if;
+	execute 'select count(*)::int as n from "jurisdiction_settings" where (("payroll" is null or store_json_valid("payroll", ''{"kind":"json","shape":{"fields":{"attendance":{"fields":{"overtime_window":{"kind":"enum","values":["AFTER_SHIFT","EXPLICIT"]},"rounding":{"kind":"enum","values":["DOWN","UP","HALF_UP"]},"step_hours":{"kind":"number"},"untimed_credit_day_types":{"kind":"list","of":{"kind":"text"}}},"kind":"object","optional":true},"base_salary_required":{"kind":"bool","optional":true},"currency":{"kind":"text","optional":true},"exit_overpayment":{"kind":"enum","optional":true,"values":["note","deduct"]},"history_months":{"kind":"int","min":1,"optional":true},"minor_units":{"kind":"int","max":4,"min":0,"optional":true},"monthly_wage":{"format":"cel","kind":"text","optional":true},"negative_net":{"kind":"enum","optional":true,"values":["refuse","allow"]},"off_cycle_families":{"kind":"list","of":{"kind":"text"},"optional":true},"pay_date":{"format":"cel","kind":"text","optional":true},"permanent_when":{"format":"cel","kind":"text","optional":true},"rolling_hours_months":{"kind":"int","min":1,"optional":true},"roster_week":{"kind":"enum","optional":true,"values":["ROLLING","CALENDAR"]},"semi_monthly_split":{"kind":"int","max":27,"min":1,"optional":true},"tax_year_start_month":{"kind":"int","optional":true},"ten_day_splits":{"kind":"list","of":{"kind":"int","max":27,"min":1},"optional":true},"timezone":{"kind":"text","optional":true},"week_start":{"kind":"int","max":6,"min":0,"optional":true}},"kind":"object"}}''::jsonb) is true)) is false' into n;
+	if n > 0 then raise exception 'jurisdiction_settings__ck__fa01ce3d refuses % existing row(s)', n; end if;
 end $store$;
-alter table "jurisdiction_settings" add constraint "jurisdiction_settings__ck__d956bfdd" check (("reference_tables" is null or store_json_valid("reference_tables", '{"kind":"json","optional":true,"shape":{"kind":"record","of":{"kind":"json"}}}'::jsonb) is true));
+alter table "jurisdiction_settings" add constraint "jurisdiction_settings__ck__fa01ce3d" check (("payroll" is null or store_json_valid("payroll", '{"kind":"json","shape":{"fields":{"attendance":{"fields":{"overtime_window":{"kind":"enum","values":["AFTER_SHIFT","EXPLICIT"]},"rounding":{"kind":"enum","values":["DOWN","UP","HALF_UP"]},"step_hours":{"kind":"number"},"untimed_credit_day_types":{"kind":"list","of":{"kind":"text"}}},"kind":"object","optional":true},"base_salary_required":{"kind":"bool","optional":true},"currency":{"kind":"text","optional":true},"exit_overpayment":{"kind":"enum","optional":true,"values":["note","deduct"]},"history_months":{"kind":"int","min":1,"optional":true},"minor_units":{"kind":"int","max":4,"min":0,"optional":true},"monthly_wage":{"format":"cel","kind":"text","optional":true},"negative_net":{"kind":"enum","optional":true,"values":["refuse","allow"]},"off_cycle_families":{"kind":"list","of":{"kind":"text"},"optional":true},"pay_date":{"format":"cel","kind":"text","optional":true},"permanent_when":{"format":"cel","kind":"text","optional":true},"rolling_hours_months":{"kind":"int","min":1,"optional":true},"roster_week":{"kind":"enum","optional":true,"values":["ROLLING","CALENDAR"]},"semi_monthly_split":{"kind":"int","max":27,"min":1,"optional":true},"tax_year_start_month":{"kind":"int","optional":true},"ten_day_splits":{"kind":"list","of":{"kind":"int","max":27,"min":1},"optional":true},"timezone":{"kind":"text","optional":true},"week_start":{"kind":"int","max":6,"min":0,"optional":true}},"kind":"object"}}'::jsonb) is true));
 
--- step create:constraint:jurisdiction_settings.jurisdiction_settings__ck__8d4325ea (additive)
+-- step create:constraint:jurisdiction_settings.jurisdiction_settings__ck__17cd1323 (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 -- operational risk: table-scan: may scan existing rows; work grows with the table.
 do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "jurisdiction_settings" where (("payroll" is null or store_json_valid("payroll", ''{"kind":"json","shape":{"fields":{"attendance":{"fields":{"overtime_window":{"kind":"enum","values":["AFTER_SHIFT","EXPLICIT"]},"rounding":{"kind":"enum","values":["DOWN","UP","HALF_UP"]},"step_hours":{"kind":"number"},"untimed_credit_day_types":{"kind":"list","of":{"kind":"text"}}},"kind":"object","optional":true},"base_salary_required":{"kind":"bool","optional":true},"currency":{"kind":"text","optional":true},"exit_overpayment":{"kind":"enum","optional":true,"values":["note","deduct"]},"exit_raise_when":{"format":"cel","kind":"text","optional":true},"history_months":{"kind":"int","min":1,"optional":true},"minor_units":{"kind":"int","max":4,"min":0,"optional":true},"monthly_wage":{"format":"cel","kind":"text","optional":true},"negative_net":{"kind":"enum","optional":true,"values":["refuse","allow"]},"off_cycle_families":{"kind":"list","of":{"kind":"text"},"optional":true},"pay_date":{"format":"cel","kind":"text","optional":true},"permanent_when":{"format":"cel","kind":"text","optional":true},"rolling_hours_months":{"kind":"int","min":1,"optional":true},"roster_week":{"kind":"enum","optional":true,"values":["ROLLING","CALENDAR"]},"semi_monthly_split":{"kind":"int","max":27,"min":1,"optional":true},"tax_year_start_month":{"kind":"int","optional":true},"ten_day_splits":{"kind":"list","of":{"kind":"int","max":27,"min":1},"optional":true},"timezone":{"kind":"text","optional":true},"week_start":{"kind":"int","max":6,"min":0,"optional":true}},"kind":"object"}}''::jsonb) is true)) is false' into n;
-	if n > 0 then raise exception 'jurisdiction_settings__ck__8d4325ea refuses % existing row(s)', n; end if;
+	execute 'select count(*)::int as n from "jurisdiction_settings" where (("time_pay" is null or store_json_valid("time_pay", ''{"default":{},"kind":"json","shape":{"fields":{"BASIC":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"HOLIDAY_OVERTIME":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"HOLIDAY_WORK":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"INCENTIVE":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"MINIMUM_WAGE_TOP_UP":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"NIGHT_OVERTIME":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"NIGHT_WORK":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"OVERTIME":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"PAID_HOLIDAY":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"REST_DAY_OVERTIME":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"REST_DAY_WORK":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true}},"kind":"object"}}''::jsonb) is true)) is false' into n;
+	if n > 0 then raise exception 'jurisdiction_settings__ck__17cd1323 refuses % existing row(s)', n; end if;
 end $store$;
-alter table "jurisdiction_settings" add constraint "jurisdiction_settings__ck__8d4325ea" check (("payroll" is null or store_json_valid("payroll", '{"kind":"json","shape":{"fields":{"attendance":{"fields":{"overtime_window":{"kind":"enum","values":["AFTER_SHIFT","EXPLICIT"]},"rounding":{"kind":"enum","values":["DOWN","UP","HALF_UP"]},"step_hours":{"kind":"number"},"untimed_credit_day_types":{"kind":"list","of":{"kind":"text"}}},"kind":"object","optional":true},"base_salary_required":{"kind":"bool","optional":true},"currency":{"kind":"text","optional":true},"exit_overpayment":{"kind":"enum","optional":true,"values":["note","deduct"]},"exit_raise_when":{"format":"cel","kind":"text","optional":true},"history_months":{"kind":"int","min":1,"optional":true},"minor_units":{"kind":"int","max":4,"min":0,"optional":true},"monthly_wage":{"format":"cel","kind":"text","optional":true},"negative_net":{"kind":"enum","optional":true,"values":["refuse","allow"]},"off_cycle_families":{"kind":"list","of":{"kind":"text"},"optional":true},"pay_date":{"format":"cel","kind":"text","optional":true},"permanent_when":{"format":"cel","kind":"text","optional":true},"rolling_hours_months":{"kind":"int","min":1,"optional":true},"roster_week":{"kind":"enum","optional":true,"values":["ROLLING","CALENDAR"]},"semi_monthly_split":{"kind":"int","max":27,"min":1,"optional":true},"tax_year_start_month":{"kind":"int","optional":true},"ten_day_splits":{"kind":"list","of":{"kind":"int","max":27,"min":1},"optional":true},"timezone":{"kind":"text","optional":true},"week_start":{"kind":"int","max":6,"min":0,"optional":true}},"kind":"object"}}'::jsonb) is true));
+alter table "jurisdiction_settings" add constraint "jurisdiction_settings__ck__17cd1323" check (("time_pay" is null or store_json_valid("time_pay", '{"default":{},"kind":"json","shape":{"fields":{"BASIC":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"HOLIDAY_OVERTIME":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"HOLIDAY_WORK":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"INCENTIVE":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"MINIMUM_WAGE_TOP_UP":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"NIGHT_OVERTIME":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"NIGHT_WORK":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"OVERTIME":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"PAID_HOLIDAY":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"REST_DAY_OVERTIME":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"REST_DAY_WORK":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true}},"kind":"object"}}'::jsonb) is true));
 
 -- step create:constraint:jurisdiction_settings.jurisdiction_settings__ck__b16c6b5e (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -8627,6 +8928,16 @@ do $store$ declare n bigint; begin
 	if n > 0 then raise exception 'leave_catalog__ck__29173155 refuses % existing row(s)', n; end if;
 end $store$;
 alter table "leave_catalog" add constraint "leave_catalog__ck__29173155" check ("share_by" in ('WORKING_DAYS', 'CALENDAR_DAYS'));
+
+-- step create:constraint:leave_catalog.leave_catalog__ck__486db45a (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "leave_catalog" where (("pay" is null or store_json_valid("pay", ''{"default":[],"help":"The payslip lines the class prices: each posts quantity × rate when eligible, CEL over the payslip context (`leave.rows` holds every class’s rows of the period). Each line is priced once a slip, so a line counting several classes’ rows lives on one of them.","kind":"json","shape":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"}}}''::jsonb) is true)) is false' into n;
+	if n > 0 then raise exception 'leave_catalog__ck__486db45a refuses % existing row(s)', n; end if;
+end $store$;
+alter table "leave_catalog" add constraint "leave_catalog__ck__486db45a" check (("pay" is null or store_json_valid("pay", '{"default":[],"help":"The payslip lines the class prices: each posts quantity × rate when eligible, CEL over the payslip context (`leave.rows` holds every class’s rows of the period). Each line is priced once a slip, so a line counting several classes’ rows lives on one of them.","kind":"json","shape":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"}}}'::jsonb) is true));
 
 -- step create:constraint:leave_catalog_entry.leave_catalog_entry__ck__5094ce0d (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -9448,55 +9759,45 @@ do $store$ declare n bigint; begin
 end $store$;
 alter table "statutory_contribution_catalog" add constraint "statutory_contribution_catalog__ck__8450a3da" check (("references" is null or store_json_valid("references", '{"kind":"custom","of":"references","optional":true}'::jsonb) is true));
 
--- step create:constraint:statutory_contribution_catalog.statutory_contribution_catalog__ck__c92920b7 (additive)
+-- step create:constraint:statutory_contribution_catalog.statutory_contribution_catalog__ck__c5992644 (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 -- operational risk: table-scan: may scan existing rows; work grows with the table.
 do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "statutory_contribution_catalog" where (("configuration" is null or store_json_valid("configuration", ''{"help":"Original legal policy plus executable input, record, derivation, assessment and finalization configuration. Missing source evidence never establishes zero liability.","kind":"json","shape":{"fields":{"annual_reconciliation":{"fields":{"ceiling":{"format":"cel","kind":"text"},"on_current_excess":{"help":"This month''''s earlier slips already exceed the reconciled month charge: REFUSE stops for review, SETTLE credits the excess on this slip.","kind":"enum","values":["REFUSE","SETTLE"]},"on_original_error":{"help":"An earlier month paid less than its own original assessment: REFUSE stops for review, CATCH_UP lets on_underpaid settle it.","kind":"enum","values":["REFUSE","CATCH_UP"]},"on_overpaid":{"help":"Earlier months paid more than the recalculated liability: WARN keeps this month and warns (refund outside payroll), REFUSE stops for review.","kind":"enum","values":["WARN","REFUSE"]},"on_underpaid":{"help":"Earlier months paid less than the recalculated liability: CATCH_UP adds the shortfall to this month, REFUSE stops for review.","kind":"enum","values":["CATCH_UP","REFUSE"]},"part":{"kind":"text"},"through":{"format":"cel","kind":"text"},"when":{"format":"cel","kind":"text"}},"kind":"object","optional":true},"as_of":{"kind":"text","optional":true},"assess_without_wage":{"kind":"bool","optional":true},"assessable":{"help":"The month-to-date assessable amount of each wage part (ceilings, projections), CEL over `wage`, `month`, `year`, `period` and `terms`. A part without an expression is assessed as paid.","kind":"record","of":{"format":"cel","kind":"text"},"optional":true},"assessment":{"format":"cel","kind":"text","optional":true},"carry_uncovered":{"fields":{"advance":{"format":"cel","kind":"text"},"recover":{"format":"cel","kind":"text"}},"help":"The employee share net cannot cover is advanced and recovered later: `advance` is CEL over `carry.short` (what net lacks) and `carry.share` (the scheme’s employee share), `recover` CEL over `carry.owed` (outstanding) and `carry.left` (what this slip’s net leaves).","kind":"object","optional":true},"governed_by":{"kind":"text","optional":true},"limitation":{"kind":"text","optional":true},"order":{"kind":"number","optional":true},"person":{"help":"Person facts this scheme reads, each a CEL expression over the statutory context (for example the age basis), merged into `person`.","kind":"record","of":{"format":"cel","kind":"text"},"optional":true},"refuse_when":{"help":"Guards evaluated before the rules: the first that holds refuses the payslip with its message.","kind":"list","of":{"fields":{"message":{"kind":"text"},"when":{"format":"cel","kind":"text"}},"kind":"object"},"optional":true},"rules":{"kind":"list","of":{"fields":{"contribution":{"format":"cel","kind":"text","optional":true},"employee":{"format":"cel","kind":"text","optional":true},"employer":{"format":"cel","kind":"text","optional":true},"when":{"format":"cel","kind":"text","optional":true}},"kind":"object"},"optional":true},"warn_when":{"kind":"list","of":{"fields":{"message":{"kind":"text"},"when":{"format":"cel","kind":"text"}},"kind":"object"},"optional":true}},"kind":"object"}}''::jsonb) is true)) is false' into n;
-	if n > 0 then raise exception 'statutory_contribution_catalog__ck__c92920b7 refuses % existing row(s)', n; end if;
+	execute 'select count(*)::int as n from "statutory_contribution_catalog" where (("configuration" is null or store_json_valid("configuration", ''{"help":"Original legal policy plus executable input, record, derivation, assessment and finalization configuration. Missing source evidence never establishes zero liability.","kind":"json","shape":{"fields":{"annual_reconciliation":{"fields":{"ceiling":{"format":"cel","kind":"text"},"on_current_excess":{"help":"This month''''s earlier slips already exceed the reconciled month charge: REFUSE stops for review, SETTLE credits the excess on this slip.","kind":"enum","values":["REFUSE","SETTLE"]},"on_original_error":{"help":"An earlier month paid less than its own original assessment: REFUSE stops for review, CATCH_UP lets on_underpaid settle it.","kind":"enum","values":["REFUSE","CATCH_UP"]},"on_overpaid":{"help":"Earlier months paid more than the recalculated liability: WARN keeps this month and warns (refund outside payroll), REFUSE stops for review.","kind":"enum","values":["WARN","REFUSE"]},"on_underpaid":{"help":"Earlier months paid less than the recalculated liability: CATCH_UP adds the shortfall to this month, REFUSE stops for review.","kind":"enum","values":["CATCH_UP","REFUSE"]},"part":{"kind":"text"},"through":{"format":"cel","kind":"text"},"when":{"format":"cel","kind":"text"}},"kind":"object","optional":true},"as_of":{"kind":"text","optional":true},"assess_without_wage":{"kind":"bool","optional":true},"assessable":{"help":"The month-to-date assessable amount of each wage part (ceilings, projections), CEL over `wage`, `month`, `year`, `period` and `terms`. A part without an expression is assessed as paid.","kind":"record","of":{"format":"cel","kind":"text"},"optional":true},"assessment":{"format":"cel","kind":"text","optional":true},"carry_uncovered":{"fields":{"advance":{"format":"cel","kind":"text"},"recover":{"format":"cel","kind":"text"}},"help":"The employee share net cannot cover is advanced and recovered later: `advance` is CEL over `carry.short` (what net lacks) and `carry.share` (the scheme’s employee share), `recover` CEL over `carry.owed` (outstanding) and `carry.left` (what this slip’s net leaves).","kind":"object","optional":true},"governed_by":{"kind":"text","optional":true},"limitation":{"kind":"text","optional":true},"order":{"kind":"number","optional":true},"person":{"help":"Person facts this scheme reads, each a CEL expression over the statutory context (for example the age basis), merged into `person`.","kind":"record","of":{"format":"cel","kind":"text"},"optional":true},"refuse_when":{"help":"Guards evaluated before the rules: the first that holds refuses the payslip with its message.","kind":"list","of":{"fields":{"message":{"kind":"text"},"when":{"format":"cel","kind":"text"}},"kind":"object"},"optional":true},"rules":{"kind":"list","of":{"fields":{"contribution":{"format":"cel","kind":"text","optional":true},"employee":{"format":"cel","kind":"text","optional":true},"employer":{"format":"cel","kind":"text","optional":true},"when":{"format":"cel","kind":"text","optional":true}},"kind":"object"},"optional":true},"wage_adjustments":{"help":"Parts of the slip this scheme taxes or exempts beyond what is paid (a taxable excess, an exempt share): each prices quantity × rate over the payslip context on a salary slip and posts it, unpaid, to the schemes it counts toward.","kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"warn_when":{"kind":"list","of":{"fields":{"message":{"kind":"text"},"when":{"format":"cel","kind":"text"}},"kind":"object"},"optional":true}},"kind":"object"}}''::jsonb) is true)) is false' into n;
+	if n > 0 then raise exception 'statutory_contribution_catalog__ck__c5992644 refuses % existing row(s)', n; end if;
 end $store$;
-alter table "statutory_contribution_catalog" add constraint "statutory_contribution_catalog__ck__c92920b7" check (("configuration" is null or store_json_valid("configuration", '{"help":"Original legal policy plus executable input, record, derivation, assessment and finalization configuration. Missing source evidence never establishes zero liability.","kind":"json","shape":{"fields":{"annual_reconciliation":{"fields":{"ceiling":{"format":"cel","kind":"text"},"on_current_excess":{"help":"This month''s earlier slips already exceed the reconciled month charge: REFUSE stops for review, SETTLE credits the excess on this slip.","kind":"enum","values":["REFUSE","SETTLE"]},"on_original_error":{"help":"An earlier month paid less than its own original assessment: REFUSE stops for review, CATCH_UP lets on_underpaid settle it.","kind":"enum","values":["REFUSE","CATCH_UP"]},"on_overpaid":{"help":"Earlier months paid more than the recalculated liability: WARN keeps this month and warns (refund outside payroll), REFUSE stops for review.","kind":"enum","values":["WARN","REFUSE"]},"on_underpaid":{"help":"Earlier months paid less than the recalculated liability: CATCH_UP adds the shortfall to this month, REFUSE stops for review.","kind":"enum","values":["CATCH_UP","REFUSE"]},"part":{"kind":"text"},"through":{"format":"cel","kind":"text"},"when":{"format":"cel","kind":"text"}},"kind":"object","optional":true},"as_of":{"kind":"text","optional":true},"assess_without_wage":{"kind":"bool","optional":true},"assessable":{"help":"The month-to-date assessable amount of each wage part (ceilings, projections), CEL over `wage`, `month`, `year`, `period` and `terms`. A part without an expression is assessed as paid.","kind":"record","of":{"format":"cel","kind":"text"},"optional":true},"assessment":{"format":"cel","kind":"text","optional":true},"carry_uncovered":{"fields":{"advance":{"format":"cel","kind":"text"},"recover":{"format":"cel","kind":"text"}},"help":"The employee share net cannot cover is advanced and recovered later: `advance` is CEL over `carry.short` (what net lacks) and `carry.share` (the scheme’s employee share), `recover` CEL over `carry.owed` (outstanding) and `carry.left` (what this slip’s net leaves).","kind":"object","optional":true},"governed_by":{"kind":"text","optional":true},"limitation":{"kind":"text","optional":true},"order":{"kind":"number","optional":true},"person":{"help":"Person facts this scheme reads, each a CEL expression over the statutory context (for example the age basis), merged into `person`.","kind":"record","of":{"format":"cel","kind":"text"},"optional":true},"refuse_when":{"help":"Guards evaluated before the rules: the first that holds refuses the payslip with its message.","kind":"list","of":{"fields":{"message":{"kind":"text"},"when":{"format":"cel","kind":"text"}},"kind":"object"},"optional":true},"rules":{"kind":"list","of":{"fields":{"contribution":{"format":"cel","kind":"text","optional":true},"employee":{"format":"cel","kind":"text","optional":true},"employer":{"format":"cel","kind":"text","optional":true},"when":{"format":"cel","kind":"text","optional":true}},"kind":"object"},"optional":true},"warn_when":{"kind":"list","of":{"fields":{"message":{"kind":"text"},"when":{"format":"cel","kind":"text"}},"kind":"object"},"optional":true}},"kind":"object"}}'::jsonb) is true));
+alter table "statutory_contribution_catalog" add constraint "statutory_contribution_catalog__ck__c5992644" check (("configuration" is null or store_json_valid("configuration", '{"help":"Original legal policy plus executable input, record, derivation, assessment and finalization configuration. Missing source evidence never establishes zero liability.","kind":"json","shape":{"fields":{"annual_reconciliation":{"fields":{"ceiling":{"format":"cel","kind":"text"},"on_current_excess":{"help":"This month''s earlier slips already exceed the reconciled month charge: REFUSE stops for review, SETTLE credits the excess on this slip.","kind":"enum","values":["REFUSE","SETTLE"]},"on_original_error":{"help":"An earlier month paid less than its own original assessment: REFUSE stops for review, CATCH_UP lets on_underpaid settle it.","kind":"enum","values":["REFUSE","CATCH_UP"]},"on_overpaid":{"help":"Earlier months paid more than the recalculated liability: WARN keeps this month and warns (refund outside payroll), REFUSE stops for review.","kind":"enum","values":["WARN","REFUSE"]},"on_underpaid":{"help":"Earlier months paid less than the recalculated liability: CATCH_UP adds the shortfall to this month, REFUSE stops for review.","kind":"enum","values":["CATCH_UP","REFUSE"]},"part":{"kind":"text"},"through":{"format":"cel","kind":"text"},"when":{"format":"cel","kind":"text"}},"kind":"object","optional":true},"as_of":{"kind":"text","optional":true},"assess_without_wage":{"kind":"bool","optional":true},"assessable":{"help":"The month-to-date assessable amount of each wage part (ceilings, projections), CEL over `wage`, `month`, `year`, `period` and `terms`. A part without an expression is assessed as paid.","kind":"record","of":{"format":"cel","kind":"text"},"optional":true},"assessment":{"format":"cel","kind":"text","optional":true},"carry_uncovered":{"fields":{"advance":{"format":"cel","kind":"text"},"recover":{"format":"cel","kind":"text"}},"help":"The employee share net cannot cover is advanced and recovered later: `advance` is CEL over `carry.short` (what net lacks) and `carry.share` (the scheme’s employee share), `recover` CEL over `carry.owed` (outstanding) and `carry.left` (what this slip’s net leaves).","kind":"object","optional":true},"governed_by":{"kind":"text","optional":true},"limitation":{"kind":"text","optional":true},"order":{"kind":"number","optional":true},"person":{"help":"Person facts this scheme reads, each a CEL expression over the statutory context (for example the age basis), merged into `person`.","kind":"record","of":{"format":"cel","kind":"text"},"optional":true},"refuse_when":{"help":"Guards evaluated before the rules: the first that holds refuses the payslip with its message.","kind":"list","of":{"fields":{"message":{"kind":"text"},"when":{"format":"cel","kind":"text"}},"kind":"object"},"optional":true},"rules":{"kind":"list","of":{"fields":{"contribution":{"format":"cel","kind":"text","optional":true},"employee":{"format":"cel","kind":"text","optional":true},"employer":{"format":"cel","kind":"text","optional":true},"when":{"format":"cel","kind":"text","optional":true}},"kind":"object"},"optional":true},"wage_adjustments":{"help":"Parts of the slip this scheme taxes or exempts beyond what is paid (a taxable excess, an exempt share): each prices quantity × rate over the payslip context on a salary slip and posts it, unpaid, to the schemes it counts toward.","kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"},"optional":true},"warn_when":{"kind":"list","of":{"fields":{"message":{"kind":"text"},"when":{"format":"cel","kind":"text"}},"kind":"object"},"optional":true}},"kind":"object"}}'::jsonb) is true));
 
--- step create:constraint:work_catalog.work_catalog__ck__8450a3da (additive)
+-- step create:constraint:suspension_catalog.suspension_catalog__ck__8450a3da (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 -- operational risk: table-scan: may scan existing rows; work grows with the table.
 do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "work_catalog" where (("references" is null or store_json_valid("references", ''{"kind":"custom","of":"references","optional":true}''::jsonb) is true)) is false' into n;
-	if n > 0 then raise exception 'work_catalog__ck__8450a3da refuses % existing row(s)', n; end if;
+	execute 'select count(*)::int as n from "suspension_catalog" where (("references" is null or store_json_valid("references", ''{"kind":"custom","of":"references","optional":true}''::jsonb) is true)) is false' into n;
+	if n > 0 then raise exception 'suspension_catalog__ck__8450a3da refuses % existing row(s)', n; end if;
 end $store$;
-alter table "work_catalog" add constraint "work_catalog__ck__8450a3da" check (("references" is null or store_json_valid("references", '{"kind":"custom","of":"references","optional":true}'::jsonb) is true));
+alter table "suspension_catalog" add constraint "suspension_catalog__ck__8450a3da" check (("references" is null or store_json_valid("references", '{"kind":"custom","of":"references","optional":true}'::jsonb) is true));
 
--- step create:constraint:work_catalog.work_catalog__ck__1fab8a2f (additive)
+-- step create:constraint:suspension_catalog.suspension_catalog__ck__a78450f9 (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 -- operational risk: table-scan: may scan existing rows; work grows with the table.
 do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "work_catalog" where ("destination" in (''PAY'', ''NET'', ''EMPLOYER'')) is false' into n;
-	if n > 0 then raise exception 'work_catalog__ck__1fab8a2f refuses % existing row(s)', n; end if;
+	execute 'select count(*)::int as n from "suspension_catalog" where (("pay" is null or store_json_valid("pay", ''{"default":[],"help":"The payslip lines suspended days post on a salary slip: each posts quantity × rate when eligible, CEL over the payslip context (`work.days[].suspended` holds every kind’s days of the period). Each line is priced once a slip, so a line totalling several kinds’ days lives on one of them.","kind":"json","shape":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"}}}''::jsonb) is true)) is false' into n;
+	if n > 0 then raise exception 'suspension_catalog__ck__a78450f9 refuses % existing row(s)', n; end if;
 end $store$;
-alter table "work_catalog" add constraint "work_catalog__ck__1fab8a2f" check ("destination" in ('PAY', 'NET', 'EMPLOYER'));
+alter table "suspension_catalog" add constraint "suspension_catalog__ck__a78450f9" check (("pay" is null or store_json_valid("pay", '{"default":[],"help":"The payslip lines suspended days post on a salary slip: each posts quantity × rate when eligible, CEL over the payslip context (`work.days[].suspended` holds every kind’s days of the period). Each line is priced once a slip, so a line totalling several kinds’ days lives on one of them.","kind":"json","shape":{"kind":"list","of":{"fields":{"code":{"kind":"text"},"counts_toward":{"kind":"list","of":{"kind":"text"}},"denominator":{"format":"cel","kind":"text","optional":true},"destination":{"kind":"enum","values":["PAY","NET","EMPLOYER"]},"direction":{"kind":"enum","values":["ADD","SUBTRACT"]},"eligibility":{"format":"cel","kind":"text"},"name":{"kind":"text","optional":true},"prorated":{"kind":"bool","optional":true},"quantity":{"format":"cel","kind":"text"},"rate":{"format":"cel","kind":"text"},"references":{"kind":"list","of":{"fields":{"effective_from":{"kind":"date","optional":true},"locator":{"kind":"text","optional":true},"quote":{"kind":"text","optional":true},"title":{"kind":"text"},"url":{"format":"url","kind":"text","optional":true}},"kind":"object"},"optional":true}},"kind":"object"}}}'::jsonb) is true));
 
--- step create:constraint:work_catalog.work_catalog__ck__e84b1ee9 (additive)
+-- step create:constraint:suspension_catalog.suspension_catalog__uq__257c93dc (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 -- operational risk: table-scan: may scan existing rows; work grows with the table.
 do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "work_catalog" where ("direction" in (''ADD'', ''SUBTRACT'')) is false' into n;
-	if n > 0 then raise exception 'work_catalog__ck__e84b1ee9 refuses % existing row(s)', n; end if;
+	execute 'select coalesce(sum(n - 1), 0)::int as n from (select count(*) as n from "suspension_catalog" group by "settings_id", "code" having count(*) > 1) d' into n;
+	if n > 0 then raise exception 'suspension_catalog__uq__257c93dc refuses % existing row(s)', n; end if;
 end $store$;
-alter table "work_catalog" add constraint "work_catalog__ck__e84b1ee9" check ("direction" in ('ADD', 'SUBTRACT'));
-
--- step create:constraint:work_catalog.work_catalog__ck__e9328ddf (additive)
--- hazard: additive: adds an object or widens a stored type without discarding existing values.
--- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
--- operational risk: table-scan: may scan existing rows; work grows with the table.
-do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "work_catalog" where (("counts_toward" is null or store_json_valid("counts_toward", ''{"default":[],"kind":"json","shape":{"kind":"list","of":{"kind":"text"}}}''::jsonb) is true)) is false' into n;
-	if n > 0 then raise exception 'work_catalog__ck__e9328ddf refuses % existing row(s)', n; end if;
-end $store$;
-alter table "work_catalog" add constraint "work_catalog__ck__e9328ddf" check (("counts_toward" is null or store_json_valid("counts_toward", '{"default":[],"kind":"json","shape":{"kind":"list","of":{"kind":"text"}}}'::jsonb) is true));
+alter table "suspension_catalog" add constraint "suspension_catalog__uq__257c93dc" unique nulls not distinct ("settings_id", "code") deferrable initially immediate;
 
 -- step create:constraint:work_suspension.work_suspension__ck__2dfd8460 (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -9767,6 +10068,16 @@ do $store$ declare n bigint; begin
 	if n > 0 then raise exception 'allowance_catalog__fk__482ed27a refuses % existing row(s)', n; end if;
 end $store$;
 alter table "allowance_catalog" add constraint "allowance_catalog__fk__482ed27a" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete cascade on update restrict;
+
+-- step create:fk:behaviour.behaviour__fk__482ed27a (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+do $store$ declare n bigint; begin
+	execute 'select count(*)::int as n from "behaviour" c where c."settings_id" is not null and not exists (select 1 from "jurisdiction_settings" p where p."id" = c."settings_id")' into n;
+	if n > 0 then raise exception 'behaviour__fk__482ed27a refuses % existing row(s)', n; end if;
+end $store$;
+alter table "behaviour" add constraint "behaviour__fk__482ed27a" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete cascade on update restrict;
 
 -- step create:fk:claim_catalog.claim_catalog__fk__482ed27a (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -10198,15 +10509,15 @@ do $store$ declare n bigint; begin
 end $store$;
 alter table "statutory_contribution_catalog" add constraint "statutory_contribution_catalog__fk__482ed27a" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete cascade on update restrict;
 
--- step create:fk:work_catalog.work_catalog__fk__482ed27a (additive)
+-- step create:fk:suspension_catalog.suspension_catalog__fk__482ed27a (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: access-exclusive-lock: may acquire an ACCESS EXCLUSIVE lock, blocking reads and writes while held.
 -- operational risk: table-scan: may scan existing rows; work grows with the table.
 do $store$ declare n bigint; begin
-	execute 'select count(*)::int as n from "work_catalog" c where c."settings_id" is not null and not exists (select 1 from "jurisdiction_settings" p where p."id" = c."settings_id")' into n;
-	if n > 0 then raise exception 'work_catalog__fk__482ed27a refuses % existing row(s)', n; end if;
+	execute 'select count(*)::int as n from "suspension_catalog" c where c."settings_id" is not null and not exists (select 1 from "jurisdiction_settings" p where p."id" = c."settings_id")' into n;
+	if n > 0 then raise exception 'suspension_catalog__fk__482ed27a refuses % existing row(s)', n; end if;
 end $store$;
-alter table "work_catalog" add constraint "work_catalog__fk__482ed27a" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete cascade on update restrict;
+alter table "suspension_catalog" add constraint "suspension_catalog__fk__482ed27a" foreign key ("settings_id") references "jurisdiction_settings" ("id") on delete cascade on update restrict;
 
 -- step create:fk:work_suspension.work_suspension__fk__9e3ef548 (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -10267,6 +10578,16 @@ create trigger store_row_rules before insert or update or delete on "sys_config"
 -- step create:trigger:sys_conversation.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 create trigger store_row_rules before insert or update or delete on "sys_conversation" for each row execute function store_row_rules('{"audit":false,"fields":{"created_at":["created_at"],"envoy":["envoy"],"goals":["goals"],"inputs":["inputs"],"integration":["integration"],"kind":["kind"],"lease_until":["lease_until"],"model":["model"],"outputs":["outputs"],"owner":["owner"],"parent":["parent"],"participants":["participants"],"plan":["plan"],"read":["read"],"revision":["revision"],"run":["run"],"status":["status"],"thread":["thread"],"title":["title"],"updated_at":["updated_at"]},"key":["id"],"parents":[],"states":{}}');
+
+-- step create:trigger:sys_envoy.store_row_rules (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+create trigger store_row_rules before insert or update or delete on "sys_envoy" for each row execute function store_row_rules('{"audit":false,"fields":{"active":["active"],"audience":["audience"],"created_at":["created_at"],"delegation":["delegation"],"dm":["dm"],"group_messages":["group_messages"],"name":["name"],"policies":["policies"],"revision":["revision"],"task":["task"],"triage":["triage"]},"key":["id"],"parents":[],"states":{}}');
+
+-- step create:index:sys_envoy.sys_envoy__gin__0061abf6 (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: writes-blocked: may block table writers, or conflicting row writers for an UPDATE.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+create index "sys_envoy__gin__0061abf6" on "sys_envoy" using gin ("policies");
 
 -- step create:trigger:sys_file.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -10426,15 +10747,21 @@ create unique index "sys_user__ux__1c9f4db2" on "sys_user" ("phone_key");
 
 -- step create:trigger:adhoc_catalog.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
-create trigger store_row_rules before insert or update or delete on "adhoc_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"amount_required":["amount_required"],"bands":["bands"],"code":["code"],"counts_toward":["counts_toward"],"destination":["destination"],"direction":["direction"],"eligibility":["eligibility"],"name":["name"],"payable_after_exit":["payable_after_exit"],"qualifies_when":["qualifies_when"],"raise_on_exit":["raise_on_exit"],"references":["references"],"settings_id":["settings_id"]},"key":["id"],"parents":[{"column":"settings_id","key":"id","relation":"adhoc_catalog","states":{},"table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "adhoc_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"amount_required":["amount_required"],"bands":["bands"],"code":["code"],"counts_toward":["counts_toward"],"destination":["destination"],"direction":["direction"],"eligibility":["eligibility"],"name":["name"],"payable_after_exit":["payable_after_exit"],"qualifies_when":["qualifies_when"],"references":["references"],"settings_id":["settings_id"]},"key":["id"],"parents":[{"column":"settings_id","key":"id","relation":"adhoc_catalog","states":{},"table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
 
 -- step create:trigger:adhoc_catalog_entry.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 create trigger store_row_rules before insert or update or delete on "adhoc_catalog_entry" for each row execute function store_row_rules('{"audit":true,"fields":{"activity":["activity"],"amount":["amount"],"catalog_id":["catalog_id"],"company_id":["company_id"],"employment_id":["employment_id"],"facts":["facts"],"label":["label"],"occurred_on":["occurred_on"],"payslip_id":["payslip_id"],"quantity":["quantity"]},"key":["id"],"parents":[],"states":{}}');
 
+-- step create:index:adhoc_catalog_entry.adhoc_catalog_entry__gin__73732636 (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: writes-blocked: may block table writers, or conflicting row writers for an UPDATE.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+create index "adhoc_catalog_entry__gin__73732636" on "adhoc_catalog_entry" using gin (bolt_search);
+
 -- step create:trigger:allowance_catalog.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
-create trigger store_row_rules before insert or update or delete on "allowance_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"amount":["amount"],"code":["code"],"counts_toward":["counts_toward"],"destination":["destination"],"direction":["direction"],"eligibility":["eligibility"],"name":["name"],"references":["references"],"settings_id":["settings_id"]},"key":["id"],"parents":[{"column":"settings_id","key":"id","relation":"allowance_catalog","states":{},"table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "allowance_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"amount":["amount"],"automatic":["automatic"],"code":["code"],"counts_toward":["counts_toward"],"destination":["destination"],"direction":["direction"],"eligibility":["eligibility"],"name":["name"],"references":["references"],"settings_id":["settings_id"]},"key":["id"],"parents":[{"column":"settings_id","key":"id","relation":"allowance_catalog","states":{},"table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
 
 -- step create:trigger:bank.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -10452,6 +10779,10 @@ create index "bank__gin__39b82add" on "bank" using gin ("bank_codes");
 -- operational risk: table-scan: may scan existing rows; work grows with the table.
 create index "bank__gin__306c5c95" on "bank" using gin ("currencies");
 
+-- step create:trigger:behaviour.store_row_rules (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+create trigger store_row_rules before insert or update or delete on "behaviour" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"definition":["definition"],"effect":["effect"],"events":["events"],"fields":["fields"],"name":["name"],"order":["order"],"reads":["reads"],"references":["references"],"settings_id":["settings_id"],"target_collection":["target_collection"],"when":["when"]},"key":["id"],"parents":[{"column":"settings_id","key":"id","relation":"behaviour","states":{},"table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
+
 -- step create:trigger:claim_catalog.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 create trigger store_row_rules before insert or update or delete on "claim_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"amount_required":["amount_required"],"bands":["bands"],"code":["code"],"counts_toward":["counts_toward"],"destination":["destination"],"direction":["direction"],"eligibility":["eligibility"],"name":["name"],"qualifies_when":["qualifies_when"],"references":["references"],"settings_id":["settings_id"]},"key":["id"],"parents":[{"column":"settings_id","key":"id","relation":"claim_catalog","states":{},"table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
@@ -10459,6 +10790,12 @@ create trigger store_row_rules before insert or update or delete on "claim_catal
 -- step create:trigger:claim_catalog_entry.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 create trigger store_row_rules before insert or update or delete on "claim_catalog_entry" for each row execute function store_row_rules('{"audit":true,"fields":{"activity":["activity"],"amount":["amount"],"catalog_id":["catalog_id"],"company_id":["company_id"],"due_on":["due_on"],"employment_id":["employment_id"],"facts":["facts"],"incurred_on":["incurred_on"],"label":["label"],"occurred_on":["occurred_on"],"payslip_id":["payslip_id"],"quantity":["quantity"]},"key":["id"],"parents":[],"states":{}}');
+
+-- step create:index:claim_catalog_entry.claim_catalog_entry__gin__73732636 (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: writes-blocked: may block table writers, or conflicting row writers for an UPDATE.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+create index "claim_catalog_entry__gin__73732636" on "claim_catalog_entry" using gin (bolt_search);
 
 -- step create:trigger:employment_contract.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -10508,15 +10845,21 @@ create trigger store_row_rules before insert or update or delete on "holiday" fo
 
 -- step create:trigger:jurisdiction_settings.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
-create trigger store_row_rules before insert or update or delete on "jurisdiction_settings" for each row execute function store_row_rules('{"audit":true,"fields":{"behaviours":["behaviours"],"change_summary":["change_summary"],"cloned_from_id":["cloned_from_id"],"code":["code"],"effective_range":["effective_range"],"employee_input_schema":["employee_input_schema"],"entity_input_schema":["entity_input_schema"],"jurisdiction_code":["jurisdiction_code"],"name":["name"],"payroll":["payroll"],"reference_tables":["reference_tables"],"references":["references"],"sealed_at":["sealed_at"],"sources":["sources"],"suspension_kinds":["suspension_kinds"],"void_reason":["void_reason"],"voided_at":["voided_at"]},"key":["id"],"parents":[],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "jurisdiction_settings" for each row execute function store_row_rules('{"audit":true,"fields":{"change_summary":["change_summary"],"cloned_from_id":["cloned_from_id"],"code":["code"],"effective_range":["effective_range"],"employee_input_schema":["employee_input_schema"],"entity_input_schema":["entity_input_schema"],"name":["name"],"payroll":["payroll"],"sealed_at":["sealed_at"],"sources":["sources"],"time_pay":["time_pay"],"void_reason":["void_reason"],"voided_at":["voided_at"]},"key":["id"],"parents":[],"states":{}}');
 
 -- step create:trigger:leave_catalog.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
-create trigger store_row_rules before insert or update or delete on "leave_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"can_encash":["can_encash"],"code":["code"],"consumes_code":["consumes_code"],"description":["description"],"eligibility":["eligibility"],"encash_at_window_end":["encash_at_window_end"],"encash_on_exit":["encash_on_exit"],"entitlement":["entitlement"],"is_npl":["is_npl"],"name":["name"],"pay_fraction":["pay_fraction"],"references":["references"],"settings_id":["settings_id"],"share_by":["share_by"],"unit":["unit"],"unplanned_days":["unplanned_days"]},"key":["id"],"parents":[{"column":"settings_id","key":"id","relation":"leave_catalog","states":{},"table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "leave_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"can_encash":["can_encash"],"code":["code"],"consumes_code":["consumes_code"],"description":["description"],"eligibility":["eligibility"],"encash_at_window_end":["encash_at_window_end"],"encash_on_exit":["encash_on_exit"],"entitlement":["entitlement"],"is_npl":["is_npl"],"name":["name"],"pay":["pay"],"pay_fraction":["pay_fraction"],"references":["references"],"settings_id":["settings_id"],"share_by":["share_by"],"unit":["unit"],"unplanned_days":["unplanned_days"]},"key":["id"],"parents":[{"column":"settings_id","key":"id","relation":"leave_catalog","states":{},"table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
 
 -- step create:trigger:leave_catalog_entry.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 create trigger store_row_rules before insert or update or delete on "leave_catalog_entry" for each row execute function store_row_rules('{"audit":true,"fields":{"activity":["activity"],"amount":["amount"],"catalog_id":["catalog_id"],"company_id":["company_id"],"days":["days"],"employment_id":["employment_id"],"facts":["facts"],"from":["from"],"half_day_end":["half_day_end"],"half_day_start":["half_day_start"],"label":["label"],"occurred_on":["occurred_on"],"payslip_id":["payslip_id"],"reference":["reference"],"to":["to"]},"key":["id"],"parents":[],"states":{}}');
+
+-- step create:index:leave_catalog_entry.leave_catalog_entry__gin__73732636 (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: writes-blocked: may block table writers, or conflicting row writers for an UPDATE.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+create index "leave_catalog_entry__gin__73732636" on "leave_catalog_entry" using gin (bolt_search);
 
 -- step create:trigger:loan_catalog.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -10540,7 +10883,7 @@ create trigger store_row_rules before insert or update or delete on "payroll_run
 
 -- step create:trigger:payslip.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
-create trigger store_row_rules before insert or update or delete on "payslip" for each row execute function store_row_rules('{"audit":true,"fields":{"adjustments":["adjustments"],"bank_charges":["bank_charges"],"base":["base"],"company_payments":["company_payments"],"currency":["currency"],"employer_cost":["employer_cost"],"employment_id":["employment_id"],"gross":["gross"],"net":["net"],"paid_at":["paid_at"],"payroll_run_id":["payroll_run_id"],"proration":["proration"],"salary_from":["salary_from"],"salary_to":["salary_to"],"service_basis":["service_basis"],"status":["status"],"statutory":["statutory"],"terms_through":["terms_through"],"total_deductions":["total_deductions"]},"key":["id"],"parents":[{"column":"payroll_run_id","key":"id","relation":"payslip","states":{},"table":"payroll_run","type":"uuid"}],"states":{"status":{"initial":"DRAFT","states":{"DRAFT":{"to":["ON_HOLD","PAID"]},"ON_HOLD":{"to":["DRAFT","PAID"]},"PAID":{"edit":"none"}}}}}');
+create trigger store_row_rules before insert or update or delete on "payslip" for each row execute function store_row_rules('{"audit":true,"fields":{"adjustments":["adjustments"],"bank_charges":["bank_charges"],"base":["base"],"company_payments":["company_payments"],"currency":["currency"],"employer_cost":["employer_cost"],"employment_id":["employment_id"],"gross":["gross"],"net":["net"],"paid_at":["paid_at"],"payroll_run_id":["payroll_run_id"],"proration":["proration"],"salary_from":["salary_from"],"salary_to":["salary_to"],"service_basis":["service_basis"],"status":["status"],"statutory":["statutory"],"terms_through":["terms_through"],"total_deductions":["total_deductions"]},"key":["id"],"parents":[{"column":"payroll_run_id","key":"id","relation":"payslip","states":{},"table":"payroll_run","type":"uuid"}],"states":{"status":{"initial":"DRAFT","states":{"DRAFT":{"edit":["status","paid_at","bank_charges"],"to":["ON_HOLD","PAID"]},"ON_HOLD":{"edit":["status","paid_at","bank_charges"],"to":["DRAFT","PAID"]},"PAID":{"edit":"none"}}}}}');
 
 -- step create:trigger:regulatory_task.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -10556,7 +10899,7 @@ create trigger store_row_rules before insert or update or delete on "roster_entr
 
 -- step create:trigger:rule_set.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
-create trigger store_row_rules before insert or update or delete on "rule_set" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"content_hash":["content_hash"],"family":["family"],"name":["name"],"references":["references"],"rules":["rules"],"scope":["scope"],"settings_id":["settings_id"],"source_identity":["source_identity"]},"key":["id"],"parents":[{"column":"settings_id","key":"id","relation":"rule_set","states":{},"table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "rule_set" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"content_hash":["content_hash"],"family":["family"],"name":["name"],"references":["references"],"rules":["rules"],"settings_id":["settings_id"],"source_identity":["source_identity"]},"key":["id"],"parents":[{"column":"settings_id","key":"id","relation":"rule_set","states":{},"table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
 
 -- step create:trigger:shift_definition.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -10570,9 +10913,9 @@ create trigger store_row_rules before insert or update or delete on "shift_patte
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 create trigger store_row_rules before insert or update or delete on "statutory_contribution_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"configuration":["configuration"],"display_order":["display_order"],"label":["label"],"name":["name"],"references":["references"],"settings_id":["settings_id"]},"key":["id"],"parents":[{"column":"settings_id","key":"id","relation":"statutory_contribution_catalog","states":{},"table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
 
--- step create:trigger:work_catalog.store_row_rules (additive)
+-- step create:trigger:suspension_catalog.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
-create trigger store_row_rules before insert or update or delete on "work_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"component_code":["component_code"],"counts_toward":["counts_toward"],"denominator":["denominator"],"destination":["destination"],"direction":["direction"],"eligibility":["eligibility"],"name":["name"],"prorated":["prorated"],"quantity":["quantity"],"rate":["rate"],"references":["references"],"settings_id":["settings_id"]},"key":["id"],"parents":[{"column":"settings_id","key":"id","relation":"work_catalog","states":{},"table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
+create trigger store_row_rules before insert or update or delete on "suspension_catalog" for each row execute function store_row_rules('{"audit":true,"fields":{"code":["code"],"counts_as_attended":["counts_as_attended"],"eligibility":["eligibility"],"name":["name"],"pay":["pay"],"quantity":["quantity"],"rate":["rate"],"references":["references"],"scheduled":["scheduled"],"settings_id":["settings_id"]},"key":["id"],"parents":[{"column":"settings_id","key":"id","relation":"suspension_catalog","states":{},"table":"jurisdiction_settings","type":"uuid"}],"states":{}}');
 
 -- step create:trigger:work_suspension.store_row_rules (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -10695,6 +11038,12 @@ create index "adhoc_catalog_entry__ix__8042f03b" on "adhoc_catalog_entry" ("pays
 -- operational risk: writes-blocked: may block table writers, or conflicting row writers for an UPDATE.
 -- operational risk: table-scan: may scan existing rows; work grows with the table.
 create index "allowance_catalog__ix__81c3962d" on "allowance_catalog" ("settings_id");
+
+-- step create:index:behaviour.behaviour__ix__81c3962d (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+-- operational risk: writes-blocked: may block table writers, or conflicting row writers for an UPDATE.
+-- operational risk: table-scan: may scan existing rows; work grows with the table.
+create index "behaviour__ix__81c3962d" on "behaviour" ("settings_id");
 
 -- step create:index:claim_catalog.claim_catalog__ix__81c3962d (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -10954,11 +11303,11 @@ create index "shift_pattern__ix__7459e9c9" on "shift_pattern" ("company_id");
 -- operational risk: table-scan: may scan existing rows; work grows with the table.
 create index "statutory_contribution_catalog__ix__81c3962d" on "statutory_contribution_catalog" ("settings_id");
 
--- step create:index:work_catalog.work_catalog__ix__81c3962d (additive)
+-- step create:index:suspension_catalog.suspension_catalog__ix__81c3962d (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
 -- operational risk: writes-blocked: may block table writers, or conflicting row writers for an UPDATE.
 -- operational risk: table-scan: may scan existing rows; work grows with the table.
-create index "work_catalog__ix__81c3962d" on "work_catalog" ("settings_id");
+create index "suspension_catalog__ix__81c3962d" on "suspension_catalog" ("settings_id");
 
 -- step create:index:work_suspension.work_suspension__ix__7459e9c9 (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -11005,6 +11354,13 @@ drop trigger if exists bolt_audit_mark on "bank";
 create trigger bolt_audit_mark before insert or update or delete on "bank" for each row execute function bolt_audit_mark('[]','[]');
 drop trigger if exists bolt_audit on "bank";
 create trigger bolt_audit after insert or update or delete on "bank" for each row execute function bolt_audit('[]','[]');
+
+-- step create:engine:audit:behaviour (additive)
+-- hazard: additive: adds an object or widens a stored type without discarding existing values.
+drop trigger if exists bolt_audit_mark on "behaviour";
+create trigger bolt_audit_mark before insert or update or delete on "behaviour" for each row execute function bolt_audit_mark('[["settings_id","jurisdiction_settings"]]','[["settings_id","jurisdiction_settings"]]');
+drop trigger if exists bolt_audit on "behaviour";
+create trigger bolt_audit after insert or update or delete on "behaviour" for each row execute function bolt_audit('[["settings_id","jurisdiction_settings"]]','[["settings_id","jurisdiction_settings"]]');
 
 -- step create:engine:audit:claim_catalog (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
@@ -11160,12 +11516,12 @@ create trigger bolt_audit_mark before insert or update or delete on "statutory_c
 drop trigger if exists bolt_audit on "statutory_contribution_catalog";
 create trigger bolt_audit after insert or update or delete on "statutory_contribution_catalog" for each row execute function bolt_audit('[["settings_id","jurisdiction_settings"]]','[["settings_id","jurisdiction_settings"]]');
 
--- step create:engine:audit:work_catalog (additive)
+-- step create:engine:audit:suspension_catalog (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.
-drop trigger if exists bolt_audit_mark on "work_catalog";
-create trigger bolt_audit_mark before insert or update or delete on "work_catalog" for each row execute function bolt_audit_mark('[["settings_id","jurisdiction_settings"]]','[["settings_id","jurisdiction_settings"]]');
-drop trigger if exists bolt_audit on "work_catalog";
-create trigger bolt_audit after insert or update or delete on "work_catalog" for each row execute function bolt_audit('[["settings_id","jurisdiction_settings"]]','[["settings_id","jurisdiction_settings"]]');
+drop trigger if exists bolt_audit_mark on "suspension_catalog";
+create trigger bolt_audit_mark before insert or update or delete on "suspension_catalog" for each row execute function bolt_audit_mark('[["settings_id","jurisdiction_settings"]]','[["settings_id","jurisdiction_settings"]]');
+drop trigger if exists bolt_audit on "suspension_catalog";
+create trigger bolt_audit after insert or update or delete on "suspension_catalog" for each row execute function bolt_audit('[["settings_id","jurisdiction_settings"]]','[["settings_id","jurisdiction_settings"]]');
 
 -- step create:engine:audit:work_suspension (additive)
 -- hazard: additive: adds an object or widens a stored type without discarding existing values.

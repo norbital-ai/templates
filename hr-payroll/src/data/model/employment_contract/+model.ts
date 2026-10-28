@@ -107,12 +107,29 @@ const transformRows = Effect.fnUntraced(function* (
 				const rules = prefetched.rules.rows.find(
 					(row) =>
 						row.settings_id === version.id &&
-						row.family === 'PAYROLL' &&
+						row.family === 'PARAMETERS' &&
 						row.code === 'exit_grounds'
 				);
 				if (!kindsOf(rules?.rules).some((row) => row.code === ground))
 					return yield* ctx.refuse(
 						`${version.code} lists no exit ground ${ground} on ${String(range.to)}.`
+					);
+				// The exit's behaviours write its encashment and exit pay as the departure saves: an unpaid salary slip
+				// reaching the last day was priced without them, so it is rebuilt after, never left short.
+				const lastDay = String(range.to);
+				const unpaid = prefetched.payslips.rows.find((slip) => {
+					const to = dayKey(slip.salary_to);
+					return (
+						slip.employment_id === before?.id &&
+						slip.status !== 'PAID' &&
+						dayKey(slip.salary_from) != null &&
+						to != null &&
+						to >= lastDay
+					);
+				});
+				if (unpaid !== undefined)
+					return yield* ctx.refuse(
+						`An unpaid payroll run already pays ${dayKey(unpaid.salary_from)} to ${dayKey(unpaid.salary_to)}. Delete it, save the departure, then create the run again so it pays the final salary, leave encashment and exit pay.`
 					);
 			}
 			const facts = 'facts' in input ? input.facts : before?.facts;
@@ -227,7 +244,8 @@ export default model('employment_contract', {
 		},
 		effective_range: {
 			kind: 'period',
-			of: 'date'
+			of: 'date',
+			help: 'The first day of employment (when the person joined or started) to the last (when they left).'
 		},
 		signed_contract_end: {
 			kind: 'date',

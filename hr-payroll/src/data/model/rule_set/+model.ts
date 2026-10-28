@@ -2,7 +2,6 @@ import { model } from '@norbital-ai/bolt';
 import { STATUTORY_FIELDS } from '../../../lib/payroll_engine/statutory_fields.js';
 
 const update_columns = [
-	'scope',
 	'family',
 	'code',
 	'name',
@@ -13,7 +12,7 @@ const update_columns = [
 ] as const;
 export default model('rule_set', {
 	description:
-		'Regulatory rule sets grouped by family. Dated jurisdiction sets belong to a sealed jurisdiction version; original global policy sources retain explicit global ownership. Configuration holds eligibility, legal parameters and ordered programs, with qualified source identity.',
+		'Regulatory rule sets grouped by family: VALIDATIONS checks, PARAMETERS law tables read as `rules.<code>` and EXPORTS file layouts. Dated jurisdiction sets belong to a sealed jurisdiction version; original global policy sources retain explicit global ownership. Configuration holds eligibility, legal parameters and ordered programs, with qualified source identity.',
 	icon: 'lucide:list-checks',
 	label: 'name',
 	fields: {

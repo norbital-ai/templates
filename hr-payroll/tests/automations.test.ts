@@ -1,6 +1,6 @@
 /**
- * Each automation the template declares, fired through the kit and judged by what it did: `behaviour_taps` applies a
- * run's holds (its pins: `entries.test.ts`), `calendar_tick` writes the version's holidays once, `late_arrival_notice` reminds for a shift
+ * Each automation the template declares, fired through the kit and judged by what it did: `payroll_run_bookkeeping`
+ * pins a run's entries and withdraws a deleted run's duties, `behaviour_taps` holds, `calendar_tick` writes the version's holidays once, `late_arrival_notice` reminds for a shift
  * nobody clocked into. `invitation_profile` is `e2e/invitation-profile.test.ts`; `statutory_drift` is
  * `statutory-research.test.ts`.
  */
@@ -8,9 +8,19 @@ import assert from 'node:assert/strict';
 import { layer } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt/test';
 import { Instant, PlainDate } from '@norbital-ai/std/date';
+import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect, Schema } from 'effect';
 import { fixtureId, nativeId } from './fixture_values.ts';
-import { COMPANY, WORK, employer, employment, runOf, world } from './jurisdiction_kit.ts';
+import {
+	CATALOG,
+	COMPANY,
+	VERSION,
+	WORK,
+	employer,
+	employment,
+	runOf,
+	world
+} from './jurisdiction_kit.ts';
 
 const Started = Schema.Struct({ id: Schema.String });
 const Run = Schema.Struct({
@@ -60,28 +70,116 @@ rows.set('roster_entry', [
 ]);
 
 layer(world(rows).layer)('automations', (it) => {
-	it.effect('behaviour_taps holds the payslip a validation held', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const hr = t.as(t.member(['hr_manager']));
-			// February: the late-arrival days in March stay unsettled
-			yield* hr.act('payroll_run.create', [
-				{ company_id: COMPANY, period: '2026-02', kind: 'REGULAR' }
-			]);
-			const run = yield* runOf(hr, '2026-02');
-			// the run itself only records it
-			assert.equal(run.slip('b').status, 'DRAFT');
-			yield* t.runDue();
-			const after = yield* hr.query({
-				payslip: {
-					where: { id: { in: [run.slip('a').id, run.slip('b').id] } },
-					fields: ['status']
-				}
-			});
-			const status = (id: string) => after.payslip.rows.find((row) => row.id === id)?.status;
-			assert.equal(status(run.slip('b').id), 'ON_HOLD');
-			assert.equal(status(run.slip('a').id), 'DRAFT');
-		})
+	it.effect(
+		'payroll_run_bookkeeping pins what a run settled onto its payslip and behaviour_taps holds what a validation held',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const hr = t.as(t.member(['hr_manager']));
+				yield* hr.act('adhoc_catalog_entry.create', [
+					{
+						catalog_id: CATALOG.BONUS,
+						employment_id: employment('a'),
+						occurred_on: PlainDate('2026-02-10'),
+						amount: Decimal.of('100')
+					}
+				]);
+				// February: the late-arrival days in March stay unsettled
+				yield* hr.act('payroll_run.create', [
+					{ company_id: COMPANY, period: '2026-02', kind: 'REGULAR' }
+				]);
+				const run = yield* runOf(hr, '2026-02');
+				const [bonus] = (yield* hr.query({ adhoc_catalog_entry: {} })).adhoc_catalog_entry.rows;
+				assert.ok(bonus);
+				// the run itself only records them
+				assert.equal(bonus.payslip_id, null);
+				assert.equal(run.slip('b').status, 'DRAFT');
+				yield* t.runDue();
+				const after = yield* hr.query({
+					adhoc_catalog_entry: { where: { id: { eq: bonus.id } }, fields: ['payslip_id'] },
+					payslip: {
+						where: { id: { in: [run.slip('a').id, run.slip('b').id] } },
+						fields: ['status']
+					}
+				});
+				assert.equal(after.adhoc_catalog_entry.rows[0]?.payslip_id, run.slip('a').id);
+				const status = (id: string) => after.payslip.rows.find((row) => row.id === id)?.status;
+				assert.equal(status(run.slip('b').id), 'ON_HOLD');
+				assert.equal(status(run.slip('a').id), 'DRAFT');
+				const failed = yield* t.db.rows(Schema.Struct({ error: Schema.NullOr(Schema.Json) }), {
+					text: "SELECT error FROM sys_run WHERE automation = 'behaviour_taps' AND state = 'failed'",
+					params: []
+				});
+				assert.deepEqual(failed, []);
+			})
+	);
+
+	it.effect(
+		'payroll_run_bookkeeping withdraws what a deleted run raised: unsettled obligations go, open tasks are dismissed',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const hr = t.as(t.member(['hr_manager']));
+				const admin = t.as(t.admin);
+				yield* hr.act('payroll_run.create', [
+					{ company_id: COMPANY, period: '2026-03', kind: 'REGULAR' }
+				]);
+				const run = yield* runOf(hr, '2026-03');
+				yield* t.runDue();
+				const duty = (code: string, settled: string | null) => ({
+					duty_code: code,
+					occurrence_key: `${code}:2026-03`,
+					trigger_ref: run.id,
+					triggered_on: PlainDate('2026-03-01'),
+					due_on: PlainDate('2026-04-15'),
+					amount_due: Decimal.of('100'),
+					...(settled === null ? {} : { amount_settled: Decimal.of(settled) }),
+					company_id: COMPANY,
+					settings_id: VERSION
+				});
+				yield* admin.act('obligation.create', [duty('UNSETTLED', null), duty('SETTLED', '100')]);
+				yield* admin.act('regulatory_task.create', [
+					{
+						code: 'RETURN',
+						title: 'File the return',
+						subject_collection: 'payroll_run',
+						subject_id: run.id,
+						trigger_ref: run.id,
+						triggered_on: PlainDate('2026-03-01'),
+						due_on: PlainDate('2026-04-15'),
+						occurrence_key: 'RETURN:2026-03',
+						company_id: COMPANY,
+						settings_id: VERSION
+					}
+				]);
+				yield* hr.act('payroll_run.delete', [{ target: run.id }]);
+				yield* t.runDue();
+				const after = yield* admin.query({
+					obligation: { where: { trigger_ref: { eq: run.id } }, fields: ['duty_code'] },
+					regulatory_task: {
+						where: { trigger_ref: { eq: run.id } },
+						fields: ['state', 'dismiss_reason', 'occurrence_key']
+					}
+				});
+				assert.deepEqual(
+					after.obligation.rows.map((row) => row.duty_code),
+					['SETTLED']
+				);
+				assert.deepEqual(
+					after.regulatory_task.rows.map((row) => [
+						row.state,
+						row.dismiss_reason,
+						row.occurrence_key
+					]),
+					[
+						[
+							'DISMISSED',
+							'The payroll run that raised it was deleted on 2026-03-01.',
+							'RETURN:2026-03:withdrawn:2026-03-01'
+						]
+					]
+				);
+			})
 	);
 
 	it.effect('calendar_tick writes the holidays the version lists, once', () =>

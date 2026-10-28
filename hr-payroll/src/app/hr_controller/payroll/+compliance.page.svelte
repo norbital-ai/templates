@@ -32,24 +32,26 @@
 	const scope = companyScope();
 	const t = bolt.t;
 	const ui = useBolt();
-	/** A remittance reads as the OBLIGATIONS rule that raised it, a case and a suspension as their kind's name. */
+	/** A remittance reads as the behaviour that raised it, a case and a suspension as their kind's name. */
 	const names = $derived.by(() =>
 		bolt.query({
-			rule_set: { where: { family: { eq: 'OBLIGATIONS' } }, fields: ['code', 'name'] },
-			jurisdiction_settings: {
-				where: { sealed_at: { isNull: false } },
-				fields: ['suspension_kinds']
-			}
+			behaviour: { where: { definition: { isNull: false } }, fields: ['code', 'name'] },
+			jurisdiction_settings: { where: { sealed_at: { isNull: false } }, fields: ['code'] },
+			'jurisdiction_settings.suspension_catalog': { fields: ['code', 'name'] }
 		})
 	);
 	const dutyName = $derived(
-		new Map((names?.current?.rule_set.rows ?? []).map((row) => [row.code, row.name] as const))
+		new Map(
+			(names?.current?.behaviour.rows ?? []).flatMap((row) =>
+				row.name == null ? [] : [[row.code, row.name] as const]
+			)
+		)
 	);
 	const caseName = listedKindNames('case_kinds');
 	const suspensionName = $derived(
 		new Map(
 			(names?.current?.jurisdiction_settings.rows ?? []).flatMap((row) =>
-				(row.suspension_kinds ?? []).map((kind) => [kind.code, kind.name ?? kind.code] as const)
+				row.suspension_catalog.map((kind) => [kind.code, kind.name ?? kind.code] as const)
 			)
 		)
 	);

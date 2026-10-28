@@ -1,4 +1,5 @@
 import {
+	isMasked,
 	model,
 	type Id,
 	type CreateRow,
@@ -42,6 +43,7 @@ import {
 } from '../../../lib/payroll_engine/export.js';
 import { salaryReport, type SalaryReport } from '../../../lib/payroll_engine/salary_report.js';
 import { bankExportDocuments } from '../../../lib/payroll_engine/bank_export.js';
+import { ExportRules } from '../../../lib/bank_template.js';
 
 const SALARY_REPORT: keyof typeof PAYROLL_SLOTS = 'salary_report';
 
@@ -130,10 +132,7 @@ const exportReads = Effect.fnUntraced(function* (
 		},
 		jurisdiction_settings: {
 			where: { id: { in: idsOf(runs.rows.map((run) => run.settings_id)) } },
-			fields: ['code', 'payroll']
-		},
-		'jurisdiction_settings.work_catalog': {
-			fields: ['settings_id', 'code', 'component_code', 'direction', 'destination', 'name']
+			fields: ['code', 'payroll', 'time_pay']
 		},
 		'jurisdiction_settings.allowance_catalog': {
 			fields: ['settings_id', 'code', 'direction', 'destination', 'name']
@@ -144,16 +143,14 @@ const exportReads = Effect.fnUntraced(function* (
 		'jurisdiction_settings.claim_catalog': {
 			fields: ['settings_id', 'code', 'destination', 'name']
 		},
+		// pay lines the leave and suspension catalogues post, and schemes' wage adjustments: work lines on a slip
+		'jurisdiction_settings.leave_catalog': { fields: ['settings_id', 'pay'] },
+		'jurisdiction_settings.suspension_catalog': { fields: ['settings_id', 'pay'] },
 		'jurisdiction_settings.statutory_contribution_catalog': {
-			fields: ['settings_id', 'code', 'label', 'display_order']
+			fields: ['settings_id', 'code', 'label', 'display_order', 'configuration']
 		},
 		'jurisdiction_settings.rule_set': {
-			where: {
-				or: [
-					{ family: { eq: 'EXPORTS' } },
-					{ family: { eq: 'PAYROLL' }, code: { eq: SALARY_REPORT } }
-				]
-			},
+			where: { family: { in: ['PARAMETERS', 'EXPORTS'] } },
 			fields: ['family', 'code', 'rules', 'settings_id']
 		}
 	});
@@ -210,15 +207,48 @@ const exportReads = Effect.fnUntraced(function* (
 		entities: second.entity,
 		banks: third.bank,
 		versions,
-		work_meta: { rows: versions.rows.flatMap((version) => version.work_catalog) },
+		// each version's work lines: its `time_pay` lines, its leave and suspension catalogues' pay lines and its
+		// schemes' wage adjustments (posted unpaid, to the employer's side), each under its own code
+		work_meta: {
+			rows: versions.rows.flatMap((version) => {
+				const own = (line: {
+					readonly code: string;
+					readonly name?: string | null;
+					readonly direction: 'ADD' | 'SUBTRACT';
+					readonly destination?: 'PAY' | 'NET' | 'EMPLOYER';
+				}) => ({
+					settings_id: version.id,
+					code: line.code,
+					name: line.name ?? null,
+					direction: line.direction,
+					destination: line.destination ?? 'EMPLOYER'
+				});
+				return [
+					...(isMasked(version.time_pay)
+						? []
+						: Object.values(version.time_pay).flatMap((lines) => (lines ?? []).map(own))),
+					...[...version.leave_catalog, ...version.suspension_catalog].flatMap((row) =>
+						isMasked(row.pay) ? [] : (row.pay ?? []).map(own)
+					),
+					...version.statutory_contribution_catalog.flatMap((row) =>
+						isMasked(row.configuration) ? [] : (row.configuration?.wage_adjustments ?? []).map(own)
+					)
+				];
+			})
+		},
 		allowance_meta: { rows: versions.rows.flatMap((version) => version.allowance_catalog) },
 		adhoc_meta: { rows: versions.rows.flatMap((version) => version.adhoc_catalog) },
 		claim_meta: { rows: versions.rows.flatMap((version) => version.claim_catalog) },
 		scheme_meta: {
 			rows: versions.rows.flatMap((version) => version.statutory_contribution_catalog)
 		},
-		rules: { rows: rules.filter((row) => row.family === 'EXPORTS') },
-		salary_report_rules: { rows: rules.filter((row) => row.family === 'PAYROLL') },
+		// export layouts are the EXPORTS family; the salary report is its own named PARAMETERS slot
+		rules: {
+			rows: rules.filter((row) => row.family === 'EXPORTS' && Schema.is(ExportRules)(row.rules))
+		},
+		salary_report_rules: {
+			rows: rules.filter((row) => row.family === 'PARAMETERS' && row.code === SALARY_REPORT)
+		},
 		adhoc: third.adhoc_catalog_entry,
 		adhoc_catalog: fourth.adhoc_catalog,
 		claims: third.claim_catalog_entry,
@@ -698,7 +728,7 @@ export default model('payroll_run', {
 											.filter((row) => row.settings_id === run.settings_id)
 											.map((row) => ({
 												family: 'WORK',
-												code: row.component_code ?? row.code,
+												code: row.code,
 												direction: row.direction,
 												destination: row.destination,
 												name: row.name

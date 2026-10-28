@@ -147,8 +147,6 @@ export default automation('behaviour_taps', {
 		'Applies the jurisdiction behaviour rules for a row event: each rule reads its declared rows and its effect returns the model writes to make.',
 	on: [
 		{ created: 'payroll_run' },
-		// a deleted run withdraws the unpaid duties it raised (`withdraw-run-duties`), from its pre-image
-		{ deleted: 'payroll_run' },
 		{ updated: 'payslip', fields: ['status'] },
 		{ created: 'employment_contract' },
 		// Every declared field: a term written for any day raises its duty on the write (`row.terms_written`), a duty
@@ -218,10 +216,8 @@ export default automation('behaviour_taps', {
 			spec.kind === 'ref' ? [name] : []
 		);
 		const employs = keys.includes('employment_id');
-		// Deleted runs use their native pre-images.
-		const removed = action === 'deleted' ? input.rows : undefined;
 		// Discriminating the native trigger keeps every model's ID and selected field tied together.
-		const stored: readonly Row[] = yield* (() => {
+		const joined: readonly Row[] = yield* (() => {
 			switch (input.model) {
 				case 'payroll_run':
 					return Effect.map(
@@ -337,7 +333,6 @@ export default automation('behaviour_taps', {
 					);
 			}
 		})();
-		const joined: readonly Row[] = removed ?? stored;
 		const column = (field: string) => joined.map((row) => row[field]);
 		// The rows' subjects: the employments they name (a person's every contract), and a payroll run's payslips.
 		const scope = yield* ctx.query({

@@ -10,7 +10,15 @@ import { TestWorkspace } from '@norbital-ai/bolt/test';
 import { Instant, PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import { fixtureId, nativeId } from './fixture_values.ts';
-import { COMPANY, WORK, employer, employment, runOf, world } from './jurisdiction_kit.ts';
+import {
+	COMPANY,
+	VERSION,
+	WORK,
+	employer,
+	employment,
+	runOf,
+	world
+} from './jurisdiction_kit.ts';
 
 const MARCH = { company_id: COMPANY, period: '2026-03', kind: 'REGULAR' } as const;
 const APRIL = { ...MARCH, period: '2026-04' } as const;
@@ -22,7 +30,9 @@ const rows = employer([
 	// March 2026 has 22 working days; from Monday the 16th it has 12
 	{ key: 'c', salary: 2200, from: '2026-03-16' },
 	{ key: 'd', salary: 6000 },
-	{ key: 'e', salary: 3000 }
+	{ key: 'e', salary: 3000 },
+	// suspended in March (below)
+	{ key: 'f', salary: 2600 }
 ]);
 const day = (date: string, approved: number, end: string) => ({
 	id: nativeId('roster_entry', fixtureId(`xx-ot-${date}`)),
@@ -40,6 +50,78 @@ rows.set('roster_entry', [
 	// 3 hours past 18:00 under a 1-hour approval: 1.0
 	day('2026-03-04', 1, '21:00')
 ]);
+const kind = (code: string, pricing: object) => ({
+	id: nativeId('suspension_catalog', fixtureId(`xx-${code}`)),
+	settings_id: VERSION,
+	code,
+	name: code,
+	counts_as_attended: 'true',
+	scheduled: 'true',
+	pay: [],
+	...pricing
+});
+rows.set('suspension_catalog', [
+	// the kind's own pricing (a working day's 26th, a rest day nothing); its pay line reads every kind's suspended days
+	kind('SHUTDOWN', {
+		eligibility: 'true',
+		quantity: '1.0',
+		rate: 'day.day_type == "WORK" ? terms.base_salary / 26.0 : 0.0',
+		pay: [
+			{
+				code: 'SHUTDOWN_PAY',
+				eligibility: 'work.days.exists(d, d.suspended != null)',
+				quantity: '1.0',
+				rate: 'sum(work.days.filter(d, d.suspended != null).map(d, d.suspended.pay))',
+				prorated: false,
+				destination: 'PAY',
+				direction: 'ADD',
+				counts_toward: []
+			}
+		]
+	}),
+	// a kind with no rate, or whose eligibility fails, pays nothing
+	kind('STRIKE', {}),
+	kind('LOCKOUT', { eligibility: 'false', rate: '1000.0' })
+]);
+rows.set('work_suspension', [
+	{
+		id: nativeId('work_suspension', fixtureId('xx-shutdown-march')),
+		company_id: COMPANY,
+		kind: 'SHUTDOWN',
+		// Friday to Monday: two working days and a weekend
+		starts_on: PlainDate('2026-03-06'),
+		ends_on: PlainDate('2026-03-09'),
+		employment_ids: [employment('f')],
+		facts: {}
+	},
+	...(['STRIKE', 'LOCKOUT'] as const).map((code, i) => ({
+		id: nativeId('work_suspension', fixtureId(`xx-${code}-march`)),
+		company_id: COMPANY,
+		kind: code,
+		// Tuesday, then Wednesday
+		starts_on: PlainDate(`2026-03-1${i}`),
+		ends_on: PlainDate(`2026-03-1${i}`),
+		employment_ids: [employment('f')],
+		facts: {}
+	}))
+]);
+// regular runs only: the run-kind gate below
+rows.set(
+	'rule_set',
+	(rows.get('rule_set') ?? []).map((row) =>
+		row['code'] === 'PAYROLL_RUN_KINDS'
+			? {
+					...row,
+					rules: {
+						site: 'payroll_run',
+						kind: 'allow',
+						when: 'run.kind in ["REGULAR"]',
+						message: 'Regular runs only.'
+					}
+				}
+			: row
+	)
+);
 rows.set('holiday', [
 	{
 		id: HOLIDAY,
@@ -60,7 +142,7 @@ layer(world(rows).layer)('payslip composition', (it) => {
 				const hr = t.as(t.member(['hr_manager']));
 				assert.equal((yield* hr.act('payroll_run.create', [MARCH])).kind, 'committed');
 				const run = yield* runOf(hr, '2026-03');
-				assert.equal(run.count, 5, String(run.warnings));
+				assert.equal(run.count, 6, String(run.warnings));
 				const a = run.slip('a');
 				assert.deepEqual(a.lines, { BASIC: 3000 });
 				assert.deepEqual(a.statutory, { FUND: 150, WHT: 300, PIT: 200 });
@@ -96,11 +178,34 @@ layer(world(rows).layer)('payslip composition', (it) => {
 			const hr = t.as(t.member(['hr_manager']));
 			yield* hr.act('payroll_run.create', [APRIL]);
 			const published = yield* runOf(hr, '2026-04');
-			assert.deepEqual(published.slip('a').lines, { BASIC: 3000, HOLIDAY: 100 });
+			assert.deepEqual(published.slip('a').lines, { BASIC: 3000, HOLIDAY_WORK: 100 });
 			yield* hr.act('payroll_run.delete', [{ target: published.id }]);
 			yield* hr.act('holiday.update', [{ target: HOLIDAY, set: { published_at: null } }]);
 			yield* hr.act('payroll_run.create', [APRIL]);
 			assert.deepEqual((yield* runOf(hr, '2026-04')).slip('a').lines, { BASIC: 3000 });
+		})
+	);
+
+	it.effect("a suspended day is priced by its kind, and the kind's pay line posts the period", () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const hr = t.as(t.member(['hr_manager']));
+			// 2 × 2,600 / 26 = 200; the strike and lockout days pay nothing
+			assert.deepEqual((yield* runOf(hr, '2026-03')).slip('f').lines, {
+				BASIC: 2600,
+				SHUTDOWN_PAY: 200
+			});
+		})
+	);
+
+	it.effect('the run-kind gate refuses a kind its validation omits', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const hr = t.as(t.member(['hr_manager']));
+			const refused = yield* Effect.flip(
+				hr.act('payroll_run.create', [{ ...MARCH, kind: 'OFF_CYCLE' }])
+			);
+			assert.match(refused.message, /XX admits no OFF_CYCLE payroll run under its validations/);
 		})
 	);
 });

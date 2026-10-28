@@ -2,7 +2,6 @@
 	{
 		"id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
 		"code": "VN",
-		"jurisdiction_code": "VN",
 		"name": "Vietnam — 16 May 2026",
 		"sealed_at": "2026-09-26T12:08:42.903Z",
 		"voided_at": null,
@@ -13,27 +12,120 @@
 		"payroll": {
 			"currency": "VND",
 			"timezone": "Asia/Ho_Chi_Minh",
-			"tax_year_start_month": 1,
-			"pay_date": "period.to",
 			"week_start": 0,
-			"semi_monthly_split": 15,
 			"roster_week": "ROLLING",
-			"rolling_hours_months": 3,
-			"base_salary_required": true,
-			"off_cycle_families": ["ADHOC", "CLAIM"],
-			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
-			"negative_net": "refuse",
-			"exit_raise_when": "employment.exit_date >= add_months(period.from, -1)",
-			"exit_overpayment": "note",
-			"history_months": 12,
-			"attendance": {
-				"step_hours": 0.5,
-				"rounding": "DOWN",
-				"overtime_window": "AFTER_SHIFT",
-				"untimed_credit_day_types": ["REST", "OFF"]
-			},
-			"ten_day_splits": [10, 20],
-			"permanent_when": "!(has(terms.facts) && has(terms.facts.fixed_term) && terms.facts.fixed_term == true)"
+			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))"
+		},
+		"time_pay": {
+			"BASIC": [
+				{
+					"code": "BASIC",
+					"name": "Basic salary",
+					"references": [
+						{
+							"title": "Labour Code 2019 arts.94(1), 97(1); Decree 145/2020/NĐ-CP art.54(1)(a1), (a3): a monthly wage pays the month; a part month pays the working days of the employment over the month’s working days (calendar days only where the entity plans no shifts); a half-monthly part pays half the month, and a part of a half (a joiner or leaver) pays its working days at the monthly day wage — the monthly wage over the month’s normal working days (period.month_working_days + period.month_holiday_work_days) — capped at the half."
+						}
+					],
+					"eligibility": "true",
+					"quantity": "(period.working_days > 0 ? (period.parts > 1 && period.covered_working_days < period.working_days && period.month_working_days + period.month_holiday_work_days > 0 ? min(1.0, double(period.covered_working_days) * double(period.parts) / double(period.month_working_days + period.month_holiday_work_days)) : double(period.covered_working_days) / double(period.working_days)) : double(period.paid_days) / double(period.days))",
+					"rate": "(terms.base_salary / double(period.parts))",
+					"prorated": true,
+					"denominator": "double(period.days)",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SI", "UNION_DUES", "HI", "UI", "UNION_FEE", "PIT"]
+				}
+			],
+			"OVERTIME": [
+				{
+					"code": "OVERTIME",
+					"name": "Overtime",
+					"references": [
+						{
+							"title": "Labour Code art.98(1)(a): at least 150% on a normal day. Decree 145/2020/NĐ-CP art.54(1)(a3)–(a4): the day wage is the monthly wage divided by the normal working days of the month the enterprise chose, the hour wage the day wage divided by the normal hours of the day (Labour Code art.105); art.55(1)(a): the overtime hour wage is the month’s wage for the work divided by the actual normal hours of the month.. Engine: the day rate is the monthly wage over the month’s normal working days, period.month_working_days + period.month_holiday_work_days (the calendar month’s planned WORK days, a public holiday falling on one counted: Decree 145/2020 art.54(1)(a)(a3) divides by “số ngày làm việc bình thường trong tháng”, and a public holiday is a paid day off, Labour Code art.112(1), not a weekly rest day, art.111; the same in both halves of a semi-monthly month), hours a day the mean scheduled hours of those days; an entity without planned shifts falls back to rules.working_time (26 days of 8 hours, the most a 48-hour week allows under art.105). Wage base: Decree 145/2020/NĐ-CP art.55(1)(a) (and art.56 for night work) prices the premium on the actual wage for the work, which leaves out only overtime, night and holiday pay, bonuses and the meal, fuel, phone, travel, housing, childcare and other supports unrelated to the job; the job-related wage allowances (phụ cấp lương, Labour Code art.90(1)) stay in. The hour wage is therefore terms.base_salary plus the contract’s FIXED_ALLOWANCE lines; meal, housing, work-expense and insurance-equivalent classes stay out. https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf p.41",
+							"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+						}
+					],
+					"eligibility": "sum(work.days.filter(d, (!work.holidays.exists(h, h.date == d.date && h.kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"] && (h.given_to != \"ONLY_IF_OFF_ON_REPLACED_DATE\" || (h.replaces != \"\" && !(h.replaces in work.dates)))) && !(d.day_type in [\"REST\", \"OFF\"]))).map(d, d.overtime_hours)) > 0.0",
+					"quantity": "sum(work.days.filter(d, (!work.holidays.exists(h, h.date == d.date && h.kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"] && (h.given_to != \"ONLY_IF_OFF_ON_REPLACED_DATE\" || (h.replaces != \"\" && !(h.replaces in work.dates)))) && !(d.day_type in [\"REST\", \"OFF\"]))).map(d, d.overtime_hours))",
+					"rate": "1.5 * ((terms.base_salary + sum(terms.allowances.filter(a, a.code == \"FIXED_ALLOWANCE\").map(a, double(a.amount)))) / ((period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days)) * (size(work.days.filter(d, d.day_type == \"WORK\" && d.scheduled_hours > 0.0)) > 0 ? sum(work.days.filter(d, d.day_type == \"WORK\" && d.scheduled_hours > 0.0).map(d, d.scheduled_hours)) / double(size(work.days.filter(d, d.day_type == \"WORK\" && d.scheduled_hours > 0.0))) : double(rules.working_time.normal_hours_per_day))))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": []
+				}
+			],
+			"REST_DAY_OVERTIME": [
+				{
+					"code": "REST_DAY_OVERTIME",
+					"name": "Weekly rest-day overtime",
+					"references": [
+						{
+							"title": "Labour Code art.98(1)(b): at least 200% on a weekly rest day; every hour worked on it is overtime. Every hour worked on a planned 0-hour rest or off day is derived overtime (completed half-hours), less banked hours. A holiday falling on a rest day is paid as a holiday (Decree 145/2020 art.55(3)). Decree 145/2020/NĐ-CP art.54(1)(a3)–(a4): the day wage is the monthly wage divided by the normal working days of the month the enterprise chose, the hour wage the day wage divided by the normal hours of the day (Labour Code art.105); art.55(1)(a): the overtime hour wage is the month’s wage for the work divided by the actual normal hours of the month.. Engine: the day rate is the monthly wage over the month’s normal working days, period.month_working_days + period.month_holiday_work_days (the calendar month’s planned WORK days, a public holiday falling on one counted: Decree 145/2020 art.54(1)(a)(a3) divides by “số ngày làm việc bình thường trong tháng”, and a public holiday is a paid day off, Labour Code art.112(1), not a weekly rest day, art.111; the same in both halves of a semi-monthly month), hours a day the mean scheduled hours of those days; an entity without planned shifts falls back to rules.working_time (26 days of 8 hours, the most a 48-hour week allows under art.105). Wage base: Decree 145/2020/NĐ-CP art.55(1)(a) (and art.56 for night work) prices the premium on the actual wage for the work, which leaves out only overtime, night and holiday pay, bonuses and the meal, fuel, phone, travel, housing, childcare and other supports unrelated to the job; the job-related wage allowances (phụ cấp lương, Labour Code art.90(1)) stay in. The hour wage is therefore terms.base_salary plus the contract’s FIXED_ALLOWANCE lines; meal, housing, work-expense and insurance-equivalent classes stay out. https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf p.41",
+							"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+						}
+					],
+					"eligibility": "sum(work.days.filter(d, (!work.holidays.exists(h, h.date == d.date && h.kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"] && (h.given_to != \"ONLY_IF_OFF_ON_REPLACED_DATE\" || (h.replaces != \"\" && !(h.replaces in work.dates)))) && d.day_type in [\"REST\", \"OFF\"])).map(d, d.overtime_hours)) > 0.0",
+					"quantity": "sum(work.days.filter(d, (!work.holidays.exists(h, h.date == d.date && h.kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"] && (h.given_to != \"ONLY_IF_OFF_ON_REPLACED_DATE\" || (h.replaces != \"\" && !(h.replaces in work.dates)))) && d.day_type in [\"REST\", \"OFF\"])).map(d, d.overtime_hours))",
+					"rate": "2.0 * ((terms.base_salary + sum(terms.allowances.filter(a, a.code == \"FIXED_ALLOWANCE\").map(a, double(a.amount)))) / ((period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days)) * (size(work.days.filter(d, d.day_type == \"WORK\" && d.scheduled_hours > 0.0)) > 0 ? sum(work.days.filter(d, d.day_type == \"WORK\" && d.scheduled_hours > 0.0).map(d, d.scheduled_hours)) / double(size(work.days.filter(d, d.day_type == \"WORK\" && d.scheduled_hours > 0.0))) : double(rules.working_time.normal_hours_per_day))))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": []
+				}
+			],
+			"HOLIDAY_WORK": [
+				{
+					"code": "HOLIDAY_WORK",
+					"name": "Public-holiday work",
+					"references": [
+						{
+							"title": "Labour Code art.98(1)(c): at least 300% on a public holiday or paid day off, excluding the holiday pay a monthly wage already carries; every paid hour of the holiday is counted (work.days[].worked_hours: the planned hours plus the overtime derived past them, every hour on a 0-hour rest day), banked hours excepted. Decree 145/2020/NĐ-CP art.54(1)(a3)–(a4): the day wage is the monthly wage divided by the normal working days of the month the enterprise chose, the hour wage the day wage divided by the normal hours of the day (Labour Code art.105); art.55(1)(a): the overtime hour wage is the month’s wage for the work divided by the actual normal hours of the month.. Engine: the day rate is the monthly wage over the month’s normal working days, period.month_working_days + period.month_holiday_work_days (the calendar month’s planned WORK days, a public holiday falling on one counted: Decree 145/2020 art.54(1)(a)(a3) divides by “số ngày làm việc bình thường trong tháng”, and a public holiday is a paid day off, Labour Code art.112(1), not a weekly rest day, art.111; the same in both halves of a semi-monthly month), hours a day the mean scheduled hours of those days; an entity without planned shifts falls back to rules.working_time (26 days of 8 hours, the most a 48-hour week allows under art.105). Wage base: Decree 145/2020/NĐ-CP art.55(1)(a) (and art.56 for night work) prices the premium on the actual wage for the work, which leaves out only overtime, night and holiday pay, bonuses and the meal, fuel, phone, travel, housing, childcare and other supports unrelated to the job; the job-related wage allowances (phụ cấp lương, Labour Code art.90(1)) stay in. The hour wage is therefore terms.base_salary plus the contract’s FIXED_ALLOWANCE lines; meal, housing, work-expense and insurance-equivalent classes stay out. https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf p.41",
+							"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+						}
+					],
+					"eligibility": "sum(work.days.filter(d, work.holidays.exists(h, h.date == d.date && h.kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"] && (h.given_to != \"ONLY_IF_OFF_ON_REPLACED_DATE\" || (h.replaces != \"\" && !(h.replaces in work.dates))))).map(d, d.worked_hours - d.banked_hours)) > 0.0",
+					"quantity": "sum(work.days.filter(d, work.holidays.exists(h, h.date == d.date && h.kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"] && (h.given_to != \"ONLY_IF_OFF_ON_REPLACED_DATE\" || (h.replaces != \"\" && !(h.replaces in work.dates))))).map(d, d.worked_hours - d.banked_hours))",
+					"rate": "3.0 * ((terms.base_salary + sum(terms.allowances.filter(a, a.code == \"FIXED_ALLOWANCE\").map(a, double(a.amount)))) / ((period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days)) * (size(work.days.filter(d, d.day_type == \"WORK\" && d.scheduled_hours > 0.0)) > 0 ? sum(work.days.filter(d, d.day_type == \"WORK\" && d.scheduled_hours > 0.0).map(d, d.scheduled_hours)) / double(size(work.days.filter(d, d.day_type == \"WORK\" && d.scheduled_hours > 0.0))) : double(rules.working_time.normal_hours_per_day))))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": []
+				}
+			],
+			"NIGHT_WORK": [
+				{
+					"code": "NIGHT_WORK",
+					"name": "Night work premium",
+					"references": [
+						{
+							"title": "Labour Code art.98(2); Decree 145/2020/NĐ-CP art.56(1): at least 30% of the normal-day hour wage for each hour worked between rules.night_window (22:00–06:00, art.106), normal or overtime hours alike (art.57 adds the 30% to night overtime too). Exempt from PIT: Circular 111/2013 art.3(1)(i) to 2025, Law 109/2025 art.4(8) from 2026. Decree 145/2020/NĐ-CP art.54(1)(a3)–(a4): the day wage is the monthly wage divided by the normal working days of the month the enterprise chose, the hour wage the day wage divided by the normal hours of the day (Labour Code art.105); art.55(1)(a): the overtime hour wage is the month’s wage for the work divided by the actual normal hours of the month.. Engine: the day rate is the monthly wage over the month’s normal working days, period.month_working_days + period.month_holiday_work_days (the calendar month’s planned WORK days, a public holiday falling on one counted: Decree 145/2020 art.54(1)(a)(a3) divides by “số ngày làm việc bình thường trong tháng”, and a public holiday is a paid day off, Labour Code art.112(1), not a weekly rest day, art.111; the same in both halves of a semi-monthly month), hours a day the mean scheduled hours of those days; an entity without planned shifts falls back to rules.working_time (26 days of 8 hours, the most a 48-hour week allows under art.105). Wage base: Decree 145/2020/NĐ-CP art.55(1)(a) (and art.56 for night work) prices the premium on the actual wage for the work, which leaves out only overtime, night and holiday pay, bonuses and the meal, fuel, phone, travel, housing, childcare and other supports unrelated to the job; the job-related wage allowances (phụ cấp lương, Labour Code art.90(1)) stay in. The hour wage is therefore terms.base_salary plus the contract’s FIXED_ALLOWANCE lines; meal, housing, work-expense and insurance-equivalent classes stay out. https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf p.41",
+							"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+						}
+					],
+					"eligibility": "sum(work.days.map(d, hours_between(d.intervals, rules.night_window.from, rules.night_window.to))) > 0.0",
+					"quantity": "sum(work.days.map(d, hours_between(d.intervals, rules.night_window.from, rules.night_window.to)))",
+					"rate": "0.3 * ((terms.base_salary + sum(terms.allowances.filter(a, a.code == \"FIXED_ALLOWANCE\").map(a, double(a.amount)))) / ((period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days)) * (size(work.days.filter(d, d.day_type == \"WORK\" && d.scheduled_hours > 0.0)) > 0 ? sum(work.days.filter(d, d.day_type == \"WORK\" && d.scheduled_hours > 0.0).map(d, d.scheduled_hours)) / double(size(work.days.filter(d, d.day_type == \"WORK\" && d.scheduled_hours > 0.0))) : double(rules.working_time.normal_hours_per_day))))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": []
+				}
+			],
+			"NIGHT_OVERTIME": [
+				{
+					"code": "NIGHT_OVERTIME",
+					"name": "Night overtime supplement",
+					"references": [
+						{
+							"title": "Labour Code art.98(3); Decree 145/2020/NĐ-CP art.57(1)(b): night overtime adds 20% of the day-time hour wage of that day — 100% of the normal hour wage on a normal day without day-time overtime, 150% with it, 200% on a weekly rest day, 300% on a holiday. Engine: a day's night overtime hours are the night hours of its overtime span (work.days[].overtime_intervals, from where the planned hours run out; every hour on a rest day, every paid hour on a holiday); day-time overtime is present when the day's overtime exceeds those night hours. Decree 145/2020/NĐ-CP art.54(1)(a3)–(a4): the day wage is the monthly wage divided by the normal working days of the month the enterprise chose, the hour wage the day wage divided by the normal hours of the day (Labour Code art.105); art.55(1)(a): the overtime hour wage is the month’s wage for the work divided by the actual normal hours of the month.. Engine: the day rate is the monthly wage over the month’s normal working days, period.month_working_days + period.month_holiday_work_days (the calendar month’s planned WORK days, a public holiday falling on one counted: Decree 145/2020 art.54(1)(a)(a3) divides by “số ngày làm việc bình thường trong tháng”, and a public holiday is a paid day off, Labour Code art.112(1), not a weekly rest day, art.111; the same in both halves of a semi-monthly month), hours a day the mean scheduled hours of those days; an entity without planned shifts falls back to rules.working_time (26 days of 8 hours, the most a 48-hour week allows under art.105). Wage base: Decree 145/2020/NĐ-CP art.55(1)(a) (and art.56 for night work) prices the premium on the actual wage for the work, which leaves out only overtime, night and holiday pay, bonuses and the meal, fuel, phone, travel, housing, childcare and other supports unrelated to the job; the job-related wage allowances (phụ cấp lương, Labour Code art.90(1)) stay in. The hour wage is therefore terms.base_salary plus the contract’s FIXED_ALLOWANCE lines; meal, housing, work-expense and insurance-equivalent classes stay out. https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf p.41",
+							"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+						}
+					],
+					"eligibility": "sum(work.days.map(d, (work.holidays.exists(h, h.date == d.date && h.kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"] && (h.given_to != \"ONLY_IF_OFF_ON_REPLACED_DATE\" || (h.replaces != \"\" && !(h.replaces in work.dates)))) ? hours_between(d.intervals, rules.night_window.from, rules.night_window.to) : hours_between(d.overtime_intervals, rules.night_window.from, rules.night_window.to)) * (work.holidays.exists(h, h.date == d.date && h.kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"] && (h.given_to != \"ONLY_IF_OFF_ON_REPLACED_DATE\" || (h.replaces != \"\" && !(h.replaces in work.dates)))) ? 3.0 : (!work.holidays.exists(h, h.date == d.date && h.kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"] && (h.given_to != \"ONLY_IF_OFF_ON_REPLACED_DATE\" || (h.replaces != \"\" && !(h.replaces in work.dates)))) && d.day_type in [\"REST\", \"OFF\"]) ? 2.0 : (d.overtime_hours > hours_between(d.overtime_intervals, rules.night_window.from, rules.night_window.to) ? 1.5 : 1.0)))) > 0.0",
+					"quantity": "sum(work.days.map(d, (work.holidays.exists(h, h.date == d.date && h.kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"] && (h.given_to != \"ONLY_IF_OFF_ON_REPLACED_DATE\" || (h.replaces != \"\" && !(h.replaces in work.dates)))) ? hours_between(d.intervals, rules.night_window.from, rules.night_window.to) : hours_between(d.overtime_intervals, rules.night_window.from, rules.night_window.to)) * (work.holidays.exists(h, h.date == d.date && h.kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"] && (h.given_to != \"ONLY_IF_OFF_ON_REPLACED_DATE\" || (h.replaces != \"\" && !(h.replaces in work.dates)))) ? 3.0 : (!work.holidays.exists(h, h.date == d.date && h.kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"] && (h.given_to != \"ONLY_IF_OFF_ON_REPLACED_DATE\" || (h.replaces != \"\" && !(h.replaces in work.dates)))) && d.day_type in [\"REST\", \"OFF\"]) ? 2.0 : (d.overtime_hours > hours_between(d.overtime_intervals, rules.night_window.from, rules.night_window.to) ? 1.5 : 1.0))))",
+					"rate": "0.2 * ((terms.base_salary + sum(terms.allowances.filter(a, a.code == \"FIXED_ALLOWANCE\").map(a, double(a.amount)))) / ((period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days)) * (size(work.days.filter(d, d.day_type == \"WORK\" && d.scheduled_hours > 0.0)) > 0 ? sum(work.days.filter(d, d.day_type == \"WORK\" && d.scheduled_hours > 0.0).map(d, d.scheduled_hours)) / double(size(work.days.filter(d, d.day_type == \"WORK\" && d.scheduled_hours > 0.0))) : double(rules.working_time.normal_hours_per_day))))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": []
+				}
+			]
 		},
 		"sources": {
 			"entries": [
@@ -119,397 +211,6 @@
 		},
 		"cloned_from_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
 		"change_summary": "Decree 105/2026/NĐ-CP (issued 31 March 2026, in force 16 May 2026) replaces Decree 191/2013 for the trade union fee: still 2% of the social-insurance salary fund, now paid by the last day of the month after the month, with a suspension or a reduction of at most 20% by Confederation decision (arts.12–13).",
-		"behaviours": {
-			"version": 1,
-			"rules": [
-				{
-					"id": "payroll-run",
-					"catalog": "WORK",
-					"events": ["PAYROLL_CREATE"],
-					"when": "event.data.request.kind in [\"REGULAR\", \"OFF_CYCLE\"]"
-				},
-				{
-					"id": "pin-settled-entries",
-					"target_collection": "payroll_run",
-					"events": ["created"],
-					"when": "true",
-					"fields": ["pins"],
-					"reads": {
-						"slips": {
-							"collection": "payslip",
-							"where": {
-								"payroll_run_id": {
-									"eq": "event.row.id"
-								}
-							},
-							"select": ["id", "employment_id"]
-						}
-					},
-					"effect": "event.row.pins.map(p, { \"collection\": p.collection, \"operation\": \"update\", \"data\": { \"target\": [p.id], \"set\": { \"payslip_id\": first(slips.filter(s, s.employment_id == p.employment_id).map(s, s.id)) } } }).filter(w, w.data.set.payslip_id != null)"
-				},
-				{
-					"id": "hold-payslips",
-					"target_collection": "payroll_run",
-					"events": ["created"],
-					"when": "has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0",
-					"fields": ["holds"],
-					"reads": {
-						"slips": {
-							"collection": "payslip",
-							"where": {
-								"payroll_run_id": {
-									"eq": "event.row.id"
-								},
-								"status": {
-									"eq": "\"DRAFT\""
-								}
-							},
-							"select": ["id", "employment_id"]
-						}
-					},
-					"effect": "event.row.holds.map(h, { \"collection\": \"payslip\", \"operation\": \"update\", \"data\": { \"target\": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), \"set\": { \"status\": \"ON_HOLD\" } } }).filter(w, size(w.data.target) > 0)"
-				},
-				{
-					"id": "retract-exit-effects",
-					"target_collection": "employment_contract",
-					"events": ["updated"],
-					"when": "has(event.row.before) && event.row.before != null && (\"effective_range\" in event.row.before || \"exit_ground\" in event.row.before || \"exit_facts\" in event.row.before)",
-					"fields": ["before", "exit_facts", "exit_ground", "effective_range"],
-					"reads": {
-						"movements": {
-							"collection": "leave_catalog_entry",
-							"where": {
-								"employment_id": {
-									"eq": "event.row.id"
-								},
-								"payslip_id": {
-									"isNull": true
-								}
-							},
-							"select": ["reference"]
-						},
-						"tasks": {
-							"collection": "regulatory_task",
-							"where": {
-								"subject_id": {
-									"eq": "event.row.id"
-								},
-								"state": {
-									"eq": "\"OPEN\""
-								}
-							},
-							"select": ["occurrence_key", "facts"]
-						}
-					},
-					"effect": "movements.filter(m, m.reference != null && m.reference.startsWith(\"exit:\" + event.row.id + \":\") && !((event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\") != \"\" && m.reference.endsWith(\":\" + (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")))).map(m, { \"collection\": \"leave_catalog_entry\", \"operation\": \"delete\", \"data\": { \"target\": [m.id] } }) + tasks.filter(t, t.facts != null && has(t.facts.exit_key) && t.facts.exit_key != (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")).map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The exit it answered was changed on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
-				},
-				{
-					"id": "encash-leave-on-exit",
-					"target_collection": "employment_contract",
-					"events": ["updated"],
-					"when": "event.row.exit_facts != null && event.row.effective_range.to != null",
-					"fields": ["exit_facts", "effective_range"],
-					"reads": {
-						"catalogues": {
-							"collection": "leave_catalog",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"encash_on_exit": {
-									"eq": true
-								}
-							},
-							"select": ["id", "code", "unit", "entitlement"]
-						},
-						"movements": {
-							"collection": "leave_catalog_entry",
-							"where": {
-								"employment_id": {
-									"eq": "event.row.id"
-								}
-							},
-							"select": ["catalog_id", "activity", "days", "reference"]
-						}
-					},
-					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))) } }).filter(w, w.data.days > 0)"
-				},
-				{
-					"id": "raise-obligations",
-					"target_collection": "payroll_run",
-					"events": ["created"],
-					"when": "true",
-					"fields": ["period", "company_id"],
-					"reads": {
-						"duties": {
-							"collection": "rule_set",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"family": {
-									"eq": "\"OBLIGATIONS\""
-								}
-							},
-							"select": ["code", "name", "references", "rules"]
-						},
-						"company": {
-							"collection": "entity",
-							"where": {
-								"id": {
-									"eq": "event.company_id"
-								}
-							},
-							"select": ["name", "region", "risk_class", "time_zone", "facts"]
-						},
-						"holidays": {
-							"collection": "holiday",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								},
-								"published_at": {
-									"isNull": false
-								},
-								"date": {
-									"gte": "add_days(event.day, -31)",
-									"lte": "add_days(event.day, 400)"
-								}
-							},
-							"select": ["date", "name", "kind"]
-						},
-						"raised": {
-							"collection": "obligation",
-							"where": {
-								"trigger_ref": {
-									"eq": "event.row.id"
-								}
-							},
-							"select": ["duty_code"]
-						}
-					},
-					"effect": "duties.filter(d, (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }) == true) && !raised.exists(o, o.duty_code == d.code)).map(d, { \"collection\": \"obligation\", \"operation\": \"create\", \"data\": { \"duty_code\": d.code, \"references\": d.references, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }), \"amount_due\": has(d.rules.amount) ? configured_eval(d.rules.amount, { \"rules\": event.rules, \"total\": sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), \"run\": run, \"period\": event.period, \"company\": first(company), \"headcount_months\": event.headcount_months }) : round(sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), 0.01), \"occurrence_key\": d.code + \":\" + event.row.id } }).filter(w, w.data.amount_due > 0.0)"
-				},
-				{
-					"id": "withdraw-run-duties",
-					"target_collection": "payroll_run",
-					"events": ["deleted"],
-					"reads": {
-						"obligations": {
-							"collection": "obligation",
-							"where": {
-								"trigger_ref": {
-									"eq": "event.row.id"
-								},
-								"state": {
-									"eq": "\"OPEN\""
-								}
-							},
-							"select": ["amount_settled"]
-						},
-						"tasks": {
-							"collection": "regulatory_task",
-							"where": {
-								"subject_id": {
-									"eq": "event.row.id"
-								},
-								"state": {
-									"eq": "\"OPEN\""
-								}
-							},
-							"select": ["occurrence_key"]
-						}
-					},
-					"effect": "obligations.filter(o, o.amount_settled == null).map(o, { \"collection\": \"obligation\", \"operation\": \"delete\", \"data\": { \"target\": [o.id] } }) + tasks.map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The payroll run that raised it was deleted on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
-				},
-				{
-					"id": "encash-leave-at-window-end",
-					"target_collection": "calendar",
-					"events": ["daily"],
-					"when": "size(event.leave_balances) > 0",
-					"reads": {
-						"catalogues": {
-							"collection": "leave_catalog",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"encash_at_window_end": {
-									"eq": true
-								}
-							},
-							"select": ["id", "code"]
-						},
-						"movements": {
-							"collection": "leave_catalog_entry",
-							"where": {
-								"employment_id": {
-									"eq": "event.row.id"
-								},
-								"activity": {
-									"eq": "\"ENCASHMENT\""
-								}
-							},
-							"select": ["reference"]
-						}
-					},
-					"effect": "catalogues.filter(c, !movements.exists(m, m.reference == \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.day, \"activity\": \"ENCASHMENT\", \"reference\": \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code && b.window_to == event.day).map(b, b.available))) } }).filter(w, w.data.days > 0)"
-				},
-				{
-					"id": "raise-tasks",
-					"when": "true",
-					"fields": [
-						"period",
-						"company_id",
-						"employment_id",
-						"status",
-						"employee_id",
-						"effective_range",
-						"facts"
-					],
-					"reads": {
-						"tasks": {
-							"collection": "rule_set",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"family": {
-									"eq": "\"TASKS\""
-								}
-							},
-							"select": ["code", "name", "references", "rules"]
-						},
-						"company": {
-							"collection": "entity",
-							"where": {
-								"id": {
-									"eq": "event.company_id"
-								}
-							},
-							"select": [
-								"name",
-								"region",
-								"risk_class",
-								"time_zone",
-								"registration_number",
-								"facts"
-							]
-						},
-						"contract": {
-							"collection": "employment_contract",
-							"where": {
-								"id": {
-									"in": "(event.employment_id == null ? [] : [event.employment_id])"
-								}
-							},
-							"select": [
-								"id",
-								"company_id",
-								"employee_id",
-								"effective_range",
-								"prior_service_months",
-								"engagement",
-								"exit_ground",
-								"exit_facts",
-								"facts"
-							]
-						},
-						"employee": {
-							"collection": "employment_profile",
-							"where": {
-								"id": {
-									"in": "(event.employee_id == null ? [] : [event.employee_id])"
-								}
-							},
-							"select": [
-								"nationality",
-								"gender",
-								"date_of_birth",
-								"marital_status",
-								"children",
-								"facts"
-							]
-						},
-						"holidays": {
-							"collection": "holiday",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								},
-								"published_at": {
-									"isNull": false
-								},
-								"date": {
-									"gte": "add_days(event.day, -31)",
-									"lte": "add_days(event.day, 400)"
-								}
-							},
-							"select": ["date", "name", "kind"]
-						},
-						"raised": {
-							"collection": "regulatory_task",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								},
-								"triggered_on": {
-									"gte": "add_days(event.day, -400)"
-								}
-							},
-							"select": ["occurrence_key"]
-						},
-						"subject_tasks": {
-							"collection": "regulatory_task",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								},
-								"subject_id": {
-									"eq": "event.row.id"
-								}
-							},
-							"select": ["occurrence_key"]
-						}
-					},
-					"effect": "tasks.filter(d, has(d.rules.trigger) && d.rules.trigger.collection == event.collection && event.action in d.rules.trigger.events && (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.when) || configured_eval(d.rules.when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && !(raised + subject_tasks).exists(t, t.occurrence_key == d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)))).map(d, { \"collection\": \"regulatory_task\", \"operation\": \"create\", \"data\": { \"facts\": (event.collection in [\"employment_contract\", \"calendar\"] && has(event.row.exit_facts) && event.row.exit_facts != null && has(event.row.effective_range) && event.row.effective_range.to != null ? { \"exit_key\": string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") } : {}), \"code\": d.code, \"title\": d.name, \"references\": d.references, \"subject_collection\": event.collection, \"subject_id\": event.row.id, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }), \"occurrence_key\": d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)) } })",
-					"events": ["created", "updated", "daily", "after_exit", "calendar"]
-				},
-				{
-					"id": "write-public-holidays",
-					"target_collection": "entity",
-					"events": ["created", "calendar"],
-					"when": "true",
-					"reads": {
-						"calendar": {
-							"collection": "rule_set",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"family": {
-									"eq": "\"PAYROLL\""
-								},
-								"code": {
-									"eq": "\"public_holidays\""
-								}
-							},
-							"select": ["rules"]
-						},
-						"held": {
-							"collection": "holiday",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								}
-							},
-							"select": ["date"]
-						}
-					},
-					"effect": "calendar.exists(c, has(c.rules.holidays)) ? first(calendar).rules.holidays.filter(h, (!has(h.regions) || event.row.region in h.regions) && !held.exists(x, x.date == h.date)).map(h, { \"collection\": \"holiday\", \"operation\": \"create\", \"data\": { \"company_id\": event.company_id, \"date\": h.date, \"name\": h.name, \"kind\": has(h.kind) ? h.kind : \"PUBLIC_HOLIDAY\", \"replaces\": has(h.replaces) ? h.replaces : null, \"given_to\": has(h.given_to) ? h.given_to : \"EVERYONE\" } }) : []"
-				}
-			]
-		},
 		"employee_input_schema": {
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
 			"type": "object",
@@ -1015,91 +716,6 @@
 					"description": "How the unit receives VSS results (bản điện tử or bản giấy), D02-LT column 17; the guide requires it on an exit, retirement or transfer. Unrecorded leaves the column empty. Quyết định 366/QĐ-BHXH ngày 29/4/2026, mẫu D02-LT and its guide (https://baohiemxahoi.gov.vn/vanban/Pages/default.aspx?ItemID=5018)"
 				}
 			}
-		},
-		"suspension_kinds": [
-			{
-				"code": "EMPLOYER_FAULT",
-				"name": "Stoppage by the employer’s fault — full contract wage",
-				"counts_as_attended": "true",
-				"scheduled": "true",
-				"pay": "day.day_type == \"WORK\" ? (terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) : 0.0",
-				"references": [
-					{
-						"title": "Labour Code art.99(1); counted service, Decree 145/2020 art.65(9)",
-						"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-					}
-				]
-			},
-			{
-				"code": "WORKER_FAULT",
-				"name": "Stoppage by the worker’s own fault — unpaid, not counted service",
-				"counts_as_attended": "false",
-				"scheduled": "true",
-				"pay": "0.0",
-				"references": [
-					{
-						"title": "Labour Code",
-						"locator": "art.99(2)",
-						"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-					}
-				]
-			},
-			{
-				"code": "COWORKER_FAULT",
-				"name": "Stoppage by another worker’s fault — agreed wage, at least the regional minimum",
-				"counts_as_attended": "true",
-				"scheduled": "true",
-				"pay": "day.day_type == \"WORK\" ? max((terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) * (has(suspension.facts.agreed_pay_percent) ? double(suspension.facts.agreed_pay_percent) : (has(company.facts.stoppage_pay_percent) ? double(company.facts.stoppage_pay_percent) : 100.0)) / 100.0, (double(rules.minimum_wage.by_region[company.region in [\"II\", \"III\", \"IV\"] ? company.region : \"I\"]) / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days)))) : 0.0",
-				"references": [
-					{
-						"title": "Labour Code",
-						"locator": "art.99(2)",
-						"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-					}
-				]
-			},
-			{
-				"code": "OBJECTIVE_CAUSE",
-				"name": "Utility failure, natural disaster, fire, epidemic, enemy action, State-ordered relocation or economic reasons — agreed wage, at least the regional minimum for the first 14 working days",
-				"counts_as_attended": "true",
-				"scheduled": "true",
-				"pay": "day.day_type == \"WORK\" ? (double(suspension.working_days_elapsed) <= 14.0 ? max((terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) * (has(suspension.facts.agreed_pay_percent) ? double(suspension.facts.agreed_pay_percent) : (has(company.facts.stoppage_pay_percent) ? double(company.facts.stoppage_pay_percent) : 100.0)) / 100.0, (double(rules.minimum_wage.by_region[company.region in [\"II\", \"III\", \"IV\"] ? company.region : \"I\"]) / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days)))) : (terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) * (has(suspension.facts.agreed_pay_percent) ? double(suspension.facts.agreed_pay_percent) : (has(company.facts.stoppage_pay_percent) ? double(company.facts.stoppage_pay_percent) : 100.0)) / 100.0) : 0.0",
-				"references": [
-					{
-						"title": "Labour Code",
-						"locator": "art.99(3)",
-						"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-					}
-				]
-			},
-			{
-				"code": "STRIKE_PARTICIPANT",
-				"name": "On strike — unpaid unless the parties agree otherwise",
-				"counts_as_attended": "false",
-				"scheduled": "true",
-				"pay": "day.day_type == \"WORK\" ? (terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) * (has(suspension.facts.agreed_pay_percent) ? double(suspension.facts.agreed_pay_percent) : 0.0) / 100.0 : 0.0",
-				"references": [
-					{
-						"title": "Labour Code",
-						"locator": "art.207(2)",
-						"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-					}
-				]
-			},
-			{
-				"code": "STRIKE_NON_PARTICIPANT",
-				"name": "Stopped by a strike without taking part — paid as art.99(2), at least the regional minimum",
-				"counts_as_attended": "true",
-				"scheduled": "true",
-				"pay": "day.day_type == \"WORK\" ? max((terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) * (has(suspension.facts.agreed_pay_percent) ? double(suspension.facts.agreed_pay_percent) : (has(company.facts.stoppage_pay_percent) ? double(company.facts.stoppage_pay_percent) : 100.0)) / 100.0, (double(rules.minimum_wage.by_region[company.region in [\"II\", \"III\", \"IV\"] ? company.region : \"I\"]) / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days)))) : 0.0",
-				"references": [
-					{
-						"title": "Labour Code",
-						"locator": "art.207(1)",
-						"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-					}
-				]
-			}
-		]
+		}
 	}
 ]

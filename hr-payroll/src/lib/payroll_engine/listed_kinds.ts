@@ -1,13 +1,13 @@
 import { Effect, Option, Schema } from 'effect';
 /**
- * A code a PAYROLL `rule_set` row of the governing version lists (`rules.kinds[] = { code, name }`): the exit grounds
+ * A code a PARAMETERS `rule_set` row of the governing version lists (`rules.kinds[] = { code, name }`): the exit grounds
  * (`exit_grounds`) and holiday kinds (`holiday_kinds`) are records, so a write is judged by the version in force on
  * its own day of the entity's lineage.
  */
 import type { Id } from '@norbital-ai/bolt';
 import type { Read } from './foundation.js';
 const isString = Schema.is(Schema.String);
-/** A kinds slot of a PAYROLL `rule_set` row (`exit_grounds`, `holiday_kinds`, `case_kinds`). */
+/** A kinds slot of a PARAMETERS `rule_set` row (`exit_grounds`, `holiday_kinds`, `case_kinds`). */
 const ListedKinds = Schema.Struct({
 	kinds: Schema.Array(
 		Schema.Struct({
@@ -16,7 +16,7 @@ const ListedKinds = Schema.Struct({
 		})
 	)
 });
-/** The `{ code, name }` kinds a PAYROLL `rule_set` row lists under `rules.kinds`, decoded once; a malformed slot lists none. */
+/** The `{ code, name }` kinds a PARAMETERS `rule_set` row lists under `rules.kinds`, decoded once; a malformed slot lists none. */
 export function kindsOf(rules: unknown): readonly {
 	readonly code: string;
 	readonly name: string;
@@ -62,7 +62,7 @@ export const refuseUnlistedKinds = Effect.fnUntraced(function* (
 		},
 		'jurisdiction_settings.rule_set': {
 			where: {
-				family: { eq: 'PAYROLL' },
+				family: { eq: 'PARAMETERS' },
 				code: { in: [...new Set(inputs.map((input) => input.rule))] }
 			},
 			fields: ['settings_id', 'code', 'rules']

@@ -2,7 +2,6 @@
 	{
 		"id": "ce303fc8-28fe-5251-ba73-13d84cb60f4a",
 		"code": "JP",
-		"jurisdiction_code": "JP",
 		"name": "Japan — 1 March 2026",
 		"sealed_at": "2026-10-06T00:00:00.000Z",
 		"voided_at": null,
@@ -13,27 +12,206 @@
 		"payroll": {
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
-			"tax_year_start_month": 1,
-			"pay_date": "period.to",
 			"week_start": 0,
-			"semi_monthly_split": 15,
 			"roster_week": "ROLLING",
-			"rolling_hours_months": 3,
-			"base_salary_required": true,
-			"off_cycle_families": ["ADHOC", "CLAIM"],
-			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
-			"negative_net": "refuse",
-			"exit_raise_when": "employment.exit_date >= add_months(period.from, -1)",
-			"exit_overpayment": "note",
-			"history_months": 12,
-			"attendance": {
-				"step_hours": 0.5,
-				"rounding": "DOWN",
-				"overtime_window": "AFTER_SHIFT",
-				"untimed_credit_day_types": ["REST", "OFF"]
-			},
-			"ten_day_splits": [10, 20],
-			"permanent_when": "!(has(terms.facts) && has(terms.facts.fixed_term) && terms.facts.fixed_term == true)"
+			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))"
+		},
+		"time_pay": {
+			"BASIC": [
+				{
+					"code": "BASIC",
+					"name": "基本給 (basic salary)",
+					"references": [
+						{
+							"title": "労働基準法 art.24: wages paid in full, in cash, directly, at least monthly on a fixed day. A part month is paid for the calendar days employed (the work rules’ own proration method governs; art.89(ii)). An hourly-paid term (terms.facts.pay_basis HOURLY) is paid its rate for every paid hour on a day other than the statutory rest day (work.days[].worked_hours: the planned hours when attended, plus the overtime past them), so its overtime lines pay the premium only; a daily-paid term (DAILY) its rate for every planned working day attended (a day off worked has no ordinary hours: its hours are overtime) (労働基準法 art.24; 最低賃金法施行規則 art.2). A sub-monthly entity (SEMI_MONTHLY, TEN_DAY, WEEKLY) pays the monthly amount spread evenly over the month’s parts (period.parts), each prorated by the part’s own paid days."
+						}
+					],
+					"eligibility": "true",
+					"quantity": "(has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"HOURLY\" ? sum(work.days.filter(d, d.day_type != \"REST\").map(x, x.worked_hours)) : (has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"DAILY\" ? double(size(work.days.filter(d, d.day_type != \"REST\").filter(x, x.worked && x.scheduled_hours > 0.0))) : period.paid_days / period.days / double(period.parts)",
+					"rate": "terms.base_salary",
+					"prorated": true,
+					"denominator": "double(period.days)",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": [
+						"HEALTH",
+						"PENSION",
+						"CHILD_CONTRIBUTION",
+						"SI_PREVIOUS_MONTH",
+						"EI",
+						"WORKERS_ACCIDENT",
+						"ASBESTOS_LEVY",
+						"INCOME_TAX",
+						"YEAR_END_ADJUSTMENT",
+						"RESIDENT_TAX"
+					]
+				}
+			],
+			"OVERTIME": [
+				{
+					"code": "WITHIN_HOURS_OVERTIME",
+					"name": "法内残業 (hours beyond the schedule within 8 a day)",
+					"references": [
+						{
+							"title": "労働基準法 arts.24, 32: approved overtime (every hour past the planned shift’s ordinary hours, off the statutory rest day) that stays within 8 hours a day and 40 a week (the limits OVERTIME applies) is wages at the ordinary rate, without a premium (法内残業); a monthly or daily wage covers only the scheduled hours. It is the approved overtime less the statutory part OVERTIME prices, so the two never pay the same hour. An hourly-paid worker is paid every hour by BASIC. The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (terms.facts.family_allowance_by_dependants; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (terms.facts.commuting_allowance_by_distance; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
+						}
+					],
+					"eligibility": "(has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") != \"HOURLY\" && (has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") in [\"STANDARD\", \"VARIABLE\"] && !(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"]) && max(0.0, sum(work.days.filter(d, d.day_type != \"REST\").map(d, d.overtime_hours)) - (sum(work.days.filter(d, d.day_type != \"REST\").map(x, max(0.0, x.worked_hours - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) + sum(work.days.filter(d, d.day_type != \"REST\").filter(s, !work.days.filter(d, d.day_type != \"REST\").exists(x, x.date < s.date && x.date >= add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)))).map(s, max(0.0, (sum(work.days.filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) + sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0))))) - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max((has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0), (sum(work.days.filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours)) + sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours)))) : (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0))) - max(0.0, sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max((has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0), sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours))) : (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0))))))) > 0.0",
+					"quantity": "max(0.0, sum(work.days.filter(d, d.day_type != \"REST\").map(d, d.overtime_hours)) - (sum(work.days.filter(d, d.day_type != \"REST\").map(x, max(0.0, x.worked_hours - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) + sum(work.days.filter(d, d.day_type != \"REST\").filter(s, !work.days.filter(d, d.day_type != \"REST\").exists(x, x.date < s.date && x.date >= add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)))).map(s, max(0.0, (sum(work.days.filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) + sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0))))) - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max((has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0), (sum(work.days.filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours)) + sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours)))) : (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0))) - max(0.0, sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max((has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0), sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours))) : (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0)))))))",
+					"rate": "round(((has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"HOURLY\" ? terms.base_salary : (has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"DAILY\" ? terms.base_salary / (has(terms.facts.scheduled_daily_hours) ? double(terms.facts.scheduled_daily_hours) : 8.0) : (terms.base_salary + sum(terms.allowances.filter(a, !(has(a.code) && a.code == \"FAMILY_ALLOWANCE\" && (has(terms.facts.family_allowance_by_dependants) && terms.facts.family_allowance_by_dependants == true)) && !(has(a.code) && a.code == \"COMMUTING_ALLOWANCE\" && (has(terms.facts.commuting_allowance_by_distance) && terms.facts.commuting_allowance_by_distance == true)) && !(has(a.code) && a.code == \"HOUSING_ALLOWANCE\" && has(terms.facts.housing_allowance_cost_linked) && terms.facts.housing_allowance_cost_linked == true)).map(a, double(a.amount)))) / double(company.facts.monthly_average_scheduled_hours)), 1.0, \"HALF_UP\")",
+					"prorated": false,
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": [
+						"HEALTH",
+						"PENSION",
+						"CHILD_CONTRIBUTION",
+						"SI_PREVIOUS_MONTH",
+						"EI",
+						"WORKERS_ACCIDENT",
+						"ASBESTOS_LEVY",
+						"INCOME_TAX",
+						"YEAR_END_ADJUSTMENT",
+						"RESIDENT_TAX"
+					]
+				},
+				{
+					"code": "OVERTIME",
+					"name": "時間外労働 割増賃金 (overtime, first 60 hours)",
+					"references": [
+						{
+							"title": "労働基準法 art.37(1) with 割増賃金令: overtime beyond the statutory hours (art.32: 40 a week, 8 a day) at 125% of the hourly wage, up to 60 hours a month; 労働基準法施行規則 art.19(1)(iv): a monthly wage over the monthly average scheduled hours (company.facts.monthly_average_scheduled_hours). Every hour past the planned shift’s ordinary hours is approved overtime (work.days[].overtime_hours; work.days[].worked_hours are the paid hours, ordinary plus overtime). Off the statutory rest day it is split once: the statutory part is the paid hours beyond 8 a day, then beyond 40 a week counting each day’s hours up to 8 (44 at a 特例措置対象事業場 under 10 workers in commerce, cinema, health or hospitality, 施行規則 art.25の2; company.facts.weekly_limit_44), the week starting on company.facts.week_start_day; under a variable schedule (変形労働時間制, arts.32の2, 32の4) beyond the scheduled day and week where longer. The statutory part never exceeds the approved overtime; the rest is WITHIN_HOURS_OVERTIME at the ordinary rate, so no hour is paid twice. Under flextime (art.32の3) it is the paid hours beyond 40 a week over the month; under a discretionary or deemed regime (arts.38の2–38の4) the deemed hours beyond 8 a day (company.facts.working_time_regime, deemed_daily_hours). A calendar week that opens before the attendance window counts its earlier days (work.week_before) toward the 40 hours, and the period pays only the excess beyond what those days alone already exceeded (昭和63年1月1日 基発1号: the week is the calendar week). Statutory rest-day hours are REST_DAY_WORK, never here. The base excludes the family, commuting and (cost-linked) housing allowances (art.37(5), 施行規則 art.21; terms.allowances[]). An hourly-paid term already has its hours in BASIC, so the line pays the premium only. The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (terms.facts.family_allowance_by_dependants; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (terms.facts.commuting_allowance_by_distance; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
+						}
+					],
+					"eligibility": "((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"FLEX\" ? max(0.0, sum(work.days.filter(d, d.day_type != \"REST\").map(x, x.worked_hours)) - (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0) * double(period.days) / 7.0) : (has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"DEEMED\" ? sum(work.days.filter(d, d.day_type != \"REST\").filter(x, x.worked).map(x, max(0.0, (has(company.facts.deemed_daily_hours) ? double(company.facts.deemed_daily_hours) : 8.0) - 8.0))) : min(sum(work.days.filter(d, d.day_type != \"REST\").map(x, max(0.0, x.worked_hours - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) + sum(work.days.filter(d, d.day_type != \"REST\").filter(s, !work.days.filter(d, d.day_type != \"REST\").exists(x, x.date < s.date && x.date >= add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)))).map(s, max(0.0, (sum(work.days.filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) + sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0))))) - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max((has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0), (sum(work.days.filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours)) + sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours)))) : (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0))) - max(0.0, sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max((has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0), sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours))) : (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0))))), sum(work.days.filter(d, d.day_type != \"REST\").map(d, d.overtime_hours)))) > 0.0 && !(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"quantity": "min(((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"FLEX\" ? max(0.0, sum(work.days.filter(d, d.day_type != \"REST\").map(x, x.worked_hours)) - (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0) * double(period.days) / 7.0) : (has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"DEEMED\" ? sum(work.days.filter(d, d.day_type != \"REST\").filter(x, x.worked).map(x, max(0.0, (has(company.facts.deemed_daily_hours) ? double(company.facts.deemed_daily_hours) : 8.0) - 8.0))) : min(sum(work.days.filter(d, d.day_type != \"REST\").map(x, max(0.0, x.worked_hours - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) + sum(work.days.filter(d, d.day_type != \"REST\").filter(s, !work.days.filter(d, d.day_type != \"REST\").exists(x, x.date < s.date && x.date >= add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)))).map(s, max(0.0, (sum(work.days.filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) + sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0))))) - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max((has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0), (sum(work.days.filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours)) + sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours)))) : (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0))) - max(0.0, sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max((has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0), sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours))) : (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0))))), sum(work.days.filter(d, d.day_type != \"REST\").map(d, d.overtime_hours)))), 60.0)",
+					"rate": "round(((has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"HOURLY\" ? terms.base_salary : (has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"DAILY\" ? terms.base_salary / (has(terms.facts.scheduled_daily_hours) ? double(terms.facts.scheduled_daily_hours) : 8.0) : (terms.base_salary + sum(terms.allowances.filter(a, !(has(a.code) && a.code == \"FAMILY_ALLOWANCE\" && (has(terms.facts.family_allowance_by_dependants) && terms.facts.family_allowance_by_dependants == true)) && !(has(a.code) && a.code == \"COMMUTING_ALLOWANCE\" && (has(terms.facts.commuting_allowance_by_distance) && terms.facts.commuting_allowance_by_distance == true)) && !(has(a.code) && a.code == \"HOUSING_ALLOWANCE\" && has(terms.facts.housing_allowance_cost_linked) && terms.facts.housing_allowance_cost_linked == true)).map(a, double(a.amount)))) / double(company.facts.monthly_average_scheduled_hours)) * (((has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"HOURLY\") ? 0.25 : 1.25), 1.0, \"HALF_UP\")",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": [
+						"HEALTH",
+						"PENSION",
+						"CHILD_CONTRIBUTION",
+						"SI_PREVIOUS_MONTH",
+						"EI",
+						"WORKERS_ACCIDENT",
+						"ASBESTOS_LEVY",
+						"INCOME_TAX",
+						"YEAR_END_ADJUSTMENT",
+						"RESIDENT_TAX"
+					]
+				},
+				{
+					"code": "OVERTIME_OVER_60",
+					"name": "時間外労働 割増賃金 (overtime beyond 60 hours a month)",
+					"references": [
+						{
+							"title": "労働基準法 art.37(1) proviso: overtime beyond 60 hours in a month at 150%; the small-enterprise deferral (附則 art.138) ended on 1 April 2023 (働き方改革関連法, Law 71 of 2018). Same statutory hours and hourly base as OVERTIME (the statutory part of the approved overtime, rest-day hours excluded). Hours replaced by 代替休暇 (art.37(3)) lose the extra 25% (OVERTIME_SUBSTITUTED). The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (terms.facts.family_allowance_by_dependants; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (terms.facts.commuting_allowance_by_distance; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
+						}
+					],
+					"eligibility": "((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"FLEX\" ? max(0.0, sum(work.days.filter(d, d.day_type != \"REST\").map(x, x.worked_hours)) - (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0) * double(period.days) / 7.0) : (has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"DEEMED\" ? sum(work.days.filter(d, d.day_type != \"REST\").filter(x, x.worked).map(x, max(0.0, (has(company.facts.deemed_daily_hours) ? double(company.facts.deemed_daily_hours) : 8.0) - 8.0))) : min(sum(work.days.filter(d, d.day_type != \"REST\").map(x, max(0.0, x.worked_hours - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) + sum(work.days.filter(d, d.day_type != \"REST\").filter(s, !work.days.filter(d, d.day_type != \"REST\").exists(x, x.date < s.date && x.date >= add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)))).map(s, max(0.0, (sum(work.days.filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) + sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0))))) - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max((has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0), (sum(work.days.filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours)) + sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours)))) : (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0))) - max(0.0, sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max((has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0), sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours))) : (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0))))), sum(work.days.filter(d, d.day_type != \"REST\").map(d, d.overtime_hours)))) > 60.0 && !(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"quantity": "max(0.0, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"FLEX\" ? max(0.0, sum(work.days.filter(d, d.day_type != \"REST\").map(x, x.worked_hours)) - (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0) * double(period.days) / 7.0) : (has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"DEEMED\" ? sum(work.days.filter(d, d.day_type != \"REST\").filter(x, x.worked).map(x, max(0.0, (has(company.facts.deemed_daily_hours) ? double(company.facts.deemed_daily_hours) : 8.0) - 8.0))) : min(sum(work.days.filter(d, d.day_type != \"REST\").map(x, max(0.0, x.worked_hours - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) + sum(work.days.filter(d, d.day_type != \"REST\").filter(s, !work.days.filter(d, d.day_type != \"REST\").exists(x, x.date < s.date && x.date >= add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)))).map(s, max(0.0, (sum(work.days.filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) + sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0))))) - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max((has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0), (sum(work.days.filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours)) + sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours)))) : (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0))) - max(0.0, sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max((has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0), sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours))) : (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0))))), sum(work.days.filter(d, d.day_type != \"REST\").map(d, d.overtime_hours)))) - 60.0)",
+					"rate": "round(((has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"HOURLY\" ? terms.base_salary : (has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"DAILY\" ? terms.base_salary / (has(terms.facts.scheduled_daily_hours) ? double(terms.facts.scheduled_daily_hours) : 8.0) : (terms.base_salary + sum(terms.allowances.filter(a, !(has(a.code) && a.code == \"FAMILY_ALLOWANCE\" && (has(terms.facts.family_allowance_by_dependants) && terms.facts.family_allowance_by_dependants == true)) && !(has(a.code) && a.code == \"COMMUTING_ALLOWANCE\" && (has(terms.facts.commuting_allowance_by_distance) && terms.facts.commuting_allowance_by_distance == true)) && !(has(a.code) && a.code == \"HOUSING_ALLOWANCE\" && has(terms.facts.housing_allowance_cost_linked) && terms.facts.housing_allowance_cost_linked == true)).map(a, double(a.amount)))) / double(company.facts.monthly_average_scheduled_hours)) * (((has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"HOURLY\") ? 0.5 : 1.5), 1.0, \"HALF_UP\")",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": [
+						"HEALTH",
+						"PENSION",
+						"CHILD_CONTRIBUTION",
+						"SI_PREVIOUS_MONTH",
+						"EI",
+						"WORKERS_ACCIDENT",
+						"ASBESTOS_LEVY",
+						"INCOME_TAX",
+						"YEAR_END_ADJUSTMENT",
+						"RESIDENT_TAX"
+					]
+				}
+			],
+			"REST_DAY_WORK": [
+				{
+					"code": "REST_DAY_WORK",
+					"name": "法定休日労働 割増賃金 (statutory rest-day work)",
+					"references": [
+						{
+							"title": "労働基準法 arts.35 and 37(1) with 割増賃金令: work on the statutory weekly rest day at 135% of the hourly wage for every hour worked (work.days with day_type REST — the shift definitions mark the 法定休日; a non-statutory day off is OFF and its hours are ordinary overtime). A rest day has no ordinary hours, so all its paid hours (work.days[].worked_hours) are here and none in OVERTIME or WITHIN_HOURS_OVERTIME; an hour beyond 8 on it stays at 135% (平成11年3月31日 基発168号). Same hourly base as OVERTIME; managers and supervisors (art.41(ii)) and officers are outside it. The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (terms.facts.family_allowance_by_dependants; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (terms.facts.commuting_allowance_by_distance; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
+						}
+					],
+					"eligibility": "sum(work.days.filter(d, d.day_type == \"REST\").map(d, d.worked_hours)) > 0.0 && !(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"quantity": "sum(work.days.filter(d, d.day_type == \"REST\").map(d, d.worked_hours))",
+					"rate": "round(((has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"HOURLY\" ? terms.base_salary : (has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"DAILY\" ? terms.base_salary / (has(terms.facts.scheduled_daily_hours) ? double(terms.facts.scheduled_daily_hours) : 8.0) : (terms.base_salary + sum(terms.allowances.filter(a, !(has(a.code) && a.code == \"FAMILY_ALLOWANCE\" && (has(terms.facts.family_allowance_by_dependants) && terms.facts.family_allowance_by_dependants == true)) && !(has(a.code) && a.code == \"COMMUTING_ALLOWANCE\" && (has(terms.facts.commuting_allowance_by_distance) && terms.facts.commuting_allowance_by_distance == true)) && !(has(a.code) && a.code == \"HOUSING_ALLOWANCE\" && has(terms.facts.housing_allowance_cost_linked) && terms.facts.housing_allowance_cost_linked == true)).map(a, double(a.amount)))) / double(company.facts.monthly_average_scheduled_hours)) * (((has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"HOURLY\") ? 1.35 : 1.35), 1.0, \"HALF_UP\")",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": [
+						"HEALTH",
+						"PENSION",
+						"CHILD_CONTRIBUTION",
+						"SI_PREVIOUS_MONTH",
+						"EI",
+						"WORKERS_ACCIDENT",
+						"ASBESTOS_LEVY",
+						"INCOME_TAX",
+						"YEAR_END_ADJUSTMENT",
+						"RESIDENT_TAX"
+					]
+				}
+			],
+			"NIGHT_WORK": [
+				{
+					"code": "NIGHT_WORK",
+					"name": "深夜労働 割増賃金 (late-night work premium)",
+					"references": [
+						{
+							"title": "労働基準法 art.37(4): work between 22:00 and 05:00 (rules.night_work) earns a further 25% of the hourly wage, on top of any overtime or rest-day premium (施行規則 art.20); it applies to managers and supervisors too (art.41 excludes only hours, breaks and rest days; 最高裁 平成21年12月18日). Hours are the paid intervals inside the window (hours_between over work.days[].intervals: the ordinary hours from the first arrival, then the overtime), ordinary, overtime and rest-day hours alike. Officers are not workers. The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (terms.facts.family_allowance_by_dependants; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (terms.facts.commuting_allowance_by_distance; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
+						}
+					],
+					"eligibility": "sum(work.days.map(d, hours_between(d.intervals, rules.night_work[\"from\"], rules.night_work.to))) > 0.0 && terms.work_classification != \"OFFICER\"",
+					"quantity": "sum(work.days.map(d, hours_between(d.intervals, rules.night_work[\"from\"], rules.night_work.to)))",
+					"rate": "round(((has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"HOURLY\" ? terms.base_salary : (has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"DAILY\" ? terms.base_salary / (has(terms.facts.scheduled_daily_hours) ? double(terms.facts.scheduled_daily_hours) : 8.0) : (terms.base_salary + sum(terms.allowances.filter(a, !(has(a.code) && a.code == \"FAMILY_ALLOWANCE\" && (has(terms.facts.family_allowance_by_dependants) && terms.facts.family_allowance_by_dependants == true)) && !(has(a.code) && a.code == \"COMMUTING_ALLOWANCE\" && (has(terms.facts.commuting_allowance_by_distance) && terms.facts.commuting_allowance_by_distance == true)) && !(has(a.code) && a.code == \"HOUSING_ALLOWANCE\" && has(terms.facts.housing_allowance_cost_linked) && terms.facts.housing_allowance_cost_linked == true)).map(a, double(a.amount)))) / double(company.facts.monthly_average_scheduled_hours)) * 0.25, 1.0, \"HALF_UP\")",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": [
+						"HEALTH",
+						"PENSION",
+						"CHILD_CONTRIBUTION",
+						"SI_PREVIOUS_MONTH",
+						"EI",
+						"WORKERS_ACCIDENT",
+						"ASBESTOS_LEVY",
+						"INCOME_TAX",
+						"YEAR_END_ADJUSTMENT",
+						"RESIDENT_TAX"
+					]
+				}
+			],
+			"MINIMUM_WAGE_TOP_UP": [
+				{
+					"code": "MINIMUM_WAGE_TOP_UP",
+					"name": "最低賃金差額 (minimum wage top-up)",
+					"references": [
+						{
+							"title": "最低賃金法 arts.4(1)–(2), 9 and 10: a wage below the regional minimum of the workplace's prefecture is void to that extent and replaced by the minimum (rules.minimum_wage.by_region[company.region]: the hourly amount in force on the last day of the period); 最低賃金法施行規則 art.2: a monthly wage is compared per hour over the monthly average scheduled hours. Officers are not workers. A specified (industry) minimum wage of the establishment's industry (最低賃金法 arts.15–16) governs where higher (art.6(1)); customer input: company.facts.industry_minimum_wage_hourly. The minimum is the workplace's prefecture (最低賃金法 arts.13, 18: the 事業場, or the client's site for a dispatched worker; terms.facts.workplace_region, else the entity's), less a reduction the labour bureau permitted for the worker (art.7; terms.facts.minimum_wage_reduction_rate). The wage compared is the base and the fixed allowances other than the 精皆勤手当, commuting and family allowances (最低賃金法 art.4(3), 施行規則 art.1(2); overtime, rest-day and night premiums and pay beyond a month are outside it), per hour; an hourly or daily rate per hour worked. A sub-monthly entity (SEMI_MONTHLY, TEN_DAY, WEEKLY) pays the monthly amount spread evenly over the month’s parts (period.parts), each prorated by the part’s own paid days. The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (terms.facts.family_allowance_by_dependants; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (terms.facts.commuting_allowance_by_distance; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
+						}
+					],
+					"eligibility": "terms.work_classification != \"OFFICER\" && max(double(first(rules.minimum_wage.by_region[(has(terms.facts.workplace_region) ? terms.facts.workplace_region : company.region)].filter(e, e[\"from\"] <= period.to)).amount), has(company.facts.industry_minimum_wage_hourly) ? double(company.facts.industry_minimum_wage_hourly) : 0.0) * (1.0 - (has(terms.facts.minimum_wage_reduction_rate) ? double(terms.facts.minimum_wage_reduction_rate) : 0.0)) > ((has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"HOURLY\" ? terms.base_salary : (has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"DAILY\" ? terms.base_salary / (has(terms.facts.scheduled_daily_hours) ? double(terms.facts.scheduled_daily_hours) : 8.0) : (terms.base_salary + sum(terms.allowances.filter(a, !(has(a.code) && a.code == \"FAMILY_ALLOWANCE\" && (has(terms.facts.family_allowance_by_dependants) && terms.facts.family_allowance_by_dependants == true)) && !(has(a.code) && a.code == \"COMMUTING_ALLOWANCE\" && (has(terms.facts.commuting_allowance_by_distance) && terms.facts.commuting_allowance_by_distance == true))).map(a, double(a.amount)))) / double(company.facts.monthly_average_scheduled_hours))",
+					"quantity": "((has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"MONTHLY\" ? period.paid_days / period.days / double(period.parts) * double(company.facts.monthly_average_scheduled_hours) : sum(work.days.filter(d, d.day_type != \"REST\").map(x, x.worked_hours)))",
+					"rate": "max(0.0, max(double(first(rules.minimum_wage.by_region[(has(terms.facts.workplace_region) ? terms.facts.workplace_region : company.region)].filter(e, e[\"from\"] <= period.to)).amount), has(company.facts.industry_minimum_wage_hourly) ? double(company.facts.industry_minimum_wage_hourly) : 0.0) * (1.0 - (has(terms.facts.minimum_wage_reduction_rate) ? double(terms.facts.minimum_wage_reduction_rate) : 0.0)) - ((has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"HOURLY\" ? terms.base_salary : (has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"DAILY\" ? terms.base_salary / (has(terms.facts.scheduled_daily_hours) ? double(terms.facts.scheduled_daily_hours) : 8.0) : (terms.base_salary + sum(terms.allowances.filter(a, !(has(a.code) && a.code in [\"FAMILY_ALLOWANCE\", \"COMMUTING_ALLOWANCE\", \"ATTENDANCE_ALLOWANCE\"])).map(a, double(a.amount)))) / double(company.facts.monthly_average_scheduled_hours)))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": [
+						"HEALTH",
+						"PENSION",
+						"CHILD_CONTRIBUTION",
+						"SI_PREVIOUS_MONTH",
+						"EI",
+						"WORKERS_ACCIDENT",
+						"ASBESTOS_LEVY",
+						"INCOME_TAX",
+						"YEAR_END_ADJUSTMENT",
+						"RESIDENT_TAX"
+					]
+				}
+			]
 		},
 		"sources": {
 			"entries": [
@@ -188,448 +366,6 @@
 			}
 		},
 		"change_summary": "1 March 2026: the FY2026 協会けんぽ prefectural health insurance rates (national average 9.90%) and the nursing care rate of 1.62% apply from the March 2026 premium (April payment).",
-		"reference_tables": {
-			"PREFECTURE": {
-				"HOKKAIDO": "北海道",
-				"AOMORI": "青森県",
-				"IWATE": "岩手県",
-				"MIYAGI": "宮城県",
-				"AKITA": "秋田県",
-				"YAMAGATA": "山形県",
-				"FUKUSHIMA": "福島県",
-				"IBARAKI": "茨城県",
-				"TOCHIGI": "栃木県",
-				"GUNMA": "群馬県",
-				"SAITAMA": "埼玉県",
-				"CHIBA": "千葉県",
-				"TOKYO": "東京都",
-				"KANAGAWA": "神奈川県",
-				"NIIGATA": "新潟県",
-				"TOYAMA": "富山県",
-				"ISHIKAWA": "石川県",
-				"FUKUI": "福井県",
-				"YAMANASHI": "山梨県",
-				"NAGANO": "長野県",
-				"GIFU": "岐阜県",
-				"SHIZUOKA": "静岡県",
-				"AICHI": "愛知県",
-				"MIE": "三重県",
-				"SHIGA": "滋賀県",
-				"KYOTO": "京都府",
-				"OSAKA": "大阪府",
-				"HYOGO": "兵庫県",
-				"NARA": "奈良県",
-				"WAKAYAMA": "和歌山県",
-				"TOTTORI": "鳥取県",
-				"SHIMANE": "島根県",
-				"OKAYAMA": "岡山県",
-				"HIROSHIMA": "広島県",
-				"YAMAGUCHI": "山口県",
-				"TOKUSHIMA": "徳島県",
-				"KAGAWA": "香川県",
-				"EHIME": "愛媛県",
-				"KOCHI": "高知県",
-				"FUKUOKA": "福岡県",
-				"SAGA": "佐賀県",
-				"NAGASAKI": "長崎県",
-				"KUMAMOTO": "熊本県",
-				"OITA": "大分県",
-				"MIYAZAKI": "宮崎県",
-				"KAGOSHIMA": "鹿児島県",
-				"OKINAWA": "沖縄県"
-			}
-		},
-		"behaviours": {
-			"version": 1,
-			"rules": [
-				{
-					"id": "payroll-run",
-					"catalog": "WORK",
-					"events": ["PAYROLL_CREATE"],
-					"when": "event.data.request.kind in [\"REGULAR\", \"OFF_CYCLE\"]"
-				},
-				{
-					"id": "pin-settled-entries",
-					"target_collection": "payroll_run",
-					"events": ["created"],
-					"when": "true",
-					"fields": ["pins"],
-					"reads": {
-						"slips": {
-							"collection": "payslip",
-							"where": {
-								"payroll_run_id": {
-									"eq": "event.row.id"
-								}
-							},
-							"select": ["id", "employment_id"]
-						}
-					},
-					"effect": "event.row.pins.map(p, { \"collection\": p.collection, \"operation\": \"update\", \"data\": { \"target\": [p.id], \"set\": { \"payslip_id\": first(slips.filter(s, s.employment_id == p.employment_id).map(s, s.id)) } } }).filter(w, w.data.set.payslip_id != null)"
-				},
-				{
-					"id": "hold-payslips",
-					"target_collection": "payroll_run",
-					"events": ["created"],
-					"when": "has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0",
-					"fields": ["holds"],
-					"reads": {
-						"slips": {
-							"collection": "payslip",
-							"where": {
-								"payroll_run_id": {
-									"eq": "event.row.id"
-								},
-								"status": {
-									"eq": "\"DRAFT\""
-								}
-							},
-							"select": ["id", "employment_id"]
-						}
-					},
-					"effect": "event.row.holds.map(h, { \"collection\": \"payslip\", \"operation\": \"update\", \"data\": { \"target\": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), \"set\": { \"status\": \"ON_HOLD\" } } }).filter(w, size(w.data.target) > 0)"
-				},
-				{
-					"id": "retract-exit-effects",
-					"target_collection": "employment_contract",
-					"events": ["updated"],
-					"when": "has(event.row.before) && event.row.before != null && (\"effective_range\" in event.row.before || \"exit_ground\" in event.row.before || \"exit_facts\" in event.row.before)",
-					"fields": ["before", "exit_facts", "exit_ground", "effective_range"],
-					"reads": {
-						"movements": {
-							"collection": "leave_catalog_entry",
-							"where": {
-								"employment_id": {
-									"eq": "event.row.id"
-								},
-								"payslip_id": {
-									"isNull": true
-								}
-							},
-							"select": ["reference"]
-						},
-						"tasks": {
-							"collection": "regulatory_task",
-							"where": {
-								"subject_id": {
-									"eq": "event.row.id"
-								},
-								"state": {
-									"eq": "\"OPEN\""
-								}
-							},
-							"select": ["occurrence_key", "facts"]
-						}
-					},
-					"effect": "movements.filter(m, m.reference != null && m.reference.startsWith(\"exit:\" + event.row.id + \":\") && !((event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\") != \"\" && m.reference.endsWith(\":\" + (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")))).map(m, { \"collection\": \"leave_catalog_entry\", \"operation\": \"delete\", \"data\": { \"target\": [m.id] } }) + tasks.filter(t, t.facts != null && has(t.facts.exit_key) && t.facts.exit_key != (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")).map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The exit it answered was changed on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
-				},
-				{
-					"id": "encash-leave-on-exit",
-					"target_collection": "employment_contract",
-					"events": ["updated"],
-					"when": "event.row.exit_facts != null && event.row.effective_range.to != null",
-					"fields": ["exit_facts", "effective_range"],
-					"reads": {
-						"catalogues": {
-							"collection": "leave_catalog",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"encash_on_exit": {
-									"eq": true
-								}
-							},
-							"select": ["id", "code", "unit", "entitlement"]
-						},
-						"movements": {
-							"collection": "leave_catalog_entry",
-							"where": {
-								"employment_id": {
-									"eq": "event.row.id"
-								}
-							},
-							"select": ["catalog_id", "activity", "days", "reference"]
-						}
-					},
-					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))) } }).filter(w, w.data.days > 0)"
-				},
-				{
-					"id": "raise-obligations",
-					"target_collection": "payroll_run",
-					"events": ["created"],
-					"when": "true",
-					"fields": ["period", "company_id"],
-					"reads": {
-						"duties": {
-							"collection": "rule_set",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"family": {
-									"eq": "\"OBLIGATIONS\""
-								}
-							},
-							"select": ["code", "name", "references", "rules"]
-						},
-						"company": {
-							"collection": "entity",
-							"where": {
-								"id": {
-									"eq": "event.company_id"
-								}
-							},
-							"select": ["name", "region", "risk_class", "time_zone", "facts"]
-						},
-						"holidays": {
-							"collection": "holiday",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								},
-								"published_at": {
-									"isNull": false
-								},
-								"date": {
-									"gte": "add_days(event.day, -31)",
-									"lte": "add_days(event.day, 400)"
-								}
-							},
-							"select": ["date", "name", "kind"]
-						},
-						"raised": {
-							"collection": "obligation",
-							"where": {
-								"trigger_ref": {
-									"eq": "event.row.id"
-								}
-							},
-							"select": ["duty_code"]
-						}
-					},
-					"effect": "duties.filter(d, (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }) == true) && !raised.exists(o, o.duty_code == d.code)).map(d, { \"collection\": \"obligation\", \"operation\": \"create\", \"data\": { \"duty_code\": d.code, \"references\": d.references, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }), \"amount_due\": has(d.rules.amount) ? configured_eval(d.rules.amount, { \"rules\": event.rules, \"total\": sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), \"run\": run, \"period\": event.period, \"company\": first(company), \"headcount_months\": event.headcount_months }) : round(sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), 0.01), \"occurrence_key\": d.code + \":\" + event.row.id } }).filter(w, w.data.amount_due > 0.0)"
-				},
-				{
-					"id": "withdraw-run-duties",
-					"target_collection": "payroll_run",
-					"events": ["deleted"],
-					"reads": {
-						"obligations": {
-							"collection": "obligation",
-							"where": {
-								"trigger_ref": {
-									"eq": "event.row.id"
-								},
-								"state": {
-									"eq": "\"OPEN\""
-								}
-							},
-							"select": ["amount_settled"]
-						},
-						"tasks": {
-							"collection": "regulatory_task",
-							"where": {
-								"subject_id": {
-									"eq": "event.row.id"
-								},
-								"state": {
-									"eq": "\"OPEN\""
-								}
-							},
-							"select": ["occurrence_key"]
-						}
-					},
-					"effect": "obligations.filter(o, o.amount_settled == null).map(o, { \"collection\": \"obligation\", \"operation\": \"delete\", \"data\": { \"target\": [o.id] } }) + tasks.map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The payroll run that raised it was deleted on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
-				},
-				{
-					"id": "encash-leave-at-window-end",
-					"target_collection": "calendar",
-					"events": ["daily"],
-					"when": "size(event.leave_balances) > 0",
-					"reads": {
-						"catalogues": {
-							"collection": "leave_catalog",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"encash_at_window_end": {
-									"eq": true
-								}
-							},
-							"select": ["id", "code"]
-						},
-						"movements": {
-							"collection": "leave_catalog_entry",
-							"where": {
-								"employment_id": {
-									"eq": "event.row.id"
-								},
-								"activity": {
-									"eq": "\"ENCASHMENT\""
-								}
-							},
-							"select": ["reference"]
-						}
-					},
-					"effect": "catalogues.filter(c, !movements.exists(m, m.reference == \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.day, \"activity\": \"ENCASHMENT\", \"reference\": \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code && b.window_to == event.day).map(b, b.available))) } }).filter(w, w.data.days > 0)"
-				},
-				{
-					"id": "raise-tasks",
-					"when": "true",
-					"fields": [
-						"period",
-						"company_id",
-						"employment_id",
-						"status",
-						"employee_id",
-						"effective_range",
-						"facts"
-					],
-					"reads": {
-						"tasks": {
-							"collection": "rule_set",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"family": {
-									"eq": "\"TASKS\""
-								}
-							},
-							"select": ["code", "name", "references", "rules"]
-						},
-						"company": {
-							"collection": "entity",
-							"where": {
-								"id": {
-									"eq": "event.company_id"
-								}
-							},
-							"select": [
-								"name",
-								"region",
-								"risk_class",
-								"time_zone",
-								"registration_number",
-								"facts"
-							]
-						},
-						"contract": {
-							"collection": "employment_contract",
-							"where": {
-								"id": {
-									"in": "(event.employment_id == null ? [] : [event.employment_id])"
-								}
-							},
-							"select": [
-								"id",
-								"company_id",
-								"employee_id",
-								"effective_range",
-								"prior_service_months",
-								"engagement",
-								"exit_ground",
-								"exit_facts",
-								"facts"
-							]
-						},
-						"employee": {
-							"collection": "employment_profile",
-							"where": {
-								"id": {
-									"in": "(event.employee_id == null ? [] : [event.employee_id])"
-								}
-							},
-							"select": [
-								"nationality",
-								"gender",
-								"date_of_birth",
-								"marital_status",
-								"children",
-								"facts"
-							]
-						},
-						"holidays": {
-							"collection": "holiday",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								},
-								"published_at": {
-									"isNull": false
-								},
-								"date": {
-									"gte": "add_days(event.day, -31)",
-									"lte": "add_days(event.day, 400)"
-								}
-							},
-							"select": ["date", "name", "kind"]
-						},
-						"raised": {
-							"collection": "regulatory_task",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								},
-								"triggered_on": {
-									"gte": "add_days(event.day, -400)"
-								}
-							},
-							"select": ["occurrence_key"]
-						},
-						"subject_tasks": {
-							"collection": "regulatory_task",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								},
-								"subject_id": {
-									"eq": "event.row.id"
-								}
-							},
-							"select": ["occurrence_key"]
-						}
-					},
-					"effect": "tasks.filter(d, has(d.rules.trigger) && d.rules.trigger.collection == event.collection && event.action in d.rules.trigger.events && (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.when) || configured_eval(d.rules.when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && !(raised + subject_tasks).exists(t, t.occurrence_key == d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)))).map(d, { \"collection\": \"regulatory_task\", \"operation\": \"create\", \"data\": { \"facts\": (event.collection in [\"employment_contract\", \"calendar\"] && has(event.row.exit_facts) && event.row.exit_facts != null && has(event.row.effective_range) && event.row.effective_range.to != null ? { \"exit_key\": string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") } : {}), \"code\": d.code, \"title\": d.name, \"references\": d.references, \"subject_collection\": event.collection, \"subject_id\": event.row.id, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }), \"occurrence_key\": d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)) } })",
-					"events": ["created", "updated", "daily", "after_exit", "calendar"]
-				},
-				{
-					"id": "write-public-holidays",
-					"target_collection": "entity",
-					"events": ["created", "calendar"],
-					"when": "true",
-					"reads": {
-						"calendar": {
-							"collection": "rule_set",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"family": {
-									"eq": "\"PAYROLL\""
-								},
-								"code": {
-									"eq": "\"public_holidays\""
-								}
-							},
-							"select": ["rules"]
-						},
-						"held": {
-							"collection": "holiday",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								}
-							},
-							"select": ["date"]
-						}
-					},
-					"effect": "calendar.exists(c, has(c.rules.holidays)) ? first(calendar).rules.holidays.filter(h, (!has(h.regions) || event.row.region in h.regions) && !held.exists(x, x.date == h.date)).map(h, { \"collection\": \"holiday\", \"operation\": \"create\", \"data\": { \"company_id\": event.company_id, \"date\": h.date, \"name\": h.name, \"kind\": has(h.kind) ? h.kind : \"PUBLIC_HOLIDAY\", \"replaces\": has(h.replaces) ? h.replaces : null, \"given_to\": has(h.given_to) ? h.given_to : \"EVERYONE\" } }) : []"
-				}
-			]
-		},
 		"employee_input_schema": {
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
 			"type": "object",
@@ -1380,7 +1116,7 @@
 			"type": "object",
 			"title": "JP entity inputs",
 			"additionalProperties": false,
-			"description": "entity.facts. The entity region is the prefecture code of reference_tables.PREFECTURE (HOKKAIDO … OKINAWA): it selects the 協会けんぽ rate and the regional minimum wage.",
+			"description": "entity.facts. The entity region is the prefecture code of the prefectures rule set (HOKKAIDO … OKINAWA): it selects the 協会けんぽ rate and the regional minimum wage.",
 			"required": ["monthly_average_scheduled_hours", "workers_accident_rate_per_mille"],
 			"properties": {
 				"monthly_average_scheduled_hours": {
@@ -1664,68 +1400,6 @@
 				}
 			}
 		},
-		"cloned_from_id": "594da0e0-dba6-55ea-b507-b51b34fd3ba8",
-		"suspension_kinds": [
-			{
-				"code": "EMPLOYER_CAUSED",
-				"name": "使用者の責に帰すべき事由による休業",
-				"counts_as_attended": "false",
-				"scheduled": "false",
-				"pay": "day.day_type != \"REST\" && day.day_type != \"OFF\" && !day.worked && ((has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") != \"MONTHLY\" || (has(suspension.facts.deduct_salary) && suspension.facts.deduct_salary == true)) ? round((has(suspension.facts.pay_rate) ? max(0.6, double(suspension.facts.pay_rate)) : 0.6) * (has(suspension.facts.average_daily_wage) ? double(suspension.facts.average_daily_wage) : max(((sum(earned.months.filter(m, m.month < day.date.substring(0, 7) && m.month >= add_months(month_start(day.date), -3).substring(0, 7)).map(m, (has(m.suspended_days_by_kind) && has(m.suspended_days_by_kind.EMPLOYER_CAUSED) ? double(m.suspended_days_by_kind.EMPLOYER_CAUSED) : 0.0) + (has(m.leave_days) && has(m.leave_days.OCCUPATIONAL_INJURY_ABSENCE) ? double(m.leave_days.OCCUPATIONAL_INJURY_ABSENCE) : 0.0) + (has(m.leave_days) && has(m.leave_days.PRENATAL_LEAVE) ? double(m.leave_days.PRENATAL_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.POSTNATAL_LEAVE) ? double(m.leave_days.POSTNATAL_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.CHILDCARE_LEAVE) ? double(m.leave_days.CHILDCARE_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.POSTNATAL_PATERNITY_LEAVE) ? double(m.leave_days.POSTNATAL_PATERNITY_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.FAMILY_CARE_LEAVE) ? double(m.leave_days.FAMILY_CARE_LEAVE) : 0.0) + (has(terms.facts) && has(terms.facts.probation_until) && terms.facts.probation_until != null && terms.facts.probation_until != \"\" && ((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\") <= (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")) ? double(calendar_distance_days(((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\"), (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")))) + 1.0 : 0.0))) >= (double(calendar_distance_days(add_months(month_start(day.date), -3), add_days(month_start(day.date), -1))) + 1.0)) ? sum(earned.months.filter(m, m.month < day.date.substring(0, 7) && m.month >= add_months(month_start(day.date), -3).substring(0, 7)).map(m, ((m.gross - (has(m.BONUS) ? m.BONUS : 0.0) - (has(m.BONUS_OVER_SIX_MONTHS) ? m.BONUS_OVER_SIX_MONTHS : 0.0) - (has(m.RETIREMENT_ALLOWANCE) ? m.RETIREMENT_ALLOWANCE : 0.0) - (has(m.DISMISSAL_NOTICE_ALLOWANCE) ? m.DISMISSAL_NOTICE_ALLOWANCE : 0.0) - (has(m.INJURY_WAITING_COMPENSATION) ? m.INJURY_WAITING_COMPENSATION : 0.0) - (has(m.LATE_WAGE_INTEREST) ? m.LATE_WAGE_INTEREST : 0.0) - (has(m.NIGHT_MEAL_CASH) ? m.NIGHT_MEAL_CASH : 0.0)) - (has(m.SUSPENSION_ALLOWANCE) ? m.SUSPENSION_ALLOWANCE : 0.0) + (has(m.SHUTDOWN_ALLOWANCE) ? m.SHUTDOWN_ALLOWANCE : 0.0)))) : sum(earned.months.filter(m, m.month < day.date.substring(0, 7) && m.month >= add_months(month_start(day.date), -3).substring(0, 7)).map(m, ((m.gross - (has(m.BONUS) ? m.BONUS : 0.0) - (has(m.BONUS_OVER_SIX_MONTHS) ? m.BONUS_OVER_SIX_MONTHS : 0.0) - (has(m.RETIREMENT_ALLOWANCE) ? m.RETIREMENT_ALLOWANCE : 0.0) - (has(m.DISMISSAL_NOTICE_ALLOWANCE) ? m.DISMISSAL_NOTICE_ALLOWANCE : 0.0) - (has(m.INJURY_WAITING_COMPENSATION) ? m.INJURY_WAITING_COMPENSATION : 0.0) - (has(m.LATE_WAGE_INTEREST) ? m.LATE_WAGE_INTEREST : 0.0) - (has(m.NIGHT_MEAL_CASH) ? m.NIGHT_MEAL_CASH : 0.0)) * (1.0 - min(1.0, (has(terms.facts) && has(terms.facts.probation_until) && terms.facts.probation_until != null && terms.facts.probation_until != \"\" && ((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\") <= (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")) ? double(calendar_distance_days(((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\"), (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")))) + 1.0 : 0.0) / (double(calendar_distance_days(m.month + \"-01\", month_end(m.month + \"-01\"))) + 1.0))) - (has(m.SUSPENSION_ALLOWANCE) ? m.SUSPENSION_ALLOWANCE : 0.0) + (has(m.SHUTDOWN_ALLOWANCE) ? m.SHUTDOWN_ALLOWANCE : 0.0))))) / max(1.0, ((sum(earned.months.filter(m, m.month < day.date.substring(0, 7) && m.month >= add_months(month_start(day.date), -3).substring(0, 7)).map(m, (has(m.suspended_days_by_kind) && has(m.suspended_days_by_kind.EMPLOYER_CAUSED) ? double(m.suspended_days_by_kind.EMPLOYER_CAUSED) : 0.0) + (has(m.leave_days) && has(m.leave_days.OCCUPATIONAL_INJURY_ABSENCE) ? double(m.leave_days.OCCUPATIONAL_INJURY_ABSENCE) : 0.0) + (has(m.leave_days) && has(m.leave_days.PRENATAL_LEAVE) ? double(m.leave_days.PRENATAL_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.POSTNATAL_LEAVE) ? double(m.leave_days.POSTNATAL_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.CHILDCARE_LEAVE) ? double(m.leave_days.CHILDCARE_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.POSTNATAL_PATERNITY_LEAVE) ? double(m.leave_days.POSTNATAL_PATERNITY_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.FAMILY_CARE_LEAVE) ? double(m.leave_days.FAMILY_CARE_LEAVE) : 0.0) + (has(terms.facts) && has(terms.facts.probation_until) && terms.facts.probation_until != null && terms.facts.probation_until != \"\" && ((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\") <= (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")) ? double(calendar_distance_days(((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\"), (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")))) + 1.0 : 0.0))) >= (double(calendar_distance_days(add_months(month_start(day.date), -3), add_days(month_start(day.date), -1))) + 1.0)) ? (double(calendar_distance_days(add_months(month_start(day.date), -3), add_days(month_start(day.date), -1))) + 1.0) : (double(calendar_distance_days(add_months(month_start(day.date), -3), add_days(month_start(day.date), -1))) + 1.0) - sum(earned.months.filter(m, m.month < day.date.substring(0, 7) && m.month >= add_months(month_start(day.date), -3).substring(0, 7)).map(m, (has(m.suspended_days_by_kind) && has(m.suspended_days_by_kind.EMPLOYER_CAUSED) ? double(m.suspended_days_by_kind.EMPLOYER_CAUSED) : 0.0) + (has(m.leave_days) && has(m.leave_days.OCCUPATIONAL_INJURY_ABSENCE) ? double(m.leave_days.OCCUPATIONAL_INJURY_ABSENCE) : 0.0) + (has(m.leave_days) && has(m.leave_days.PRENATAL_LEAVE) ? double(m.leave_days.PRENATAL_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.POSTNATAL_LEAVE) ? double(m.leave_days.POSTNATAL_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.CHILDCARE_LEAVE) ? double(m.leave_days.CHILDCARE_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.POSTNATAL_PATERNITY_LEAVE) ? double(m.leave_days.POSTNATAL_PATERNITY_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.FAMILY_CARE_LEAVE) ? double(m.leave_days.FAMILY_CARE_LEAVE) : 0.0) + (has(terms.facts) && has(terms.facts.probation_until) && terms.facts.probation_until != null && terms.facts.probation_until != \"\" && ((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\") <= (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")) ? double(calendar_distance_days(((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\"), (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")))) + 1.0 : 0.0))))), ((has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") != \"MONTHLY\" && sum(earned.months.filter(m, m.month < day.date.substring(0, 7) && m.month >= add_months(month_start(day.date), -3).substring(0, 7)).map(m, has(m.worked_days) ? double(m.worked_days) : 0.0)) > 0.0) ? 0.6 * ((sum(earned.months.filter(m, m.month < day.date.substring(0, 7) && m.month >= add_months(month_start(day.date), -3).substring(0, 7)).map(m, (has(m.suspended_days_by_kind) && has(m.suspended_days_by_kind.EMPLOYER_CAUSED) ? double(m.suspended_days_by_kind.EMPLOYER_CAUSED) : 0.0) + (has(m.leave_days) && has(m.leave_days.OCCUPATIONAL_INJURY_ABSENCE) ? double(m.leave_days.OCCUPATIONAL_INJURY_ABSENCE) : 0.0) + (has(m.leave_days) && has(m.leave_days.PRENATAL_LEAVE) ? double(m.leave_days.PRENATAL_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.POSTNATAL_LEAVE) ? double(m.leave_days.POSTNATAL_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.CHILDCARE_LEAVE) ? double(m.leave_days.CHILDCARE_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.POSTNATAL_PATERNITY_LEAVE) ? double(m.leave_days.POSTNATAL_PATERNITY_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.FAMILY_CARE_LEAVE) ? double(m.leave_days.FAMILY_CARE_LEAVE) : 0.0) + (has(terms.facts) && has(terms.facts.probation_until) && terms.facts.probation_until != null && terms.facts.probation_until != \"\" && ((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\") <= (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")) ? double(calendar_distance_days(((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\"), (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")))) + 1.0 : 0.0))) >= (double(calendar_distance_days(add_months(month_start(day.date), -3), add_days(month_start(day.date), -1))) + 1.0)) ? sum(earned.months.filter(m, m.month < day.date.substring(0, 7) && m.month >= add_months(month_start(day.date), -3).substring(0, 7)).map(m, ((m.gross - (has(m.BONUS) ? m.BONUS : 0.0) - (has(m.BONUS_OVER_SIX_MONTHS) ? m.BONUS_OVER_SIX_MONTHS : 0.0) - (has(m.RETIREMENT_ALLOWANCE) ? m.RETIREMENT_ALLOWANCE : 0.0) - (has(m.DISMISSAL_NOTICE_ALLOWANCE) ? m.DISMISSAL_NOTICE_ALLOWANCE : 0.0) - (has(m.INJURY_WAITING_COMPENSATION) ? m.INJURY_WAITING_COMPENSATION : 0.0) - (has(m.LATE_WAGE_INTEREST) ? m.LATE_WAGE_INTEREST : 0.0) - (has(m.NIGHT_MEAL_CASH) ? m.NIGHT_MEAL_CASH : 0.0)) - (has(m.SUSPENSION_ALLOWANCE) ? m.SUSPENSION_ALLOWANCE : 0.0) + (has(m.SHUTDOWN_ALLOWANCE) ? m.SHUTDOWN_ALLOWANCE : 0.0)))) : sum(earned.months.filter(m, m.month < day.date.substring(0, 7) && m.month >= add_months(month_start(day.date), -3).substring(0, 7)).map(m, ((m.gross - (has(m.BONUS) ? m.BONUS : 0.0) - (has(m.BONUS_OVER_SIX_MONTHS) ? m.BONUS_OVER_SIX_MONTHS : 0.0) - (has(m.RETIREMENT_ALLOWANCE) ? m.RETIREMENT_ALLOWANCE : 0.0) - (has(m.DISMISSAL_NOTICE_ALLOWANCE) ? m.DISMISSAL_NOTICE_ALLOWANCE : 0.0) - (has(m.INJURY_WAITING_COMPENSATION) ? m.INJURY_WAITING_COMPENSATION : 0.0) - (has(m.LATE_WAGE_INTEREST) ? m.LATE_WAGE_INTEREST : 0.0) - (has(m.NIGHT_MEAL_CASH) ? m.NIGHT_MEAL_CASH : 0.0)) * (1.0 - min(1.0, (has(terms.facts) && has(terms.facts.probation_until) && terms.facts.probation_until != null && terms.facts.probation_until != \"\" && ((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\") <= (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")) ? double(calendar_distance_days(((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\"), (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")))) + 1.0 : 0.0) / (double(calendar_distance_days(m.month + \"-01\", month_end(m.month + \"-01\"))) + 1.0))) - (has(m.SUSPENSION_ALLOWANCE) ? m.SUSPENSION_ALLOWANCE : 0.0) + (has(m.SHUTDOWN_ALLOWANCE) ? m.SHUTDOWN_ALLOWANCE : 0.0))))) / sum(earned.months.filter(m, m.month < day.date.substring(0, 7) && m.month >= add_months(month_start(day.date), -3).substring(0, 7)).map(m, has(m.worked_days) ? double(m.worked_days) : 0.0)) : 0.0)), 1.0, \"UP\") : 0.0",
-				"references": [
-					{
-						"title": "使用者の責に帰すべき事由による休業 (労働基準法 art.26: 休業手当 60% of the 平均賃金 (art.12) per scheduled day; excluded from the 全労働日 of the annual-leave 80% test, 平成25年7月10日 基発0710第3号) The 平均賃金 leaves out the periods art.12(3) lists, their days and their wages: occupational injury absence, 産前産後休業, an employer-caused suspension (suspension_kind EMPLOYER_CAUSED only, with the 休業手当 paid for it), 育児休業 (incl. 出生時育児休業), 介護休業 (earned.months leave_days, suspended_days_by_kind) and the probation period (terms.facts.probation_until, its wages prorated by calendar days); where they cover the whole three months the wages and days of the period are used undivided (施行規則 art.3; 昭和24年4月11日 基発421号), and a worker paid by the day or hour is guaranteed 60% of the three months’ wages over the days worked (art.12(1)(i); worked_days)."
-					}
-				]
-			},
-			{
-				"code": "FORCE_MAJEURE",
-				"name": "天災事変その他の不可抗力による休業",
-				"counts_as_attended": "false",
-				"scheduled": "false",
-				"pay": "",
-				"references": [
-					{
-						"title": "天災事変その他の不可抗力による休業 (no 休業手当: not attributable to the employer, 労働基準法 art.26; excluded from the 全労働日, 基発0710第3号; e.g. a natural disaster or a scheduled power cut, 平成23年3月15日 基監発0315第1号)"
-					}
-				]
-			},
-			{
-				"code": "STRIKE",
-				"name": "正当な争議行為（同盟罷業）",
-				"counts_as_attended": "false",
-				"scheduled": "false",
-				"pay": "",
-				"references": [
-					{
-						"title": "正当な争議行為（同盟罷業）による不就労 (no wage for the days not worked, 民法 art.624(1); excluded from the 全労働日, 基発0710第3号; non-strikers idled by a partial strike are not owed 休業手当, 最判昭和62年7月17日)"
-					}
-				]
-			},
-			{
-				"code": "LOCKOUT",
-				"name": "正当なロックアウト",
-				"counts_as_attended": "false",
-				"scheduled": "false",
-				"pay": "",
-				"references": [
-					{
-						"title": "正当なロックアウト (a defensive lockout releases the wage duty, 最判昭和50年4月25日 丸島水門事件; excluded from the 全労働日, 基発0710第3号; an unjustified lockout is EMPLOYER_CAUSED)"
-					}
-				]
-			},
-			{
-				"code": "GOVERNMENT_ORDER",
-				"name": "法令・行政命令による休業",
-				"counts_as_attended": "false",
-				"scheduled": "false",
-				"pay": "",
-				"references": [
-					{
-						"title": "法令・行政命令による休業 (a closure or work restriction ordered under law, e.g. 感染症法 art.18 就業制限: not attributable to the employer, no 休業手当; excluded from the 全労働日 as force majeure, 基発0710第3号)"
-					}
-				]
-			}
-		]
+		"cloned_from_id": "594da0e0-dba6-55ea-b507-b51b34fd3ba8"
 	}
 ]

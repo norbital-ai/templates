@@ -142,7 +142,6 @@ layer(world(rows).layer)('settled payroll locks', (it) => {
 			const created = yield* hr.act('jurisdiction_settings.create', [
 				{
 					code: 'XX',
-					jurisdiction_code: 'XX',
 					name: 'Draft to discard',
 					payroll: { currency: 'USD' },
 					sources: { entries: [] },

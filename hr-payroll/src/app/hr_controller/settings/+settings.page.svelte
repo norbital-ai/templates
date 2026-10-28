@@ -2,7 +2,8 @@
 	/**
 	 * The jurisdiction configuration app: one version of one settings lineage (MY, SG, …), chosen in the header, shared
 	 * by every entity bound to the lineage. Tabs: the version itself (its facts and work rules, the model's record
-	 * view), statutory contributions and the six catalogues. A sealed version is law that has frozen: no table
+	 * view), statutory contributions, its rule sets (VALIDATIONS, PARAMETERS and EXPORTS), its behaviours in run order and the six
+	 * catalogues. A sealed version is law that has frozen: no table
 	 * under it offers a create.
 	 */
 	import { bolt } from '$bolt';
@@ -38,8 +39,7 @@
 		['claim_catalog', 'lucide:receipt-text'],
 		['allowance_catalog', 'lucide:calendar-clock'],
 		['adhoc_catalog', 'lucide:hand-coins'],
-		['loan_catalog', 'lucide:landmark'],
-		['work_catalog', 'lucide:clock']
+		['loan_catalog', 'lucide:landmark']
 	] as const;
 	type Catalogue = (typeof CATALOGUES)[number][0];
 </script>
@@ -64,6 +64,36 @@
 					{ field: 'name', label: bolt.t('component.name') },
 					{ field: 'references', label: bolt.t('component.references') }
 				]}
+			/>
+		{/key}
+	{/if}
+{/snippet}
+
+{#snippet ruleSets()}
+	{#if version}
+		{#key version.id}
+			<Table
+				of="rule_set"
+				key="settings-rule-sets"
+				toolbar={{ title: bolt.t('section.rule_sets'), new: false }}
+				where={{ settings_id: { eq: version.id } }}
+				orderBy={{ family: 'asc' }}
+				columns={['family', 'code', 'name']}
+			/>
+		{/key}
+	{/if}
+{/snippet}
+
+{#snippet behaviours()}
+	{#if version}
+		{#key version.id}
+			<Table
+				of="behaviour"
+				key="settings-behaviours"
+				toolbar={{ title: bolt.t('section.behaviours'), new: !sealed }}
+				where={{ settings_id: { eq: version.id } }}
+				orderBy={{ order: 'asc' }}
+				columns={['order', 'code', 'name', 'target_collection', 'events']}
 			/>
 		{/key}
 	{/if}
@@ -117,8 +147,7 @@
 				claim_catalog: claimTab,
 				allowance_catalog: allowanceTab,
 				adhoc_catalog: adhocTab,
-				loan_catalog: loanTab,
-				work_catalog: workTab
+				loan_catalog: loanTab
 			}[collection]
 		}))}
 	/>
@@ -128,7 +157,6 @@
 {#snippet allowanceTab()}{@render catalogue('allowance_catalog')}{/snippet}
 {#snippet adhocTab()}{@render catalogue('adhoc_catalog')}{/snippet}
 {#snippet loanTab()}{@render catalogue('loan_catalog')}{/snippet}
-{#snippet workTab()}{@render catalogue('work_catalog')}{/snippet}
 
 {#snippet changes()}
 	<SnapshotChanges {version} {versions} />
@@ -168,6 +196,18 @@
 						title: bolt.t('component.statutory_contributions'),
 						icon: 'lucide:landmark',
 						body: contributions
+					},
+					{
+						name: 'rule_sets',
+						title: bolt.t('section.rule_sets'),
+						icon: 'lucide:list-checks',
+						body: ruleSets
+					},
+					{
+						name: 'behaviours',
+						title: bolt.t('section.behaviours'),
+						icon: 'lucide:workflow',
+						body: behaviours
 					},
 					{
 						name: 'catalog',

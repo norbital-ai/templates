@@ -10,6 +10,7 @@ const create_columns = [
 	'counts_toward',
 	'destination',
 	'direction',
+	'automatic',
 	'settings_id'
 ] as const;
 
@@ -21,7 +22,8 @@ const update_columns = [
 	'references',
 	'counts_toward',
 	'destination',
-	'direction'
+	'direction',
+	'automatic'
 ] as const;
 
 export default model('allowance_catalog', {

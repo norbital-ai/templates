@@ -229,7 +229,7 @@ export function withoutRows(
 	return {
 		...after,
 		settings: codes(SETTINGS).size === 0 ? after.settings : before.settings,
-		behaviour_rule: revert(before.behaviour_rule, after.behaviour_rule, codes('behaviour_rule')),
+		behaviour: revert(before.behaviour, after.behaviour, codes('behaviour')),
 		adhoc_catalog: revert(before.adhoc_catalog, after.adhoc_catalog, codes('adhoc_catalog')),
 		allowance_catalog: revert(
 			before.allowance_catalog,
@@ -239,16 +239,15 @@ export function withoutRows(
 		claim_catalog: revert(before.claim_catalog, after.claim_catalog, codes('claim_catalog')),
 		leave_catalog: revert(before.leave_catalog, after.leave_catalog, codes('leave_catalog')),
 		loan_catalog: revert(before.loan_catalog, after.loan_catalog, codes('loan_catalog')),
-		work_catalog: revert(before.work_catalog, after.work_catalog, codes('work_catalog')),
 		statutory_contribution_catalog: revert(
 			before.statutory_contribution_catalog,
 			after.statutory_contribution_catalog,
 			codes('statutory_contribution_catalog')
 		),
-		suspension_kind: revert(
-			before.suspension_kind,
-			after.suspension_kind,
-			codes('suspension_kind')
+		suspension_catalog: revert(
+			before.suspension_catalog,
+			after.suspension_catalog,
+			codes('suspension_catalog')
 		),
 		rule_set: revert(before.rule_set, after.rule_set, codes('rule_set'))
 	};

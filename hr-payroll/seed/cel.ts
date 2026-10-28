@@ -1,7 +1,6 @@
 import { Array as EffectArray } from 'effect';
 import { Predicate, Schema } from 'effect';
 import { STATUTORY_FIELDS } from '../src/lib/payroll_engine/statutory_fields.js';
-import { SUSPENSION_KINDS_SHAPE } from '../src/lib/payroll_engine/suspension_kinds.js';
 import { formatCel } from '../src/lib/ui/format/code_text.js';
 
 type Json = Schema.Json;
@@ -22,10 +21,7 @@ const expressions = (names: readonly string[]): Readonly<Record<string, Shape>> 
 	Object.fromEntries(names.map((name): [string, Shape] => [name, cel]));
 const declarations: Readonly<Record<string, Readonly<Record<string, Shape>>>> = {
 	...STATUTORY_FIELDS,
-	jurisdiction_settings: {
-		...STATUTORY_FIELDS.settings,
-		suspension_kinds: SUSPENSION_KINDS_SHAPE
-	}
+	jurisdiction_settings: STATUTORY_FIELDS.settings
 };
 
 /** Follow the declaration, rather than treating ordinary prose or amounts with the same key as CEL. */
@@ -91,51 +87,46 @@ export function formatSeedRow(collection: string, row: Row): Row {
 	const fields = declarations[collection];
 	const declared = rowOf(fields === undefined ? row : formatDeclared(row, object(fields)));
 	if (declared === null) return row;
-	const behaviours = rowOf(declared['behaviours']);
-	if (collection === 'jurisdiction_settings' && behaviours !== null) {
-		if (EffectArray.isArray<Json | undefined>(behaviours['rules'])) {
-			return {
-				...declared,
-				behaviours: {
-					...behaviours,
-					rules: behaviours['rules'].map((rule) => {
-						const entry = rowOf(rule);
-						const reads = rowOf(entry?.['reads']);
-						if (entry === null || reads === null) return rule;
-						return {
-							...entry,
-							reads: Object.fromEntries(
-								Object.entries(reads).map(([key, read]): [string, Json] => {
-									const definition = rowOf(read);
-									return [
-										key,
-										definition !== null && definition['where'] !== undefined
-											? { ...definition, where: formatWhere(definition['where']) }
-											: read
-									];
-								})
-							)
-						};
-					})
-				}
-			};
-		}
+	if (collection === 'behaviour') {
+		const reads = rowOf(declared['reads']);
+		return {
+			...declared,
+			...(reads === null
+				? {}
+				: {
+						reads: Object.fromEntries(
+							Object.entries(reads).map(([key, read]): [string, Json] => {
+								const held = rowOf(read);
+								return [
+									key,
+									held !== null && held['where'] !== undefined
+										? { ...held, where: formatWhere(held['where']) }
+										: read
+								];
+							})
+						)
+					}),
+			...(declared['definition'] == null
+				? {}
+				: { definition: formatDeclared(declared['definition'], dutyShape) })
+		};
 	}
 	if (collection === 'rule_set' && declared['rules'] !== undefined) {
 		const family = declared['family'];
+		const code = declared['code'];
 		const shape =
-			family === 'EXPORTS'
-				? exportsShape
-				: family === 'TASKS' || family === 'OBLIGATIONS'
-					? dutyShape
-					: family === 'VALIDATIONS'
-						? object({ when: cel })
-						: family === 'PAYROLL' && declared['code'] === 'record_retention'
-							? object({ until: cel })
-							: family === 'PAYROLL' && declared['code'] === 'overtime_classification'
-								? object({
-										limits: list(object(expressions(['from', 'limit', 'applies', 'hours'])))
-									})
+			family === 'VALIDATIONS'
+				? object({ when: cel })
+				: family !== 'PARAMETERS'
+					? undefined
+					: code === 'record_retention'
+						? object({ until: cel })
+						: code === 'overtime_classification'
+							? object({
+									limits: list(object(expressions(['from', 'limit', 'applies', 'hours'])))
+								})
+							: isRecord(declared['rules']) && Predicate.isString(declared['rules']['file'])
+								? exportsShape
 								: undefined;
 		if (shape !== undefined)
 			return { ...declared, rules: formatDeclared(declared['rules'], shape) };

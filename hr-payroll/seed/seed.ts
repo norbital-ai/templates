@@ -176,7 +176,7 @@ export default {
 				(rows['rule_set'] ?? []).some(
 					(row) =>
 						row['settings_id'] === settings['id'] &&
-						row['family'] === 'PAYROLL' &&
+						row['family'] === 'PARAMETERS' &&
 						row['code'] === 'overtime_classification'
 				)
 			)
@@ -204,11 +204,11 @@ export default {
 		// published on 1 December of the year before, as the bank's own rows are.
 		const lawHolidays = new Map<string, Row[]>();
 		for (const settings of rows['jurisdiction_settings'] ?? []) {
-			const lineage = settings['jurisdiction_code'];
+			const lineage = settings['code'];
 			const calendar = (rows['rule_set'] ?? []).find(
 				(row) =>
 					row['settings_id'] === settings['id'] &&
-					row['family'] === 'PAYROLL' &&
+					row['family'] === 'PARAMETERS' &&
 					row['code'] === 'public_holidays'
 			)?.['rules'];
 			const listed = isRecord(calendar) ? calendar['holidays'] : undefined;

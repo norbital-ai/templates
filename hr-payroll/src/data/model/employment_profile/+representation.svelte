@@ -17,19 +17,16 @@
 		Tabs,
 		type RecordView
 	} from '@norbital-ai/ui';
-	import { Cluster, Grid } from '@norbital-ai/ui/layout';
+	import { Grid } from '@norbital-ai/ui/layout';
 	import {
 		formatCalendarDate,
 		formatTermsDates
 	} from '../../../lib/ui/format/display_formatters.js';
 	import { listedKindNames } from '../../../lib/ui/format/listed_kind_names.svelte.js';
-	import { termsFromFacts } from '../../../lib/payroll_engine/contract_terms.js';
-	import ChangeTerms from '../../../lib/ui/person/change_terms.svelte';
 	import FaceEnrollFlow from '../../../lib/ui/person/face_enroll_flow.svelte';
 	import { governingVersion } from '../../../lib/ui/person/governing_version.svelte.js';
 	import { profileFactsSchema } from '../../../lib/ui/person/form_schema.js';
 	import Hire from '../../../lib/ui/person/hire.svelte';
-	import Offboarding from '../../../lib/ui/person/offboarding.svelte';
 
 	let { view }: { view: RecordView<'employment_profile'> } = $props();
 	const record = $derived(view.mode !== 'create' ? view.record : null);
@@ -43,15 +40,7 @@
 			: bolt.query({
 					employment_contract: {
 						where: { employee_id: { eq: record.id } },
-						fields: [
-							'employee_number',
-							'effective_range',
-							'exit_ground',
-							'exit_facts',
-							'signed_contract_end',
-							'company_id',
-							'facts'
-						]
+						fields: ['employee_number', 'effective_range', 'exit_ground', 'company_id']
 					},
 					'employment_contract.company_id': { fields: ['name'] }
 				})
@@ -81,10 +70,7 @@
 							? t('section.employment_current')
 							: t('section.employment_ended', { date: formatCalendarDate(to) }),
 						exit,
-						exitLabel: exit == null || exit === '' ? '—' : exitName(exit),
-						exitFacts: row.exit_facts ?? null,
-						plannedEnd: row.signed_contract_end == null ? null : String(row.signed_contract_end),
-						terms: termsFromFacts(row.facts)
+						exitLabel: exit == null || exit === '' ? '—' : exitName(exit)
 					}
 				];
 			})
@@ -171,23 +157,6 @@
 	</Form>
 {/snippet}
 
-{#snippet contractActions({ row }: { row: (typeof ordered)[number] })}
-	{#if row.current || row.exit != null}
-		<Cluster gap="sm">
-			<ChangeTerms id={row.id} companyId={row.companyId} terms={row.terms} ended={!row.current} />
-			<Offboarding
-				id={row.id}
-				companyId={row.companyId}
-				hireFrom={row.from}
-				lastDay={row.to}
-				exitGround={row.exit}
-				exitFacts={row.exitFacts}
-				plannedEnd={row.plannedEnd}
-			/>
-		</Cluster>
-	{/if}
-{/snippet}
-
 {#snippet contractsTab()}
 	<Section name="contracts" title={t('section.employment_contracts')}>
 		{#if contracts?.loading}
@@ -203,8 +172,7 @@
 					{ field: 'entity', label: t('models.entity.singular') },
 					{ field: 'period', label: t('component.effective_period') },
 					{ field: 'status', label: t('component.status') },
-					{ field: 'exitLabel', label: t('offboarding.ground') },
-					{ field: 'id', label: t('person.contract_actions'), cell: contractActions }
+					{ field: 'exitLabel', label: t('offboarding.ground') }
 				]}
 				toolbar={{
 					new: false,

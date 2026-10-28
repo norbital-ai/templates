@@ -2,8 +2,7 @@
 	{
 		"id": "b8176d2c-6830-5648-ab7a-adeb7d2979fb",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "record_retention",
 		"name": "Record retention after exit",
 		"references": [
@@ -25,8 +24,7 @@
 	{
 		"id": "29c073a9-7c11-5baa-9a78-4adc8daf13f9",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "minimum_wage",
 		"name": "Regional minimum wage (UMP/UMK)",
 		"references": [
@@ -8539,8 +8537,7 @@
 	{
 		"id": "69431826-594f-5cc4-a9ca-b00b4c93a814",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "public_holidays",
 		"name": "National public holidays (SKB 3 Menteri)",
 		"references": [
@@ -8764,438 +8761,9 @@
 		}
 	},
 	{
-		"id": "cfc13eba-afbb-5f37-9cfd-18479671520e",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "BPJS_KETENAGAKERJAAN_REMITTANCE",
-		"name": "BPJS Ketenagakerjaan contributions (JHT, JKK, JKM, JP)",
-		"references": [
-			{
-				"title": "PP 44/2015 arts.21–22(1) (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf); PP 46/2015 (JHT billed with them)"
-			}
-		],
-		"rules": {
-			"description": "Withhold the employee JHT and JP shares and pay them with the employer JHT, JKK, JKM and JP contributions of the wage month by the 15th of the following month; late payment carries a 2% fine per month late, borne by the employer. A 15th on a Saturday, Sunday or published holiday rolls to the next working day (PP 44/2015 art.21(3)).",
-			"schemes": ["JHT", "JP", "JKK", "JKM"],
-			"due": "next_working_day(add_days(period.to, 15), holidays, [\"SATURDAY\", \"SUNDAY\"])"
-		}
-	},
-	{
-		"id": "462a1689-ff7e-544b-8c02-93388fa296fd",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "BPJS_KESEHATAN_REMITTANCE",
-		"name": "BPJS Kesehatan contribution",
-		"references": [
-			{
-				"title": "Perpres 82/2018 arts.39(1), 42 as amended by Perpres 64/2020 and 59/2024",
-				"url": "https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf"
-			}
-		],
-		"rules": {
-			"description": "Collect the worker's 1% (and any elected extra-member 1%) and pay it with the 4% employer contribution by the 10th of each month; unpaid by month end suspends cover from the 1st of the next month. A 10th on a Saturday, Sunday or published holiday rolls to the next working day (art.39(4)).",
-			"schemes": ["KESEHATAN"],
-			"due": "next_working_day(add_days(period.from, 9), holidays, [\"SATURDAY\", \"SUNDAY\"])"
-		}
-	},
-	{
-		"id": "3d2cdaab-3b43-56a4-9113-045addf14b37",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "PPH21_PAYMENT",
-		"name": "PPh 21/26 deposit",
-		"references": [
-			{
-				"title": "PMK 81/2024 art.94(2); PMK 105/2025 art.5(1)–(2), PMK 10/2025 art.5(1)–(2) (DTP paid in cash to the worker, not deposited)",
-				"url": "https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024"
-			}
-		],
-		"rules": {
-			"description": "Deposit the PPh 21 and PPh 26 withheld in the tax period by the 15th of the following month, rolled to the next working day when that is a weekend or published holiday; PPh 21 borne by the government (PPH21_DTP, a negative charge) is reported, not deposited.",
-			"schemes": ["PPH21", "PPH21_DTP", "PPH21_FINAL_SEVERANCE", "PPH21_FINAL_PENSION", "PPH26"],
-			"due": "next_working_day(add_days(period.to, 15), holidays, [\"SATURDAY\", \"SUNDAY\"])"
-		}
-	},
-	{
-		"id": "07050d24-bf49-5e0e-8c01-484713136ed3",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PPH21_SPT_MASA",
-		"name": "SPT Masa PPh 21/26",
-		"references": [
-			{
-				"title": "UU KUP",
-				"locator": "art.3(3)(a) and art.7(1)"
-			},
-			{
-				"title": "PMK 81/2024"
-			},
-			{
-				"title": "PER-11/PJ/2025",
-				"url": "https://jdih.kemenkeu.go.id/dok/per-11pj2025"
-			}
-		],
-		"rules": {
-			"description": "File the SPT Masa PPh 21/26 with the month's withholding slips (bukti potong) within 20 days after the tax period ends; late filing Rp100,000 per SPT Masa. A due day on a Saturday, Sunday or published holiday rolls to the next working day.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "next_working_day(add_days(period.to, 20), holidays, [\"SATURDAY\", \"SUNDAY\"])"
-		}
-	},
-	{
-		"id": "5f9271c3-77b4-58d4-9661-fabbc9c44a46",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PPH21_BPA1_YEAR_END",
-		"name": "Bukti potong 1721-A1 (BPA1) for the tax year",
-		"references": [
-			{
-				"title": "PER-11/PJ/2025",
-				"locator": "art.7(2)",
-				"url": "https://jdih.kemenkeu.go.id/dok/per-11pj2025"
-			},
-			{
-				"title": "PMK 168/2023",
-				"locator": "art.13"
-			}
-		],
-		"rules": {
-			"description": "Give each permanent employee the annual withholding slip (formulir 1721-A1 / BPA1) for the tax year within one month after December, the last tax period.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["12"],
-			"due": "month_end(add_months(period.from, 1))"
-		}
-	},
-	{
-		"id": "5de91584-d7b9-57ef-8588-3f705ef27a80",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PTKP_STATUS_ANNUAL",
-		"name": "PTKP status as at 1 January",
-		"references": [
-			{
-				"title": "PMK 168/2023",
-				"locator": "art.9"
-			},
-			{
-				"title": "UU PPh",
-				"locator": "art.7(2)"
-			}
-		],
-		"rules": {
-			"description": "Fix each employee's PTKP status (marital status and dependants) on the circumstances at the start of the calendar year and record it before the January withholding; the TER category follows it.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["01"],
-			"due": "period.from"
-		}
-	},
-	{
-		"id": "28229440-ca4c-57a6-897f-900eb57ba05a",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "MINIMUM_WAGE_COMPLIANCE",
-		"name": "New provincial and city minimum wages in force",
-		"references": [
-			{
-				"title": "PP 36/2021 arts.23(3), 25 as amended by PP 51/2023 and PP 49/2025",
-				"url": "https://jdih.kemnaker.go.id/asset/data_puu/2025pp049.pdf"
-			}
-		],
-		"rules": {
-			"description": "Apply the governor's UMP/UMK decree for the year from its commencement on 1 January: no basic plus fixed allowances below the workplace minimum.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["01"],
-			"due": "period.from"
-		}
-	},
-	{
-		"id": "e71886f4-49bc-52cd-b400-e44c68c06f40",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PAYSLIP_ISSUE",
-		"name": "Wage slip",
-		"references": [
-			{
-				"title": "PP 36/2021",
-				"locator": "art.53(2)",
-				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
-			}
-		],
-		"rules": {
-			"description": "Give each worker a wage slip (\"bukti pembayaran Upah\") at the time the wage is paid. Raised per payslip when it is marked paid, due that day.",
-			"trigger": {
-				"collection": "payslip",
-				"events": ["updated"]
-			},
-			"when": "has(row.paid_on) && row.paid_on != null",
-			"due": "row.paid_on"
-		}
-	},
-	{
-		"id": "09ca3a95-d2ac-5093-81c0-facb1f954561",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "BPJS_KETENAGAKERJAAN_REGISTRATION",
-		"name": "BPJS Ketenagakerjaan registration of a new worker",
-		"references": [
-			{
-				"title": "PP 45/2015",
-				"locator": "art.4(1)–(2)",
-				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf"
-			},
-			{
-				"title": "PP 44/2015",
-				"locator": "arts.6–7",
-				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
-			},
-			{
-				"title": "UU 24/2011",
-				"locator": "art.15(1)"
-			}
-		],
-		"rules": {
-			"description": "Register the new worker for JKK, JKM, JHT and JP (JKP follows) within 30 days of the first day of work, with the worker's and family data; the participant card goes to the worker within 3 working days of receipt. Not raised for a foreign worker whose terms plan less than 6 months in Indonesia (UU 24/2011 art.14; PP 34/2021 art.8: private insurance instead).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 30)",
-			"applies_when": "(employee == null || !has(employee.nationality) || employee.nationality == \"ID\" || contract == null || !has(contract.facts) || contract.facts == null || !has(contract.facts.contract_terms) || !contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.indonesia_work_months_planned) && t.facts.indonesia_work_months_planned < 6.0))"
-		}
-	},
-	{
-		"id": "3f561c62-1e67-5c7a-9d44-3a447b52120e",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "BPJS_KESEHATAN_REGISTRATION",
-		"name": "BPJS Kesehatan registration of a new worker",
-		"references": [
-			{
-				"title": "Perpres 82/2018 arts.13–14, 17 as amended",
-				"url": "https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf"
-			}
-		],
-		"rules": {
-			"description": "Register the new worker and family (spouse and up to three children) with BPJS Kesehatan on employment; a foreigner once working six months in Indonesia. Not raised for a foreign worker whose terms plan less than 6 months in Indonesia (UU 24/2011 art.14; PP 34/2021 art.8: private insurance instead).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "hired_on",
-			"applies_when": "(employee == null || !has(employee.nationality) || employee.nationality == \"ID\" || contract == null || !has(contract.facts) || contract.facts == null || !has(contract.facts.contract_terms) || !contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.indonesia_work_months_planned) && t.facts.indonesia_work_months_planned < 6.0))"
-		}
-	},
-	{
-		"id": "a9f783a1-0a98-51c5-b235-d84920a16788",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PTKP_STATUS_AT_HIRE",
-		"name": "PTKP status and tax identity of a new employee",
-		"references": [
-			{
-				"title": "PMK 168/2023",
-				"locator": "art.9"
-			},
-			{
-				"title": "UU PPh",
-				"locator": "art.21(5a)"
-			}
-		],
-		"rules": {
-			"description": "Record the new employee's NIK/NPWP and PTKP status (marital status, dependants) before the first withholding.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "hired_on"
-		}
-	},
-	{
-		"id": "3086ec11-7003-51a9-8069-543043263789",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PKWT_REGISTRATION",
-		"name": "PKWT registration with the ministry",
-		"references": [
-			{
-				"title": "PP 35/2021",
-				"locator": "art.14",
-				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
-			}
-		],
-		"rules": {
-			"description": "Register a fixed-term contract (PKWT) online within 3 working days of signing (in writing at the regency/city manpower office within 7 working days where the online service is unavailable). Three working days (no Saturday, Sunday or published holiday). Waive it for a PKWTT (open-ended) hire.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"applies_when": "!has(contract.facts) || contract.facts == null || !has(contract.facts.contract_terms) || contract.facts.contract_terms.exists(t, t.employment_type == \"CONTRACT\")",
-			"due": "add_working_days(hired_on, 3, holidays, [\"SATURDAY\", \"SUNDAY\"])"
-		}
-	},
-	{
-		"id": "e3d2f48c-c963-5b9f-a17c-7a2cc11eacd3",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "FOREIGN_WORKER_RPTKA_DKPTKA",
-		"name": "RPTKA approval and DKPTKA payment for a foreign worker",
-		"references": [
-			{
-				"title": "PP 34/2021",
-				"locator": "arts.1 angka 7, 23",
-				"url": "https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021"
-			}
-		],
-		"rules": {
-			"description": "Before a foreign worker starts, hold the approved RPTKA and pay the DKPTKA compensation fund for the period worked in Indonesia. Raised for a hire whose nationality is not ID (ISO 3166-1 alpha-2).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"applies_when": "(employee == null || !has(employee.nationality) || employee.nationality != \"ID\")",
-			"due": "hired_on"
-		}
-	},
-	{
-		"id": "35e6611f-2d13-5d9d-95e5-6be2ac2a7a26",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PPH21_BPA1_EXIT",
-		"name": "Bukti potong 1721-A1 (BPA1) for a leaver",
-		"references": [
-			{
-				"title": "PER-11/PJ/2025",
-				"locator": "art.7(2)",
-				"url": "https://jdih.kemenkeu.go.id/dok/per-11pj2025"
-			},
-			{
-				"title": "PMK 168/2023",
-				"locator": "art.13"
-			}
-		],
-		"rules": {
-			"description": "Give a permanent employee (PERMANENT, or a full-time PKWT paid regularly) who stops working the annual withholding slip for the part year within one month after the exit month, the last tax period. Not raised for a part-time or daily worker (pegawai tidak tetap), who has the monthly bukti potong (PPH21_BUKTI_POTONG).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "month_end(add_months(exit_on, 1))",
-			"applies_when": "(contract == null || !has(contract.facts) || contract.facts == null || !has(contract.facts.contract_terms) || size(contract.facts.contract_terms) == 0 || contract.facts.contract_terms.exists(t, !has(t.employment_type) || t.employment_type in [\"PERMANENT\", \"CONTRACT\"]))"
-		}
-	},
-	{
-		"id": "a1b6fdc9-614d-5498-bd8d-9246de9f0da7",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "JKP_PHK_NOTIFICATION",
-		"name": "Termination notice to BPJS Ketenagakerjaan (JKP)",
-		"references": [
-			{
-				"title": "Permenaker 2/2025",
-				"locator": "art.9",
-				"url": "https://jdih.kemnaker.go.id/asset/data_puu/2025pmnaker002.pdf"
-			},
-			{
-				"title": "PP 37/2021 art.20 as amended by PP 6/2025"
-			}
-		],
-		"rules": {
-			"description": "Report a JKP participant's termination of employment (PHK) to BPJS Ketenagakerjaan through SIAPkerja within 7 working days; seven working days (no Saturday, Sunday or published holiday). Raised only for a termination cause JKP covers (not resignation, retirement, total permanent disability or death; the end of a PKWT records no cause) of an Indonesian national; not raised for a worker 54 or over when hired (never a JKP participant: PP 37/2021 art.4 as amended by PP 6/2025), the hire day standing for the registration day.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "has(contract.exit_facts) && contract.exit_facts != null && has(contract.exit_facts.termination_cause) && !(contract.exit_facts.termination_cause in [\"VOLUNTARY_RESIGNATION\", \"RETIREMENT\", \"DEATH\", \"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\"]) && !(employee == null || !has(employee.nationality) || employee.nationality != \"ID\") && (employee == null || !has(employee.date_of_birth) || employee.date_of_birth == \"\" || hired_on == null || double(age_on(employee.date_of_birth, hired_on)) < 54.0)",
-			"due": "add_working_days(exit_on, 7, holidays, [\"SATURDAY\", \"SUNDAY\"])"
-		}
-	},
-	{
-		"id": "fd6fcad0-5389-56fc-bb83-67aa7a4bcb12",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "TERMINATION_REPORT",
-		"name": "Report of a termination of employment",
-		"references": [
-			{
-				"title": "PP 35/2021",
-				"locator": "art.38",
-				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
-			}
-		],
-		"rules": {
-			"description": "Report the termination to the ministry and the provincial/regency manpower office once the worker received the notice and did not reject it. Raised for an employer-initiated termination cause (not a resignation or death).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "has(contract.exit_facts) && contract.exit_facts != null && has(contract.exit_facts.termination_cause) && !(contract.exit_facts.termination_cause in [\"VOLUNTARY_RESIGNATION\", \"DEATH\"])",
-			"due": "exit_on"
-		}
-	},
-	{
-		"id": "91fc50f9-92df-5240-8cfd-a16931ce8a1f",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WLKP_ESTABLISHMENT_REPORT",
-		"name": "Compulsory employment report (WLKP) on establishment",
-		"references": [
-			{
-				"title": "UU 7/1981",
-				"locator": "arts.6, 8",
-				"url": "https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981"
-			},
-			{
-				"title": "Permenaker 18/2017 as amended by Permenaker 4/2019"
-			}
-		],
-		"rules": {
-			"description": "Report the company's employment data to the manpower ministry (Wajib Lapor Ketenagakerjaan di Perusahaan, online) within 30 days of establishing, reopening or moving the company. Raised when the entity is created; the due day counts from the first day of that month, never later than the deadline. The annual report thereafter is not raised (its anniversary is not on the duty context).",
-			"trigger": {
-				"collection": "entity",
-				"events": ["created"]
-			},
-			"due": "add_days(period.from, 30)"
-		}
-	},
-	{
 		"id": "3b65d0ef-c6a4-5a34-9fed-f2533278a210",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MINIMUM_WAGE_FLOOR",
 		"name": "Wage at least the workplace minimum wage",
 		"references": [
@@ -9215,7 +8783,6 @@
 		"id": "974de2b4-93e0-56ae-b10f-ec6cf5cee2a8",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "BASIC_WAGE_SHARE",
 		"name": "Basic wage at least 75% of basic plus fixed allowances",
 		"references": [
@@ -9235,7 +8802,6 @@
 		"id": "343d9492-f97a-5d05-8086-8d10021468ca",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "OVERTIME_DAILY_LIMIT",
 		"name": "Overtime at most 4 hours a day",
 		"references": [
@@ -9255,7 +8821,6 @@
 		"id": "8239579c-e658-56b1-b881-1c5baa290a93",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "OVERTIME_WEEKLY_LIMIT",
 		"name": "Overtime at most 18 hours a week",
 		"references": [
@@ -9275,7 +8840,6 @@
 		"id": "7c11e78e-a5f1-5ac1-9552-bcc48c6d664f",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "WAGE_DEDUCTION_CEILING",
 		"name": "Wage deductions at most 50% of the wage paid",
 		"references": [
@@ -9292,141 +8856,9 @@
 		}
 	},
 	{
-		"id": "52f1099c-d689-5b45-9f2c-5a45ecc63231",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WLKP_ANNUAL_REPORT",
-		"name": "Annual compulsory employment report (WLKP)",
-		"references": [
-			{
-				"title": "UU 7/1981 art.8(1): the report is repeated every year; Permenaker 18/2017 as amended by Permenaker 4/2019",
-				"url": "https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981"
-			}
-		],
-		"rules": {
-			"description": "Report the company's employment data to the manpower ministry (WLKP online) every year, on the anniversary of its first report (`company.facts.wlkp_first_reported_on`). Raised once a year with that month's payroll run (one per company); a company without the date recorded raises nothing — record it.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"when": "has(company.facts.wlkp_first_reported_on) && months_through(company.facts.wlkp_first_reported_on, period.from) > 1.0 && int(months_through(company.facts.wlkp_first_reported_on, period.from) - 1.0) % 12 == 0",
-			"due": "add_months(company.facts.wlkp_first_reported_on, int(months_through(company.facts.wlkp_first_reported_on, period.from) - 1.0))"
-		}
-	},
-	{
-		"id": "69504514-5898-57e3-8905-7c29346ca53c",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORK_ACCIDENT_REPORT",
-		"name": "Work accident report to BPJS Ketenagakerjaan (stage I)",
-		"references": [
-			{
-				"title": "PP 44/2015",
-				"locator": "art.43",
-				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
-			},
-			{
-				"title": "UU 24/2011",
-				"locator": "art.15"
-			}
-		],
-		"rules": {
-			"description": "Report a work accident or occupational disease to BPJS Ketenagakerjaan and the manpower office within 2 × 24 hours of it (stage I). Raised when a WORK_ACCIDENT_LEAVE absence is recorded, counted from its first day; stage II is WORK_ACCIDENT_REPORT_STAGE2.",
-			"trigger": {
-				"collection": "leave_catalog_entry",
-				"events": ["created"]
-			},
-			"when": "row.catalog_code == \"WORK_ACCIDENT_LEAVE\"",
-			"due": "add_days(has(row.from) && row.from != null ? row.from : row.occurred_on, 2)"
-		}
-	},
-	{
-		"id": "15f679d9-61f5-5261-b506-9227c2ebf639",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "COMPANY_REGULATION_RENEWAL",
-		"name": "Renewal of the company regulations (Peraturan Perusahaan)",
-		"references": [
-			{
-				"title": "UU 13/2003",
-				"locator": "arts.108(1), 111(3)",
-				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
-			},
-			{
-				"title": "Permenaker 28/2014"
-			}
-		],
-		"rules": {
-			"description": "An employer of 10 or more workers must have company regulations ratified by the minister or official; they are valid for at most 2 years and must be renewed. Raised with the payroll run of the month the recorded validity ends (`company.facts.company_regulation_valid_until`), for a company of 10 or more workers.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"applies_when": "headcount >= 10.0",
-			"when": "has(company.facts.company_regulation_valid_until) && company.facts.company_regulation_valid_until >= period.from && company.facts.company_regulation_valid_until <= period.to",
-			"due": "company.facts.company_regulation_valid_until"
-		}
-	},
-	{
-		"id": "97a125d8-895e-50bc-9a32-3199cb463317",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "OVERTIME_WRITTEN_ORDER",
-		"name": "Written overtime order and consent",
-		"references": [
-			{
-				"title": "PP 35/2021",
-				"locator": "arts.28–29",
-				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
-			}
-		],
-		"rules": {
-			"description": "Overtime needs the employer's order and the worker's written or digital consent, and the employer keeps a list of the overtime worked (art.28). Raised when an attendance day is created or updated carrying approved overtime hours with no recorded consent (`overtime_consented_at`), due that day; meals of 1,400 kcal for 4 hours or more (art.29(1)(c)) are not tracked.",
-			"trigger": {
-				"collection": "roster_entry",
-				"events": ["created", "updated"]
-			},
-			"when": "has(row.approved_overtime_hours) && row.approved_overtime_hours != null && row.approved_overtime_hours > 0.0 && (!has(row.overtime_consented_at) || row.overtime_consented_at == null)",
-			"due": "row.work_date"
-		}
-	},
-	{
-		"id": "41bdf116-3793-54e3-a23a-d72be359a310",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "THR_PAYMENT",
-		"name": "THR before the religious holiday",
-		"references": [
-			{
-				"title": "Permenaker 6/2016",
-				"locator": "arts.1(2), 2, 5(1), 5(4), 10",
-				"url": "https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf"
-			},
-			{
-				"title": "PP 36/2021",
-				"locator": "art.62"
-			}
-		],
-		"rules": {
-			"description": "Pay the religious holiday allowance (THR) at the latest 7 days before each worker’s own religious holiday — Idul Fitri (Islam), Christmas / Kelahiran Yesus Kristus (Catholic and Protestant), Nyepi (Hindu), Waisak (Buddhist), Imlek (Konghucu); a late THR carries a 5% fine (LATE_THR_FINE). Raised with the payroll run of the month the 7-day deadline falls in, from the company’s published holidays (by name, Indonesian SKB names or English); waive it where no worker’s holiday is the one named.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"when": "holidays_named.exists(h, h.kind == \"PUBLIC_HOLIDAY\" && [\"Idul Fitri\", \"Idulfitri\", \"Eid al-Fitr\", \"Natal\", \"Kelahiran Yesus Kristus\", \"Christmas\", \"Nyepi\", \"Waisak\", \"Vesak\", \"Imlek\", \"Chinese New Year\"].exists(k, h.name.contains(k)) && add_days(h.date, -7) >= period.from && add_days(h.date, -7) <= period.to)",
-			"due": "add_days(first(holidays_named.filter(h, h.kind == \"PUBLIC_HOLIDAY\" && [\"Idul Fitri\", \"Idulfitri\", \"Eid al-Fitr\", \"Natal\", \"Kelahiran Yesus Kristus\", \"Christmas\", \"Nyepi\", \"Waisak\", \"Vesak\", \"Imlek\", \"Chinese New Year\"].exists(k, h.name.contains(k)) && add_days(h.date, -7) >= period.from)).date, -7)"
-		}
-	},
-	{
 		"id": "7aa4c91c-af62-56cd-8719-24e646ddc99b",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "SECTOR_MINIMUM_WAGE",
 		"name": "Sector minimum wage at least the governor's UMSP",
 		"references": [
@@ -9442,363 +8874,9 @@
 		}
 	},
 	{
-		"id": "00768680-f319-5195-92ff-cc2fac938e28",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "DKPTKA_PAYMENT",
-		"name": "DKPTKA foreign-worker compensation fund",
-		"references": [
-			{
-				"title": "PP 34/2021 arts.1 angka 7, 6–7; USD 100 per position per month, paid in advance (Kemnaker PNBP tariff, as PP 34/2021 applies it; secondary)",
-				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP342021.pdf"
-			}
-		],
-		"rules": {
-			"description": "Pay the DKPTKA, USD 100 per foreign worker per month, in advance: the month’s charge falls due on its first day.",
-			"schemes": ["DKPTKA"],
-			"due": "period.from"
-		}
-	},
-	{
-		"id": "57aa6fed-64bb-54ff-bd20-36ca9d404ae6",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PPH21_BUKTI_POTONG",
-		"name": "Monthly PPh 21/26 withholding slips",
-		"references": [
-			{
-				"title": "PMK 168/2023",
-				"locator": "arts.19(2)–(3), 20(1)(b), 20(3)",
-				"url": "https://jdih.kemenkeu.go.id/dok/pmk-168-tahun-2023"
-			},
-			{
-				"title": "PER-11/PJ/2025"
-			},
-			{
-				"title": "PMK 105/2025",
-				"locator": "art.5(3)"
-			}
-		],
-		"rules": {
-			"description": "Make and give each recipient paid in the month the monthly withholding slip (BPMP for a permanent employee, BP21 for a non-permanent one, BP26), including a nil withholding and the DTP incentive, by the end of the month the tax is owed.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "month_end(period.from)"
-		}
-	},
-	{
-		"id": "69665871-c772-5268-a287-6f9b8a181ec3",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "LATE_WAGE_FINE",
-		"name": "Late wage: fine owed to the worker",
-		"references": [
-			{
-				"title": "PP 36/2021",
-				"locator": "arts.55(1), 61(1)–(2)",
-				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
-			}
-		],
-		"rules": {
-			"description": "A wage paid on or after the 4th day counted from its due day (the due day being day 1) carries a fine to the worker (LATE_WAGE_FINE adhoc class): 5% a day from the 4th to the 8th day, then 1% more a day, at most 50% in a month, plus interest after a month; the wage stays due. Raised when a payslip is marked paid on or after that 4th day.",
-			"trigger": {
-				"collection": "payslip",
-				"events": ["updated"]
-			},
-			"when": "has(row.paid_on) && row.paid_on != null && has(row.pay_due_date) && row.pay_due_date != null && row.pay_due_date != \"\" && row.paid_on >= add_days(row.pay_due_date, 3)",
-			"due": "row.paid_on"
-		}
-	},
-	{
-		"id": "3fa5cbec-d62b-57ed-812c-15fa57bfd6d7",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "LATE_THR_FINE",
-		"name": "Late THR: 5% fine",
-		"references": [
-			{
-				"title": "PP 36/2021",
-				"locator": "art.62"
-			},
-			{
-				"title": "Permenaker 6/2016",
-				"locator": "arts.5(4), 10(1)–(2)"
-			}
-		],
-		"rules": {
-			"description": "A THR paid later than 7 days before the holiday carries a fine of 5% of the THR due, used for the workers’ welfare (LATE_THR_FINE adhoc class); the THR stays due. Raised when a THR entry is recorded after the deadline.",
-			"trigger": {
-				"collection": "adhoc_catalog_entry",
-				"events": ["created"]
-			},
-			"when": "has(row.catalog_code) && row.catalog_code in [\"THR\", \"THR_HOLIDAY\"] && has(row.facts) && row.facts != null && has(row.facts.holiday_date) && row.occurred_on > add_days(row.facts.holiday_date, -7)",
-			"due": "row.occurred_on"
-		}
-	},
-	{
-		"id": "2d639222-12cd-57a4-a40f-42a4ec53d22d",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PKWT_TERM_END_COMPENSATION",
-		"name": "PKWT period ended: pay its compensation",
-		"references": [
-			{
-				"title": "PP 35/2021",
-				"locator": "arts.15(2), 15(4), 16",
-				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
-			}
-		],
-		"rules": {
-			"description": "A fixed-term (PKWT) period that ends while the employment continues (an extension follows) owes its uang kompensasi at its end, for that period; the extension’s compensation follows when it ends. Raised by the daily tick on the last day of a CONTRACT term that is not the exit day; pay it as a PKWT_COMPENSATION entry.",
-			"trigger": {
-				"collection": "calendar",
-				"events": ["daily"]
-			},
-			"when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.employment_type) && t.employment_type == \"CONTRACT\" && has(t.effective_range) && has(t.effective_range.to) && t.effective_range.to == today) && (exit_on == null || exit_on > today)",
-			"due": "today"
-		}
-	},
-	{
-		"id": "733bca10-bc2f-5bff-8524-74aa5df131c6",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "FOREIGN_WORKER_COMPANION_TRAINING",
-		"name": "Foreign worker: companion, training and Indonesian language",
-		"references": [
-			{
-				"title": "PP 34/2021",
-				"locator": "art.7(1)–(3)",
-				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP342021.pdf"
-			},
-			{
-				"title": "UU 13/2003 art.45 as amended by UU 6/2023"
-			}
-		],
-		"rules": {
-			"description": "Appoint an Indonesian companion worker (tenaga kerja pendamping) for the foreign worker, train the companion for the position, give the foreign worker Indonesian-language training and repatriate the worker when the contract ends. Not owed for directors, commissioners, a representative-office head, foundation organs or temporary work (art.7(3)); waive it then.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"applies_when": "(employee == null || !has(employee.nationality) || employee.nationality != \"ID\")",
-			"due": "hired_on"
-		}
-	},
-	{
-		"id": "74008449-3025-523b-a7c3-e47e5a765d93",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "DISABILITY_QUOTA_REVIEW",
-		"name": "Disability employment quota (1%)",
-		"references": [
-			{
-				"title": "UU 8/2016",
-				"locator": "art.53(2)",
-				"url": "https://peraturan.bpk.go.id/Details/37251/uu-no-8-tahun-2016"
-			}
-		],
-		"rules": {
-			"description": "A private company must employ persons with disabilities as at least 1% of its workers. Raised with the January run of a company of 100 or more workers (where 1% is at least one person) to check the year’s quota.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["01"],
-			"applies_when": "headcount >= 100.0",
-			"due": "period.to"
-		}
-	},
-	{
-		"id": "740e0ca8-181b-51f7-96d4-161330cd6211",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "LKS_BIPARTIT_FORMATION",
-		"name": "Bipartite cooperation body (LKS Bipartit)",
-		"references": [
-			{
-				"title": "UU 13/2003",
-				"locator": "art.106(1)",
-				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
-			}
-		],
-		"rules": {
-			"description": "A company employing 50 or more workers must form a bipartite cooperation body (LKS Bipartit) and register it with the manpower office. Raised with each run of such a company until the formation day is recorded (company.facts.lks_bipartit_formed_on).",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"applies_when": "headcount >= 50.0",
-			"when": "!has(company.facts.lks_bipartit_formed_on) || company.facts.lks_bipartit_formed_on == \"\"",
-			"due": "period.to"
-		}
-	},
-	{
-		"id": "582369da-13c2-526c-970d-eb14dcf6626a",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "K3_SMK3_P2K3",
-		"name": "Occupational safety: SMK3 and P2K3",
-		"references": [
-			{
-				"title": "UU 1/1970",
-				"locator": "art.10"
-			},
-			{
-				"title": "PP 50/2012",
-				"locator": "art.5(2)",
-				"url": "https://peraturan.bpk.go.id/Details/5245/pp-no-50-tahun-2012"
-			},
-			{
-				"title": "Permenaker PER.04/MEN/1987",
-				"locator": "art.2"
-			}
-		],
-		"rules": {
-			"description": "A company of 100 or more workers, or with a high hazard potential (company.facts.k3_high_hazard), must apply an occupational safety and health management system (SMK3) and keep a safety committee (P2K3). Raised with the January run to review both for the year.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["01"],
-			"applies_when": "headcount >= 100.0 || (company != null && has(company.facts) && has(company.facts.k3_high_hazard) && company.facts.k3_high_hazard == true)",
-			"due": "period.to"
-		}
-	},
-	{
-		"id": "b4bc7336-21ce-5d47-8044-dab3e82023f9",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORKER_HEALTH_EXAMINATION",
-		"name": "Periodic health examination of workers",
-		"references": [
-			{
-				"title": "Permenakertrans PER.02/MEN/1980, official Kemnaker-hosted text read 2026-10-10: https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf arts.2, 3(2)",
-				"url": "https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf"
-			}
-		],
-		"rules": {
-			"description": "Every company examines its workers’ health periodically, at least once a year; a pre-employment examination precedes work (art.2). Raised with the January run.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["01"],
-			"due": "period.to"
-		}
-	},
-	{
-		"id": "ac4c83d1-d846-526e-ac6b-12548a699a7b",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WAGE_STRUCTURE_SCALE",
-		"name": "Wage structure and scale",
-		"references": [
-			{
-				"title": "PP 36/2021",
-				"locator": "arts.20–22",
-				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
-			}
-		],
-		"rules": {
-			"description": "Draw up and apply the company’s wage structure and scale, reviewed with the year’s minimum wage, and notify each worker individually of at least the scale of their own grade.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["01"],
-			"due": "period.to"
-		}
-	},
-	{
-		"id": "8f0aa5c8-e9ce-5e90-8465-6d6acea1d72d",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WAGE_SCALE_NOTICE_AT_HIRE",
-		"name": "Notify a new worker of their wage scale",
-		"references": [
-			{
-				"title": "PP 36/2021",
-				"locator": "art.21(2)–(3)",
-				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
-			}
-		],
-		"rules": {
-			"description": "Notify the new worker individually of the wage structure and scale of their grade.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "hired_on"
-		}
-	},
-	{
-		"id": "f8c54bb2-d647-5bf9-96cb-3d27ba4a456d",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "TERMINATION_NOTICE_LATE",
-		"name": "Termination notice short of 14 working days",
-		"references": [
-			{
-				"title": "PP 35/2021",
-				"locator": "art.37(2)–(4)",
-				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
-			}
-		],
-		"rules": {
-			"description": "An employer-initiated termination must be notified in writing at least 14 working days before it takes effect (7 during probation). Raised on the recorded exit when no notice day is recorded (exit_facts.notice_given_on) or it was given later than that: the termination is defective until the notice period is honoured.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract != null && has(contract.exit_facts) && contract.exit_facts != null && has(contract.exit_facts.termination_cause) && contract.exit_facts.termination_cause in [\"MERGER_CONSOLIDATION_SEPARATION\", \"ACQUISITION\", \"EFFICIENCY_ACTUAL_LOSS\", \"EFFICIENCY_PREVENT_LOSS\", \"CLOSURE_LOSS\", \"CLOSURE_NO_LOSS\", \"FORCE_MAJEURE_CLOSURE\", \"FORCE_MAJEURE_NO_CLOSURE\", \"DEBT_SUSPENSION_LOSS\", \"DEBT_SUSPENSION_NO_LOSS\", \"BANKRUPTCY\", \"VIOLATION_AFTER_WARNINGS\", \"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\", \"RETIREMENT\", \"DETENTION_CAUSED_LOSS\", \"DETENTION_NO_LOSS\"] && (!has(contract.exit_facts.notice_given_on) || contract.exit_facts.notice_given_on == \"\" || add_working_days(contract.exit_facts.notice_given_on, (has(contract.exit_facts.in_probation) && contract.exit_facts.in_probation == true) ? 7 : 14, holidays, [\"SATURDAY\", \"SUNDAY\"]) > exit_on)",
-			"due": "exit_on"
-		}
-	},
-	{
-		"id": "4ecfee3b-c3f6-5cae-a828-d9b9cf5b43e2",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORK_ACCIDENT_REPORT_STAGE2",
-		"name": "Work accident report, stage II",
-		"references": [
-			{
-				"title": "PP 44/2015 art.43 as amended by PP 82/2019",
-				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
-			}
-		],
-		"rules": {
-			"description": "Report stage II of a work accident or occupational disease to BPJS Ketenagakerjaan within 2 × 24 hours of the doctor’s certificate of its outcome, with the STMB claim. Raised when a WORK_ACCIDENT_LEAVE absence records the certificate day (facts.doctor_certificate_on).",
-			"trigger": {
-				"collection": "leave_catalog_entry",
-				"events": ["created"]
-			},
-			"when": "row.catalog_code == \"WORK_ACCIDENT_LEAVE\" && has(row.facts) && row.facts != null && has(row.facts.doctor_certificate_on) && row.facts.doctor_certificate_on != \"\"",
-			"due": "add_days(row.facts.doctor_certificate_on, 2)"
-		}
-	},
-	{
 		"id": "3ccc0afa-b158-5e19-917d-4ab6fc504c84",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MINIMUM_WAGE_REGION_UNKNOWN",
 		"name": "Worksite without a seeded minimum wage",
 		"references": [
@@ -9826,7 +8904,6 @@
 		"id": "38b7c28a-ddfa-502e-933d-a9d1a58997a8",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "DAILY_MINIMUM_WAGE",
 		"name": "Daily minimum wage",
 		"references": [
@@ -9850,7 +8927,6 @@
 		"id": "9239a6ad-28eb-509f-899d-78c7f3e847a7",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "HOURLY_MINIMUM_WAGE",
 		"name": "Hourly minimum wage (part-time)",
 		"references": [
@@ -9871,7 +8947,6 @@
 		"id": "a18044ce-e26d-5f4e-b1ff-6259ae01b789",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "PKWT_MAXIMUM_TERM",
 		"name": "PKWT at most 5 years",
 		"references": [
@@ -9895,7 +8970,6 @@
 		"id": "63e05da3-1cae-57f4-b27f-45a53d612729",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "PROBATION_RULES",
 		"name": "Probation: none in a PKWT, at most 3 months",
 		"references": [
@@ -9915,7 +8989,6 @@
 		"id": "642f9f54-c873-5a5f-a2a3-de5bf17bbac9",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "PKWT_WRITTEN_INDONESIAN",
 		"name": "PKWT written in Indonesian",
 		"references": [
@@ -9939,7 +9012,6 @@
 		"id": "3ae5c64d-89fb-506f-8a6d-cd10b0ce04d5",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "FOREIGN_WORKER_PERSONNEL_POSITION",
 		"name": "No foreign worker in a personnel position",
 		"references": [
@@ -9960,7 +9032,6 @@
 		"id": "4b8e1326-5064-5abd-b5f3-b5329c0159c5",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MINIMUM_AGE",
 		"name": "Worker under 13",
 		"references": [
@@ -9981,7 +9052,6 @@
 		"id": "f9d22056-698c-52fd-896f-38c4cdc76cf3",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "FOREIGN_WORKER_PKWT",
 		"name": "Foreign worker on a PKWTT",
 		"references": [
@@ -10005,7 +9075,6 @@
 		"id": "19d25efa-e589-5e4a-83ff-5a152164a037",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "WORKING_TIME_LIMIT",
 		"name": "Ordinary working time 7/8 hours a day, 40 a week",
 		"references": [
@@ -10029,7 +9098,6 @@
 		"id": "686e73bd-c4c8-5c96-805e-41ced8cb2e94",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "WEEKLY_REST",
 		"name": "Weekly rest: 1 day (6-day week), 2 days (5-day week)",
 		"references": [
@@ -10049,7 +9117,6 @@
 		"id": "9c056e5d-e7a3-5f4a-ac48-88c12d5f51cc",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "NIGHT_WORK_FEMALE_UNDER_18",
 		"name": "Night work: female worker under 18",
 		"references": [
@@ -10070,7 +9137,6 @@
 		"id": "364c9a64-03cb-5629-ae49-7632df663d83",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "NIGHT_WORK_PREGNANCY",
 		"name": "Night work: pregnancy at risk",
 		"references": [
@@ -10091,7 +9157,6 @@
 		"id": "6baa4ec6-ebeb-5fe4-8feb-3c152bedd9ff",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "NIGHT_WORK_FEMALE_DUTIES",
 		"name": "Night work by women: food, security and transport",
 		"references": [
@@ -10112,7 +9177,6 @@
 		"id": "ddd03aea-9ee4-5776-b316-072359bd21d5",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "CHILD_WORKER",
 		"name": "Worker under 18",
 		"references": [
@@ -10133,7 +9197,6 @@
 		"id": "772c5c62-1af2-52aa-820b-e4a127517d33",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "CHILD_LIGHT_WORK_HOURS",
 		"name": "Light work above 3 hours or by night (13–15)",
 		"references": [
@@ -10154,7 +9217,6 @@
 		"id": "175c6115-c653-58ec-8409-97de92f782aa",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "DAILY_CASUAL_21_DAYS",
 		"name": "Daily worker on 21 days or more",
 		"references": [
@@ -10175,7 +9237,6 @@
 		"id": "ba0d15ad-4163-50d0-9128-eb298582a1eb",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "GARNISHMENT_CEILING",
 		"name": "Court garnishment at most 20%",
 		"references": [
@@ -10196,7 +9257,6 @@
 		"id": "48b9e24b-8750-5f34-9f05-fa6f74facd8a",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "BANKRUPTCY_CEILING",
 		"name": "Worker’s bankruptcy estate at most 25%",
 		"references": [
@@ -10217,7 +9277,6 @@
 		"id": "294dde0d-9f83-550d-9ca6-78a799193009",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_NORMAL_HOURS_DAY",
 		"name": "ROSTER_NORMAL_HOURS_DAY",
 		"references": [
@@ -10239,7 +9298,6 @@
 		"id": "d5c086e5-87a9-5321-b7db-cb1eb30ed4ab",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_NORMAL_HOURS_WEEK",
 		"name": "ROSTER_NORMAL_HOURS_WEEK",
 		"references": [
@@ -10261,7 +9319,6 @@
 		"id": "cb3b65b2-dc3f-51bf-9e7d-90ca3404f156",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_OVERTIME_DAY",
 		"name": "ROSTER_OVERTIME_DAY",
 		"references": [
@@ -10283,7 +9340,6 @@
 		"id": "bdc622f2-d49a-5044-864c-8773a698dd17",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_OVERTIME_WEEK",
 		"name": "ROSTER_OVERTIME_WEEK",
 		"references": [
@@ -10305,7 +9361,6 @@
 		"id": "587f5bd3-dbf4-5b94-ac11-850cd5268b2f",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_WEEKLY_REST",
 		"name": "ROSTER_WEEKLY_REST",
 		"references": [
@@ -10327,7 +9382,6 @@
 		"id": "e4726bf0-19f6-5ffc-b1c4-3354d8427477",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_NIGHT_FEMALE_UNDER_18",
 		"name": "ROSTER_NIGHT_FEMALE_UNDER_18",
 		"references": [
@@ -10349,7 +9403,6 @@
 		"id": "574bcd1b-f5a7-5257-8acd-d830f10520bd",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_NIGHT_PREGNANCY",
 		"name": "ROSTER_NIGHT_PREGNANCY",
 		"references": [
@@ -10371,7 +9424,6 @@
 		"id": "a3d18d52-5635-5189-8d1a-4ec264f46822",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_CHILD_LIGHT_WORK",
 		"name": "ROSTER_CHILD_LIGHT_WORK",
 		"references": [
@@ -10393,7 +9445,6 @@
 		"id": "2e395215-3959-584d-bb76-a70018f2ffa7",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_UNDER_13",
 		"name": "ROSTER_UNDER_13",
 		"references": [
@@ -10412,113 +9463,9 @@
 		}
 	},
 	{
-		"id": "72a787e6-2260-57e6-bd64-317fe2d3b03b",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "BPJS_KETENAGAKERJAAN_WAGE_CHANGE",
-		"name": "BPJS_KETENAGAKERJAAN_WAGE_CHANGE",
-		"references": [
-			{
-				"title": "PP 44/2015",
-				"locator": "art.9(3)",
-				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
-			}
-		],
-		"rules": {
-			"description": "Report a change in the worker's wage (basic plus fixed allowances) to BPJS Ketenagakerjaan within 7 working days of the change. Raised on the contract write that adds or changes a term whose wage differs from the term ending the day before — for any effective date, so a term entered late raises too — once per change (repeat_key = the new term's first day); due seven working days after that day (no Saturday, Sunday or published holiday).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["facts"]
-			},
-			"when": "has(row.terms_written) && row.terms_written.exists(t, has(t.effective_range) && has(t.base_salary) && contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(p, has(p.effective_range) && has(p.effective_range.to) && p.effective_range.to == add_days(t.effective_range.from, -1) && has(p.base_salary) && (double(p.base_salary.value) + (has(p.allowances) && size(p.allowances) > 0 ? sum(p.allowances.map(a, double(a.amount.value))) : 0.0)) != (double(t.base_salary.value) + (has(t.allowances) && size(t.allowances) > 0 ? sum(t.allowances.map(a, double(a.amount.value))) : 0.0))))",
-			"applies_when": "(employee == null || !has(employee.nationality) || employee.nationality == \"ID\" || contract == null || !has(contract.facts) || contract.facts == null || !has(contract.facts.contract_terms) || !contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.indonesia_work_months_planned) && t.facts.indonesia_work_months_planned < 6.0))",
-			"due": "add_working_days(first(row.terms_written.filter(t, has(t.effective_range) && has(t.base_salary) && contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(p, has(p.effective_range) && has(p.effective_range.to) && p.effective_range.to == add_days(t.effective_range.from, -1) && has(p.base_salary) && (double(p.base_salary.value) + (has(p.allowances) && size(p.allowances) > 0 ? sum(p.allowances.map(a, double(a.amount.value))) : 0.0)) != (double(t.base_salary.value) + (has(t.allowances) && size(t.allowances) > 0 ? sum(t.allowances.map(a, double(a.amount.value))) : 0.0))))).effective_range.from, 7, holidays, [\"SATURDAY\", \"SUNDAY\"])",
-			"repeat_key": "first(row.terms_written.filter(t, has(t.effective_range) && has(t.base_salary) && contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(p, has(p.effective_range) && has(p.effective_range.to) && p.effective_range.to == add_days(t.effective_range.from, -1) && has(p.base_salary) && (double(p.base_salary.value) + (has(p.allowances) && size(p.allowances) > 0 ? sum(p.allowances.map(a, double(a.amount.value))) : 0.0)) != (double(t.base_salary.value) + (has(t.allowances) && size(t.allowances) > 0 ? sum(t.allowances.map(a, double(a.amount.value))) : 0.0))))).effective_range.from"
-		}
-	},
-	{
-		"id": "399acfcb-44f6-5eb4-bdec-85da7fa0dbec",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "BPJS_KETENAGAKERJAAN_EXIT_REPORT",
-		"name": "BPJS_KETENAGAKERJAAN_EXIT_REPORT",
-		"references": [
-			{
-				"title": "PP 44/2015",
-				"locator": "art.9(3)",
-				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
-			}
-		],
-		"rules": {
-			"description": "Report the change in the number of workers — the worker leaving — to BPJS Ketenagakerjaan within 7 working days of the exit, whatever the cause (the JKP termination report is JKP_PHK_NOTIFICATION).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "(employee == null || !has(employee.nationality) || employee.nationality == \"ID\" || contract == null || !has(contract.facts) || contract.facts == null || !has(contract.facts.contract_terms) || !contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.indonesia_work_months_planned) && t.facts.indonesia_work_months_planned < 6.0))",
-			"due": "add_working_days(exit_on, 7, holidays, [\"SATURDAY\", \"SUNDAY\"])"
-		}
-	},
-	{
-		"id": "3265ad8d-7b10-5700-b3f2-e919ebdeea77",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "BPJS_KETENAGAKERJAAN_ENTITY_CHANGE",
-		"name": "BPJS_KETENAGAKERJAAN_ENTITY_CHANGE",
-		"references": [
-			{
-				"title": "PP 44/2015",
-				"locator": "art.9(3)",
-				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
-			}
-		],
-		"rules": {
-			"description": "Report a change of the employer's own registered data — its name, registration number or the province it is located in (the office address) — to BPJS Ketenagakerjaan within 7 working days of the change. Raised on the entity update that changed one of them (row.before), once per new state; due seven working days after the update.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["updated"],
-				"fields": ["name", "registration_number", "region"]
-			},
-			"when": "has(row.before) && row.before != null && (\"name\" in row.before || \"registration_number\" in row.before || \"region\" in row.before)",
-			"repeat_key": "row.name + \":\" + (has(row.registration_number) && row.registration_number != null ? row.registration_number : \"\") + \":\" + (has(row.region) && row.region != null ? row.region : \"\")",
-			"due": "add_working_days(today, 7, holidays, [\"SATURDAY\", \"SUNDAY\"])"
-		}
-	},
-	{
-		"id": "482b881c-c3d6-5dd3-9413-7079ba21e0a2",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "TAX_RECORDS_RETENTION",
-		"name": "TAX_RECORDS_RETENTION",
-		"references": [
-			{
-				"title": "UU 6/1983 as amended by UU 28/2007 (KUP)",
-				"locator": "art.28(11)",
-				"url": "https://www.pajak.go.id/id/undang-undang-nomor-28-tahun-2007"
-			}
-		],
-		"rules": {
-			"description": "Keep the books, records and documents of the past year — payroll, withholding slips and returns, including electronically held data — for 10 years in Indonesia, at the taxpayer's seat. Raised on the January run.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["01"],
-			"due": "month_end(period.from)"
-		}
-	},
-	{
 		"id": "5333a2b0-e711-597e-b659-6d36b9b886e9",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "case_kinds",
 		"name": "Workplace case kinds",
 		"rules": {
@@ -10551,113 +9498,9 @@
 		}
 	},
 	{
-		"id": "1a7a24b8-25cf-5e22-b8b8-d00537143e9d",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PDP_BREACH_NOTICE",
-		"name": "PDP_BREACH_NOTICE",
-		"references": [
-			{
-				"title": "UU 27/2022 (Pelindungan Data Pribadi)",
-				"locator": "art.46(1)–(2)",
-				"url": "https://peraturan.bpk.go.id/Download/224884/UU%20Nomor%2027%20Tahun%202022.pdf"
-			}
-		],
-		"rules": {
-			"description": "A failure of personal data protection: notify the data subjects and the supervisory institution in writing within 3 × 24 hours — the data disclosed, when and how, and the handling and recovery steps (art.46(2)). Raised when a PERSONAL_DATA_BREACH case is opened; due three days after its opening day.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind == \"PERSONAL_DATA_BREACH\"",
-			"due": "add_days(row.opened_on, 3)"
-		}
-	},
-	{
-		"id": "efe5cc95-d5d5-5697-b9b7-ccaf0c9f0418",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PDP_SUBJECT_REQUEST",
-		"name": "PDP_SUBJECT_REQUEST",
-		"references": [
-			{
-				"title": "UU 27/2022",
-				"locator": "arts.30(1)–(2), 32(2), 40(2), 41(1)",
-				"url": "https://peraturan.bpk.go.id/Download/224884/UU%20Nomor%2027%20Tahun%202022.pdf"
-			}
-		],
-		"rules": {
-			"description": "Answer an employee's personal-data request within 3 × 24 hours of receiving it: give access with the processing record (art.32(2)), update or correct the data and tell the employee (art.30), stop processing on a withdrawn consent (art.40(2)), or suspend or restrict processing (art.41(1)). Raised when such a case is opened; due three days after its opening day.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind in [\"PERSONAL_DATA_ACCESS_REQUEST\",  \"PERSONAL_DATA_CORRECTION_REQUEST\",  \"PERSONAL_DATA_CONSENT_WITHDRAWAL\",  \"PERSONAL_DATA_RESTRICTION_REQUEST\"]",
-			"due": "add_days(row.opened_on, 3)"
-		}
-	},
-	{
-		"id": "5d49aaa3-3ef1-52cc-a82d-5551bfb9faa9",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE",
-		"name": "BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE",
-		"references": [
-			{
-				"title": "PP 44/2015",
-				"locator": "art.9(1)–(2)",
-				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
-			}
-		],
-		"rules": {
-			"description": "Forward a participant's changed personal or family data (marital status, children) to BPJS Ketenagakerjaan within 7 working days of receiving it. Raised on a profile update that changed one of them (row.before holds the prior values), once per family state (repeat_key), due 7 working days after the update.",
-			"trigger": {
-				"collection": "employment_profile",
-				"events": ["updated"]
-			},
-			"applies_when": "(employee == null || !has(employee.nationality) || employee.nationality == \"ID\" || contract == null || !has(contract.facts) || contract.facts == null || !has(contract.facts.contract_terms) || !contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.indonesia_work_months_planned) && t.facts.indonesia_work_months_planned < 6.0))",
-			"repeat_key": "(has(employee.marital_status) && employee.marital_status != null ? employee.marital_status : \"\") + \":\" + string(has(employee.children) && employee.children != null ? size(employee.children) : 0)",
-			"due": "add_working_days(today, 7, holidays, [\"SATURDAY\", \"SUNDAY\"])",
-			"when": "has(row.before) && row.before != null && (has(row.before.marital_status) || has(row.before.children))"
-		}
-	},
-	{
-		"id": "beaab9db-116d-5fc1-a6db-12b7aa907911",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PERSONAL_DATA_DISPOSAL",
-		"name": "PERSONAL_DATA_DISPOSAL",
-		"references": [
-			{
-				"title": "UU 27/2022",
-				"locator": "arts.42(1)(a), 44(1)(a), 45",
-				"url": "https://peraturan.bpk.go.id/Download/224884/UU%20Nomor%2027%20Tahun%202022.pdf"
-			},
-			{
-				"title": "UU KUP",
-				"locator": "art.28(11)"
-			}
-		],
-		"rules": {
-			"description": "End the processing of a former employee's personal data and destroy it once its retention period ends (anonymise the profile: employment_profile_anonymise), and tell the employee of the deletion. Raised on the exit; due on the record_retention date (10 years after the exit's tax year ends).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "add_years(exit_on.substring(0, 4) + \"-12-31\", 10)"
-		}
-	},
-	{
 		"id": "877ef658-1cc1-584c-b017-2f9b5d596d97",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "exit_grounds",
 		"name": "Exit grounds",
 		"rules": {
@@ -10705,8 +9548,7 @@
 	{
 		"id": "3899d864-a51e-5ec8-b977-d70e95227923",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "holiday_kinds",
 		"name": "Holiday kinds",
 		"rules": {
@@ -10723,7 +9565,6 @@
 		"id": "92a09429-6482-5eae-8b0c-39e009c2f18c",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MINIMUM_WAGE_LONG_SERVICE",
 		"name": "Wage below the minimum after one year of service",
 		"references": [
@@ -10743,7 +9584,6 @@
 		"id": "2b13495e-abfd-5a19-848c-02f8c4eb8968",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_REST_BREAK",
 		"name": "ROSTER_REST_BREAK",
 		"references": [
@@ -10765,7 +9605,6 @@
 		"id": "e563864b-af38-5332-89ee-f83d74943a2e",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "WORKING_DAYS_PER_WEEK_REQUIRED",
 		"name": "Working days a week missing for rest-day or holiday overtime",
 		"references": [
@@ -10786,7 +9625,6 @@
 		"id": "44ba780d-6053-5326-a484-056d0ae3b01f",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "EXPORTS",
-		"scope": "JURISDICTION",
 		"code": "CORETAX_BPMP_XML",
 		"name": "Coretax BPMP — monthly PPh 21 slips of permanent employees (XML import)",
 		"references": [
@@ -10825,7 +9663,6 @@
 		"id": "30c55b21-2795-567a-a3e7-3b36265cf71b",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "EXPORTS",
-		"scope": "JURISDICTION",
 		"code": "CORETAX_BPA1_XML",
 		"name": "Coretax BPA1 — annual PPh 21 slip of permanent employees (XML import)",
 		"references": [
@@ -10865,7 +9702,6 @@
 		"id": "93215037-eeee-5d55-a187-53282786bf82",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "EXPORTS",
-		"scope": "JURISDICTION",
 		"code": "CORETAX_BP21_XML",
 		"name": "Coretax BP21 — PPh 21 slips other than permanent employees (XML import)",
 		"references": [
@@ -10904,7 +9740,6 @@
 		"id": "238b8930-1619-5318-b1d7-78ee451e7333",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "EXPORTS",
-		"scope": "JURISDICTION",
 		"code": "CORETAX_BP26_XML",
 		"name": "Coretax BP26 — PPh 26 slips of non-residents (XML import)",
 		"references": [
@@ -10943,7 +9778,6 @@
 		"id": "739f3e25-1f2e-5a4e-840b-3d3b4e682866",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "SECTOR_MINIMUM_WAGE_UNSEEDED",
 		"name": "Sector minimum wage not configured for the worksite",
 		"references": [
@@ -10963,7 +9797,6 @@
 		"id": "455548a7-c4f2-5c7a-9b3a-ecfcfc4cf84e",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "SECTOR_KBLI_MISSING",
 		"name": "Worksite KBLI missing where sector minimum wages are set",
 		"references": [
@@ -10983,7 +9816,6 @@
 		"id": "7f4da933-ff43-5a95-bec8-63ee27cb68ef",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MEDAN_SECTOR_SCOPE_MISSING",
 		"name": "Medan sector wage hotel or bank scope missing",
 		"references": [
@@ -10999,56 +9831,9 @@
 		}
 	},
 	{
-		"id": "69e45665-2b6c-5371-9136-2e6ecacf9610",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PRE_EMPLOYMENT_HEALTH_EXAMINATION",
-		"name": "PRE_EMPLOYMENT_HEALTH_EXAMINATION",
-		"references": [
-			{
-				"title": "Permenakertrans PER.02/MEN/1980, official Kemnaker-hosted text read 2026-10-10: https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf art.2(2), (7)",
-				"url": "https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf"
-			}
-		],
-		"rules": {
-			"description": "Conduct the pre-employment examination before work starts. An examination by a qualifying physician within the previous three calendar months, accepted without doubt, exempts a repeat examination (art.2(7)).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"when": "!(contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.effective_range) && has(t.effective_range.from) && t.effective_range.from <= hired_on && (!has(t.effective_range.to) || t.effective_range.to == null || t.effective_range.to >= hired_on) && has(t.facts) && has(t.facts.pre_employment_exam_on) && t.facts.pre_employment_exam_on != \"\" && t.facts.pre_employment_exam_on <= hired_on && t.facts.pre_employment_exam_on >= add_months(hired_on, -3) && has(t.facts.pre_employment_exam_accepted) && t.facts.pre_employment_exam_accepted == true))",
-			"due": "hired_on"
-		}
-	},
-	{
-		"id": "798987ed-cd57-5bfa-be8a-ca50787bb9e9",
-		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORKER_HEALTH_EXAMINATION_REPORT",
-		"name": "WORKER_HEALTH_EXAMINATION_REPORT",
-		"references": [
-			{
-				"title": "Permenakertrans PER.02/MEN/1980, official Kemnaker-hosted text read 2026-10-10: https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf art.6(2)",
-				"url": "https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf"
-			}
-		],
-		"rules": {
-			"description": "Report pre-employment, periodic or special worker health examinations to the local regional office of Ditjen Binalindung Tenaga Kerja within two calendar months after examination. Record a WORKER_HEALTH_EXAMINATION_COMPLETED case with the examination day as its opening date.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind == \"WORKER_HEALTH_EXAMINATION_COMPLETED\"",
-			"due": "add_months(row.opened_on, 2)"
-		}
-	},
-	{
 		"id": "ea646690-1781-5045-996e-f603a7795288",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
-		"scope": "JURISDICTION",
-		"family": "PAYROLL",
+		"family": "PARAMETERS",
 		"code": "salary_report",
 		"name": "Salary report grouping and company payments",
 		"rules": {
@@ -11138,7 +9923,6 @@
 		"id": "69fd6388-445f-5c0c-9513-32042db1b0db",
 		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_PATTERN_CYCLE",
 		"name": "Roster keeps its pattern cycle",
 		"rules": {
@@ -11147,6 +9931,19 @@
 			"when": "cycle.planned.WORK != cycle.expected.WORK || cycle.planned.REST != cycle.expected.REST || cycle.planned.OFF != cycle.expected.OFF",
 			"message": "Swap days inside the cycle instead.",
 			"description": "A roster swap moves a day inside its shift pattern cycle; it never adds a work day or drops a rest or off day. Severity follows entity.validation_severity."
+		}
+	},
+	{
+		"id": "f9d57613-3469-50d8-9d01-72babd20116c",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"family": "VALIDATIONS",
+		"code": "PAYROLL_RUN_KINDS",
+		"name": "PAYROLL_RUN_KINDS",
+		"rules": {
+			"site": "payroll_run",
+			"kind": "allow",
+			"when": "run.kind in [\"REGULAR\", \"OFF_CYCLE\"]",
+			"message": "The jurisdiction admits regular and off-cycle payroll runs."
 		}
 	}
 ]

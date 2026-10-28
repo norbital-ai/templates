@@ -9,7 +9,6 @@ import {
 	overlaps,
 	PlainDate
 } from '@norbital-ai/std/date';
-import { behavioursOf, planBehaviours } from './behaviours.js';
 import {
 	isMasked,
 	type Id,
@@ -33,7 +32,7 @@ import {
 	stableJson,
 	frequencySpans,
 	periodsIn,
-	payrollSetting,
+	PAYROLL_DEFAULTS,
 	PAYROLL_SLOTS,
 	celValues,
 	getErrorMessage
@@ -50,6 +49,7 @@ import {
 	serviceMonthsAt
 } from './leave.js';
 import {
+	LONG_HISTORY_MONTHS,
 	round2,
 	zoneOf,
 	attendancePolicy,
@@ -67,6 +67,7 @@ import {
 	type LooseEntryRow,
 	entryRow,
 	entryContext,
+	exitSource,
 	earlierContext,
 	worksiteOn,
 	type ShiftDefinitionRow,
@@ -230,12 +231,13 @@ export const loadPayrollAdmission = Effect.fnUntraced(function* (
 		}
 	});
 	const two = yield* read({
-		// Only the period's versions price this run; historical scheme configurations still map its year to date.
+		// Only the period's versions price this run; every version's scheme codes map its year to date. A long lineage's
+		// configurations would outgrow one read: those of the versions that matter are read below.
 		jurisdiction_settings: {
 			where: { code: { in: idsOf(one.entity.rows.map((row) => row.settings_code)) } },
 			fields: SETTINGS
 		},
-		'jurisdiction_settings.statutory_contribution_catalog': { fields: STATUTORY },
+		'jurisdiction_settings.statutory_contribution_catalog': { fields: ['settings_id', 'code'] },
 		payslip: {
 			where: { payroll_run_id: { in: one.payroll_run.rows.map((run) => run.id) } },
 			fields: ['payroll_run_id', 'employment_id', 'status']
@@ -251,15 +253,37 @@ export const loadPayrollAdmission = Effect.fnUntraced(function* (
 			? [version.id]
 			: [];
 	});
-	const { jurisdiction_settings: governed } = yield* read({
-		jurisdiction_settings: { where: { id: { in: priced } }, fields: ['suspension_kinds'] },
-		...GOVERNED
+	// the configurations the build reads: the priced versions', and those of the runs its history reaches
+	const since = months.reduce(
+		(first, month) => (first === '' || month.from < first ? String(month.from) : first),
+		''
+	);
+	// no period (a deleted run) prices nothing: its history reaches no run
+	const recent = since === '' ? null : String(addMonths(since, -LONG_HISTORY_MONTHS));
+	const configured = [
+		...new Set([
+			...priced,
+			...one.payroll_run.rows.flatMap((run) =>
+				recent === null || run.settings_id == null || String(run.salary_from ?? '9999') < recent
+					? []
+					: [run.settings_id]
+			)
+		])
+	];
+	const { jurisdiction_settings: governed, statutory_contribution_catalog: schemes } = yield* read({
+		jurisdiction_settings: { where: { id: { in: priced } }, fields: ['code', 'time_pay'] },
+		...GOVERNED,
+		statutory_contribution_catalog: {
+			where: { settings_id: { in: configured } },
+			fields: STATUTORY
+		}
 	});
 	const removed = new Set<string>(deleted);
 	return {
 		entity: one.entity,
 		runs: one.payroll_run,
 		lineage: two.jurisdiction_settings,
+		schemes,
 		governed: governed.rows,
 		source_adhoc: one.adhoc_catalog_entry,
 		source_claim: one.claim_catalog_entry,
@@ -366,23 +390,31 @@ export const admitPayrollRun = (request: PayrollRunRequest, prefetched?: Payroll
 		const version = contains(opening.effective_range, settlement.from)
 			? opening
 			: yield* Effect.fromResult(versionOn(lineage, entity.settings_code, settlement.from));
-		// The governing behaviours admit the run: which kinds a jurisdiction pays is a record, not a branch here.
-		const behaviours = behavioursOf(
-			yield* Effect.fromResult(fieldValue(version.behaviours, 'jurisdiction_settings.behaviours'))
-		);
 		const payroll = yield* Effect.fromResult(
 			fieldValue(version.payroll, 'jurisdiction_settings.payroll')
 		);
-		const admitted =
-			behaviours != null &&
-			planBehaviours(
-				behaviours,
-				{ kind: 'catalog', catalog: 'WORK', event: 'PAYROLL_CREATE' },
-				{ event: { data: { request: { kind: request.kind, period: request.period } } } }
-			).length > 0;
+		// The governing version's `payroll_run` validations admit the run: which kinds a jurisdiction pays is a record,
+		// not a branch here. None that allows it refuses it.
+		const held = governedFrom(got.governed, version.id);
+		const gates = yield* validationsOf(
+			(held?.rule_set ?? []).filter((row) => row.family === 'VALIDATIONS'),
+			'payroll_run'
+		);
+		let admitted = false;
+		for (const gate of gates)
+			if (
+				yield* evaluateBoolean(
+					gate.when,
+					{ run: { kind: request.kind, period: request.period } },
+					`rule_set ${gate.code}`
+				)
+			) {
+				admitted = true;
+				break;
+			}
 		if (!admitted)
 			return yield* new Refusal({
-				message: `${version.code} admits no ${request.kind} payroll run under its behaviours.`
+				message: `${version.code} admits no ${request.kind} payroll run under its validations.`
 			});
 		// A later period's runs read this one's year to date: an earlier period is run before them, never after.
 		const later = runs
@@ -422,15 +454,32 @@ export const admitPayrollRun = (request: PayrollRunRequest, prefetched?: Payroll
 			return yield* new Refusal({
 				message: `${request.period} already has a salary run. Delete it to re-run, or create an off-cycle run for one-off payments.`
 			});
+		// Salary runs follow on without a gap: a skipped period leaves its wages and filings unpaid and every later
+		// year to date short. A period nobody was owed pay for is run too, and pays nothing.
+		const previous = runs
+			.filter(
+				(run) =>
+					run.id !== request.run_id &&
+					isSalaryRun(run.kind) &&
+					run.salary_to != null &&
+					String(run.salary_to).slice(0, 10) < settlement.from
+			)
+			.toSorted((a, b) => String(b.salary_to).localeCompare(String(a.salary_to)))[0];
+		if (
+			salaryRun &&
+			previous != null &&
+			addDays(String(previous.salary_to).slice(0, 10), 1) < settlement.from
+		)
+			return yield* new Refusal({
+				message: `${request.period} leaves a gap after ${String(previous.period)}: run the periods between them first, in order.`
+			});
 		if (!salaryRun) {
 			if (sources.length === 0)
 				return yield* new Refusal({
 					message:
 						'An off-cycle or correction run pays only the ad hoc or claim entries it selects; select at least one.'
 				});
-			const families = yield* Effect.fromResult(
-				payrollSetting(version.code, payroll, 'off_cycle_families')
-			);
+			const families = payroll?.off_cycle_families ?? PAYROLL_DEFAULTS.off_cycle_families;
 			const open = new Set<string>(
 				offCycle
 					.filter((family) => families.includes(family.family))
@@ -456,7 +505,6 @@ export const admitPayrollRun = (request: PayrollRunRequest, prefetched?: Payroll
 				});
 		}
 		// Only the governing version's catalogues and rules price this run.
-		const held = governedFrom(got.governed, version.id);
 		const governedRows = held === undefined ? [] : [held];
 		return {
 			entity: { ...entity, pay_frequency: frequency },
@@ -467,6 +515,7 @@ export const admitPayrollRun = (request: PayrollRunRequest, prefetched?: Payroll
 			reservedPins,
 			runs,
 			lineage,
+			schemes: got.schemes.rows,
 			governedRows,
 			switched
 		};
@@ -604,9 +653,9 @@ export const staffingFrom = (
 		};
 	});
 const RECORD_RETENTION: keyof typeof PAYROLL_SLOTS = 'record_retention';
-/** The PAYROLL `record_retention` slot: the `until` CEL on the subject at the exit. */
+/** The PARAMETERS `record_retention` slot: the `until` CEL on the subject at the exit. */
 const RecordRetention = Schema.Struct({ until: Schema.String });
-/** PAYROLL slots are objects in the CEL `rules` root; other families keep their own payload contracts. */
+/** PARAMETERS slots are objects in the CEL `rules` root; other families keep their own payload contracts. */
 export const payrollRulesOf = (
 	rows: readonly { readonly code: string; readonly rules: unknown }[]
 ) =>
@@ -625,12 +674,13 @@ export const payrollRulesOf = (
 /**
  * A version's `VALIDATIONS` rule-set rows: each `rules` names its `site` (`contract`: a contract's terms as written;
  * `payslip`: each slip of a build; `roster`: a roster day; `cycle`: a pattern cycle a roster write changes, `cycle`
- * { date, from, to, planned, expected }), its `kind` (`refuse` the write, `warn` in the run's warnings, `hold` the slip
- * ON_HOLD), the CEL `when` that trips it and the `message`.
+ * { date, from, to, planned, expected }; `payroll_run`: a run's creation, `run` { kind, period }), its `kind` (`refuse`
+ * the write, `warn` in the run's warnings, `hold` the slip ON_HOLD, `allow` admits a run: `payroll_run` only, and a run
+ * none allows is refused), the CEL `when` that trips it and the `message`.
  */
 export const Validation = Schema.Struct({
-	site: Schema.Literals(['contract', 'payslip', 'roster', 'cycle']),
-	kind: Schema.Literals(['refuse', 'warn', 'hold']),
+	site: Schema.Literals(['contract', 'payslip', 'roster', 'cycle', 'payroll_run']),
+	kind: Schema.Literals(['refuse', 'warn', 'hold', 'allow']),
 	when: Schema.String,
 	message: Schema.String,
 	description: Schema.optional(Schema.String),
@@ -651,9 +701,12 @@ export const validationsOf = (
 	Effect.gen(function* () {
 		const out: Validation[] = [];
 		for (const row of rows) {
-			if (!Schema.is(Validation)(row.rules))
+			if (
+				!Schema.is(Validation)(row.rules) ||
+				(row.rules.site === 'payroll_run') !== (row.rules.kind === 'allow')
+			)
 				return yield* new Refusal({
-					message: `rule_set ${row.code}: a validation names its site, kind, when and message.`
+					message: `rule_set ${row.code}: a validation names its site, kind, when and message; allow is the payroll_run site's only kind, and no other site's.`
 				});
 			if (row.rules.site === site) out.push({ ...row.rules, code: row.code });
 		}
@@ -711,7 +764,7 @@ export const loadContractWriteBatch = Effect.fnUntraced(function* (
 		},
 		payslip: {
 			where: { employment_id: { in: identities.employments } },
-			fields: ['employment_id', 'salary_from', 'salary_to']
+			fields: ['employment_id', 'salary_from', 'salary_to', 'status']
 		}
 	});
 	const { jurisdiction_settings } = yield* read({
@@ -904,7 +957,7 @@ export const admitContractTerms = (input: {
 				...subject,
 				...extras,
 				rules: yield* Effect.fromResult(
-					payrollRulesOf(versionRows.filter((row) => row.family === 'PAYROLL'))
+					payrollRulesOf(versionRows.filter((row) => row.family === 'PARAMETERS'))
 				),
 				term: subject.terms,
 				day
@@ -988,7 +1041,7 @@ const readRosterTwo = (
 			fields: SETTINGS
 		},
 		'jurisdiction_settings.rule_set': {
-			where: { family: { in: ['VALIDATIONS', 'PAYROLL'] } },
+			where: { family: { in: ['VALIDATIONS', 'PARAMETERS'] } },
 			fields: [...RULES, 'family', 'settings_id']
 		}
 	});
@@ -1077,7 +1130,7 @@ export const rosterFindingsFrom = (
 				version.id,
 				yield* Effect.fromResult(
 					payrollRulesOf(
-						ruleSets.filter((row) => row.settings_id === version.id && row.family === 'PAYROLL')
+						ruleSets.filter((row) => row.settings_id === version.id && row.family === 'PARAMETERS')
 					)
 				)
 			);
@@ -1635,7 +1688,7 @@ export const anonymousProfile = () => ({
 });
 /**
  * Whether a person's records may be anonymised on `today`: every employment has ended, and the version governing each
- * exit day names a PAYROLL `record_retention` rule whose `until` CEL (on the subject at the exit: `employment.exit_date`,
+ * exit day names a PARAMETERS `record_retention` rule whose `until` CEL (on the subject at the exit: `employment.exit_date`,
  * `employment.exit_ground`, `terms`, …) returns a day on or before today. Answers the latest such day.
  */
 /** Retention for every profile in a write, prefetched in three reads (contracts, their entities, the lineages). */
@@ -1661,7 +1714,7 @@ export const admitAnonymiseBatch = (
 				fields: SETTINGS
 			},
 			'jurisdiction_settings.rule_set': {
-				where: { family: { eq: 'PAYROLL' } },
+				where: { family: { eq: 'PARAMETERS' } },
 				fields: [...RULES, 'family', 'settings_id']
 			}
 		});
@@ -1732,7 +1785,7 @@ export const admitAnonymiseBatch = (
 		}
 		return untilByEmployee;
 	});
-/** A kind the version governing `day` lists in its PAYROLL `<rule>` row (`rules.kinds[] = { code, name }`). */
+/** A kind the version governing `day` lists in its PARAMETERS `<rule>` row (`rules.kinds[] = { code, name }`). */
 /** The company, employment and governing definitions for every workplace row in one callback: three reads. */
 export const loadWorkplaceAdmission = Effect.fnUntraced(function* (
 	read: Read,
@@ -1778,15 +1831,17 @@ export const loadWorkplaceAdmission = Effect.fnUntraced(function* (
 			fields: SETTINGS
 		},
 		'jurisdiction_settings.rule_set': {
-			where: { family: { eq: 'PAYROLL' }, code: { eq: 'case_kinds' } },
+			where: { family: { eq: 'PARAMETERS' }, code: { eq: 'case_kinds' } },
 			fields: ['settings_id', 'rules']
-		}
+		},
+		'jurisdiction_settings.suspension_catalog': { fields: ['settings_id', 'code'] }
 	});
 	return {
 		contracts,
 		entities: entity,
 		versions: jurisdiction_settings,
-		rules: { rows: jurisdiction_settings.rows.flatMap((version) => version.rule_set) }
+		rules: { rows: jurisdiction_settings.rows.flatMap((version) => version.rule_set) },
+		kinds: { rows: jurisdiction_settings.rows.flatMap((version) => version.suspension_catalog) }
 	};
 });
 type WorkplaceAdmission = Effect.Success<ReturnType<typeof loadWorkplaceAdmission>>;
@@ -1811,10 +1866,7 @@ export const admitSuspension = (
 		const version = yield* Effect.fromResult(
 			versionOn(got.versions.rows, company.settings_code, input.starts_on)
 		);
-		const kinds = yield* Effect.fromResult(
-			fieldValue(version.suspension_kinds, 'jurisdiction_settings.suspension_kinds')
-		);
-		if (!(kinds ?? []).some((kind) => kind.code === input.kind))
+		if (!got.kinds.rows.some((kind) => kind.settings_id === version.id && kind.code === input.kind))
 			return yield* new Refusal({
 				message: `${version.code} lists no suspension kind ${input.kind} on ${input.starts_on}.`
 			});
@@ -1861,7 +1913,7 @@ export const admitCase = (
 /**
  * What `admitEntry` reads for a batch of entries of one model: the employments (each with its person,
  * entity, headcount and earlier entries of the family; a time-off write: as a leave subject), the picked classes, and
- * the versions of their lineages over the entries' days (by the entity's code: no relation) with their PAYROLL rules and
+ * the versions of their lineages over the entries' days (by the entity's code: no relation) with their PARAMETERS rules and
  * their rows of the picked classes' codes (every class, for time off).
  */
 type CatalogueIdentities = {
@@ -2121,7 +2173,7 @@ export const admitEntry = <C extends EntryCollection>(input: {
 	Effect.gen(function* () {
 		const family = FAMILIES.find((candidate) => candidate.collection === input.collection)!;
 		// Batched reads: the employment (its person, entity, headcount and earlier entries of the family), the picked
-		// class, the versions of the employment's lineage in force on the entry day, and their PAYROLL rules and row of
+		// class, the versions of the employment's lineage in force on the entry day, and their PARAMETERS rules and row of
 		// the picked class's code.
 		const leaveFamily = family.family === 'LEAVE';
 		// the batch's reads, else this entry's own
@@ -2168,8 +2220,11 @@ export const admitEntry = <C extends EntryCollection>(input: {
 				code: got.data.codes.rows.find((code) => code.id === row.catalog_id)?.code ?? ''
 			}));
 		const values = input.values ?? {};
+		// exit pay the exit behaviour raised carries no amount and is judged at pay time, in the slip's context
+		const raised = exitSource(values) != null;
 		if (
 			family.family !== 'LEAVE' &&
+			!raised &&
 			(!('amount_required' in row) || row.amount_required !== false) &&
 			!(moneyValue(values.amount) > 0)
 		)
@@ -2195,7 +2250,7 @@ export const admitEntry = <C extends EntryCollection>(input: {
 				})
 			)),
 			rules: yield* Effect.fromResult(
-				payrollRulesOf(version.rule_set.filter((row) => row.family === 'PAYROLL'))
+				payrollRulesOf(version.rule_set.filter((row) => row.family === 'PARAMETERS'))
 			),
 			entry: entryContext(values, input.occurred_on),
 			earlier: earlierContext(earlier, {
@@ -2205,11 +2260,12 @@ export const admitEntry = <C extends EntryCollection>(input: {
 			})
 		};
 		const where = `${family.catalog} ${row.code}`;
-		if (!(yield* evaluateBoolean(row.eligibility, context, where)))
+		if (!raised && !(yield* evaluateBoolean(row.eligibility, context, where)))
 			return yield* new Refusal({
 				message: `${row.name ?? row.code} is not available to this employment.`
 			});
 		if (
+			!raised &&
 			!(yield* evaluateBoolean(
 				'qualifies_when' in row && Predicate.isString(row.qualifies_when)
 					? row.qualifies_when

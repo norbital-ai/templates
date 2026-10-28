@@ -77,8 +77,11 @@ function salaryWorkbook(reports: readonly SalaryReport[]) {
 			const group = report.columns[index]?.group;
 			while (index + 1 < report.columns.length && report.columns[index + 1]?.group === group)
 				index++;
+			// a lone column is its own group: one cell over both header rows, under its own label
 			if (index > first) sheet.mergeCells(6, first + 4, 6, index + 4);
-			sheet.getCell(6, first + 4).value = group ?? '';
+			else sheet.mergeCells(6, first + 4, 7, first + 4);
+			sheet.getCell(6, first + 4).value =
+				index > first ? (group ?? '') : (report.columns[first]?.label ?? '');
 			const fill = GROUP_FILLS[groups.length % GROUP_FILLS.length] ?? 'FFE4E4E4';
 			for (const rowNumber of [6, 7])
 				for (let column = first; column <= index; column++) {

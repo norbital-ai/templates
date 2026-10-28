@@ -19,35 +19,27 @@ export type SettingsLineage = {
 
 const SETTINGS_WRITE_FIELDS = [
 	'code',
-	'jurisdiction_code',
 	'name',
-	'references',
 	'employee_input_schema',
 	'entity_input_schema',
-	'behaviours',
 	'sealed_at',
 	'voided_at',
 	'void_reason',
 	'payroll',
+	'time_pay',
 	'change_summary',
 	'effective_range',
 	'sources',
-	'reference_tables',
-	'suspension_kinds',
 	'cloned_from_id'
 ] as const;
 
 export const SETTINGS_DIFF_FIELDS = [
 	'name',
-	'jurisdiction_code',
 	'payroll',
-	'references',
+	'time_pay',
 	'sources',
-	'behaviours',
 	'employee_input_schema',
 	'entity_input_schema',
-	'reference_tables',
-	'suspension_kinds',
 	'change_summary',
 	'effective_range'
 ] as const;
@@ -87,6 +79,22 @@ export function sealSettings(
 }
 
 /** Null when the update is admitted; otherwise the refusal. */
+/** A `time_pay` line names one code across every kind: the payslip, exports and rules read lines by it. */
+export function duplicateTimePayCode(
+	timePay:
+		| { readonly [kind: string]: readonly { readonly code: string }[] | null | undefined }
+		| null
+		| undefined
+): string | null {
+	const seen = new Set<string>();
+	for (const lines of Object.values(timePay ?? {}))
+		for (const line of lines ?? []) {
+			if (seen.has(line.code)) return `time_pay names the line ${line.code} twice.`;
+			seen.add(line.code);
+		}
+	return null;
+}
+
 export function refuseSealedUpdate(
 	before: SettingsLineage,
 	set: { readonly [field: string]: unknown }
@@ -112,10 +120,8 @@ export function cloneSettingsFields(
 ): Insert<'jurisdiction_settings'> {
 	return {
 		code: version.code,
-		jurisdiction_code: version.jurisdiction_code,
 		name: version.name,
 		payroll: version.payroll,
-		suspension_kinds: version.suspension_kinds ?? [],
 		sources: version.sources,
 		effective_range: { from: PlainDate(from), to: null },
 		cloned_from_id: version.id,
@@ -128,11 +134,8 @@ export function cloneSettingsFields(
 		...(version.entity_input_schema === undefined
 			? {}
 			: { entity_input_schema: version.entity_input_schema }),
-		...(version.behaviours === undefined ? {} : { behaviours: version.behaviours }),
-		...(version.change_summary === undefined ? {} : { change_summary: version.change_summary }),
-		...(version.reference_tables === undefined
-			? {}
-			: { reference_tables: version.reference_tables })
+		...(version.time_pay === undefined ? {} : { time_pay: version.time_pay }),
+		...(version.change_summary === undefined ? {} : { change_summary: version.change_summary })
 	};
 }
 

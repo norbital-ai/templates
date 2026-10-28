@@ -68,7 +68,7 @@ const READ_COLLECTIONS = [
 	'shift_definition',
 	'shift_pattern',
 	'statutory_contribution_catalog',
-	'work_catalog',
+	'suspension_catalog',
 	'work_suspension',
 	'workplace_case'
 ] as const satisfies readonly ModelName[];
@@ -83,32 +83,77 @@ export const BehaviourRead = Schema.Struct({
 });
 export type BehaviourRead = typeof BehaviourRead.Type;
 /**
- * One jurisdiction behaviour rule: which trigger it answers (`catalog` for an engine event, `target_collection` for a
- * row event), its CEL `when`, the rows it reads and the CEL `effect` that returns its writes. The effect is the whole
- * behaviour: it maps the context — the trigger row, its declared reads — to act-shaped writes; nothing here names a
- * function.
+ * One jurisdiction behaviour row: which row event it answers (`target_collection` and `events`), its CEL `when`, the
+ * rows it reads and the CEL `effect` that returns its writes. The effect is the whole behaviour: it maps the context —
+ * the trigger row, its declared reads and the row itself (`behaviour`) — to act-shaped writes; nothing here names a
+ * function. An obligation or task row carries the one duty it raises as `definition`.
  */
 export const Behaviour = Schema.Struct({
-	id: Schema.String,
-	catalog: Schema.optional(Schema.String),
-	target_collection: Schema.optional(Schema.String),
+	code: Schema.String,
+	name: Schema.optional(Schema.NullOr(Schema.String)),
+	references: Schema.optional(Schema.Unknown),
+	order: Schema.Number,
+	target_collection: Schema.optional(Schema.NullOr(Schema.String)),
 	events: Schema.Array(Schema.String),
-	when: Schema.optional(Schema.String),
+	when: Schema.optional(Schema.NullOr(Schema.String)),
 	/** Extra fields beyond the scalar default to read on the trigger row (a stored `json` field must be named). */
-	fields: Schema.optional(Schema.Array(Schema.String)),
-	reads: Schema.optional(Schema.Record(Schema.String, BehaviourRead)),
-	effect: Schema.optional(Schema.String)
+	fields: Schema.optional(Schema.NullOr(Schema.Array(Schema.String))),
+	reads: Schema.optional(Schema.NullOr(Schema.Record(Schema.String, BehaviourRead))),
+	effect: Schema.optional(Schema.NullOr(Schema.String)),
+	definition: Schema.optional(Schema.NullOr(Schema.Json))
 });
 export type Behaviour = typeof Behaviour.Type;
-/** A version's behaviours record: its ordered rules. */
-export const Behaviours = Schema.Struct({
-	version: Schema.Literal(1),
-	rules: Schema.Array(Behaviour)
-});
-export type Behaviours = typeof Behaviours.Type;
-/** The stored JSON behaviours field: `undefined` when the value is not a version-1 rule set. */
-export const behavioursOf = (value: unknown): Behaviours | undefined =>
-	Schema.is(Behaviours)(value) ? value : undefined;
+/**
+ * The version's one program per duty kind (events `[]`: it never fires itself): the `when`, `fields`, `reads` and
+ * `effect` every duty row of that kind runs. A task's `definition` has a `trigger`; an obligation's does not.
+ */
+const programOf = (definition: Behaviour['definition']) =>
+	isJsonObject(definition) && definition['trigger'] !== undefined
+		? 'task-program'
+		: 'obligation-program';
+/**
+ * A version's behaviour rows in run order (`order`, then `code`), each duty row (a `definition` without its own
+ * `effect`) completed from its kind's program row; a row the runner cannot run refuses them all.
+ */
+export const behavioursOf = (
+	rows: readonly unknown[] | undefined
+): Result.Result<readonly Behaviour[], Refusal> => {
+	const held: Behaviour[] = [];
+	for (const row of rows ?? []) {
+		if (!Schema.is(Behaviour)(row))
+			return Result.fail(
+				new Refusal({
+					message: `Behaviour ${String(isJsonObject(row) ? row['code'] : '')} names an event, read or write the runner cannot run.`
+				})
+			);
+		held.push(row);
+	}
+	const programs = new Map(held.map((row) => [row.code, row]));
+	const completed: Behaviour[] = [];
+	for (const row of held) {
+		if (row.definition == null || row.effect != null) {
+			completed.push(row);
+			continue;
+		}
+		const program = programs.get(programOf(row.definition));
+		if (program === undefined)
+			return Result.fail(
+				new Refusal({
+					message: `Behaviour ${row.code} raises a duty its version has no ${programOf(row.definition)} for.`
+				})
+			);
+		completed.push({
+			...row,
+			when: program.when,
+			fields: program.fields,
+			reads: program.reads,
+			effect: program.effect
+		});
+	}
+	return Result.succeed(
+		completed.toSorted((a, b) => a.order - b.order || a.code.localeCompare(b.code))
+	);
+};
 /** One write an effect returned: the target model, a native verb, and the act input verbatim. */
 export type BehaviourWrite = {
 	readonly callable: WriteCallable;
@@ -116,38 +161,41 @@ export type BehaviourWrite = {
 	readonly operation: WriteOperation;
 	readonly data: JsonObject;
 };
-/** Which trigger a rule set is planned for: an engine event or a row event. */
-type BehaviourTrigger =
-	| {
-			readonly kind: 'catalog';
-			readonly catalog: string;
-			readonly event: string;
-	  }
-	| {
-			readonly kind: 'row';
-			readonly collection: string;
-			readonly event: string;
-	  };
+/** Which row event a rule set is planned for. */
+type BehaviourTrigger = {
+	readonly kind: 'row';
+	readonly collection: string;
+	readonly event: string;
+};
 /**
  * Whether one rule answers one trigger, before its `when` — what the executor reads the trigger row's fields for. A
- * row rule without `target_collection` answers its events on every model the taps fire for.
+ * rule without `target_collection` answers its events on every model the taps fire for.
  */
 export function triggerMatches(rule: Behaviour, trigger: BehaviourTrigger): boolean {
-	if (!rule.events.includes(trigger.event)) return false;
-	return trigger.kind === 'catalog'
-		? rule.catalog === trigger.catalog
-		: rule.catalog === undefined &&
-				(rule.target_collection ?? trigger.collection) === trigger.collection;
+	return (
+		rule.events.includes(trigger.event) &&
+		(rule.target_collection ?? trigger.collection) === trigger.collection
+	);
 }
-/** The behaviours one trigger selects, in their declared order, whose `when` holds against the context. */
+/** The rule's own row in its `when` and `effect`: `behaviour.code`, `.name`, `.references` and `.definition`. */
+const own = (rule: Behaviour, context: CelContext): CelContext => ({
+	...context,
+	behaviour: {
+		code: rule.code,
+		name: rule.name ?? null,
+		references: rule.references ?? null,
+		definition: rule.definition ?? null
+	}
+});
+/** The behaviours one trigger selects, in run order, whose `when` holds against the context. */
 export function planBehaviours(
-	behaviours: Behaviours,
+	behaviours: readonly Behaviour[],
 	trigger: BehaviourTrigger,
 	context: CelContext
 ): readonly Behaviour[] {
-	return behaviours.rules
+	return behaviours
 		.filter((rule) => triggerMatches(rule, trigger))
-		.filter((rule) => rule.when === undefined || evaluate(rule, rule.when, context) === true);
+		.filter((rule) => rule.when == null || evaluate(rule, rule.when, own(rule, context)) === true);
 }
 /** Resolve one declared read's `where`: every string leaf is CEL over the event context; everything else is literal. */
 export function resolveWhere(
@@ -208,8 +256,8 @@ const writeFrom = (entry: typeof Write.Type): BehaviourWrite => {
 };
 /** One effect value as writes: null/false is a no-op, an object is one write, a list is many, in order. */
 export function effectWrites(rule: Behaviour, context: CelContext): readonly BehaviourWrite[] {
-	if (rule.effect === undefined) return [];
-	const value = evaluate(rule, rule.effect, context);
+	if (rule.effect == null) return [];
+	const value = evaluate(rule, rule.effect, own(rule, context));
 	if (value === null || value === false) return [];
 	const list = Schema.is(Schema.Array(Schema.Json))(value) ? value : [value];
 	return list.map((entry) =>
@@ -304,5 +352,5 @@ const evaluate = (rule: Behaviour, expression: string, context: CelContext): Jso
 	return refuse(rule, `an evaluation failure${code}: ${getErrorMessage(cause)}`);
 };
 const refuse = (rule: Behaviour, message: string): never => {
-	throw new Refusal({ message: `Behaviour ${rule.id} returned ${message}.` });
+	throw new Refusal({ message: `Behaviour ${rule.code} returned ${message}.` });
 };

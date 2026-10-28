@@ -75,7 +75,6 @@ const seed = {
 		{
 			id: SG,
 			code: 'SG',
-			jurisdiction_code: 'SG',
 			name: 'Singapore',
 			effective_range: OPEN,
 			payroll: {},

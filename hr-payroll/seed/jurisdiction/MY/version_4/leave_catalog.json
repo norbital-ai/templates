@@ -10,7 +10,8 @@
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": []
 	},
 	{
 		"id": "955495ab-c63b-4808-a5d5-27c21be776b2",
@@ -23,7 +24,8 @@
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": []
 	},
 	{
 		"id": "bf158c14-0a64-4daa-9a1b-f6110bd5b4cf",
@@ -47,7 +49,8 @@
 			"days": "98.0",
 			"overdraw": "0",
 			"window": "EVENT"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "ac12ba95-1a6c-5aad-9773-cd2dd914ec24",
@@ -71,7 +74,8 @@
 			"days": "98.0",
 			"overdraw": "0",
 			"window": "EVENT"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "867de58e-9e8b-4c18-a9d4-ebaccc03d659",
@@ -96,7 +100,8 @@
 			"days": "60.0",
 			"overdraw": "0",
 			"window": "CALENDAR_YEAR"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "c1a2a622-2d03-4add-b0b6-9852e0984c27",
@@ -121,7 +126,8 @@
 			"days": "terms.employment_type == \"PART_TIME\" ? (service_months >= 60 ? 15.0 : service_months >= 24 ? 13.0 : 10.0) : (service_months >= 60 ? 22.0 : service_months >= 24 ? 18.0 : 14.0)",
 			"overdraw": "0",
 			"window": "CALENDAR_YEAR"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "abd09c34-b6c7-48a7-8e6c-e263dd460e99",
@@ -134,7 +140,8 @@
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": []
 	},
 	{
 		"id": "277c9db7-dfb8-4dad-b830-f963b69e302f",
@@ -175,7 +182,59 @@
 			"window": "SERVICE_YEAR",
 			"carry_forward": "terms.employment_type == \"PART_TIME\" ? (service_months >= 60 ? 11.0 : service_months >= 24 ? 8.0 : service_months >= 12 ? 6.0 : round(6.0 * min(service_months, 12.0) / 12.0, 1.0, \"HALF_UP\")) : (size(bands.filter(b, service_months >= b.service_months).map(b, b.days)) > 0 ? first(bands.filter(b, service_months >= b.service_months).map(b, b.days)) : round(8.0 * min(service_months, 12.0) / 12.0, 1.0, \"HALF_UP\"))",
 			"carry_depth": 1
-		}
+		},
+		"pay": [
+			{
+				"code": "ENCASHMENT",
+				"name": "Leave encashment",
+				"references": [
+					{
+						"title": "Payment for untaken annual leave at the ordinary rate of pay for every day (EA s.60E(3A)). EA s.60I(1A): the ordinary rate of pay of a monthly-rated employee is the monthly rate ÷ 26; the hourly rate is that ÷ the normal hours of work (s.60I(1)(b), company.facts.normal_daily_hours, 8 unrecorded).",
+						"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+					}
+				],
+				"eligibility": "leave.rows.exists(r, r.can_encash && r.activity == \"ENCASHMENT\" && r.days > 0.0)",
+				"quantity": "sum(leave.rows.filter(r, r.can_encash && r.activity == \"ENCASHMENT\").map(r, r.days))",
+				"rate": "(((has(terms.facts) && has(terms.facts.pay_basis)) ? terms.facts.pay_basis : \"MONTHLY\") == \"MONTHLY\" ? terms.base_salary / 26.0 : ((has(terms.facts) && has(terms.facts.pay_basis)) ? terms.facts.pay_basis : \"MONTHLY\") == \"WEEKLY\" ? terms.base_salary / 6.0 : ((has(terms.facts) && has(terms.facts.pay_basis)) ? terms.facts.pay_basis : \"MONTHLY\") == \"DAILY\" ? ((has(earned.previous_month) && has(earned.previous_month.gross) && earned.previous_month.gross > 0.0) && (has(earned.previous_month.BASIC) && has(earned.previous_month.base_salary) && earned.previous_month.base_salary > 0.0 ? earned.previous_month.BASIC / earned.previous_month.base_salary : 0.0) > 0.0 ? max(terms.base_salary, (earned.previous_month.gross - (has(earned.previous_month.REST_DAY_WORK) ? earned.previous_month.REST_DAY_WORK : 0.0) - (has(earned.previous_month.HOLIDAY_WORK) ? earned.previous_month.HOLIDAY_WORK : 0.0) - (has(earned.previous_month.REST_DAY_OVERTIME) ? earned.previous_month.REST_DAY_OVERTIME : 0.0) - (has(earned.previous_month.HOLIDAY_OVERTIME) ? earned.previous_month.HOLIDAY_OVERTIME : 0.0) - (has(earned.previous_month.INCENTIVE) ? earned.previous_month.INCENTIVE : 0.0)) / (has(earned.previous_month.BASIC) && has(earned.previous_month.base_salary) && earned.previous_month.base_salary > 0.0 ? earned.previous_month.BASIC / earned.previous_month.base_salary : 0.0)) : terms.base_salary) : ((has(terms.facts) && has(terms.facts.pay_basis)) ? terms.facts.pay_basis : \"MONTHLY\") == \"HOURLY\" ? ((has(earned.previous_month) && has(earned.previous_month.gross) && earned.previous_month.gross > 0.0) && (has(hours.previous_month.day_type) && has(hours.previous_month.day_type.WORK) ? hours.previous_month.day_type.WORK.worked_hours / ((has(terms.facts) && has(terms.facts.normal_hours_per_day)) ? double(terms.facts.normal_hours_per_day) : terms.employment_type == \"PART_TIME\" ? 0.7 * (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0) : (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0)) : 0.0) > 0.0 ? max(terms.base_salary * ((has(terms.facts) && has(terms.facts.normal_hours_per_day)) ? double(terms.facts.normal_hours_per_day) : terms.employment_type == \"PART_TIME\" ? 0.7 * (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0) : (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0)), (earned.previous_month.gross - (has(earned.previous_month.REST_DAY_WORK) ? earned.previous_month.REST_DAY_WORK : 0.0) - (has(earned.previous_month.HOLIDAY_WORK) ? earned.previous_month.HOLIDAY_WORK : 0.0) - (has(earned.previous_month.REST_DAY_OVERTIME) ? earned.previous_month.REST_DAY_OVERTIME : 0.0) - (has(earned.previous_month.HOLIDAY_OVERTIME) ? earned.previous_month.HOLIDAY_OVERTIME : 0.0) - (has(earned.previous_month.INCENTIVE) ? earned.previous_month.INCENTIVE : 0.0)) / (has(hours.previous_month.day_type) && has(hours.previous_month.day_type.WORK) ? hours.previous_month.day_type.WORK.worked_hours / ((has(terms.facts) && has(terms.facts.normal_hours_per_day)) ? double(terms.facts.normal_hours_per_day) : terms.employment_type == \"PART_TIME\" ? 0.7 * (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0) : (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0)) : 0.0)) : terms.base_salary * ((has(terms.facts) && has(terms.facts.normal_hours_per_day)) ? double(terms.facts.normal_hours_per_day) : terms.employment_type == \"PART_TIME\" ? 0.7 * (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0) : (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0))) : ((has(earned.previous_month) && has(earned.previous_month.gross) && earned.previous_month.gross > 0.0) && (has(hours.previous_month.day_type) && has(hours.previous_month.day_type.WORK) ? hours.previous_month.day_type.WORK.worked_hours / ((has(terms.facts) && has(terms.facts.normal_hours_per_day)) ? double(terms.facts.normal_hours_per_day) : terms.employment_type == \"PART_TIME\" ? 0.7 * (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0) : (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0)) : 0.0) > 0.0 ? (earned.previous_month.gross - (has(earned.previous_month.REST_DAY_WORK) ? earned.previous_month.REST_DAY_WORK : 0.0) - (has(earned.previous_month.HOLIDAY_WORK) ? earned.previous_month.HOLIDAY_WORK : 0.0) - (has(earned.previous_month.REST_DAY_OVERTIME) ? earned.previous_month.REST_DAY_OVERTIME : 0.0) - (has(earned.previous_month.HOLIDAY_OVERTIME) ? earned.previous_month.HOLIDAY_OVERTIME : 0.0) - (has(earned.previous_month.INCENTIVE) ? earned.previous_month.INCENTIVE : 0.0)) / (has(hours.previous_month.day_type) && has(hours.previous_month.day_type.WORK) ? hours.previous_month.day_type.WORK.worked_hours / ((has(terms.facts) && has(terms.facts.normal_hours_per_day)) ? double(terms.facts.normal_hours_per_day) : terms.employment_type == \"PART_TIME\" ? 0.7 * (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0) : (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0)) : 0.0) : (has(rules.minimum_wage) ? double(rules.minimum_wage.daily_six_day_week) : 65.38)))",
+				"destination": "PAY",
+				"direction": "ADD",
+				"counts_toward": [
+					"EPF",
+					"EPF_PR",
+					"EPF_NON_CITIZEN",
+					"SOCSO",
+					"SKBBK",
+					"EIS",
+					"PCB",
+					"HRDF"
+				]
+			},
+			{
+				"code": "LEAVE_PAY",
+				"name": "Paid leave (non-monthly rate)",
+				"references": [
+					{
+						"title": "EA s.60E(1), s.60F(1) and s.60FA(1): annual, sick and paternity leave are paid at the ordinary rate of pay; a monthly or weekly rate is deemed paid by its unabated wages (s.60E(3), s.60F(3)). EA s.60I: the ordinary rate of pay is monthly ÷ 26 (s.60I(1A)), weekly ÷ 6 (s.60I(1B)), and for a daily, hourly or piece rate the preceding wage period's wages ÷ the days worked (s.60I(1C), the days of a piece or hourly worker read from the period's WORK-day hours ÷ the normal hours); the hourly rate is it ÷ the contract's normal hours a day (s.60I(1)(b), s.60A(3)(c); terms.facts.normal_hours_per_day, else company.facts.normal_daily_hours, else 8). Pay basis: terms.facts.pay_basis.",
+						"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+					}
+				],
+				"eligibility": "terms.employment_type != \"DOMESTIC\" && ((has(terms.facts) && has(terms.facts.pay_basis)) ? terms.facts.pay_basis : \"MONTHLY\") in [\"DAILY\", \"HOURLY\", \"PIECE\"] && leave.rows.exists(r, r.activity == \"TIME_OFF\" && !r.is_npl && r.days > 0.0)",
+				"quantity": "sum(leave.rows.filter(r, r.activity == \"TIME_OFF\" && !r.is_npl).map(r, r.days * r.pay_fraction))",
+				"rate": "(((has(terms.facts) && has(terms.facts.pay_basis)) ? terms.facts.pay_basis : \"MONTHLY\") == \"MONTHLY\" ? terms.base_salary / 26.0 : ((has(terms.facts) && has(terms.facts.pay_basis)) ? terms.facts.pay_basis : \"MONTHLY\") == \"WEEKLY\" ? terms.base_salary / 6.0 : ((has(terms.facts) && has(terms.facts.pay_basis)) ? terms.facts.pay_basis : \"MONTHLY\") == \"DAILY\" ? ((has(earned.previous_month) && has(earned.previous_month.gross) && earned.previous_month.gross > 0.0) && (has(earned.previous_month.BASIC) && has(earned.previous_month.base_salary) && earned.previous_month.base_salary > 0.0 ? earned.previous_month.BASIC / earned.previous_month.base_salary : 0.0) > 0.0 ? max(terms.base_salary, (earned.previous_month.gross - (has(earned.previous_month.REST_DAY_WORK) ? earned.previous_month.REST_DAY_WORK : 0.0) - (has(earned.previous_month.HOLIDAY_WORK) ? earned.previous_month.HOLIDAY_WORK : 0.0) - (has(earned.previous_month.REST_DAY_OVERTIME) ? earned.previous_month.REST_DAY_OVERTIME : 0.0) - (has(earned.previous_month.HOLIDAY_OVERTIME) ? earned.previous_month.HOLIDAY_OVERTIME : 0.0) - (has(earned.previous_month.INCENTIVE) ? earned.previous_month.INCENTIVE : 0.0)) / (has(earned.previous_month.BASIC) && has(earned.previous_month.base_salary) && earned.previous_month.base_salary > 0.0 ? earned.previous_month.BASIC / earned.previous_month.base_salary : 0.0)) : terms.base_salary) : ((has(terms.facts) && has(terms.facts.pay_basis)) ? terms.facts.pay_basis : \"MONTHLY\") == \"HOURLY\" ? ((has(earned.previous_month) && has(earned.previous_month.gross) && earned.previous_month.gross > 0.0) && (has(hours.previous_month.day_type) && has(hours.previous_month.day_type.WORK) ? hours.previous_month.day_type.WORK.worked_hours / ((has(terms.facts) && has(terms.facts.normal_hours_per_day)) ? double(terms.facts.normal_hours_per_day) : terms.employment_type == \"PART_TIME\" ? 0.7 * (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0) : (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0)) : 0.0) > 0.0 ? max(terms.base_salary * ((has(terms.facts) && has(terms.facts.normal_hours_per_day)) ? double(terms.facts.normal_hours_per_day) : terms.employment_type == \"PART_TIME\" ? 0.7 * (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0) : (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0)), (earned.previous_month.gross - (has(earned.previous_month.REST_DAY_WORK) ? earned.previous_month.REST_DAY_WORK : 0.0) - (has(earned.previous_month.HOLIDAY_WORK) ? earned.previous_month.HOLIDAY_WORK : 0.0) - (has(earned.previous_month.REST_DAY_OVERTIME) ? earned.previous_month.REST_DAY_OVERTIME : 0.0) - (has(earned.previous_month.HOLIDAY_OVERTIME) ? earned.previous_month.HOLIDAY_OVERTIME : 0.0) - (has(earned.previous_month.INCENTIVE) ? earned.previous_month.INCENTIVE : 0.0)) / (has(hours.previous_month.day_type) && has(hours.previous_month.day_type.WORK) ? hours.previous_month.day_type.WORK.worked_hours / ((has(terms.facts) && has(terms.facts.normal_hours_per_day)) ? double(terms.facts.normal_hours_per_day) : terms.employment_type == \"PART_TIME\" ? 0.7 * (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0) : (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0)) : 0.0)) : terms.base_salary * ((has(terms.facts) && has(terms.facts.normal_hours_per_day)) ? double(terms.facts.normal_hours_per_day) : terms.employment_type == \"PART_TIME\" ? 0.7 * (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0) : (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0))) : ((has(earned.previous_month) && has(earned.previous_month.gross) && earned.previous_month.gross > 0.0) && (has(hours.previous_month.day_type) && has(hours.previous_month.day_type.WORK) ? hours.previous_month.day_type.WORK.worked_hours / ((has(terms.facts) && has(terms.facts.normal_hours_per_day)) ? double(terms.facts.normal_hours_per_day) : terms.employment_type == \"PART_TIME\" ? 0.7 * (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0) : (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0)) : 0.0) > 0.0 ? (earned.previous_month.gross - (has(earned.previous_month.REST_DAY_WORK) ? earned.previous_month.REST_DAY_WORK : 0.0) - (has(earned.previous_month.HOLIDAY_WORK) ? earned.previous_month.HOLIDAY_WORK : 0.0) - (has(earned.previous_month.REST_DAY_OVERTIME) ? earned.previous_month.REST_DAY_OVERTIME : 0.0) - (has(earned.previous_month.HOLIDAY_OVERTIME) ? earned.previous_month.HOLIDAY_OVERTIME : 0.0) - (has(earned.previous_month.INCENTIVE) ? earned.previous_month.INCENTIVE : 0.0)) / (has(hours.previous_month.day_type) && has(hours.previous_month.day_type.WORK) ? hours.previous_month.day_type.WORK.worked_hours / ((has(terms.facts) && has(terms.facts.normal_hours_per_day)) ? double(terms.facts.normal_hours_per_day) : terms.employment_type == \"PART_TIME\" ? 0.7 * (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0) : (has(company.facts.normal_daily_hours) ? double(company.facts.normal_daily_hours) : 8.0)) : 0.0) : (has(rules.minimum_wage) ? double(rules.minimum_wage.daily_six_day_week) : 65.38)))",
+				"destination": "PAY",
+				"direction": "ADD",
+				"counts_toward": [
+					"EPF",
+					"EPF_PR",
+					"EPF_NON_CITIZEN",
+					"SOCSO",
+					"SKBBK",
+					"EIS",
+					"PCB",
+					"HRDF"
+				]
+			}
+		]
 	},
 	{
 		"id": "0910788b-26c7-453a-9119-d3a98481bb9c",
@@ -188,7 +247,8 @@
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": []
 	},
 	{
 		"id": "58889d0c-8b1c-4f32-984c-4e920b6b0757",
@@ -211,7 +271,8 @@
 			"days": "min(7.0, max(0.0, 35.0 - (taken.lifetime - taken.event)))",
 			"overdraw": "0",
 			"window": "EVENT"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "bbb7eae7-ba6c-4e53-b954-bdcd37c822dc",
@@ -224,7 +285,34 @@
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": [
+			{
+				"code": "NO_PAY_LEAVE",
+				"name": "No-pay leave",
+				"references": [
+					{
+						"title": "No-pay leave and unpaid absence (and the unpaid part of any partly paid leave, 1 − pay_fraction) at the monthly salary ÷ the calendar days of the month. EA s.18A: \"Notwithstanding section 60i\", an employee on a monthly rate who joins or leaves in the month, takes unpaid leave or national-service leave is paid monthly wages ÷ the days of the wage period × the days eligible — calendar days (owner ruling 2026-10-07; the Nihon salary listing prices every no-pay day and part month the same way).",
+						"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+					}
+				],
+				"eligibility": "((has(terms.facts) && has(terms.facts.pay_basis)) ? terms.facts.pay_basis : \"MONTHLY\") in [\"MONTHLY\", \"WEEKLY\"] && sum(leave.rows.filter(r, r.activity == \"TIME_OFF\" && (r.is_npl || r.pay_fraction < 1.0)).map(r, r.is_npl ? r.days : r.days * (1.0 - r.pay_fraction))) > 0.0",
+				"quantity": "min(sum(leave.rows.filter(r, r.activity == \"TIME_OFF\" && (r.is_npl || r.pay_fraction < 1.0)).map(r, r.is_npl ? r.days : r.days * (1.0 - r.pay_fraction))), double(period.paid_days))",
+				"rate": "terms.base_salary / (has(period.month_days) ? double(period.month_days) : double(period.days))",
+				"destination": "PAY",
+				"direction": "SUBTRACT",
+				"counts_toward": [
+					"EPF",
+					"EPF_PR",
+					"EPF_NON_CITIZEN",
+					"SOCSO",
+					"SKBBK",
+					"EIS",
+					"PCB",
+					"HRDF"
+				]
+			}
+		]
 	},
 	{
 		"id": "a4e5ec46-3002-5f85-94af-c762a9cec378",
@@ -243,7 +331,8 @@
 				"title": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 			}
-		]
+		],
+		"pay": []
 	},
 	{
 		"id": "d0a5aba3-c8e7-57a8-b48a-fcd01160ec52",
@@ -262,6 +351,7 @@
 				"title": "Employment Act 1955 (Act 265) s.23, AGC reprint as at 1 August 2023: wages are not payable for a sentence of imprisonment, custody, travel to or from prison or custody, or travel to, attendance before or return from court otherwise than as a witness on the employer’s behalf. Section 23 also applies to domestic employees: First Schedule para.2(5) does not exclude it. The employer-witness exception preserves ordinary contractual pay; this catalogue records no independent right to time off. More favourable contractual paid absence may be granted separately. Encoded 2026-10-06: the absence is unpaid (is_npl, priced by NO_PAY_LEAVE at monthly ÷ 26); attendance as the employer’s witness is work for the employer, not this class, and is refused here.",
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 			}
-		]
+		],
+		"pay": []
 	}
 ]

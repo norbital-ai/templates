@@ -2,8 +2,7 @@
 	{
 		"id": "ffd52da5-6353-5e00-bc7b-014c12ebd647",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "case_kinds",
 		"name": "Workplace case kinds",
 		"rules": {
@@ -18,26 +17,27 @@
 	{
 		"id": "a4e45139-53b6-56f1-93e8-00f9f69e2477",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "allowance_npl_prorates",
 		"name": "allowance_npl_prorates",
-		"rules": true
+		"rules": {
+			"value": true
+		}
 	},
 	{
 		"id": "cda82443-483f-5493-9097-b4a97ee1695f",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "separation_wage_average_months",
 		"name": "separation_wage_average_months",
-		"rules": 6
+		"rules": {
+			"value": 6
+		}
 	},
 	{
 		"id": "2f031c6b-3a66-5dd3-8c5a-36949e32dd6c",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "minimum_wage",
 		"name": "Regional minimum wage",
 		"references": [
@@ -61,1020 +61,15 @@
 		}
 	},
 	{
-		"id": "ee0ff5bd-8941-559c-9f93-4a2acc389cd8",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SI_HI_UI_REGISTRATION",
-		"name": "SI_HI_UI_REGISTRATION",
-		"references": [
-			{
-				"title": "Law on Social Insurance 41/2024/QH15",
-				"locator": "arts.13(1), 28(1)",
-				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
-			},
-			{
-				"title": "Law on Employment 38/2013/QH13 art.44 (UI registered with SI)"
-			}
-		],
-		"rules": {
-			"description": "Register each employee for compulsory social, health and unemployment insurance with Vietnam Social Security (the SI book is issued on it). When: An employee becomes a compulsory participant: a labour contract of one month or more; a foreigner on a contract of twelve months or more. Due: Within 30 days of the day the employee becomes a compulsory participant.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 30)"
-		}
-	},
-	{
-		"id": "85e7952e-f9d7-5e7a-af5a-5aaab1170eb6",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SI_HI_UI_CHANGE_DECLARATION",
-		"name": "SI_HI_UI_CHANGE_DECLARATION",
-		"references": [
-			{
-				"title": "Law 41/2024/QH15",
-				"locator": "arts.29(1), 33(5), 34(3)",
-				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
-			}
-		],
-		"rules": {
-			"description": "Declare changes to a participant's registration: salary changes, suspension for 14 or more unpaid working days, departure. When: A change in the registered information or in the contribution status. Due: When the change occurs, before the month's contribution is settled.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "month_end(add_months(period.from, 1))"
-		}
-	},
-	{
-		"id": "b90bb2f8-458f-5ade-8b94-53c722a451ce",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "SI_HI_UI_MONTHLY_REMITTANCE",
-		"name": "SI_HI_UI_MONTHLY_REMITTANCE",
-		"references": [
-			{
-				"title": "Law 41/2024/QH15",
-				"locator": "arts.13(4), 34(4)(a), 40(1)",
-				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
-			},
-			{
-				"title": "Law 38/2013/QH13",
-				"locator": "art.57"
-			}
-		],
-		"rules": {
-			"description": "Deduct the employee shares of SI, HI and UI from the salary and remit them with the employer shares; late payment carries 0.03% a day. The engine computes the employee and employer SI, HI and UI shares on each payslip; the remittance is outside it. When: Each contribution month. Due: By the last day of the month following the contribution month.",
-			"schemes": ["SI", "HI", "UI"],
-			"due": "month_end(add_months(period.from, 1))"
-		}
-	},
-	{
-		"id": "a607df89-ff1b-5c3b-b1b2-7321f3f89693",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SI_BENEFIT_CLAIMS",
-		"name": "SI_BENEFIT_CLAIMS",
-		"references": [
-			{
-				"title": "Law 41/2024/QH15",
-				"locator": "arts.13(2), 48(1)–(2), 62(1)",
-				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
-			}
-		],
-		"rules": {
-			"description": "Compile sickness and maternity benefit claims for Vietnam Social Security; the fund, not payroll, pays the benefit. When: An employee returns from fund-paid sickness or maternity leave and hands in the claim file (within 45 days). Due: Within 7 working days of receiving the complete file from the employee. Engine: raised when a sick, maternity or paternity entry is recorded, due 7 working days after the leave ends (the earliest the file can be complete: never later than the law).",
-			"trigger": {
-				"collection": "leave_catalog_entry",
-				"events": ["created"]
-			},
-			"due": "add_working_days(has(row.to) && row.to != null ? row.to : today, 7, holidays, [\"SATURDAY\", \"SUNDAY\"])",
-			"when": "row.catalog_code in [\"SICK_LEAVE\", \"MATERNITY_LEAVE\", \"PATERNITY_LEAVE\"]"
-		}
-	},
-	{
-		"id": "6e884bd8-cbe0-50b9-80af-2adbd88b8b24",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "INSURANCE_EQUIVALENT_PAYMENT",
-		"name": "INSURANCE_EQUIVALENT_PAYMENT",
-		"references": [
-			{
-				"title": "Labour Code 2019",
-				"locator": "art.168(3)",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			}
-		],
-		"rules": {
-			"description": "Pay an employee outside compulsory SI, HI and UI an amount equal to the employer's contributions with each wage. Engine: the INSURANCE_EQUIVALENT allowance class prices it each month once HR raises the standing row. When: An employee who is not a compulsory participant. Due: With each wage payment.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "add_days(period.to, 0)"
-		}
-	},
-	{
-		"id": "ab0416a9-a51d-5234-b4a5-05980aaf4a58",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "LABOUR_CONTRACT",
-		"name": "LABOUR_CONTRACT",
-		"references": [
-			{
-				"title": "Labour Code 2019",
-				"locator": "arts.13(2), 14(1), 21(1)",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			}
-		],
-		"rules": {
-			"description": "Conclude a written labour contract, in two copies, with the content art.21 requires, before the employee starts work. When: Hiring for work of one month or more. Due: Before the employee starts work.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 0)"
-		}
-	},
-	{
-		"id": "16219f60-c915-5c6f-a810-3aa6959eb0fe",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "LABOUR_MANAGEMENT_BOOK",
-		"name": "LABOUR_MANAGEMENT_BOOK",
-		"references": [
-			{
-				"title": "Labour Code 2019",
-				"locator": "art.12(1)"
-			},
-			{
-				"title": "Decree 145/2020/NĐ-CP",
-				"locator": "art.3",
-				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
-			}
-		],
-		"rules": {
-			"description": "Keep the labour management book (paper or electronic) and produce it to the authorities on request. When: Each employee from the day work starts. Due: From the first day of work, updated on every change.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 0)"
-		}
-	},
-	{
-		"id": "278de6ba-6404-589d-a4ed-2d7580f70850",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "LABOUR_USE_REPORT",
-		"name": "LABOUR_USE_REPORT",
-		"references": [
-			{
-				"title": "Labour Code 2019",
-				"locator": "art.12(2)",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			},
-			{
-				"title": "Decree 145/2020/NĐ-CP",
-				"locator": "art.4(1)–(2)",
-				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
-			}
-		],
-		"rules": {
-			"description": "Declare the use of labour on starting operations and report changes in labour to the provincial labour authority, notifying Social Security. When: Start of operations; each half-year and year. Due: Declaration within 30 days of starting operations; half-yearly report before 5 June and annual report before 5 December (form 01/PLI, National Public Service Portal).",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["05", "11"],
-			"due": "add_days(period.to, 4)"
-		}
-	},
-	{
-		"id": "d797dd5e-7518-5f0d-9e64-d08d69355a29",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "INTERNAL_LABOUR_RULES",
-		"name": "INTERNAL_LABOUR_RULES",
-		"references": [
-			{
-				"title": "Labour Code 2019",
-				"locator": "arts.118, 119(1)–(2)",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			}
-		],
-		"rules": {
-			"description": "Issue written internal labour rules and register them with the provincial labour authority. When: An employer using 10 or more employees. Due: File the registration within 10 days of issuing the rules. Engine: raised each December while the entity has 10 or more contracts in force.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["12"],
-			"due": "add_days(period.to, 0)",
-			"applies_when": "headcount >= 10"
-		}
-	},
-	{
-		"id": "0e95a1f9-110a-5cb2-9949-49274260cc63",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WAGE_SCALE_AND_NORMS",
-		"name": "WAGE_SCALE_AND_NORMS",
-		"references": [
-			{
-				"title": "Labour Code 2019",
-				"locator": "art.93",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			}
-		],
-		"rules": {
-			"description": "Build the salary scale, pay table and labour norms, consult the employee representative organisation, and post them at the workplace. When: Before applying a salary scale or a change to it. Due: Published at the workplace before implementation.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["12"],
-			"due": "add_days(period.to, 0)"
-		}
-	},
-	{
-		"id": "4b773e73-431b-5628-8b35-6b8e3ac86cd7",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "MINIMUM_WAGE",
-		"name": "MINIMUM_WAGE",
-		"references": [
-			{
-				"title": "Labour Code 2019",
-				"locator": "art.91"
-			},
-			{
-				"title": "Decree 74/2024/NĐ-CP (Region I–IV 4,960,000 / 4,410,000 / 3,860,000 / 3,450,000 a month; 23,800 / 21,200 / 18,600 / 16,600 an hour)",
-				"url": "https://vanban.chinhphu.vn/?pageid=27160&docid=210536"
-			}
-		],
-		"rules": {
-			"description": "Pay a covered employee at least the regional minimum wage — monthly for monthly-paid work, hourly for hourly-paid work. Engine: the run warns on a contract below the monthly regional table; an hourly-paid contract is refused below the regional hourly minimum on its term fact hourly_rate (HOURLY_MINIMUM_WAGE, Decree 293/2025 art.3(2)); a part-time contract without an hourly rate is compared on the monthly table. When: Each wage agreement and payment. Due: Continuously; the version's regional table.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "add_days(period.to, 0)"
-		}
-	},
-	{
-		"id": "c309e152-6d51-51fa-a50a-c06bba5f03fd",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WAGE_PAYMENT_TIMING",
-		"name": "WAGE_PAYMENT_TIMING",
-		"references": [
-			{
-				"title": "Labour Code 2019",
-				"locator": "arts.94(1), 97",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			}
-		],
-		"rules": {
-			"description": "Pay wages directly, in full and on time: monthly or half-monthly on a fixed periodic date; hourly, daily or weekly wages at most every 15 days. Engine: the run pays on the operator's pay date; periodicity and the late-payment interest are not checked. When: Each pay period. Due: On the agreed periodic date; a delay caused by force majeure may not exceed 30 days, and a delay of 15 days or more owes interest at the bank's one-month deposit rate.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "add_days(period.to, 0)"
-		}
-	},
-	{
-		"id": "a70b6bc4-a893-55e1-adb6-815be9b7a5c6",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WAGE_STATEMENT",
-		"name": "WAGE_STATEMENT",
-		"references": [
-			{
-				"title": "Labour Code 2019",
-				"locator": "art.95(3)",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			}
-		],
-		"rules": {
-			"description": "Give the employee a wage statement at every payment showing the salary, overtime pay, night pay and each deduction with its amount. Engine: the payslip carries the salary, overtime, night-premium and deduction lines. When: Each wage payment. Due: At each payment.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "add_days(period.to, 0)"
-		}
-	},
-	{
-		"id": "ca95fb99-b869-5ebc-a54a-84e56eefaf5b",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WAGE_DEDUCTION_LIMIT",
-		"name": "WAGE_DEDUCTION_LIMIT",
-		"references": [
-			{
-				"title": "Labour Code 2019",
-				"locator": "arts.102, 129",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			}
-		],
-		"rules": {
-			"description": "Deduct from wages only to compensate damage to the employer's tools, equipment or property, tell the employee why, and keep the monthly deduction within 30% of the wage actually paid after SI, HI, UI and PIT. When: A damage-compensation deduction. Due: Each month the deduction runs.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "add_days(period.to, 0)"
-		}
-	},
-	{
-		"id": "9aa3cc1e-06c6-58df-a719-a8295870ec9b",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "OVERTIME_CONSENT_AND_LIMITS",
-		"name": "OVERTIME_CONSENT_AND_LIMITS",
-		"references": [
-			{
-				"title": "Labour Code 2019",
-				"locator": "art.107(2)–(4)",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			},
-			{
-				"title": "Decree 145/2020/NĐ-CP",
-				"locator": "arts.59–62",
-				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
-			}
-		],
-		"rules": {
-			"description": "Obtain the employee's consent to overtime and keep it within 50% of the normal day (12 hours in total under a weekly regime), 40 hours a month and 200 hours a year (300 in the listed sectors and cases); notify the provincial labour authority in writing when organising overtime above 200 hours. Engine: the daily, monthly and yearly limits are work-rule warnings; consent and the notice are not recorded. When: Any overtime; overtime above 200 hours a year. Due: Consent before the overtime; the written notice when the above-200-hour overtime is organised.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "add_days(period.to, 0)"
-		}
-	},
-	{
-		"id": "40b37423-ec00-5b20-9781-fddfbd357267",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "NIGHT_OVERTIME_STATEMENT",
-		"name": "NIGHT_OVERTIME_STATEMENT",
-		"references": [
-			{
-				"title": "Circular 111/2013/TT-BTC art.3(1)(i): the income payer keeps a statement (bảng kê) of night and overtime hours and the pay for them"
-			}
-		],
-		"rules": {
-			"description": "Keep a statement of the night and overtime hours worked and the pay for them, to support the PIT exemption, and produce it to the tax authority on request. Engine: the payslip lines carry each day's overtime and night hours and amounts; a separate statement is not produced. When: Night work or overtime paid. Due: Kept with the payroll records for each period.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "add_days(period.to, 0)"
-		}
-	},
-	{
-		"id": "d610fed0-98af-5521-bc9e-3e291fa8d2b8",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "ANNUAL_LEAVE_SCHEDULE",
-		"name": "ANNUAL_LEAVE_SCHEDULE",
-		"references": [
-			{
-				"title": "Labour Code 2019",
-				"locator": "art.113(3)–(4)",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			},
-			{
-				"title": "Decree 145/2020/NĐ-CP",
-				"locator": "art.67",
-				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
-			}
-		],
-		"rules": {
-			"description": "Set the annual-leave schedule after consulting employees and notify it in advance; pay untaken leave on termination. Engine: untaken leave is encashed on exit; the schedule is outside. When: Each leave year; termination with untaken leave. Due: Schedule notified before the leave; untaken leave paid with the final settlement.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["01"],
-			"due": "add_days(period.to, 0)"
-		}
-	},
-	{
-		"id": "76edd48c-a01c-5d56-b649-f99a2d0d9efd",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORKPLACE_DIALOGUE",
-		"name": "WORKPLACE_DIALOGUE",
-		"references": [
-			{
-				"title": "Labour Code 2019",
-				"locator": "art.63(2)",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			}
-		],
-		"rules": {
-			"description": "Hold workplace dialogue with employees or their representative organisation. When: Periodically; on request; on the art.63(2)(c) events (restructuring, pay scale, bonus rules, internal rules). Due: At least once a year, and when an art.63(2)(b)–(c) event arises.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["12"],
-			"due": "add_days(period.to, 0)"
-		}
-	},
-	{
-		"id": "0d5b24d3-0f11-5ae8-801f-00a31cfc8a57",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "TERMINATION_NOTICE",
-		"name": "TERMINATION_NOTICE",
-		"references": [
-			{
-				"title": "Labour Code 2019 arts.36(2), 45(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.7 (special roles: 120 days / a quarter of the term) https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf p.6"
-			}
-		],
-		"rules": {
-			"description": "Give written notice of the end of a labour contract, and the notice period for an employer's unilateral termination. When: The contract ends (other than art.34(4)–(8)); a unilateral termination under art.36(1)(a), (b), (c), (đ), (g). Due: Notice at least 45 days (indefinite contract), 30 days (12–36 months), 3 working days (under 12 months, or long illness). Engine: the notice by the contract’s term — 45 days for an indefinite (INDEFINITE, or PERMANENT with no contract_type), 30 for an agreed term of 12–36 months, 3 working days (Sunday the weekly rest) for one under 12 months; an unrecorded term gives the longest, 45. A long illness (exit fact long_illness, art.36(1)(b)) takes 3 working days whatever the term (art.36(2)(c)). A special-role contract (contract-term fact special_role_notice: an enterprise manager, aircrew, aircraft maintenance staff, ship crew and the other roles of Decree 145/2020 art.7) takes at least 120 days for an indefinite or 12-month-plus contract and a quarter of the agreed term, rounded up to a whole day, for a shorter one (art.36(2)(d)). No notice duty arises on imprisonment or an employer closure (art.34(4), (7)).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "!(contract.exit_ground in [\"DEATH\", \"DISMISSAL\", \"EMPLOYER_CLOSURE\", \"IMPRISONMENT\"])",
-			"due": "contract.exit_ground == \"UNILATERAL\" ? ((contract.exit_facts != null && has(contract.exit_facts.long_illness) && contract.exit_facts.long_illness == true) ? add_working_days(exit_on, -3, holidays, [\"SUNDAY\"]) : (has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.special_role_notice) && t.facts.special_role_notice == true) ? ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, ((has(t.facts) && has(t.facts.contract_type)) && t.facts.contract_type == \"INDEFINITE\") || (!(has(t.facts) && has(t.facts.contract_type)) && has(t.employment_type) && t.employment_type == \"PERMANENT\")) ? add_days(exit_on, -120) : ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) < 12.0) && !(has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) >= 12.0)) ? add_days(exit_on, -int(round(double(calendar_distance_days(add_months(exit_on, -int(first((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.facts) && has(t.facts.agreed_term_months)).map(t, double(t.facts.agreed_term_months))))), exit_on)) / 4.0, 1.0, \"UP\"))) : add_days(exit_on, -120)) : (has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, ((has(t.facts) && has(t.facts.contract_type)) && t.facts.contract_type == \"INDEFINITE\") || (!(has(t.facts) && has(t.facts.contract_type)) && has(t.employment_type) && t.employment_type == \"PERMANENT\")) ? add_days(exit_on, -45) : ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) < 12.0) && !(has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) >= 12.0) ? add_working_days(exit_on, -3, holidays, [\"SUNDAY\"]) : ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && double(t.facts.agreed_term_months) >= 12.0) ? add_days(exit_on, -30) : add_days(exit_on, -45)))) : add_days(exit_on, 0)"
-		}
-	},
-	{
-		"id": "cf3a4b13-eaed-565b-850e-e74ddcd7c4be",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "RESTRUCTURING_LABOUR_PLAN",
-		"name": "RESTRUCTURING_LABOUR_PLAN",
-		"references": [
-			{
-				"title": "Labour Code 2019",
-				"locator": "arts.42(3)–(6), 44",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			}
-		],
-		"rules": {
-			"description": "Where restructuring, technological change or economic reasons affect many employees, adopt a labour-use plan, consult the representative organisation and notify before dismissal. When: Dismissals for restructuring, technology or economic reasons (art.42), or on a merger, division or sale (art.43). Due: 30 days' notice to the provincial People's Committee and to the employees before the dismissals.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]",
-			"due": "add_days(exit_on, -30)"
-		}
-	},
-	{
-		"id": "003bcb94-ae34-5411-898d-3ef9c4aa8879",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "FINAL_SETTLEMENT",
-		"name": "FINAL_SETTLEMENT",
-		"references": [
-			{
-				"title": "Labour Code 2019",
-				"locator": "arts.46, 47, 48(1)",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			},
-			{
-				"title": "Decree 145/2020/NĐ-CP",
-				"locator": "art.8",
-				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
-			}
-		],
-		"rules": {
-			"description": "Settle every amount due to the leaver: final wages, untaken leave, severance or job-loss allowance. Engine: the run prices final pay, encashment and the separation allowances and warns when paid after final_pay_deadlines. When: Termination of the labour contract. Due: Within 14 working days of termination; up to 30 days in the cases of art.48(1)(a)–(d).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "(has(contract.exit_facts.final_settlement_extended) && contract.exit_facts.final_settlement_extended == true) ? add_days(exit_on, 30) : add_working_days(exit_on, 14, holidays, [\"SATURDAY\", \"SUNDAY\"])"
-		}
-	},
-	{
-		"id": "fffe9611-be4c-572e-a569-595c2f2b7210",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SI_CONFIRMATION_ON_TERMINATION",
-		"name": "SI_CONFIRMATION_ON_TERMINATION",
-		"references": [
-			{
-				"title": "Labour Code 2019",
-				"locator": "art.48(3)",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			},
-			{
-				"title": "Law 41/2024/QH15",
-				"locator": "art.13(3)",
-				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
-			}
-		],
-		"rules": {
-			"description": "Complete the confirmation of the SI and UI contribution periods and return the SI book and any original documents held; provide copies of work records on request. When: Termination of the labour contract. Due: Within the art.48(1) settlement period.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "(has(contract.exit_facts.final_settlement_extended) && contract.exit_facts.final_settlement_extended == true) ? add_days(exit_on, 30) : add_working_days(exit_on, 14, holidays, [\"SATURDAY\", \"SUNDAY\"])"
-		}
-	},
-	{
-		"id": "d1b63025-a1e9-5ab3-8d9b-3b68195df296",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PIT_TAX_REGISTRATION",
-		"name": "PIT_TAX_REGISTRATION",
-		"references": [
-			{
-				"title": "Law 38/2019/QH14 art.33: the income payer registers tax on behalf of an employee (and the dependants the employee declares) within 10 working days of the obligation arising; Circular 86/2024/TT-BTC: the personal identification number is the tax code from 1 July 2025"
-			}
-		],
-		"rules": {
-			"description": "Register the tax code of an employee without one, and the dependants the employee declares for family deduction, on the employee's authorisation. When: First salary payment to an employee without a tax code; a dependant declaration. Due: Within 10 working days of the tax obligation arising.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 10)"
-		}
-	},
-	{
-		"id": "d60ec3ac-10b5-5d05-8dca-fd077b85956b",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "PIT_WITHHOLDING_DECLARATION",
-		"name": "PIT_WITHHOLDING_DECLARATION",
-		"references": [
-			{
-				"title": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) (monthly by the 20th of the next month; quarterly by the last day of the first month of the next quarter), art.55(1) (payment by the filing deadline), art.59 (late-payment interest 0.03% a day); Decree 126/2020/NĐ-CP arts.8(1), 9 (monthly, or quarterly for an employer eligible to file VAT quarterly)"
-			}
-		],
-		"rules": {
-			"description": "Declare and pay the PIT withheld from salaries (form 05/KK-TNCN). Engine: the monthly withholding is computed; the declaration and payment are outside. When: Each month (or quarter) in which PIT was withheld. Due: Monthly by the 20th of the following month, or quarterly by the last day of the first month of the following quarter; payment by the same day.",
-			"schemes": ["PIT"],
-			"due": "(has(company.facts.pit_quarterly_filer) && company.facts.pit_quarterly_filer == true) ? month_end(add_months(month_start(period.from), 3 - (int(period.from.substring(5, 7)) - 1) % 3)) : add_days(period.to, 20)"
-		}
-	},
-	{
-		"id": "4abe8de4-aa16-557e-bc01-9346c203c57f",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PIT_SHORT_CONTRACT_COMMITMENT",
-		"name": "PIT_SHORT_CONTRACT_COMMITMENT",
-		"references": [
-			{
-				"title": "Circular 111/2013/TT-BTC",
-				"locator": "art.25(1)(i)"
-			}
-		],
-		"rules": {
-			"description": "Keep the employee's commitment form (08/CK-TNCN) that suspends the 10% withholding on a contract under three months, and report the income in the finalisation. Engine: the PIT `commitment_form` election suspends the 10% rule; the signed form is kept outside. When: A resident on no contract or a contract under three months who expects income below the taxable threshold. Due: Before the payment that is not withheld.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "add_days(period.to, 0)"
-		}
-	},
-	{
-		"id": "873c4749-7ae4-5b00-9126-a69fbe8889bd",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PIT_ANNUAL_FINALISATION",
-		"name": "PIT_ANNUAL_FINALISATION",
-		"references": [
-			{
-				"title": "Law 38/2019/QH14 art.44(2)(a): an organisation's annual finalisation by the last day of the third month after the calendar year; Decree 126/2020/NĐ-CP art.8(6)(d): finalisation on behalf of an employee on a contract of three months or more who authorises it"
-			}
-		],
-		"rules": {
-			"description": "File the employer's annual PIT finalisation (05/QTT-TNCN with its schedules), finalising on behalf of each employee who authorises it. Engine: the last-of-year rule trues up the year's withholding on the annual table; the authorisation and the filing are outside. When: End of the tax year. Due: By the last day of the third month after the tax year (31 March).",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["12"],
-			"due": "month_end(add_months(period.from, 3))"
-		}
-	},
-	{
-		"id": "971870dc-7ff4-5a9b-92f2-4ece966b5b0e",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PIT_WITHHOLDING_CERTIFICATE",
-		"name": "PIT_WITHHOLDING_CERTIFICATE",
-		"references": [
-			{
-				"title": "Decree 123/2020/NĐ-CP arts.31–32 as amended by Decree 70/2025/NĐ-CP (electronic withholding certificates)"
-			}
-		],
-		"rules": {
-			"description": "Issue the employee a PIT withholding certificate for the tax withheld. When: The employee requests it; an employee who has not authorised the employer to finalise. Due: On request.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "add_days(exit_on, 0)"
-		}
-	},
-	{
-		"id": "9419a16a-c4ee-5b27-a366-24f4078d38db",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "UNION_FEE_REMITTANCE",
-		"name": "UNION_FEE_REMITTANCE",
-		"references": [
-			{
-				"title": "Law on Trade Unions 50/2024/QH15",
-				"locator": "art.29(1)(b), (2)",
-				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm"
-			},
-			{
-				"title": "Decree 191/2013/NĐ-CP",
-				"locator": "arts.5–6"
-			}
-		],
-		"rules": {
-			"description": "Pay the trade union fee (kinh phí công đoàn) of 2% of the SI salary fund, whether or not a grassroots union exists. Engine: UNION_FEE computes 2% of the insured salaries as one company line; the payment is outside. When: Each contribution month. Due: Monthly, at the same time as compulsory SI (Decree 191/2013/NĐ-CP art.6)",
-			"schemes": ["UNION_FEE"],
-			"due": "month_end(add_months(period.from, 1))"
-		}
-	},
-	{
-		"id": "1417861a-240c-5507-b662-c22f07b07a04",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "UNION_DUES_TRANSFER",
-		"name": "UNION_DUES_TRANSFER",
-		"references": [
-			{
-				"title": "Law on Trade Unions 50/2024/QH15",
-				"locator": "art.29(1)(a)",
-				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm"
-			},
-			{
-				"title": "Quyết định 61/QĐ-TLĐ, in force 1 July 2025",
-				"url": "https://pbgdpl.cantho.gov.vn/quyet-dinh-61qd-tld-ve-dieu-chinh-giam-muc-dong-doan-phi-cong-doan"
-			}
-		],
-		"rules": {
-			"description": "Deduct the dues of union members who so authorise and transfer them to the grassroots union: 0.5% of the SI salary, capped at 10% of the base salary. Engine: UNION_DUES deducts the dues where the `union_member` election is true; the transfer is outside. When: A union member on payroll. Due: Each month.",
-			"schemes": ["UNION_DUES"],
-			"due": "add_days(period.to, 0)"
-		}
-	},
-	{
-		"id": "70c1cf47-1de5-52ad-8d6c-51656700abb6",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "FOREIGN_WORK_PERMIT",
-		"name": "FOREIGN_WORK_PERMIT",
-		"references": [
-			{
-				"title": "Labour Code 2019",
-				"locator": "arts.151–155",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			},
-			{
-				"title": "Decree 219/2025/NĐ-CP (in force 7 August 2025)",
-				"url": "https://vanban.chinhphu.vn/?pageid=27160&docid=214840"
-			}
-		],
-		"rules": {
-			"description": "Obtain a work permit (with the integrated approval of the demand for foreign labour) or a certificate of exemption before a foreign employee starts work; the contract term may not exceed the permit. When: Hiring or extending a foreign employee. Due: Before the employee starts work; renewal before the permit expires.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"applies_when": "!(employee.nationality in [\"VN\", \"VNM\", \"VIETNAM\", \"VIETNAMESE\", \"Vietnam\", \"Vietnamese\"])",
-			"due": "add_days(hired_on, 0)"
-		}
-	},
-	{
-		"id": "34f6a72f-f487-5aaf-9074-25d4a7f290af",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORK_PERMIT_EXTENSION",
-		"name": "WORK_PERMIT_EXTENSION",
-		"references": [
-			{
-				"title": "Decree 219/2025/NĐ-CP arts.27(1), 28(1), 29 (in force 7 August 2025), Official Gazette Công báo 1073+1074 of 20 August 2025",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2025/8/45798/58141-1-20251073-1074219-2025-nd-cp.pdf"
-			}
-		],
-		"rules": {
-			"description": "Apply to extend a foreign employee's work permit at least 10 and at most 45 days before it expires, with the report explaining the continued need for foreign labour (Form 03). A permit is extended once, for at most two years. Raised by the daily tick 45 days before the permit's expiry (terms fact work_permit_valid_until); due 10 days before it.",
-			"trigger": {
-				"collection": "calendar",
-				"events": ["daily"]
-			},
-			"when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && t.facts != null && has(t.facts.work_permit_valid_until) && add_days(t.facts.work_permit_valid_until, -45) == today)",
-			"due": "add_days(first(contract.facts.contract_terms.filter(t, has(t.facts) && t.facts != null && has(t.facts.work_permit_valid_until) && add_days(t.facts.work_permit_valid_until, -45) == today)).facts.work_permit_valid_until, -10)"
-		}
-	},
-	{
-		"id": "36a9b9ad-9c89-5da7-9325-7e7f5638a1e5",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORK_PERMIT_RETURN",
-		"name": "WORK_PERMIT_RETURN",
-		"references": [
-			{
-				"title": "Decree 219/2025/NĐ-CP",
-				"locator": "arts.30(1), 31(1)",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2025/8/45798/58141-1-20251073-1074219-2025-nd-cp.pdf"
-			},
-			{
-				"title": "Labour Code 2019",
-				"locator": "art.156(2)",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			}
-		],
-		"rules": {
-			"description": "The work permit lapses when the labour contract ends (Labour Code art.156(2)): within 15 days the employer recovers it and returns it to the authority that issued it, with a written report of the case (or the reason it could not be recovered). Raised on the exit of an employee whose terms record a work permit (work_permit_valid_until); an exemption certificate is not revoked on this ground (art.32).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && t.facts != null && has(t.facts.work_permit_valid_until))",
-			"due": "add_days(exit_on, 15)"
-		}
-	},
-	{
-		"id": "67c853d9-f23a-5170-94f9-5cc3f38ed0ce",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "OCCUPATIONAL_HEALTH_CHECK",
-		"name": "OCCUPATIONAL_HEALTH_CHECK",
-		"references": [
-			{
-				"title": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.21(1); art.21(2): workers in jobs exposed to occupational disease are also examined for it (Decree 44/2016/NĐ-CP)."
-			}
-		],
-		"rules": {
-			"description": "Arrange periodic health checks for employees. When: Each year; every six months for heavy, hazardous or dangerous work, minors, the disabled and the elderly. Due: At least once a year (twice for the listed groups).",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["06", "12"],
-			"applies_when": "period.key.endsWith(\"-12\") || (has(company.facts.six_monthly_health_checks) && company.facts.six_monthly_health_checks == true)",
-			"due": "add_days(period.to, 0)"
-		}
-	},
-	{
-		"id": "48252415-12f4-51f4-bee0-0d637fbf003f",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "OCCUPATIONAL_ACCIDENT_REPORT",
-		"name": "OCCUPATIONAL_ACCIDENT_REPORT",
-		"references": [
-			{
-				"title": "Law on Occupational Safety and Hygiene 84/2015/QH13",
-				"locator": "art.36"
-			},
-			{
-				"title": "Decree 39/2016/NĐ-CP art.24(1) (Công báo 397+398 of 21 June 2016)",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2016/5/19831/14231-1-392016nd-cp14302pdf"
-			}
-		],
-		"rules": {
-			"description": "Send the summary report on occupational accidents (form Appendix XII), with or without accidents in the period, to the provincial labour authority where the head office is: before 5 July for the first half-year and before 10 January for the year. Raised with the June and December runs.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["06", "12"],
-			"due": "period.key.endsWith(\"-06\") ? add_days(period.to, 4) : add_days(period.to, 9)"
-		}
-	},
-	{
-		"id": "ff93951b-2da1-5de6-ba51-ff6a0d797adb",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "OSH_ANNUAL_REPORT",
-		"name": "OSH_ANNUAL_REPORT",
-		"references": [
-			{
-				"title": "Circular 07/2016/TT-BLĐTBXH art.10(1)–(2) (Công báo 797+798 of 8 July 2016)",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2016/5/20377/14868-1-072016tt-bldtbxh14949pdf"
-			}
-		],
-		"rules": {
-			"description": "Send the annual report on occupational safety and hygiene work (form Appendix II) to the provincial labour authority and the Department of Health before 10 January of the next year, from the OSH statistics book the employer keeps. Raised with the December run.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["12"],
-			"due": "add_days(period.to, 9)"
-		}
-	},
-	{
-		"id": "76054faa-2521-5245-939a-d6acb8913d26",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "RECORD_RETENTION",
-		"name": "RECORD_RETENTION",
-		"references": [
-			{
-				"title": "Accounting Law 88/2015/QH13 art.41(3),(5)(a)-(b); Decree 174/2016/NĐ-CP arts.12(1)-(2), 13(1), 15(1); Decree 13/2023/NĐ-CP on personal data protection"
-			}
-		],
-		"rules": {
-			"description": "Retain payroll sheets, timesheets and supporting accounting documents according to their accounting use; protect employee personal data under the data-protection law. When: Each payroll period. Due: Archive within 12 months after the accounting year or accounting task ends. Retain documents used directly for bookkeeping and financial statements at least 10 years; management-only accounting documents at least 5 years, measured from accounting year end.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["12"],
-			"due": "add_months(period.to, 12)"
-		}
-	},
-	{
-		"id": "68313dd5-087f-547d-8f7b-b29df0779050",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "DPD_CONSENT_AND_NOTICE",
-		"name": "DPD_CONSENT_AND_NOTICE",
-		"references": [
-			{
-				"title": "Decree 13/2023/NĐ-CP on personal data protection arts.9, 11, 13, 17 (in force 1 July 2023, art.43)",
-				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm"
-			}
-		],
-		"rules": {
-			"description": "Process an employee’s personal data only with consent that is voluntary, informed of the data types, purpose, processing parties and rights, and expressed in a verifiable form (silence is not consent), unless art.17 permits processing without consent (a contract’s performance, a legal duty); notify the employee once before processing of the purpose, data types, method, parties, possible harms and timeline. When: Collection or processing of a candidate’s or employee’s personal data. Due: Before processing",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 0)"
-		}
-	},
-	{
-		"id": "42d6fcdf-ac70-54f5-a307-f4ef92e8e2e2",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "DPD_DELETION_ON_REQUEST",
-		"name": "DPD_DELETION_ON_REQUEST",
-		"references": [
-			{
-				"title": "Decree 13/2023/NĐ-CP",
-				"locator": "art.16",
-				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm"
-			}
-		],
-		"rules": {
-			"description": "Delete an employee’s personal data on a valid request where it is no longer needed for its purpose, consent is withdrawn or processing is unlawful, unless a law requires keeping it (payroll, tax and insurance records). When: A data subject’s deletion request. Due: Within 72 hours of a valid request",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "add_days(exit_on, 0)"
-		}
-	},
-	{
-		"id": "c26e515a-8361-51a3-82b9-07285e5daf14",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "DPD_IMPACT_ASSESSMENT",
-		"name": "DPD_IMPACT_ASSESSMENT",
-		"references": [
-			{
-				"title": "Decree 13/2023/NĐ-CP",
-				"locator": "arts.24, 25",
-				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm"
-			}
-		],
-		"rules": {
-			"description": "Prepare and keep a personal data processing impact assessment dossier from the start of processing and send one original to the Ministry of Public Security (Department of Cybersecurity and High-Tech Crime Prevention, form 04), updating it on change (form 05); a cross-border transfer (a foreign payroll vendor or parent) needs its own transfer dossier (form 06). When: Start of personal data processing, or of a cross-border transfer. Due: Within 60 days from the start of processing",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 60)"
-		}
-	},
-	{
-		"id": "6859ee75-c6af-5915-967b-9857ed970e63",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "DPD_BREACH_NOTIFICATION",
-		"name": "DPD_BREACH_NOTIFICATION",
-		"references": [
-			{
-				"title": "Decree 13/2023/NĐ-CP",
-				"locator": "art.23",
-				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm"
-			}
-		],
-		"rules": {
-			"description": "On discovering a violation of the personal data protection rules, notify the Ministry of Public Security (Department of Cybersecurity and High-Tech Crime Prevention) with a description of the violation, a contact, the likely consequences and the measures taken; explain any delay. When: A PERSONAL_DATA_BREACH workplace case is opened on the day of discovery of a personal data protection violation. Due: 72 hours (three days after the case opens) after the violation",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"due": "add_days(row.opened_on, 3)",
-			"when": "row.kind == \"PERSONAL_DATA_BREACH\""
-		}
-	},
-	{
-		"id": "c346d63f-5862-570e-9ddc-95b0e55e9fa6",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "DPD_SENSITIVE_DATA_PERSONNEL",
-		"name": "DPD_SENSITIVE_DATA_PERSONNEL",
-		"references": [
-			{
-				"title": "Decree 13/2023/NĐ-CP",
-				"locator": "arts.28, 43(2)",
-				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm"
-			}
-		],
-		"rules": {
-			"description": "Designate a department and personnel responsible for protecting sensitive personal data (health records, biometric attendance, bank and financial data) and give their contact to the Ministry of Public Security; micro, small, medium and startup enterprises may defer the designation for two years from establishment unless they process personal data as a business. When: The employer processes sensitive personal data. Due: Continuous",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["12"],
-			"due": "add_days(period.to, 0)"
-		}
-	},
-	{
 		"id": "988f0f25-6de9-4572-b826-1244fe272cf7",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
 		"name": "working_time",
 		"references": [
 			{
 				"title": "Labour Code 45/2019/QH14 art.105(1)–(2): normal hours at most 8 a day and 48 a week; Decree 145/2020/NĐ-CP arts.54(1)(a3)–(a4), 55(1)(a). The fallback is used only where the entity plans no shifts."
 			}
 		],
-		"family": "PAYROLL",
+		"family": "PARAMETERS",
 		"code": "working_time",
 		"rules": {
 			"normal_hours_per_day": 8,
@@ -1084,14 +79,13 @@
 	{
 		"id": "917c58d2-7fe1-4c39-85aa-9cde1b92c233",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
 		"name": "night_window",
 		"references": [
 			{
 				"title": "Labour Code 45/2019/QH14 art.106: night work is counted from 22:00 to 06:00 the next morning."
 			}
 		],
-		"family": "PAYROLL",
+		"family": "PARAMETERS",
 		"code": "night_window",
 		"rules": {
 			"from": "22:00",
@@ -1099,30 +93,8 @@
 		}
 	},
 	{
-		"id": "bcbc62b0-eaf7-4483-8431-65e4e071b7b6",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
-		"name": "LABOUR_USE_DECLARATION",
-		"references": [
-			{
-				"title": "Labour Code 45/2019/QH14 art.12(2): within 30 days of starting operations; Decree 145/2020/NĐ-CP art.4(1). Engine: raised when the entity is created, due 30 days from the first day of that month (never later than the law)."
-			}
-		],
-		"family": "TASKS",
-		"code": "LABOUR_USE_DECLARATION",
-		"rules": {
-			"description": "Declare the use of labour to the provincial labour authority on starting operations (through the business-registration procedure of Decree 122/2020).",
-			"trigger": {
-				"collection": "entity",
-				"events": ["created"]
-			},
-			"due": "add_days(period.from, 30)"
-		}
-	},
-	{
 		"id": "a9f8180d-2d02-410a-96b2-80a52ce7f515",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
 		"name": "MINIMUM_WAGE_FLOOR",
 		"references": [
 			{
@@ -1143,7 +115,6 @@
 	{
 		"id": "b3f4560e-ed47-49d5-94e5-b7eb502e66a0",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
 		"name": "OVERTIME_MONTHLY_CAP",
 		"references": [
 			{
@@ -1164,7 +135,6 @@
 	{
 		"id": "d3917927-17f1-4a70-9d10-a7c403ff7931",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
 		"name": "OVERTIME_DAILY_CAP",
 		"references": [
 			{
@@ -1185,7 +155,6 @@
 	{
 		"id": "abc59d19-07b4-459e-b723-39d5e5bedf1d",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
 		"name": "DAMAGE_DEDUCTION_CEILING",
 		"references": [
 			{
@@ -1206,7 +175,6 @@
 	{
 		"id": "a2a72ea0-a34c-4fa2-93e0-24d3384fbbc6",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "OVERTIME_ANNUAL_CAP",
 		"name": "OVERTIME_ANNUAL_CAP",
@@ -1227,14 +195,13 @@
 	{
 		"id": "9b59414d-c01b-4f59-9f31-0f7861eecdf8",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
 		"name": "public_holidays",
 		"references": [
 			{
 				"title": "Labour Code 45/2019/QH14 art.112(1) (11 days: 1 January; five days of Tết; Hùng Kings 10/3 lunar; 30 April; 1 May; 2 September and one adjacent day) and art.111(3) (a holiday on the weekly rest day is taken on the next working day); Tết 2026 and 2 September 2026 per Bộ Nội vụ Thông báo 9441/TB-BNV of 16 October 2025 (16–20 February 2026; 1–2 September 2026); 24 November from 1 July 2026 per Nghị quyết 28/2026/QH16 art.2 (https://vanban.chinhphu.vn/?classid=1&docid=218008&orggroupid=1&pageid=27160).  https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"family": "PAYROLL",
+		"family": "PARAMETERS",
 		"code": "public_holidays",
 		"rules": {
 			"holidays": []
@@ -1243,7 +210,6 @@
 	{
 		"id": "fe1b604f-a537-47fa-a63a-cf344683b0f2",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
 		"name": "REGION_REQUIRED",
 		"references": [
 			{
@@ -1263,7 +229,6 @@
 	{
 		"id": "a07df46a-b26a-408a-9b2c-c113a0aea005",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
 		"name": "HOURLY_MINIMUM_WAGE",
 		"references": [
 			{
@@ -1283,7 +248,6 @@
 	{
 		"id": "8c0859a6-0e42-49c1-a9bc-fc0b2257f3c7",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
 		"name": "PROBATION_WAGE",
 		"references": [
 			{
@@ -1305,7 +269,6 @@
 	{
 		"id": "ddb792a9-8f05-4e28-b262-2ad60665eae6",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
 		"name": "PROBATION_PERIOD",
 		"references": [
 			{
@@ -1326,7 +289,6 @@
 	{
 		"id": "a6ec5375-6f76-4b9e-a681-461c25e9051c",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
 		"name": "PREGNANT_OR_INFANT_NIGHT_OVERTIME",
 		"references": [
 			{
@@ -1347,7 +309,6 @@
 	{
 		"id": "9fe5ebc8-e50f-43c2-b010-43ae61bd7b03",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
 		"name": "MINOR_WORKING_TIME",
 		"references": [
 			{
@@ -1368,7 +329,6 @@
 	{
 		"id": "4f005365-42c4-4c22-bce8-413880e883bc",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
 		"name": "WEEKLY_REST",
 		"references": [
 			{
@@ -1390,7 +350,6 @@
 		"id": "2f4ac240-64da-54dc-9e51-01671b5b61eb",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_NORMAL_HOURS_DAY",
 		"name": "ROSTER_NORMAL_HOURS_DAY",
 		"references": [
@@ -1412,7 +371,6 @@
 		"id": "a53ed45e-2971-57f0-8f53-8ede8701ec4b",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_NORMAL_HOURS_WEEK",
 		"name": "ROSTER_NORMAL_HOURS_WEEK",
 		"references": [
@@ -1434,7 +392,6 @@
 		"id": "702832d7-97bc-5db9-b75e-76c985fbcb4f",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_OVERTIME_DAY",
 		"name": "ROSTER_OVERTIME_DAY",
 		"references": [
@@ -1456,7 +413,6 @@
 		"id": "290c058f-c15d-5618-bf41-03831ee37c2f",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_SHIFT_CHANGE_REST",
 		"name": "ROSTER_SHIFT_CHANGE_REST",
 		"references": [
@@ -1478,7 +434,6 @@
 		"id": "c6f13650-b940-541d-9acf-77236e956152",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_WEEKLY_REST",
 		"name": "ROSTER_WEEKLY_REST",
 		"references": [
@@ -1500,7 +455,6 @@
 		"id": "6004f231-af30-5e06-8fc6-186b6ad7aa72",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_MINOR_WORKING_TIME",
 		"name": "ROSTER_MINOR_WORKING_TIME",
 		"references": [
@@ -1522,7 +476,6 @@
 		"id": "1f0765d1-210a-5798-b70e-104241f13fd7",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_MATERNITY_NIGHT_OVERTIME",
 		"name": "ROSTER_MATERNITY_NIGHT_OVERTIME",
 		"references": [
@@ -1544,7 +497,6 @@
 		"id": "d1ed8132-381e-5a7d-bbc8-08fbe6141391",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_UNDER_13",
 		"name": "ROSTER_UNDER_13",
 		"references": [
@@ -1563,55 +515,9 @@
 		}
 	},
 	{
-		"id": "29a47cd0-57f5-4014-846a-a3bc05b6e75e",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
-		"name": "FOREIGN_EXIT_PIT_FINALISATION",
-		"references": [
-			{
-				"title": "Circular 111/2013/TT-BTC art.25(1)(c) and Decree 126/2020/NĐ-CP art.8(6)(d): a foreigner ending the contract finalises before exit."
-			}
-		],
-		"family": "TASKS",
-		"code": "FOREIGN_EXIT_PIT_FINALISATION",
-		"rules": {
-			"description": "A foreign resident ending the assignment finalises PIT before leaving Vietnam, directly or by authorising the employer.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "!(employee.nationality == \"\" || employee.nationality in [\"VN\", \"VNM\", \"VIETNAM\", \"VIETNAMESE\", \"Vietnam\", \"Vietnamese\"])",
-			"due": "add_days(exit_on, 0)"
-		}
-	},
-	{
-		"id": "efb1c3e3-8935-4fdd-804d-e6554d17cbb7",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
-		"name": "OSH_INDUCTION_TRAINING",
-		"references": [
-			{
-				"title": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.14(2)–(3): the employer trains workers in OSH on recruitment and before assigning a job; Decree 44/2016/NĐ-CP."
-			}
-		],
-		"family": "TASKS",
-		"code": "OSH_INDUCTION_TRAINING",
-		"rules": {
-			"description": "Train a new worker in occupational safety and hygiene before assigning the work.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 0)"
-		}
-	},
-	{
 		"id": "38b19bc8-6ad1-5e5b-94a0-a1e5803592a0",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "record_retention",
 		"name": "Record retention after exit",
 		"references": [
@@ -1636,8 +542,7 @@
 	{
 		"id": "21d5a34d-6572-5f54-af26-d137ad66e4e1",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "exit_grounds",
 		"name": "Exit grounds",
 		"rules": {
@@ -1693,8 +598,7 @@
 	{
 		"id": "1e8c77e5-dea6-55e9-91b5-65c858b6b019",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "holiday_kinds",
 		"name": "Holiday kinds",
 		"rules": {
@@ -1719,7 +623,6 @@
 		"id": "c370a0c7-d384-57bf-b3f6-3bbf1a65d409",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"family": "EXPORTS",
-		"scope": "JURISDICTION",
 		"code": "SI_HI_UI_CHANGE_LIST",
 		"name": "Danh sách tham gia, điều chỉnh đóng BHXH, BHYT, BHTN (Mẫu D02-LT)",
 		"references": [
@@ -1914,8 +817,7 @@
 	{
 		"id": "3cb44b93-98cd-5daf-9309-7f2c31f2fc63",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"scope": "JURISDICTION",
-		"family": "PAYROLL",
+		"family": "PARAMETERS",
 		"code": "salary_report",
 		"name": "Salary report grouping and company payments",
 		"rules": {
@@ -2000,7 +902,6 @@
 		"id": "c82c497a-04cd-56c9-be61-61b54213dd5f",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_PATTERN_CYCLE",
 		"name": "Roster keeps its pattern cycle",
 		"rules": {
@@ -2009,6 +910,19 @@
 			"when": "cycle.planned.WORK != cycle.expected.WORK || cycle.planned.REST != cycle.expected.REST || cycle.planned.OFF != cycle.expected.OFF",
 			"message": "Swap days inside the cycle instead.",
 			"description": "A roster swap moves a day inside its shift pattern cycle; it never adds a work day or drops a rest or off day. Severity follows entity.validation_severity."
+		}
+	},
+	{
+		"id": "cb331ed0-1f32-52ab-a6bc-678ad7d71da5",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "VALIDATIONS",
+		"code": "PAYROLL_RUN_KINDS",
+		"name": "PAYROLL_RUN_KINDS",
+		"rules": {
+			"site": "payroll_run",
+			"kind": "allow",
+			"when": "run.kind in [\"REGULAR\", \"OFF_CYCLE\"]",
+			"message": "The jurisdiction admits regular and off-cycle payroll runs."
 		}
 	}
 ]

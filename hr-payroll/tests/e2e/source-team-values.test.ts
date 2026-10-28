@@ -1,106 +1,93 @@
 import { expect, it } from '@effect/vitest';
 import { Effect } from 'effect';
 import { TestWorkspace } from '@norbital-ai/bolt/test';
-import type { ActInput } from '@norbital-ai/bolt';
+import type { ActInput, Id } from '@norbital-ai/bolt';
 import { workspace } from '../kit.ts';
 
 const NOW = '2026-10-13T00:00:00.000Z';
-const kinds = [
-	{
-		code: 'CLOSURE',
-		name: 'Closure',
-		counts_as_attended: 'true',
-		scheduled: 'true',
-		pay: '0.6 * terms.base_salary / 26.0'
-	}
-];
+type Draft = ActInput<'jurisdiction_settings.create'>[number];
 const draft = {
 	code: 'test',
-	jurisdiction_code: 'test',
 	name: 'Test version',
 	payroll: { currency: 'USD' },
 	sources: { entries: [] },
-	effective_range: { from: '2026-01-01', to: null },
-	suspension_kinds: kinds
-} satisfies ActInput<'jurisdiction_settings.create'>[number];
+	effective_range: { from: '2026-01-01', to: null }
+} satisfies Draft;
+/** A suspension kind with its pricing of one day. */
+const kind = {
+	code: 'CLOSURE',
+	name: 'Closure',
+	counts_as_attended: 'true',
+	scheduled: 'true',
+	eligibility: 'true',
+	rate: 'terms.base_salary / 26.0'
+} satisfies NonNullable<Draft['suspension_catalog']>[number];
+/** The version's time pay: a clone carries it with the settings. */
+const timePay = {
+	BASIC: [
+		{
+			code: 'BASIC',
+			eligibility: 'true',
+			quantity: '1.0',
+			rate: 'terms.base_salary',
+			destination: 'PAY',
+			direction: 'ADD',
+			counts_toward: []
+		}
+	]
+} satisfies NonNullable<Draft['time_pay']>;
 
 it.live(
-	'stores validated suspension kinds on their version, clones them and refuses sealed changes',
+	'a version owns its suspension catalogue: a clone carries it and a sealed version refuses its edit',
 	() =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const admin = t.as(t.admin);
-			const created = yield* admin.act('jurisdiction_settings.create', [draft]);
+			const created = yield* admin.act('jurisdiction_settings.create', [
+				{ ...draft, suspension_catalog: [kind], time_pay: timePay }
+			]);
 			expect(created.kind, JSON.stringify(created)).toBe('committed');
 			if (created.kind !== 'committed') throw new Error('The draft did not commit.');
 			const id = created.records.find((row) => row.model === 'jurisdiction_settings')?.id;
 			if (id === undefined) throw new Error('The draft record is absent.');
-			expect(
-				(yield* admin.query({
-					jurisdiction_settings: { where: { id: { eq: id } }, fields: ['suspension_kinds'] }
-				})).jurisdiction_settings.rows[0]?.suspension_kinds
-			).toEqual(kinds);
-			for (const invalid of [[...kinds, ...kinds], [{ code: ' ', name: 'Blank' }]]) {
-				const refused = yield* Effect.flip(
-					admin.act('jurisdiction_settings.update', [
-						{
-							target: id,
-							set: { suspension_kinds: invalid }
-						}
-					])
-				);
-				expect(refused).toMatchObject({
-					_tag: 'ActRefused',
-					message: expect.stringContaining('distinct non-empty codes')
+			const catalogue = (settings: Id<'jurisdiction_settings'>) =>
+				admin.query({
+					suspension_catalog: { where: { settings_id: { eq: settings } } },
+					jurisdiction_settings: { where: { id: { eq: settings } }, fields: ['time_pay'] }
 				});
-			}
+			const own = yield* catalogue(id);
+			expect(own.suspension_catalog.rows).toMatchObject([kind]);
 			expect(
 				(yield* admin.act('jurisdiction_settings.update', [
 					{ target: id, set: { sealed_at: NOW } }
 				])).kind
 			).toBe('committed');
+			const [row] = own.suspension_catalog.rows;
+			if (row === undefined) throw new Error('The catalogue row is absent.');
+			const hr = t.as(t.member(['hr_manager']));
 			expect(
 				yield* Effect.flip(
-					admin.act('jurisdiction_settings.update', [
-						{
-							target: id,
-							set: { suspension_kinds: [] }
-						}
-					])
+					hr.act('suspension_catalog.update', [{ target: row.id, set: { scheduled: 'false' } }])
 				)
-			).toMatchObject({ _tag: 'ActRefused' });
-			const { suspension_kinds, ...cloneFields } = draft;
+			).toMatchObject({ message: expect.stringContaining('Clone it into a draft') });
 			const cloned = yield* admin.act('jurisdiction_settings.create', [
-				{
-					...cloneFields,
-					cloned_from_id: id,
-					effective_range: { from: '2027-01-01', to: null }
-				}
+				{ ...draft, cloned_from_id: id, effective_range: { from: '2027-01-01', to: null } }
 			]);
 			expect(cloned.kind, JSON.stringify(cloned)).toBe('committed');
 			if (cloned.kind !== 'committed') throw new Error('The successor did not commit.');
-			const successor = cloned.records.find((row) => row.model === 'jurisdiction_settings')?.id;
+			const successor = cloned.records.find((held) => held.model === 'jurisdiction_settings')?.id;
 			if (successor === undefined) throw new Error('The successor record is absent.');
+			const copied = yield* catalogue(successor);
+			expect(copied.suspension_catalog.rows).toMatchObject([kind]);
+			expect(copied.jurisdiction_settings.rows).toMatchObject([{ time_pay: timePay }]);
+			const [draftRow] = copied.suspension_catalog.rows;
+			if (draftRow === undefined) throw new Error('The cloned catalogue row is absent.');
+			// the draft's row is its own: editing it leaves the sealed version's untouched
 			expect(
-				(yield* admin.query({
-					jurisdiction_settings: {
-						where: { id: { eq: successor } },
-						fields: ['suspension_kinds', 'sealed_at']
-					}
-				})).jurisdiction_settings.rows[0]
-			).toMatchObject({ suspension_kinds: kinds, sealed_at: null });
-			expect(
-				(yield* admin.act('jurisdiction_settings.update', [
-					{
-						target: successor,
-						set: { suspension_kinds: [] }
-					}
+				(yield* hr.act('suspension_catalog.update', [
+					{ target: draftRow.id, set: { scheduled: 'false' } }
 				])).kind
 			).toBe('committed');
-			expect(
-				(yield* admin.query({
-					jurisdiction_settings: { where: { id: { eq: id } }, fields: ['suspension_kinds'] }
-				})).jurisdiction_settings.rows[0]?.suspension_kinds
-			).toEqual(kinds);
+			expect((yield* catalogue(id)).suspension_catalog.rows).toMatchObject([kind]);
 		}).pipe(Effect.provide(workspace({ seed: 'none', now: NOW })), Effect.scoped)
 );

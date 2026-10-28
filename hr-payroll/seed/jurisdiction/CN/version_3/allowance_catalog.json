@@ -166,5 +166,22 @@
 		],
 		"destination": "PAY",
 		"direction": "ADD"
+	},
+	{
+		"id": "7b8d9cab-3c7c-5d25-9414-bb81ceb6c680",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "HIGH_TEMPERATURE_ALLOWANCE",
+		"name": "High-temperature allowance (高温津贴)",
+		"references": [
+			{
+				"title": "防暑降温措施管理办法 (安监总安健〔2012〕89号) 第十七条. SH: 沪人社规〔2019〕19号 (有效期延长至2028年12月31日, 沪人社规〔2023〕29号) — 每年6月至9月安排劳动者露天工作以及不能采取有效措施将工作场所温度降低到33℃以下的, 300元/月, 纳入工资总额, 不作为最低工资的组成部分 (`terms.facts.high_temperature_exposed`) https://rsj.sh.gov.cn/tgzfl_17732/20231214/t0035_1420075.html. KM: 云南省人力资源和社会保障厅《关于发布企业高温津贴标准的通知》(云人社发〔2013〕98号) — 日最高气温35℃及以上从事室外露天工作或工作场所不能降至33℃以下的, 每人每工作日10元 (roster day fact `high_temperature`) https://hrss.yn.gov.cn/NewsView.aspx?NewsID=5893&ClassID=558. Shanghai's monthly 300 is split across the settlement parts of the month."
+			}
+		],
+		"automatic": true,
+		"eligibility": "(company.region in rules.regions.by_region) && ((\"monthly\" in rules.regions.by_region[company.region].high_temperature ? ((has(terms.facts.high_temperature_exposed) && terms.facts.high_temperature_exposed == true && months_through(period.from.substring(0, 4) + \"-01-01\", period.from) in rules.regions.by_region[company.region].high_temperature.months.map(m, double(m))) ? 1.0 : 0.0) : double(size(work.days.filter(d, d.worked && has(d.facts) && has(d.facts.high_temperature) && d.facts.high_temperature == true)))) > 0.0)",
+		"amount": "((company.region in rules.regions.by_region) ? ((\"monthly\" in rules.regions.by_region[company.region].high_temperature ? ((has(terms.facts.high_temperature_exposed) && terms.facts.high_temperature_exposed == true && months_through(period.from.substring(0, 4) + \"-01-01\", period.from) in rules.regions.by_region[company.region].high_temperature.months.map(m, double(m))) ? 1.0 : 0.0) : double(size(work.days.filter(d, d.worked && has(d.facts) && has(d.facts.high_temperature) && d.facts.high_temperature == true))))) : 0.0) * ((company.region in rules.regions.by_region) ? (\"monthly\" in rules.regions.by_region[company.region].high_temperature ? double(rules.regions.by_region[company.region].high_temperature.monthly) / double(period.parts) : double(rules.regions.by_region[company.region].high_temperature.daily)) : 0.0)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["UNION_FUND", "IIT"]
 	}
 ]
