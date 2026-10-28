@@ -1,5 +1,5 @@
 <script lang="ts">
-	import CreateTable from '../../../lib/ui/create-table.svelte';
+	import { Table } from '@norbital-ai/ui';
 	import { bolt } from '$bolt';
 	import { AppShell } from '@norbital-ai/ui/layout';
 </script>
@@ -10,8 +10,5 @@
 	title={bolt.t('component.partners')}
 	variant="full"
 >
-	<CreateTable
-		of="parties"
-		columns={['name', 'kind', 'external_code', 'active', 'source_updated_at']}
-	/>
+	<Table of="parties" columns={['name', 'kind', 'external_code', 'active', 'source_updated_at']} />
 </AppShell>

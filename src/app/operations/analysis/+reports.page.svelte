@@ -12,7 +12,6 @@
 	import { boardRead, commissionBoard, monthOf } from '../../../lib/monthly-commission.js';
 	import { Decimal } from '@norbital-ai/std/decimal';
 	import { PlainDate, addDays, addMonths } from '@norbital-ai/std/date';
-	import { localOf } from '@norbital-ai/std/zone';
 	import {
 		Dialog,
 		Table,
@@ -27,6 +26,7 @@
 		TimeRangeInput,
 		Badge,
 		Chart,
+		EmptyState,
 		type Kind,
 		type ShowProps
 	} from '@norbital-ai/ui';
@@ -38,17 +38,15 @@
 	});
 	const kinds = useKinds();
 	const moneyKind: Kind = { kind: 'money', currency: 'currency', optional: true };
-	const today = localOf(
-		Date.now(),
-		kinds.zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
-	).date;
-	const currentMonth = today.slice(0, 7) + '-01';
+	// a cleared date means today, which rolls over at midnight
+	const day = bolt.clock('day');
+	const currentMonth = day.today.slice(0, 7) + '-01';
 	let commissionPeriod = $state<string | null>(currentMonth);
 	type MonthlyCommission = Effect.Success<ReturnType<typeof commissionBoard>>[number];
 	let monthSelection = $state<MonthlyCommission | null>(null);
 	const monthEnd = (value: string) =>
 		addDays(addMonths(PlainDate(value.slice(0, 7) + '-01'), 1), -1);
-	let asOf = $state<string | null>(today);
+	let asOf = $state<string | null>(day.today);
 	let salesFrom = $state<string | null>(currentMonth);
 	let salesTo = $state<string | null>(currentMonth);
 	// each report shows to whoever reads its root: sales lines, invoices with payments, statements
@@ -57,9 +55,12 @@
 		Boolean(kinds.catalog?.transactions && kinds.catalog?.source_payments)
 	);
 	const boardShown = $derived(Boolean(kinds.catalog?.commission_statements));
+	// the header shows the open tab's scope
+	let chosenTab = $state<string | null>(null);
+	const tab = $derived(
+		chosenTab ?? (salesShown ? 'sales' : agingShown ? 'aging' : boardShown ? 'commission' : null)
+	);
 	const invalidSalesRange = $derived(Boolean(salesFrom && salesTo && salesFrom > salesTo));
-	// a cleared date means today, which rolls over at midnight
-	const day = bolt.clock('day');
 	const agingDay = $derived(asOf ? PlainDate(asOf) : day.today);
 	const futureAging = $derived(agingDay > day.today);
 	const sales = $derived(salesShown ? bolt.query(salesRead) : null);
@@ -155,7 +156,7 @@
 			>{row.invoice_number}</Button
 		>{:else}{row.invoice_number}{/if}{/snippet}
 {#snippet salesTab()}<Stack gap="md">
-		{#if invalidSalesRange}<p role="alert">{bolt.t('errors.report_range')}</p>
+		{#if invalidSalesRange}<EmptyState tone="danger" title={bolt.t('errors.report_range')} />
 		{:else if detailRows}
 			{@const rows = detailRows.map((row) => ({
 				...row,
@@ -206,14 +207,13 @@
 						cell: money
 					}))
 				]}
-				toolbar={{ new: false, export: true, controls: salesRange }}
+				toolbar={{ new: false, export: true }}
 			/>
-		{:else}<p role="status">
-				{sales?.error ? sales.error.message : bolt.t('component.reports_loading')}
-			</p>{/if}
+		{:else if sales?.error}<EmptyState tone="danger" title={sales.error.message} />
+		{:else}<EmptyState title={bolt.t('component.reports_loading')} />{/if}
 	</Stack>{/snippet}
 {#snippet aging()}<Stack gap="md">
-		{#if futureAging}<p role="alert">{bolt.t('errors.report_future')}</p>
+		{#if futureAging}<EmptyState tone="danger" title={bolt.t('errors.report_future')} />
 		{:else if agingRows && paymentRows}
 			{@const rows = [
 				...agingRows.map((row) => ({
@@ -283,26 +283,26 @@
 						})
 					)
 				]}
-				toolbar={{ new: false, export: true, controls: agingDate }}
+				toolbar={{ new: false, export: true }}
 			/>
-		{:else}<p role="status">
-				{agingAnswer?.error?.message ??
-					paymentAnswer?.error?.message ??
-					bolt.t('component.reports_loading')}
-			</p>{/if}
+		{:else if agingAnswer?.error || paymentAnswer?.error}<EmptyState
+				tone="danger"
+				title={agingAnswer?.error?.message ?? paymentAnswer?.error?.message ?? ''}
+			/>
+		{:else}<EmptyState title={bolt.t('component.reports_loading')} />{/if}
 	</Stack>{/snippet}
 {#snippet monthActions({ row }: { row: MonthlyCommission })}
 	{#if row.latest_statement}<Button
 			variant="link"
 			onclick={() => openRecord('commission_statements', row.latest_statement!)}
-			>{bolt.t('component.monthly_commission_statement')}</Button
+			>{row.latest_number}</Button
 		>{/if}
 	{#if kinds.catalog?.commission_statements?.create && ['unacknowledged', 'changed'].includes(row.state)}<Button
 			onclick={() => (monthSelection = row)}>{bolt.t('component.commission_acknowledge')}</Button
 		>{/if}
 {/snippet}
 {#snippet monthlyCommission()}<Stack gap="md">
-		{#if monthlyRows}{#await monthlyRows}<p role="status">{bolt.t('component.reports_loading')}</p>
+		{#if monthlyRows}{#await monthlyRows}<EmptyState title={bolt.t('component.reports_loading')} />
 			{:then monthly}
 				{@const rows = monthly.map((row) => ({
 					...row,
@@ -334,12 +334,12 @@
 
 						{ field: 'state_label', label: label(bolt, 'orders', 'status'), cell: enumCell },
 						{
-							field: 'owner',
+							field: 'latest_number',
 							label: bolt.t('component.monthly_commission_statement'),
 							cell: monthActions
 						}
 					]}
-					toolbar={{ new: false, export: true, controls: commissionMonth }}
+					toolbar={{ new: false, export: true }}
 				/>
 				{#if monthSelection && rows.some((row) => row.calculation_hash === monthSelection?.calculation_hash && ['unacknowledged', 'changed'].includes(row.state))}
 					<Dialog.Root
@@ -372,19 +372,25 @@
 						</Dialog.Content></Dialog.Root
 					>
 				{/if}
-			{:catch failure}<p role="status">
-					{failure instanceof Error ? failure.message : String(failure)}
-				</p>{/await}
-		{:else}<p role="status">
-				{boardAnswer?.error ? boardAnswer.error.message : bolt.t('component.reports_loading')}
-			</p>{/if}
+			{:catch failure}<EmptyState
+					tone="danger"
+					title={failure instanceof Error ? failure.message : String(failure)}
+				/>{/await}
+		{:else if boardAnswer?.error}<EmptyState tone="danger" title={boardAnswer.error.message} />
+		{:else}<EmptyState title={bolt.t('component.reports_loading')} />{/if}
 	</Stack>{/snippet}
 <AppShell
 	description={bolt.t('app.analysis.description')}
 	icon="lucide:chart-column"
 	title={bolt.t('component.reports')}
 	variant="full"
-	>{#if salesShown || agingShown || boardShown}<Tabs
+>
+	{#snippet actions()}
+		{#if tab === 'sales'}{@render salesRange()}{:else if tab === 'aging'}{@render agingDate()}{:else if tab === 'commission'}{@render commissionMonth()}{/if}
+	{/snippet}
+	{#if salesShown || agingShown || boardShown}<Tabs
+			value={tab ?? undefined}
+			onValueChange={(value) => (chosenTab = value)}
 			tabs={[
 				...(salesShown
 					? [{ name: 'sales', title: bolt.t('component.sales_analysis'), body: salesTab }]
@@ -396,5 +402,5 @@
 					? [{ name: 'commission', title: bolt.t('component.commission'), body: monthlyCommission }]
 					: [])
 			]}
-		/>{:else}<p>{bolt.t('component.reports_access')}</p>{/if}</AppShell
->
+		/>{:else}<EmptyState title={bolt.t('component.reports_access')} />{/if}
+</AppShell>

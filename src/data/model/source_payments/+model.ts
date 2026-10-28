@@ -84,7 +84,7 @@ export default model('source_payments', {
 		reference: { kind: 'text' },
 		settled_on: { kind: 'date' },
 		source_updated_at: { kind: 'instant' },
-		seal_hash: { kind: 'text' },
+		seal_hash: { kind: 'text', hidden: true },
 		currency: { kind: 'currency' },
 		amount: { kind: 'money', currency: 'currency' },
 		active: { kind: 'bool', default: true },

@@ -262,7 +262,12 @@ export default model('order_lines', {
 			}
 		}
 	},
-	read: 'all',
+	search: { text: ['product', 'product_code'] },
+	read: {
+		order_lines: { fields: 'all' },
+		'order_lines.product': { fields: ['name', 'external_code'] },
+		'order_lines.order': { fields: ['ledger', 'direction'] }
+	},
 	// a line created through its order's `'orders.lines'` layer runs this after the order's own `create.transform`
 	create: {
 		columns: { order_lines: ['order', 'product', ...cells, 'source_entry_id'] },

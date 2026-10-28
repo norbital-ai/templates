@@ -138,7 +138,7 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 								.sort((a, b) => b.number.localeCompare(a.number, undefined, { numeric: true }))[0];
 							return {
 								owner: group.owner,
-								owner_name: users.find((u) => u.id === group.owner)?.name ?? group.owner,
+								owner_name: users.find((u) => u.id === group.owner)?.name ?? '—',
 								period,
 								currency: group.currency,
 								order_count: new Set(snapshot.map((row) => row.order)).size,
@@ -149,6 +149,7 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 								awaiting_approval,
 								latest_amount: latest?.amount ?? null,
 								latest_statement: latest?.id ?? null,
+								latest_number: latest?.number ?? null,
 								state: awaiting_approval
 									? ('awaiting_approval' as const)
 									: unresolved_lines

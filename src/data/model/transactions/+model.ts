@@ -152,10 +152,10 @@ export default model('transactions', {
 	description: 'Issued deliveries and invoices against an order agreement.',
 	label: 'reference',
 	fields: {
-		erp_id: { kind: 'text' },
+		erp_id: { kind: 'text', hidden: true },
 		kind: { kind: 'enum', values: ['invoice', 'delivery'] },
 		reference: { kind: 'text' },
-		seal_hash: { kind: 'text' },
+		seal_hash: { kind: 'text', hidden: true },
 		currency: { kind: 'currency' },
 		status: { kind: 'enum', values: ['issued', 'void'], default: 'issued' },
 		items: { kind: 'json', shape: transactionItems, optional: true },
@@ -181,6 +181,7 @@ export default model('transactions', {
 	},
 	key: ['source', 'erp_id'],
 	// aging names each invoice's order
+	search: { text: ['reference', 'kind'] },
 	read: { transactions: { fields: 'all' }, 'transactions.order': { fields: 'all' } },
 	// the sync alone writes transactions (no local columns); its rows pass through these checks
 	create: {

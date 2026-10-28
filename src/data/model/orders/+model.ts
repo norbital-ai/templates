@@ -2,6 +2,7 @@ import { Decimal } from '@norbital-ai/std/decimal';
 import {
 	agreements,
 	currentAgreement,
+	agreedTotal,
 	executableAgreement,
 	type ContractVersion,
 	confirmationBasis,
@@ -382,7 +383,7 @@ export default model('orders', {
 			values: ['sales', 'purchasing']
 		},
 		party: { kind: 'ref', to: 'parties', inverse: 'orders' },
-		owner: { kind: 'ref', to: 'sys_user', default: { actor: 'id' } },
+		owner: { kind: 'ref', to: 'sys_user', default: { var: 'requestor.id' } },
 		warehouse: { kind: 'ref', to: 'warehouses', optional: true },
 		ledger: { kind: 'ref', to: 'sys_integration', where: { integration: { eq: 'kingdee' } } },
 		source_order_key: { kind: 'text', optional: true, hidden: true },
@@ -400,6 +401,7 @@ export default model('orders', {
 						'notes',
 						'archived',
 						'contract_versions',
+						'agreed_total',
 						'source_order_key',
 						'draft_setup',
 						'operational_contracts',
@@ -429,9 +431,7 @@ export default model('orders', {
 		},
 		ordered_on: {
 			kind: 'date',
-			default: {
-				today: ''
-			}
+			default: { var: 'today' }
 		},
 		currency: {
 			kind: 'currency'
@@ -515,6 +515,7 @@ export default model('orders', {
 			optional: true
 		},
 		sealed_snapshot: {
+			hidden: true,
 			kind: 'json',
 			shape: snapshotShape,
 			optional: true
@@ -559,6 +560,8 @@ export default model('orders', {
 			kind: 'sum',
 			of: 'lines.total'
 		},
+		// the current contract's total, kept with its versions
+		agreed_total: { kind: 'money', currency: 'currency', optional: true },
 		line_count: {
 			kind: 'count',
 			of: 'lines'
@@ -689,6 +692,8 @@ export default model('orders', {
 						return yield* ctx.refuse('errors.evidence_sealed');
 					const acceptedFields = [
 						'contract_versions',
+						// recomputed below from the versions
+						'agreed_total',
 						'contract_version',
 						'sealed_at',
 						'sealed_by',
@@ -1022,7 +1027,9 @@ export default model('orders', {
 				};
 				transformed.push(yield* TRANSITIONS[`${old.status}->${next}`]());
 			}
-			return transformed;
+			return transformed.map((set) =>
+				set.contract_versions ? { ...set, agreed_total: agreedTotal(set.contract_versions) } : set
+			);
 		}
 	},
 	syncs: {

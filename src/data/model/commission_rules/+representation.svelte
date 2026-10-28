@@ -22,7 +22,8 @@
 	let product = $state('');
 	let unit = $state('kg');
 	let party = $state('');
-	let orderedOn = $state<string | null>(new Date().toISOString().slice(0, 10));
+	const day = bolt.clock('day');
+	let orderedOn = $state<string | null>(day.today);
 	let result = $state<ReturnType<typeof commissionPreview>>(null);
 	let feedback = $state('');
 	let busy = $state(false);

@@ -3,7 +3,7 @@
 	import { Effect } from 'effect';
 	import { PlainDate } from '@norbital-ai/std/date';
 	import { Decimal } from '@norbital-ai/std/decimal';
-	import { Chart, Table, Show, useKinds, type RecordView } from '@norbital-ai/ui';
+	import { Chart, EmptyState, Table, Show, useKinds, type RecordView } from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
 	import { salesDetail, salesRead } from '../../../lib/reports.js';
@@ -115,14 +115,21 @@
 					title={`${bolt.t('component.pricing_history')} · ${group}`}
 				/>
 			{/each}
-			{#if sales?.error}<p role="alert">
-					{sales.error.message}
-				</p>{/if}
-			{#if floors?.error}<p role="alert">{floors.error.message}</p>{/if}
+			{#if sales?.error}<EmptyState
+					variant="inset"
+					tone="danger"
+					title={sales.error.message}
+				/>{/if}
+			{#if floors?.error}<EmptyState
+					variant="inset"
+					tone="danger"
+					title={floors.error.message}
+				/>{/if}
 			{#if floorHistory}
-				{#await floorHistory}<p role="status">
-						{bolt.t('component.pricing_history_loading')}
-					</p>{:then rates}
+				{#await floorHistory}<EmptyState
+						variant="inset"
+						title={bolt.t('component.pricing_history_loading')}
+					/>{:then rates}
 					{#each [...new Set(rates.map((r) => `${r.currency}/${r.unit}/${r.group}/${r.threshold}`))] as group}
 						{@const first = rates.find(
 							(r) => `${r.currency}/${r.unit}/${r.group}/${r.threshold}` === group
@@ -150,9 +157,11 @@
 								.join(' · ')}
 						/>
 					{/each}
-				{:catch}<p role="alert">
-						{bolt.t('component.confirmation_error')}
-					</p>{/await}
+				{:catch}<EmptyState
+						variant="inset"
+						tone="danger"
+						title={bolt.t('component.confirmation_error')}
+					/>{/await}
 			{/if}
 
 			<Table

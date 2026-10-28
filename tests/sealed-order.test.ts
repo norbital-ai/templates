@@ -107,6 +107,7 @@ test.live('confirmation seals this SO and blocks all subsequent commercial edits
 			.rows[0];
 		expect(before).toMatchObject({ status: 'confirmed', sealed_contract_version: '1' });
 		expect(before?.sealed_snapshot).toMatchObject({ total: '21.80', payment_terms: 'Net 30' });
+		expect(before?.agreed_total?.eq('21.80')).toBe(true);
 		expect(before?.sealed_contract).toContain('Net 30');
 		expect(before?.sealed_contract).toContain(before?.number);
 		expect(before?.sealed_contract).not.toContain(order);

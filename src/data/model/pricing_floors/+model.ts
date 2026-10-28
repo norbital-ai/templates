@@ -47,7 +47,11 @@ export default model('pricing_floors', {
 			}
 		}
 	},
-	read: 'all',
+	search: { text: ['product', 'group_code', 'unit'] },
+	read: {
+		pricing_floors: { fields: 'all' },
+		'pricing_floors.product': { fields: ['name', 'external_code'] }
+	},
 	create: {
 		columns: {
 			pricing_floors: [

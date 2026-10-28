@@ -1,21 +1,19 @@
 <script lang="ts">
-	import OrderCreateFields from '../../../lib/ui/order-create-fields.svelte';
 	import {
-		type FormState,
 		type RowIn,
 		type ColumnsIn,
 		Dialog,
+		Table,
 		useKinds,
 		useBolt,
 		Combobox,
 		Button,
 		Show
 	} from '@norbital-ai/ui';
-	import CreateTable from '../../../lib/ui/create-table.svelte';
 	import { bolt, fork, run } from '$bolt';
 	import { Effect } from 'effect';
-	import { isMasked, type Id } from '@norbital-ai/bolt';
-	import { currentContractVersion } from '../../../lib/agreements.js';
+	import type { Id } from '@norbital-ai/bolt';
+	import { openCreate } from '../../../lib/ui/create-values.js';
 	import {
 		agreementRead,
 		documentRead,
@@ -25,7 +23,6 @@
 	const kinds = useKinds();
 	const translate = useBolt().t;
 	let previewOpen = $state(false);
-	let filing = $state('active');
 	let selectedOrder = $state<Id<'orders'> | null>(null);
 	let selectedVersion = $state<number | null>(null);
 	let exporting = $state(false);
@@ -90,39 +87,17 @@
 	import { AppShell, Bound, Stack } from '@norbital-ai/ui/layout';
 </script>
 
-{#snippet orderFields(form: FormState)}<OrderCreateFields {form} />{/snippet}
+<!-- a draft shows its lines' total; an agreed order its current contract's -->
 {#snippet orderTotal({
 	row,
 	value
 }: {
 	row: RowIn<'orders'>;
-	value: ColumnsIn<'orders'>['contract_versions'] | undefined;
-})}
-	{@const accepted =
-		(row.status !== 'draft' || row.draft_setup) && value && !isMasked(value)
-			? currentContractVersion(value)
-			: undefined}
-	{#if accepted}
-		<Show
-			kind={{ kind: 'money', currency: accepted.snapshot.currency }}
-			value={accepted.snapshot.total}
-		/>
-	{:else}
-		<Show kind={{ kind: 'money', currency: 'currency' }} value={row.total} {row} />
-	{/if}
-{/snippet}
-
-{#snippet filingFilter()}<Combobox
-		size="sm"
-		value={filing}
-		aria-label={bolt.t('models.orders.fields.archived')}
-		options={[
-			{ value: 'active', label: bolt.t('component.order_active') },
-			{ value: 'archived', label: bolt.t('component.order_archived') }
-		]}
-		onChange={(value) => {
-			if (value) filing = value;
-		}}
+	value: ColumnsIn<'orders'>['agreed_total'] | undefined;
+})}<Show
+		kind={{ kind: 'money', currency: 'currency' }}
+		value={(row.status !== 'draft' || row.draft_setup) && value != null ? value : row.total}
+		{row}
 	/>{/snippet}
 <AppShell
 	description={bolt.t('app.trade.description')}
@@ -130,19 +105,17 @@
 	title={bolt.t('component.orders')}
 	variant="full"
 >
-	<CreateTable
+	<Table
 		of="orders"
-		where={{ direction: { eq: 'sales' }, archived: { eq: filing === 'archived' } }}
-		createValues={{ direction: 'sales' }}
-		allowCreate={filing === 'active'}
-		createForm={orderFields}
+		where={{ direction: { eq: 'sales' } }}
+		initialFilter={{ archived: { eq: false } }}
 		columns={[
 			'number',
 			'title',
 			'party',
 			'status',
 			{
-				field: 'contract_versions',
+				field: 'agreed_total',
 				label: bolt.t('models.orders.fields.total'),
 				align: 'end',
 				cell: orderTotal
@@ -150,7 +123,9 @@
 			'owner'
 		]}
 		toolbar={{
-			controls: filingFilter,
+			new: kinds.catalog?.orders?.create
+				? () => openCreate('orders', { direction: 'sales' })
+				: false,
 			actions: [
 				...(kinds.catalog?.document_templates
 					? [

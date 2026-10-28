@@ -9,12 +9,17 @@
 		type FieldEditor
 	} from '@norbital-ai/ui';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
+	import { createValues } from '../../../lib/ui/create-values.js';
 	let {
 		view
 	}: {
 		view: RecordView<'order_lines'>;
 	} = $props();
-	const parent = $derived(view.mode !== 'create' ? view.record.order : view.values.order);
+	// a new line is opened from its order (`openCreate`)
+	const preset = createValues<'order_lines'>();
+	const parent = $derived(
+		view.mode !== 'create' ? view.record.order : (view.values.order ?? preset.order)
+	);
 	const order = $derived(
 		parent ? bolt.query({ orders: { where: { id: { eq: parent } }, limit: 1 } }) : null
 	);
@@ -74,7 +79,7 @@
 		{
 			name: 'line',
 			title: bolt.t('section.lines'),
-			fields: ['order', 'product', 'quantity', 'unit_price', 'discount_pct', 'tax_rate']
+			fields: ['product', 'quantity', 'unit_price', 'discount_pct', 'tax_rate']
 		}
 	]}
 />

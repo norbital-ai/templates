@@ -10,7 +10,7 @@ export default model('document_templates', {
 		locale: { kind: 'enum', values: ['en', 'zh'] },
 		version: { kind: 'text' },
 		title: { kind: 'text' },
-		body: { kind: 'text' },
+		body: { kind: 'text', default: '{agreement}' },
 		published_at: { kind: 'instant', optional: true },
 		status: {
 			kind: 'state',
@@ -19,11 +19,12 @@ export default model('document_templates', {
 		}
 	},
 	key: ['kind', 'locale', 'version'],
+	search: { text: ['title', 'kind'] },
 	read: 'all',
 	create: {
 		columns: { document_templates: ['kind', 'locale', 'version', 'title', 'body'] },
 		transform: function* (rows, ctx) {
-			if (rows.some((row) => !valid(row.body)))
+			if (rows.some((row) => row.body !== undefined && !valid(row.body)))
 				return yield* ctx.refuse('errors.document_template_invalid');
 			return rows;
 		}

@@ -22,6 +22,7 @@
 		FileInput,
 		Combobox,
 		Badge,
+		EmptyState,
 		Tooltip,
 		Icon,
 		RunStatus,
@@ -29,6 +30,7 @@
 		useKinds,
 		useBolt,
 		useRecordController,
+		enumText,
 		type FieldEditor,
 		type FormState,
 		type RecordView,
@@ -36,8 +38,7 @@
 	} from '@norbital-ai/ui';
 	import { Stack, Grid, Cluster, Scroll } from '@norbital-ai/ui/layout';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
-	import OrderItemFields from '../../../lib/ui/order-item-fields.svelte';
-	import CreateTable from '../../../lib/ui/create-table.svelte';
+	import { openCreate } from '../../../lib/ui/create-values.js';
 	const moneyKind = { kind: 'money', currency: 'currency' } as const;
 	function displayDecimal(value: string) {
 		const exact = Decimal.of(value).toString();
@@ -68,6 +69,8 @@
 	} = $props();
 	const kinds = useKinds();
 	const translate = useBolt().t;
+	const statusText = (status: string) =>
+		enumText(status, { t: translate, model: 'ext_sales_orders', field: 'status' });
 	const recordController = useRecordController();
 	let pending = $state(false);
 	const id = $derived(view.mode !== 'create' ? view.record.id : null);
@@ -156,15 +159,14 @@
 	const selectedEvents = $derived(
 		(selectedContract?.events ?? []).map((event) => ({
 			...event,
-			status: translate(
+			status:
 				event.status === 'closed'
-					? 'component.kingdee_status_closed'
+					? translate('component.kingdee_status_closed')
 					: event.status === 'superseded'
-						? 'component.contract_superseded'
+						? translate('component.contract_superseded')
 						: event.status === 'changedUnversioned'
-							? 'component.kingdee_status_changedUnversioned'
-							: `models.ext_sales_orders.fields.status.${event.status}`
-			),
+							? translate('component.kingdee_status_changedUnversioned')
+							: statusText(event.status),
 			kind: translate(`component.kingdee_event_${event.kind}`)
 		}))
 	);
@@ -579,7 +581,7 @@
 								{source.closed
 									? bolt.t('component.kingdee_status_closed')
 									: source.status
-										? translate(`models.ext_sales_orders.fields.status.${source.status}`)
+										? statusText(source.status)
 										: bolt.t('component.not_set')}
 							</dd>
 						</div>
@@ -588,13 +590,7 @@
 								{bolt.t('component.kingdee_version')}
 							</dt>
 							<dd class="text-sm">
-								<Tooltip
-									text={`${bolt.t('component.kingdee_source_id')}: ${source.source_id} · ${bolt.t('component.kingdee_live_source_id')}: ${source.live_source_id} · ${bolt.t('component.kingdee_branch')}: ${source.branch}`}
-								>
-									{#snippet trigger({ props })}<span {...props} tabindex="0"
-											>{source.source_version}</span
-										>{/snippet}
-								</Tooltip>
+								{source.source_version}
 							</dd>
 						</div>
 						<div>
@@ -640,11 +636,10 @@
 			{/if}
 		</Stack>
 	{:else if view.mode !== 'create' && view.record.status === 'draft'}
-		<p>{bolt.t('component.unfinalized_quotation')}</p>
-	{:else}<p>{bolt.t('errors.agreement_access')}</p>{/if}
+		<EmptyState variant="inset" title={bolt.t('component.unfinalized_quotation')} />
+	{:else}<EmptyState variant="inset" title={bolt.t('errors.agreement_access')} />{/if}
 {/snippet}
-{#snippet itemFields(form: FormState)}<OrderItemFields {form} />{/snippet}
-{#snippet lines()}{#if id}<CreateTable
+{#snippet lines()}{#if id}<Table
 			of="order_lines"
 			where={{ order: { eq: id } }}
 			columns={[
@@ -656,13 +651,16 @@
 				'tax_rate',
 				'total'
 			]}
-			createValues={{ order: id }}
-			createFields={[]}
-			createForm={itemFields}
-			allowCreate={view.mode !== 'create' &&
-				view.record.status === 'draft' &&
-				!archived &&
-				!draftSetup}
+			toolbar={{
+				new:
+					kinds.catalog?.order_lines?.create &&
+					view.mode !== 'create' &&
+					view.record.status === 'draft' &&
+					!archived &&
+					!draftSetup
+						? () => openCreate('order_lines', { order: id })
+						: false
+			}}
 		/>{/if}{/snippet}
 {#snippet fulfillment()}{#if id}<Stack gap="md">
 			<Cluster align="center" gap="sm">{@render versionPicker()}</Cluster>
@@ -677,19 +675,23 @@
 					columns={['reference', 'kind', 'status', 'source_updated_at']}
 					toolbar={{ new: false }}
 				/>
-			{:else}<p class="text-sm text-muted-foreground">
-					{bolt.t('component.contract_no_transactions')}
-				</p>{/if}
+			{:else}<EmptyState
+					variant="inset"
+					title={bolt.t('component.contract_no_transactions')}
+				/>{/if}
 		</Stack>{/if}{/snippet}
 {#snippet activity()}{#if id}
 		<Stack gap="md">
-			<CreateTable
+			<Table
 				of="activities"
 				where={{ order: { eq: id } }}
 				columns={['title', 'kind', 'owner', 'due_on', 'done']}
-				createValues={{ order: id }}
-				createFields={['title', 'kind', 'owner', 'due_on', 'done', 'notes']}
-				allowCreate={!archived}
+				toolbar={{
+					new:
+						kinds.catalog?.activities?.create && !archived
+							? () => openCreate('activities', { order: id })
+							: false
+				}}
 			/>
 		</Stack>{/if}{/snippet}
 {#snippet versionPicker()}{#if versions.length}<label class="w-44">

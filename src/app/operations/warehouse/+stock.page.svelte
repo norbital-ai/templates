@@ -1,11 +1,10 @@
 <script lang="ts">
-	import CreateTable from '../../../lib/ui/create-table.svelte';
 	import { bolt } from '$bolt';
 	import { Table, Tabs } from '@norbital-ai/ui';
 	import { AppShell } from '@norbital-ai/ui/layout';
 </script>
 
-{#snippet products()}<CreateTable
+{#snippet products()}<Table
 		of="products"
 		columns={['external_code', 'name', 'unit', 'unit_price', 'active']}
 	/>{/snippet}
@@ -24,7 +23,7 @@
 		]}
 		toolbar={{ new: false, export: true }}
 	/>{/snippet}
-{#snippet warehouses()}<CreateTable
+{#snippet warehouses()}<Table
 		of="warehouses"
 		columns={['external_code', 'name', 'group_code', 'active']}
 	/>{/snippet}

@@ -77,6 +77,7 @@
 	import { watch } from 'runed';
 	import { bolt } from '$bolt';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
+	import { createValues } from './create-values.js';
 	let {
 		view,
 		subtitle,
@@ -101,8 +102,10 @@
 	const cells: {
 		readonly [field: string]: unknown;
 	} | null = $derived(view.mode !== 'create' ? view.record : null);
+	// a create opened from its parent (`openCreate`) carries the parent's values
+	const preset = createValues();
 	const values: Readonly<Record<string, unknown>> = $derived(
-		view.mode === 'create' ? view.values : {}
+		view.mode === 'create' ? { ...preset, ...view.values } : {}
 	);
 	// a create its parent scopes (a document's add-line form, `values` given) stays open for the next one
 	const scoped = $derived(Object.keys(values).length > 0);
