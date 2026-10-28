@@ -9,17 +9,18 @@
 	import type { Id, Row } from '@norbital-ai/bolt';
 	import { Decimal } from '@norbital-ai/std/decimal';
 	import { AppShell, Cluster, Cover, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { Combobox, Table, Tabs } from '@norbital-ai/ui';
+	import { Button, Combobox, Table, Tabs } from '@norbital-ai/ui';
 	import { todayKey } from '../../lib/ui/format/calendar.js';
 	import { formatTermsDates } from '../../lib/ui/format/display_formatters.js';
 	import { versionMoney } from '../../lib/ui/format/version_money.svelte.js';
 	import LeaveRequest from '../../lib/ui/person/leave_request.svelte';
+	import FaceEnrollFlow from '../../lib/ui/person/face_enroll_flow.svelte';
 
 	const today = todayKey();
 
 	const employee = $derived.by(() =>
 		bolt.query({
-			employment_profile: { where: { email: { eq: { actor: 'email' } } }, limit: 1 },
+			employment_profile: { where: { email: { eq: { var: 'requestor.email' } } }, limit: 1 },
 			entity: {}
 		})
 	);
@@ -44,6 +45,7 @@
 		active.length === 1 ? active[0] : active.find((row) => row.id === chosen)
 	);
 	let requesting = $state(false);
+	let enrolling = $state(false);
 	const employmentId = $derived(employment?.id ?? null);
 	/** The active contract: the Home tab shows its number and effective period. */
 	const contract = $derived(
@@ -151,6 +153,44 @@
 							</Stack>
 						{/each}
 					</Grid>
+				</section>
+				<!-- The person enrols their own face for the kiosk; HR approves it before it matches. -->
+				<section
+					class="rounded-lg border bg-card p-5 shadow-card"
+					aria-label={bolt.t('app.hr_employee.my_face')}
+				>
+					{#if enrolling}
+						<FaceEnrollFlow
+							self
+							record={{ id: me.id, face_enrollment_status: me.face_enrollment_status }}
+							onsaved={() => (enrolling = false)}
+							onclose={() => (enrolling = false)}
+						/>
+					{:else}
+						<Cluster align="center" justify="between" gap="md">
+							<Stack gap="none">
+								<h2 class="text-heading">{bolt.t('app.hr_employee.my_face')}</h2>
+								<p class="text-sm text-muted-foreground">
+									{bolt.t(
+										me.face_enrollment_status === 'APPROVED'
+											? 'app.hr_employee.face_approved'
+											: me.face_enrollment_status === 'PENDING'
+												? 'face.status_pending'
+												: me.face_enrollment_status === 'SUSPENDED'
+													? 'face.status_suspended'
+													: 'app.hr_employee.face_none'
+									)}
+								</p>
+							</Stack>
+							{#if me.face_enrollment_status !== 'PENDING' && me.face_enrollment_status !== 'SUSPENDED'}
+								<Button variant="outline" onclick={() => (enrolling = true)}>
+									{bolt.t(
+										me.face_enrollment_status === 'APPROVED' ? 'face.re_enroll' : 'face.enroll'
+									)}
+								</Button>
+							{/if}
+						</Cluster>
+					{/if}
 				</section>
 				<!-- The contract, read-only: HR edits, the person reads. -->
 				{#if contract != null}

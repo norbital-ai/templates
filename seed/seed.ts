@@ -27,6 +27,31 @@ const TEAM_HANDLES: Readonly<Record<string, string>> = {
 	'3d52a68b-017f-57d9-8fd2-fa7db4ca5965': 'attendance_kiosk'
 };
 
+/** A profile's statutory standings without the bank's `id` and `employment_id`: a standing lives on its profile and is
+ * known by its scheme and period, so neither is part of its shape. */
+const isObject = (value: Json | undefined): value is { readonly [key: string]: Json } =>
+	typeof value === 'object' && value !== null && !EffectArray.isArray(value);
+const isList = (value: Json | undefined): value is readonly Json[] => Array.isArray(value);
+const withoutStandingIds = (row: Row): Row => {
+	const facts = row['facts'];
+	if (!isObject(facts)) return row;
+	const standings = facts['employment_statutory_facts'];
+	if (!isList(standings)) return row;
+	return {
+		...row,
+		facts: {
+			...facts,
+			employment_statutory_facts: standings.map((standing) =>
+				isObject(standing)
+					? Object.fromEntries(
+							Object.entries(standing).filter(([key]) => key !== 'id' && key !== 'employment_id')
+						)
+					: standing
+			)
+		}
+	};
+};
+
 /** A bank row in the model's current shape: a roster day's overtime and incentive derive from its clock past the
  * planned shift, so the hours the bank typed are not read. */
 export const bankRow = (collection: string, row: Row): Row => {
@@ -34,6 +59,7 @@ export const bankRow = (collection: string, row: Row): Row => {
 		collection === 'sys_user' ? 'team' : collection === 'entity' ? 'late_arrival_team' : null;
 	if (field !== null && typeof row[field] === 'string')
 		return { ...row, [field]: TEAM_HANDLES[row[field]] ?? row[field] };
+	if (collection === 'employment_profile') return withoutStandingIds(row);
 	if (collection !== 'roster_entry') return row;
 	const { approved_overtime_hours: _approved, incentive_hours: _incentive, ...day } = row;
 	return day;

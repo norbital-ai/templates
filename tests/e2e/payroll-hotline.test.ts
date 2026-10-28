@@ -159,16 +159,13 @@ const scripted = Effect.gen(function* () {
 						(message) =>
 							!(
 								typeof message.content === 'string' &&
-								message.content.startsWith('[conversation state]')
+								message.content.startsWith('[conversation state')
 							)
 					)
 				);
 				if (last.role === 'tool') return { content: 'Done.', toolCalls: [], finish: 'stop', usage };
 				const said = text(last.content);
-				if (/^(?:\[[^\]\n]*\] )?slips$/m.test(said))
-					return call('read', {
-						payslip: { fields: ['net', 'salary_from', 'status'] }
-					});
+				if (/^(?:\[[^\]\n]*\] )?slips$/m.test(said)) return call('read', { payslip: {} });
 				const hold = /^(?:\[[^\]\n]*\] )?hold (\S+)$/m.exec(said);
 				if (hold !== null)
 					return call('act', {
@@ -242,6 +239,9 @@ const setup = Effect.gen(function* () {
 			invocation: group === undefined ? 'direct' : 'mention',
 			attachments: []
 		});
+		t.clock.advance('2s'); // the trailing pause before a turn (P40)
+		yield* t.runDue();
+		yield* t.settled();
 		return message;
 	});
 	const rows = (text: string, params: readonly Json[] = []) => t.db.rows(Row, { text, params });

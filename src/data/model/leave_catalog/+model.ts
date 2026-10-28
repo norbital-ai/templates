@@ -50,7 +50,10 @@ export default model('leave_catalog', {
 			owned: true
 		}
 	},
-	read: 'all',
+	read: {
+		leave_catalog: { fields: 'all' },
+		'leave_catalog.settings_id': { fields: ['code', 'sealed_at', 'voided_at', 'effective_range'] }
+	},
 	create: {
 		columns: { leave_catalog: create_columns }
 	},

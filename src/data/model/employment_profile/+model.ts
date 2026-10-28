@@ -288,7 +288,10 @@ export default model('employment_profile', {
 		text: ['name', 'email', 'phone'],
 		semantic: { fields: ['address'], model: 'default', dim: 1536 }
 	},
-	read: 'all',
+	read: {
+		employment_profile: { fields: 'all' },
+		'employment_profile.employment_contract': { fields: ['company_id', 'effective_range'] }
+	},
 	create: {
 		columns: { employment_profile: create_columns },
 		transform: function* (rows, ctx) {

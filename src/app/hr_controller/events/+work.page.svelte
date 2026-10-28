@@ -58,26 +58,21 @@
 	);
 </script>
 
-{#snippet periodPicker()}
-	<MonthPeriodPicker
-		month={pay.period}
-		halves={pay.halves}
-		weeks={pay.weeks}
-		ariaLabel={bolt.t('app.events.pay_period')}
-		onMonthChange={(next) => pay.select(next)}
-	/>
-{/snippet}
-
-{#snippet workTools()}
-	{@render periodPicker()}
-{/snippet}
-
 <AppShell
 	icon="lucide:calendar-clock"
 	title={bolt.t('app.work.title')}
 	description={bolt.t('app.work.description')}
 >
-	{#snippet actions()}<CompanyScope {scope} />{/snippet}
+	{#snippet actions()}
+		<MonthPeriodPicker
+			month={pay.period}
+			halves={pay.halves}
+			weeks={pay.weeks}
+			ariaLabel={bolt.t('app.events.pay_period')}
+			onMonthChange={(next) => pay.select(next)}
+		/>
+		<CompanyScope {scope} />
+	{/snippet}
 	{#if scope.unknown}
 		<p class="text-meta">{bolt.t('component.loading')}</p>
 	{:else if scope.id == null}
@@ -96,7 +91,6 @@
 				]}
 				toolbar={{
 					title: bolt.t('app.scheduling.board_title'),
-					controls: workTools,
 					new: false,
 					context: { company_id: companyId, from: window.start, to: window.end }
 				}}

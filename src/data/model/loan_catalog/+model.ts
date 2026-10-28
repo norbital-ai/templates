@@ -38,7 +38,10 @@ export default model('loan_catalog', {
 			owned: true
 		}
 	},
-	read: 'all',
+	read: {
+		loan_catalog: { fields: 'all' },
+		'loan_catalog.settings_id': { fields: ['code', 'sealed_at', 'voided_at', 'effective_range'] }
+	},
 	create: {
 		columns: { loan_catalog: create_columns }
 	},

@@ -187,7 +187,6 @@ export default messages({
 	'component.payslips': 'Payslips',
 	'component.period_line': 'Period {period} · {count} payslips',
 	'component.person': 'Person',
-	'component.search_person': 'Search employee number or name',
 	'section.identity': 'Identity',
 	'section.personal_and_family': 'Personal and family',
 	'section.contact': 'Contact',
@@ -564,6 +563,10 @@ export default messages({
 	'component.is_npl': 'Unpaid (NPL)',
 	'component.revision_from': 'from {start}',
 	'component.revision_between': '{start} – {end}',
+	'app.hr_employee.my_face': 'Face for attendance',
+	'app.hr_employee.face_approved': 'Enrolled: you can clock in at the kiosk.',
+	'app.hr_employee.face_none':
+		'Not enrolled yet. Enrol so you can clock in at the kiosk; HR approves it first.',
 	'app.hr_employee.my_contract': 'My contract',
 	'app.scheduling.week_picker': 'Week of the month',
 	'app.scheduling.week_n': 'Wk {n}',

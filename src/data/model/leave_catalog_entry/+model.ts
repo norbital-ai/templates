@@ -105,9 +105,13 @@ export default model('leave_catalog_entry', {
 		}
 	},
 	locked: { payslip_id: { isNull: false } },
+	// the toolbar finds an entry by its own words or its person's: the contract's number, the person's name
+	search: { text: ['reference', 'label', 'employment_id'] },
 	read: {
 		leave_catalog_entry: { fields: 'all' },
-		'leave_catalog_entry.catalog_id': { fields: 'all' }
+		'leave_catalog_entry.catalog_id': { fields: 'all' },
+		'leave_catalog_entry.employment_id': { fields: ['employee_number', 'company_id'] },
+		'leave_catalog_entry.employment_id.employee_id': { fields: ['name', 'email', 'phone'] }
 	},
 	create: {
 		columns: {

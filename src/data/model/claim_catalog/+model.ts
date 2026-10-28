@@ -42,7 +42,10 @@ export default model('claim_catalog', {
 			owned: true
 		}
 	},
-	read: 'all',
+	read: {
+		claim_catalog: { fields: 'all' },
+		'claim_catalog.settings_id': { fields: ['code', 'sealed_at', 'voided_at', 'effective_range'] }
+	},
 	create: {
 		columns: { claim_catalog: create_columns }
 	},

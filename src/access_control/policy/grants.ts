@@ -8,7 +8,7 @@ import type { Actor, Flow, Id, PolicyReads, Verdict } from '@norbital-ai/bolt';
  */
 
 /** The signed-in member's own employee row: the email compares case-folded. */
-const OWN_EMPLOYEE = { email: { eq: { actor: 'email' } } } as const;
+const OWN_EMPLOYEE = { email: { eq: { var: 'requestor.email' } } } as const;
 /** An employment whose employee is the signed-in member. */
 const OWN_EMPLOYMENT = { employee_id: { is: OWN_EMPLOYEE } } as const;
 /** A row about one of the member's own employments. */
@@ -406,9 +406,37 @@ const selfDelete = function* (rows: readonly (Employed & Pinned)[], ctx: Reading
 		: ctx.deny('Withdraw only your own entries.');
 };
 
+/** The columns a face enrolment writes: the descriptor, the straight-on photo, consent and its status. */
+const FACE_ENROLMENT = [
+	'face_embedding',
+	'face_photo',
+	'face_consent_at',
+	'face_enrolled_at',
+	'face_enrollment_status'
+] as const;
 /** Self-service: a person's own records, their own time off and claims (reviewed), every jurisdiction record. */
 export const SELF = {
-	employment_profile: { read: { employment_profile: { where: OWN_EMPLOYEE } } },
+	employment_profile: {
+		read: { employment_profile: { where: OWN_EMPLOYEE } },
+		// a person enrols their own face for the attendance kiosk; HR approves it before the kiosk matches it
+		update: {
+			columns: { employment_profile: FACE_ENROLMENT },
+			check: function* (
+				changes: readonly {
+					readonly before: { readonly email?: string | null };
+					readonly set: { readonly face_enrollment_status?: string | null };
+				}[],
+				ctx: Reading
+			) {
+				const email = ctx.actor.kind === 'member' ? ctx.actor.email?.toLowerCase() : undefined;
+				if (email == null || changes.some(({ before }) => before.email?.toLowerCase() !== email))
+					return ctx.deny('Enrol only your own face.');
+				return changes.every(({ set }) => set.face_enrollment_status === 'PENDING')
+					? ctx.allow()
+					: ctx.deny('A face you enrol yourself waits for HR to approve it.');
+			}
+		}
+	},
 	employment_contract: { read: { employment_contract: { where: OWN_EMPLOYMENT } } },
 	claim_catalog_entry: {
 		read: { claim_catalog_entry: { where: OWN } },

@@ -90,10 +90,13 @@ export default model('claim_catalog_entry', {
 		}
 	},
 	locked: { payslip_id: { isNull: false } },
+	// the toolbar finds an entry by its own words or its person's: the contract's number, the person's name
+	search: { text: ['label', 'employment_id'] },
 	read: {
 		claim_catalog_entry: { fields: 'all' },
 		'claim_catalog_entry.catalog_id': { fields: 'all' },
-		'claim_catalog_entry.employment_id': { fields: 'all' }
+		'claim_catalog_entry.employment_id': { fields: 'all' },
+		'claim_catalog_entry.employment_id.employee_id': { fields: ['name', 'email', 'phone'] }
 	},
 	create: {
 		columns: {

@@ -178,7 +178,13 @@
 					"scale": 2
 				}
 			},
-			"nativeRules": 2
+			"nativeRules": 2,
+			"search": {
+				"text": [
+					"label",
+					"employment_id"
+				]
+			}
 		},
 		"allowance_catalog": {
 			"audit": true,
@@ -838,7 +844,13 @@
 					"scale": 2
 				}
 			},
-			"nativeRules": 2
+			"nativeRules": 2,
+			"search": {
+				"text": [
+					"label",
+					"employment_id"
+				]
+			}
 		},
 		"employment_contract": {
 			"audit": true,
@@ -1060,7 +1072,8 @@
 			"nativeRules": 2,
 			"search": {
 				"text": [
-					"employee_number"
+					"employee_number",
+					"employee_id"
 				]
 			}
 		},
@@ -2151,7 +2164,14 @@
 					"optional": true
 				}
 			},
-			"nativeRules": 2
+			"nativeRules": 2,
+			"search": {
+				"text": [
+					"reference",
+					"label",
+					"employment_id"
+				]
+			}
 		},
 		"loan_catalog": {
 			"audit": true,
@@ -3413,7 +3433,7 @@
 			"fields": {
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -3492,7 +3512,7 @@
 			"fields": {
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -3572,7 +3592,7 @@
 				},
 				"updated_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				}
@@ -3596,7 +3616,7 @@
 				},
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -3924,7 +3944,7 @@
 				},
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -4500,7 +4520,7 @@
 				},
 				"started_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -4636,7 +4656,7 @@
 				},
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},

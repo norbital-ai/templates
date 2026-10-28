@@ -50,7 +50,8 @@
 	let {
 		record,
 		onsaved,
-		onclose
+		onclose,
+		self = false
 	}: {
 		record: {
 			readonly id: Id<'employment_profile'>;
@@ -58,6 +59,8 @@
 		};
 		onsaved: (previewUrl: string) => void;
 		onclose: () => void;
+		/** The person enrols their own face: it waits for HR's approval before the kiosk matches it. */
+		self?: boolean;
 	} = $props();
 	type Step = 'capture' | 'review' | 'done';
 	const STEPS: readonly Step[] = ['capture', 'review', 'done'];
@@ -354,13 +357,18 @@
 						face_photo: fileRef(facePhoto),
 						face_consent_at: now,
 						face_enrolled_at: now,
-						face_enrollment_status: 'APPROVED'
+						face_enrollment_status: self ? 'PENDING' : 'APPROVED'
 					}
 				}
 			];
 			const outcome = yield* bolt.act('employment_profile.update', payload);
 			if (handles.disposed) return;
 			if (outcome.kind === 'pendingApproval') {
+				stopCamera();
+				pendingApproval = true;
+				step = 'done';
+			} else if (outcome.kind === 'committed' && self) {
+				// saved, and HR approves it before the kiosk uses it
 				stopCamera();
 				pendingApproval = true;
 				step = 'done';
