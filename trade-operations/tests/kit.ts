@@ -128,6 +128,8 @@ export const confirm = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
 /** Start a replacement draft without mutating the current sealed contract. */
 export const revise = Effect.fnUntraced(function* (t: T, order: Id<'orders'>) {
 	const as = t.as(t.admin);
+	// the revision the replacement observes: after the order's own queued syncs wrote back
+	yield* t.runDue();
 	const before = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
 		.rows[0];
 	if (!before) throw new Error('Current contract required');
