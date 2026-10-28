@@ -40,11 +40,21 @@ team.
 ## Data model
 
 Country law is data, not code. Each jurisdiction is a lineage of dated, sealed `jurisdiction_settings` versions with
-their catalogue rows (`statutory_contribution_catalog`, `leave_catalog`, `claim_catalog`, `adhoc_catalog`,
-`loan_catalog`, `allowance_catalog`, `work_catalog`) and `rule_set` rows. Rates, bands, eligibility and pricing are CEL
-expressions on those rows; behaviours are event rules on the settings version. The engine in
-`src/lib/payroll_engine/` evaluates them and holds no jurisdiction-specific logic. A change of law is a new version,
-made without touching source. Jurisdiction versions also own their suspension kinds (a validated custom field).
+their own rows, each part with one job:
+
+| Part                             | Job                                                                                                                                                                     |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `time_pay` (on the version)      | Pay for time employed and worked: reserved kinds (`BASIC`, `OVERTIME`, `REST_DAY_WORK`, `HOLIDAY_WORK`, `PAID_HOLIDAY`, …), each a list of coded lines                  |
+| Catalogues                       | What a thing that happened is worth: `leave_catalog` (and its `pay` lines), `suspension_catalog`, `adhoc_catalog`, `claim_catalog`, `loan_catalog`, `allowance_catalog` |
+| `statutory_contribution_catalog` | What is owed to the state on the totals, and its tax splits (`wage_adjustments`)                                                                                        |
+| `rule_set` `VALIDATIONS`         | Checks: refuse, warn, hold, or allow a run kind                                                                                                                         |
+| `rule_set` `PARAMETERS`          | Law values formulas read as `rules.<code>` (minimum wage, regions, exit grounds, holidays, salary report)                                                               |
+| `rule_set` `EXPORTS`             | Statutory and bank file layouts                                                                                                                                         |
+| `behaviour`                      | Side effects on events: encashment, exit pay, obligations, tasks, holds, holidays                                                                                       |
+
+Rates, bands, eligibility and pricing are CEL expressions on those rows. The engine in `src/lib/payroll_engine/`
+evaluates them and holds no jurisdiction-specific logic. A change of law is a new version, made without touching
+source.
 
 The 29 record models live in `src/data/model/<name>/+model.ts`. Each model declares its fields, relationships,
 its read and write layers and per-verb write callbacks inline; its companion `+representation.svelte` renders the
@@ -104,21 +114,24 @@ alongside it.
 
 ### Behaviours
 
-Every lineage carries the same ten rules (`behaviours.rules` on the version); what differs per jurisdiction is the
-catalogue data they read.
+Behaviours are `behaviour` rows of the version, run in `order`. Every lineage carries the rules below; each obligation
+and task is its own row whose `definition` names one duty, completed by its version's `obligation-program` or
+`task-program` row.
 
-| Rule                         | Event                                   | Effect                                                                          |
-| ---------------------------- | --------------------------------------- | ------------------------------------------------------------------------------- |
-| `encash-leave-on-exit`       | Contract gets an exit date and ground   | One `ENCASHMENT` leave entry per class with `encash_on_exit`                    |
-| `retract-exit-effects`       | The exit is moved or undone             | Withdraws the unsettled encashments and open exit tasks it raised               |
-| `encash-leave-at-window-end` | Daily, at a leave window's end          | Encashes the unused balance of classes with `encash_at_window_end` (PH SIL)     |
-| `raise-tasks`                | Row events, daily, after exit, calendar | Regulatory tasks from the version's `TASKS` rules (final wages, data disposal…) |
-| `raise-obligations`          | Payroll run created                     | Filing and remittance obligations from `OBLIGATIONS` rules                      |
-| `pin-settled-entries`        | Payroll run created                     | Links each settled entry to its payslip                                         |
-| `hold-payslips`              | Payroll run created with holds          | Moves the held people's payslips to `ON_HOLD`                                   |
-| `withdraw-run-duties`        | Payroll run deleted                     | Withdraws that run's obligations                                                |
-| `write-public-holidays`      | Entity created / calendar               | Writes the version's public holidays to the entity calendar                     |
-| `payroll-run`                | `PAYROLL_CREATE`                        | Admits `REGULAR` and `OFF_CYCLE` runs                                           |
+| Rule                         | Event                                 | Effect                                                                      |
+| ---------------------------- | ------------------------------------- | --------------------------------------------------------------------------- |
+| `encash-leave-on-exit`       | Contract gets an exit date and ground | One `ENCASHMENT` leave entry per class with `encash_on_exit`                |
+| `retract-exit-effects`       | The exit is moved or undone           | Withdraws the unsettled encashments and open exit tasks it raised           |
+| `encash-leave-at-window-end` | Daily, at a leave window's end        | Encashes the unused balance of classes with `encash_at_window_end` (PH SIL) |
+| `raise-exit-pay`             | Contract gets an exit date and ground | One amountless ad hoc entry per exit pay class it lists, priced on the slip |
+| task rows                    | Their trigger's row event or calendar | One regulatory task each (final wages, data disposal…)                      |
+| obligation rows              | Payroll run created                   | One filing or remittance obligation each                                    |
+| `hold-payslips`              | Payroll run created with holds        | Moves the held people's payslips to `ON_HOLD`                               |
+| `write-public-holidays`      | Entity created / calendar             | Writes the version's public holidays to the entity calendar                 |
+
+Which run kinds a version admits is a `VALIDATIONS` rule set (`site: payroll_run`, `kind: allow`), not a behaviour. The
+`payroll_run_bookkeeping` automation links a created run's settled entries to its payslips and withdraws a deleted
+run's open obligations and tasks.
 
 Exit encashment is on for annual leave in every lineage except JP (no statutory payout); TW also encashes rest-day
 in-lieu and comp time.

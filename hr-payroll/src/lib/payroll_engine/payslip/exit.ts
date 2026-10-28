@@ -1,22 +1,11 @@
 import { Effect } from 'effect';
 import { addDays, datePeriod, days, intersect } from '@norbital-ai/std/date';
-import { type DynObject, fieldValue, Refusal } from '../foundation.js';
-import {
-	num,
-	type PayslipLine,
-	type CatalogRow,
-	entryContext,
-	earlierContext,
-	type PayslipRow,
-	evaluateNumber,
-	evaluateBoolean,
-	type SlipContext
-} from './context.js';
+import { fieldValue, PAYROLL_DEFAULTS } from '../foundation.js';
+import { num, type PayslipLine, type CatalogRow, type PayslipRow, type SlipContext } from './context.js';
 const EXIT_FAMILY = 'EXIT';
 const CORRECTION_FAMILY = 'CORRECTION';
 export const exitCorrections = Effect.fnUntraced(function* (
 	options: SlipContext,
-	context: DynObject,
 	adjustments: PayslipLine[],
 	post: (row: CatalogRow, amount: number) => number,
 	salaried: boolean
@@ -27,15 +16,6 @@ export const exitCorrections = Effect.fnUntraced(function* (
 	const payroll = yield* Effect.fromResult(
 		fieldValue(options.jurisdiction.version.payroll, 'jurisdiction_settings.payroll')
 	);
-	/** A payroll key the exit needs, or the refusal naming the version and the key. */
-	const stated = <A>(key: string, value: A | null | undefined) =>
-		value == null || value === ''
-			? Effect.fail(
-					new Refusal({
-						message: `${options.jurisdiction.version.code}: jurisdiction_settings.payroll.${key} is not stated.`
-					})
-				)
-			: Effect.succeed(value);
 	let made = 0;
 	const flip = (row: CatalogRow, amount: number): CatalogRow =>
 		amount >= 0 ? row : { ...row, direction: row.direction === 'SUBTRACT' ? 'ADD' : 'SUBTRACT' };
@@ -51,7 +31,7 @@ export const exitCorrections = Effect.fnUntraced(function* (
 		if (
 			amount < 0 &&
 			!salaried &&
-			(yield* stated('exit_overpayment', payroll?.exit_overpayment)) === 'note'
+			(payroll?.exit_overpayment ?? PAYROLL_DEFAULTS.exit_overpayment) === 'note'
 		) {
 			if (fresh)
 				options.payroll.notes.push(
@@ -83,7 +63,7 @@ export const exitCorrections = Effect.fnUntraced(function* (
 		if (source.endsWith(`:${key}`) && key !== '') continue;
 		if (sourced.has(`${source}:reversal`)) continue;
 		const code = String(line.component_code ?? '');
-		const row = options.jurisdiction.exitClasses.find((held) => held.code === code) ?? {
+		const row = [...options.jurisdiction.classes.values()].find((held) => held.code === code) ?? {
 			id: code,
 			code,
 			destination: line.destination === 'PAY' ? 'PAY' : 'NET',
@@ -101,53 +81,6 @@ export const exitCorrections = Effect.fnUntraced(function* (
 			},
 			paidIn != null && addDays(paidIn.to, 1) === window.salary_from
 		);
-	}
-	// the exit pay of the exit as it stands, once, on a slip reaching the exit that the version's `exit_raise_when`
-	// admits
-	if (
-		departed &&
-		exitDay <= window.salary_to &&
-		options.jurisdiction.exitClasses.length > 0 &&
-		(yield* evaluateBoolean(
-			yield* stated('exit_raise_when', payroll?.exit_raise_when),
-			context,
-			'jurisdiction_settings.payroll.exit_raise_when'
-		))
-	) {
-		const entered = new Set(
-			options.attendance.entries.flatMap((family) => family.siblings.map((row) => row.code))
-		);
-		for (const row of options.jurisdiction.exitClasses) {
-			const source = `exit:${row.code}:${key}`;
-			if (sourced.has(source) || entered.has(row.code)) continue;
-			const entryCtx: DynObject = {
-				...context,
-				entry: entryContext({ amount: 0, facts: {} }, exitDay),
-				earlier: earlierContext([], { code: row.code, occurred_on: exitDay })
-			};
-			const where = `adhoc_catalog ${row.code}`;
-			if (!(yield* evaluateBoolean(row.eligibility, entryCtx, where))) continue;
-			if (!(yield* evaluateBoolean(row.qualifies_when, entryCtx, where))) continue;
-			let amount = 0;
-			for (const band of row.bands ?? []) {
-				if (!(yield* evaluateBoolean(band.when, entryCtx, where))) continue;
-				amount = yield* evaluateNumber(band.amount, entryCtx, where);
-				break;
-			}
-			amount = money(amount);
-			if (amount === 0) continue;
-			yield* add(
-				row,
-				amount,
-				{
-					family: EXIT_FAMILY,
-					source_id: source,
-					component_code: row.code,
-					label: row.name ?? row.code
-				},
-				true
-			);
-		}
 	}
 	// paid periods repriced over the days they now cover. A switched month settles month to date: its own earlier
 	// slips are settled by this run's lines, and a slip a later month-to-date slip of its month superseded is
@@ -193,7 +126,11 @@ export const exitCorrections = Effect.fnUntraced(function* (
 				.reduce((total, { line }) => total + line.amount, 0);
 			const owed = money(target - paid - done);
 			if (owed === 0) continue;
-			const row = options.jurisdiction.workRows.find(
+			const row = [
+				...options.jurisdiction.workRows,
+				...options.jurisdiction.suspensionPay,
+				...options.jurisdiction.leavePay
+			].find(
 				(candidate) => (candidate.component_code ?? candidate.code) === code
 			) ?? { id: code, code, destination: 'PAY', counts_toward: [] };
 			yield* add(

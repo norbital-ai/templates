@@ -3,13 +3,13 @@ import { enumText } from '@norbital-ai/ui';
 import { kindsOf } from '../../payroll_engine/listed_kinds.js';
 
 /**
- * A stored kind code as the name the PAYROLL `rule_set` rows of that `rule` list it under (`rules.kinds[]`), across the
+ * A stored kind code as the name the PARAMETERS `rule_set` rows of that `rule` list it under (`rules.kinds[]`), across the
  * sealed versions, live; a code no version names reads as words. Call during component initialisation.
  */
 export function listedKindNames(rule: 'exit_grounds' | 'case_kinds') {
 	const rows = $derived.by(() =>
 		bolt.query({
-			rule_set: { where: { family: { eq: 'PAYROLL' }, code: { eq: rule } }, fields: ['rules'] }
+			rule_set: { where: { family: { eq: 'PARAMETERS' }, code: { eq: rule } }, fields: ['rules'] }
 		})
 	);
 	const names = $derived(

@@ -94,11 +94,6 @@
 					"kind": "text",
 					"optional": true
 				},
-				"raise_on_exit": {
-					"default": false,
-					"help": "The final slip raises this class itself when its eligibility holds on the exit (termination benefit, severance, notice in lieu), priced by its bands on an empty entry of the exit day; an entry of the class HR makes instead wins. A moved or undone exit takes it back.",
-					"kind": "bool"
-				},
 				"references": {
 					"kind": "custom",
 					"of": "references",
@@ -194,6 +189,11 @@
 					"help": "CEL amount over the payslip context; `allowance.amount` is the contract’s monthly figure.",
 					"kind": "text",
 					"optional": true
+				},
+				"automatic": {
+					"default": false,
+					"help": "Priced on every salary slip without a contract line (a statutory or conditional allowance): `allowance.amount` is 0 and the eligibility decides.",
+					"kind": "bool"
 				},
 				"code": {
 					"kind": "text"
@@ -657,6 +657,91 @@
 				"code"
 			]
 		},
+		"behaviour": {
+			"audit": true,
+			"fields": {
+				"code": {
+					"kind": "text"
+				},
+				"definition": {
+					"help": "The one obligation or task this rule raises (due, schemes, amount, months, applies_when, trigger, …): its effect reads it as `behaviour.definition`.",
+					"kind": "json",
+					"optional": true
+				},
+				"effect": {
+					"format": "cel",
+					"kind": "text",
+					"optional": true
+				},
+				"events": {
+					"default": [],
+					"kind": "json",
+					"shape": {
+						"kind": "list",
+						"of": {
+							"kind": "text"
+						}
+					}
+				},
+				"fields": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"kind": "list",
+						"of": {
+							"kind": "text"
+						}
+					}
+				},
+				"name": {
+					"kind": "text",
+					"optional": true
+				},
+				"order": {
+					"help": "Run order among the rules one event selects, ascending (code breaks a tie): a later rule sees the writes before it.",
+					"kind": "int"
+				},
+				"reads": {
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"kind": "record",
+						"of": {
+							"kind": "json"
+						}
+					}
+				},
+				"references": {
+					"kind": "custom",
+					"of": "references",
+					"optional": true
+				},
+				"settings_id": {
+					"inverse": "behaviour",
+					"kind": "ref",
+					"owned": true,
+					"to": "jurisdiction_settings"
+				},
+				"target_collection": {
+					"kind": "text",
+					"optional": true
+				},
+				"when": {
+					"format": "cel",
+					"kind": "text",
+					"optional": true
+				}
+			},
+			"nativeRules": 2,
+			"unique": [
+				{
+					"fields": [
+						"settings_id",
+						"code"
+					]
+				}
+			]
+		},
 		"claim_catalog": {
 			"audit": true,
 			"fields": {
@@ -904,6 +989,7 @@
 					]
 				},
 				"effective_range": {
+					"help": "The first day of employment (when the person joined or started) to the last (when they left).",
 					"kind": "period",
 					"of": "date"
 				},
@@ -1511,7 +1597,7 @@
 					]
 				},
 				"kind": {
-					"help": "A kind the version governing the day lists (`rule_set` PAYROLL `holiday_kinds`): what the work and leave records price it as.",
+					"help": "A kind the version governing the day lists (`rule_set` PARAMETERS `holiday_kinds`): what the work and leave records price it as.",
 					"kind": "text"
 				},
 				"name": {
@@ -1531,99 +1617,6 @@
 		"jurisdiction_settings": {
 			"audit": true,
 			"fields": {
-				"behaviours": {
-					"default": {
-						"rules": [],
-						"version": 1
-					},
-					"kind": "json",
-					"shape": {
-						"fields": {
-							"rules": {
-								"kind": "list",
-								"of": {
-									"fields": {
-										"catalog": {
-											"kind": "text",
-											"optional": true
-										},
-										"effect": {
-											"format": "cel",
-											"kind": "text",
-											"optional": true
-										},
-										"events": {
-											"kind": "list",
-											"of": {
-												"kind": "text"
-											}
-										},
-										"fields": {
-											"kind": "list",
-											"of": {
-												"kind": "text"
-											},
-											"optional": true
-										},
-										"id": {
-											"kind": "text"
-										},
-										"reads": {
-											"kind": "record",
-											"of": {
-												"kind": "json"
-											},
-											"optional": true
-										},
-										"references": {
-											"kind": "list",
-											"of": {
-												"fields": {
-													"effective_from": {
-														"kind": "date",
-														"optional": true
-													},
-													"locator": {
-														"kind": "text",
-														"optional": true
-													},
-													"quote": {
-														"kind": "text",
-														"optional": true
-													},
-													"title": {
-														"kind": "text"
-													},
-													"url": {
-														"format": "url",
-														"kind": "text",
-														"optional": true
-													}
-												},
-												"kind": "object"
-											},
-											"optional": true
-										},
-										"target_collection": {
-											"kind": "text",
-											"optional": true
-										},
-										"when": {
-											"format": "cel",
-											"kind": "text",
-											"optional": true
-										}
-									},
-									"kind": "object"
-								}
-							},
-							"version": {
-								"kind": "int"
-							}
-						},
-						"kind": "object"
-					}
-				},
 				"change_summary": {
 					"kind": "text",
 					"optional": true
@@ -1649,9 +1642,6 @@
 				"entity_input_schema": {
 					"kind": "json",
 					"optional": true
-				},
-				"jurisdiction_code": {
-					"kind": "text"
 				},
 				"name": {
 					"kind": "text"
@@ -1705,11 +1695,6 @@
 									"note",
 									"deduct"
 								]
-							},
-							"exit_raise_when": {
-								"format": "cel",
-								"kind": "text",
-								"optional": true
 							},
 							"history_months": {
 								"kind": "int",
@@ -1798,21 +1783,6 @@
 						"kind": "object"
 					}
 				},
-				"reference_tables": {
-					"kind": "json",
-					"optional": true,
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
-				},
-				"references": {
-					"kind": "custom",
-					"of": "references",
-					"optional": true
-				},
 				"sealed_at": {
 					"kind": "instant",
 					"optional": true
@@ -1881,10 +1851,971 @@
 						"kind": "object"
 					}
 				},
-				"suspension_kinds": {
-					"default": [],
-					"kind": "custom",
-					"of": "suspension_kinds"
+				"time_pay": {
+					"default": {},
+					"kind": "json",
+					"shape": {
+						"fields": {
+							"BASIC": {
+								"kind": "list",
+								"of": {
+									"fields": {
+										"code": {
+											"kind": "text"
+										},
+										"counts_toward": {
+											"kind": "list",
+											"of": {
+												"kind": "text"
+											}
+										},
+										"denominator": {
+											"format": "cel",
+											"kind": "text",
+											"optional": true
+										},
+										"destination": {
+											"kind": "enum",
+											"values": [
+												"PAY",
+												"NET",
+												"EMPLOYER"
+											]
+										},
+										"direction": {
+											"kind": "enum",
+											"values": [
+												"ADD",
+												"SUBTRACT"
+											]
+										},
+										"eligibility": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"name": {
+											"kind": "text",
+											"optional": true
+										},
+										"prorated": {
+											"kind": "bool",
+											"optional": true
+										},
+										"quantity": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"rate": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"references": {
+											"kind": "list",
+											"of": {
+												"fields": {
+													"effective_from": {
+														"kind": "date",
+														"optional": true
+													},
+													"locator": {
+														"kind": "text",
+														"optional": true
+													},
+													"quote": {
+														"kind": "text",
+														"optional": true
+													},
+													"title": {
+														"kind": "text"
+													},
+													"url": {
+														"format": "url",
+														"kind": "text",
+														"optional": true
+													}
+												},
+												"kind": "object"
+											},
+											"optional": true
+										}
+									},
+									"kind": "object"
+								},
+								"optional": true
+							},
+							"HOLIDAY_OVERTIME": {
+								"kind": "list",
+								"of": {
+									"fields": {
+										"code": {
+											"kind": "text"
+										},
+										"counts_toward": {
+											"kind": "list",
+											"of": {
+												"kind": "text"
+											}
+										},
+										"denominator": {
+											"format": "cel",
+											"kind": "text",
+											"optional": true
+										},
+										"destination": {
+											"kind": "enum",
+											"values": [
+												"PAY",
+												"NET",
+												"EMPLOYER"
+											]
+										},
+										"direction": {
+											"kind": "enum",
+											"values": [
+												"ADD",
+												"SUBTRACT"
+											]
+										},
+										"eligibility": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"name": {
+											"kind": "text",
+											"optional": true
+										},
+										"prorated": {
+											"kind": "bool",
+											"optional": true
+										},
+										"quantity": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"rate": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"references": {
+											"kind": "list",
+											"of": {
+												"fields": {
+													"effective_from": {
+														"kind": "date",
+														"optional": true
+													},
+													"locator": {
+														"kind": "text",
+														"optional": true
+													},
+													"quote": {
+														"kind": "text",
+														"optional": true
+													},
+													"title": {
+														"kind": "text"
+													},
+													"url": {
+														"format": "url",
+														"kind": "text",
+														"optional": true
+													}
+												},
+												"kind": "object"
+											},
+											"optional": true
+										}
+									},
+									"kind": "object"
+								},
+								"optional": true
+							},
+							"HOLIDAY_WORK": {
+								"kind": "list",
+								"of": {
+									"fields": {
+										"code": {
+											"kind": "text"
+										},
+										"counts_toward": {
+											"kind": "list",
+											"of": {
+												"kind": "text"
+											}
+										},
+										"denominator": {
+											"format": "cel",
+											"kind": "text",
+											"optional": true
+										},
+										"destination": {
+											"kind": "enum",
+											"values": [
+												"PAY",
+												"NET",
+												"EMPLOYER"
+											]
+										},
+										"direction": {
+											"kind": "enum",
+											"values": [
+												"ADD",
+												"SUBTRACT"
+											]
+										},
+										"eligibility": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"name": {
+											"kind": "text",
+											"optional": true
+										},
+										"prorated": {
+											"kind": "bool",
+											"optional": true
+										},
+										"quantity": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"rate": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"references": {
+											"kind": "list",
+											"of": {
+												"fields": {
+													"effective_from": {
+														"kind": "date",
+														"optional": true
+													},
+													"locator": {
+														"kind": "text",
+														"optional": true
+													},
+													"quote": {
+														"kind": "text",
+														"optional": true
+													},
+													"title": {
+														"kind": "text"
+													},
+													"url": {
+														"format": "url",
+														"kind": "text",
+														"optional": true
+													}
+												},
+												"kind": "object"
+											},
+											"optional": true
+										}
+									},
+									"kind": "object"
+								},
+								"optional": true
+							},
+							"INCENTIVE": {
+								"kind": "list",
+								"of": {
+									"fields": {
+										"code": {
+											"kind": "text"
+										},
+										"counts_toward": {
+											"kind": "list",
+											"of": {
+												"kind": "text"
+											}
+										},
+										"denominator": {
+											"format": "cel",
+											"kind": "text",
+											"optional": true
+										},
+										"destination": {
+											"kind": "enum",
+											"values": [
+												"PAY",
+												"NET",
+												"EMPLOYER"
+											]
+										},
+										"direction": {
+											"kind": "enum",
+											"values": [
+												"ADD",
+												"SUBTRACT"
+											]
+										},
+										"eligibility": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"name": {
+											"kind": "text",
+											"optional": true
+										},
+										"prorated": {
+											"kind": "bool",
+											"optional": true
+										},
+										"quantity": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"rate": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"references": {
+											"kind": "list",
+											"of": {
+												"fields": {
+													"effective_from": {
+														"kind": "date",
+														"optional": true
+													},
+													"locator": {
+														"kind": "text",
+														"optional": true
+													},
+													"quote": {
+														"kind": "text",
+														"optional": true
+													},
+													"title": {
+														"kind": "text"
+													},
+													"url": {
+														"format": "url",
+														"kind": "text",
+														"optional": true
+													}
+												},
+												"kind": "object"
+											},
+											"optional": true
+										}
+									},
+									"kind": "object"
+								},
+								"optional": true
+							},
+							"MINIMUM_WAGE_TOP_UP": {
+								"kind": "list",
+								"of": {
+									"fields": {
+										"code": {
+											"kind": "text"
+										},
+										"counts_toward": {
+											"kind": "list",
+											"of": {
+												"kind": "text"
+											}
+										},
+										"denominator": {
+											"format": "cel",
+											"kind": "text",
+											"optional": true
+										},
+										"destination": {
+											"kind": "enum",
+											"values": [
+												"PAY",
+												"NET",
+												"EMPLOYER"
+											]
+										},
+										"direction": {
+											"kind": "enum",
+											"values": [
+												"ADD",
+												"SUBTRACT"
+											]
+										},
+										"eligibility": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"name": {
+											"kind": "text",
+											"optional": true
+										},
+										"prorated": {
+											"kind": "bool",
+											"optional": true
+										},
+										"quantity": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"rate": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"references": {
+											"kind": "list",
+											"of": {
+												"fields": {
+													"effective_from": {
+														"kind": "date",
+														"optional": true
+													},
+													"locator": {
+														"kind": "text",
+														"optional": true
+													},
+													"quote": {
+														"kind": "text",
+														"optional": true
+													},
+													"title": {
+														"kind": "text"
+													},
+													"url": {
+														"format": "url",
+														"kind": "text",
+														"optional": true
+													}
+												},
+												"kind": "object"
+											},
+											"optional": true
+										}
+									},
+									"kind": "object"
+								},
+								"optional": true
+							},
+							"NIGHT_OVERTIME": {
+								"kind": "list",
+								"of": {
+									"fields": {
+										"code": {
+											"kind": "text"
+										},
+										"counts_toward": {
+											"kind": "list",
+											"of": {
+												"kind": "text"
+											}
+										},
+										"denominator": {
+											"format": "cel",
+											"kind": "text",
+											"optional": true
+										},
+										"destination": {
+											"kind": "enum",
+											"values": [
+												"PAY",
+												"NET",
+												"EMPLOYER"
+											]
+										},
+										"direction": {
+											"kind": "enum",
+											"values": [
+												"ADD",
+												"SUBTRACT"
+											]
+										},
+										"eligibility": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"name": {
+											"kind": "text",
+											"optional": true
+										},
+										"prorated": {
+											"kind": "bool",
+											"optional": true
+										},
+										"quantity": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"rate": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"references": {
+											"kind": "list",
+											"of": {
+												"fields": {
+													"effective_from": {
+														"kind": "date",
+														"optional": true
+													},
+													"locator": {
+														"kind": "text",
+														"optional": true
+													},
+													"quote": {
+														"kind": "text",
+														"optional": true
+													},
+													"title": {
+														"kind": "text"
+													},
+													"url": {
+														"format": "url",
+														"kind": "text",
+														"optional": true
+													}
+												},
+												"kind": "object"
+											},
+											"optional": true
+										}
+									},
+									"kind": "object"
+								},
+								"optional": true
+							},
+							"NIGHT_WORK": {
+								"kind": "list",
+								"of": {
+									"fields": {
+										"code": {
+											"kind": "text"
+										},
+										"counts_toward": {
+											"kind": "list",
+											"of": {
+												"kind": "text"
+											}
+										},
+										"denominator": {
+											"format": "cel",
+											"kind": "text",
+											"optional": true
+										},
+										"destination": {
+											"kind": "enum",
+											"values": [
+												"PAY",
+												"NET",
+												"EMPLOYER"
+											]
+										},
+										"direction": {
+											"kind": "enum",
+											"values": [
+												"ADD",
+												"SUBTRACT"
+											]
+										},
+										"eligibility": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"name": {
+											"kind": "text",
+											"optional": true
+										},
+										"prorated": {
+											"kind": "bool",
+											"optional": true
+										},
+										"quantity": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"rate": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"references": {
+											"kind": "list",
+											"of": {
+												"fields": {
+													"effective_from": {
+														"kind": "date",
+														"optional": true
+													},
+													"locator": {
+														"kind": "text",
+														"optional": true
+													},
+													"quote": {
+														"kind": "text",
+														"optional": true
+													},
+													"title": {
+														"kind": "text"
+													},
+													"url": {
+														"format": "url",
+														"kind": "text",
+														"optional": true
+													}
+												},
+												"kind": "object"
+											},
+											"optional": true
+										}
+									},
+									"kind": "object"
+								},
+								"optional": true
+							},
+							"OVERTIME": {
+								"kind": "list",
+								"of": {
+									"fields": {
+										"code": {
+											"kind": "text"
+										},
+										"counts_toward": {
+											"kind": "list",
+											"of": {
+												"kind": "text"
+											}
+										},
+										"denominator": {
+											"format": "cel",
+											"kind": "text",
+											"optional": true
+										},
+										"destination": {
+											"kind": "enum",
+											"values": [
+												"PAY",
+												"NET",
+												"EMPLOYER"
+											]
+										},
+										"direction": {
+											"kind": "enum",
+											"values": [
+												"ADD",
+												"SUBTRACT"
+											]
+										},
+										"eligibility": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"name": {
+											"kind": "text",
+											"optional": true
+										},
+										"prorated": {
+											"kind": "bool",
+											"optional": true
+										},
+										"quantity": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"rate": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"references": {
+											"kind": "list",
+											"of": {
+												"fields": {
+													"effective_from": {
+														"kind": "date",
+														"optional": true
+													},
+													"locator": {
+														"kind": "text",
+														"optional": true
+													},
+													"quote": {
+														"kind": "text",
+														"optional": true
+													},
+													"title": {
+														"kind": "text"
+													},
+													"url": {
+														"format": "url",
+														"kind": "text",
+														"optional": true
+													}
+												},
+												"kind": "object"
+											},
+											"optional": true
+										}
+									},
+									"kind": "object"
+								},
+								"optional": true
+							},
+							"PAID_HOLIDAY": {
+								"kind": "list",
+								"of": {
+									"fields": {
+										"code": {
+											"kind": "text"
+										},
+										"counts_toward": {
+											"kind": "list",
+											"of": {
+												"kind": "text"
+											}
+										},
+										"denominator": {
+											"format": "cel",
+											"kind": "text",
+											"optional": true
+										},
+										"destination": {
+											"kind": "enum",
+											"values": [
+												"PAY",
+												"NET",
+												"EMPLOYER"
+											]
+										},
+										"direction": {
+											"kind": "enum",
+											"values": [
+												"ADD",
+												"SUBTRACT"
+											]
+										},
+										"eligibility": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"name": {
+											"kind": "text",
+											"optional": true
+										},
+										"prorated": {
+											"kind": "bool",
+											"optional": true
+										},
+										"quantity": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"rate": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"references": {
+											"kind": "list",
+											"of": {
+												"fields": {
+													"effective_from": {
+														"kind": "date",
+														"optional": true
+													},
+													"locator": {
+														"kind": "text",
+														"optional": true
+													},
+													"quote": {
+														"kind": "text",
+														"optional": true
+													},
+													"title": {
+														"kind": "text"
+													},
+													"url": {
+														"format": "url",
+														"kind": "text",
+														"optional": true
+													}
+												},
+												"kind": "object"
+											},
+											"optional": true
+										}
+									},
+									"kind": "object"
+								},
+								"optional": true
+							},
+							"REST_DAY_OVERTIME": {
+								"kind": "list",
+								"of": {
+									"fields": {
+										"code": {
+											"kind": "text"
+										},
+										"counts_toward": {
+											"kind": "list",
+											"of": {
+												"kind": "text"
+											}
+										},
+										"denominator": {
+											"format": "cel",
+											"kind": "text",
+											"optional": true
+										},
+										"destination": {
+											"kind": "enum",
+											"values": [
+												"PAY",
+												"NET",
+												"EMPLOYER"
+											]
+										},
+										"direction": {
+											"kind": "enum",
+											"values": [
+												"ADD",
+												"SUBTRACT"
+											]
+										},
+										"eligibility": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"name": {
+											"kind": "text",
+											"optional": true
+										},
+										"prorated": {
+											"kind": "bool",
+											"optional": true
+										},
+										"quantity": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"rate": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"references": {
+											"kind": "list",
+											"of": {
+												"fields": {
+													"effective_from": {
+														"kind": "date",
+														"optional": true
+													},
+													"locator": {
+														"kind": "text",
+														"optional": true
+													},
+													"quote": {
+														"kind": "text",
+														"optional": true
+													},
+													"title": {
+														"kind": "text"
+													},
+													"url": {
+														"format": "url",
+														"kind": "text",
+														"optional": true
+													}
+												},
+												"kind": "object"
+											},
+											"optional": true
+										}
+									},
+									"kind": "object"
+								},
+								"optional": true
+							},
+							"REST_DAY_WORK": {
+								"kind": "list",
+								"of": {
+									"fields": {
+										"code": {
+											"kind": "text"
+										},
+										"counts_toward": {
+											"kind": "list",
+											"of": {
+												"kind": "text"
+											}
+										},
+										"denominator": {
+											"format": "cel",
+											"kind": "text",
+											"optional": true
+										},
+										"destination": {
+											"kind": "enum",
+											"values": [
+												"PAY",
+												"NET",
+												"EMPLOYER"
+											]
+										},
+										"direction": {
+											"kind": "enum",
+											"values": [
+												"ADD",
+												"SUBTRACT"
+											]
+										},
+										"eligibility": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"name": {
+											"kind": "text",
+											"optional": true
+										},
+										"prorated": {
+											"kind": "bool",
+											"optional": true
+										},
+										"quantity": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"rate": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"references": {
+											"kind": "list",
+											"of": {
+												"fields": {
+													"effective_from": {
+														"kind": "date",
+														"optional": true
+													},
+													"locator": {
+														"kind": "text",
+														"optional": true
+													},
+													"quote": {
+														"kind": "text",
+														"optional": true
+													},
+													"title": {
+														"kind": "text"
+													},
+													"url": {
+														"format": "url",
+														"kind": "text",
+														"optional": true
+													}
+												},
+												"kind": "object"
+											},
+											"optional": true
+										}
+									},
+									"kind": "object"
+								},
+								"optional": true
+							}
+						},
+						"kind": "object"
+					}
 				},
 				"void_reason": {
 					"kind": "text",
@@ -2025,6 +2956,97 @@
 				},
 				"name": {
 					"kind": "text"
+				},
+				"pay": {
+					"default": [],
+					"help": "The payslip lines the class prices: each posts quantity × rate when eligible, CEL over the payslip context (`leave.rows` holds every class’s rows of the period). Each line is priced once a slip, so a line counting several classes’ rows lives on one of them.",
+					"kind": "json",
+					"shape": {
+						"kind": "list",
+						"of": {
+							"fields": {
+								"code": {
+									"kind": "text"
+								},
+								"counts_toward": {
+									"kind": "list",
+									"of": {
+										"kind": "text"
+									}
+								},
+								"denominator": {
+									"format": "cel",
+									"kind": "text",
+									"optional": true
+								},
+								"destination": {
+									"kind": "enum",
+									"values": [
+										"PAY",
+										"NET",
+										"EMPLOYER"
+									]
+								},
+								"direction": {
+									"kind": "enum",
+									"values": [
+										"ADD",
+										"SUBTRACT"
+									]
+								},
+								"eligibility": {
+									"format": "cel",
+									"kind": "text"
+								},
+								"name": {
+									"kind": "text",
+									"optional": true
+								},
+								"prorated": {
+									"kind": "bool",
+									"optional": true
+								},
+								"quantity": {
+									"format": "cel",
+									"kind": "text"
+								},
+								"rate": {
+									"format": "cel",
+									"kind": "text"
+								},
+								"references": {
+									"kind": "list",
+									"of": {
+										"fields": {
+											"effective_from": {
+												"kind": "date",
+												"optional": true
+											},
+											"locator": {
+												"kind": "text",
+												"optional": true
+											},
+											"quote": {
+												"kind": "text",
+												"optional": true
+											},
+											"title": {
+												"kind": "text"
+											},
+											"url": {
+												"format": "url",
+												"kind": "text",
+												"optional": true
+											}
+										},
+										"kind": "object"
+									},
+									"optional": true
+								}
+							},
+							"kind": "object"
+						}
+					}
 				},
 				"pay_fraction": {
 					"default": "",
@@ -3086,6 +4108,7 @@
 					"optional": true
 				},
 				"family": {
+					"help": "VALIDATIONS (checks), PARAMETERS (law tables read as `rules.<code>`) or EXPORTS (file layouts).",
 					"kind": "text"
 				},
 				"name": {
@@ -3099,10 +4122,6 @@
 				"rules": {
 					"help": "Authoritative family data, ordered entries and digest-keyed executable programs. No jurisdiction fallback supplies regulatory policy.",
 					"kind": "json"
-				},
-				"scope": {
-					"default": "JURISDICTION",
-					"kind": "text"
 				},
 				"settings_id": {
 					"inverse": "rule_set",
@@ -3384,6 +4403,77 @@
 								},
 								"optional": true
 							},
+							"wage_adjustments": {
+								"help": "Parts of the slip this scheme taxes or exempts beyond what is paid (a taxable excess, an exempt share): each prices quantity × rate over the payslip context on a salary slip and posts it, unpaid, to the schemes it counts toward.",
+								"kind": "list",
+								"of": {
+									"fields": {
+										"code": {
+											"kind": "text"
+										},
+										"counts_toward": {
+											"kind": "list",
+											"of": {
+												"kind": "text"
+											}
+										},
+										"direction": {
+											"kind": "enum",
+											"values": [
+												"ADD",
+												"SUBTRACT"
+											]
+										},
+										"eligibility": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"name": {
+											"kind": "text",
+											"optional": true
+										},
+										"quantity": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"rate": {
+											"format": "cel",
+											"kind": "text"
+										},
+										"references": {
+											"kind": "list",
+											"of": {
+												"fields": {
+													"effective_from": {
+														"kind": "date",
+														"optional": true
+													},
+													"locator": {
+														"kind": "text",
+														"optional": true
+													},
+													"quote": {
+														"kind": "text",
+														"optional": true
+													},
+													"title": {
+														"kind": "text"
+													},
+													"url": {
+														"format": "url",
+														"kind": "text",
+														"optional": true
+													}
+												},
+												"kind": "object"
+											},
+											"optional": true
+										}
+									},
+									"kind": "object"
+								},
+								"optional": true
+							},
 							"warn_when": {
 								"kind": "list",
 								"of": {
@@ -3428,6 +4518,159 @@
 				}
 			},
 			"nativeRules": 2
+		},
+		"suspension_catalog": {
+			"audit": true,
+			"fields": {
+				"code": {
+					"kind": "text"
+				},
+				"counts_as_attended": {
+					"format": "cel",
+					"help": "CEL: whether a suspended scheduled day counts as attended (blank = no).",
+					"kind": "text",
+					"optional": true
+				},
+				"eligibility": {
+					"format": "cel",
+					"help": "CEL: whether a suspended day of this kind is paid, over the payslip context with `day` and `suspension` (blank = yes).",
+					"kind": "text",
+					"optional": true
+				},
+				"name": {
+					"kind": "text",
+					"optional": true
+				},
+				"pay": {
+					"default": [],
+					"help": "The payslip lines suspended days post on a salary slip: each posts quantity × rate when eligible, CEL over the payslip context (`work.days[].suspended` holds every kind’s days of the period). Each line is priced once a slip, so a line totalling several kinds’ days lives on one of them.",
+					"kind": "json",
+					"shape": {
+						"kind": "list",
+						"of": {
+							"fields": {
+								"code": {
+									"kind": "text"
+								},
+								"counts_toward": {
+									"kind": "list",
+									"of": {
+										"kind": "text"
+									}
+								},
+								"denominator": {
+									"format": "cel",
+									"kind": "text",
+									"optional": true
+								},
+								"destination": {
+									"kind": "enum",
+									"values": [
+										"PAY",
+										"NET",
+										"EMPLOYER"
+									]
+								},
+								"direction": {
+									"kind": "enum",
+									"values": [
+										"ADD",
+										"SUBTRACT"
+									]
+								},
+								"eligibility": {
+									"format": "cel",
+									"kind": "text"
+								},
+								"name": {
+									"kind": "text",
+									"optional": true
+								},
+								"prorated": {
+									"kind": "bool",
+									"optional": true
+								},
+								"quantity": {
+									"format": "cel",
+									"kind": "text"
+								},
+								"rate": {
+									"format": "cel",
+									"kind": "text"
+								},
+								"references": {
+									"kind": "list",
+									"of": {
+										"fields": {
+											"effective_from": {
+												"kind": "date",
+												"optional": true
+											},
+											"locator": {
+												"kind": "text",
+												"optional": true
+											},
+											"quote": {
+												"kind": "text",
+												"optional": true
+											},
+											"title": {
+												"kind": "text"
+											},
+											"url": {
+												"format": "url",
+												"kind": "text",
+												"optional": true
+											}
+										},
+										"kind": "object"
+									},
+									"optional": true
+								}
+							},
+							"kind": "object"
+						}
+					}
+				},
+				"quantity": {
+					"format": "cel",
+					"help": "CEL: the quantity one suspended day pays (blank = 1).",
+					"kind": "text",
+					"optional": true
+				},
+				"rate": {
+					"format": "cel",
+					"help": "CEL: the rate one suspended day pays; quantity × rate is `work.days[].suspended.pay`, which the pay lines read (blank = 0).",
+					"kind": "text",
+					"optional": true
+				},
+				"references": {
+					"kind": "custom",
+					"of": "references",
+					"optional": true
+				},
+				"scheduled": {
+					"format": "cel",
+					"help": "CEL: whether a suspended day stays a scheduled day (blank = yes).",
+					"kind": "text",
+					"optional": true
+				},
+				"settings_id": {
+					"inverse": "suspension_catalog",
+					"kind": "ref",
+					"owned": true,
+					"to": "jurisdiction_settings"
+				}
+			},
+			"nativeRules": 2,
+			"unique": [
+				{
+					"fields": [
+						"settings_id",
+						"code"
+					]
+				}
+			]
 		},
 		"sys_api_key": {
 			"fields": {
@@ -4721,84 +5964,6 @@
 			"key": "text",
 			"nativeRules": 2
 		},
-		"work_catalog": {
-			"audit": true,
-			"fields": {
-				"code": {
-					"kind": "text"
-				},
-				"component_code": {
-					"kind": "text"
-				},
-				"counts_toward": {
-					"default": [],
-					"kind": "json",
-					"shape": {
-						"kind": "list",
-						"of": {
-							"kind": "text"
-						}
-					}
-				},
-				"denominator": {
-					"format": "cel",
-					"help": "CEL: the divisor a prorated line states on the payslip. Required when `prorated`.",
-					"kind": "text",
-					"optional": true
-				},
-				"destination": {
-					"kind": "enum",
-					"values": [
-						"PAY",
-						"NET",
-						"EMPLOYER"
-					]
-				},
-				"direction": {
-					"kind": "enum",
-					"values": [
-						"ADD",
-						"SUBTRACT"
-					]
-				},
-				"eligibility": {
-					"format": "cel",
-					"help": "CEL predicate over the payslip context; the line is produced only when it holds.",
-					"kind": "text"
-				},
-				"name": {
-					"kind": "text",
-					"optional": true
-				},
-				"prorated": {
-					"default": false,
-					"help": "The line is the contract amount scaled to the days employed; the payslip records its proration.",
-					"kind": "bool"
-				},
-				"quantity": {
-					"format": "cel",
-					"help": "CEL quantity over the payslip context.",
-					"kind": "text"
-				},
-				"rate": {
-					"format": "cel",
-					"help": "CEL rate over the payslip context.",
-					"kind": "text"
-				},
-				"references": {
-					"kind": "custom",
-					"of": "references",
-					"optional": true
-				},
-				"settings_id": {
-					"inverse": "work_catalog",
-					"kind": "ref",
-					"owned": true,
-					"to": "jurisdiction_settings"
-				}
-			},
-			"nativeRules": 2
-		},
 		"work_suspension": {
 			"audit": true,
 			"fields": {
@@ -4833,7 +5998,7 @@
 					}
 				},
 				"kind": {
-					"help": "A code of the governing version’s suspension_kinds rule.",
+					"help": "A code of the governing version’s suspension_catalog.",
 					"kind": "text"
 				},
 				"starts_on": {

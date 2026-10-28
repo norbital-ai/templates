@@ -17,6 +17,24 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [
+			{
+				"code": "ENCASHMENT",
+				"name": "Leave encashment",
+				"references": [
+					{
+						"title": "Employment Act 1968 s.88A(8): an employee dismissed other than for misconduct is paid for untaken annual leave; Employment Act s.20A: a day's pay is the monthly rate divided by the working days in the month (calendar days when no schedule is planned). The tap records the days; this line pays them. EA s.20A divisor (MOM, Monthly and daily salary: definitions and calculation (https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary, updated 8 Dec 2025, read 2026-10-08): incomplete month = monthly gross ÷ the month’s working days × days worked, the working days excluding rest and non-working days but including public holidays): period.month_working_days + period.month_holiday_work_days, the whole calendar month’s, the same in every part; with nothing planned, the month’s calendar days.",
+						"url": "https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary"
+					}
+				],
+				"eligibility": "leave.rows.exists(r, r.can_encash && r.activity == \"ENCASHMENT\" && r.days > 0.0)",
+				"quantity": "sum(leave.rows.filter(r, r.can_encash && r.activity == \"ENCASHMENT\").map(r, r.days))",
+				"rate": "has(employee.facts.working_days_per_week) ? 12.0 * terms.monthly_wage / (52.0 * double(employee.facts.working_days_per_week)) : terms.monthly_wage / (double(period.month_working_days + period.month_holiday_work_days) > 0.0 ? double(period.month_working_days + period.month_holiday_work_days) : double(period.month_days))",
+				"destination": "PAY",
+				"direction": "ADD",
+				"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"]
+			}
+		],
 		"entitlement": {
 			"unit": "DAY",
 			"bands": [
@@ -98,6 +116,7 @@
 		},
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"consumes_code": "HOSPITALIZATION_LEAVE"
 	},
 	{
@@ -140,7 +159,8 @@
 			"window": "SERVICE_YEAR"
 		},
 		"is_npl": false,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": []
 	},
 	{
 		"id": "458d4e80-6cce-5567-ac5a-398816197275",
@@ -159,6 +179,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "((has(leave.facts.cdca_original_statutory_origin) ? leave.facts.cdca_original_statutory_origin : \"\") == \"\" || (has(leave.facts.cdca_original_statutory_origin) ? leave.facts.cdca_original_statutory_origin : \"\") in [\"S9_1A_III_A_AB\", \"S9_1A_III_A_AB_FLEXIBLE\", \"S9_1A_III_B_BB\", \"S9_1A_III_B_BB_FLEXIBLE\", \"S9_1A_III_C\", \"S9_1A_III_C_FLEXIBLE\", \"S9_1A_II_A_AB\", \"S9_1A_II_A_AB_FLEXIBLE\", \"S9_1A_II_B\", \"S9_1A_II_B_FLEXIBLE\", \"S9_1A_IVA_A\", \"S9_1A_IVA_A_FLEXIBLE\", \"S9_1A_IV_A_AB\", \"S9_1A_IV_A_AB_FLEXIBLE\", \"S9_1A_IV_B\", \"S9_1A_IV_B_FLEXIBLE\", \"S9_1A_I_A_AB\", \"S9_1A_I_A_AB_FLEXIBLE\", \"S9_1A_I_B_BB\", \"S9_1A_I_B_BB_FLEXIBLE\", \"S9_1A_I_C\", \"S9_1A_I_C_FLEXIBLE\", \"S9_1A_VI_A_AB\", \"S9_1A_VI_B_BB\", \"S9_1A_V_A_AB\", \"S9_1A_V_B_BB\", \"S9_1B_I\", \"S9_1B_III\", \"S9_1B_II_A\", \"S9_1B_II_B\", \"S9_1_A\", \"S9_1_B\", \"S9_1_C_I\", \"S9_1_C_II\"] ? 1.0 : ((has(leave.facts.cdca_original_statutory_origin) ? leave.facts.cdca_original_statutory_origin : \"\") in [\"EA76_A\", \"EA76_B\"] ? ((((has(leave.facts.ea_maternity_prior_living_children) && leave.facts.ea_maternity_prior_living_children < 2) || (has(leave.facts.ea_maternity_prior_confinements_with_living_children) && leave.facts.ea_maternity_prior_confinements_with_living_children <= 1)) && (has(leave.facts.cdca_original_absence_from) && calendar_distance_days(leave.facts.cdca_original_absence_from, leave.from) < 56)) || (has(leave.facts.cdca_citizenship_on) && leave.from >= leave.facts.cdca_citizenship_on) ? 1.0 : 0.0) : ((has(leave.facts.cdca_original_statutory_origin) ? leave.facts.cdca_original_statutory_origin : \"\") == \"EA76_C_I\" ? (((has(leave.facts.ea_maternity_prior_living_children) && leave.facts.ea_maternity_prior_living_children < 2) || (has(leave.facts.ea_maternity_prior_confinements_with_living_children) && leave.facts.ea_maternity_prior_confinements_with_living_children <= 1)) || (has(leave.facts.cdca_citizenship_on) && leave.from >= leave.facts.cdca_citizenship_on) ? 1.0 : 0.0) : ((has(leave.facts.cdca_original_statutory_origin) ? leave.facts.cdca_original_statutory_origin : \"\") == \"EA76_C_II\" ? ((has(leave.facts.cdca_citizenship_on) && ((has(leave.facts.cdca_original_absence_from) && leave.facts.cdca_citizenship_on <= add_days(leave.facts.cdca_original_absence_from, 55)) || leave.from >= leave.facts.cdca_citizenship_on)) ? 1.0 : 0.0) : 0.0)))) * (((has(leave.facts.cdca_notice_lead_days) && leave.facts.cdca_notice_lead_days < (leave.from >= \"2025-04-01\" && !((has(leave.facts.cdca_original_statutory_origin) ? leave.facts.cdca_original_statutory_origin : \"\") in [\"EA76_A\", \"EA76_B\", \"EA76_C_I\", \"EA76_C_II\"]) ? ((has(leave.facts.cdca_shorter_notice_agreed) && leave.facts.cdca_shorter_notice_agreed == true && has(leave.facts.cdca_agreed_notice_days)) ? leave.facts.cdca_agreed_notice_days : 28) : 7) && !(leave.from >= \"2025-04-01\" && (has(leave.facts.cdca_original_statutory_origin) ? leave.facts.cdca_original_statutory_origin : \"\") in [\"S9_1_C_II\", \"S9_1B_II_B\", \"S9_1B_III\", \"S9_1A_III_A_AB_FLEXIBLE\", \"S9_1A_III_B_BB_FLEXIBLE\", \"S9_1A_III_C_FLEXIBLE\", \"S9_1A_II_A_AB_FLEXIBLE\", \"S9_1A_II_B_FLEXIBLE\", \"S9_1A_IVA_A_FLEXIBLE\", \"S9_1A_IV_A_AB_FLEXIBLE\", \"S9_1A_IV_B_FLEXIBLE\", \"S9_1A_I_A_AB_FLEXIBLE\", \"S9_1A_I_B_BB_FLEXIBLE\", \"S9_1A_I_C_FLEXIBLE\"])) || (has(leave.facts.maternity_delivery_notified_promptly) && leave.facts.maternity_delivery_notified_promptly == false)) && !(has(leave.facts.maternity_notice_sufficient_cause) && leave.facts.maternity_notice_sufficient_cause == true) ? 0.5 : 1.0)",
+		"pay": [],
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
@@ -184,6 +205,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
@@ -209,6 +231,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
@@ -234,6 +257,7 @@
 		"encash_on_exit": false,
 		"is_npl": true,
 		"pay_fraction": "",
+		"pay": [],
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
@@ -259,6 +283,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
@@ -283,6 +308,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"entitlement": {
 			"unit": "DAY",
 			"window": "EVENT",
@@ -307,7 +333,8 @@
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
-		"pay_fraction": "company.facts != null && has(company.facts.ns_direct_scheme) && company.facts.ns_direct_scheme == true ? 1.0 : 0.0"
+		"pay_fraction": "company.facts != null && has(company.facts.ns_direct_scheme) && company.facts.ns_direct_scheme == true ? 1.0 : 0.0",
+		"pay": []
 	},
 	{
 		"id": "a6b3ede7-88fb-5357-a1fb-030ac89d7303",
@@ -325,7 +352,8 @@
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": []
 	},
 	{
 		"id": "af257b53-f9fd-5505-8e5f-d0c8785a7305",
@@ -343,7 +371,40 @@
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": [
+			{
+				"code": "NO_PAY_LEAVE",
+				"name": "No-pay leave",
+				"references": [
+					{
+						"title": "Employment Act 1968 s.20A: a day of no-pay leave reduces the month’s salary by the monthly rate ÷ the working days in the month (calendar days when no schedule is planned). EA s.20A divisor (MOM, Monthly and daily salary: definitions and calculation (https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary, updated 8 Dec 2025, read 2026-10-08): incomplete month = monthly gross ÷ the month’s working days × days worked, the working days excluding rest and non-working days but including public holidays): period.month_working_days + period.month_holiday_work_days, the whole calendar month’s, the same in every part; with nothing planned, the month’s calendar days.",
+						"url": "https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary"
+					}
+				],
+				"eligibility": "leave.rows.exists(r, r.activity == \"TIME_OFF\" && r.days > 0.0 && (r.is_npl || r.pay_fraction < 1.0))",
+				"quantity": "sum(leave.rows.filter(r, r.activity == \"TIME_OFF\").map(r, r.is_npl ? r.days : r.days * (1.0 - r.pay_fraction)))",
+				"rate": "terms.monthly_wage / (double(period.month_working_days + period.month_holiday_work_days) > 0.0 ? double(period.month_working_days + period.month_holiday_work_days) : double(period.month_days))",
+				"destination": "PAY",
+				"direction": "SUBTRACT",
+				"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"]
+			},
+			{
+				"code": "HOLIDAY_IN_NO_PAY_LEAVE",
+				"name": "Public holiday inside no-pay leave",
+				"references": [
+					{
+						"title": "Employment Act 1968 s.88(2): no holiday pay for a public holiday falling while the employee is on no-pay leave granted at the employee's request. Deducted at the gross daily rate for each unworked holiday a no-pay leave row covers (the leave's own days skip the holiday). https://sso.agc.gov.sg/Act/EmA1968 EA s.20A divisor (MOM, Monthly and daily salary: definitions and calculation (https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary, updated 8 Dec 2025, read 2026-10-08): incomplete month = monthly gross ÷ the month’s working days × days worked, the working days excluding rest and non-working days but including public holidays): period.month_working_days + period.month_holiday_work_days, the whole calendar month’s, the same in every part; with nothing planned, the month’s calendar days."
+					}
+				],
+				"eligibility": "employment.classification != \"NON_EA\" && work.days.exists(d, has(d.holiday_kind) && d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"] && !d.worked && leave.rows.exists(r, r.is_npl && r.activity == \"TIME_OFF\" && r.from <= d.date && d.date <= r.to))",
+				"quantity": "double(size(work.days.filter(d, has(d.holiday_kind) && d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"] && !d.worked && leave.rows.exists(r, r.is_npl && r.activity == \"TIME_OFF\" && r.from <= d.date && d.date <= r.to))))",
+				"rate": "(has(employee.facts.working_days_per_week) ? 12.0 * terms.monthly_wage / (52.0 * double(employee.facts.working_days_per_week)) : terms.monthly_wage / (double(period.month_working_days + period.month_holiday_work_days) > 0.0 ? double(period.month_working_days + period.month_holiday_work_days) : double(period.month_days)))",
+				"destination": "PAY",
+				"direction": "SUBTRACT",
+				"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"]
+			}
+		]
 	},
 	{
 		"id": "0103b067-3a94-55de-9c8e-9aa94b963525",
@@ -363,6 +424,7 @@
 		"encash_on_exit": false,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"entitlement": {
 			"unit": "DAY",
 			"bands": [
@@ -444,6 +506,7 @@
 		},
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"consumes_code": "HOSPITALIZATION_LEAVE_PART_TIME"
 	},
 	{
@@ -486,7 +549,8 @@
 			"window": "SERVICE_YEAR"
 		},
 		"is_npl": false,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": []
 	},
 	{
 		"id": "622f8857-84e6-5181-94f0-4185305ea6f7",
@@ -510,7 +574,24 @@
 			"overdraw": "0"
 		},
 		"is_npl": false,
-		"pay_fraction": "0.0"
+		"pay_fraction": "0.0",
+		"pay": [
+			{
+				"code": "WICA_MEDICAL_LEAVE_WAGES",
+				"name": "WICA medical leave wages",
+				"references": [
+					{
+						"title": "Work Injury Compensation Act 2019 First Schedule para.4(1) (https://sso.agc.gov.sg/Act/WICA2019?ProvIds=Sc1-, read 2026-10-07); MOM, Types of compensation (https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/types-of-compensation) and the Medical Leave Wage Calculator, read 2026-10-07. Days at full AME (outpatient: the first 14, hospitalisation: the first 60, of the same accident across its rows and periods — taken_before) plus the later days at two-thirds, × the average earnings per day = AME × 12 ÷ (52 × working days a week) (MOM calculator); working days a week from employee.facts.working_days_per_week, else the period’s planned working days, else 7 (calendar days, as leave days are then counted). AME = the average monthly gross of the 12 months before (earned.average; the current monthly wage when there is no history). Compensation, not wages: no CPF, SDL or fund base. Ceiling: AME is read on the payslip month, not the accident month, and includes fixed allowances the AME excludes (transport)."
+					}
+				],
+				"eligibility": "leave.rows.exists(r, r.code in [\"WORK_INJURY_MEDICAL_LEAVE\", \"WORK_INJURY_HOSPITALISATION_LEAVE\"] && r.activity == \"TIME_OFF\" && r.days > 0.0)",
+				"quantity": "sum(leave.rows.filter(r, r.code == \"WORK_INJURY_MEDICAL_LEAVE\" && r.activity == \"TIME_OFF\").map(r, min(r.days, max(0.0, 14.0 - (has(r.taken_before) ? double(r.taken_before) : 0.0))) + (r.days - min(r.days, max(0.0, 14.0 - (has(r.taken_before) ? double(r.taken_before) : 0.0)))) * 2.0 / 3.0)) + sum(leave.rows.filter(r, r.code == \"WORK_INJURY_HOSPITALISATION_LEAVE\" && r.activity == \"TIME_OFF\").map(r, min(r.days, max(0.0, 60.0 - (has(r.taken_before) ? double(r.taken_before) : 0.0))) + (r.days - min(r.days, max(0.0, 60.0 - (has(r.taken_before) ? double(r.taken_before) : 0.0)))) * 2.0 / 3.0))",
+				"rate": "(has(earned.average) && has(earned.average.months) && earned.average.months > 0 ? earned.average.gross : terms.monthly_wage) * 12.0 / (52.0 * (has(employee.facts.working_days_per_week) ? double(employee.facts.working_days_per_week) : (period.working_days > 0 && period.days > 0 ? double(period.working_days) * 7.0 / double(period.days) : 7.0)))",
+				"destination": "PAY",
+				"direction": "ADD",
+				"counts_toward": []
+			}
+		]
 	},
 	{
 		"id": "6d7dac49-7041-5c91-8e98-5a34135b4d08",
@@ -534,7 +615,8 @@
 			"overdraw": "0"
 		},
 		"is_npl": false,
-		"pay_fraction": "0.0"
+		"pay_fraction": "0.0",
+		"pay": []
 	},
 	{
 		"id": "0619f9c8-6e02-52fb-9d90-612ed84bf265",
@@ -553,6 +635,7 @@
 		"encash_on_exit": true,
 		"is_npl": false,
 		"pay_fraction": "",
+		"pay": [],
 		"entitlement": {
 			"unit": "DAY",
 			"window": "SERVICE_YEAR",

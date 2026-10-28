@@ -26,7 +26,7 @@ import {
 	isJsonObject,
 	type Json,
 	type JsonObject,
-	payrollSetting,
+	PAYROLL_DEFAULTS,
 	Reads,
 	readsFrom,
 	Refusal,
@@ -41,7 +41,7 @@ import {
 	payrollRules,
 	versionOn
 } from './payslip/context.js';
-import { CATALOG_DETAILS, CONTRACT, SETTINGS, RULE_SET } from './rows.js';
+import { BEHAVIOUR, CATALOG_DETAILS, CONTRACT, SETTINGS, RULE_SET } from './rows.js';
 import { staffingFrom } from './admit.js';
 export type Row = Readonly<Record<string, unknown>>;
 const Record_ = Schema.Record(Schema.String, Schema.Unknown);
@@ -314,14 +314,7 @@ export const describeRows = Effect.fnUntraced(function* (
 	return rows.map((row) => {
 		const catalog = byId.get(text(row['catalog_id']) ?? '') ?? null;
 		const details = { catalog_code: catalog?.code ?? null, catalog };
-		const described: Row & typeof details = {
-			...row,
-			...details,
-			// Older sealed JP emergency-payment rules name the removed column; use only the actual advance date.
-			...(collection === 'loan_catalog_entry'
-				? { occurred_on: row['advance_made_on'] ?? null }
-				: {})
-		};
+		const described: Row & typeof details = { ...row, ...details };
 		return described;
 	});
 });
@@ -330,7 +323,7 @@ const emptyIn = (clause: unknown): boolean =>
 	isJsonObject(clause) && EffectArray.isArray(clause['in']) && clause['in'].length === 0;
 /**
  * Entities, their contracts, their lineage versions (named by the entity's code: no relation) and those versions'
- * PAYROLL rules: two dependent reads.
+ * PARAMETERS rules and behaviour rows: two dependent reads.
  */
 export const readEntities = Effect.fnUntraced(function* (read: Read, where: Where<'entity'>) {
 	const first = yield* read({ entity: { where, fields: ['settings_code'] } });
@@ -345,7 +338,8 @@ export const readEntities = Effect.fnUntraced(function* (read: Read, where: Wher
 			},
 			fields: SETTINGS
 		},
-		'jurisdiction_settings.rule_set': { where: { family: { eq: 'PAYROLL' } }, fields: RULE_SET }
+		'jurisdiction_settings.rule_set': { where: { family: { eq: 'PARAMETERS' } }, fields: RULE_SET },
+		'jurisdiction_settings.behaviour': { fields: BEHAVIOUR }
 	});
 	return {
 		entities: first.entity,
@@ -459,7 +453,7 @@ export const staffingLookup = Effect.fnUntraced(function* (from: VersionFor) {
 							return yield* staffingFrom(
 								contracts,
 								day,
-								yield* payrollSetting(version.code, payroll, 'permanent_when')
+								payroll?.permanent_when ?? PAYROLL_DEFAULTS.permanent_when
 							);
 						})
 					)
@@ -742,7 +736,7 @@ const clausesOf = (
 			if (!isOperator(op))
 				return Result.fail(
 					new Refusal({
-						message: `Behaviour ${rule.id} reads ${collection} with the operator ${op}, which the run's earlier writes cannot be judged by.`
+						message: `Behaviour ${rule.code} reads ${collection} with the operator ${op}, which the run's earlier writes cannot be judged by.`
 					})
 				);
 			clauses.push({ field, test: (value) => OPERATORS[op](value, operand) });
@@ -796,11 +790,27 @@ type PlannedBehaviour = {
 	readonly day: string;
 };
 type BehaviourStep = { readonly rule: Behaviour; readonly subjects: readonly PlannedBehaviour[] };
-const prepareStep = Effect.fnUntraced(function* (read: DeclaredRead, step: BehaviourStep) {
+/** One subject's declared `where`s resolve once however many rules declare them: each obligation or task row declares
+ * the same reads. */
+const whereResolver = () => {
+	const held = new WeakMap<CelContext, Map<string, Json | undefined>>();
+	return (one: PlannedBehaviour, rule: Behaviour, where: Json | undefined) => {
+		const mine = held.get(one.context) ?? new Map<string, Json | undefined>();
+		held.set(one.context, mine);
+		const key = stableJson(where ?? null);
+		if (!mine.has(key)) mine.set(key, resolveWhere(where, one.context, rule));
+		return mine.get(key);
+	};
+};
+const prepareStep = Effect.fnUntraced(function* (
+	read: DeclaredRead,
+	step: BehaviourStep,
+	whereOf: ReturnType<typeof whereResolver>
+) {
 	const reads = yield* Effect.forEach(
 		Object.entries(step.rule.reads ?? {}),
 		Effect.fnUntraced(function* ([name, spec]) {
-			const wheres = step.subjects.map((one) => resolveWhere(spec.where, one.context, step.rule));
+			const wheres = step.subjects.map((one) => whereOf(one, step.rule, spec.where));
 			const loaded = yield* readFor(read, spec, wheres);
 			const subjects = new Map<
 				PlannedBehaviour,
@@ -872,17 +882,15 @@ export const runBehaviourGroups = Effect.fnUntraced(function* (
 				return { version, staffed };
 			}).pipe(
 				Effect.flatMap(({ version, staffed }) =>
-					Effect.fromResult(
-						fieldValue(version?.behaviours, 'jurisdiction_settings.behaviours')
-					).pipe(
-						Effect.map((value) => ({
+					Effect.fromResult(behavioursOf(version?.behaviour)).pipe(
+						Effect.map((behaviours) => ({
 							g,
 							group,
 							event,
 							subject,
 							version,
 							staffed,
-							behaviours: behavioursOf(value)
+							behaviours
 						}))
 					)
 				)
@@ -890,13 +898,10 @@ export const runBehaviourGroups = Effect.fnUntraced(function* (
 		{ concurrency: 'unbounded' }
 	);
 	// Each planning subject's extra trigger fields, all at once.
-	const candidatesOf = (behaviours: ReturnType<typeof behavioursOf>, group: BehaviourGroup) => {
-		return behaviours == null
-			? []
-			: behaviours.rules.filter((rule) =>
-					triggerMatches(rule, { kind: 'row', collection: group.collection, event: group.action })
-				);
-	};
+	const candidatesOf = (behaviours: readonly Behaviour[], group: BehaviourGroup) =>
+		behaviours.filter((rule) =>
+			triggerMatches(rule, { kind: 'row', collection: group.collection, event: group.action })
+		);
 	const enriched = yield* Effect.forEach(
 		resolved,
 		(one) => {
@@ -911,8 +916,7 @@ export const runBehaviourGroups = Effect.fnUntraced(function* (
 	);
 	const planned: PlannedBehaviour[] = [];
 	for (const { g, group, event, subject, version, staffed, behaviours, fields } of enriched) {
-		if (version == null || behaviours == null || candidatesOf(behaviours, group).length === 0)
-			continue;
+		if (version == null || candidatesOf(behaviours, group).length === 0) continue;
 		const { day } = event;
 		const { collection, action } = group;
 		const context = {
@@ -921,7 +925,7 @@ export const runBehaviourGroups = Effect.fnUntraced(function* (
 				action,
 				row: { ...event.row, ...fields },
 				settings_id: version['id'],
-				// the governing version's PAYROLL rule tables: the duties' `rules`
+				// the governing version's PARAMETERS rule tables: the duties' `rules`
 				rules: payrollRules(version),
 				day,
 				...staffed,
@@ -997,7 +1001,8 @@ export const runBehaviourGroups = Effect.fnUntraced(function* (
 		return Cache.get(pages, key);
 	};
 	// Every declared read of every step, at once: one crossing for the whole run.
-	const prepared = yield* Effect.forEach(steps, (step) => prepareStep(read, step), {
+	const whereOf = whereResolver();
+	const prepared = yield* Effect.forEach(steps, (step) => prepareStep(read, step, whereOf), {
 		concurrency: 'unbounded'
 	});
 	const headcounts = new Map<string, number>();

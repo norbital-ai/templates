@@ -40,9 +40,10 @@
 		['allowance_catalog', 'app.settings.allowance_catalog'],
 		['adhoc_catalog', 'app.settings.adhoc_catalog'],
 		['loan_catalog', 'app.settings.loan_catalog'],
-		['work_catalog', 'models.work_catalog.label'],
+		['suspension_catalog', 'models.suspension_catalog.label'],
 		['statutory_contribution_catalog', 'component.statutory_contributions'],
-		['rule_set', 'section.rule_sets']
+		['rule_set', 'section.rule_sets'],
+		['behaviour', 'section.behaviours']
 	] as const satisfies readonly (readonly [string, MessageKey])[];
 	/** One version with every catalogue it holds, in one read. */
 	const versionOf = (id: Id<'jurisdiction_settings'>) =>
@@ -53,9 +54,10 @@
 			'jurisdiction_settings.allowance_catalog': {},
 			'jurisdiction_settings.adhoc_catalog': {},
 			'jurisdiction_settings.loan_catalog': {},
-			'jurisdiction_settings.work_catalog': {},
+			'jurisdiction_settings.suspension_catalog': {},
 			'jurisdiction_settings.statutory_contribution_catalog': {},
-			'jurisdiction_settings.rule_set': {}
+			'jurisdiction_settings.rule_set': {},
+			'jurisdiction_settings.behaviour': {}
 		});
 	const head = $derived.by(() => (version == null ? null : versionOf(version.id)));
 	const base = $derived.by(() => (against == null ? null : versionOf(against)));

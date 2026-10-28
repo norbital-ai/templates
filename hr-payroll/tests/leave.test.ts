@@ -114,6 +114,7 @@ describe('leave', () => {
 			carried: 0,
 			taken: 4,
 			available: 9,
+			remaining: 9,
 			window_key: '',
 			window_to: ''
 		});

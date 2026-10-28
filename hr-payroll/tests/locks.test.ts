@@ -389,7 +389,6 @@ it.effect('a sealed version cannot be deleted; an unsealed draft of it can', () 
 			const created = yield* hr.act('jurisdiction_settings.create', [
 				{
 					code: 'XX',
-					jurisdiction_code: 'XX',
 					name: 'Draft to discard',
 					payroll: { currency: 'USD' },
 					sources: { entries: [] },

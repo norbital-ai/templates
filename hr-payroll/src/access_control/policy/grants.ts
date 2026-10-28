@@ -235,6 +235,17 @@ const unpinnedDelete = function* (rows: readonly Pinned[], ctx: Judge) {
 const payReviewed = function* (_rows: readonly object[], ctx: Judge) {
 	return ctx.approve(payReview);
 };
+/** Exit pay the exit behaviour raises (`facts.source` `exit:…`, written by an automation) is the law's, priced on the
+ * slip: it is not held for review. A person's ad hoc pay is. */
+const adhocReviewed = function* (
+	rows: readonly { readonly facts?: { readonly [fact: string]: unknown } | null }[],
+	ctx: Reading
+) {
+	return ctx.actor.kind === 'system' &&
+		rows.every((row) => String(row.facts?.['source'] ?? '').startsWith('exit:'))
+		? ctx.allow()
+		: ctx.approve(payReview);
+};
 /** A new version is a draft: created unsealed and live. */
 const draftCreate = function* (rows: readonly Draft[], ctx: Judge) {
 	return rows.every((row) => row.sealed_at == null && row.voided_at == null)
@@ -269,13 +280,14 @@ const draftRowUpdate = function* (changes: readonly { readonly before: Governed 
 export const JURISDICTION_READ = {
 	jurisdiction_settings: { read: true },
 	rule_set: { read: true },
+	behaviour: { read: true },
 	statutory_contribution_catalog: { read: true },
 	adhoc_catalog: { read: true },
 	allowance_catalog: { read: true },
 	claim_catalog: { read: true },
 	leave_catalog: { read: true },
 	loan_catalog: { read: true },
-	work_catalog: { read: true }
+	suspension_catalog: { read: true }
 } as const;
 
 /** A new version is created as an unsealed draft. */
@@ -294,16 +306,11 @@ const JURISDICTION_EDIT = {
 		update: {
 			columns: {
 				jurisdiction_settings: [
-					'suspension_kinds',
 					'code',
-					'jurisdiction_code',
 					'name',
-					'references',
 					'employee_input_schema',
 					'entity_input_schema',
-					'behaviours',
 					'void_reason',
-					'reference_tables',
 					'payroll',
 					'change_summary',
 					'effective_range',
@@ -331,13 +338,14 @@ const JURISDICTION_EDIT = {
 		delete: { check: draftDelete }
 	},
 	rule_set: DRAFT_ROW,
+	behaviour: DRAFT_ROW,
 	statutory_contribution_catalog: DRAFT_ROW,
 	adhoc_catalog: DRAFT_ROW,
 	allowance_catalog: DRAFT_ROW,
 	claim_catalog: DRAFT_ROW,
 	leave_catalog: DRAFT_ROW,
 	loan_catalog: DRAFT_ROW,
-	work_catalog: DRAFT_ROW
+	suspension_catalog: DRAFT_ROW
 } as const;
 
 /** What a payroll run's own build writes: the payslips, their entry and roster pins, the run's hash and warnings. */
@@ -661,7 +669,7 @@ export const HR_ADMIN = {
 export const HR_ENTRIES_REVIEWED = {
 	adhoc_catalog_entry: {
 		read: true,
-		create: { columns: { adhoc_catalog_entry: ADHOC_ENTRY_FIELDS }, check: payReviewed },
+		create: { columns: { adhoc_catalog_entry: ADHOC_ENTRY_FIELDS }, check: adhocReviewed },
 		update: {
 			columns: { adhoc_catalog_entry: [...ADHOC_ENTRY_EDIT, 'payslip_id'] },
 			...hrEntryUpdate

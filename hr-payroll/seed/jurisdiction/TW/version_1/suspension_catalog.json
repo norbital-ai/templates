@@ -1,0 +1,108 @@
+[
+	{
+		"id": "841f6d1a-e898-50a6-ab87-e53fd195ccec",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "EMPLOYER_SHUTDOWN",
+		"name": "Shutdown or stoppage the employer causes",
+		"counts_as_attended": "true",
+		"scheduled": "true",
+		"pay": [],
+		"references": [
+			{
+				"title": "民法 §487: the employer’s delay in accepting the work leaves the wage owed; the day is not an absence.",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0000001&flno=487"
+			}
+		]
+	},
+	{
+		"id": "fead49a3-bea4-5b07-a3cb-776dad051d94",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "GOVERNMENT_STOP_WORK",
+		"name": "Stop-work ordered by the labour inspection authority",
+		"counts_as_attended": "true",
+		"scheduled": "true",
+		"pay": [],
+		"references": [
+			{
+				"title": "職業安全衛生法 §36(2): 勞工於停工期間應由雇主照給工資.",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0060001&flno=36"
+			}
+		]
+	},
+	{
+		"id": "136a3693-62d8-52b2-81b4-7559bc9fd68f",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "NATURAL_DISASTER",
+		"name": "Work stopped by a typhoon or other natural disaster",
+		"counts_as_attended": "true",
+		"scheduled": "true",
+		"pay": [
+			{
+				"code": "SUSPENSION_DEDUCTION",
+				"name": "停工日工資扣除 (wage for unpaid suspended days)",
+				"references": [
+					{
+						"title": "The suspended working days a work suspension leaves unpaid, at the day wage (monthly ÷ 30, or ÷ the calendar days by agreement, as NO_PAY_LEAVE): a STRIKE day (民法 §482: no work, no wage), a NATURAL_DISASTER day whose suspension records facts.withhold_wage (天然災害發生事業單位勞工出勤管理及工資給付要點), and a 減班休息 day (REDUCED_WORK_AGREEMENT) — those capped so a monthly-paid full-time worker keeps the minimum wage (因應景氣影響勞雇雙方協商減少工時應行注意事項, https://www.mol.gov.tw/1607/1632/1640/12438/post). An employer shutdown or a government stop-work order is paid in full (民法 §487; 職業安全衛生法 §36(2)). On a semi-monthly entity the minimum-wage floor is each part’s share (÷ period.parts).",
+						"url": "https://www.mol.gov.tw/1607/1632/1640/12438/post"
+					}
+				],
+				"eligibility": "work.days.exists(d, has(d.suspended) && d.suspended != null && d.day_type == \"WORK\" && !d.worked && (d.suspended.kind == \"STRIKE\" || (d.suspended.kind == \"NATURAL_DISASTER\" && has(d.suspended.facts.withhold_wage) && d.suspended.facts.withhold_wage == true) || d.suspended.kind == \"REDUCED_WORK_AGREEMENT\"))",
+				"quantity": "1.0",
+				"rate": "round(double(size(work.days.filter(d, has(d.suspended) && d.suspended != null && d.day_type == \"WORK\" && !d.worked && (d.suspended.kind == \"STRIKE\" || (d.suspended.kind == \"NATURAL_DISASTER\" && has(d.suspended.facts.withhold_wage) && d.suspended.facts.withhold_wage == true))))) * (terms.base_salary / (has(company.facts.day_wage_calendar_days) && company.facts.day_wage_calendar_days == true ? double(period.month_days) : 30.0)) + min(double(size(work.days.filter(d, has(d.suspended) && d.suspended != null && d.day_type == \"WORK\" && !d.worked && (d.suspended.kind == \"REDUCED_WORK_AGREEMENT\")))) * (terms.base_salary / (has(company.facts.day_wage_calendar_days) && company.facts.day_wage_calendar_days == true ? double(period.month_days) : 30.0)), (has(terms.employment_type) && terms.employment_type == \"PART_TIME\") ? double(size(work.days.filter(d, has(d.suspended) && d.suspended != null && d.day_type == \"WORK\" && !d.worked && (d.suspended.kind == \"REDUCED_WORK_AGREEMENT\")))) * (terms.base_salary / (has(company.facts.day_wage_calendar_days) && company.facts.day_wage_calendar_days == true ? double(period.month_days) : 30.0)) : max(0.0, terms.base_salary - (has(rules.minimum_wage) ? double(rules.minimum_wage.monthly) : 0.0)) / double(period.parts)), 1.0, \"HALF_UP\")",
+				"destination": "PAY",
+				"direction": "SUBTRACT",
+				"counts_toward": [
+					"LI",
+					"EI",
+					"NHI",
+					"NHI_SUPPLEMENT",
+					"LABOR_PENSION",
+					"OCC_INJURY",
+					"WAGE_ARREARS_FUND",
+					"INCOME_TAX",
+					"INCOME_TAX_NON_RESIDENT",
+					"WELFARE_FUND",
+					"LABOR_PENSION_RESERVE",
+					"NHI_PART_TIME",
+					"NHI_SUPPLEMENT_EMPLOYER"
+				]
+			}
+		],
+		"references": [
+			{
+				"title": "天然災害發生事業單位勞工出勤管理及工資給付要點: not an absence and the attendance bonus untouched; the day’s wage may be withheld (the suspension’s facts.withhold_wage).",
+				"url": "https://laws.mol.gov.tw/FLAW/FLAWDAT01.aspx?id=FL049468"
+			}
+		]
+	},
+	{
+		"id": "27103899-6f44-54ba-917a-1d56f8eb23bc",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "STRIKE",
+		"name": "Lawful strike",
+		"counts_as_attended": "false",
+		"scheduled": "true",
+		"pay": [],
+		"references": [
+			{
+				"title": "勞資爭議處理法 §54; 民法 §482: no work, no wage for the strike days; not attended.",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0020007&flno=54"
+			}
+		]
+	},
+	{
+		"id": "0867165f-b340-5f8b-abf7-3fccb7f7d541",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "REDUCED_WORK_AGREEMENT",
+		"name": "減班休息 agreed in writing to reduce hours",
+		"counts_as_attended": "false",
+		"scheduled": "false",
+		"pay": [],
+		"references": [
+			{
+				"title": "因應景氣影響勞雇雙方協商減少工時應行注意事項: days off unpaid, a monthly-paid full-time worker’s month never below the minimum wage; insurance and pension kept.",
+				"url": "https://www.mol.gov.tw/1607/1632/1640/12438/post"
+			}
+		]
+	}
+]

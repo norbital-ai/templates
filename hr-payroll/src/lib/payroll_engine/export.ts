@@ -244,7 +244,7 @@ const totalsOf = (slips: readonly JsonObject[]): JsonObject => {
 };
 
 /**
- * Each `EXPORTS` template rendered as one CSV over the selected runs: a row per employment, read on `runs[]`,
+ * Each export layout (an `EXPORTS` row shaped as `ExportRules`) rendered as one CSV over the selected runs: a row per employment, read on `runs[]`,
  * `employee`, `contract`, `slips[]` and their `totals`. New returns are records; this renders them.
  */
 export function recordDocuments(

@@ -22,9 +22,10 @@ const tables = [
 	'claim_catalog',
 	'leave_catalog',
 	'loan_catalog',
-	'work_catalog',
+	'suspension_catalog',
 	'statutory_contribution_catalog',
-	'rule_set'
+	'rule_set',
+	'behaviour'
 ] as const;
 const Settings = Schema.Struct({
 	id: Schema.String,
@@ -57,8 +58,15 @@ const quote = 'Payroll records must be kept for the statutory retention period.'
 const summary = 'Restore the omitted statutory retention rule.';
 type ToolCalls = AiResponse['toolCalls'];
 
-const KINDS = [
-	{ code: 'CLOSURE', name: 'Closure', counts_as_attended: 'true', scheduled: 'true', pay: '0.0' }
+const KINDS: Row[] = [
+	{
+		id: nativeId('suspension_catalog', fixtureId('xx-research-closure')),
+		settings_id: VERSION,
+		code: 'CLOSURE',
+		name: 'Closure',
+		counts_as_attended: 'true',
+		scheduled: 'true'
+	}
 ];
 /** The `XX` version with an official source per agent and its retention rule withheld for research to restore. */
 function lineage() {
@@ -72,7 +80,8 @@ function lineage() {
 			instructions: `The ${agent} instruments.`
 		}))
 	};
-	const version = { ...settings, sources, suspension_kinds: KINDS };
+	const version = { ...settings, sources };
+	rows.set('suspension_catalog', KINDS);
 	const of = (name: (typeof tables)[number]): Row[] => rows.get(name) ?? [];
 	const missing = of('rule_set').find((row) => row['code'] === 'record_retention');
 	assert.ok(missing);
@@ -82,16 +91,17 @@ function lineage() {
 		claim_catalog: of('claim_catalog'),
 		leave_catalog: of('leave_catalog'),
 		loan_catalog: of('loan_catalog'),
-		work_catalog: of('work_catalog'),
+		suspension_catalog: of('suspension_catalog'),
 		statutory_contribution_catalog: of('statutory_contribution_catalog'),
-		rule_set: of('rule_set').filter((row) => row !== missing)
+		rule_set: of('rule_set').filter((row) => row !== missing),
+		behaviour: of('behaviour')
 	};
 	const restored = Schema.decodeUnknownSync(Schema.Record(Schema.String, Schema.Json))(
 		Object.fromEntries(
 			Object.entries(missing).filter(([key]) => key in SNAPSHOT_MODELS.rule_set.fields)
 		)
 	);
-	// record_retention is a PAYROLL rule: the rules agent's own, read from its own sources
+	// record_retention is a PARAMETERS rule: the rules agent's own, read from its own sources
 	const source = sources.entries.find((entry) => entry.agent === 'rules');
 	assert.ok(source);
 	const url = new URL('/probe-instrument', source.url).href;
@@ -283,10 +293,8 @@ const research = (
 					// no `fields` reads every exposed field
 					const has = (field: string) =>
 						member.select.fields === null || member.select.fields.includes(field);
-					if (member.model === 'jurisdiction_settings' && has('payroll')) {
+					if (member.model === 'jurisdiction_settings' && has('payroll'))
 						snapshotStarts.push(t.fakes.ai?.requests.length ?? 0);
-						assert.ok(has('suspension_kinds'));
-					}
 					const spec = Object.entries(SNAPSHOT_MODELS).find(([name]) => name === member.model)?.[1];
 					if (spec === undefined) continue;
 					observed.add(member.model);
@@ -321,7 +329,7 @@ const research = (
 			.query({
 				jurisdiction_settings: {
 					where: { cloned_from_id: { eq: VERSION } },
-					fields: ['sealed_at', 'cloned_from_id', 'suspension_kinds', 'sources', 'change_summary']
+					fields: ['sealed_at', 'cloned_from_id', 'sources', 'change_summary']
 				}
 			})
 			.pipe(Effect.map((answer) => answer.jurisdiction_settings));
@@ -395,12 +403,10 @@ describe('statutory drift research transport (mock inference, not live research)
 			const index = Schema.decodeUnknownSync(Schema.fromJsonString(Index))(
 				content.slice(content.indexOf(marker) + marker.length).split('\n```', 1)[0]
 			);
-			// the rules agent indexes only what it owns: rule_set's VALIDATIONS and PAYROLL families
+			// the rules agent indexes only what it owns: rule_set's VALIDATIONS, PARAMETERS and EXPORTS families
 			assert.deepEqual(Object.keys(index.sections), ['rule_set']);
 			const ruleIndex = Schema.decodeUnknownSync(RuleIndex)(index.sections['rule_set']).rows;
-			const owned = rows.rule_set.filter((row) =>
-				RULE_FAMILIES.rules.includes(String(row['family']))
-			);
+			const owned = rows.rule_set.filter((row) => RULE_FAMILIES.includes(String(row['family'])));
 			assert.equal(ruleIndex.length, owned.length);
 			assert.equal(
 				ruleIndex.some((row) => row.code === missing['code']),
@@ -417,8 +423,7 @@ describe('statutory drift research transport (mock inference, not live research)
 			assert.equal(created.cloned_from_id, VERSION);
 			assert.equal(created.change_summary, `rule_set: added record_retention\n\nrules: ${summary}`);
 			assert.deepEqual(created.sources, sources);
-			assert.deepEqual(created.suspension_kinds, KINDS);
-			assert.equal('suspension_kind' in created, false);
+			// the draft carries every catalogue row, the suspension catalogue's included (`tables` below)
 			for (const name of tables) {
 				assert.ok(result.observed.has(name), `The native body read ${name}.`);
 				// a runtime-named root: the JSON request form, answered as plain JSON rows
@@ -525,7 +530,7 @@ describe('statutory drift research transport (mock inference, not live research)
 	it.effect("an agent's edit to a row another agent owns is never merged", () =>
 		Effect.gen(function* () {
 			const { url, restored } = lineage();
-			// the catalog agent restores a PAYROLL rule: the rules agent's row, so nothing of it is taken
+			// the catalog agent restores a PARAMETERS rule: the rules agent's row, so nothing of it is taken
 			const turns = RESEARCH_AGENT_NAMES.map((agent) =>
 				agent === 'catalog' ? [restore(restored, { url, quote }), submit] : idle(agent)
 			);
@@ -584,9 +589,7 @@ describe('statutory drift research transport (mock inference, not live research)
 		Effect.gen(function* () {
 			const { url, restored, rows } = lineage();
 			// a rule the rules agent owns: an edit elsewhere would never be merged at all
-			const existing = rows.rule_set.find((row) =>
-				RULE_FAMILIES.rules.includes(String(row['family']))
-			);
+			const existing = rows.rule_set.find((row) => RULE_FAMILIES.includes(String(row['family'])));
 			assert.ok(existing);
 			const uncited: ToolCalls[number] = {
 				id: 'uncited',

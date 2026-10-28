@@ -70,7 +70,6 @@ const fixture = (
 				{
 					id: VERSION,
 					code: 'XX',
-					jurisdiction_code: 'XX',
 					name: 'Fixture jurisdiction',
 					sources: {
 						entries: [],

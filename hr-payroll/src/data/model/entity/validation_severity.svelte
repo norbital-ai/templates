@@ -65,7 +65,8 @@
 	const rules = $derived(
 		(version?.current?.jurisdiction_settings.rows ?? []).flatMap((row) => [
 			...row.rule_set.flatMap((held) =>
-				Schema.is(Rule)(held.rules)
+				// a payroll_run `allow` admits a run kind: no entity rebinds it
+				Schema.is(Rule)(held.rules) && held.rules.kind !== 'allow'
 					? [
 							{
 								code: held.code,

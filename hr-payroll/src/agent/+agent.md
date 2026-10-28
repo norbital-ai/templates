@@ -29,8 +29,9 @@ field projections govern access, not a role description.
 - `payroll_run` and its owned `payslip`s; `obligation` (remittances a run owes an authority, with their
   amounts) and `regulatory_task` (filings, registrations and notices raised by row events), both done outside
   the system and closed here.
-- `jurisdiction_settings` versions and their `rule_set`, `statutory_contribution_catalog`, `work_catalog`,
-  `allowance_catalog`, `adhoc_catalog`, `claim_catalog`, `leave_catalog` and `loan_catalog` rows.
+- `jurisdiction_settings` versions (their `time_pay` lines: pay for time employed and worked, by reserved key)
+  and their `rule_set` (VALIDATIONS checks, PARAMETERS law tables and EXPORTS file layouts), `behaviour` (event rules, run in order), `statutory_contribution_catalog`, `allowance_catalog`, `adhoc_catalog`, `claim_catalog`, `leave_catalog`, `loan_catalog` and
+  `suspension_catalog` rows.
 
 Sealed versions and their rows are immutable; a change of law is a new draft version. Statutory rates,
 ceilings and bands are records of the version in force. Never invent a rate or compute a legal result

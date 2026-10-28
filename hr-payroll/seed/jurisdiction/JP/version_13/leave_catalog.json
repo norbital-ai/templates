@@ -54,7 +54,37 @@
 			"days": "(sum(attendance.previous.months.filter(m, attendance.previous.months.exists(x, x.month <= m.month && double(x.worked) + double(size(x.leave)) > 0.0)).map(m, double(m.scheduled) - double(m.holidays) - (has(m.leave.SUBSTITUTE_LEAVE_FOR_OVERTIME) ? double(m.leave.SUBSTITUTE_LEAVE_FOR_OVERTIME) : 0.0))) <= 0.0 || min(sum(attendance.previous.months.filter(m, attendance.previous.months.exists(x, x.month <= m.month && double(x.worked) + double(size(x.leave)) > 0.0)).map(m, double(m.worked) + (has(m.leave.ANNUAL_LEAVE) ? double(m.leave.ANNUAL_LEAVE) : 0.0) + (has(m.leave.PRENATAL_LEAVE) ? double(m.leave.PRENATAL_LEAVE) : 0.0) + (has(m.leave.POSTNATAL_LEAVE) ? double(m.leave.POSTNATAL_LEAVE) : 0.0) + (has(m.leave.CHILDCARE_LEAVE) ? double(m.leave.CHILDCARE_LEAVE) : 0.0) + (has(m.leave.POSTNATAL_PATERNITY_LEAVE) ? double(m.leave.POSTNATAL_PATERNITY_LEAVE) : 0.0) + (has(m.leave.FAMILY_CARE_LEAVE) ? double(m.leave.FAMILY_CARE_LEAVE) : 0.0) + (has(m.leave.OCCUPATIONAL_INJURY_ABSENCE) ? double(m.leave.OCCUPATIONAL_INJURY_ABSENCE) : 0.0))), sum(attendance.previous.months.filter(m, attendance.previous.months.exists(x, x.month <= m.month && double(x.worked) + double(size(x.leave)) > 0.0)).map(m, double(m.scheduled) - double(m.holidays) - (has(m.leave.SUBSTITUTE_LEAVE_FOR_OVERTIME) ? double(m.leave.SUBSTITUTE_LEAVE_FOR_OVERTIME) : 0.0)))) >= 0.8 * sum(attendance.previous.months.filter(m, attendance.previous.months.exists(x, x.month <= m.month && double(x.worked) + double(size(x.leave)) > 0.0)).map(m, double(m.scheduled) - double(m.holidays) - (has(m.leave.SUBSTITUTE_LEAVE_FOR_OVERTIME) ? double(m.leave.SUBSTITUTE_LEAVE_FOR_OVERTIME) : 0.0)))) ? (has(terms.facts) && has(terms.facts.weekly_scheduled_days) && double(terms.facts.weekly_scheduled_days) <= 4.0 && (!has(terms.facts.weekly_scheduled_hours) || double(terms.facts.weekly_scheduled_hours) < 30.0) ? [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 2.0, 2.0, 2.0, 3.0, 3.0, 3.0], [0.0, 3.0, 4.0, 4.0, 5.0, 6.0, 6.0, 7.0], [0.0, 5.0, 6.0, 6.0, 8.0, 9.0, 10.0, 11.0], [0.0, 7.0, 8.0, 9.0, 10.0, 12.0, 13.0, 15.0]][int(max(0.0, double(terms.facts.weekly_scheduled_days)))][size(bands.filter(b, service_months >= b.service_months))] : size(bands.filter(b, service_months >= b.service_months).map(b, b.days)) > 0 ? first(bands.filter(b, service_months >= b.service_months).map(b, b.days)) : 0.0) : 0.0",
 			"overdraw": "0",
 			"service_year_offset_months": 6
-		}
+		},
+		"pay": [
+			{
+				"code": "ANNUAL_LEAVE_PAY",
+				"name": "年次有給休暇の賃金 (annual leave pay, hourly and daily paid)",
+				"references": [
+					{
+						"title": "労働基準法 art.39(9): paid annual leave is paid the ordinary wage for the scheduled hours (an hourly rate times the scheduled daily hours, terms.facts.scheduled_daily_hours; a daily rate), or the average wage where the work rules say so (company.facts.annual_leave_pay_basis AVERAGE; art.12). A monthly wage is not reduced for leave days. The 平均賃金 leaves out the periods art.12(3) lists, their days and their wages: occupational injury absence, 産前産後休業, an employer-caused suspension (suspension_kind EMPLOYER_CAUSED only, with the 休業手当 paid for it), 育児休業 (incl. 出生時育児休業), 介護休業 (earned.months leave_days, suspended_days_by_kind) and the probation period (terms.facts.probation_until, its wages prorated by calendar days); where they cover the whole three months the wages and days of the period are used undivided (施行規則 art.3; 昭和24年4月11日 基発421号), and a worker paid by the day or hour is guaranteed 60% of the three months’ wages over the days worked (art.12(1)(i); worked_days)."
+					}
+				],
+				"eligibility": "(has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") != \"MONTHLY\" && sum(leave.rows.filter(r, r.code == \"ANNUAL_LEAVE\" && r.activity == \"TIME_OFF\").map(r, r.days)) + sum(leave.rows.filter(r, r.code == \"ANNUAL_LEAVE_HOURS\" && r.activity == \"TIME_OFF\").map(r, r.days)) > 0.0",
+				"quantity": "sum(leave.rows.filter(r, r.code == \"ANNUAL_LEAVE\" && r.activity == \"TIME_OFF\").map(r, r.days)) + sum(leave.rows.filter(r, r.code == \"ANNUAL_LEAVE_HOURS\" && r.activity == \"TIME_OFF\").map(r, r.days)) / (has(terms.facts.scheduled_daily_hours) ? double(terms.facts.scheduled_daily_hours) : 8.0)",
+				"rate": "has(company.facts.annual_leave_pay_basis) && company.facts.annual_leave_pay_basis == \"AVERAGE\" ? round((has(entry.facts.average_daily_wage) ? double(entry.facts.average_daily_wage) : max(((sum(earned.months.filter(m, m.month < period.from.substring(0, 7) && m.month >= add_months(month_start(period.from), -3).substring(0, 7)).map(m, (has(m.suspended_days_by_kind) && has(m.suspended_days_by_kind.EMPLOYER_CAUSED) ? double(m.suspended_days_by_kind.EMPLOYER_CAUSED) : 0.0) + (has(m.leave_days) && has(m.leave_days.OCCUPATIONAL_INJURY_ABSENCE) ? double(m.leave_days.OCCUPATIONAL_INJURY_ABSENCE) : 0.0) + (has(m.leave_days) && has(m.leave_days.PRENATAL_LEAVE) ? double(m.leave_days.PRENATAL_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.POSTNATAL_LEAVE) ? double(m.leave_days.POSTNATAL_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.CHILDCARE_LEAVE) ? double(m.leave_days.CHILDCARE_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.POSTNATAL_PATERNITY_LEAVE) ? double(m.leave_days.POSTNATAL_PATERNITY_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.FAMILY_CARE_LEAVE) ? double(m.leave_days.FAMILY_CARE_LEAVE) : 0.0) + (has(terms.facts) && has(terms.facts.probation_until) && terms.facts.probation_until != null && terms.facts.probation_until != \"\" && ((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\") <= (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")) ? double(calendar_distance_days(((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\"), (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")))) + 1.0 : 0.0))) >= (double(calendar_distance_days(add_months(month_start(period.from), -3), add_days(month_start(period.from), -1))) + 1.0)) ? sum(earned.months.filter(m, m.month < period.from.substring(0, 7) && m.month >= add_months(month_start(period.from), -3).substring(0, 7)).map(m, ((m.gross - (has(m.BONUS) ? m.BONUS : 0.0) - (has(m.BONUS_OVER_SIX_MONTHS) ? m.BONUS_OVER_SIX_MONTHS : 0.0) - (has(m.RETIREMENT_ALLOWANCE) ? m.RETIREMENT_ALLOWANCE : 0.0) - (has(m.DISMISSAL_NOTICE_ALLOWANCE) ? m.DISMISSAL_NOTICE_ALLOWANCE : 0.0) - (has(m.INJURY_WAITING_COMPENSATION) ? m.INJURY_WAITING_COMPENSATION : 0.0) - (has(m.LATE_WAGE_INTEREST) ? m.LATE_WAGE_INTEREST : 0.0)) - (has(m.SUSPENSION_ALLOWANCE) ? m.SUSPENSION_ALLOWANCE : 0.0) + (has(m.SHUTDOWN_ALLOWANCE) ? m.SHUTDOWN_ALLOWANCE : 0.0)))) : sum(earned.months.filter(m, m.month < period.from.substring(0, 7) && m.month >= add_months(month_start(period.from), -3).substring(0, 7)).map(m, ((m.gross - (has(m.BONUS) ? m.BONUS : 0.0) - (has(m.BONUS_OVER_SIX_MONTHS) ? m.BONUS_OVER_SIX_MONTHS : 0.0) - (has(m.RETIREMENT_ALLOWANCE) ? m.RETIREMENT_ALLOWANCE : 0.0) - (has(m.DISMISSAL_NOTICE_ALLOWANCE) ? m.DISMISSAL_NOTICE_ALLOWANCE : 0.0) - (has(m.INJURY_WAITING_COMPENSATION) ? m.INJURY_WAITING_COMPENSATION : 0.0) - (has(m.LATE_WAGE_INTEREST) ? m.LATE_WAGE_INTEREST : 0.0)) * (1.0 - min(1.0, (has(terms.facts) && has(terms.facts.probation_until) && terms.facts.probation_until != null && terms.facts.probation_until != \"\" && ((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\") <= (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")) ? double(calendar_distance_days(((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\"), (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")))) + 1.0 : 0.0) / (double(calendar_distance_days(m.month + \"-01\", month_end(m.month + \"-01\"))) + 1.0))) - (has(m.SUSPENSION_ALLOWANCE) ? m.SUSPENSION_ALLOWANCE : 0.0) + (has(m.SHUTDOWN_ALLOWANCE) ? m.SHUTDOWN_ALLOWANCE : 0.0))))) / max(1.0, ((sum(earned.months.filter(m, m.month < period.from.substring(0, 7) && m.month >= add_months(month_start(period.from), -3).substring(0, 7)).map(m, (has(m.suspended_days_by_kind) && has(m.suspended_days_by_kind.EMPLOYER_CAUSED) ? double(m.suspended_days_by_kind.EMPLOYER_CAUSED) : 0.0) + (has(m.leave_days) && has(m.leave_days.OCCUPATIONAL_INJURY_ABSENCE) ? double(m.leave_days.OCCUPATIONAL_INJURY_ABSENCE) : 0.0) + (has(m.leave_days) && has(m.leave_days.PRENATAL_LEAVE) ? double(m.leave_days.PRENATAL_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.POSTNATAL_LEAVE) ? double(m.leave_days.POSTNATAL_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.CHILDCARE_LEAVE) ? double(m.leave_days.CHILDCARE_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.POSTNATAL_PATERNITY_LEAVE) ? double(m.leave_days.POSTNATAL_PATERNITY_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.FAMILY_CARE_LEAVE) ? double(m.leave_days.FAMILY_CARE_LEAVE) : 0.0) + (has(terms.facts) && has(terms.facts.probation_until) && terms.facts.probation_until != null && terms.facts.probation_until != \"\" && ((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\") <= (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")) ? double(calendar_distance_days(((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\"), (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")))) + 1.0 : 0.0))) >= (double(calendar_distance_days(add_months(month_start(period.from), -3), add_days(month_start(period.from), -1))) + 1.0)) ? (double(calendar_distance_days(add_months(month_start(period.from), -3), add_days(month_start(period.from), -1))) + 1.0) : (double(calendar_distance_days(add_months(month_start(period.from), -3), add_days(month_start(period.from), -1))) + 1.0) - sum(earned.months.filter(m, m.month < period.from.substring(0, 7) && m.month >= add_months(month_start(period.from), -3).substring(0, 7)).map(m, (has(m.suspended_days_by_kind) && has(m.suspended_days_by_kind.EMPLOYER_CAUSED) ? double(m.suspended_days_by_kind.EMPLOYER_CAUSED) : 0.0) + (has(m.leave_days) && has(m.leave_days.OCCUPATIONAL_INJURY_ABSENCE) ? double(m.leave_days.OCCUPATIONAL_INJURY_ABSENCE) : 0.0) + (has(m.leave_days) && has(m.leave_days.PRENATAL_LEAVE) ? double(m.leave_days.PRENATAL_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.POSTNATAL_LEAVE) ? double(m.leave_days.POSTNATAL_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.CHILDCARE_LEAVE) ? double(m.leave_days.CHILDCARE_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.POSTNATAL_PATERNITY_LEAVE) ? double(m.leave_days.POSTNATAL_PATERNITY_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.FAMILY_CARE_LEAVE) ? double(m.leave_days.FAMILY_CARE_LEAVE) : 0.0) + (has(terms.facts) && has(terms.facts.probation_until) && terms.facts.probation_until != null && terms.facts.probation_until != \"\" && ((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\") <= (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")) ? double(calendar_distance_days(((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\"), (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")))) + 1.0 : 0.0))))), ((has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") != \"MONTHLY\" && sum(earned.months.filter(m, m.month < period.from.substring(0, 7) && m.month >= add_months(month_start(period.from), -3).substring(0, 7)).map(m, has(m.worked_days) ? double(m.worked_days) : 0.0)) > 0.0) ? 0.6 * ((sum(earned.months.filter(m, m.month < period.from.substring(0, 7) && m.month >= add_months(month_start(period.from), -3).substring(0, 7)).map(m, (has(m.suspended_days_by_kind) && has(m.suspended_days_by_kind.EMPLOYER_CAUSED) ? double(m.suspended_days_by_kind.EMPLOYER_CAUSED) : 0.0) + (has(m.leave_days) && has(m.leave_days.OCCUPATIONAL_INJURY_ABSENCE) ? double(m.leave_days.OCCUPATIONAL_INJURY_ABSENCE) : 0.0) + (has(m.leave_days) && has(m.leave_days.PRENATAL_LEAVE) ? double(m.leave_days.PRENATAL_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.POSTNATAL_LEAVE) ? double(m.leave_days.POSTNATAL_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.CHILDCARE_LEAVE) ? double(m.leave_days.CHILDCARE_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.POSTNATAL_PATERNITY_LEAVE) ? double(m.leave_days.POSTNATAL_PATERNITY_LEAVE) : 0.0) + (has(m.leave_days) && has(m.leave_days.FAMILY_CARE_LEAVE) ? double(m.leave_days.FAMILY_CARE_LEAVE) : 0.0) + (has(terms.facts) && has(terms.facts.probation_until) && terms.facts.probation_until != null && terms.facts.probation_until != \"\" && ((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\") <= (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")) ? double(calendar_distance_days(((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\"), (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")))) + 1.0 : 0.0))) >= (double(calendar_distance_days(add_months(month_start(period.from), -3), add_days(month_start(period.from), -1))) + 1.0)) ? sum(earned.months.filter(m, m.month < period.from.substring(0, 7) && m.month >= add_months(month_start(period.from), -3).substring(0, 7)).map(m, ((m.gross - (has(m.BONUS) ? m.BONUS : 0.0) - (has(m.BONUS_OVER_SIX_MONTHS) ? m.BONUS_OVER_SIX_MONTHS : 0.0) - (has(m.RETIREMENT_ALLOWANCE) ? m.RETIREMENT_ALLOWANCE : 0.0) - (has(m.DISMISSAL_NOTICE_ALLOWANCE) ? m.DISMISSAL_NOTICE_ALLOWANCE : 0.0) - (has(m.INJURY_WAITING_COMPENSATION) ? m.INJURY_WAITING_COMPENSATION : 0.0) - (has(m.LATE_WAGE_INTEREST) ? m.LATE_WAGE_INTEREST : 0.0)) - (has(m.SUSPENSION_ALLOWANCE) ? m.SUSPENSION_ALLOWANCE : 0.0) + (has(m.SHUTDOWN_ALLOWANCE) ? m.SHUTDOWN_ALLOWANCE : 0.0)))) : sum(earned.months.filter(m, m.month < period.from.substring(0, 7) && m.month >= add_months(month_start(period.from), -3).substring(0, 7)).map(m, ((m.gross - (has(m.BONUS) ? m.BONUS : 0.0) - (has(m.BONUS_OVER_SIX_MONTHS) ? m.BONUS_OVER_SIX_MONTHS : 0.0) - (has(m.RETIREMENT_ALLOWANCE) ? m.RETIREMENT_ALLOWANCE : 0.0) - (has(m.DISMISSAL_NOTICE_ALLOWANCE) ? m.DISMISSAL_NOTICE_ALLOWANCE : 0.0) - (has(m.INJURY_WAITING_COMPENSATION) ? m.INJURY_WAITING_COMPENSATION : 0.0) - (has(m.LATE_WAGE_INTEREST) ? m.LATE_WAGE_INTEREST : 0.0)) * (1.0 - min(1.0, (has(terms.facts) && has(terms.facts.probation_until) && terms.facts.probation_until != null && terms.facts.probation_until != \"\" && ((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\") <= (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")) ? double(calendar_distance_days(((has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") > m.month + \"-01\" ? (has(employment.start_date) && employment.start_date != null && employment.start_date != \"\" ? employment.start_date : \"0001-01-01\") : m.month + \"-01\"), (terms.facts.probation_until < month_end(m.month + \"-01\") ? terms.facts.probation_until : month_end(m.month + \"-01\")))) + 1.0 : 0.0) / (double(calendar_distance_days(m.month + \"-01\", month_end(m.month + \"-01\"))) + 1.0))) - (has(m.SUSPENSION_ALLOWANCE) ? m.SUSPENSION_ALLOWANCE : 0.0) + (has(m.SHUTDOWN_ALLOWANCE) ? m.SHUTDOWN_ALLOWANCE : 0.0))))) / sum(earned.months.filter(m, m.month < period.from.substring(0, 7) && m.month >= add_months(month_start(period.from), -3).substring(0, 7)).map(m, has(m.worked_days) ? double(m.worked_days) : 0.0)) : 0.0)), 1.0, \"HALF_UP\") : ((has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"HOURLY\" ? terms.base_salary * (has(terms.facts.scheduled_daily_hours) ? double(terms.facts.scheduled_daily_hours) : 8.0) : terms.base_salary)",
+				"destination": "PAY",
+				"direction": "ADD",
+				"counts_toward": [
+					"HEALTH",
+					"CHILD_SUPPORT",
+					"PENSION",
+					"CHILD_CONTRIBUTION",
+					"SI_PREVIOUS_MONTH",
+					"SI_ADJUSTMENT_REFUND",
+					"EI",
+					"WORKERS_ACCIDENT",
+					"ASBESTOS_LEVY",
+					"INCOME_TAX",
+					"YEAR_END_ADJUSTMENT",
+					"RESIDENT_TAX"
+				]
+			}
+		]
 	},
 	{
 		"id": "4d560d83-5ca7-500d-a86a-73ec2a43b993",
@@ -78,7 +108,8 @@
 			"window": "EVENT",
 			"days": "has(entry.facts.multiple_pregnancy) && entry.facts.multiple_pregnancy == true ? 98.0 : 42.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "41388919-a338-5a20-8d5e-e9b41075542e",
@@ -102,7 +133,8 @@
 			"window": "EVENT",
 			"days": "56.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "7f79efd4-50fb-5d1e-b22b-13544f9a9078",
@@ -120,7 +152,8 @@
 			{
 				"title": "育児・介護休業法 arts.5–9: until the child is 1, extendable to 1½ and 2 where no childcare place is available, in up to two periods; 雇用保険法 arts.61の7 and 61の10: the 育児休業給付金 (67% for 180 days, then 50%) and, from April 2025, the 出生後休業支援給付金 are paid by employment insurance; health and pension premiums are exempt on application (健保法 art.159, 厚年法 art.81の2)."
 			}
-		]
+		],
+		"pay": []
 	},
 	{
 		"id": "e02ef6c4-244f-5745-a345-75b737be3f7c",
@@ -144,7 +177,8 @@
 			"window": "EVENT",
 			"days": "28.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "076cc6d7-2c14-57bc-bec6-0e699dea0003",
@@ -169,7 +203,8 @@
 			"window_key": "has(entry.facts.care_recipient_id) ? string(entry.facts.care_recipient_id) : (has(entry.facts.event_id) ? string(entry.facts.event_id) : \"UNSPECIFIED\")",
 			"days": "93.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "f476ab92-3d2a-522f-8898-47d06f33b361",
@@ -194,7 +229,8 @@
 			"window_key": "[(has(entry.from) && entry.from != null ? entry.from : entry.occurred_on)].map(d, d.substring(5, 7) < \"04\" ? string(int(d.substring(0, 4)) - 1) : d.substring(0, 4))[0]",
 			"days": "[size(employee.children.filter(c, has(c.child_birthdate) && c.child_birthdate != \"\" && c.child_birthdate <= as_of && age_on(c.child_birthdate, add_months(month_start(as_of), -((int(as_of.substring(5, 7)) + 8) % 12))) < 9 && (!has(c.child_deathdate) || c.child_deathdate == null || c.child_deathdate == \"\" || c.child_deathdate > as_of)))].map(n, n == 0 ? 0.0 : n == 1 ? 5.0 : 10.0)[0]",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "a605fa7f-045c-5dd8-80af-e5ce69200b3d",
@@ -219,7 +255,8 @@
 			"window_key": "[(has(entry.from) && entry.from != null ? entry.from : entry.occurred_on)].map(d, d.substring(5, 7) < \"04\" ? string(int(d.substring(0, 4)) - 1) : d.substring(0, 4))[0]",
 			"days": "has(employee.facts.family_care_recipients) && double(employee.facts.family_care_recipients) >= 2.0 ? 10.0 : 5.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "5d1a74ad-ab0a-5c66-8323-57f79f4a2f5e",
@@ -237,7 +274,8 @@
 			{
 				"title": "労働基準法 art.68: a woman for whom work on menstruation days is very difficult may not be made to work on request; the law does not require pay."
 			}
-		]
+		],
+		"pay": []
 	},
 	{
 		"id": "d4b63b0f-72ed-54d4-9cd4-8e5bb19b96a6",
@@ -255,7 +293,8 @@
 			{
 				"title": "労働基準法 art.7: time needed to vote, serve as a lay judge (裁判員法 art.100) or perform a public duty must be granted; the law does not require pay."
 			}
-		]
+		],
+		"pay": []
 	},
 	{
 		"id": "bfe48ca0-4199-5e27-86e6-f572815ac1d1",
@@ -273,7 +312,8 @@
 			{
 				"title": "No statutory paid sick leave; 健康保険法 art.99 pays the 傷病手当金 (two thirds of the standard daily remuneration) from the fourth consecutive day of incapacity for up to 1 year 6 months in aggregate."
 			}
-		]
+		],
+		"pay": []
 	},
 	{
 		"id": "e4e1dd7c-ee0d-5257-84fb-2887b03d1569",
@@ -291,7 +331,8 @@
 			{
 				"title": "労働者災害補償保険法 art.14: from the fourth day of absence the 休業補償給付 (60% of the 給付基礎日額, plus a 20% special payment) is paid by the insurance; the first three days are the employer's (労働基準法 art.76; adhoc INJURY_WAITING_COMPENSATION). art.19: no dismissal during the absence and 30 days after."
 			}
-		]
+		],
+		"pay": []
 	},
 	{
 		"id": "4380a92e-99ff-5849-99b1-568c3cff74cc",
@@ -308,6 +349,36 @@
 		"references": [
 			{
 				"title": "Leave or absence the work rules leave unpaid (労働基準法 art.89(i) and the no-work-no-pay principle, 民法 art.624(1)); deducted by NO_PAY_LEAVE."
+			}
+		],
+		"pay": [
+			{
+				"code": "NO_PAY_LEAVE",
+				"name": "欠勤控除 (unpaid absence)",
+				"references": [
+					{
+						"title": "労働基準法 art.24 and the no-work-no-pay principle (民法 art.624(1)): unpaid leave and absence days are not paid. The divisor is the calendar days of the month; the work rules may set another (art.89(ii)). The day rate is the monthly salary over the calendar days of the month (period.month_days), whatever part of the month the period is."
+					}
+				],
+				"eligibility": "(has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"MONTHLY\" && leave.rows.exists(r, r.is_npl && r.activity == \"TIME_OFF\" && r.days > 0.0)",
+				"quantity": "sum(leave.rows.filter(r, r.is_npl && r.activity == \"TIME_OFF\").map(r, r.days))",
+				"rate": "terms.base_salary / double(period.month_days)",
+				"destination": "PAY",
+				"direction": "SUBTRACT",
+				"counts_toward": [
+					"HEALTH",
+					"CHILD_SUPPORT",
+					"PENSION",
+					"CHILD_CONTRIBUTION",
+					"SI_PREVIOUS_MONTH",
+					"SI_ADJUSTMENT_REFUND",
+					"EI",
+					"WORKERS_ACCIDENT",
+					"ASBESTOS_LEVY",
+					"INCOME_TAX",
+					"YEAR_END_ADJUSTMENT",
+					"RESIDENT_TAX"
+				]
 			}
 		]
 	},
@@ -334,7 +405,8 @@
 			"service_year_offset_months": 6,
 			"days": "5.0 * (has(terms.facts.scheduled_daily_hours) ? double(terms.facts.scheduled_daily_hours) : 8.0)",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "c88bc50d-8b65-5e14-885f-2b81fc055c50",
@@ -351,7 +423,8 @@
 			{
 				"title": "労働基準法 art.67: a woman with a child under one may claim two periods of at least 30 minutes a day besides her breaks; the law does not require pay."
 			}
-		]
+		],
+		"pay": []
 	},
 	{
 		"id": "9c517417-9d18-575a-aeb9-cf84ed64031b",
@@ -369,7 +442,8 @@
 			{
 				"title": "男女雇用機会均等法 arts.12–13 with 施行規則 art.2の4: the employer must allow the time a pregnant or post-partum worker needs for health guidance and checks (every 4 weeks to week 23, 2 weeks to 35, then weekly) and act on the doctor's instructions; the law does not require pay."
 			}
-		]
+		],
+		"pay": []
 	},
 	{
 		"id": "837487d6-1566-5103-bc81-5b9559d0c484",
@@ -385,6 +459,36 @@
 		"references": [
 			{
 				"title": "労働基準法 art.37(3) with 施行規則 art.19の2: paid leave in place of the extra 25% for overtime beyond 60 hours, taken within two months, in half days or days, under a labour-management agreement; it reduces OVERTIME_OVER_60 by OVERTIME_SUBSTITUTED."
+			}
+		],
+		"pay": [
+			{
+				"code": "OVERTIME_SUBSTITUTED",
+				"name": "代替休暇による割増の控除 (premium replaced by substitute leave)",
+				"references": [
+					{
+						"title": "労働基準法 art.37(3) with 施行規則 art.19の2: under a labour-management agreement (company.facts.substitute_leave_agreement) a worker may take paid substitute leave instead of the extra 25% for overtime beyond 60 hours (the statutory hours OVERTIME_OVER_60 prices); each hour of 代替休暇 (leave SUBSTITUTE_LEAVE_FOR_OVERTIME) replaces the extra 25% of four overtime hours. The base is the base salary and the fixed allowances; a family allowance is left out only where it is set by the number of dependants (terms.facts.family_allowance_by_dependants; 昭和22年11月5日 基発231号), a commuting allowance only where it is set by the distance or the actual cost (terms.facts.commuting_allowance_by_distance; 昭和23年2月20日 基発297号), and a housing allowance only where it varies with the housing cost (労働基準法 art.37(5); 施行規則 art.21; 平成11年3月31日 基発170号); a flat amount paid to all is in the base."
+					}
+				],
+				"eligibility": "has(company.facts.substitute_leave_agreement) && company.facts.substitute_leave_agreement == true && ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"FLEX\" ? max(0.0, sum(work.days.filter(d, d.day_type != \"REST\").map(x, x.worked_hours)) - (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0) * double(period.days) / 7.0) : (has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"DEEMED\" ? sum(work.days.filter(d, d.day_type != \"REST\").filter(x, x.worked).map(x, max(0.0, (has(company.facts.deemed_daily_hours) ? double(company.facts.deemed_daily_hours) : 8.0) - 8.0))) : min(sum(work.days.filter(d, d.day_type != \"REST\").map(x, max(0.0, x.worked_hours - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) + sum(work.days.filter(d, d.day_type != \"REST\").filter(s, !work.days.filter(d, d.day_type != \"REST\").exists(x, x.date < s.date && x.date >= add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)))).map(s, max(0.0, (sum(work.days.filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) + sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0))))) - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max((has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0), (sum(work.days.filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours)) + sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours)))) : (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0))) - max(0.0, sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max((has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0), sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours))) : (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0))))), sum(work.days.filter(d, d.day_type != \"REST\").map(d, d.overtime_hours)))) > 60.0 && sum(leave.rows.filter(r, r.code == \"SUBSTITUTE_LEAVE_FOR_OVERTIME\" && r.activity == \"TIME_OFF\").map(r, r.days)) > 0.0 && !(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+				"quantity": "min(max(0.0, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"FLEX\" ? max(0.0, sum(work.days.filter(d, d.day_type != \"REST\").map(x, x.worked_hours)) - (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0) * double(period.days) / 7.0) : (has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"DEEMED\" ? sum(work.days.filter(d, d.day_type != \"REST\").filter(x, x.worked).map(x, max(0.0, (has(company.facts.deemed_daily_hours) ? double(company.facts.deemed_daily_hours) : 8.0) - 8.0))) : min(sum(work.days.filter(d, d.day_type != \"REST\").map(x, max(0.0, x.worked_hours - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) + sum(work.days.filter(d, d.day_type != \"REST\").filter(s, !work.days.filter(d, d.day_type != \"REST\").exists(x, x.date < s.date && x.date >= add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)))).map(s, max(0.0, (sum(work.days.filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) + sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0))))) - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max((has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0), (sum(work.days.filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours)) + sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours)))) : (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0))) - max(0.0, sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, min(x.worked_hours, ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max(8.0, x.scheduled_hours) : 8.0)))) - ((has(company.facts.working_time_regime) ? company.facts.working_time_regime : \"STANDARD\") == \"VARIABLE\" ? max((has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0), sum((has(work.week_before) ? work.week_before : []).filter(d, d.day_type != \"REST\").filter(x, add_days(x.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", x.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7)) == add_days(s.date, 0 - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7) - (has(company.facts.week_start_day) ? int(company.facts.week_start_day) : 0) + 7) % 7))).map(x, x.scheduled_hours))) : (has(company.facts.weekly_limit_44) && company.facts.weekly_limit_44 == true ? 44.0 : 40.0))))), sum(work.days.filter(d, d.day_type != \"REST\").map(d, d.overtime_hours)))) - 60.0), sum(leave.rows.filter(r, r.code == \"SUBSTITUTE_LEAVE_FOR_OVERTIME\" && r.activity == \"TIME_OFF\").map(r, r.days)) / 0.25)",
+				"rate": "round(((has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"HOURLY\" ? terms.base_salary : (has(terms.facts.pay_basis) ? terms.facts.pay_basis : \"MONTHLY\") == \"DAILY\" ? terms.base_salary / (has(terms.facts.scheduled_daily_hours) ? double(terms.facts.scheduled_daily_hours) : 8.0) : (terms.base_salary + sum(terms.allowances.filter(a, !(has(a.code) && a.code == \"FAMILY_ALLOWANCE\" && (has(terms.facts.family_allowance_by_dependants) && terms.facts.family_allowance_by_dependants == true)) && !(has(a.code) && a.code == \"COMMUTING_ALLOWANCE\" && (has(terms.facts.commuting_allowance_by_distance) && terms.facts.commuting_allowance_by_distance == true)) && !(has(a.code) && a.code == \"HOUSING_ALLOWANCE\" && has(terms.facts.housing_allowance_cost_linked) && terms.facts.housing_allowance_cost_linked == true)).map(a, double(a.amount)))) / double(company.facts.monthly_average_scheduled_hours)) * 0.25, 1.0, \"HALF_UP\")",
+				"destination": "PAY",
+				"direction": "SUBTRACT",
+				"counts_toward": [
+					"HEALTH",
+					"CHILD_SUPPORT",
+					"PENSION",
+					"CHILD_CONTRIBUTION",
+					"SI_PREVIOUS_MONTH",
+					"SI_ADJUSTMENT_REFUND",
+					"EI",
+					"WORKERS_ACCIDENT",
+					"ASBESTOS_LEVY",
+					"INCOME_TAX",
+					"YEAR_END_ADJUSTMENT",
+					"RESIDENT_TAX"
+				]
 			}
 		]
 	}

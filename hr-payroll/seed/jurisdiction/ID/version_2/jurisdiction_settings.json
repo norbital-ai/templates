@@ -2,7 +2,6 @@
 	{
 		"id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "ID",
-		"jurisdiction_code": "ID",
 		"name": "Indonesia — 2026-01-01",
 		"sealed_at": "2026-01-01T00:00:00.000Z",
 		"voided_at": null,
@@ -13,27 +12,43 @@
 		"payroll": {
 			"currency": "IDR",
 			"timezone": "Asia/Jakarta",
-			"tax_year_start_month": 1,
-			"pay_date": "period.to",
 			"week_start": 0,
-			"semi_monthly_split": 15,
 			"roster_week": "ROLLING",
-			"rolling_hours_months": 3,
-			"base_salary_required": true,
-			"off_cycle_families": ["ADHOC", "CLAIM"],
-			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))",
-			"negative_net": "refuse",
-			"exit_raise_when": "employment.exit_date >= add_months(period.from, -1)",
-			"exit_overpayment": "note",
-			"history_months": 12,
-			"attendance": {
-				"step_hours": 0.5,
-				"rounding": "DOWN",
-				"overtime_window": "AFTER_SHIFT",
-				"untimed_credit_day_types": ["REST", "OFF"]
-			},
-			"ten_day_splits": [10, 20],
-			"permanent_when": "!(has(terms.facts) && has(terms.facts.fixed_term) && terms.facts.fixed_term == true)"
+			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))"
+		},
+		"time_pay": {
+			"BASIC": [
+				{
+					"code": "BASIC",
+					"name": "Basic salary",
+					"eligibility": "true",
+					"quantity": "period.paid_days / period.days",
+					"rate": "terms.base_salary / double(period.parts)",
+					"prorated": true,
+					"denominator": "double(period.days)",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["JHT", "JP", "JKK", "JKM", "KESEHATAN", "JKP", "PPH21", "PPH26"]
+				}
+			],
+			"OVERTIME": [
+				{
+					"code": "OVERTIME",
+					"name": "Overtime",
+					"references": [
+						{
+							"title": "PP 35/2021 arts.31–32: the overtime hour is 1/173 of the monthly wage (art.32(2)), on basic plus fixed allowances (art.32(3), `terms.monthly_wage`). Each day of the attendance window (`work.days`) is priced on its overtime (an order and the worker's consent, art.28), derived from the recorded clock: on an ordinary working day the hours past the planned shift (`overtime_hours`), the first at 1.5× and every further hour at 2× (art.31(1)); on a weekly rest day or an official holiday (`holiday_kind`) every hour worked is overtime — every paid hour of the day (`worked_hours`: on a holiday that falls on a working day the planned shift plus the time past it, on a 0-hour rest or off day all its hours) less hours banked as time off, each hour counted once — for a 6-day / 40-hour week hours 1–7 at 2×, hour 8 at 3×, hours 9–11 at 4× (art.31(2)(a)), and when the holiday falls on the shortest working day (scheduled 5 hours or less) hours 1–5 at 2×, hour 6 at 3×, hours 7–9 at 4× (art.31(2)(b)); for a 5-day / 40-hour week hours 1–8 at 2×, hour 9 at 3×, hours 10–12 at 4× (art.31(3)). The week is the terms fact `working_days_per_week` (5 or 6); a rest-day or holiday hour without it refuses. Hours beyond the last listed hour stay at 4× (the article lists none beyond; the art.26 daily limit keeps them rare). A daily-paid worker's month is the agreed daily wage × 25 on a 6-day week or × 21 on a 5-day week (art.33(1)). No overtime wage for a golongan jabatan tertentu (art.27(2)–(3), `MANAGERIAL`) — only where the agreement, company regulation or collective agreement defines that group (art.27(4)–(5)). https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf Where basic plus fixed allowances are below 75% of the whole wage (customer input `terms.facts.non_fixed_allowances_monthly`), the base is 75% of the whole wage (art.32(4)). PP 35/2021 art.27(2)–(5): the golongan jabatan tertentu is exempt only where the employment agreement, company regulation or collective agreement defines it (`company.facts.managerial_group_defined`); otherwise a MANAGERIAL worker is paid overtime. Art.33(2)–(3): output pay (PIECE_RATE) takes the average of the last 12 months (`earned.months`, gross less overtime), floored at the worksite minimum wage.",
+							"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+						}
+					],
+					"eligibility": "work.days.exists(d, ((d.day_type == \"WORK\" || d.day_type == \"\") && d.holiday_kind == \"\" ? d.overtime_hours : d.worked_hours - d.banked_hours) > 0.0) && !(terms.work_classification == \"MANAGERIAL\" && has(company.facts.managerial_group_defined) && company.facts.managerial_group_defined == true)",
+					"quantity": "sum(work.days.map(d, ((d.day_type == \"WORK\" || d.day_type == \"\") && d.holiday_kind == \"\" ? d.overtime_hours : d.worked_hours - d.banked_hours) <= 0.0 ? 0.0 : ((d.day_type == \"WORK\" || d.day_type == \"\") && d.holiday_kind == \"\" ? ladder(d.overtime_hours, [[1.0, 1.5], [null, 2.0]]) : (terms.facts.working_days_per_week == 6.0 ? (d.day_type == \"WORK\" && d.scheduled_hours <= 5.0 ? ladder(d.worked_hours - d.banked_hours, [[5.0, 2.0], [6.0, 3.0], [null, 4.0]]) : ladder(d.worked_hours - d.banked_hours, [[7.0, 2.0], [8.0, 3.0], [null, 4.0]])) : ladder(d.worked_hours - d.banked_hours, [[8.0, 2.0], [9.0, 3.0], [null, 4.0]])))))",
+					"rate": "(terms.statutory_work_category == \"PIECE_RATE\" ? max((size(earned.months) > 0 ? sum(earned.months.map(m, m.gross - (has(m.OVERTIME) ? m.OVERTIME : 0.0))) / double(size(earned.months)) : terms.monthly_wage), (((has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region) in rules.minimum_wage.by_region) ? rules.minimum_wage.by_region[(has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\" ? terms.facts.worksite_region : company.region)] : 0.0)) : (terms.employment_type == \"DAILY\" && has(terms.facts.daily_wage) ? terms.facts.daily_wage * (has(terms.facts.working_days_per_week) && terms.facts.working_days_per_week == 6.0 ? 25.0 : 21.0) : (terms.monthly_wage < 0.75 * (terms.monthly_wage + (has(terms.facts.non_fixed_allowances_monthly) ? terms.facts.non_fixed_allowances_monthly : 0.0)) ? 0.75 * (terms.monthly_wage + (has(terms.facts.non_fixed_allowances_monthly) ? terms.facts.non_fixed_allowances_monthly : 0.0)) : terms.monthly_wage))) / 173.0",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["PPH21", "PPH26"]
+				}
+			]
 		},
 		"sources": {
 			"entries": [
@@ -169,397 +184,6 @@
 		},
 		"cloned_from_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
 		"change_summary": "The 2026 provincial and city minimum wages under PP 49/2025 (DKI Jakarta 5,729,876; Jawa Barat 2,317,601; Kabupaten Bekasi 5,938,885) from 1 January 2026, which lift the ordinary-PPU BPJS Kesehatan floor. Round 7: national holidays (SKB 3 Menteri) as PAYROLL public_holidays; worksite minimum wages with daily and hourly floors; all 38 provincial UMPs and big-city UMKs; JKK 50% discount to the January 2026 wage month (PP 36/2025); PPh 21 DTP (PMK 105/2025); leave paid at the usual wage; paid-absence classes; late-wage and late-THR fines; PKWT, probation, child and night-work checks.",
-		"behaviours": {
-			"version": 1,
-			"rules": [
-				{
-					"id": "payroll-run",
-					"catalog": "WORK",
-					"events": ["PAYROLL_CREATE"],
-					"when": "event.data.request.kind in [\"REGULAR\", \"OFF_CYCLE\"]"
-				},
-				{
-					"id": "pin-settled-entries",
-					"target_collection": "payroll_run",
-					"events": ["created"],
-					"when": "true",
-					"fields": ["pins"],
-					"reads": {
-						"slips": {
-							"collection": "payslip",
-							"where": {
-								"payroll_run_id": {
-									"eq": "event.row.id"
-								}
-							},
-							"select": ["id", "employment_id"]
-						}
-					},
-					"effect": "event.row.pins.map(p, { \"collection\": p.collection, \"operation\": \"update\", \"data\": { \"target\": [p.id], \"set\": { \"payslip_id\": first(slips.filter(s, s.employment_id == p.employment_id).map(s, s.id)) } } }).filter(w, w.data.set.payslip_id != null)"
-				},
-				{
-					"id": "hold-payslips",
-					"target_collection": "payroll_run",
-					"events": ["created"],
-					"when": "has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0",
-					"fields": ["holds"],
-					"reads": {
-						"slips": {
-							"collection": "payslip",
-							"where": {
-								"payroll_run_id": {
-									"eq": "event.row.id"
-								},
-								"status": {
-									"eq": "\"DRAFT\""
-								}
-							},
-							"select": ["id", "employment_id"]
-						}
-					},
-					"effect": "event.row.holds.map(h, { \"collection\": \"payslip\", \"operation\": \"update\", \"data\": { \"target\": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), \"set\": { \"status\": \"ON_HOLD\" } } }).filter(w, size(w.data.target) > 0)"
-				},
-				{
-					"id": "retract-exit-effects",
-					"target_collection": "employment_contract",
-					"events": ["updated"],
-					"when": "has(event.row.before) && event.row.before != null && (\"effective_range\" in event.row.before || \"exit_ground\" in event.row.before || \"exit_facts\" in event.row.before)",
-					"fields": ["before", "exit_facts", "exit_ground", "effective_range"],
-					"reads": {
-						"movements": {
-							"collection": "leave_catalog_entry",
-							"where": {
-								"employment_id": {
-									"eq": "event.row.id"
-								},
-								"payslip_id": {
-									"isNull": true
-								}
-							},
-							"select": ["reference"]
-						},
-						"tasks": {
-							"collection": "regulatory_task",
-							"where": {
-								"subject_id": {
-									"eq": "event.row.id"
-								},
-								"state": {
-									"eq": "\"OPEN\""
-								}
-							},
-							"select": ["occurrence_key", "facts"]
-						}
-					},
-					"effect": "movements.filter(m, m.reference != null && m.reference.startsWith(\"exit:\" + event.row.id + \":\") && !((event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\") != \"\" && m.reference.endsWith(\":\" + (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")))).map(m, { \"collection\": \"leave_catalog_entry\", \"operation\": \"delete\", \"data\": { \"target\": [m.id] } }) + tasks.filter(t, t.facts != null && has(t.facts.exit_key) && t.facts.exit_key != (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")).map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The exit it answered was changed on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
-				},
-				{
-					"id": "encash-leave-on-exit",
-					"target_collection": "employment_contract",
-					"events": ["updated"],
-					"when": "event.row.exit_facts != null && event.row.effective_range.to != null",
-					"fields": ["exit_facts", "effective_range"],
-					"reads": {
-						"catalogues": {
-							"collection": "leave_catalog",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"encash_on_exit": {
-									"eq": true
-								}
-							},
-							"select": ["id", "code", "unit", "entitlement"]
-						},
-						"movements": {
-							"collection": "leave_catalog_entry",
-							"where": {
-								"employment_id": {
-									"eq": "event.row.id"
-								}
-							},
-							"select": ["catalog_id", "activity", "days", "reference"]
-						}
-					},
-					"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.available))) } }).filter(w, w.data.days > 0)"
-				},
-				{
-					"id": "raise-obligations",
-					"target_collection": "payroll_run",
-					"events": ["created"],
-					"when": "true",
-					"fields": ["period", "company_id"],
-					"reads": {
-						"duties": {
-							"collection": "rule_set",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"family": {
-									"eq": "\"OBLIGATIONS\""
-								}
-							},
-							"select": ["code", "name", "references", "rules"]
-						},
-						"company": {
-							"collection": "entity",
-							"where": {
-								"id": {
-									"eq": "event.company_id"
-								}
-							},
-							"select": ["name", "region", "risk_class", "time_zone", "facts"]
-						},
-						"holidays": {
-							"collection": "holiday",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								},
-								"published_at": {
-									"isNull": false
-								},
-								"date": {
-									"gte": "add_days(event.day, -31)",
-									"lte": "add_days(event.day, 400)"
-								}
-							},
-							"select": ["date", "name", "kind"]
-						},
-						"raised": {
-							"collection": "obligation",
-							"where": {
-								"trigger_ref": {
-									"eq": "event.row.id"
-								}
-							},
-							"select": ["duty_code"]
-						}
-					},
-					"effect": "duties.filter(d, (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }) == true) && !raised.exists(o, o.duty_code == d.code)).map(d, { \"collection\": \"obligation\", \"operation\": \"create\", \"data\": { \"duty_code\": d.code, \"references\": d.references, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }), \"amount_due\": has(d.rules.amount) ? configured_eval(d.rules.amount, { \"rules\": event.rules, \"total\": sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), \"run\": run, \"period\": event.period, \"company\": first(company), \"headcount_months\": event.headcount_months }) : round(sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), 0.01), \"occurrence_key\": d.code + \":\" + event.row.id } }).filter(w, w.data.amount_due > 0.0)"
-				},
-				{
-					"id": "withdraw-run-duties",
-					"target_collection": "payroll_run",
-					"events": ["deleted"],
-					"reads": {
-						"obligations": {
-							"collection": "obligation",
-							"where": {
-								"trigger_ref": {
-									"eq": "event.row.id"
-								},
-								"state": {
-									"eq": "\"OPEN\""
-								}
-							},
-							"select": ["amount_settled"]
-						},
-						"tasks": {
-							"collection": "regulatory_task",
-							"where": {
-								"subject_id": {
-									"eq": "event.row.id"
-								},
-								"state": {
-									"eq": "\"OPEN\""
-								}
-							},
-							"select": ["occurrence_key"]
-						}
-					},
-					"effect": "obligations.filter(o, o.amount_settled == null).map(o, { \"collection\": \"obligation\", \"operation\": \"delete\", \"data\": { \"target\": [o.id] } }) + tasks.map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The payroll run that raised it was deleted on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } })"
-				},
-				{
-					"id": "encash-leave-at-window-end",
-					"target_collection": "calendar",
-					"events": ["daily"],
-					"when": "size(event.leave_balances) > 0",
-					"reads": {
-						"catalogues": {
-							"collection": "leave_catalog",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"encash_at_window_end": {
-									"eq": true
-								}
-							},
-							"select": ["id", "code"]
-						},
-						"movements": {
-							"collection": "leave_catalog_entry",
-							"where": {
-								"employment_id": {
-									"eq": "event.row.id"
-								},
-								"activity": {
-									"eq": "\"ENCASHMENT\""
-								}
-							},
-							"select": ["reference"]
-						}
-					},
-					"effect": "catalogues.filter(c, !movements.exists(m, m.reference == \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.day, \"activity\": \"ENCASHMENT\", \"reference\": \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code && b.window_to == event.day).map(b, b.available))) } }).filter(w, w.data.days > 0)"
-				},
-				{
-					"id": "raise-tasks",
-					"when": "true",
-					"fields": [
-						"period",
-						"company_id",
-						"employment_id",
-						"status",
-						"employee_id",
-						"effective_range",
-						"facts"
-					],
-					"reads": {
-						"tasks": {
-							"collection": "rule_set",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"family": {
-									"eq": "\"TASKS\""
-								}
-							},
-							"select": ["code", "name", "references", "rules"]
-						},
-						"company": {
-							"collection": "entity",
-							"where": {
-								"id": {
-									"eq": "event.company_id"
-								}
-							},
-							"select": [
-								"name",
-								"region",
-								"risk_class",
-								"time_zone",
-								"registration_number",
-								"facts"
-							]
-						},
-						"contract": {
-							"collection": "employment_contract",
-							"where": {
-								"id": {
-									"in": "(event.employment_id == null ? [] : [event.employment_id])"
-								}
-							},
-							"select": [
-								"id",
-								"company_id",
-								"employee_id",
-								"effective_range",
-								"prior_service_months",
-								"engagement",
-								"exit_ground",
-								"exit_facts",
-								"facts"
-							]
-						},
-						"employee": {
-							"collection": "employment_profile",
-							"where": {
-								"id": {
-									"in": "(event.employee_id == null ? [] : [event.employee_id])"
-								}
-							},
-							"select": [
-								"nationality",
-								"gender",
-								"date_of_birth",
-								"marital_status",
-								"children",
-								"facts"
-							]
-						},
-						"holidays": {
-							"collection": "holiday",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								},
-								"published_at": {
-									"isNull": false
-								},
-								"date": {
-									"gte": "add_days(event.day, -31)",
-									"lte": "add_days(event.day, 400)"
-								}
-							},
-							"select": ["date", "name", "kind"]
-						},
-						"raised": {
-							"collection": "regulatory_task",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								},
-								"triggered_on": {
-									"gte": "add_days(event.day, -400)"
-								}
-							},
-							"select": ["occurrence_key"]
-						},
-						"subject_tasks": {
-							"collection": "regulatory_task",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								},
-								"subject_id": {
-									"eq": "event.row.id"
-								}
-							},
-							"select": ["occurrence_key"]
-						}
-					},
-					"effect": "tasks.filter(d, has(d.rules.trigger) && d.rules.trigger.collection == event.collection && event.action in d.rules.trigger.events && (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.when) || configured_eval(d.rules.when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && !(raised + subject_tasks).exists(t, t.occurrence_key == d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)))).map(d, { \"collection\": \"regulatory_task\", \"operation\": \"create\", \"data\": { \"facts\": (event.collection in [\"employment_contract\", \"calendar\"] && has(event.row.exit_facts) && event.row.exit_facts != null && has(event.row.effective_range) && event.row.effective_range.to != null ? { \"exit_key\": string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") } : {}), \"code\": d.code, \"title\": d.name, \"references\": d.references, \"subject_collection\": event.collection, \"subject_id\": event.row.id, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }), \"occurrence_key\": d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)) } })",
-					"events": ["created", "updated", "daily", "after_exit", "calendar"]
-				},
-				{
-					"id": "write-public-holidays",
-					"target_collection": "entity",
-					"events": ["created", "calendar"],
-					"when": "true",
-					"reads": {
-						"calendar": {
-							"collection": "rule_set",
-							"where": {
-								"settings_id": {
-									"eq": "event.settings_id"
-								},
-								"family": {
-									"eq": "\"PAYROLL\""
-								},
-								"code": {
-									"eq": "\"public_holidays\""
-								}
-							},
-							"select": ["rules"]
-						},
-						"held": {
-							"collection": "holiday",
-							"where": {
-								"company_id": {
-									"eq": "event.company_id"
-								}
-							},
-							"select": ["date"]
-						}
-					},
-					"effect": "calendar.exists(c, has(c.rules.holidays)) ? first(calendar).rules.holidays.filter(h, (!has(h.regions) || event.row.region in h.regions) && !held.exists(x, x.date == h.date)).map(h, { \"collection\": \"holiday\", \"operation\": \"create\", \"data\": { \"company_id\": event.company_id, \"date\": h.date, \"name\": h.name, \"kind\": has(h.kind) ? h.kind : \"PUBLIC_HOLIDAY\", \"replaces\": has(h.replaces) ? h.replaces : null, \"given_to\": has(h.given_to) ? h.given_to : \"EVERYONE\" } }) : []"
-				}
-			]
-		},
 		"employee_input_schema": {
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
 			"type": "object",
@@ -1257,56 +881,6 @@
 					"description": "Medan annex XI of Kep. 188.44/909/KPTS/2025: private conventional foreign-exchange bank (printed KBLI 2015 64125, KBLI 2020 64121), foreign-exchange syariah bank (2015 64131, 2020 64122), or another bank. Declare actual licensed status; the broader KBLI 2020 code does not establish it."
 				}
 			}
-		},
-		"suspension_kinds": [
-			{
-				"code": "EMPLOYER_CAUSED",
-				"name": "Willing to work but not employed by the employer’s own fault or an obstacle it could have avoided — wage paid",
-				"counts_as_attended": "true",
-				"scheduled": "true",
-				"pay": "day.day_type == \"WORK\" ? (terms.monthly_wage / double(period.days)) : 0.0",
-				"references": [
-					{
-						"title": "PP 36/2021 art.40(2)(d) — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
-					}
-				]
-			},
-			{
-				"code": "FORCE_MAJEURE",
-				"name": "Natural disaster or another obstacle the employer could not avoid — no work, no wage",
-				"counts_as_attended": "false",
-				"scheduled": "true",
-				"pay": "0.0",
-				"references": [
-					{
-						"title": "UU 13/2003 art.93(1); PP 36/2021 art.40(1) — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
-					}
-				]
-			},
-			{
-				"code": "STRIKE_NORMATIVE",
-				"name": "Lawful strike over normative rights the employer seriously violated — wage paid",
-				"counts_as_attended": "false",
-				"scheduled": "true",
-				"pay": "day.day_type == \"WORK\" ? (terms.monthly_wage / double(period.days)) : 0.0",
-				"references": [
-					{
-						"title": "UU 13/2003 art.145 — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
-					}
-				]
-			},
-			{
-				"code": "STRIKE_OTHER",
-				"name": "Any other strike — no work, no wage",
-				"counts_as_attended": "false",
-				"scheduled": "true",
-				"pay": "0.0",
-				"references": [
-					{
-						"title": "UU 13/2003 art.93(1) — UU 13/2003 (https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm); PP 36/2021 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)"
-					}
-				]
-			}
-		]
+		}
 	}
 ]

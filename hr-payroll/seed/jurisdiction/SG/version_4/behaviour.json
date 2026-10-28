@@ -1,0 +1,1280 @@
+[
+	{
+		"id": "8bff7419-0dc1-5d22-bc3e-df1439ec3944",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "hold-payslips",
+		"order": 100,
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"when": "has(event.row.holds) && event.row.holds != null && size(event.row.holds) > 0",
+		"fields": ["holds"],
+		"reads": {
+			"slips": {
+				"collection": "payslip",
+				"where": {
+					"payroll_run_id": {
+						"eq": "event.row.id"
+					},
+					"status": {
+						"eq": "\"DRAFT\""
+					}
+				},
+				"select": ["id", "employment_id"]
+			}
+		},
+		"effect": "event.row.holds.map(h, { \"collection\": \"payslip\", \"operation\": \"update\", \"data\": { \"target\": slips.filter(s, s.employment_id == h.employment_id).map(s, s.id), \"set\": { \"status\": \"ON_HOLD\" } } }).filter(w, size(w.data.target) > 0)"
+	},
+	{
+		"id": "8d5b2fbc-5561-53d2-8af8-576fa9f0933e",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "retract-exit-effects",
+		"order": 200,
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"when": "has(event.row.before) && event.row.before != null && (\"effective_range\" in event.row.before || \"exit_ground\" in event.row.before || \"exit_facts\" in event.row.before)",
+		"fields": ["before", "exit_facts", "exit_ground", "effective_range"],
+		"reads": {
+			"movements": {
+				"collection": "leave_catalog_entry",
+				"where": {
+					"employment_id": {
+						"eq": "event.row.id"
+					},
+					"payslip_id": {
+						"isNull": true
+					}
+				},
+				"select": ["reference"]
+			},
+			"tasks": {
+				"collection": "regulatory_task",
+				"where": {
+					"subject_id": {
+						"eq": "event.row.id"
+					},
+					"state": {
+						"eq": "\"OPEN\""
+					}
+				},
+				"select": ["occurrence_key", "facts"]
+			},
+			"exit_pay": {
+				"collection": "adhoc_catalog_entry",
+				"where": {
+					"employment_id": {
+						"eq": "event.row.id"
+					},
+					"payslip_id": {
+						"isNull": true
+					}
+				},
+				"select": ["facts"]
+			}
+		},
+		"effect": "movements.filter(m, m.reference != null && m.reference.startsWith(\"exit:\" + event.row.id + \":\") && !((event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\") != \"\" && m.reference.endsWith(\":\" + (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")))).map(m, { \"collection\": \"leave_catalog_entry\", \"operation\": \"delete\", \"data\": { \"target\": [m.id] } }) + tasks.filter(t, t.facts != null && has(t.facts.exit_key) && t.facts.exit_key != (event.row.exit_facts != null && event.row.effective_range.to != null ? string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") : \"\")).map(t, { \"collection\": \"regulatory_task\", \"operation\": \"update\", \"data\": { \"target\": [t.id], \"set\": { \"state\": \"DISMISSED\", \"dismiss_reason\": \"The exit it answered was changed on \" + event.day + \".\", \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day } } }) + exit_pay.filter(e, e.facts != null && has(e.facts.source) && string(e.facts.source).startsWith(\"exit:\" + event.row.id + \":\") && !((event.row.effective_range.to != null && has(event.row.exit_ground) && event.row.exit_ground != null && event.row.exit_ground != \"\" ? string(event.row.effective_range.to) + \"/\" + event.row.exit_ground : \"\") != \"\" && string(e.facts.source).endsWith(\":\" + (event.row.effective_range.to != null && has(event.row.exit_ground) && event.row.exit_ground != null && event.row.exit_ground != \"\" ? string(event.row.effective_range.to) + \"/\" + event.row.exit_ground : \"\")))).map(e, { \"collection\": \"adhoc_catalog_entry\", \"operation\": \"delete\", \"data\": { \"target\": [e.id] } })"
+	},
+	{
+		"id": "2980f509-e178-525d-9eed-9d5942c555af",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "encash-leave-on-exit",
+		"order": 300,
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"when": "event.row.exit_facts != null && event.row.effective_range.to != null && !(event.row.exit_ground == \"DISMISSAL\" && has(event.row.exit_facts.dismissed_for_misconduct) && event.row.exit_facts.dismissed_for_misconduct == true)",
+		"fields": ["exit_facts", "effective_range"],
+		"reads": {
+			"catalogues": {
+				"collection": "leave_catalog",
+				"where": {
+					"settings_id": {
+						"eq": "event.settings_id"
+					},
+					"encash_on_exit": {
+						"eq": true
+					}
+				},
+				"select": ["id", "code", "unit", "entitlement"]
+			},
+			"movements": {
+				"collection": "leave_catalog_entry",
+				"where": {
+					"employment_id": {
+						"eq": "event.row.id"
+					}
+				},
+				"select": ["catalog_id", "activity", "days", "reference"]
+			}
+		},
+		"effect": "catalogues.filter(c, has(c.entitlement) && c.entitlement != null && has(c.entitlement.days) && !movements.exists(m, m.reference == \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"))).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.row.effective_range.to, \"activity\": \"ENCASHMENT\", \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\" + string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\"), \"days\": max(0.0, c.code == \"ANNUAL_LEAVE_ON_EXIT\" ? sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.entitlement + b.carried - b.taken)) + sum(event.leave_balances.filter(b, b.code == \"ANNUAL_LEAVE\").map(b, b.carried)) : sum(event.leave_balances.filter(b, b.code == c.code).map(b, b.remaining))) } }).filter(w, w.data.days > 0)"
+	},
+	{
+		"id": "3aaedc1e-bb9e-503e-b43f-bd0b99f83f15",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "CPF_MONTHLY_SUBMISSION_AND_PAYMENT",
+		"name": "CPF monthly submission and payment",
+		"order": 401,
+		"references": [
+			{
+				"title": "Central Provident Fund Act 1953 ss.7, 9; CPF Regulations 1987 regs.2(1), 3 (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions (https://www.cpf.gov.sg/service/article/when-is-the-due-date-for-cpf-contributions) and How does CPF Board calculate interest on late payment (https://www.cpf.gov.sg/service/article/how-does-cpf-board-calculate-interest-on-late-payment)."
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Submit and pay the month’s CPF contributions (employer and employee shares) for every Singapore Citizen and SPR employee through the CPF Submission Number, by the 14th of the following month (the next working day when the 14th is a Saturday, Sunday or public holiday). Late payment interest: 1.5% a month on the unpaid contributions, or $5 if higher (CPF Regulations reg.3). Apply to CPF Board for a refund of contributions paid above the Additional Wage ceiling.",
+			"schemes": ["CPF"],
+			"due": "next_working_day(add_days(period.to, 14), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "52702906-fa49-55f8-9e37-a1d41777cd8f",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "SDL_REMITTANCE",
+		"name": "Skills Development Levy remittance",
+		"order": 402,
+		"references": [
+			{
+				"title": "Skills Development Levy Act 1979; CPF Board, Skills Development Levy. The engine prices each employee's levy and derives the whole-dollar monthly payable; payment and receipt evidence remain external. CPF Board, Skills Development Levy (updated 2 Jul 2026): collected on behalf of SWDA; late payment penalty 10% a year.",
+				"url": "https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Pay the Skills Development Levy for every employee working in Singapore, foreign employees included, with the month’s CPF by the 14th of the following month (next working day); CPF Board collects it for the Skills and Workforce Development Agency (SWDA), and an employer with only foreign employees pays SWDA directly. The per-employee levies are summed and rounded down to the dollar. Late payment: a penalty of 10% a year on the outstanding amount.",
+			"schemes": ["SDL"],
+			"due": "next_working_day(add_days(period.to, 14), holidays, [\"SATURDAY\", \"SUNDAY\"])",
+			"amount": "round(total, 1.0, \"DOWN\")"
+		}
+	},
+	{
+		"id": "47c8b034-73bf-5f96-b07c-2e5430b22155",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "SHG_DEDUCTION_REMITTANCE",
+		"name": "Self-help group fund remittance",
+		"order": 403,
+		"references": [
+			{
+				"title": "CPF Board, Contributions to self-help groups. The engine prices the deduction and reads the recorded instruction; obtaining the instruction and remitting are outside it.",
+				"url": "https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Remit the CDAC, ECF, MBMF and SINDA deductions with the month’s CPF by the 14th of the following month; apply a fund’s written opt-out or changed-amount instruction from its effective date.",
+			"schemes": ["CDAC", "ECF", "MBMF", "SINDA"],
+			"due": "next_working_day(add_days(period.to, 14), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "e9735c41-45e2-582c-919e-83c2d10a0699",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "NR_DIRECTOR_WITHHOLDING",
+		"name": "Withholding tax on non-resident director fees (IR37)",
+		"order": 404,
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.45; IRAS, Tax obligations for non-resident director, read 2026-10-07: 24% from YA 2024; e.g. approved 2 Dec 2025, paid by 15 Feb 2026.",
+				"url": "https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-director/tax-obligations-for-non-resident-director"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "File Form IR37 and pay the 24% withholding tax on remuneration and fees paid to a non-resident director by the 15th of the second month after the payment.",
+			"schemes": ["WHT_NR_DIRECTOR"],
+			"due": "add_days(month_end(add_months(has(run.pay_date) && run.pay_date != null ? run.pay_date : period.to, 1)), 15)"
+		}
+	},
+	{
+		"id": "f47d74ae-4b0c-5857-87f6-948af2c8ffa7",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "NR_ENTERTAINER_WITHHOLDING",
+		"name": "Withholding tax on non-resident public entertainers (S45)",
+		"order": 405,
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.45; IRAS, read 2026-10-07: pay by the 15th of the second month from the date of payment.",
+				"url": "https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-public-entertainer-(artiste-musician-sportsman-etc-)/tax-obligations-of-non-resident-public-entertainer"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "e-File the S45 withholding return and pay the 15% withholding tax on payments to a non-resident public entertainer by the 15th of the second month after the payment.",
+			"schemes": ["WHT_NR_ENTERTAINER"],
+			"due": "add_days(month_end(add_months(has(run.pay_date) && run.pay_date != null ? run.pay_date : period.to, 1)), 15)"
+		}
+	},
+	{
+		"id": "ff672f6d-dab2-5406-9be4-45f99da14595",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "encash-leave-at-window-end",
+		"order": 500,
+		"target_collection": "calendar",
+		"events": ["daily"],
+		"when": "size(event.leave_balances) > 0",
+		"reads": {
+			"catalogues": {
+				"collection": "leave_catalog",
+				"where": {
+					"settings_id": {
+						"eq": "event.settings_id"
+					},
+					"encash_at_window_end": {
+						"eq": true
+					}
+				},
+				"select": ["id", "code"]
+			},
+			"movements": {
+				"collection": "leave_catalog_entry",
+				"where": {
+					"employment_id": {
+						"eq": "event.row.id"
+					},
+					"activity": {
+						"eq": "\"ENCASHMENT\""
+					}
+				},
+				"select": ["reference"]
+			}
+		},
+		"effect": "catalogues.filter(c, !movements.exists(m, m.reference == \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day)).map(c, { \"collection\": \"leave_catalog_entry\", \"operation\": \"create\", \"data\": { \"catalog_id\": c.id, \"employment_id\": event.row.id, \"occurred_on\": event.day, \"activity\": \"ENCASHMENT\", \"reference\": \"window:\" + event.row.id + \":\" + c.code + \":\" + event.day, \"days\": max(0.0, sum(event.leave_balances.filter(b, b.code == c.code && b.window_to == event.day).map(b, b.remaining))) } }).filter(w, w.data.days > 0)"
+	},
+	{
+		"id": "8d5b15cd-a833-519f-bf17-612678c9a841",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "FOREIGN_WORKER_LEVY",
+		"name": "Foreign worker levy payment",
+		"order": 601,
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower Act 1990 and the levy order made under it; MOM, Paying the foreign worker levy.",
+				"url": "https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Pay the month’s foreign worker levy for every Work Permit and S Pass holder by the 17th of the following month (the next working day when it falls on a weekend or public holiday), normally by GIRO, at the amount on the MOM levy bill. Waive the month when no Work Permit or S Pass was in force. Missing two consecutive months revokes the employer’s passes. Raised unless the entity records foreign_worker_levy_payer = false (no S Pass or Work Permit holder). The levy stays a task, not an obligation: its amount is the MOM levy bill (quota tier and sector), which no scheme computes, and an obligation without a computed amount is never raised.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"applies_when": "(company == null || company.facts == null || !has(company.facts.foreign_worker_levy_payer) || company.facts.foreign_worker_levy_payer == true)",
+			"due": "next_working_day(add_days(period.to, 17), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "97d88fe0-1f82-52ad-bc91-1046f1849905",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "SALARY_PAYMENT_DEADLINE",
+		"name": "Salary payment",
+		"order": 602,
+		"references": [
+			{
+				"title": "Employment Act 1968",
+				"locator": "ss.20, 21(1)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Pay the salary for a salary period of not more than one month before the expiry of the 7th day after its last day.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"due": "add_days(period.to, 7)"
+		}
+	},
+	{
+		"id": "f5ced09a-c01d-50a0-9da6-2f71881d3559",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "OVERTIME_PAYMENT_DEADLINE",
+		"name": "Overtime payment",
+		"order": 603,
+		"references": [
+			{
+				"title": "Employment Act 1968",
+				"locator": "s.21(2)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Pay overtime worked in the salary period not later than 14 days after its last day. Waive the month when no overtime was worked.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"due": "add_days(period.to, 14)"
+		}
+	},
+	{
+		"id": "80a55700-ae02-5128-a5ff-d8079d10e4d3",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "ITEMISED_PAYSLIP",
+		"name": "Itemised payslips",
+		"order": 604,
+		"references": [
+			{
+				"title": "Employment Act 1968 s.96 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Itemised pay slips (https://www.mom.gov.sg/employment-practices/salary/itemised-payslips). The engine produces the payslip content; issuing it is outside it."
+			}
+		],
+		"target_collection": "payslip",
+		"events": ["updated"],
+		"definition": {
+			"description": "Give each employee an itemised payslip (basic salary, allowances, overtime hours and pay, other additional payments, deductions including CPF, net salary, dates) with the salary or within 3 working days after paying it. Raised when the payslip is paid; due 3 working days after the paid day.",
+			"trigger": {
+				"collection": "payslip",
+				"events": ["updated"],
+				"fields": ["status"]
+			},
+			"due": "add_working_days(row.paid_on, 3, holidays, [\"SATURDAY\", \"SUNDAY\"])",
+			"when": "row.status == \"PAID\" && has(row.paid_on)"
+		}
+	},
+	{
+		"id": "c4f0e03d-fe45-5993-a97a-f2d86207a377",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "ANNUAL_EMPLOYMENT_INCOME_RETURN",
+		"name": "Form IR8A / AIS annual return",
+		"order": 605,
+		"references": [
+			{
+				"title": "Income Tax Act 1947",
+				"locator": "s.68(2)"
+			},
+			{
+				"title": "IRAS, Auto Inclusion Scheme (AIS) for Employment Income",
+				"url": "https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Prepare Form IR8A with Appendix 8A and Appendix 8B (Form IR8S is discontinued from YA 2026: excess or voluntary employer CPF is item d6 of Form IR8A) for every employee paid in the calendar year and submit them under the Auto-Inclusion Scheme (mandatory with 5 or more employees, on an IRAS notice, or when registered), otherwise give them to the employees, by 1 March of the following year. Raised by the December run.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["12"],
+			"due": "add_months(add_days(period.to, 1), 2)"
+		}
+	},
+	{
+		"id": "fc15582f-363d-59e1-aba5-db34f94bcfad",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "KEY_EMPLOYMENT_TERMS",
+		"name": "Key employment terms",
+		"order": 606,
+		"references": [
+			{
+				"title": "Employment Act 1968",
+				"locator": "s.95A(2)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Give the employee the key employment terms in writing not later than 14 days after the day the employee starts (an employment of 14 days or more).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"due": "add_days(hired_on, 14)"
+		}
+	},
+	{
+		"id": "ad6e3e6a-5f51-52f4-b379-1862c7f19e99",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "WORK_PASS_IN_FORCE",
+		"name": "Work pass before the start",
+		"order": 607,
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower Act 1990",
+				"locator": "s.5(1)"
+			},
+			{
+				"title": "MOM, Passes and permits",
+				"url": "https://www.mom.gov.sg/passes-and-permits"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "A foreign employee may start work only with a valid work pass (Employment Pass, S Pass or Work Permit) in force; waive for a Citizen or SPR. Raised for a hire whose profile immigration_status is a work pass, or is unrecorded.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"applies_when": "!((employee != null && employee.facts != null && has(employee.facts.immigration_status) ? employee.facts.immigration_status : \"\") in [\"CITIZEN\", \"PERMANENT_RESIDENT\"])",
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "dab9b2c5-efc1-55ad-b0d3-9d44d3711fc9",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "WORK_INJURY_COMPENSATION_INSURANCE",
+		"name": "Work injury compensation insurance",
+		"order": 608,
+		"references": [
+			{
+				"title": "Work Injury Compensation Act 2019; MOM, Work injury compensation insurance.",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/work-injury-compensation-insurance"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Have work injury compensation insurance in force from the first day for every employee doing manual work and every non-manual employee earning $2,600 or less a month; waive otherwise.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"due": "hired_on",
+			"applies_when": "contract == null || !has(contract.facts) || contract.facts == null || !has(contract.facts.contract_terms) || contract.facts.contract_terms.exists(t, !has(t.statutory_work_category) || t.statutory_work_category != \"NON_MANUAL\" || !has(t.base_salary) || t.base_salary.value <= 2600.0)"
+		}
+	},
+	{
+		"id": "886e7daa-645e-51b8-ac55-4a4e341b12cf",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "PDPA_CONSENT_PURPOSE_NOTIFICATION",
+		"name": "PDPA purpose notification",
+		"order": 609,
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012 ss.13 (consent required), 14, 15 and 15A (deemed consent), 16 (withdrawal), 17 and First and Second Schedules (without consent), 18 (limitation of purpose), 20 including s.20(4) (employment relationship) (https://sso.agc.gov.sg/Act/PDPA2012); PDPC Advisory Guidelines on the PDPA for Selected Topics, Employment chapter (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-selected-topics/advisory-guidelines-on-the-pdpa-for-selected-topics-(revised-may-2024).pdf)"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Notify the employee of the purposes for which the employer collects, uses and discloses personal data to manage the employment relationship (onboarding, payroll, CPF and IRAS filing, benefits), on or before collection; a new purpose needs fresh notification.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "5711f860-0774-59b0-8ce6-752443c66731",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "FINAL_SALARY_PAYMENT",
+		"name": "Final salary payment",
+		"order": 610,
+		"references": [
+			{
+				"title": "Employment Act 1968",
+				"locator": "ss.21(3), 22, 23, 24",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Pay the salary and every sum due on termination: on the last day when the contract ends or notice was served (ss.21(3), 23(1)); on the day of a dismissal or, where impossible, within 3 days excluding rest days and public holidays (s.22); within 7 days after a resignation without notice (s.23(2)). The due day is the last day; subject to IR21 withholding (s.24). Due the last day, or 7 days after a RESIGNATION whose exit_facts do not record notice_served.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"due": "contract.exit_ground == \"RESIGNATION\" && !(contract.exit_facts != null && has(contract.exit_facts.notice_served) && contract.exit_facts.notice_served == true) ? add_days(exit_on, 7) : (contract.exit_ground in [\"DISMISSAL\", \"RETRENCHMENT\", \"REDUNDANCY\", \"UNILATERAL\"] && contract.exit_facts != null && has(contract.exit_facts.final_pay_not_possible) && contract.exit_facts.final_pay_not_possible == true ? add_working_days(exit_on, 3, holidays, [\"SATURDAY\", \"SUNDAY\"]) : exit_on)"
+		}
+	},
+	{
+		"id": "b55279f7-0f16-565f-aba3-6d1170240463",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "TAX_CLEARANCE_AND_WITHHOLDING",
+		"name": "IR21 tax clearance",
+		"order": 611,
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.68(5)–(7) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr68-); Employment Act 1968 s.24 (https://sso.agc.gov.sg/Act/EmA1968); IRAS, Getting tax clearance: a step-by-step guide (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/getting-tax-clearance-a-step-by-step-guide)."
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "File Form IR21 for a non-Singapore-Citizen employee (SPRs included) who ceases employment, is posted overseas or leaves Singapore for more than three months, at least one month before the cessation, and withhold all monies due from the day the employer is aware until the Comptroller’s clearance; waive for a Citizen or an IRAS exemption. Late or no filing: fine up to $5,000. Raised for every leaver whose profile immigration_status is not CITIZEN (SPRs included), or is unrecorded.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "(employee != null && employee.facts != null && has(employee.facts.immigration_status) ? employee.facts.immigration_status : \"\") != \"CITIZEN\" && !(contract.exit_facts != null && has(contract.exit_facts.ir21_exemption))",
+			"due": "add_months(exit_on, -1)"
+		}
+	},
+	{
+		"id": "00f05948-8e1f-54a6-9c94-f4bf107431b9",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "WORK_PASS_CANCELLATION",
+		"name": "Work pass cancellation",
+		"order": 612,
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower Act 1990 and the Employment of Foreign Manpower (Work Passes) Regulations; MOM, Cancel a Work Permit (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/cancel-a-work-permit) and Cancel an Employment Pass (https://www.mom.gov.sg/passes-and-permits/employment-pass/cancel-a-pass), read 2026-10-06: “Within 1 week after the last day of notice.”"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Cancel the foreign employee’s Employment Pass, S Pass or Work Permit within 1 week after the last day of notice (within 1 week of departure when the employee has left Singapore for good); waive for a Citizen or SPR. Raised for a leaver whose profile immigration_status is a work pass, or is unrecorded.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "!((employee != null && employee.facts != null && has(employee.facts.immigration_status) ? employee.facts.immigration_status : \"\") in [\"CITIZEN\", \"PERMANENT_RESIDENT\"])",
+			"due": "add_days(exit_on, 7)"
+		}
+	},
+	{
+		"id": "7cf2b5af-33b0-508b-a7c8-a76c2ad00b33",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "RETRENCHMENT_NOTIFICATION",
+		"name": "Mandatory retrenchment notification",
+		"order": 613,
+		"references": [
+			{
+				"title": "Employment Act 1968 s.45 and s.96A (https://sso.agc.gov.sg/Act/EmA1968); MOM, Mandatory retrenchment notifications (https://www.mom.gov.sg/employment-practices/retrenchment/mandatory-retrenchment-notifications); Tripartite Advisory on Managing Excess Manpower and Responsible Retrenchment."
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "An employer registered in Singapore with at least 10 employees (headcount on the day) notifies MOM of every retrenchment within 5 working days after the affected employees are notified. Raised for a RETRENCHMENT or REDUNDANCY exit whose exit_facts record retrenchment_notified_on; due 5 working days after that notice (add_working_days over the entity holidays).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
+			"applies_when": "contract.exit_ground in [\"RETRENCHMENT\", \"REDUNDANCY\"] && contract.exit_facts != null && has(contract.exit_facts.retrenchment_notified_on) && headcount >= 10",
+			"due": "add_working_days(contract.exit_facts.retrenchment_notified_on, 5, holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "9a3cb23a-1286-5b6a-830b-e9f354bdded0",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "GOVERNMENT_PAID_LEAVE_CLAIM",
+		"name": "Government-paid leave reimbursement claim",
+		"order": 614,
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001; MSF ProFamily Leave, scheme pages for maternity, paternity, adoption and shared parental leave, read 2026-10-07",
+				"url": "https://www.profamilyleave.msf.gov.sg/"
+			}
+		],
+		"target_collection": "leave_catalog_entry",
+		"events": ["created"],
+		"definition": {
+			"description": "Claim the reimbursable government-paid maternity, paternity, adoption or shared parental leave (GPML, GPPL, GPAL, GPSPL) through the GPL portal no later than 3 months after the last day of the leave. Raised for each recorded spell of a family-event leave (entry.facts.event_kind set); waive a spell the Government does not reimburse (e.g. GPML weeks 1–8 of a 1st or 2nd child).",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"events": ["created"]
+			},
+			"when": "row.catalog_code in [\"MATERNITY_LEAVE\", \"PATERNITY_LEAVE\", \"ADOPTION_LEAVE\", \"SHARED_PARENTAL_LEAVE\"] && row.activity == \"TIME_OFF\" && row.to != null",
+			"due": "add_months(row.to, 3)"
+		}
+	},
+	{
+		"id": "407339a5-8e2e-530a-a138-e9ab6659967a",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "CHILDCARE_LEAVE_CLAIM",
+		"name": "Childcare and extended childcare leave claim",
+		"order": 615,
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 s.12B; MSF ProFamily Leave, Childcare leave, read 2026-10-07: “no later than 3 months after the last date of the calendar year”",
+				"url": "https://www.profamilyleave.msf.gov.sg/schemes/childcare-leave"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Claim the government-paid childcare leave (days 4–6, $500 a day, $1,500 a year) and extended childcare leave (both days, $500 a day, $1,000 a year) the employer paid in the calendar year, no later than 3 months after its last day. Raised by the December run; waive when no such leave was taken.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["12"],
+			"due": "add_months(period.to, 3)"
+		}
+	},
+	{
+		"id": "58bbb0b9-9a99-5f0d-98b1-7c69ff72cb06",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "WORK_ACCIDENT_REPORT",
+		"name": "Work accident report to MOM",
+		"order": 616,
+		"references": [
+			{
+				"title": "Workplace Safety and Health (Incident Reporting) Regulations and Work Injury Compensation Regulations; Ministry of Manpower official reporting criteria, read 2026-10-10: https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report. The employer table expressly lists any outpatient/hospitalisation leave, light duty, death and occupational disease; fatal accident reports use accident date, non-fatal reports first employer notice. Primary legislation links were inaccessible (403); current agency guidance is the verified source. MOM parliamentary written answer dated 8 February 2023 confirms the any-instance requirement has applied since 1 September 2020: https://www.mom.gov.sg/newsroom/parliament-questions-and-replies/2023/0206-written-answer-to-pq-on-data-on-healthcare-workers-compensation-under-wica."
+			}
+		],
+		"target_collection": "leave_catalog_entry",
+		"events": ["created"],
+		"definition": {
+			"description": "Report a work accident through iReport for any outpatient or hospitalisation leave, including dedicated WICA leave classes. No four-day minimum applies, so the first positive leave entry triggers the report even when later leave is recorded separately. Fatal report: within ten days of the accident; non-fatal report: within ten days of the employer’s first notice. Record work_accident_on, accident_notified_on and work_accident_fatal as applicable. If the actual first notice is not supplied, the accident date is a conservative earlier due date, not an inferred notice date. This leave-triggered duty does not cover incidents recorded without leave (light duty, death, occupational disease), or the separate immediate fatality notification; those need workplace-case coverage.",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"events": ["created"]
+			},
+			"when": "row.catalog_code in [\"SICK_LEAVE\", \"HOSPITALIZATION_LEAVE\", \"WORK_INJURY_MEDICAL_LEAVE\", \"WORK_INJURY_HOSPITALISATION_LEAVE\"] && row.facts != null && has(row.facts.work_accident_on)",
+			"applies_when": "row.days > 0.0 || (has(row.facts.work_accident_fatal) && row.facts.work_accident_fatal == true)",
+			"due": "add_days((has(row.facts.work_accident_fatal) && row.facts.work_accident_fatal == true) ? row.facts.work_accident_on : (has(row.facts.accident_notified_on) ? row.facts.accident_notified_on : row.facts.work_accident_on), 10)"
+		}
+	},
+	{
+		"id": "53a3bee3-ce7f-59ae-9194-927a35f7a645",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "CPF_SUBMISSION_NUMBER",
+		"name": "CPF Submission Number registration",
+		"order": 617,
+		"references": [
+			{
+				"title": "Central Provident Fund Act 1953 s.7; CPF Board, How do I start contributing CPF as a new employer, read 2026-10-07: “You will need a CPF Submission Number (CSN) to transact with CPF Board”",
+				"url": "https://www.cpf.gov.sg/service/article/how-do-i-start-contributing-cpf-as-a-new-employer"
+			}
+		],
+		"target_collection": "entity",
+		"events": ["created"],
+		"definition": {
+			"description": "Apply for the CPF Submission Number before the first CPF payment is due. Raised when an entity is created without one; due the first possible CPF deadline, the 14th of the month after the entity’s first month (rolled to the next working day). There is no per-employee CPF registration.",
+			"trigger": {
+				"collection": "entity",
+				"events": ["created"]
+			},
+			"applies_when": "company == null || company.facts == null || !has(company.facts.cpf_submission_number) || company.facts.cpf_submission_number == \"\"",
+			"due": "next_working_day(add_days(month_end(period.from), 14), holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "e322b6dd-e42c-5426-bc63-f149b577cd48",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "REEMPLOYMENT_OFFER",
+		"name": "Re-employment offer",
+		"order": 618,
+		"references": [
+			{
+				"title": "Retirement and Re-employment Act 1993 ss.4, 7C; MOM, Tripartite Guidelines on the Re-employment of Older Employees (updated 1 July 2026), https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en, read 2026-10-07.",
+				"url": "https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en"
+			}
+		],
+		"target_collection": "calendar",
+		"events": ["daily"],
+		"definition": {
+			"description": "Offer re-employment (or an alternative-employer transfer, or the EAP) to an eligible Citizen or SPR employee reaching the prescribed minimum retirement age (63; 64 for those born on or after 1 July 1963, from 1 July 2026). The Tripartite Guidelines ask employers to engage the employee at least 6 months, and offer the contract at least 3 months, before that age. Raised on the daily tick 6 months before the birthday; due 3 months before it. Waive for an employee not eligible (performance, medical fitness, hired at 55+ with under 2 years of service).",
+			"trigger": {
+				"collection": "calendar",
+				"events": ["daily"]
+			},
+			"when": "employee != null && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && today == add_months(add_years(employee.date_of_birth, employee.date_of_birth >= \"1963-07-01\" ? 64 : 63), -6)",
+			"applies_when": "!(employee != null && employee.facts != null && has(employee.facts.immigration_status) && !(employee.facts.immigration_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]))",
+			"due": "add_months(add_years(employee.date_of_birth, employee.date_of_birth >= \"1963-07-01\" ? 64 : 63), -3)"
+		}
+	},
+	{
+		"id": "3bd1b4f8-5500-542f-ba4d-605a8bed7488",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "IR21_LEAVING_SINGAPORE",
+		"name": "IR21 for an overseas posting or departure over 3 months",
+		"order": 619,
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.68(5); IRAS, Tax clearance for employees, read 2026-10-07.",
+				"url": "https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/tax-clearance-for-employees"
+			}
+		],
+		"target_collection": "employment_profile",
+		"events": ["updated"],
+		"definition": {
+			"description": "File Form IR21 at least one month before a non-Citizen employee is posted overseas or leaves Singapore for more than 3 months (without ceasing employment). Raised when the profile records facts.leaves_singapore_from (customer input).",
+			"trigger": {
+				"collection": "employment_profile",
+				"events": ["updated"],
+				"fields": ["facts"]
+			},
+			"when": "row.facts != null && has(row.facts.leaves_singapore_from)",
+			"applies_when": "!(has(row.facts.immigration_status) && row.facts.immigration_status == \"CITIZEN\")",
+			"due": "add_months(row.facts.leaves_singapore_from, -1)"
+		}
+	},
+	{
+		"id": "c2f2ec59-b616-54ee-87b9-63343606d8fc",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "WORK_PASS_MEDICAL_INSURANCE",
+		"name": "Medical insurance for a Work Permit or S Pass holder",
+		"order": 620,
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule; MOM, Medical insurance requirements and MOM written answer 1106/2025.",
+				"url": "https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/sector-specific-rules/medical-insurance"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Buy and keep medical insurance for each Work Permit and S Pass holder for inpatient care and day surgery, with an annual claim limit of at least $60,000 (employer co-payment terms as MOM states), in force from the start of employment.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"applies_when": "employee != null && employee.facts != null && has(employee.facts.immigration_status) && employee.facts.immigration_status in [\"WORK_PERMIT\", \"S_PASS\"]",
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "8144812a-1330-57cf-94e7-6f786f62127e",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "WORK_PERMIT_SECURITY_BOND",
+		"name": "Security bond for a non-Malaysian Work Permit holder",
+		"order": 621,
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule; MOM, Security bond requirements for migrant worker, read 2026-10-07: Malaysians are exempt.",
+				"url": "https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/sector-specific-rules/security-bond"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Furnish a $5,000 security bond for each non-Malaysian Work Permit holder before the worker arrives in Singapore.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"applies_when": "employee != null && employee.facts != null && has(employee.facts.immigration_status) && employee.facts.immigration_status == \"WORK_PERMIT\" && !(employee.nationality in [\"MY\", \"MALAYSIA\", \"Malaysian\", \"MALAYSIAN\"])",
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "24b9feef-1759-5164-ae15-b7e7b6c802b7",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "YOUNG_PERSON_NOTIFICATION",
+		"name": "Notify MOM of a child or young person in an industrial undertaking",
+		"order": 622,
+		"references": [
+			{
+				"title": "Employment Act 1968 Part 6 and the Employment (Children and Young Persons) Regulations; MOM, Notify for employment of young persons and Employing young persons and children, read 2026-10-07.",
+				"url": "https://www.mom.gov.sg/eservices/services/notify-for-employment-of-young-persons"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Notify the Commissioner within 30 days of employing a child aged 13 to under 15 (or a young person) in an industrial undertaking, with a medical report certifying fitness. Raised for a hire under 16 at an entity whose facts record industrial_undertaking (customer input).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"applies_when": "employee != null && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, hired_on) >= 13 && age_on(employee.date_of_birth, hired_on) < 16 && company != null && company.facts != null && has(company.facts.industrial_undertaking) && company.facts.industrial_undertaking == true",
+			"due": "add_days(hired_on, 30)"
+		}
+	},
+	{
+		"id": "f5ad5c62-e432-5177-961f-656160fb3612",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "MISCONDUCT_DUE_INQUIRY",
+		"name": "Due inquiry before a misconduct dismissal",
+		"order": 623,
+		"references": [
+			{
+				"title": "Employment Act 1968 s.14(1)–(2) (AGC, read 2026-10-07).",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Hold a due inquiry before dismissing an employee for misconduct; pending it the employee may be suspended for up to a week, on at least half pay. Raised when a contract closes as a DISMISSAL with exit_facts.dismissed_for_misconduct; due the dismissal day.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null && contract.exit_ground == \"DISMISSAL\" && has(contract.exit_facts.dismissed_for_misconduct) && contract.exit_facts.dismissed_for_misconduct == true",
+			"due": "exit_on"
+		}
+	},
+	{
+		"id": "7ddf464b-a7b4-5c37-bc9c-303e11429cb1",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "PDPA_DATA_PROTECTION_OFFICER",
+		"name": "Designate a data protection officer",
+		"order": 624,
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012",
+				"locator": "ss.11(3)–(5), 12",
+				"url": "https://sso.agc.gov.sg/Act/PDPA2012"
+			}
+		],
+		"target_collection": "entity",
+		"events": ["created"],
+		"definition": {
+			"description": "Designate one or more data protection officers, make the business contact of at least one public, and put in place data protection policies and a complaints process. Raised when an entity is created without company.facts.dpo_contact (customer input).",
+			"trigger": {
+				"collection": "entity",
+				"events": ["created"]
+			},
+			"applies_when": "company == null || company.facts == null || !has(company.facts.dpo_contact) || company.facts.dpo_contact == \"\"",
+			"due": "today"
+		}
+	},
+	{
+		"id": "b5ef84c2-8f48-55d6-b754-a7b23dd69800",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "CPF_CONDITIONAL_WAGE_REFUND",
+		"name": "CPF refund on repaid conditional wages",
+		"order": 625,
+		"references": [
+			{
+				"title": "CPF Act 1953; CPF Board, Applying for refund of CPF contributions, read 2026-10-07: a refund request is made no later than one year from the payment date, and for wages paid on conditions no later than one year from the date the wages are supposed to be repaid.",
+				"url": "https://www.cpf.gov.sg/employer/compliance-and-rectifications/applying-for-refund-of-cpf-contributions"
+			}
+		],
+		"target_collection": "adhoc_catalog_entry",
+		"events": ["created"],
+		"definition": {
+			"description": "When an employee repays wages that attracted CPF (a conditional payment such as a sign-on bonus clawed back), apply to CPF Board for the refund of the CPF contributions paid on them no later than one year from the date the wages were repayable, after refunding the employee’s share to the employee. Raised by each PRIOR_WAGE_CASH_REPAYMENT entry; due one year after its day. An overpayment by error is not known to the engine (it charges the First Schedule exactly); its refund (one year from the payment date) is HR’s.",
+			"trigger": {
+				"collection": "adhoc_catalog_entry",
+				"events": ["created"]
+			},
+			"when": "has(row.catalog_code) && row.catalog_code == \"PRIOR_WAGE_CASH_REPAYMENT\"",
+			"due": "add_years(row.occurred_on, 1)"
+		}
+	},
+	{
+		"id": "67684c10-246a-5605-8c85-91bbbf7b365b",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "FLEXIBLE_WORK_REQUEST_DECISION",
+		"name": "Written decision on a formal FWA request",
+		"order": 626,
+		"references": [
+			{
+				"title": "Tripartite Guidelines on Flexible Work Arrangement Requests (TG-FWAR), in force 1 December 2024; TAFEP, Guide to managing flexible work arrangements requests for employers, read 2026-10-07.",
+				"url": "https://www.tal.sg/tafep/employment%20practices/work-life%20harmony/guide%20to%20managing%20flexible%20work%20arrangements%20requests%20for%20employers"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "Give the employee a written decision on a formal flexible work arrangement request within two months of receiving it, with the reason when it is rejected (on reasonable business grounds); discussing alternatives is encouraged. Raised when a FLEXIBLE_WORK_REQUEST case is opened (opened_on = the day the request was received).",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind == \"FLEXIBLE_WORK_REQUEST\"",
+			"due": "add_months(row.opened_on, 2)"
+		}
+	},
+	{
+		"id": "b52460e2-abe7-5656-b762-faebe898ca5d",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "PDPA_ACCESS_CORRECTION_REPLY",
+		"name": "Reply to a personal data access or correction request",
+		"order": 627,
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012 ss.21–22 (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr21-,pr22-); Personal Data Protection Regulations 2021 reg.5 (https://sso.agc.gov.sg/SL/PDPA2012-S63-2021?ProvIds=P12-), read 2026-10-07."
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "Give access to the personal data and its use and disclosure in the past year as soon as reasonably possible (s.21), or correct it as soon as practicable and send the corrected data to every organisation it was disclosed to in the past year (s.22(2)); if that cannot be done within 30 days of the request, tell the applicant in writing within those 30 days by when it will be. Raised when an access or correction case is opened; due 30 days after the request.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind in [\"PERSONAL_DATA_ACCESS_REQUEST\", \"PERSONAL_DATA_CORRECTION_REQUEST\"]",
+			"due": "add_days(row.opened_on, 30)"
+		}
+	},
+	{
+		"id": "fb4801fa-6e1d-5a2d-b056-9e73590a94a3",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "PDPA_BREACH_ASSESSMENT",
+		"name": "Assess whether a data breach is notifiable",
+		"order": 628,
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012 ss.26B–26C (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr26C-); PDPC, Guide on Managing and Notifying Data Breaches under the PDPA, 15 Mar 2021 (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/other-guides/guide-on-managing-and-notifying-data-breaches-under-the-pdpa-15-mar-2021.pdf), read 2026-10-07."
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "Assess, in a reasonable and expeditious manner, whether a data breach is notifiable (significant harm, or 500 or more individuals); the PDPC expects the assessment within 30 calendar days of becoming aware (opened_on) and an explanation for any longer. Record the day it is assessed notifiable as facts.notifiable_assessed_on. Raised when a DATA_BREACH case is opened.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind == \"DATA_BREACH\"",
+			"due": "add_days(row.opened_on, 30)"
+		}
+	},
+	{
+		"id": "73cf4b46-609e-5134-adff-ccab033f55f9",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "PDPA_BREACH_NOTIFICATION",
+		"name": "Notify the PDPC of a notifiable data breach",
+		"order": 629,
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012 s.26D(1)–(2) (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr26D-); Personal Data Protection (Notification of Data Breaches) Regulations 2021 regs.5–6 (https://sso.agc.gov.sg/SL/PDPA2012-S64-2021), read 2026-10-07."
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["daily"],
+		"definition": {
+			"description": "Notify the Personal Data Protection Commission as soon as practicable and no later than 3 calendar days after the day the breach is assessed notifiable, then each affected individual (s.26D(2), unless an exception applies). Raised by the daily tick for an open DATA_BREACH case once facts.notifiable_assessed_on is recorded; due 3 calendar days after it.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["daily"]
+			},
+			"when": "row.kind == \"DATA_BREACH\" && has(row.facts) && row.facts != null && has(row.facts.notifiable_assessed_on)",
+			"due": "add_days(row.facts.notifiable_assessed_on, 3)"
+		}
+	},
+	{
+		"id": "60b021e6-d469-5e9c-9185-275c7698691c",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "PDPA_RETENTION_DISPOSAL",
+		"name": "Anonymise a former employee’s personal data after retention",
+		"order": 630,
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012 s.25 (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr25-); Income Tax Act 1947 s.67(1)(a) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr67-): records kept 5 years from the year of assessment; IRAS, Record keeping requirements (read 2026-10-07): a financial year ending in 2022 (YA 2023) is kept till 31 Dec 2027. The exit falls in a financial year ending in the exit year or the next, so the latest keep-till is 31 December of the exit year + 6. Longer than Employment Act 1968 s.95 with the Employment (Employee and Salary Records) regulations (1 year after the employee leaves; MOM, Employment records). Personal Data Protection Act 2012 s.25 then requires ceasing to retain the personal data (anonymising it)."
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Once the statutory retention ends (31 December of the exit year + 6: the Income Tax Act 1947 s.67 five years from the year of assessment, longer than the Employment Act s.95 one year after leaving), cease retaining the former employee’s personal data: anonymise the profile (employment_profile anonymise, which the record_retention rule releases on the same day) unless a legal or business purpose still needs it. Raised at the exit; due that day.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.effective_range.to != null",
+			"due": "string(int(exit_on.substring(0, 4)) + 6) + \"-12-31\""
+		}
+	},
+	{
+		"id": "e5484a55-9d40-5e96-8d93-4757ecbcd528",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "NS_MAKE_UP_PAY_CLAIM",
+		"name": "NS make-up pay claim review",
+		"order": 631,
+		"references": [
+			{
+				"title": "Enlistment Act 1970; OneNS, Employer > NSmen Payment: Make-Up Pay, Managing MUP for Your NSmen Employees and Payment Methods (https://www.ns.gov.sg/web/profiles/employer/nsmen-payment, last updated 29 May 2025), read 2026-10-08: “All changes must be submitted within three months from the start of the ORNS/SV activity”; DIRECT adjustments two weeks before the start.",
+				"url": "https://www.ns.gov.sg/web/profiles/employer/nsmen-payment"
+			}
+		],
+		"target_collection": "leave_catalog_entry",
+		"events": ["created"],
+		"definition": {
+			"description": "For each national service leave spell (ORNS or SAFVC activity) check the auto-generated make-up pay claim on OneNS ‘Employee Payment Management’ (open about one month before the activity). MUP is generated from the CPF Ordinary Wages two to three months before the activity and the average of Additional Wages received in at least 8 of the last 12 months (less the two highest); a recent increase or a new hire without CPF data needs an amended or new claim. A DIRECT employer keeps paying the full wages as though the employee were not away and is reimbursed (submit changes two weeks before the activity starts); otherwise the salary is reduced for the days away and MINDEF/MHA pays the employee. Every change or appeal must be submitted within three months from the start of the activity (due date).",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"events": ["created"]
+			},
+			"when": "row.catalog_code == \"NS_LEAVE\" && row.activity == \"TIME_OFF\" && row.from != null",
+			"due": "add_months(row.from, 3)"
+		}
+	},
+	{
+		"id": "ccf2788d-34a9-5462-8f98-2df013e54b2d",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "WORK_INCIDENT_CASE_REPORT",
+		"name": "Report a work incident to MOM",
+		"order": 632,
+		"references": [
+			{
+				"title": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10:. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "Submit an incident report within ten days. For non-fatal employee light-duty accidents, open the case on the employer’s first notice; for fatal accidents, on the accident date; for a dangerous occurrence or a work-related public/self-employed fatality, on the occurrence date. Dangerous-occurrence and public/self-employed cases are duties of the workplace occupier. Select those cases only where the company is the occupier and the event meets MOM reportable criteria. No medical-leave entry is needed. Cross-reference any leave-triggered report to avoid filing the same incident twice.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind in [\"WORK_ACCIDENT_LIGHT_DUTY\", \"WORK_ACCIDENT_FATAL\", \"DANGEROUS_OCCURRENCE\", \"PUBLIC_WORKPLACE_FATALITY\"]",
+			"due": "add_days(row.opened_on, 10)"
+		}
+	},
+	{
+		"id": "f5ecf342-b7da-5be2-87b3-2d28d335115e",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "WORK_INCIDENT_NOTIFICATION",
+		"name": "Notify the Commissioner of a workplace incident",
+		"order": 633,
+		"references": [
+			{
+				"title": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10:. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "Notify the Commissioner as soon as reasonably practicable for an employee work-related fatality, a reportable dangerous occurrence, or a work-related public/self-employed fatality or injury sent to hospital. The latter three cases are occupier duties. The case date is an operational prompt to act, not a statutory fixed-day deadline. The Commissioner notification is distinct from the ten-day incident report; public/self-employed hospital treatment here requires notification without inventing a ten-day report duty.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind in [\"WORK_ACCIDENT_FATAL\", \"DANGEROUS_OCCURRENCE\", \"PUBLIC_WORKPLACE_FATALITY\", \"PUBLIC_WORKPLACE_HOSPITAL_TREATMENT\"]",
+			"due": "row.opened_on"
+		}
+	},
+	{
+		"id": "f8cacfaf-0e03-5f6b-b0de-ccaf81e816cd",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "SUBSEQUENT_WORK_DEATH_NOTIFICATION",
+		"name": "Immediately notify a subsequent death from work injury or disease",
+		"order": 634,
+		"references": [
+			{
+				"title": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10:. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "If an employee subsequently dies from a work injury or disease, immediately notify the Commissioner. Open the case on learning the death, link the original incident and report, and act immediately; do not wait for a medical-leave entry or restart the original ten-day report period.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind in [\"WORK_ACCIDENT_SUBSEQUENT_DEATH\"]",
+			"due": "row.opened_on"
+		}
+	},
+	{
+		"id": "175cb5ae-e14b-56ee-bfc1-97c834bb42d5",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "OCCUPATIONAL_DISEASE_REPORT",
+		"name": "Report an employee occupational disease diagnosis",
+		"order": 635,
+		"references": [
+			{
+				"title": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10:. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "As employer, submit an incident report within ten days of receiving the occupational-disease diagnosis. Open this case on that receipt date. Covers reportable diseases under WSHA or WICA; no leave entry is required. A doctor’s separate statutory report does not replace the employer report. This employer task does not assert the company is a platform operator or medical practitioner.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind in [\"OCCUPATIONAL_DISEASE_DIAGNOSIS\"]",
+			"due": "add_days(row.opened_on, 10)"
+		}
+	},
+	{
+		"id": "0dda1086-3376-5220-9770-7c93e1097c31",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "write-public-holidays",
+		"order": 700,
+		"target_collection": "entity",
+		"events": ["created", "calendar"],
+		"when": "true",
+		"reads": {
+			"calendar": {
+				"collection": "rule_set",
+				"where": {
+					"settings_id": {
+						"eq": "event.settings_id"
+					},
+					"family": {
+						"eq": "\"PARAMETERS\""
+					},
+					"code": {
+						"eq": "\"public_holidays\""
+					}
+				},
+				"select": ["rules"]
+			},
+			"held": {
+				"collection": "holiday",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					}
+				},
+				"select": ["date"]
+			}
+		},
+		"effect": "calendar.exists(c, has(c.rules.holidays)) ? first(calendar).rules.holidays.filter(h, (!has(h.regions) || event.row.region in h.regions) && !held.exists(x, x.date == h.date)).map(h, { \"collection\": \"holiday\", \"operation\": \"create\", \"data\": { \"company_id\": event.company_id, \"date\": h.date, \"name\": h.name, \"kind\": has(h.kind) ? h.kind : \"PUBLIC_HOLIDAY\", \"replaces\": has(h.replaces) ? h.replaces : null, \"given_to\": has(h.given_to) ? h.given_to : \"EVERYONE\" } }) : []"
+	},
+	{
+		"id": "7f641fc1-a3b1-5f77-a3e8-6867126f5cfa",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "obligation-program",
+		"name": "Every obligation row's program",
+		"order": 401,
+		"events": [],
+		"when": "true",
+		"fields": ["period", "company_id"],
+		"reads": {
+			"company": {
+				"collection": "entity",
+				"where": {
+					"id": {
+						"eq": "event.company_id"
+					}
+				},
+				"select": ["name", "region", "risk_class", "time_zone", "facts"]
+			},
+			"holidays": {
+				"collection": "holiday",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					},
+					"published_at": {
+						"isNull": false
+					},
+					"date": {
+						"gte": "add_days(event.day, -31)",
+						"lte": "add_days(event.day, 400)"
+					}
+				},
+				"select": ["date", "name", "kind"]
+			},
+			"raised": {
+				"collection": "obligation",
+				"where": {
+					"trigger_ref": {
+						"eq": "event.row.id"
+					}
+				},
+				"select": ["duty_code"]
+			}
+		},
+		"effect": "[{ \"code\": behaviour.code, \"name\": behaviour.name, \"references\": behaviour.references, \"rules\": behaviour.definition }].filter(d, (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }) == true) && !raised.exists(o, o.duty_code == d.code)).map(d, { \"collection\": \"obligation\", \"operation\": \"create\", \"data\": { \"duty_code\": d.code, \"references\": d.references, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"period\": event.period, \"rules\": event.rules, \"company\": first(company), \"run\": run, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }) }), \"amount_due\": has(d.rules.amount) ? configured_eval(d.rules.amount, { \"rules\": event.rules, \"total\": sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), \"run\": run, \"period\": event.period, \"company\": first(company), \"headcount_months\": event.headcount_months }) : round(sum(d.rules.schemes.map(s, s in run.totals.schemes ? run.totals.schemes[s].employee + run.totals.schemes[s].employer : 0.0)), 0.01), \"occurrence_key\": d.code + \":\" + event.row.id } }).filter(w, w.data.amount_due > 0.0)"
+	},
+	{
+		"id": "852c5ce9-d7d4-58b0-8ce7-9aa461168337",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"code": "task-program",
+		"name": "Every task row's program",
+		"order": 601,
+		"events": [],
+		"when": "true",
+		"fields": [
+			"period",
+			"company_id",
+			"employment_id",
+			"status",
+			"employee_id",
+			"effective_range",
+			"facts"
+		],
+		"reads": {
+			"company": {
+				"collection": "entity",
+				"where": {
+					"id": {
+						"eq": "event.company_id"
+					}
+				},
+				"select": ["name", "region", "risk_class", "time_zone", "registration_number", "facts"]
+			},
+			"contract": {
+				"collection": "employment_contract",
+				"where": {
+					"id": {
+						"in": "(event.employment_id == null ? [] : [event.employment_id])"
+					}
+				},
+				"select": [
+					"id",
+					"company_id",
+					"employee_id",
+					"effective_range",
+					"prior_service_months",
+					"engagement",
+					"exit_ground",
+					"exit_facts",
+					"facts"
+				]
+			},
+			"employee": {
+				"collection": "employment_profile",
+				"where": {
+					"id": {
+						"in": "(event.employee_id == null ? [] : [event.employee_id])"
+					}
+				},
+				"select": ["nationality", "gender", "date_of_birth", "marital_status", "children", "facts"]
+			},
+			"holidays": {
+				"collection": "holiday",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					},
+					"published_at": {
+						"isNull": false
+					},
+					"date": {
+						"gte": "add_days(event.day, -31)",
+						"lte": "add_days(event.day, 400)"
+					}
+				},
+				"select": ["date", "name", "kind"]
+			},
+			"raised": {
+				"collection": "regulatory_task",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					},
+					"triggered_on": {
+						"gte": "add_days(event.day, -400)"
+					}
+				},
+				"select": ["occurrence_key"]
+			},
+			"subject_tasks": {
+				"collection": "regulatory_task",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					},
+					"subject_id": {
+						"eq": "event.row.id"
+					}
+				},
+				"select": ["occurrence_key"]
+			}
+		},
+		"effect": "[{ \"code\": behaviour.code, \"name\": behaviour.name, \"references\": behaviour.references, \"rules\": behaviour.definition }].filter(d, has(d.rules.trigger) && d.rules.trigger.collection == event.collection && event.action in d.rules.trigger.events && (!has(d.rules.months) || d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m))) && (!has(d.rules.when) || configured_eval(d.rules.when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && (!has(d.rules.applies_when) || configured_eval(d.rules.applies_when, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }) == true) && !(raised + subject_tasks).exists(t, t.occurrence_key == d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)))).map(d, { \"collection\": \"regulatory_task\", \"operation\": \"create\", \"data\": { \"facts\": (event.collection in [\"employment_contract\", \"calendar\"] && has(event.row.exit_facts) && event.row.exit_facts != null && has(event.row.effective_range) && event.row.effective_range.to != null ? { \"exit_key\": string(event.row.effective_range.to) + \"/\" + (has(event.row.exit_ground) && event.row.exit_ground != null ? event.row.exit_ground : \"\") } : {}), \"code\": d.code, \"title\": d.name, \"references\": d.references, \"subject_collection\": event.collection, \"subject_id\": event.row.id, \"company_id\": event.company_id, \"settings_id\": event.settings_id, \"trigger_ref\": event.row.id, \"triggered_on\": event.day, \"due_on\": configured_eval(d.rules.due, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite }), \"occurrence_key\": d.code + \":\" + event.company_id + \":\" + (has(d.rules.occurrence) ? string(configured_eval(d.rules.occurrence, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : has(d.rules.repeat_key) ? event.row.id + \":\" + string(configured_eval(d.rules.repeat_key, { \"row\": event.row, \"rules\": event.rules, \"period\": event.period, \"company\": first(company), \"contract\": first(contract), \"employee\": first(employee), \"hired_on\": size(contract) > 0 ? first(contract).effective_range.from : null, \"exit_on\": size(contract) > 0 ? first(contract).effective_range.to : null, \"holidays\": holidays.map(h, h.date), \"holidays_named\": holidays.filter(h, h.date >= event.day && h.date <= add_months(event.day, 12)).map(h, { \"date\": h.date, \"name\": has(h.name) ? h.name : \"\", \"kind\": h.kind }), \"today\": event.day, \"headcount\": event.headcount, \"previous_year_headcount_months\": has(event.previous_year_headcount_months) ? event.previous_year_headcount_months : [], \"separations\": event.separations, \"headcount_by_worksite\": event.headcount_by_worksite, \"headcount_permanent\": event.headcount_permanent, \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite })) : (event.collection == \"payroll_run\" ? event.row.period : event.collection == \"calendar\" ? event.row.id + \":\" + event.day : event.row.id)) } })"
+	}
+]

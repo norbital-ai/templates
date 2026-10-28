@@ -1,11 +1,14 @@
 <script lang="ts">
 	/**
-	 * One employment contract: who and which entity, the employment period, the pay account, the history of its terms
-	 * (read here, changed only through Change terms), and departure (an early exit of a fixed term too), moved or undone.
+	 * One employment contract: who and which entity; the employment period with its departure (the last day, the exit
+	 * ground the version governing it lists and its exit facts) and notes, all edited with Edit; the pay account; and
+	 * its terms, one row per dated version, each naming what changed. A new dated version is Change terms on that
+	 * section. Saving a departure asks first: the exit raises its final pay.
 	 */
 	import { bolt } from '$bolt';
 	import * as Predicate from 'effect/Predicate';
 	import {
+		Combobox,
 		EmptyState,
 		enumText,
 		Field,
@@ -15,16 +18,18 @@
 		RecordShell,
 		Section,
 		Table,
+		type FormConfirm,
 		type RecordView
 	} from '@norbital-ai/ui';
-	import { Cluster, Grid } from '@norbital-ai/ui/layout';
+	import { Grid } from '@norbital-ai/ui/layout';
 	import {
 		allowancesOf,
 		salaryOf,
 		termsFromFacts
 	} from '../../../lib/payroll_engine/contract_terms.js';
 	import ChangeTerms from '../../../lib/ui/person/change_terms.svelte';
-	import Offboarding from '../../../lib/ui/person/offboarding.svelte';
+	import { kindsOf } from '../../../lib/payroll_engine/listed_kinds.js';
+	import { isJsonObject } from '../../../lib/payroll_engine/foundation.js';
 	import { governingVersion } from '../../../lib/ui/person/governing_version.svelte.js';
 	import { schemaAt } from '../../../lib/ui/person/input_schema.js';
 	import { formSchema } from '../../../lib/ui/person/form_schema.js';
@@ -38,11 +43,47 @@
 	const t = bolt.t;
 	const exited = $derived(record?.exit_ground != null && record.exit_ground !== '');
 	const exitName = listedKindNames('exit_grounds');
-	/** The version governing the last day declares the exit facts the departure recorded. */
+	/** The version governing the last day (today while open) lists the exit grounds and declares the exit facts. */
 	const version = governingVersion(
-		() => (exited && record ? record.company_id : null),
+		() => record?.company_id ?? null,
 		() => (record?.effective_range.to == null ? todayKey() : String(record.effective_range.to))
 	);
+	const grounds = $derived.by(() =>
+		version.current == null
+			? null
+			: bolt.query({
+					rule_set: {
+						where: {
+							settings_id: { eq: version.current.id },
+							family: { eq: 'PARAMETERS' },
+							code: { eq: 'exit_grounds' }
+						},
+						fields: ['rules']
+					}
+				})
+	);
+	const groundOptions = $derived(
+		(grounds?.current?.rule_set.rows ?? []).flatMap((row) =>
+			kindsOf(row.rules).map((kind) => ({ value: kind.code, label: kind.name }))
+		)
+	);
+	const lastDayOf = (range: unknown) =>
+		isJsonObject(range) && typeof range.to === 'string' ? range.to : null;
+	/** Writing a departure (a ground newly set, or its last day moved) raises its final pay: say so before saving. */
+	const confirmDeparture: FormConfirm = ({ values: next, before }) => {
+		const ground = typeof next.exit_ground === 'string' ? next.exit_ground : '';
+		if (ground === '') return null;
+		const day = lastDayOf(next.effective_range);
+		// a ground without its last day is refused on save: nothing to confirm yet
+		if (day === null) return null;
+		if (ground === before.exit_ground && day === lastDayOf(before.effective_range)) return null;
+		return {
+			title: t('contract.confirm_departure_title'),
+			body: t('contract.confirm_departure_body', { ground: exitName(ground), day }),
+			confirmLabel: t('contract.confirm_departure'),
+			destructive: true
+		};
+	};
 	const exitSchema = $derived(formSchema(schemaAt(version.schema, 'exit_facts')));
 	const terms = $derived(record == null ? [] : termsFromFacts(record.facts));
 	const allowanceCodes = $derived([
@@ -63,12 +104,30 @@
 			)
 		)
 	);
+	/** The keys a term changed from the one before it (its period aside): what makes it a version of its own. */
+	const changedFrom = (
+		term: (typeof terms)[number],
+		previous: (typeof terms)[number] | undefined
+	) =>
+		previous === undefined
+			? t('contract.first_terms')
+			: [...new Set([...Object.keys(term), ...Object.keys(previous)])]
+					.filter(
+						(key) =>
+							key !== 'id' &&
+							key !== 'effective_range' &&
+							JSON.stringify(term[key]) !== JSON.stringify(previous[key])
+					)
+					.map((key) => enumText(key.replace(/_id$/, '')))
+					.join(', ') || '—';
 	const history = $derived(
 		terms
 			.toSorted((left, right) =>
-				right.effective_range.from.localeCompare(left.effective_range.from)
+				left.effective_range.from.localeCompare(right.effective_range.from)
 			)
-			.map((term) => {
+			.map((term, index, ordered) => ({ term, changed: changedFrom(term, ordered[index - 1]) }))
+			.toReversed()
+			.map(({ term, changed }) => {
 				const salary = salaryOf(term);
 				const classification = [term.work_classification, term.employment_type].filter(
 					(value): value is string => Predicate.isString(value) && value !== ''
@@ -84,33 +143,16 @@
 									`${allowanceName.get(line.code) ?? enumText(line.code)} ${formatNumeric(line.amount, salary?.currency)}`
 							)
 							.join(', ') || '—',
-					classification: classification.map((value) => enumText(value)).join(' · ') || '—'
+					classification: classification.map((value) => enumText(value)).join(' · ') || '—',
+					changed
 				};
 			})
 	);
 </script>
 
-{#snippet actions()}
-	{#if record}
-		<Cluster gap="sm">
-			<ChangeTerms id={record.id} companyId={record.company_id} {terms} ended={exited} />
-			<Offboarding
-				id={record.id}
-				companyId={record.company_id}
-				hireFrom={String(record.effective_range.from)}
-				lastDay={record.effective_range.to == null ? null : String(record.effective_range.to)}
-				exitGround={record.exit_ground ?? null}
-				exitFacts={record.exit_facts ?? null}
-				plannedEnd={record.signed_contract_end == null ? null : String(record.signed_contract_end)}
-			/>
-		</Cluster>
-	{/if}
-{/snippet}
-
 <RecordShell
 	of="employment_contract"
 	mode={view.mode}
-	{actions}
 	{...record == null
 		? { values: view.mode === 'create' ? view.values : {} }
 		: { id: record.id, subtitle: ['employee_number'] }}
@@ -122,6 +164,7 @@
 			{...record ? { id: record.id } : {}}
 			{record}
 			{values}
+			confirm={confirmDeparture}
 			onOutcome={(outcome) => {
 				if (outcome.kind !== 'committed' || record) return;
 				const created = outcome.records.find((row) => row.model === 'employment_contract');
@@ -144,7 +187,56 @@
 					<Field name="signed_contract_end" />
 					<Field name="prior_service_months" />
 					<Field name="engagement" />
+					{#if record}
+						<!-- a departure: the ground from the version's exit_grounds list, written with the last day -->
+						<Field name="exit_ground">
+							{#snippet view(field)}
+								<p class="text-sm font-medium">
+									{typeof field.value === 'string' && field.value !== ''
+										? exitName(field.value)
+										: '—'}
+								</p>
+							{/snippet}
+							{#snippet editor(field)}
+								<Combobox
+									id={field.id}
+									class="w-full"
+									clearable
+									options={groundOptions}
+									value={typeof field.value === 'string' && field.value !== '' ? field.value : null}
+									disabled={field.disabled}
+									placeholder={t('contract.still_employed')}
+									onChange={(next) => field.onChange(next)}
+								/>
+							{/snippet}
+						</Field>
+					{/if}
 				</Grid>
+				{#if record && exitSchema != null}
+					<Field name="exit_facts">
+						{#snippet view(field)}
+							<StructuredData
+								mode="view"
+								schema={exitSchema}
+								value={field.value ?? {}}
+								name={field.name}
+								id={field.id}
+							/>
+						{/snippet}
+						{#snippet editor(field)}
+							<StructuredData
+								mode="edit"
+								schema={exitSchema}
+								value={field.value ?? {}}
+								onChange={field.onChange}
+								name={field.name}
+								id={field.id}
+								disabled={field.disabled}
+							/>
+						{/snippet}
+					</Field>
+				{/if}
+				<Field name="comments" />
 			</Section>
 			<Section name="pay" title={t('contract.pay_and_bank')}>
 				<Field name="bank" />
@@ -156,6 +248,11 @@
 				</Section>
 			{:else}
 				<Section name="terms" title={t('contract.terms_history')}>
+					{#snippet actions()}
+						{#if record}
+							<ChangeTerms id={record.id} companyId={record.company_id} {terms} ended={exited} />
+						{/if}
+					{/snippet}
 					{#if history.length === 0}
 						<EmptyState title={t('contract.no_terms')} />
 					{:else}
@@ -164,6 +261,7 @@
 							key="contract-terms"
 							columns={[
 								{ field: 'period', label: t('component.effective_period') },
+								{ field: 'changed', label: t('contract.changed') },
 								{ field: 'salary', label: t('component.base_salary'), align: 'end' },
 								{ field: 'allowances', label: t('component.allowances') },
 								{ field: 'classification', label: t('contract.classification') }
@@ -180,41 +278,7 @@
 						/>
 					{/if}
 				</Section>
-				<Section name="departure" title={t('contract.departure')} defaultOpen={exited}>
-					<Grid minimum="card">
-						<!-- the ground is chosen from the version's exit_grounds list in End employment, never typed -->
-						<Field name="exit_ground" readonly>
-							{#snippet view(field)}
-								<p class="text-sm font-medium">
-									{typeof field.value === 'string' && field.value !== ''
-										? exitName(field.value)
-										: '—'}
-								</p>
-							{/snippet}
-						</Field>
-						{#if exitSchema == null}
-							<Field name="exit_facts" readonly />
-						{:else}
-							<Field name="exit_facts" readonly>
-								{#snippet view(field)}
-									<StructuredData
-										mode="view"
-										schema={exitSchema}
-										value={field.value}
-										onChange={() => {}}
-										name={field.name}
-										id={field.id}
-										readonly
-									/>
-								{/snippet}
-							</Field>
-						{/if}
-					</Grid>
-				</Section>
 			{/if}
-			<Section name="notes" title={t('contract.notes')}>
-				<Field name="comments" />
-			</Section>
 		</Form>
 	{/key}
 </RecordShell>

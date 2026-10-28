@@ -1,27 +1,53 @@
 import { REFERENCES_SHAPE } from './references.js';
 import { RESEARCH_AGENT_NAMES } from './research_agents.js';
 
+/** The closed set of `time_pay` keys, in pricing order: each key is a kind of time pay holding its lines. */
+export const TIME_PAY_KEYS = [
+	'BASIC',
+	'OVERTIME',
+	'REST_DAY_WORK',
+	'REST_DAY_OVERTIME',
+	'HOLIDAY_WORK',
+	'HOLIDAY_OVERTIME',
+	'NIGHT_WORK',
+	'NIGHT_OVERTIME',
+	'INCENTIVE',
+	'PAID_HOLIDAY',
+	'MINIMUM_WAGE_TOP_UP'
+] as const;
+/** One `time_pay` line: a salary slip posts quantity × rate (CEL over the payslip context) when eligibility holds. */
+const TIME_PAY_LINE = {
+	kind: 'object',
+	optional: true,
+	fields: {
+		name: { kind: 'text', optional: true },
+		references: { ...REFERENCES_SHAPE, optional: true },
+		eligibility: { kind: 'text', format: 'cel' },
+		quantity: { kind: 'text', format: 'cel' },
+		rate: { kind: 'text', format: 'cel' },
+		// the line is the contract amount scaled to the days employed; the payslip records its proration
+		prorated: { kind: 'bool', optional: true },
+		// the divisor a prorated line states on the payslip; required when `prorated`
+		denominator: { kind: 'text', format: 'cel', optional: true },
+		destination: { kind: 'enum', values: ['PAY', 'NET', 'EMPLOYER'] },
+		direction: { kind: 'enum', values: ['ADD', 'SUBTRACT'] },
+		counts_toward: { kind: 'list', of: { kind: 'text' } }
+	}
+} as const;
+/** One reserved kind of time pay: its lines, each keeping its own code (a tier, a part-time or daily variant). */
+const TIME_PAY_KIND = {
+	kind: 'list',
+	optional: true,
+	of: { kind: 'object', fields: { code: { kind: 'text' }, ...TIME_PAY_LINE.fields } }
+} as const;
+
 export const STATUTORY_FIELDS = {
 	settings: {
-		suspension_kinds: {
-			kind: 'custom',
-			of: 'suspension_kinds',
-			default: []
-		},
 		code: {
-			kind: 'text'
-		},
-		jurisdiction_code: {
 			kind: 'text'
 		},
 		name: {
 			kind: 'text'
-		},
-		// the legal basis of the version's own settings (payroll, input schemas, reference tables)
-		references: {
-			kind: 'custom',
-			of: 'references',
-			optional: true
 		},
 		employee_input_schema: {
 			kind: 'json',
@@ -30,36 +56,6 @@ export const STATUTORY_FIELDS = {
 		entity_input_schema: {
 			kind: 'json',
 			optional: true
-		},
-		behaviours: {
-			kind: 'json',
-			shape: {
-				kind: 'object',
-				fields: {
-					version: { kind: 'int' },
-					rules: {
-						kind: 'list',
-						of: {
-							kind: 'object',
-							fields: {
-								id: { kind: 'text' },
-								catalog: { kind: 'text', optional: true },
-								target_collection: { kind: 'text', optional: true },
-								events: { kind: 'list', of: { kind: 'text' } },
-								when: { kind: 'text', format: 'cel', optional: true },
-								fields: { kind: 'list', of: { kind: 'text' }, optional: true },
-								reads: { kind: 'record', of: { kind: 'json' }, optional: true },
-								effect: { kind: 'text', format: 'cel', optional: true },
-								references: { ...REFERENCES_SHAPE, optional: true }
-							}
-						}
-					}
-				}
-			},
-			default: {
-				version: 1,
-				rules: []
-			}
 		},
 		sealed_at: {
 			kind: 'instant',
@@ -71,14 +67,6 @@ export const STATUTORY_FIELDS = {
 		},
 		void_reason: {
 			kind: 'text',
-			optional: true
-		},
-		reference_tables: {
-			kind: 'json',
-			shape: {
-				kind: 'record',
-				of: { kind: 'json' }
-			},
 			optional: true
 		},
 		payroll: {
@@ -102,7 +90,6 @@ export const STATUTORY_FIELDS = {
 					off_cycle_families: { kind: 'list', of: { kind: 'text' }, optional: true },
 					monthly_wage: { kind: 'text', format: 'cel', optional: true },
 					negative_net: { kind: 'enum', values: ['refuse', 'allow'], optional: true },
-					exit_raise_when: { kind: 'text', format: 'cel', optional: true },
 					exit_overpayment: { kind: 'enum', values: ['note', 'deduct'], optional: true },
 					attendance: {
 						kind: 'object',
@@ -116,6 +103,28 @@ export const STATUTORY_FIELDS = {
 					}
 				}
 			}
+		},
+		// pay for time employed and worked, by reserved kind, each kind's lines under their own codes; a kind the
+		// jurisdiction does not pay is omitted and an unknown key is refused
+		time_pay: {
+			kind: 'json',
+			shape: {
+				kind: 'object',
+				fields: {
+					BASIC: TIME_PAY_KIND,
+					OVERTIME: TIME_PAY_KIND,
+					REST_DAY_WORK: TIME_PAY_KIND,
+					REST_DAY_OVERTIME: TIME_PAY_KIND,
+					HOLIDAY_WORK: TIME_PAY_KIND,
+					HOLIDAY_OVERTIME: TIME_PAY_KIND,
+					NIGHT_WORK: TIME_PAY_KIND,
+					NIGHT_OVERTIME: TIME_PAY_KIND,
+					INCENTIVE: TIME_PAY_KIND,
+					PAID_HOLIDAY: TIME_PAY_KIND,
+					MINIMUM_WAGE_TOP_UP: TIME_PAY_KIND
+				}
+			},
+			default: {}
 		},
 		change_summary: {
 			kind: 'text',
@@ -239,11 +248,6 @@ export const STATUTORY_FIELDS = {
 				}
 			}
 		},
-		raise_on_exit: {
-			kind: 'bool',
-			default: false,
-			help: 'The final slip raises this class itself when its eligibility holds on the exit (termination benefit, severance, notice in lieu), priced by its bands on an empty entry of the exit day; an entry of the class HR makes instead wins. A moved or undone exit takes it back.'
-		},
 		payable_after_exit: {
 			kind: 'bool',
 			default: false,
@@ -290,6 +294,11 @@ export const STATUTORY_FIELDS = {
 		direction: {
 			kind: 'enum',
 			values: ['ADD', 'SUBTRACT']
+		},
+		automatic: {
+			kind: 'bool',
+			default: false,
+			help: 'Priced on every salary slip without a contract line (a statutory or conditional allowance): `allowance.amount` is 0 and the eligibility decides.'
 		}
 	},
 	claim_catalog: {
@@ -520,6 +529,16 @@ export const STATUTORY_FIELDS = {
 		consumes_code: {
 			kind: 'text',
 			optional: true
+		},
+		pay: {
+			kind: 'json',
+			help: 'The payslip lines the class prices: each posts quantity × rate when eligible, CEL over the payslip context (`leave.rows` holds every class’s rows of the period). Each line is priced once a slip, so a line counting several classes’ rows lives on one of them.',
+			shape: {
+				kind: 'list',
+				// a time line's fields, with its code (the payslip line's component code)
+				of: { kind: 'object', fields: { code: { kind: 'text' }, ...TIME_PAY_LINE.fields } }
+			},
+			default: []
 		}
 	},
 	loan_catalog: {
@@ -590,32 +609,50 @@ export const STATUTORY_FIELDS = {
 			help: 'An entry must carry an amount; a class priced by its bands alone (piece units) need not.'
 		}
 	},
-	work_catalog: {
+	suspension_catalog: {
 		code: { kind: 'text' },
 		name: { kind: 'text', optional: true },
 		references: { kind: 'custom', of: 'references', optional: true },
-		component_code: { kind: 'text' },
-		eligibility: {
-			kind: 'text',
-			format: 'cel',
-			help: 'CEL predicate over the payslip context; the line is produced only when it holds.'
-		},
-		quantity: { kind: 'text', format: 'cel', help: 'CEL quantity over the payslip context.' },
-		rate: { kind: 'text', format: 'cel', help: 'CEL rate over the payslip context.' },
-		prorated: {
-			kind: 'bool',
-			default: false,
-			help: 'The line is the contract amount scaled to the days employed; the payslip records its proration.'
-		},
-		denominator: {
+		counts_as_attended: {
 			kind: 'text',
 			format: 'cel',
 			optional: true,
-			help: 'CEL: the divisor a prorated line states on the payslip. Required when `prorated`.'
+			help: 'CEL: whether a suspended scheduled day counts as attended (blank = no).'
 		},
-		destination: { kind: 'enum', values: ['PAY', 'NET', 'EMPLOYER'] },
-		direction: { kind: 'enum', values: ['ADD', 'SUBTRACT'] },
-		counts_toward: { kind: 'json', shape: { kind: 'list', of: { kind: 'text' } }, default: [] }
+		scheduled: {
+			kind: 'text',
+			format: 'cel',
+			optional: true,
+			help: 'CEL: whether a suspended day stays a scheduled day (blank = yes).'
+		},
+		eligibility: {
+			kind: 'text',
+			format: 'cel',
+			optional: true,
+			help: 'CEL: whether a suspended day of this kind is paid, over the payslip context with `day` and `suspension` (blank = yes).'
+		},
+		quantity: {
+			kind: 'text',
+			format: 'cel',
+			optional: true,
+			help: 'CEL: the quantity one suspended day pays (blank = 1).'
+		},
+		rate: {
+			kind: 'text',
+			format: 'cel',
+			optional: true,
+			help: 'CEL: the rate one suspended day pays; quantity × rate is `work.days[].suspended.pay`, which the pay lines read (blank = 0).'
+		},
+		pay: {
+			kind: 'json',
+			help: 'The payslip lines suspended days post on a salary slip: each posts quantity × rate when eligible, CEL over the payslip context (`work.days[].suspended` holds every kind’s days of the period). Each line is priced once a slip, so a line totalling several kinds’ days lives on one of them.',
+			shape: {
+				kind: 'list',
+				// a time line's fields, with its code (the payslip line's component code)
+				of: { kind: 'object', fields: { code: { kind: 'text' }, ...TIME_PAY_LINE.fields } }
+			},
+			default: []
+		}
 	},
 	statutory_contribution_catalog: {
 		code: {
@@ -701,6 +738,24 @@ export const STATUTORY_FIELDS = {
 						optional: true,
 						help: 'Person facts this scheme reads, each a CEL expression over the statutory context (for example the age basis), merged into `person`.'
 					},
+					wage_adjustments: {
+						kind: 'list',
+						optional: true,
+						help: 'Parts of the slip this scheme taxes or exempts beyond what is paid (a taxable excess, an exempt share): each prices quantity × rate over the payslip context on a salary slip and posts it, unpaid, to the schemes it counts toward.',
+						of: {
+							kind: 'object',
+							fields: {
+								code: { kind: 'text' },
+								name: { kind: 'text', optional: true },
+								references: { ...REFERENCES_SHAPE, optional: true },
+								eligibility: { kind: 'text', format: 'cel' },
+								quantity: { kind: 'text', format: 'cel' },
+								rate: { kind: 'text', format: 'cel' },
+								direction: { kind: 'enum', values: ['ADD', 'SUBTRACT'] },
+								counts_toward: { kind: 'list', of: { kind: 'text' } }
+							}
+						}
+					},
 					assessable: {
 						kind: 'record',
 						of: { kind: 'text', format: 'cel' },
@@ -736,13 +791,30 @@ export const STATUTORY_FIELDS = {
 			help: 'Original legal policy plus executable input, record, derivation, assessment and finalization configuration. Missing source evidence never establishes zero liability.'
 		}
 	},
-	rule_set: {
-		scope: {
-			kind: 'text',
-			default: 'JURISDICTION'
+	behaviour: {
+		code: { kind: 'text' },
+		name: { kind: 'text', optional: true },
+		references: { kind: 'custom', of: 'references', optional: true },
+		order: {
+			kind: 'int',
+			help: 'Run order among the rules one event selects, ascending (code breaks a tie): a later rule sees the writes before it.'
 		},
+		target_collection: { kind: 'text', optional: true },
+		events: { kind: 'json', shape: { kind: 'list', of: { kind: 'text' } }, default: [] },
+		when: { kind: 'text', format: 'cel', optional: true },
+		fields: { kind: 'json', shape: { kind: 'list', of: { kind: 'text' } }, optional: true },
+		reads: { kind: 'json', shape: { kind: 'record', of: { kind: 'json' } }, optional: true },
+		effect: { kind: 'text', format: 'cel', optional: true },
+		definition: {
+			kind: 'json',
+			optional: true,
+			help: 'The one obligation or task this rule raises (due, schemes, amount, months, applies_when, trigger, …): its effect reads it as `behaviour.definition`.'
+		}
+	},
+	rule_set: {
 		family: {
-			kind: 'text'
+			kind: 'text',
+			help: 'VALIDATIONS (checks), PARAMETERS (law tables read as `rules.<code>`) or EXPORTS (file layouts).'
 		},
 		code: {
 			kind: 'text'

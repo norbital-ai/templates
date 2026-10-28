@@ -8,6 +8,7 @@ import {
 	completedMonths,
 	fieldValue,
 	isJsonObject,
+	PAYROLL_DEFAULTS,
 	Refusal
 } from '../foundation.js';
 import { eventIdOf } from '../leave.js';
@@ -23,6 +24,7 @@ import {
 	type CatalogRow,
 	type EntryRow,
 	entryContext,
+	exitSource,
 	earlierContext,
 	earlierSum,
 	suspensionOn,
@@ -114,7 +116,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 		const paidDays = salaryRun && employed != null ? days(employed) : 0;
 		const baseSalary = term?.base_salary?.value ?? 0;
 		// Roster facts as recorded: the days, the hours they carry and the published holidays they fall on. Which of
-		// them a jurisdiction pays, and at how many hours a day, is the work catalogue's CEL.
+		// them a jurisdiction pays, and at how many hours a day, is its time pay's CEL.
 		const byDate = new Map(options.attendance.holidays.map((holiday) => [holiday.date, holiday]));
 		// The planned shift of every day and what the roster recorded on it, in the entity's time zone.
 		const rosterOn = new Map<string, (typeof options.attendance.roster)[number]>(
@@ -239,7 +241,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 					];
 		});
 		const hoursInput = {
-			yearStartMonth: payroll?.tax_year_start_month ?? 1,
+			yearStartMonth: payroll?.tax_year_start_month ?? PAYROLL_DEFAULTS.tax_year_start_month,
 			historyMonths,
 			rollingMonths: yield* Effect.fromResult(
 				payrollMonths(options.jurisdiction.version, 'rolling_hours_months')
@@ -381,7 +383,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				period: monthKey,
 				runKind: options.history.runKind,
 				contract,
-				yearStartMonth: payroll?.tax_year_start_month ?? 1,
+				yearStartMonth: payroll?.tax_year_start_month ?? PAYROLL_DEFAULTS.tax_year_start_month,
 				historyMonths,
 				...(options.attendance.readsWorked ? { worked } : {})
 			})
@@ -490,11 +492,16 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				const kind = options.attendance.kinds.get(String(held['kind']));
 				const dayContext: DynObject = { ...on, day, suspension: held };
 				const effect = yield* suspendedDay(kind, dayContext);
+				// The day's pay is its kind's pricing on this day: quantity × rate when eligible; no rate pays nothing.
+				const where = `suspension_catalog ${kind?.code ?? ''}`;
 				const pay =
-					kind?.pay == null || kind.pay.trim() === ''
+					!kind?.rate?.trim() ||
+					(!!kind.eligibility?.trim() &&
+						!(yield* evaluateBoolean(kind.eligibility, dayContext, where)))
 						? 0
 						: money(
-								yield* evaluateNumber(kind.pay, dayContext, `suspension_kind ${kind.code} pay`)
+								(yield* evaluateNumber(kind.quantity?.trim() || '1.0', dayContext, where)) *
+									(yield* evaluateNumber(kind.rate, dayContext, where))
 							);
 				list[i] = { ...day, suspended: { ...held, ...effect, pay } };
 			}
@@ -530,11 +537,8 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 			return signed;
 		};
 		/**
-		 * A salary slip's exit corrections, as adjustments; how many it made. A departure (an exit ground with its last
-		 * day) raises each `raise_on_exit` ad hoc class whose eligibility holds, priced by its bands on an empty entry of
-		 * the exit day, once per exit as it stands (`exit:<code>:<day>/<ground>`), on the first salary slip `payroll.exit_raise_when` admits —
-		 * unless HR entered the class. The exit pay a paid slip carried for an exit since moved or undone is taken back
-		 * at what it paid. A paid period's prorated lines are repriced over the days it now covers (an exit moved or
+		 * A salary slip's exit corrections, as adjustments; how many it made. The exit pay a paid slip carried for an
+		 * exit since moved or undone is taken back at what it paid. A paid period's prorated lines are repriced over the days it now covers (an exit moved or
 		 * undone after the final slip): fully covered again, its contract amount; uncovered, nothing; else its paid
 		 * amount moved by the record's divisor per day. Nothing is corrected twice: each correction names its source.
 		 */
@@ -542,26 +546,34 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 		// (a class payable after exit: non-compete pay, separation instalments).
 		const salaried = salaryRun && term != null && paidDays > 0 && contract.engagement !== 'PAYEE';
 		// Without salary a run pays a payee's entries, and past the exit the classes payable after it.
+		// The exit behaviour's raised exit pay is paid past the exit too.
 		const unsalaried = (row: EntryRow) =>
 			options.jurisdiction.classes.get(String(row.catalog_id))?.payable_after_exit === true ||
+			exitSource(row) != null ||
 			(contract.engagement === 'PAYEE' && employedOn(String(row.occurred_on ?? '')));
+		/** A salary run's entries: its window's, and raised exit pay up to it (a departure written after its day was paid). */
+		const dueIn = (row: EntryRow) => {
+			const day = String(row.occurred_on ?? '');
+			return day <= window.salary_to && (day >= window.salary_from || exitSource(row) != null);
+		};
 		const corrections = salaryRun
-			? yield* exitCorrections(options, context, adjustments, post, salaried)
+			? yield* exitCorrections(options, adjustments, post, salaried)
 			: 0;
+		const openLeave =
+			options.attendance.entries.find((family) => family.family === 'LEAVE')?.rows ?? [];
+		/** A leaver's exit encashment still unpaid: the first salary run on or after its day pays it, salaried or not. */
+		const exitEncashment = (row: EntryRow) =>
+			row.activity === 'ENCASHMENT' &&
+			String(row.reference ?? '').startsWith('exit:') &&
+			String(row.occurred_on ?? '') <= window.salary_to;
+		const encashesLate = salaryRun && !salaried && term != null && openLeave.some(exitEncashment);
 		if (
 			salaryRun &&
 			!salaried &&
 			corrections === 0 &&
+			!encashesLate &&
 			!options.attendance.entries.some((family) =>
-				family.rows.some((row) => {
-					const day = String(row.occurred_on ?? '');
-					return (
-						family.family !== 'LEAVE' &&
-						unsalaried(row) &&
-						day >= window.salary_from &&
-						day <= window.salary_to
-					);
-				})
+				family.rows.some((row) => family.family !== 'LEAVE' && unsalaried(row) && dueIn(row))
 			)
 		)
 			return null;
@@ -573,7 +585,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 		/**
 		 * The leave rows reaching into their window (`windowOf`), projected generically: the class's own flags beside
 		 * the row's stored values, each row's share of the window, the working days no-pay leave covers and the rows the window uses.
-		 * Which days become no-pay or cash is the work catalogue's record to decide, never this engine's.
+		 * Which days become no-pay or cash is the leave classes' pay lines to decide, never this engine's.
 		 */
 		function* projectLeave(
 			rows: readonly EntryRow[],
@@ -700,11 +712,9 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 		}
 		if (salaried || !salaryRun) {
 			// The window's leave rows are projected once, generically: the class's own flags beside the row's stored
-			// values. Which days become no-pay or cash is the work catalogue's record to decide, never this engine's. An
+			// values. Which days become no-pay or cash is the leave classes' pay lines to decide, never this engine's. An
 			// off-cycle slip reads the same rows (a bonus exempt during childcare leave) and settles none of them. Time off is
 			// attendance: it is read over the attendance window (a cutoff of 21 attends 21st–20th), as the roster is.
-			const leaveFamily = options.attendance.entries.find((family) => family.family === 'LEAVE');
-			const openLeave = leaveFamily?.rows ?? [];
 			const openLeaveIds = new Set(openLeave.map((row) => row.id));
 			const projected = yield* projectLeave(
 				[
@@ -727,6 +737,16 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 			const unpaid = salaried ? projected.unpaid : 0;
 			periodExtras.unpaid_working_days = unpaid;
 			periodRoot.unpaid_working_days = unpaid;
+		} else if (encashesLate) {
+			// Past the exit the slip prices only the exit encashments still unpaid, whichever window their day fell in.
+			const projected = yield* projectLeave(
+				openLeave.filter(exitEncashment),
+				() => ['', window.salary_to],
+				context,
+				planOn
+			);
+			context.leave = { rows: projected.rows };
+			for (const id of projected.settled) pins.push({ collection: 'leave_catalog_entry', id });
 		}
 		/**
 		 * A month paid at more than one frequency (`pay_frequency_changes`) settles month to date: every contract line is
@@ -864,17 +884,17 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				}
 			};
 		}
-		if (salaried && term != null) {
-			if (baseSalary <= 0 && payroll?.base_salary_required == null)
-				return yield* unstated(
-					`jurisdiction_settings ${options.jurisdiction.version.code}`,
-					'payroll.base_salary_required'
-				);
-			if (baseSalary <= 0 && payroll?.base_salary_required === true)
+		// A leaver's slip past the exit prices only the leave lines (an exit encashment paid late).
+		if (term != null && (salaried || encashesLate)) {
+			if (
+				salaried &&
+				baseSalary <= 0 &&
+				(payroll?.base_salary_required ?? PAYROLL_DEFAULTS.base_salary_required)
+			)
 				return yield* new Refusal({
 					message: `${who}: the contract in force for ${period} carries no base salary.`
 				});
-			const settling = options.payroll.switched ? yield* monthToDate() : undefined;
+			const settling = salaried && options.payroll.switched ? yield* monthToDate() : undefined;
 			const priceOn = settling?.context ?? context;
 			const priced = new Set<string>();
 			// A switched month's line pays the month to date less what the month's earlier slips paid for it.
@@ -883,8 +903,13 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				const before = settling?.paid.get(code) ?? 0;
 				return money(amount - (row.direction === 'SUBTRACT' ? -before : before));
 			};
-			for (const row of options.jurisdiction.workRows) {
-				const where = `work_catalog ${row.code}`;
+			const leavePay = new Set(options.jurisdiction.leavePay);
+			const wageAdjustments = new Set(options.jurisdiction.wageAdjustments);
+			const suspensionPay = new Set(options.jurisdiction.suspensionPay);
+			for (const row of salaried
+				? [...options.jurisdiction.workRows, ...suspensionPay, ...leavePay, ...wageAdjustments]
+				: leavePay) {
+				const where = `${leavePay.has(row) ? 'leave_catalog pay' : suspensionPay.has(row) ? 'suspension_catalog pay' : wageAdjustments.has(row) ? 'statutory wage_adjustments' : 'time_pay'} ${row.code}`;
 				const code = row.component_code ?? row.code;
 				if (!(yield* evaluateBoolean(row.eligibility, priceOn, where))) continue;
 				const quantity = yield* evaluateNumber(row.quantity ?? '1.0', priceOn, where);
@@ -920,14 +945,18 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 						prorated_amount: settling == null ? signed : toDate
 					});
 			}
-			for (const row of options.attendance.roster)
-				pins.push({ collection: 'roster_entry', id: row.id });
+			if (salaried)
+				for (const row of options.attendance.roster)
+					pins.push({ collection: 'roster_entry', id: row.id });
 			// Contract allowances price through the governing version's allowance class of the same code.
 			const allowanceById = new Map(options.jurisdiction.allowanceRows.map((row) => [row.id, row]));
 			const allowanceByCode = new Map(
 				options.jurisdiction.allowanceRows.map((row) => [row.code, row])
 			);
-			const capturedAllowances = (term.allowances ?? []).filter((line) => line.amount.value !== 0);
+			const capturedAllowances = salaried
+				? (term.allowances ?? []).filter((line) => line.amount.value !== 0)
+				: [];
+			const allowances: { row: CatalogRow; amount: number }[] = [];
 			for (const line of capturedAllowances) {
 				const code =
 					line.code ??
@@ -940,10 +969,18 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 					return yield* new Refusal({
 						message: `${who}: a contract allowance names no allowance class of ${options.jurisdiction.version.code}.`
 					});
+				allowances.push({ row, amount: line.amount.value });
+			}
+			// An automatic class prices on every salary slip at a contract amount of 0, unless a contract line names it.
+			if (salaried)
+				for (const row of options.jurisdiction.allowanceRows)
+					if (row.automatic === true && !allowances.some((held) => held.row.code === row.code))
+						allowances.push({ row, amount: 0 });
+			for (const { row, amount: contractAmount } of allowances) {
 				const where = `allowance_catalog ${row.code}`;
 				const allowanceContext: DynObject = {
 					...priceOn,
-					allowance: { code: row.code, amount: line.amount.value }
+					allowance: { code: row.code, amount: contractAmount }
 				};
 				if (!(yield* evaluateBoolean(row.eligibility, allowanceContext, where))) continue;
 				if (row.amount == null)
@@ -965,9 +1002,18 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 			// a line the month's earlier slips paid that is no longer owed is taken back
 			for (const [code, before] of settling?.paid ?? []) {
 				if (priced.has(code) || before === 0) continue;
-				const row = [...options.jurisdiction.workRows, ...options.jurisdiction.allowanceRows].find(
-					(held) => (held.component_code ?? held.code) === code
-				) ?? { id: code, code, destination: 'PAY', counts_toward: [] };
+				const row = [
+					...options.jurisdiction.workRows,
+					...suspensionPay,
+					...leavePay,
+					...wageAdjustments,
+					...options.jurisdiction.allowanceRows
+				].find((held) => (held.component_code ?? held.code) === code) ?? {
+					id: code,
+					code,
+					destination: 'PAY',
+					counts_toward: []
+				};
 				base.push({
 					component_code: code,
 					label: row.name ?? code,
@@ -983,7 +1029,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				if (!salaryRun && !chosen) continue;
 				if (salaryRun && options.payroll.selected.size > 0 && !chosen) continue;
 				const occurred = String(row.occurred_on ?? '');
-				if (salaryRun && (occurred < window.salary_from || occurred > window.salary_to)) continue;
+				if (salaryRun && !dueIn(row)) continue;
 				// Without salary a salary run pays only a payee's entries and the classes payable after exit.
 				if (salaryRun && !salaried && !unsalaried(row)) continue;
 				const priced = options.jurisdiction.classes.get(String(row.catalog_id));
@@ -1002,11 +1048,20 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 					earlier
 				};
 				const where = `${family.collection.replace('_entry', '')} ${priced.code}`;
-				if (!(yield* evaluateBoolean(priced.eligibility, entryCtx, where)))
+				// Raised exit pay is judged here, not on its write: a class the leaver does not qualify for settles at nothing.
+				const exit = exitSource(row);
+				const eligible = yield* evaluateBoolean(priced.eligibility, entryCtx, where);
+				const qualifies =
+					eligible && (yield* evaluateBoolean(priced.qualifies_when, entryCtx, where));
+				if (exit != null && !qualifies) {
+					pins.push({ collection: family.collection, id: row.id });
+					continue;
+				}
+				if (!eligible)
 					return yield* new Refusal({
 						message: `${who}: ${priced.name ?? priced.code} is not available to this employment.`
 					});
-				if (!(yield* evaluateBoolean(priced.qualifies_when, entryCtx, where)))
+				if (!qualifies)
 					return yield* new Refusal({
 						message: `${who}: entry ${row.reference ?? row.id} does not qualify as ${priced.name ?? priced.code}.`
 					});
@@ -1054,10 +1109,11 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 					pins.push({ collection: family.collection, id: row.id });
 					settlesAfterExit = true;
 				}
-				// an entry that prices to nothing pays nothing: flagged, never silent
+				// an entry that prices to nothing pays nothing: flagged, never silent; raised exit pay settles at nothing
 				if (signedAmount === 0) {
-					if (priced.payable_after_exit !== true)
-						entryWarnings.push(`${who}: ${label} prices to nothing; it stays unpaid.`);
+					if (priced.payable_after_exit === true) continue;
+					if (exit != null) pins.push({ collection: family.collection, id: row.id });
+					else entryWarnings.push(`${who}: ${label} prices to nothing; it stays unpaid.`);
 					continue;
 				}
 				const posted = post(
@@ -1079,9 +1135,10 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 					});
 					continue;
 				}
+				// raised exit pay keeps the exit's family and names its exit: a moved exit reverses it (`exitCorrections`)
 				adjustments.push({
-					family: family.family,
-					source_id: row.id,
+					family: exit == null ? family.family : 'EXIT',
+					source_id: exit ?? row.id,
 					component_code: priced.code,
 					bucket: posted >= 0 && priced.destination === 'PAY' ? 'EARNING' : 'DEDUCTION',
 					destination: priced.destination === 'PAY' ? 'PAY' : 'NET',
@@ -1142,7 +1199,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 			previousMonth: String(addMonths(`${monthKey}-01`, -1)).slice(0, 7),
 			available: money(gross - netSubtract + netAdd),
 			money: options.payroll.money,
-			yearStartMonth: payroll?.tax_year_start_month ?? 1,
+			yearStartMonth: payroll?.tax_year_start_month ?? PAYROLL_DEFAULTS.tax_year_start_month,
 			severity: options.subject.entity.validation_severity,
 			wages,
 			parts: options.jurisdiction.parts,
@@ -1239,12 +1296,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 		}
 		const total_deductions = money(employeeStatutory + netSubtract);
 		const net = money(gross - total_deductions + netAdd);
-		if (net < 0 && payroll?.negative_net == null)
-			return yield* unstated(
-				`jurisdiction_settings ${options.jurisdiction.version.code}`,
-				'payroll.negative_net'
-			);
-		if (net < 0 && payroll?.negative_net === 'refuse')
+		if (net < 0 && (payroll?.negative_net ?? PAYROLL_DEFAULTS.negative_net) === 'refuse')
 			return yield* new Refusal({ message: `${who}: net pay would be negative (${net}).` });
 		// The payslip validations read the slip as built: `payslip` (its totals and lines by code) and `statutory`.
 		const lines: {

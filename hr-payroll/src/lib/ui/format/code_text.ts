@@ -3,7 +3,6 @@ import * as Predicate from 'effect/Predicate';
 import { Result } from 'effect';
 import { parse, type ASTNode } from '@marcbachmann/cel-js';
 import { STATUTORY_FIELDS } from '../../payroll_engine/statutory_fields.js';
-import { SUSPENSION_KIND } from '../../payroll_engine/suspension_kinds.js';
 
 /** Expression fields derive from the same declaration tree the manifest compiles. */
 const expressionFields = (value: unknown, fields: Set<string>): void => {
@@ -17,7 +16,6 @@ const expressionFields = (value: unknown, fields: Set<string>): void => {
 export const CEL_KEYS: ReadonlySet<string> = (() => {
 	const fields = new Set<string>();
 	for (const declaration of Object.values(STATUTORY_FIELDS)) expressionFields(declaration, fields);
-	expressionFields(SUSPENSION_KIND.fields, fields);
 	return fields;
 })();
 const WIDTH = 72;

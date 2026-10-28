@@ -23,7 +23,25 @@
 			"window": "CALENDAR_YEAR",
 			"carry_forward": "has(terms.facts) && terms.facts != null && has(terms.facts.annual_leave_combined) && terms.facts.annual_leave_combined == true ? 1000.0 : 0.0",
 			"carry_depth": 2
-		}
+		},
+		"pay": [
+			{
+				"code": "ENCASHMENT",
+				"name": "Leave encashment",
+				"references": [
+					{
+						"title": "Decree 145/2020/NĐ-CP art.67(3): untaken annual leave is paid at the contract wage of the month before the employee leaves; the day wage on art.54(1)(a3). Decree 145/2020/NĐ-CP art.54(1)(a3)–(a4): the day wage is the monthly wage divided by the normal working days of the month the enterprise chose, the hour wage the day wage divided by the normal hours of the day (Labour Code art.105); art.55(1)(a): the overtime hour wage is the month’s wage for the work divided by the actual normal hours of the month.. Engine: the day rate is the monthly wage over the month’s normal working days, period.month_working_days + period.month_holiday_work_days (the calendar month’s planned WORK days, a public holiday falling on one counted: Decree 145/2020 art.54(1)(a)(a3) divides by “số ngày làm việc bình thường trong tháng”, and a public holiday is a paid day off, Labour Code art.112(1), not a weekly rest day, art.111; the same in both halves of a semi-monthly month), hours a day the mean scheduled hours of those days; an entity without planned shifts falls back to rules.working_time (26 days of 8 hours, the most a 48-hour week allows under art.105). The day rate is the previous month’s wage over the previous month’s normal working days (period.previous_month_working_days + period.previous_month_holiday_work_days), Decree 145/2020 art.67(3). Wage base: art.67(3) pays the contract wage (tiền lương theo hợp đồng lao động) of the month before the exit, which includes the contract’s wage allowances (Labour Code art.90(1)): the previous month’s base salary plus the contract’s FIXED_ALLOWANCE lines (the engine exposes no previous-month allowance list, so the allowances in force are read). https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf p.48",
+						"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+					}
+				],
+				"eligibility": "leave.rows.exists(r, r.can_encash && r.activity == \"ENCASHMENT\" && r.days > 0.0)",
+				"quantity": "sum(leave.rows.filter(r, r.can_encash && r.activity == \"ENCASHMENT\").map(r, r.days))",
+				"rate": "((has(earned.previous_month.base_salary) ? double(earned.previous_month.base_salary) : terms.base_salary) + sum(terms.allowances.filter(a, a.code == \"FIXED_ALLOWANCE\").map(a, double(a.amount)))) / (period.previous_month_working_days + period.previous_month_holiday_work_days > 0 ? double(period.previous_month_working_days + period.previous_month_holiday_work_days) : double(rules.working_time.fallback_working_days))",
+				"destination": "PAY",
+				"direction": "ADD",
+				"counts_toward": []
+			}
+		]
 	},
 	{
 		"id": "f3068579-9b8b-5043-955b-ccf3771ef5c0",
@@ -47,7 +65,8 @@
 			"window": "CALENDAR_YEAR",
 			"days": "((has(employee.facts.si_contribution_years) ? double(employee.facts.si_contribution_years) : 0.0) < 15.0 ? 30.0 : (has(employee.facts.si_contribution_years) ? double(employee.facts.si_contribution_years) : 0.0) < 30.0 ? 40.0 : 60.0) + (terms.work_classification in [\"ARDUOUS\", \"ESPECIALLY_ARDUOUS\"] ? 10.0 : 0.0)",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "c8af6778-0e0a-5442-93e8-45342c11fefe",
@@ -71,7 +90,8 @@
 			"window_key": "has(entry.facts.event_id) ? string(entry.facts.event_id) : \"\"",
 			"days": "!(has(entry.from) && entry.from != null) ? 31.0 * (6.0 + double((has(entry.facts.children_born) ? entry.facts.children_born : 1)) - 1.0) : (has(entry.facts.maternity_case) ? entry.facts.maternity_case : \"\") == \"ADOPTION\" && has(entry.facts.child_birthdate) ? double(calendar_distance_days(entry.from, add_months(entry.facts.child_birthdate, 6))) : double(calendar_distance_days(entry.from, add_months(entry.from, int((6.0 + double((has(entry.facts.children_born) ? entry.facts.children_born : 1)) - 1.0)))))",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "e6a6d5f3-7888-5eda-9c9a-3b77c8856226",
@@ -96,7 +116,8 @@
 			"window_key": "has(entry.facts.event_id) ? string(entry.facts.event_id) : \"\"",
 			"days": "double((has(entry.facts.children_born) ? entry.facts.children_born : 1)) >= 2.0 ? ((has(entry.facts.caesarean) ? entry.facts.caesarean : false) == true ? 14.0 : 10.0 + 3.0 * (double((has(entry.facts.children_born) ? entry.facts.children_born : 1)) - 2.0)) : (((has(entry.facts.caesarean) ? entry.facts.caesarean : false) == true || (has(entry.facts.premature_under_32_weeks) ? entry.facts.premature_under_32_weeks : false) == true) ? 7.0 : 5.0)",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "24f0e2da-f76f-5481-a417-212f007faad3",
@@ -120,7 +141,8 @@
 			"window": "EVENT",
 			"days": "3.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "e9175c1a-4ce3-572c-9c93-86b2af01835b",
@@ -144,7 +166,8 @@
 			"window": "EVENT",
 			"days": "1.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "c7eba0fc-baa6-5af8-a62f-0d69eb4105ca",
@@ -168,7 +191,8 @@
 			"window": "EVENT",
 			"days": "3.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "effd912b-3576-5449-87cf-045e7cb26ba8",
@@ -192,7 +216,8 @@
 			"window": "EVENT",
 			"days": "1.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "bd775e53-8471-5b34-b7d4-425c38270f1b",
@@ -210,6 +235,18 @@
 			{
 				"title": "Labour Code 45/2019/QH14 art.115(3) (Official Gazette 993+994 p.50, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf): beyond the art.115(1)–(2) days, the worker may agree with the employer to take unpaid leave; the law sets no length. The days are unpaid (deducted at the working-day rate, work_rules.proration) and each wholly unpaid working day counts toward the 14-day SI/HI/UI month (Law 41/2024/QH15 arts.33(5), 34(3); Law 74/2025/QH15 art.33(4)). Added 2026-09-30: a missing row of unchanged law, fixed in place in every version.",
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"pay": [
+			{
+				"code": "NO_PAY_LEAVE",
+				"name": "No-pay leave",
+				"eligibility": "leave.rows.exists(r, r.is_npl && r.activity == \"TIME_OFF\" && r.days > 0.0)",
+				"quantity": "sum(leave.rows.filter(r, r.is_npl && r.activity == \"TIME_OFF\").map(r, r.days))",
+				"rate": "(terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days)))",
+				"destination": "PAY",
+				"direction": "SUBTRACT",
+				"counts_toward": ["SI", "UNION_DUES", "HI", "UI", "UNION_FEE", "PIT"]
 			}
 		]
 	},
@@ -229,7 +266,8 @@
 			{
 				"title": "Labour Code 2019 art.112(1) — eleven days of paid public holiday a year: New Year's Day, five days of Lunar New Year, Hung Kings Commemoration Day, Reunification Day, International Labour Day and two days of National Day."
 			}
-		]
+		],
+		"pay": []
 	},
 	{
 		"id": "c6b6e8de-8980-5074-8845-e701b173a825",
@@ -242,7 +280,8 @@
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": []
 	},
 	{
 		"id": "2c44b3ca-6fc7-545b-9943-300fc84e8cd3",
@@ -266,7 +305,8 @@
 			"window": "CALENDAR_YEAR",
 			"days": "2.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "6b195f2a-edf5-5232-aa82-ee2dad658109",
@@ -284,7 +324,8 @@
 			{
 				"title": "Labour Code 2019 art.99(1): the full contract wage. a fully paid day, nothing deducted. Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave."
 			}
-		]
+		],
+		"pay": []
 	},
 	{
 		"id": "6725d072-cd0d-567c-ba28-3bb08a7cb289",
@@ -302,7 +343,8 @@
 			{
 				"title": "Labour Code 2019 art.99(2): the worker at fault is not paid. an unpaid day (`is_npl`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): only stoppage not caused by the worker is counted service for severance and annual leave."
 			}
-		]
+		],
+		"pay": []
 	},
 	{
 		"id": "71fb6ae1-e53a-51eb-ab99-49b986e5b13b",
@@ -319,6 +361,18 @@
 		"references": [
 			{
 				"title": "Labour Code 2019 art.99(2): other workers of the unit who must stop are paid the agreed rate, not below the minimum wage. the agreed share, floored at the minimum wage every day. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave."
+			}
+		],
+		"pay": [
+			{
+				"code": "STOPPAGE_REDUCTION",
+				"name": "Stoppage pay reduction",
+				"eligibility": "(has(company.facts.stoppage_pay_percent) ? double(company.facts.stoppage_pay_percent) : 100.0) < 100.0 && leave.rows.exists(r, r.code in [\"STOPPAGE_COWORKER\", \"STOPPAGE_OBJECTIVE\"] && r.activity == \"TIME_OFF\" && r.days > 0.0)",
+				"quantity": "sum(leave.rows.filter(r, r.code in [\"STOPPAGE_COWORKER\", \"STOPPAGE_OBJECTIVE\"] && r.activity == \"TIME_OFF\").map(r, r.days))",
+				"rate": "max(0.0, (terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) - max((terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) * (has(company.facts.stoppage_pay_percent) ? double(company.facts.stoppage_pay_percent) : 100.0) / 100.0, double(rules.minimum_wage.by_region[company.region in [\"II\", \"III\", \"IV\"] ? company.region : \"I\"]) / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))))",
+				"destination": "PAY",
+				"direction": "SUBTRACT",
+				"counts_toward": ["PIT"]
 			}
 		]
 	},
@@ -338,7 +392,8 @@
 			{
 				"title": "Labour Code 2019 art.99(3): an electricity or water failure not the employer’s fault, natural disaster, fire, dangerous epidemic, enemy action, relocation ordered by a competent State authority or economic reasons: the agreed stoppage wage, not below the minimum wage for a stoppage of up to 14 working days, and for the first 14 working days of a longer one. the floor holds while `leave.event_day <= 14`; entries of one stoppage filed per pay period share its `event_date`. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave."
 			}
-		]
+		],
+		"pay": []
 	},
 	{
 		"id": "15713c3e-5b97-4845-b1da-9bb9b50bc5e6",
@@ -364,7 +419,8 @@
 			"window_key": "(has(entry.facts.child_id) ? string(entry.facts.child_id) : \"\") + \":\" + (has(entry.from) && entry.from != null ? entry.from.substring(0, 4) : \"\")",
 			"days": "(has(entry.facts.child_birthdate) && has(entry.from) && entry.from != null && add_years(entry.facts.child_birthdate, 3) > entry.from) ? 20.0 : 15.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "ca3338da-64d3-4291-b521-fa8d1f4dcc32",
@@ -390,7 +446,8 @@
 			"window_key": "has(entry.facts.event_id) ? string(entry.facts.event_id) : \"\"",
 			"days": "(has(entry.facts.remote_or_pathological) ? entry.facts.remote_or_pathological : false) == true ? 10.0 : 5.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "a8e9e411-593b-4bd4-bc4f-cd436188b1d9",
@@ -416,7 +473,8 @@
 			"window_key": "has(entry.facts.event_id) ? string(entry.facts.event_id) : \"\"",
 			"days": "double((has(entry.facts.gestation_weeks) ? entry.facts.gestation_weeks : 0)) >= 22.0 ? 50.0 : double((has(entry.facts.gestation_weeks) ? entry.facts.gestation_weeks : 0)) >= 13.0 ? 40.0 : double((has(entry.facts.gestation_weeks) ? entry.facts.gestation_weeks : 0)) >= 5.0 ? 20.0 : 10.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "d0ddbc96-4249-4069-8c0f-a26497c5d7ce",
@@ -442,7 +500,8 @@
 			"window_key": "has(entry.facts.event_id) ? string(entry.facts.event_id) : \"\"",
 			"days": "(has(entry.facts.method) ? entry.facts.method : \"\") == \"STERILISATION\" ? 15.0 : 7.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "6f76829e-6ec3-4237-bdaf-4200a30591bd",
@@ -468,7 +527,8 @@
 			"window_key": "has(entry.facts.event_id) ? string(entry.facts.event_id) : \"\"",
 			"days": "(has(entry.facts.after) ? entry.facts.after : \"\") in [\"LONG_TERM_ILLNESS\", \"MULTIPLE_BIRTH\"] ? 10.0 : (has(entry.facts.after) ? entry.facts.after : \"\") in [\"SURGERY\", \"CAESAREAN\"] ? 7.0 : 5.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "8d50b4dc-bb68-49b0-ba0e-dd95742c0c0c",
@@ -487,7 +547,8 @@
 				"title": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.38(3): the employer pays the full contract wage during treatment."
 			}
 		],
-		"entitlement": null
+		"entitlement": null,
+		"pay": []
 	},
 	{
 		"id": "08e58bc3-9e69-4805-92ee-67941dd6283d",
@@ -513,6 +574,24 @@
 			"window_key": "has(entry.facts.event_id) ? string(entry.facts.event_id) : \"\"",
 			"days": "(has(entry.facts.special_case) ? entry.facts.special_case : false) == true ? 90.0 : 15.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": [
+			{
+				"code": "SUSPENSION_ADVANCE",
+				"name": "Suspension pending discipline: the half not advanced",
+				"references": [
+					{
+						"title": "Labour Code 2019 art.128(2): during a suspension pending discipline the worker is advanced 50% of the wage; if not disciplined the employer pays the full wage for the suspension (adhoc SUSPENSION_SETTLEMENT).",
+						"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+					}
+				],
+				"eligibility": "leave.rows.exists(r, r.code == \"SUSPENSION_PENDING_DISCIPLINE\" && r.activity == \"TIME_OFF\" && r.days > 0.0)",
+				"quantity": "sum(leave.rows.filter(r, r.code == \"SUSPENSION_PENDING_DISCIPLINE\" && r.activity == \"TIME_OFF\").map(r, r.days))",
+				"rate": "0.5 * (terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days)))",
+				"destination": "PAY",
+				"direction": "SUBTRACT",
+				"counts_toward": ["PIT"]
+			}
+		]
 	}
 ]

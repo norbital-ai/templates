@@ -104,16 +104,12 @@ export default automation('statutory_drift', {
 						},
 						fields: [
 							'code',
-							'jurisdiction_code',
 							'name',
 							'employee_input_schema',
 							'entity_input_schema',
-							'behaviours',
-							'references',
 							'payroll',
-							'suspension_kinds',
+							'time_pay',
 							'sources',
-							'reference_tables',
 							'change_summary',
 							'effective_range',
 							'sealed_at',
@@ -170,10 +166,10 @@ export default automation('statutory_drift', {
 						(got) => got.loan_catalog
 					)
 				);
-				const work = yield* allPages((after) =>
+				const suspension = yield* allPages((after) =>
 					Effect.map(
-						ctx.query({ work_catalog: { where, ...paged(after) } }),
-						(got) => got.work_catalog
+						ctx.query({ suspension_catalog: { where, ...paged(after) } }),
+						(got) => got.suspension_catalog
 					)
 				);
 				const contribution = yield* allPages((after) =>
@@ -184,6 +180,9 @@ export default automation('statutory_drift', {
 				);
 				const rules = yield* allPages((after) =>
 					Effect.map(ctx.query({ rule_set: { where, ...paged(after) } }), (got) => got.rule_set)
+				);
+				const behaviours = yield* allPages((after) =>
+					Effect.map(ctx.query({ behaviour: { where, ...paged(after) } }), (got) => got.behaviour)
 				);
 				const snapshot = yield* decodeSnapshot({
 					settings: snapshotFields(version, SNAPSHOT_MODELS.settings.fields),
@@ -200,16 +199,14 @@ export default automation('statutory_drift', {
 						snapshotFields(row, SNAPSHOT_MODELS.leave_catalog.fields)
 					),
 					loan_catalog: loan.map((row) => snapshotFields(row, SNAPSHOT_MODELS.loan_catalog.fields)),
-					work_catalog: work.map((row) => snapshotFields(row, SNAPSHOT_MODELS.work_catalog.fields)),
 					statutory_contribution_catalog: contribution.map((row) =>
 						snapshotFields(row, SNAPSHOT_MODELS.statutory_contribution_catalog.fields)
 					),
-					suspension_kind: version.suspension_kinds ?? [],
+					suspension_catalog: suspension.map((row) =>
+						snapshotFields(row, SNAPSHOT_MODELS.suspension_catalog.fields)
+					),
 					rule_set: rules.map((row) => snapshotFields(row, SNAPSHOT_MODELS.rule_set.fields)),
-					behaviour_rule: (version.behaviours?.rules ?? []).map(({ id, ...rule }) => ({
-						code: id,
-						...rule
-					}))
+					behaviour: behaviours.map((row) => snapshotFields(row, SNAPSHOT_MODELS.behaviour.fields))
 				});
 				return { code, version, sources, snapshot };
 			});
@@ -479,11 +476,7 @@ export default automation('statutory_drift', {
 												...version.sources,
 												entries: switched.flatMap((item) => item.entries)
 											}
-										}),
-								behaviours: {
-									version: 1,
-									rules: corrected.behaviour_rule.map(({ code: id, ...rule }) => ({ id, ...rule }))
-								}
+										})
 							},
 							effective_from
 						),
@@ -493,10 +486,10 @@ export default automation('statutory_drift', {
 						claim_catalog: corrected.claim_catalog,
 						leave_catalog: corrected.leave_catalog,
 						loan_catalog: corrected.loan_catalog,
-						work_catalog: corrected.work_catalog,
 						statutory_contribution_catalog: corrected.statutory_contribution_catalog,
-						suspension_kinds: corrected.suspension_kind,
-						rule_set: corrected.rule_set
+						suspension_catalog: corrected.suspension_catalog,
+						rule_set: corrected.rule_set,
+						behaviour: corrected.behaviour
 					}
 				]);
 				const reasons = [

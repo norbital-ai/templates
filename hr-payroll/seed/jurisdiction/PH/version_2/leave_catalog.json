@@ -10,7 +10,8 @@
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": []
 	},
 	{
 		"id": "b11e2783-4493-557c-9dbe-309f292e5692",
@@ -34,7 +35,8 @@
 			"window": "EVENT",
 			"days": "10.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "f9c9f73e-6e8e-5f71-987d-e9da17e678cc",
@@ -47,7 +49,8 @@
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": []
 	},
 	{
 		"id": "22cd45dd-82cd-5705-890b-f959b5c0f293",
@@ -72,7 +75,8 @@
 			"days": "7.0 + (has(entry.facts.maternity_days_allocated) ? min(double(entry.facts.maternity_days_allocated), 7.0) : 0.0)",
 			"overdraw": "0",
 			"window_key": "has(entry.facts.event_id) ? entry.facts.event_id : (has(entry.id) ? entry.id : \"\")"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "63d40ebc-943a-5086-9b6b-9514df73adf4",
@@ -96,7 +100,8 @@
 			"window": "EVENT",
 			"days": "60.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "8122adab-3b23-5aa2-a442-37ff069a7139",
@@ -109,7 +114,8 @@
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": []
 	},
 	{
 		"id": "f3df8a6a-f053-5f89-b35b-242105cc98d4",
@@ -141,7 +147,24 @@
 			"overdraw": "0",
 			"window": "SERVICE_YEAR"
 		},
-		"encash_at_window_end": true
+		"encash_at_window_end": true,
+		"pay": [
+			{
+				"code": "ENCASHMENT",
+				"name": "Leave encashment",
+				"references": [
+					{
+						"title": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commuted at the daily rate (`WTAX.LEAVE`: monetised leave is de minimis to 10 / 12 days a year). Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2)."
+					}
+				],
+				"eligibility": "leave.rows.exists(r, r.can_encash && r.activity == \"ENCASHMENT\" && r.days > 0.0)",
+				"quantity": "sum(leave.rows.filter(r, r.can_encash && r.activity == \"ENCASHMENT\").map(r, r.days))",
+				"rate": "((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? terms.base_salary : terms.base_salary * 12.0 / (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0))",
+				"destination": "PAY",
+				"direction": "ADD",
+				"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.LEAVE"]
+			}
+		]
 	},
 	{
 		"id": "91534ccc-ca86-52a8-acd8-d51294e9e8e5",
@@ -154,7 +177,8 @@
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": []
 	},
 	{
 		"id": "7d349b00-69f9-5dd0-a502-7fb6fa58a1e6",
@@ -178,7 +202,8 @@
 			"days": "(has(entry.facts.event_kind) && entry.facts.event_kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"] ? 60.0 : ((has(entry.facts.solo_parent_claimed) ? entry.facts.solo_parent_claimed : (has(terms.facts.solo_parent) && terms.facts.solo_parent == true)) ? 120.0 : 105.0)) - (has(entry.facts.days_allocated_to_father) ? min(double(entry.facts.days_allocated_to_father), 7.0) : 0.0)",
 			"overdraw": "0",
 			"window_key": "has(entry.facts.event_id) ? entry.facts.event_id : (has(entry.id) ? entry.id : \"\")"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "bf86d88d-2e7d-53e5-af6c-2ee330541e1b",
@@ -191,7 +216,8 @@
 		"can_encash": true,
 		"encash_on_exit": false,
 		"is_npl": false,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": []
 	},
 	{
 		"id": "9f92526a-c8d2-589d-83f8-4423f9b834af",
@@ -204,7 +230,8 @@
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": []
 	},
 	{
 		"id": "644d9f72-c93a-5e84-a3b1-fb88127ea4fe",
@@ -229,7 +256,8 @@
 			"window": "CALENDAR_YEAR",
 			"days": "service_months >= 6.0 ? 7.0 : 0.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "b9a2dd39-d4e0-565f-91e9-cba35031228c",
@@ -242,7 +270,24 @@
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": true,
-		"pay_fraction": ""
+		"pay_fraction": "",
+		"pay": [
+			{
+				"code": "NO_PAY_LEAVE",
+				"name": "No-pay leave",
+				"references": [
+					{
+						"title": "Labor Code art.82 (no work, no pay): an unpaid leave or absence day is deducted at the daily rate from a monthly salary; a daily-paid contract is simply not paid the day. Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2). A leave counted in calendar days (maternity, its unpaid extension) deducts only its planned working days in the period (all its days when no working day is planned), and a month wholly on no-pay leave deducts at most the month’s basic, never more."
+					}
+				],
+				"eligibility": "!(has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") && leave.rows.exists(r, r.is_npl && r.activity == \"TIME_OFF\" && r.days > 0.0)",
+				"quantity": "min(sum(leave.rows.filter(r, r.is_npl && r.activity == \"TIME_OFF\").map(r, r.period_working_days > 0.0 ? min(r.days, r.period_working_days) : r.days)), (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0) / 12.0 / period.parts * period.paid_days / period.days)",
+				"rate": "((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? terms.base_salary : terms.base_salary * 12.0 / (has(terms.facts.days_per_year) ? double(terms.facts.days_per_year) : 313.0))",
+				"destination": "PAY",
+				"direction": "SUBTRACT",
+				"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.WAGE"]
+			}
+		]
 	},
 	{
 		"id": "eef4a98d-31c5-5828-b806-8963d320e71a",
@@ -272,7 +317,8 @@
 			],
 			"days": "size(bands.filter(b, service_months >= b.service_months).map(b, b.days)) > 0 ? first(bands.filter(b, service_months >= b.service_months).map(b, b.days)) : 0.0",
 			"overdraw": "0"
-		}
+		},
+		"pay": []
 	},
 	{
 		"id": "3b47a72d-6d17-508c-b017-51de0a7c7d31",
@@ -297,7 +343,8 @@
 				"title": "RA 11210 s.3: after the 105 days the mother may extend her leave by thirty days without pay, on notice at least forty-five days before the leave ends (the employee’s notice). Metered per pregnancy (`facts.event_id`).",
 				"url": "https://lawphil.net/statutes/repacts/ra2019/ra_11210_2019.html"
 			}
-		]
+		],
+		"pay": []
 	},
 	{
 		"id": "97ddf73b-8fd2-5dc4-936b-3037ed09c710",
@@ -323,6 +370,7 @@
 				"title": "RA 11210 s.6 (https://lawphil.net/statutes/repacts/ra2019/ra_11210_2019.html, read 2026-10-07): the mother may \"allocate up to seven (7) days of said benefits to the child’s father, whether or not the same is married to the female worker: Provided, That in the death, absence, or incapacity of the former, the benefit may be allocated to an alternate caregiver who may be a relative within the fourth degree of consanguinity or the current partner of the female worker sharing the same household\", on written notice to both employers, \"over and above\" RA 8187. This class takes the allocated days for a recipient other than a married father (who takes them on PATERNITY_LEAVE with his RA 8187 seven): entry facts `allocation_recipient` (FATHER or ALTERNATE_CAREGIVER) and `maternity_days_allocated` (customer input, from the mother’s written notice), at most seven a birth, miscarriage or emergency termination; with pay, like the paternity days.",
 				"url": "https://lawphil.net/statutes/repacts/ra2019/ra_11210_2019.html"
 			}
-		]
+		],
+		"pay": []
 	}
 ]

@@ -33,7 +33,7 @@
 
 ## 数据模型
 
-各国法规是数据而非代码。每个辖区是一组带生效日期、已封存的 `jurisdiction_settings` 版本，附带目录行（`statutory_contribution_catalog`、`leave_catalog`、`claim_catalog`、`adhoc_catalog`、`loan_catalog`、`allowance_catalog`、`work_catalog`）和 `rule_set` 行。费率、档位、资格和计价都是这些行上的 CEL 表达式，行为（例如离职休假兑现）是设置版本上的规则。`src/lib/payroll_engine/` 下的引擎只负责求值，不含任何辖区专属逻辑。法规变更即新版本，无需改动源代码。
+各国法规是数据而非代码。每个辖区是一组带生效日期、已封存的 `jurisdiction_settings` 版本，附带目录行（`statutory_contribution_catalog`、`leave_catalog`、`claim_catalog`、`adhoc_catalog`、`loan_catalog`、`allowance_catalog`）和 `rule_set` 行；工时薪酬是版本的 `time_pay`。费率、档位、资格和计价都是这些行上的 CEL 表达式；校验是 `VALIDATIONS` 规则集，法规参数是 `PARAMETERS`，申报文件格式是 `EXPORTS`，行为（例如离职休假兑现、离职补偿、义务与任务）是版本的 `behaviour` 行。`src/lib/payroll_engine/` 下的引擎只负责求值，不含任何辖区专属逻辑。法规变更即新版本，无需改动源代码。
 
 各辖区的配置内容及缺口记录在[各辖区跟踪表](docs/inventory/README.md)。
 

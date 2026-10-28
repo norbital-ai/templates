@@ -222,8 +222,7 @@
 				"when": "",
 				"amount": "max(entry.amount, (size(earned.months) > 0 ? sum(earned.months.map(m, m.gross)) / double(size(earned.months)) : terms.monthly_wage) * 12.0 / 365.0 * (employment.service_months < 24 ? 10.0 : employment.service_months < 60 ? 15.0 : 20.0) * (double(employment.service_months) / 12.0))"
 			}
-		],
-		"raise_on_exit": true
+		]
 	},
 	{
 		"id": "771acfe0-2d06-5ae3-80f9-b7890ff77abc",
@@ -245,8 +244,7 @@
 				"when": "",
 				"amount": "max(entry.amount, max(0.0, ((has(terms.facts) && has(terms.facts.contract_notice_weeks)) && !(has(employment.exit_facts.notice_structural_ground) && employment.exit_facts.notice_structural_ground != \"NONE\") ? double(terms.facts.contract_notice_weeks) : max((has(terms.facts) && has(terms.facts.contract_notice_weeks)) ? double(terms.facts.contract_notice_weeks) : 0.0, employment.service_months < 24 ? 4.0 : employment.service_months < 60 ? 6.0 : 8.0)) * 7.0 - (has(employment.exit_facts.notice_given_on) && employment.exit_facts.notice_given_on != \"\" ? double(calendar_distance_days(employment.exit_facts.notice_given_on, employment.exit_date) + 1.0) : 0.0) - (has(employment.exit_facts.notice_waived_days) ? double(employment.exit_facts.notice_waived_days) : 0.0)) * terms.monthly_wage * 12.0 / 365.0)"
 			}
-		],
-		"raise_on_exit": true
+		]
 	},
 	{
 		"id": "e9b389a7-c5ef-5591-b1fe-a14798a6ffa5",

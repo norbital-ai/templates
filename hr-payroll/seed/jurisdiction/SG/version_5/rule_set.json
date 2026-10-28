@@ -2,8 +2,7 @@
 	{
 		"id": "c8c56712-c400-57d8-9092-cfe793a078ab",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "deduction_ceiling",
 		"name": "deduction_ceiling",
 		"references": [
@@ -51,469 +50,9 @@
 		}
 	},
 	{
-		"id": "094a5b2b-4fb4-537f-a478-165e33a6ba2d",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "CPF_MONTHLY_SUBMISSION_AND_PAYMENT",
-		"name": "CPF monthly submission and payment",
-		"references": [
-			{
-				"title": "Central Provident Fund Act 1953 ss.7, 9; CPF Regulations 1987 regs.2(1), 3 (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions (https://www.cpf.gov.sg/service/article/when-is-the-due-date-for-cpf-contributions) and How does CPF Board calculate interest on late payment (https://www.cpf.gov.sg/service/article/how-does-cpf-board-calculate-interest-on-late-payment)."
-			}
-		],
-		"rules": {
-			"description": "Submit and pay the month’s CPF contributions (employer and employee shares) for every Singapore Citizen and SPR employee through the CPF Submission Number, by the 14th of the following month (the next working day when the 14th is a Saturday, Sunday or public holiday). Late payment interest: 1.5% a month on the unpaid contributions, or $5 if higher (CPF Regulations reg.3). Apply to CPF Board for a refund of contributions paid above the Additional Wage ceiling.",
-			"schemes": ["CPF"],
-			"due": "next_working_day(add_days(period.to, 14), holidays, [\"SATURDAY\", \"SUNDAY\"])"
-		}
-	},
-	{
-		"id": "3c92531b-1ca1-52d1-84bf-e4d036feb63b",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "SDL_REMITTANCE",
-		"name": "Skills Development Levy remittance",
-		"references": [
-			{
-				"title": "Skills Development Levy Act 1979; CPF Board, Skills Development Levy. The engine prices each employee's levy and derives the whole-dollar monthly payable; payment and receipt evidence remain external. CPF Board, Skills Development Levy (updated 2 Jul 2026): collected on behalf of SWDA; late payment penalty 10% a year.",
-				"url": "https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy"
-			}
-		],
-		"rules": {
-			"description": "Pay the Skills Development Levy for every employee working in Singapore, foreign employees included, with the month’s CPF by the 14th of the following month (next working day); CPF Board collects it for the Skills and Workforce Development Agency (SWDA), and an employer with only foreign employees pays SWDA directly. The per-employee levies are summed and rounded down to the dollar. Late payment: a penalty of 10% a year on the outstanding amount.",
-			"schemes": ["SDL"],
-			"due": "next_working_day(add_days(period.to, 14), holidays, [\"SATURDAY\", \"SUNDAY\"])",
-			"amount": "round(total, 1.0, \"DOWN\")"
-		}
-	},
-	{
-		"id": "ee8f0bf1-4030-5612-874d-76471dba1c64",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "SHG_DEDUCTION_REMITTANCE",
-		"name": "Self-help group fund remittance",
-		"references": [
-			{
-				"title": "CPF Board, Contributions to self-help groups. The engine prices the deduction and reads the recorded instruction; obtaining the instruction and remitting are outside it.",
-				"url": "https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups"
-			}
-		],
-		"rules": {
-			"description": "Remit the CDAC, ECF, MBMF and SINDA deductions with the month’s CPF by the 14th of the following month; apply a fund’s written opt-out or changed-amount instruction from its effective date.",
-			"schemes": ["CDAC", "ECF", "MBMF", "SINDA"],
-			"due": "next_working_day(add_days(period.to, 14), holidays, [\"SATURDAY\", \"SUNDAY\"])"
-		}
-	},
-	{
-		"id": "9599fdf7-1828-5afb-b07e-4e917e24fdea",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "FOREIGN_WORKER_LEVY",
-		"name": "Foreign worker levy payment",
-		"references": [
-			{
-				"title": "Employment of Foreign Manpower Act 1990 and the levy order made under it; MOM, Paying the foreign worker levy.",
-				"url": "https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy"
-			}
-		],
-		"rules": {
-			"description": "Pay the month’s foreign worker levy for every Work Permit and S Pass holder by the 17th of the following month (the next working day when it falls on a weekend or public holiday), normally by GIRO, at the amount on the MOM levy bill. Waive the month when no Work Permit or S Pass was in force. Missing two consecutive months revokes the employer’s passes. Raised unless the entity records foreign_worker_levy_payer = false (no S Pass or Work Permit holder). The levy stays a task, not an obligation: its amount is the MOM levy bill (quota tier and sector), which no scheme computes, and an obligation without a computed amount is never raised.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"applies_when": "(company == null || company.facts == null || !has(company.facts.foreign_worker_levy_payer) || company.facts.foreign_worker_levy_payer == true)",
-			"due": "next_working_day(add_days(period.to, 17), holidays, [\"SATURDAY\", \"SUNDAY\"])"
-		}
-	},
-	{
-		"id": "09c70c7a-1bc5-50c1-985b-4bb10a949c04",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SALARY_PAYMENT_DEADLINE",
-		"name": "Salary payment",
-		"references": [
-			{
-				"title": "Employment Act 1968",
-				"locator": "ss.20, 21(1)",
-				"url": "https://sso.agc.gov.sg/Act/EmA1968"
-			}
-		],
-		"rules": {
-			"description": "Pay the salary for a salary period of not more than one month before the expiry of the 7th day after its last day.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "add_days(period.to, 7)"
-		}
-	},
-	{
-		"id": "1fbd02aa-7f25-55b8-8a49-dfa2dc525b9c",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "OVERTIME_PAYMENT_DEADLINE",
-		"name": "Overtime payment",
-		"references": [
-			{
-				"title": "Employment Act 1968",
-				"locator": "s.21(2)",
-				"url": "https://sso.agc.gov.sg/Act/EmA1968"
-			}
-		],
-		"rules": {
-			"description": "Pay overtime worked in the salary period not later than 14 days after its last day. Waive the month when no overtime was worked.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "add_days(period.to, 14)"
-		}
-	},
-	{
-		"id": "5db66561-6e74-5a12-82d9-284dd1aac795",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "ITEMISED_PAYSLIP",
-		"name": "Itemised payslips",
-		"references": [
-			{
-				"title": "Employment Act 1968 s.96 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Itemised pay slips (https://www.mom.gov.sg/employment-practices/salary/itemised-payslips). The engine produces the payslip content; issuing it is outside it."
-			}
-		],
-		"rules": {
-			"description": "Give each employee an itemised payslip (basic salary, allowances, overtime hours and pay, other additional payments, deductions including CPF, net salary, dates) with the salary or within 3 working days after paying it. Raised when the payslip is paid; due 3 working days after the paid day.",
-			"trigger": {
-				"collection": "payslip",
-				"events": ["updated"],
-				"fields": ["status"]
-			},
-			"due": "add_working_days(row.paid_on, 3, holidays, [\"SATURDAY\", \"SUNDAY\"])",
-			"when": "row.status == \"PAID\" && has(row.paid_on)"
-		}
-	},
-	{
-		"id": "b46ebaff-b8b4-59ce-8478-3948a83fc9ee",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "ANNUAL_EMPLOYMENT_INCOME_RETURN",
-		"name": "Form IR8A / AIS annual return",
-		"references": [
-			{
-				"title": "Income Tax Act 1947",
-				"locator": "s.68(2)"
-			},
-			{
-				"title": "IRAS, Auto Inclusion Scheme (AIS) for Employment Income",
-				"url": "https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income"
-			}
-		],
-		"rules": {
-			"description": "Prepare Form IR8A with Appendix 8A and Appendix 8B (Form IR8S is discontinued from YA 2026: excess or voluntary employer CPF is item d6 of Form IR8A) for every employee paid in the calendar year and submit them under the Auto-Inclusion Scheme (mandatory with 5 or more employees, on an IRAS notice, or when registered), otherwise give them to the employees, by 1 March of the following year. Raised by the December run.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["12"],
-			"due": "add_months(add_days(period.to, 1), 2)"
-		}
-	},
-	{
-		"id": "f3635342-f71e-50b5-b010-984b44ff20e3",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "KEY_EMPLOYMENT_TERMS",
-		"name": "Key employment terms",
-		"references": [
-			{
-				"title": "Employment Act 1968",
-				"locator": "s.95A(2)",
-				"url": "https://sso.agc.gov.sg/Act/EmA1968"
-			}
-		],
-		"rules": {
-			"description": "Give the employee the key employment terms in writing not later than 14 days after the day the employee starts (an employment of 14 days or more).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 14)"
-		}
-	},
-	{
-		"id": "862b9f19-1262-5a20-8a88-b00fd4b8bbce",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORK_PASS_IN_FORCE",
-		"name": "Work pass before the start",
-		"references": [
-			{
-				"title": "Employment of Foreign Manpower Act 1990",
-				"locator": "s.5(1)"
-			},
-			{
-				"title": "MOM, Passes and permits",
-				"url": "https://www.mom.gov.sg/passes-and-permits"
-			}
-		],
-		"rules": {
-			"description": "A foreign employee may start work only with a valid work pass (Employment Pass, S Pass or Work Permit) in force; waive for a Citizen or SPR. Raised for a hire whose profile immigration_status is a work pass, or is unrecorded.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"applies_when": "!((employee != null && employee.facts != null && has(employee.facts.immigration_status) ? employee.facts.immigration_status : \"\") in [\"CITIZEN\", \"PERMANENT_RESIDENT\"])",
-			"due": "hired_on"
-		}
-	},
-	{
-		"id": "f72ee03e-a6a1-5615-8966-8cac4ec93f38",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORK_INJURY_COMPENSATION_INSURANCE",
-		"name": "Work injury compensation insurance",
-		"references": [
-			{
-				"title": "Work Injury Compensation Act 2019; MOM, Work injury compensation insurance.",
-				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/work-injury-compensation-insurance"
-			}
-		],
-		"rules": {
-			"description": "Have work injury compensation insurance in force from the first day for every employee doing manual work and every non-manual employee earning $2,600 or less a month; waive otherwise.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "hired_on",
-			"applies_when": "contract == null || !has(contract.facts) || contract.facts == null || !has(contract.facts.contract_terms) || contract.facts.contract_terms.exists(t, !has(t.statutory_work_category) || t.statutory_work_category != \"NON_MANUAL\" || !has(t.base_salary) || t.base_salary.value <= 2600.0)"
-		}
-	},
-	{
-		"id": "911ebd51-37a4-5496-96f9-9d8703af7947",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PDPA_CONSENT_PURPOSE_NOTIFICATION",
-		"name": "PDPA purpose notification",
-		"references": [
-			{
-				"title": "Personal Data Protection Act 2012 ss.13 (consent required), 14, 15 and 15A (deemed consent), 16 (withdrawal), 17 and First and Second Schedules (without consent), 18 (limitation of purpose), 20 including s.20(4) (employment relationship) (https://sso.agc.gov.sg/Act/PDPA2012); PDPC Advisory Guidelines on the PDPA for Selected Topics, Employment chapter (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-selected-topics/advisory-guidelines-on-the-pdpa-for-selected-topics-(revised-may-2024).pdf)"
-			}
-		],
-		"rules": {
-			"description": "Notify the employee of the purposes for which the employer collects, uses and discloses personal data to manage the employment relationship (onboarding, payroll, CPF and IRAS filing, benefits), on or before collection; a new purpose needs fresh notification.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "hired_on"
-		}
-	},
-	{
-		"id": "a95befae-83b3-5321-a7cf-e5e64f9f8103",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "FINAL_SALARY_PAYMENT",
-		"name": "Final salary payment",
-		"references": [
-			{
-				"title": "Employment Act 1968",
-				"locator": "ss.21(3), 22, 23, 24",
-				"url": "https://sso.agc.gov.sg/Act/EmA1968"
-			}
-		],
-		"rules": {
-			"description": "Pay the salary and every sum due on termination: on the last day when the contract ends or notice was served (ss.21(3), 23(1)); on the day of a dismissal or, where impossible, within 3 days excluding rest days and public holidays (s.22); within 7 days after a resignation without notice (s.23(2)). The due day is the last day; subject to IR21 withholding (s.24). Due the last day, or 7 days after a RESIGNATION whose exit_facts do not record notice_served.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "contract.exit_ground == \"RESIGNATION\" && !(contract.exit_facts != null && has(contract.exit_facts.notice_served) && contract.exit_facts.notice_served == true) ? add_days(exit_on, 7) : (contract.exit_ground in [\"DISMISSAL\", \"RETRENCHMENT\", \"REDUNDANCY\", \"UNILATERAL\"] && contract.exit_facts != null && has(contract.exit_facts.final_pay_not_possible) && contract.exit_facts.final_pay_not_possible == true ? add_working_days(exit_on, 3, holidays, [\"SATURDAY\", \"SUNDAY\"]) : exit_on)"
-		}
-	},
-	{
-		"id": "3f8065bc-1a29-5f14-83e9-9ccb9d5a4f35",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "TAX_CLEARANCE_AND_WITHHOLDING",
-		"name": "IR21 tax clearance",
-		"references": [
-			{
-				"title": "Income Tax Act 1947 s.68(5)–(7) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr68-); Employment Act 1968 s.24 (https://sso.agc.gov.sg/Act/EmA1968); IRAS, Getting tax clearance: a step-by-step guide (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/getting-tax-clearance-a-step-by-step-guide)."
-			}
-		],
-		"rules": {
-			"description": "File Form IR21 for a non-Singapore-Citizen employee (SPRs included) who ceases employment, is posted overseas or leaves Singapore for more than three months, at least one month before the cessation, and withhold all monies due from the day the employer is aware until the Comptroller’s clearance; waive for a Citizen or an IRAS exemption. Late or no filing: fine up to $5,000. Raised for every leaver whose profile immigration_status is not CITIZEN (SPRs included), or is unrecorded.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "(employee != null && employee.facts != null && has(employee.facts.immigration_status) ? employee.facts.immigration_status : \"\") != \"CITIZEN\" && !(contract.exit_facts != null && has(contract.exit_facts.ir21_exemption))",
-			"due": "add_months(exit_on, -1)"
-		}
-	},
-	{
-		"id": "fc832100-b976-540f-a7a2-310cd811d504",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORK_PASS_CANCELLATION",
-		"name": "Work pass cancellation",
-		"references": [
-			{
-				"title": "Employment of Foreign Manpower Act 1990 and the Employment of Foreign Manpower (Work Passes) Regulations; MOM, Cancel a Work Permit (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/cancel-a-work-permit) and Cancel an Employment Pass (https://www.mom.gov.sg/passes-and-permits/employment-pass/cancel-a-pass), read 2026-10-06: “Within 1 week after the last day of notice.”"
-			}
-		],
-		"rules": {
-			"description": "Cancel the foreign employee’s Employment Pass, S Pass or Work Permit within 1 week after the last day of notice (within 1 week of departure when the employee has left Singapore for good); waive for a Citizen or SPR. Raised for a leaver whose profile immigration_status is a work pass, or is unrecorded.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "!((employee != null && employee.facts != null && has(employee.facts.immigration_status) ? employee.facts.immigration_status : \"\") in [\"CITIZEN\", \"PERMANENT_RESIDENT\"])",
-			"due": "add_days(exit_on, 7)"
-		}
-	},
-	{
-		"id": "268f475a-9a79-5f78-9226-5e3328f84cca",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "RETRENCHMENT_NOTIFICATION",
-		"name": "Mandatory retrenchment notification",
-		"references": [
-			{
-				"title": "Employment Act 1968 s.45 and s.96A (https://sso.agc.gov.sg/Act/EmA1968); MOM, Mandatory retrenchment notifications (https://www.mom.gov.sg/employment-practices/retrenchment/mandatory-retrenchment-notifications); Tripartite Advisory on Managing Excess Manpower and Responsible Retrenchment."
-			}
-		],
-		"rules": {
-			"description": "An employer registered in Singapore with at least 10 employees (headcount on the day) notifies MOM of every retrenchment within 5 working days after the affected employees are notified. Raised for a RETRENCHMENT or REDUNDANCY exit whose exit_facts record retrenchment_notified_on; due 5 working days after that notice (add_working_days over the entity holidays).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract.exit_ground in [\"RETRENCHMENT\", \"REDUNDANCY\"] && contract.exit_facts != null && has(contract.exit_facts.retrenchment_notified_on) && headcount >= 10",
-			"due": "add_working_days(contract.exit_facts.retrenchment_notified_on, 5, holidays, [\"SATURDAY\", \"SUNDAY\"])"
-		}
-	},
-	{
-		"id": "dd3d562b-51df-553d-99fb-fcf50e62208b",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "GOVERNMENT_PAID_LEAVE_CLAIM",
-		"name": "Government-paid leave reimbursement claim",
-		"references": [
-			{
-				"title": "Child Development Co-Savings Act 2001; MSF ProFamily Leave, scheme pages for maternity, paternity, adoption and shared parental leave, read 2026-10-07",
-				"url": "https://www.profamilyleave.msf.gov.sg/"
-			}
-		],
-		"rules": {
-			"description": "Claim the reimbursable government-paid maternity, paternity, adoption or shared parental leave (GPML, GPPL, GPAL, GPSPL) through the GPL portal no later than 3 months after the last day of the leave. Raised for each recorded spell of a family-event leave (entry.facts.event_kind set); waive a spell the Government does not reimburse (e.g. GPML weeks 1–8 of a 1st or 2nd child).",
-			"trigger": {
-				"collection": "leave_catalog_entry",
-				"events": ["created"]
-			},
-			"when": "row.catalog_code in [\"MATERNITY_LEAVE\", \"PATERNITY_LEAVE\", \"ADOPTION_LEAVE\", \"SHARED_PARENTAL_LEAVE\"] && row.activity == \"TIME_OFF\" && row.to != null",
-			"due": "add_months(row.to, 3)"
-		}
-	},
-	{
-		"id": "3672078d-60da-5d09-9a37-d644660c27da",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "CHILDCARE_LEAVE_CLAIM",
-		"name": "Childcare and extended childcare leave claim",
-		"references": [
-			{
-				"title": "Child Development Co-Savings Act 2001 s.12B; MSF ProFamily Leave, Childcare leave, read 2026-10-07: “no later than 3 months after the last date of the calendar year”",
-				"url": "https://www.profamilyleave.msf.gov.sg/schemes/childcare-leave"
-			}
-		],
-		"rules": {
-			"description": "Claim the government-paid childcare leave (days 4–6, $500 a day, $1,500 a year) and extended childcare leave (both days, $500 a day, $1,000 a year) the employer paid in the calendar year, no later than 3 months after its last day. Raised by the December run; waive when no such leave was taken.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["12"],
-			"due": "add_months(period.to, 3)"
-		}
-	},
-	{
-		"id": "4153972d-e4b7-5871-8a43-b15b3cd3b4c3",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORK_ACCIDENT_REPORT",
-		"name": "Work accident report to MOM",
-		"references": [
-			{
-				"title": "Workplace Safety and Health (Incident Reporting) Regulations and Work Injury Compensation Regulations; Ministry of Manpower official reporting criteria, read 2026-10-10: https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report. The employer table expressly lists any outpatient/hospitalisation leave, light duty, death and occupational disease; fatal accident reports use accident date, non-fatal reports first employer notice. Primary legislation links were inaccessible (403); current agency guidance is the verified source. MOM parliamentary written answer dated 8 February 2023 confirms the any-instance requirement has applied since 1 September 2020: https://www.mom.gov.sg/newsroom/parliament-questions-and-replies/2023/0206-written-answer-to-pq-on-data-on-healthcare-workers-compensation-under-wica."
-			}
-		],
-		"rules": {
-			"description": "Report a work accident through iReport for any outpatient or hospitalisation leave, including dedicated WICA leave classes. No four-day minimum applies, so the first positive leave entry triggers the report even when later leave is recorded separately. Fatal report: within ten days of the accident; non-fatal report: within ten days of the employer’s first notice. Record work_accident_on, accident_notified_on and work_accident_fatal as applicable. If the actual first notice is not supplied, the accident date is a conservative earlier due date, not an inferred notice date. This leave-triggered duty does not cover incidents recorded without leave (light duty, death, occupational disease), or the separate immediate fatality notification; those need workplace-case coverage.",
-			"trigger": {
-				"collection": "leave_catalog_entry",
-				"events": ["created"]
-			},
-			"when": "row.catalog_code in [\"SICK_LEAVE\", \"HOSPITALIZATION_LEAVE\", \"WORK_INJURY_MEDICAL_LEAVE\", \"WORK_INJURY_HOSPITALISATION_LEAVE\"] && row.facts != null && has(row.facts.work_accident_on)",
-			"applies_when": "row.days > 0.0 || (has(row.facts.work_accident_fatal) && row.facts.work_accident_fatal == true)",
-			"due": "add_days((has(row.facts.work_accident_fatal) && row.facts.work_accident_fatal == true) ? row.facts.work_accident_on : (has(row.facts.accident_notified_on) ? row.facts.accident_notified_on : row.facts.work_accident_on), 10)"
-		}
-	},
-	{
-		"id": "f35fe11d-4ad0-5e70-b873-30f745cc16a5",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "CPF_SUBMISSION_NUMBER",
-		"name": "CPF Submission Number registration",
-		"references": [
-			{
-				"title": "Central Provident Fund Act 1953 s.7; CPF Board, How do I start contributing CPF as a new employer, read 2026-10-07: “You will need a CPF Submission Number (CSN) to transact with CPF Board”",
-				"url": "https://www.cpf.gov.sg/service/article/how-do-i-start-contributing-cpf-as-a-new-employer"
-			}
-		],
-		"rules": {
-			"description": "Apply for the CPF Submission Number before the first CPF payment is due. Raised when an entity is created without one; due the first possible CPF deadline, the 14th of the month after the entity’s first month (rolled to the next working day). There is no per-employee CPF registration.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["created"]
-			},
-			"applies_when": "company == null || company.facts == null || !has(company.facts.cpf_submission_number) || company.facts.cpf_submission_number == \"\"",
-			"due": "next_working_day(add_days(month_end(period.from), 14), holidays, [\"SATURDAY\", \"SUNDAY\"])"
-		}
-	},
-	{
 		"id": "2fa7c263-3c86-5362-8dd4-142b8e92c4fc",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "IR21_FINAL_PAY_HOLD",
 		"name": "IR21 hold on a non-Citizen’s final pay",
 		"rules": {
@@ -528,7 +67,6 @@
 		"id": "90bd4477-c4fd-5411-a79c-cd543874460c",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "DEDUCTION_LIMIT",
 		"name": "Deductions within 50% of the salary",
 		"rules": {
@@ -543,7 +81,6 @@
 		"id": "7e18c778-ac9a-5c54-a87d-db00a85b1fb9",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "OVERTIME_MONTHLY_LIMIT",
 		"name": "Overtime within 72 hours a month",
 		"rules": {
@@ -555,34 +92,9 @@
 		}
 	},
 	{
-		"id": "7c72e408-33fc-5e1c-a173-8b719c921595",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "REEMPLOYMENT_OFFER",
-		"name": "Re-employment offer",
-		"references": [
-			{
-				"title": "Retirement and Re-employment Act 1993 ss.4, 7C; MOM, Tripartite Guidelines on the Re-employment of Older Employees (updated 1 July 2026), https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en, read 2026-10-07.",
-				"url": "https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en"
-			}
-		],
-		"rules": {
-			"description": "Offer re-employment (or an alternative-employer transfer, or the EAP) to an eligible Citizen or SPR employee reaching the prescribed minimum retirement age (63; 64 for those born on or after 1 July 1963, from 1 July 2026). The Tripartite Guidelines ask employers to engage the employee at least 6 months, and offer the contract at least 3 months, before that age. Raised on the daily tick 6 months before the birthday; due 3 months before it. Waive for an employee not eligible (performance, medical fitness, hired at 55+ with under 2 years of service).",
-			"trigger": {
-				"collection": "calendar",
-				"events": ["daily"]
-			},
-			"when": "employee != null && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && today == add_months(add_years(employee.date_of_birth, employee.date_of_birth >= \"1963-07-01\" ? 64 : 63), -6)",
-			"applies_when": "!(employee != null && employee.facts != null && has(employee.facts.immigration_status) && !(employee.facts.immigration_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]))",
-			"due": "add_months(add_years(employee.date_of_birth, employee.date_of_birth >= \"1963-07-01\" ? 64 : 63), -3)"
-		}
-	},
-	{
 		"id": "d588761c-cf34-5de3-8305-3996219b957a",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "public_holidays",
 		"name": "Gazetted public holidays",
 		"references": [
@@ -737,8 +249,7 @@
 	{
 		"id": "bd82cc42-5b81-5fbc-a190-7be00efdb103",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "pwm_wages",
 		"name": "Progressive Wage Model floors",
 		"references": [
@@ -1112,123 +623,9 @@
 		}
 	},
 	{
-		"id": "d006c969-724e-5942-a810-3f06d2d29387",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "NR_DIRECTOR_WITHHOLDING",
-		"name": "Withholding tax on non-resident director fees (IR37)",
-		"references": [
-			{
-				"title": "Income Tax Act 1947 s.45; IRAS, Tax obligations for non-resident director, read 2026-10-07: 24% from YA 2024; e.g. approved 2 Dec 2025, paid by 15 Feb 2026.",
-				"url": "https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-director/tax-obligations-for-non-resident-director"
-			}
-		],
-		"rules": {
-			"description": "File Form IR37 and pay the 24% withholding tax on remuneration and fees paid to a non-resident director by the 15th of the second month after the payment.",
-			"schemes": ["WHT_NR_DIRECTOR"],
-			"due": "add_days(month_end(add_months(has(run.pay_date) && run.pay_date != null ? run.pay_date : period.to, 1)), 15)"
-		}
-	},
-	{
-		"id": "18eef7db-ff14-520f-8570-eaf74a5a1053",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "IR21_LEAVING_SINGAPORE",
-		"name": "IR21 for an overseas posting or departure over 3 months",
-		"references": [
-			{
-				"title": "Income Tax Act 1947 s.68(5); IRAS, Tax clearance for employees, read 2026-10-07.",
-				"url": "https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/tax-clearance-for-employees"
-			}
-		],
-		"rules": {
-			"description": "File Form IR21 at least one month before a non-Citizen employee is posted overseas or leaves Singapore for more than 3 months (without ceasing employment). Raised when the profile records facts.leaves_singapore_from (customer input).",
-			"trigger": {
-				"collection": "employment_profile",
-				"events": ["updated"],
-				"fields": ["facts"]
-			},
-			"when": "row.facts != null && has(row.facts.leaves_singapore_from)",
-			"applies_when": "!(has(row.facts.immigration_status) && row.facts.immigration_status == \"CITIZEN\")",
-			"due": "add_months(row.facts.leaves_singapore_from, -1)"
-		}
-	},
-	{
-		"id": "70e0ef2b-c1cd-5555-9825-0298c233c601",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORK_PASS_MEDICAL_INSURANCE",
-		"name": "Medical insurance for a Work Permit or S Pass holder",
-		"references": [
-			{
-				"title": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule; MOM, Medical insurance requirements and MOM written answer 1106/2025.",
-				"url": "https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/sector-specific-rules/medical-insurance"
-			}
-		],
-		"rules": {
-			"description": "Buy and keep medical insurance for each Work Permit and S Pass holder for inpatient care and day surgery, with an annual claim limit of at least $60,000 (employer co-payment terms as MOM states), in force from the start of employment.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"applies_when": "employee != null && employee.facts != null && has(employee.facts.immigration_status) && employee.facts.immigration_status in [\"WORK_PERMIT\", \"S_PASS\"]",
-			"due": "hired_on"
-		}
-	},
-	{
-		"id": "2206c5a5-fb28-522b-bdbc-c46c221a2f63",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORK_PERMIT_SECURITY_BOND",
-		"name": "Security bond for a non-Malaysian Work Permit holder",
-		"references": [
-			{
-				"title": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule; MOM, Security bond requirements for migrant worker, read 2026-10-07: Malaysians are exempt.",
-				"url": "https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/sector-specific-rules/security-bond"
-			}
-		],
-		"rules": {
-			"description": "Furnish a $5,000 security bond for each non-Malaysian Work Permit holder before the worker arrives in Singapore.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"applies_when": "employee != null && employee.facts != null && has(employee.facts.immigration_status) && employee.facts.immigration_status == \"WORK_PERMIT\" && !(employee.nationality in [\"MY\", \"MALAYSIA\", \"Malaysian\", \"MALAYSIAN\"])",
-			"due": "hired_on"
-		}
-	},
-	{
-		"id": "655afd55-83f5-530b-86c8-db03028a21e4",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "YOUNG_PERSON_NOTIFICATION",
-		"name": "Notify MOM of a child or young person in an industrial undertaking",
-		"references": [
-			{
-				"title": "Employment Act 1968 Part 6 and the Employment (Children and Young Persons) Regulations; MOM, Notify for employment of young persons and Employing young persons and children, read 2026-10-07.",
-				"url": "https://www.mom.gov.sg/eservices/services/notify-for-employment-of-young-persons"
-			}
-		],
-		"rules": {
-			"description": "Notify the Commissioner within 30 days of employing a child aged 13 to under 15 (or a young person) in an industrial undertaking, with a medical report certifying fitness. Raised for a hire under 16 at an entity whose facts record industrial_undertaking (customer input).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"applies_when": "employee != null && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, hired_on) >= 13 && age_on(employee.date_of_birth, hired_on) < 16 && company != null && company.facts != null && has(company.facts.industrial_undertaking) && company.facts.industrial_undertaking == true",
-			"due": "add_days(hired_on, 30)"
-		}
-	},
-	{
 		"id": "f6ea94c4-43a8-5bf3-b7dd-013b0fa64169",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "DAMAGE_DEDUCTION_LIMIT",
 		"name": "Damage deductions within a quarter of a month’s wages",
 		"rules": {
@@ -1243,7 +640,6 @@
 		"id": "905c6f67-54ad-5334-97cc-ea70f1b41780",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ACCOMMODATION_DEDUCTION_LIMIT",
 		"name": "Accommodation and amenity deductions within a quarter of the salary",
 		"rules": {
@@ -1258,7 +654,6 @@
 		"id": "3c46d3f9-df8a-5871-a147-9fbba71d2486",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "INSTALMENT_LIMIT",
 		"name": "Advance and loan instalments within a quarter of the salary",
 		"rules": {
@@ -1273,7 +668,6 @@
 		"id": "3e6c6087-e2f2-5241-8e64-33e7c3df6e55",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MOM_DECLARED_SALARY",
 		"name": "Pay at least the fixed salary declared to MOM",
 		"rules": {
@@ -1288,7 +682,6 @@
 		"id": "f5e397fb-248a-564d-b3b1-40b2c1daf251",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "PWM_WAGE_FLOOR",
 		"name": "Progressive Wage Model floor",
 		"rules": {
@@ -1303,7 +696,6 @@
 		"id": "ae28a67f-9aba-5f4c-a255-ba1a998b8390",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "LQS_WAGE_FLOOR",
 		"name": "Local Qualifying Salary floor",
 		"rules": {
@@ -1315,58 +707,9 @@
 		}
 	},
 	{
-		"id": "445ff7c7-bf4f-51e9-95ee-6a2000f21674",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "MISCONDUCT_DUE_INQUIRY",
-		"name": "Due inquiry before a misconduct dismissal",
-		"references": [
-			{
-				"title": "Employment Act 1968 s.14(1)–(2) (AGC, read 2026-10-07).",
-				"url": "https://sso.agc.gov.sg/Act/EmA1968"
-			}
-		],
-		"rules": {
-			"description": "Hold a due inquiry before dismissing an employee for misconduct; pending it the employee may be suspended for up to a week, on at least half pay. Raised when a contract closes as a DISMISSAL with exit_facts.dismissed_for_misconduct; due the dismissal day.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null && contract.exit_ground == \"DISMISSAL\" && has(contract.exit_facts.dismissed_for_misconduct) && contract.exit_facts.dismissed_for_misconduct == true",
-			"due": "exit_on"
-		}
-	},
-	{
-		"id": "f02c9a36-d8c5-5526-be2a-e9131654c6ba",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PDPA_DATA_PROTECTION_OFFICER",
-		"name": "Designate a data protection officer",
-		"references": [
-			{
-				"title": "Personal Data Protection Act 2012",
-				"locator": "ss.11(3)–(5), 12",
-				"url": "https://sso.agc.gov.sg/Act/PDPA2012"
-			}
-		],
-		"rules": {
-			"description": "Designate one or more data protection officers, make the business contact of at least one public, and put in place data protection policies and a complaints process. Raised when an entity is created without company.facts.dpo_contact (customer input).",
-			"trigger": {
-				"collection": "entity",
-				"events": ["created"]
-			},
-			"applies_when": "company == null || company.facts == null || !has(company.facts.dpo_contact) || company.facts.dpo_contact == \"\"",
-			"due": "today"
-		}
-	},
-	{
 		"id": "9402369c-c4e7-5e8e-aa7f-93c4b0e24408",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "DAILY_HOURS_LIMIT",
 		"name": "At most 12 hours of work in a day",
 		"rules": {
@@ -1381,7 +724,6 @@
 		"id": "e8874cbe-19d8-5f3d-afe8-e4e5a2e9842f",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "WEEKLY_REST_DAY",
 		"name": "A rest day in every week",
 		"rules": {
@@ -1396,7 +738,6 @@
 		"id": "e6e6a21d-221d-5621-aaed-2e718811cd68",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "IR21_ADDITIONAL_PAYMENT_HOLD",
 		"name": "Amended or additional IR21 before a payment after clearance",
 		"rules": {
@@ -1411,7 +752,6 @@
 		"id": "f36b0284-0f69-58ad-82f0-eeb92f6c6c83",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "PWM_BONUS",
 		"name": "Progressive Wage Model bonus (cleaning, landscape)",
 		"rules": {
@@ -1423,33 +763,9 @@
 		}
 	},
 	{
-		"id": "cdf0dd8c-38c4-5b11-8d32-768b4150c944",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "CPF_CONDITIONAL_WAGE_REFUND",
-		"name": "CPF refund on repaid conditional wages",
-		"references": [
-			{
-				"title": "CPF Act 1953; CPF Board, Applying for refund of CPF contributions, read 2026-10-07: a refund request is made no later than one year from the payment date, and for wages paid on conditions no later than one year from the date the wages are supposed to be repaid.",
-				"url": "https://www.cpf.gov.sg/employer/compliance-and-rectifications/applying-for-refund-of-cpf-contributions"
-			}
-		],
-		"rules": {
-			"description": "When an employee repays wages that attracted CPF (a conditional payment such as a sign-on bonus clawed back), apply to CPF Board for the refund of the CPF contributions paid on them no later than one year from the date the wages were repayable, after refunding the employee’s share to the employee. Raised by each PRIOR_WAGE_CASH_REPAYMENT entry; due one year after its day. An overpayment by error is not known to the engine (it charges the First Schedule exactly); its refund (one year from the payment date) is HR’s.",
-			"trigger": {
-				"collection": "adhoc_catalog_entry",
-				"events": ["created"]
-			},
-			"when": "has(row.catalog_code) && row.catalog_code == \"PRIOR_WAGE_CASH_REPAYMENT\"",
-			"due": "add_years(row.occurred_on, 1)"
-		}
-	},
-	{
 		"id": "390973fd-ee83-59d4-9e77-f1af46f5855a",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "case_kinds",
 		"name": "Workplace case kinds",
 		"references": [
@@ -1508,99 +824,9 @@
 		}
 	},
 	{
-		"id": "745af532-0c86-5cce-ac6f-ab5e1989e814",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "FLEXIBLE_WORK_REQUEST_DECISION",
-		"name": "Written decision on a formal FWA request",
-		"references": [
-			{
-				"title": "Tripartite Guidelines on Flexible Work Arrangement Requests (TG-FWAR), in force 1 December 2024; TAFEP, Guide to managing flexible work arrangements requests for employers, read 2026-10-07.",
-				"url": "https://www.tal.sg/tafep/employment%20practices/work-life%20harmony/guide%20to%20managing%20flexible%20work%20arrangements%20requests%20for%20employers"
-			}
-		],
-		"rules": {
-			"description": "Give the employee a written decision on a formal flexible work arrangement request within two months of receiving it, with the reason when it is rejected (on reasonable business grounds); discussing alternatives is encouraged. Raised when a FLEXIBLE_WORK_REQUEST case is opened (opened_on = the day the request was received).",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind == \"FLEXIBLE_WORK_REQUEST\"",
-			"due": "add_months(row.opened_on, 2)"
-		}
-	},
-	{
-		"id": "34038c8b-bd13-5f86-be3c-ab18886368bc",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PDPA_ACCESS_CORRECTION_REPLY",
-		"name": "Reply to a personal data access or correction request",
-		"references": [
-			{
-				"title": "Personal Data Protection Act 2012 ss.21–22 (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr21-,pr22-); Personal Data Protection Regulations 2021 reg.5 (https://sso.agc.gov.sg/SL/PDPA2012-S63-2021?ProvIds=P12-), read 2026-10-07."
-			}
-		],
-		"rules": {
-			"description": "Give access to the personal data and its use and disclosure in the past year as soon as reasonably possible (s.21), or correct it as soon as practicable and send the corrected data to every organisation it was disclosed to in the past year (s.22(2)); if that cannot be done within 30 days of the request, tell the applicant in writing within those 30 days by when it will be. Raised when an access or correction case is opened; due 30 days after the request.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind in [\"PERSONAL_DATA_ACCESS_REQUEST\", \"PERSONAL_DATA_CORRECTION_REQUEST\"]",
-			"due": "add_days(row.opened_on, 30)"
-		}
-	},
-	{
-		"id": "bd37031b-e451-59f5-b45d-d8381f5d0beb",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PDPA_BREACH_ASSESSMENT",
-		"name": "Assess whether a data breach is notifiable",
-		"references": [
-			{
-				"title": "Personal Data Protection Act 2012 ss.26B–26C (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr26C-); PDPC, Guide on Managing and Notifying Data Breaches under the PDPA, 15 Mar 2021 (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/other-guides/guide-on-managing-and-notifying-data-breaches-under-the-pdpa-15-mar-2021.pdf), read 2026-10-07."
-			}
-		],
-		"rules": {
-			"description": "Assess, in a reasonable and expeditious manner, whether a data breach is notifiable (significant harm, or 500 or more individuals); the PDPC expects the assessment within 30 calendar days of becoming aware (opened_on) and an explanation for any longer. Record the day it is assessed notifiable as facts.notifiable_assessed_on. Raised when a DATA_BREACH case is opened.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind == \"DATA_BREACH\"",
-			"due": "add_days(row.opened_on, 30)"
-		}
-	},
-	{
-		"id": "b81458ca-aa68-58d6-bd5a-ca27d4a30470",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PDPA_BREACH_NOTIFICATION",
-		"name": "Notify the PDPC of a notifiable data breach",
-		"references": [
-			{
-				"title": "Personal Data Protection Act 2012 s.26D(1)–(2) (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr26D-); Personal Data Protection (Notification of Data Breaches) Regulations 2021 regs.5–6 (https://sso.agc.gov.sg/SL/PDPA2012-S64-2021), read 2026-10-07."
-			}
-		],
-		"rules": {
-			"description": "Notify the Personal Data Protection Commission as soon as practicable and no later than 3 calendar days after the day the breach is assessed notifiable, then each affected individual (s.26D(2), unless an exception applies). Raised by the daily tick for an open DATA_BREACH case once facts.notifiable_assessed_on is recorded; due 3 calendar days after it.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["daily"]
-			},
-			"when": "row.kind == \"DATA_BREACH\" && has(row.facts) && row.facts != null && has(row.facts.notifiable_assessed_on)",
-			"due": "add_days(row.facts.notifiable_assessed_on, 3)"
-		}
-	},
-	{
 		"id": "530bcf7b-25d2-5b1d-8622-35556a6a40b2",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "record_retention",
 		"name": "Record retention after exit",
 		"references": [
@@ -1614,52 +840,9 @@
 		}
 	},
 	{
-		"id": "fcbae9df-f0b2-538c-882e-43c64b7d8de1",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PDPA_RETENTION_DISPOSAL",
-		"name": "Anonymise a former employee’s personal data after retention",
-		"references": [
-			{
-				"title": "Personal Data Protection Act 2012 s.25 (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr25-); Income Tax Act 1947 s.67(1)(a) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr67-): records kept 5 years from the year of assessment; IRAS, Record keeping requirements (read 2026-10-07): a financial year ending in 2022 (YA 2023) is kept till 31 Dec 2027. The exit falls in a financial year ending in the exit year or the next, so the latest keep-till is 31 December of the exit year + 6. Longer than Employment Act 1968 s.95 with the Employment (Employee and Salary Records) regulations (1 year after the employee leaves; MOM, Employment records). Personal Data Protection Act 2012 s.25 then requires ceasing to retain the personal data (anonymising it)."
-			}
-		],
-		"rules": {
-			"description": "Once the statutory retention ends (31 December of the exit year + 6: the Income Tax Act 1947 s.67 five years from the year of assessment, longer than the Employment Act s.95 one year after leaving), cease retaining the former employee’s personal data: anonymise the profile (employment_profile anonymise, which the record_retention rule releases on the same day) unless a legal or business purpose still needs it. Raised at the exit; due that day.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.effective_range.to != null",
-			"due": "string(int(exit_on.substring(0, 4)) + 6) + \"-12-31\""
-		}
-	},
-	{
-		"id": "f6fe37d5-4840-55b6-863a-92def42943a5",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "NR_ENTERTAINER_WITHHOLDING",
-		"name": "Withholding tax on non-resident public entertainers (S45)",
-		"references": [
-			{
-				"title": "Income Tax Act 1947 s.45; IRAS, read 2026-10-07: pay by the 15th of the second month from the date of payment.",
-				"url": "https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-public-entertainer-(artiste-musician-sportsman-etc-)/tax-obligations-of-non-resident-public-entertainer"
-			}
-		],
-		"rules": {
-			"description": "e-File the S45 withholding return and pay the 15% withholding tax on payments to a non-resident public entertainer by the 15th of the second month after the payment.",
-			"schemes": ["WHT_NR_ENTERTAINER"],
-			"due": "add_days(month_end(add_months(has(run.pay_date) && run.pay_date != null ? run.pay_date : period.to, 1)), 15)"
-		}
-	},
-	{
 		"id": "87095b10-3d41-5f76-a7df-0131d234bff8",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_DAILY_12_HOURS",
 		"name": "12 hours a day (Part 4)",
 		"rules": {
@@ -1675,7 +858,6 @@
 		"id": "50d67b35-4a27-5121-9e75-f327836ba84a",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_CONSECUTIVE_HOURS",
 		"name": "6 consecutive hours without a break (Part 4)",
 		"rules": {
@@ -1691,7 +873,6 @@
 		"id": "1b02ca9e-bb38-5e39-8b33-48a0711a3a72",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_WEEKLY_REST_DAY",
 		"name": "A rest day each week (Part 4)",
 		"rules": {
@@ -1706,7 +887,6 @@
 		"id": "d878a404-7d4b-54cb-ad4a-10c5e5e52a60",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_YOUNG_NIGHT_WORK",
 		"name": "No night work by a child or young person",
 		"rules": {
@@ -1722,7 +902,6 @@
 		"id": "141475c9-7eee-59dd-a917-cc4a2e0833a4",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_YOUNG_DAILY_HOURS",
 		"name": "Daily hours of a child or young person",
 		"rules": {
@@ -1738,7 +917,6 @@
 		"id": "7a7af286-1a15-56d0-a6a7-91e63e7feac6",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_YOUNG_REST_DAY",
 		"name": "Rest-day work by a child or young person",
 		"rules": {
@@ -1753,7 +931,6 @@
 		"id": "a114f2a5-9c7f-5d00-81c0-185e110b5298",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_YOUNG_BREAK",
 		"name": "Breaks for a child or young person",
 		"rules": {
@@ -1769,7 +946,6 @@
 		"id": "c247de7e-22f1-5d9f-8cae-93d5a27ede99",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "EXPORTS",
-		"scope": "JURISDICTION",
 		"code": "CPF_EZPAY_FTP",
 		"name": "CPF EZPay (FTP) submission file",
 		"references": [
@@ -1960,8 +1136,7 @@
 	{
 		"id": "df25ac2c-77f7-5ee0-bf02-3c9fc218b60c",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "exit_grounds",
 		"name": "Exit grounds",
 		"rules": {
@@ -2010,7 +1185,6 @@
 		"id": "2dd8fc9a-9979-51af-9fbf-e1619be9c44a",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "EXPORTS",
-		"scope": "JURISDICTION",
 		"code": "bank_ocbc_fast",
 		"name": "OCBC FAST bulk payment file",
 		"rules": {
@@ -2089,8 +1263,7 @@
 	{
 		"id": "85746ea8-e41f-5a3d-b431-d27a4b99c8af",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "holiday_kinds",
 		"name": "Holiday kinds",
 		"rules": {
@@ -2111,7 +1284,6 @@
 		"id": "baad1eb2-f96c-5261-8ef6-82c9e5152791",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "EXPORTS",
-		"scope": "JURISDICTION",
 		"code": "IR8A_WORKSHEET",
 		"name": "Form IR8A worksheet (AIS entry)",
 		"references": [
@@ -2180,33 +1352,9 @@
 		}
 	},
 	{
-		"id": "656c8679-f2b5-5a04-9be4-8cc97bac6003",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "NS_MAKE_UP_PAY_CLAIM",
-		"name": "NS make-up pay claim review",
-		"references": [
-			{
-				"title": "Enlistment Act 1970; OneNS, Employer > NSmen Payment: Make-Up Pay, Managing MUP for Your NSmen Employees and Payment Methods (https://www.ns.gov.sg/web/profiles/employer/nsmen-payment, last updated 29 May 2025), read 2026-10-08: “All changes must be submitted within three months from the start of the ORNS/SV activity”; DIRECT adjustments two weeks before the start.",
-				"url": "https://www.ns.gov.sg/web/profiles/employer/nsmen-payment"
-			}
-		],
-		"rules": {
-			"description": "For each national service leave spell (ORNS or SAFVC activity) check the auto-generated make-up pay claim on OneNS ‘Employee Payment Management’ (open about one month before the activity). MUP is generated from the CPF Ordinary Wages two to three months before the activity and the average of Additional Wages received in at least 8 of the last 12 months (less the two highest); a recent increase or a new hire without CPF data needs an amended or new claim. A DIRECT employer keeps paying the full wages as though the employee were not away and is reimbursed (submit changes two weeks before the activity starts); otherwise the salary is reduced for the days away and MINDEF/MHA pays the employee. Every change or appeal must be submitted within three months from the start of the activity (due date).",
-			"trigger": {
-				"collection": "leave_catalog_entry",
-				"events": ["created"]
-			},
-			"when": "row.catalog_code == \"NS_LEAVE\" && row.activity == \"TIME_OFF\" && row.from != null",
-			"due": "add_months(row.from, 3)"
-		}
-	},
-	{
 		"id": "fd90120c-30ed-57ae-86d3-3f5a0b423cbd",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "EXPORTS",
-		"scope": "JURISDICTION",
 		"code": "APPENDIX_8A_WORKSHEET",
 		"name": "Appendix 8A worksheet (AIS entry)",
 		"references": [
@@ -2757,7 +1905,6 @@
 		"id": "66ff5e01-8494-5659-9873-78b8ac9f5e9d",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "EXPORTS",
-		"scope": "JURISDICTION",
 		"code": "APPENDIX_8B_WORKSHEET",
 		"name": "Appendix 8B worksheet (AIS entry)",
 		"references": [
@@ -2933,7 +2080,6 @@
 		"id": "ce7fe327-5daa-55b3-80c7-d2205df9916f",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "REST_DAY_WORK_REQUESTER_MISSING",
 		"name": "Rest-day work without who asked for it",
 		"rules": {
@@ -2948,7 +2094,6 @@
 		"id": "aa5e3928-36c5-52cc-a798-bc9fb834a2c8",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "REST_DAY_NORMAL_HOURS_MISSING",
 		"name": "Rest-day work without normal daily hours",
 		"rules": {
@@ -2963,7 +2108,6 @@
 		"id": "b0ca16e6-604f-5259-9522-3e90c1aced17",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "PART_TIME_HOLIDAY_HOURS_MISSING",
 		"name": "Part-time holiday work without contracted weekly hours",
 		"rules": {
@@ -2975,102 +2119,9 @@
 		}
 	},
 	{
-		"id": "4631b7c5-016a-5ec5-8943-72f41cb99c95",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORK_INCIDENT_CASE_REPORT",
-		"name": "Report a work incident to MOM",
-		"references": [
-			{
-				"title": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10:. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
-				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report"
-			}
-		],
-		"rules": {
-			"description": "Submit an incident report within ten days. For non-fatal employee light-duty accidents, open the case on the employer’s first notice; for fatal accidents, on the accident date; for a dangerous occurrence or a work-related public/self-employed fatality, on the occurrence date. Dangerous-occurrence and public/self-employed cases are duties of the workplace occupier. Select those cases only where the company is the occupier and the event meets MOM reportable criteria. No medical-leave entry is needed. Cross-reference any leave-triggered report to avoid filing the same incident twice.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind in [\"WORK_ACCIDENT_LIGHT_DUTY\", \"WORK_ACCIDENT_FATAL\", \"DANGEROUS_OCCURRENCE\", \"PUBLIC_WORKPLACE_FATALITY\"]",
-			"due": "add_days(row.opened_on, 10)"
-		}
-	},
-	{
-		"id": "dbd22110-5b5c-541e-9d75-e9206f910be0",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORK_INCIDENT_NOTIFICATION",
-		"name": "Notify the Commissioner of a workplace incident",
-		"references": [
-			{
-				"title": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10:. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
-				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report"
-			}
-		],
-		"rules": {
-			"description": "Notify the Commissioner as soon as reasonably practicable for an employee work-related fatality, a reportable dangerous occurrence, or a work-related public/self-employed fatality or injury sent to hospital. The latter three cases are occupier duties. The case date is an operational prompt to act, not a statutory fixed-day deadline. The Commissioner notification is distinct from the ten-day incident report; public/self-employed hospital treatment here requires notification without inventing a ten-day report duty.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind in [\"WORK_ACCIDENT_FATAL\", \"DANGEROUS_OCCURRENCE\", \"PUBLIC_WORKPLACE_FATALITY\", \"PUBLIC_WORKPLACE_HOSPITAL_TREATMENT\"]",
-			"due": "row.opened_on"
-		}
-	},
-	{
-		"id": "abe5ff5c-b035-5471-a306-48c0561e746e",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SUBSEQUENT_WORK_DEATH_NOTIFICATION",
-		"name": "Immediately notify a subsequent death from work injury or disease",
-		"references": [
-			{
-				"title": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10:. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
-				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report"
-			}
-		],
-		"rules": {
-			"description": "If an employee subsequently dies from a work injury or disease, immediately notify the Commissioner. Open the case on learning the death, link the original incident and report, and act immediately; do not wait for a medical-leave entry or restart the original ten-day report period.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind in [\"WORK_ACCIDENT_SUBSEQUENT_DEATH\"]",
-			"due": "row.opened_on"
-		}
-	},
-	{
-		"id": "e56d16e7-277c-5bcf-b198-2828b302ef5a",
-		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "OCCUPATIONAL_DISEASE_REPORT",
-		"name": "Report an employee occupational disease diagnosis",
-		"references": [
-			{
-				"title": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10:. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
-				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report"
-			}
-		],
-		"rules": {
-			"description": "As employer, submit an incident report within ten days of receiving the occupational-disease diagnosis. Open this case on that receipt date. Covers reportable diseases under WSHA or WICA; no leave entry is required. A doctor’s separate statutory report does not replace the employer report. This employer task does not assert the company is a platform operator or medical practitioner.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind in [\"OCCUPATIONAL_DISEASE_DIAGNOSIS\"]",
-			"due": "add_days(row.opened_on, 10)"
-		}
-	},
-	{
 		"id": "8ec1f413-6dad-5946-9aac-35e32bb13ac0",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "overtime_classification",
 		"name": "Overtime classification",
 		"references": [
@@ -3101,8 +2152,7 @@
 	{
 		"id": "093eeede-6517-5f1b-bce6-ccdc348f9eb6",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
-		"scope": "JURISDICTION",
-		"family": "PAYROLL",
+		"family": "PARAMETERS",
 		"code": "salary_report",
 		"name": "Salary report grouping and company payments",
 		"rules": {
@@ -3252,7 +2302,6 @@
 		"id": "0b2f0385-546f-514c-83fa-6a37f4d980ee",
 		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_PATTERN_CYCLE",
 		"name": "Roster keeps its pattern cycle",
 		"rules": {
@@ -3261,6 +2310,1011 @@
 			"when": "cycle.planned.WORK != cycle.expected.WORK || cycle.planned.REST != cycle.expected.REST || cycle.planned.OFF != cycle.expected.OFF",
 			"message": "Swap days inside the cycle instead.",
 			"description": "A roster swap moves a day inside its shift pattern cycle; it never adds a work day or drops a rest or off day. Severity follows entity.validation_severity."
+		}
+	},
+	{
+		"id": "6fba3b88-5ab8-5acb-ad47-5084a04097c0",
+		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
+		"family": "VALIDATIONS",
+		"code": "PAYROLL_RUN_KINDS",
+		"name": "PAYROLL_RUN_KINDS",
+		"rules": {
+			"site": "payroll_run",
+			"kind": "allow",
+			"when": "run.kind in [\"REGULAR\", \"OFF_CYCLE\"]",
+			"message": "The jurisdiction admits regular and off-cycle payroll runs."
+		}
+	},
+	{
+		"id": "a40e0998-26ab-57f4-8795-67a60fbcc556",
+		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
+		"family": "PARAMETERS",
+		"code": "pwm_bases",
+		"name": "PWM wage bases",
+		"rules": {
+			"description": "Progressive Wage Model wage bases: the base a pwm_wages role row names for its monthly floor.",
+			"kinds": [
+				{
+					"code": "BASIC",
+					"name": "the monthly basic wage (cleaning, outsourced security, landscape, lift and escalator)."
+				},
+				{
+					"code": "GROSS_EX_OT",
+					"name": "monthly gross wage excluding overtime (retail, food services, waste management, in-house security, administrators, drivers)."
+				}
+			]
+		}
+	},
+	{
+		"id": "881f9e5f-bb68-5674-be0c-1216ad4fa5bb",
+		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
+		"family": "PARAMETERS",
+		"code": "races",
+		"name": "Races (CPF)",
+		"rules": {
+			"description": "Race codes as CPF records them: the employee race fact takes one; the CDAC, ECF and SINDA self-help-group contributions read it.",
+			"kinds": [
+				{
+					"code": "ACHEHNESE",
+					"name": "ACHEHNESE"
+				},
+				{
+					"code": "AFGHAN",
+					"name": "AFGHAN"
+				},
+				{
+					"code": "AFRICAN",
+					"name": "AFRICAN"
+				},
+				{
+					"code": "ALBANIAN",
+					"name": "ALBANIAN"
+				},
+				{
+					"code": "AMBONESE",
+					"name": "AMBONESE"
+				},
+				{
+					"code": "AMERICAN",
+					"name": "AMERICAN"
+				},
+				{
+					"code": "AMERINDIAN",
+					"name": "AMERINDIAN"
+				},
+				{
+					"code": "ANGLO BURMESE",
+					"name": "ANGLO BURMESE"
+				},
+				{
+					"code": "ANGLO CHINESE",
+					"name": "ANGLO CHINESE"
+				},
+				{
+					"code": "ANGLO FILIPINO",
+					"name": "ANGLO FILIPINO"
+				},
+				{
+					"code": "ANGLO INDIAN",
+					"name": "ANGLO INDIAN"
+				},
+				{
+					"code": "ANGLO SAXON",
+					"name": "ANGLO SAXON"
+				},
+				{
+					"code": "ANGLO THAI",
+					"name": "ANGLO THAI"
+				},
+				{
+					"code": "ANNAMITE",
+					"name": "ANNAMITE"
+				},
+				{
+					"code": "ARAB",
+					"name": "ARAB"
+				},
+				{
+					"code": "ARMENIAN",
+					"name": "ARMENIAN"
+				},
+				{
+					"code": "ARYAN",
+					"name": "ARYAN"
+				},
+				{
+					"code": "ASSAMI",
+					"name": "ASSAMI"
+				},
+				{
+					"code": "AUSTRALIAN",
+					"name": "AUSTRALIAN"
+				},
+				{
+					"code": "AUSTRIAN",
+					"name": "AUSTRIAN"
+				},
+				{
+					"code": "AZERI",
+					"name": "AZERI"
+				},
+				{
+					"code": "BAJAU",
+					"name": "BAJAU"
+				},
+				{
+					"code": "BALINESE",
+					"name": "BALINESE"
+				},
+				{
+					"code": "BAMAR",
+					"name": "BAMAR"
+				},
+				{
+					"code": "BANGALA",
+					"name": "BANGALA"
+				},
+				{
+					"code": "BANGLADESHI",
+					"name": "BANGLADESHI"
+				},
+				{
+					"code": "BANJARESE",
+					"name": "BANJARESE"
+				},
+				{
+					"code": "BANTEN",
+					"name": "BANTEN"
+				},
+				{
+					"code": "BASQUE",
+					"name": "BASQUE"
+				},
+				{
+					"code": "BATAK",
+					"name": "BATAK"
+				},
+				{
+					"code": "BELGIAN",
+					"name": "BELGIAN"
+				},
+				{
+					"code": "BENGALI",
+					"name": "BENGALI"
+				},
+				{
+					"code": "BETAWI",
+					"name": "BETAWI"
+				},
+				{
+					"code": "BHUTANESE",
+					"name": "BHUTANESE"
+				},
+				{
+					"code": "BIDAYUH",
+					"name": "BIDAYUH"
+				},
+				{
+					"code": "BISAYA",
+					"name": "BISAYA"
+				},
+				{
+					"code": "BOSNIAK",
+					"name": "BOSNIAK"
+				},
+				{
+					"code": "BOYANESE",
+					"name": "BOYANESE"
+				},
+				{
+					"code": "BRAHMIN",
+					"name": "BRAHMIN"
+				},
+				{
+					"code": "BRAZILIAN",
+					"name": "BRAZILIAN"
+				},
+				{
+					"code": "BRITISH",
+					"name": "BRITISH"
+				},
+				{
+					"code": "BUGIS",
+					"name": "BUGIS"
+				},
+				{
+					"code": "BULGARIAN",
+					"name": "BULGARIAN"
+				},
+				{
+					"code": "BURGHER",
+					"name": "BURGHER"
+				},
+				{
+					"code": "BURMESE",
+					"name": "BURMESE"
+				},
+				{
+					"code": "BUTONESE",
+					"name": "BUTONESE"
+				},
+				{
+					"code": "CAMBODIAN",
+					"name": "CAMBODIAN"
+				},
+				{
+					"code": "CANADIAN",
+					"name": "CANADIAN"
+				},
+				{
+					"code": "CAPE COLOURED",
+					"name": "CAPE COLOURED"
+				},
+				{
+					"code": "CARIBBEAN",
+					"name": "CARIBBEAN"
+				},
+				{
+					"code": "CAUCASIAN",
+					"name": "CAUCASIAN"
+				},
+				{
+					"code": "CEYLON MOOR",
+					"name": "CEYLON MOOR"
+				},
+				{
+					"code": "CEYLONESE",
+					"name": "CEYLONESE"
+				},
+				{
+					"code": "CHAMORRO",
+					"name": "CHAMORRO"
+				},
+				{
+					"code": "CHINESE",
+					"name": "CHINESE"
+				},
+				{
+					"code": "COCOS",
+					"name": "COCOS"
+				},
+				{
+					"code": "CORNISH",
+					"name": "CORNISH"
+				},
+				{
+					"code": "CREOLE",
+					"name": "CREOLE"
+				},
+				{
+					"code": "CROAT",
+					"name": "CROAT"
+				},
+				{
+					"code": "CZECH",
+					"name": "CZECH"
+				},
+				{
+					"code": "CZECHOSLOVAK",
+					"name": "CZECHOSLOVAK"
+				},
+				{
+					"code": "DANE",
+					"name": "DANE"
+				},
+				{
+					"code": "DAYAK",
+					"name": "DAYAK"
+				},
+				{
+					"code": "DUSUN",
+					"name": "DUSUN"
+				},
+				{
+					"code": "DUTCH",
+					"name": "DUTCH"
+				},
+				{
+					"code": "DUTCH BURGHER",
+					"name": "DUTCH BURGHER"
+				},
+				{
+					"code": "EGYPTIAN",
+					"name": "EGYPTIAN"
+				},
+				{
+					"code": "ENGLISH",
+					"name": "ENGLISH"
+				},
+				{
+					"code": "ETHIOPIAN",
+					"name": "ETHIOPIAN"
+				},
+				{
+					"code": "EURASIAN",
+					"name": "EURASIAN"
+				},
+				{
+					"code": "EUROPEAN",
+					"name": "EUROPEAN"
+				},
+				{
+					"code": "FIJIAN",
+					"name": "FIJIAN"
+				},
+				{
+					"code": "FILIPINO",
+					"name": "FILIPINO"
+				},
+				{
+					"code": "FINN",
+					"name": "FINN"
+				},
+				{
+					"code": "FLEMISH",
+					"name": "FLEMISH"
+				},
+				{
+					"code": "FRENCH",
+					"name": "FRENCH"
+				},
+				{
+					"code": "GERMAN",
+					"name": "GERMAN"
+				},
+				{
+					"code": "GHANAIAN",
+					"name": "GHANAIAN"
+				},
+				{
+					"code": "GOAN",
+					"name": "GOAN"
+				},
+				{
+					"code": "GOANESE",
+					"name": "GOANESE"
+				},
+				{
+					"code": "GREEK",
+					"name": "GREEK"
+				},
+				{
+					"code": "GUJARATI",
+					"name": "GUJARATI"
+				},
+				{
+					"code": "GURKHA",
+					"name": "GURKHA"
+				},
+				{
+					"code": "HAITIAN",
+					"name": "HAITIAN"
+				},
+				{
+					"code": "HAWAIIAN",
+					"name": "HAWAIIAN"
+				},
+				{
+					"code": "HINDUSTANI",
+					"name": "HINDUSTANI"
+				},
+				{
+					"code": "HISPANIC",
+					"name": "HISPANIC"
+				},
+				{
+					"code": "HOLLANDER",
+					"name": "HOLLANDER"
+				},
+				{
+					"code": "HUNGARIAN",
+					"name": "HUNGARIAN"
+				},
+				{
+					"code": "IBAN",
+					"name": "IBAN"
+				},
+				{
+					"code": "ICELANDER",
+					"name": "ICELANDER"
+				},
+				{
+					"code": "INDIAN",
+					"name": "INDIAN"
+				},
+				{
+					"code": "INDONESIAN",
+					"name": "INDONESIAN"
+				},
+				{
+					"code": "INUIT",
+					"name": "INUIT"
+				},
+				{
+					"code": "IRANIAN",
+					"name": "IRANIAN"
+				},
+				{
+					"code": "IRAQI",
+					"name": "IRAQI"
+				},
+				{
+					"code": "IRISH",
+					"name": "IRISH"
+				},
+				{
+					"code": "ISOKO",
+					"name": "ISOKO"
+				},
+				{
+					"code": "ISRAELI",
+					"name": "ISRAELI"
+				},
+				{
+					"code": "ITALIAN",
+					"name": "ITALIAN"
+				},
+				{
+					"code": "JAKUN",
+					"name": "JAKUN"
+				},
+				{
+					"code": "JAMAICAN",
+					"name": "JAMAICAN"
+				},
+				{
+					"code": "JAPANESE",
+					"name": "JAPANESE"
+				},
+				{
+					"code": "JAVANESE",
+					"name": "JAVANESE"
+				},
+				{
+					"code": "JEW",
+					"name": "JEW"
+				},
+				{
+					"code": "JORDANIAN",
+					"name": "JORDANIAN"
+				},
+				{
+					"code": "KACHIN",
+					"name": "KACHIN"
+				},
+				{
+					"code": "KADAZAN",
+					"name": "KADAZAN"
+				},
+				{
+					"code": "KAMPUCHEAN",
+					"name": "KAMPUCHEAN"
+				},
+				{
+					"code": "KAREN",
+					"name": "KAREN"
+				},
+				{
+					"code": "KAYAH",
+					"name": "KAYAH"
+				},
+				{
+					"code": "KAYAN",
+					"name": "KAYAN"
+				},
+				{
+					"code": "KAYIN",
+					"name": "KAYIN"
+				},
+				{
+					"code": "KAZAKH",
+					"name": "KAZAKH"
+				},
+				{
+					"code": "KELABIT",
+					"name": "KELABIT"
+				},
+				{
+					"code": "KENYAH",
+					"name": "KENYAH"
+				},
+				{
+					"code": "KENYAN",
+					"name": "KENYAN"
+				},
+				{
+					"code": "KHASI",
+					"name": "KHASI"
+				},
+				{
+					"code": "KHMER",
+					"name": "KHMER"
+				},
+				{
+					"code": "KINH",
+					"name": "KINH"
+				},
+				{
+					"code": "KOREAN",
+					"name": "KOREAN"
+				},
+				{
+					"code": "KYRGYZ",
+					"name": "KYRGYZ"
+				},
+				{
+					"code": "LAO",
+					"name": "LAO"
+				},
+				{
+					"code": "LATIN",
+					"name": "LATIN"
+				},
+				{
+					"code": "LATVIAN",
+					"name": "LATVIAN"
+				},
+				{
+					"code": "LEBANESE",
+					"name": "LEBANESE"
+				},
+				{
+					"code": "LIBYAN",
+					"name": "LIBYAN"
+				},
+				{
+					"code": "LISU",
+					"name": "LISU"
+				},
+				{
+					"code": "LITHUANIAN",
+					"name": "LITHUANIAN"
+				},
+				{
+					"code": "LUXEMBOURGER",
+					"name": "LUXEMBOURGER"
+				},
+				{
+					"code": "MADURESE",
+					"name": "MADURESE"
+				},
+				{
+					"code": "MAGYARS",
+					"name": "MAGYARS"
+				},
+				{
+					"code": "MAHRATTA",
+					"name": "MAHRATTA"
+				},
+				{
+					"code": "MAKASARESE",
+					"name": "MAKASARESE"
+				},
+				{
+					"code": "MALABARI",
+					"name": "MALABARI"
+				},
+				{
+					"code": "MALAGASY",
+					"name": "MALAGASY"
+				},
+				{
+					"code": "MALAY",
+					"name": "MALAY"
+				},
+				{
+					"code": "MALAYALEE",
+					"name": "MALAYALEE"
+				},
+				{
+					"code": "MALDIVIAN",
+					"name": "MALDIVIAN"
+				},
+				{
+					"code": "MALTESE",
+					"name": "MALTESE"
+				},
+				{
+					"code": "MANIPURI",
+					"name": "MANIPURI"
+				},
+				{
+					"code": "MANX",
+					"name": "MANX"
+				},
+				{
+					"code": "MAORI",
+					"name": "MAORI"
+				},
+				{
+					"code": "MARATHI",
+					"name": "MARATHI"
+				},
+				{
+					"code": "MAURITIAN",
+					"name": "MAURITIAN"
+				},
+				{
+					"code": "MELANAU",
+					"name": "MELANAU"
+				},
+				{
+					"code": "MELANESIAN",
+					"name": "MELANESIAN"
+				},
+				{
+					"code": "MESTIZO",
+					"name": "MESTIZO"
+				},
+				{
+					"code": "METIS",
+					"name": "METIS"
+				},
+				{
+					"code": "MEXICAN",
+					"name": "MEXICAN"
+				},
+				{
+					"code": "MINANGKABAU",
+					"name": "MINANGKABAU"
+				},
+				{
+					"code": "MOLDAVIAN",
+					"name": "MOLDAVIAN"
+				},
+				{
+					"code": "MON",
+					"name": "MON"
+				},
+				{
+					"code": "MONGOLIAN",
+					"name": "MONGOLIAN"
+				},
+				{
+					"code": "MOROCCAN",
+					"name": "MOROCCAN"
+				},
+				{
+					"code": "MURUT",
+					"name": "MURUT"
+				},
+				{
+					"code": "NAGA",
+					"name": "NAGA"
+				},
+				{
+					"code": "NAURUAN",
+					"name": "NAURUAN"
+				},
+				{
+					"code": "NEGRO",
+					"name": "NEGRO"
+				},
+				{
+					"code": "NEPALESE",
+					"name": "NEPALESE"
+				},
+				{
+					"code": "NETHERLANDER",
+					"name": "NETHERLANDER"
+				},
+				{
+					"code": "NEW ZEALANDER",
+					"name": "NEW ZEALANDER"
+				},
+				{
+					"code": "NEWAR",
+					"name": "NEWAR"
+				},
+				{
+					"code": "NIGERIAN",
+					"name": "NIGERIAN"
+				},
+				{
+					"code": "NORWEGIAN",
+					"name": "NORWEGIAN"
+				},
+				{
+					"code": "OTHER EURASIAN",
+					"name": "OTHER EURASIAN"
+				},
+				{
+					"code": "OTHER INDIAN",
+					"name": "OTHER INDIAN"
+				},
+				{
+					"code": "OTHER INDONESIAN",
+					"name": "OTHER INDONESIAN"
+				},
+				{
+					"code": "OTHERS",
+					"name": "OTHERS"
+				},
+				{
+					"code": "PAKISTANI",
+					"name": "PAKISTANI"
+				},
+				{
+					"code": "PALESTINE",
+					"name": "PALESTINE"
+				},
+				{
+					"code": "PARSEE",
+					"name": "PARSEE"
+				},
+				{
+					"code": "PATHAN",
+					"name": "PATHAN"
+				},
+				{
+					"code": "PENAN",
+					"name": "PENAN"
+				},
+				{
+					"code": "PERSIAN",
+					"name": "PERSIAN"
+				},
+				{
+					"code": "PERUVIAN",
+					"name": "PERUVIAN"
+				},
+				{
+					"code": "POLE",
+					"name": "POLE"
+				},
+				{
+					"code": "POLISH",
+					"name": "POLISH"
+				},
+				{
+					"code": "POLYNESIAN",
+					"name": "POLYNESIAN"
+				},
+				{
+					"code": "PORTUGUESE",
+					"name": "PORTUGUESE"
+				},
+				{
+					"code": "PUNAN",
+					"name": "PUNAN"
+				},
+				{
+					"code": "PUNJABI",
+					"name": "PUNJABI"
+				},
+				{
+					"code": "RAJPUT",
+					"name": "RAJPUT"
+				},
+				{
+					"code": "RAKHINE",
+					"name": "RAKHINE"
+				},
+				{
+					"code": "ROMANIAN",
+					"name": "ROMANIAN"
+				},
+				{
+					"code": "RUSSIAN",
+					"name": "RUSSIAN"
+				},
+				{
+					"code": "SAMMARINESE",
+					"name": "SAMMARINESE"
+				},
+				{
+					"code": "SAMOAN",
+					"name": "SAMOAN"
+				},
+				{
+					"code": "SCOT",
+					"name": "SCOT"
+				},
+				{
+					"code": "SERANI",
+					"name": "SERANI"
+				},
+				{
+					"code": "SERBIA/MONTENGERIN",
+					"name": "SERBIA/MONTENGERIN"
+				},
+				{
+					"code": "SEYCHELLOIS",
+					"name": "SEYCHELLOIS"
+				},
+				{
+					"code": "SHAN",
+					"name": "SHAN"
+				},
+				{
+					"code": "SIKH",
+					"name": "SIKH"
+				},
+				{
+					"code": "SINDHI",
+					"name": "SINDHI"
+				},
+				{
+					"code": "SINHALESE",
+					"name": "SINHALESE"
+				},
+				{
+					"code": "SINO INDIAN",
+					"name": "SINO INDIAN"
+				},
+				{
+					"code": "SINO JAPANESE",
+					"name": "SINO JAPANESE"
+				},
+				{
+					"code": "SINO KADAZAN",
+					"name": "SINO KADAZAN"
+				},
+				{
+					"code": "SLAVIC",
+					"name": "SLAVIC"
+				},
+				{
+					"code": "SLOVAK",
+					"name": "SLOVAK"
+				},
+				{
+					"code": "SOMALI",
+					"name": "SOMALI"
+				},
+				{
+					"code": "SPANISH",
+					"name": "SPANISH"
+				},
+				{
+					"code": "SRI LANKAN",
+					"name": "SRI LANKAN"
+				},
+				{
+					"code": "SUDANESE",
+					"name": "SUDANESE"
+				},
+				{
+					"code": "SUMATRAN",
+					"name": "SUMATRAN"
+				},
+				{
+					"code": "SUNDANESE",
+					"name": "SUNDANESE"
+				},
+				{
+					"code": "SWEDE",
+					"name": "SWEDE"
+				},
+				{
+					"code": "SWEDISH",
+					"name": "SWEDISH"
+				},
+				{
+					"code": "SWISS",
+					"name": "SWISS"
+				},
+				{
+					"code": "TAJIK",
+					"name": "TAJIK"
+				},
+				{
+					"code": "TAMIL",
+					"name": "TAMIL"
+				},
+				{
+					"code": "TELEGU",
+					"name": "TELEGU"
+				},
+				{
+					"code": "TELUGU",
+					"name": "TELUGU"
+				},
+				{
+					"code": "THAI",
+					"name": "THAI"
+				},
+				{
+					"code": "TIBETAN",
+					"name": "TIBETAN"
+				},
+				{
+					"code": "TIMOR",
+					"name": "TIMOR"
+				},
+				{
+					"code": "TONGAN",
+					"name": "TONGAN"
+				},
+				{
+					"code": "TURK",
+					"name": "TURK"
+				},
+				{
+					"code": "TURKMEN",
+					"name": "TURKMEN"
+				},
+				{
+					"code": "UKRAINIAN",
+					"name": "UKRAINIAN"
+				},
+				{
+					"code": "UNKNOWN",
+					"name": "UNKNOWN"
+				},
+				{
+					"code": "UYGHUR",
+					"name": "UYGHUR"
+				},
+				{
+					"code": "UZBEK",
+					"name": "UZBEK"
+				},
+				{
+					"code": "VENEZUELAN",
+					"name": "VENEZUELAN"
+				},
+				{
+					"code": "VIETNAMESE",
+					"name": "VIETNAMESE"
+				},
+				{
+					"code": "WELSH",
+					"name": "WELSH"
+				},
+				{
+					"code": "YUGOSLAV",
+					"name": "YUGOSLAV"
+				},
+				{
+					"code": "ZIMBABWEAN",
+					"name": "ZIMBABWEAN"
+				}
+			]
+		}
+	},
+	{
+		"id": "ad0d3069-0399-59f6-a09c-f8449d8f07c0",
+		"settings_id": "1f2a1b2b-d287-515b-90d3-2f53b767df4b",
+		"family": "PARAMETERS",
+		"code": "religions",
+		"name": "Religions",
+		"rules": {
+			"description": "Religion codes: the employee religion fact takes one; the MBMF contribution reads it (ISLAM).",
+			"kinds": [
+				{
+					"code": "BUDDHISM",
+					"name": "BUDDHISM"
+				},
+				{
+					"code": "CHRISTIANITY",
+					"name": "CHRISTIANITY"
+				},
+				{
+					"code": "HINDUISM",
+					"name": "HINDUISM"
+				},
+				{
+					"code": "ISLAM",
+					"name": "ISLAM"
+				},
+				{
+					"code": "NO_RELIGION",
+					"name": "NO_RELIGION"
+				},
+				{
+					"code": "OTHER",
+					"name": "OTHER"
+				},
+				{
+					"code": "SIKHISM",
+					"name": "SIKHISM"
+				},
+				{
+					"code": "TAOISM",
+					"name": "TAOISM"
+				}
+			]
 		}
 	}
 ]

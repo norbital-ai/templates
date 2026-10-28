@@ -10,13 +10,13 @@ import {
 	refuseSealedUpdate,
 	sealSettings
 } from '../src/lib/payroll_engine/settings_version.ts';
+import { STATUTORY_FIELDS } from '../src/lib/payroll_engine/statutory_fields.ts';
 
 const settingsId = (id: string) => nativeId('jurisdiction_settings', fixtureId(id));
 
 const row = (id: string, from: string, to: string | null, sealed = true) => ({
 	id: settingsId(id),
 	code: 'SG',
-	jurisdiction_code: 'SG',
 	name: id,
 	payroll: { currency: 'SGD' },
 	sources: { entries: [] },
@@ -36,6 +36,28 @@ describe('settings version lifecycle', () => {
 		assert.equal(next.code, 'SG');
 		assert.equal(next.payroll.currency, 'SGD');
 		assert.equal('id' in next, false);
+	});
+
+	it('L-TPL-hr-payroll-009 a clone keeps every settings field but its own range and lifecycle', () => {
+		const full = {
+			...row('a', '2026-01-01', null),
+			payroll: { currency: 'SGD', timezone: 'Asia/Singapore', week_start: 1 },
+			sources: {
+				entries: [
+					{ agent: 'rules' as const, url: 'https://law.example.gov', instructions: 'Acts.' }
+				]
+			},
+			employee_input_schema: { type: 'object', properties: { nric: { type: 'string' } } },
+			entity_input_schema: { type: 'object', properties: { uen: { type: 'string' } } },
+			change_summary: 'Rates of 2026.'
+		};
+		const source: Record<string, unknown> = { ...full };
+		const cloned: Record<string, unknown> = {
+			...cloneSettingsFields(full, '2026-07-01')
+		};
+		const own = new Set(['effective_range', 'sealed_at', 'voided_at', 'void_reason']);
+		for (const field of Object.keys(STATUTORY_FIELDS.settings))
+			if (!own.has(field)) assert.deepEqual(cloned[field], source[field], field);
 	});
 
 	it('L-TPL-hr-payroll-009 seals a draft by ending the predecessor the day before', () => {

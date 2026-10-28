@@ -62,7 +62,8 @@
 							title: t('section.cash'),
 							defaultOpen: false,
 							fields: ['can_encash', 'encash_on_exit', 'encash_at_window_end']
-						}
+						},
+						{ name: 'pay', title: t('section.pay_lines'), fields: ['pay'] }
 					]}
 				/>
 			{/snippet}

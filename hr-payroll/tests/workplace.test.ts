@@ -25,14 +25,20 @@ it.effect(
 	'calendar and workplace writes validate a whole batch against their own governing definitions',
 	() => {
 		const rows = employer([{ key: 'a', salary: 3000 }]);
-		const settings = rows.get('jurisdiction_settings')?.[0];
 		const rules = rows.get('rule_set');
-		assert.ok(settings && rules);
-		settings['suspension_kinds'] = [{ code: 'CLOSURE', name: 'Closure' }];
+		assert.ok(rules);
+		rows.set('suspension_catalog', [
+			{
+				id: nativeId('suspension_catalog', fixtureId('xx-closure')),
+				settings_id: VERSION,
+				code: 'CLOSURE',
+				name: 'Closure'
+			}
+		]);
 		rules.push({
 			id: nativeId('rule_set', fixtureId('xx-case-kinds')),
 			settings_id: VERSION,
-			family: 'PAYROLL',
+			family: 'PARAMETERS',
 			code: 'case_kinds',
 			name: 'Case kinds',
 			rules: { kinds: [{ code: 'FLEXIBLE_WORK', name: 'Flexible work' }] }

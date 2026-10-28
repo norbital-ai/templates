@@ -48,7 +48,7 @@
 				fields: ['code', 'entity_input_schema']
 			},
 			'jurisdiction_settings.rule_set': {
-				where: { family: { eq: 'PAYROLL' } },
+				where: { family: { eq: 'PARAMETERS' } },
 				fields: ['rules']
 			}
 		})

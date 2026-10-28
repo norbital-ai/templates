@@ -1,6 +1,6 @@
 /**
- * Each automation the template declares, fired through the kit and judged by what it did: `behaviour_taps` applies a
- * run's pins and holds, `calendar_tick` writes the version's holidays once, `late_arrival_notice` reminds for a shift
+ * Each automation the template declares, fired through the kit and judged by what it did: `payroll_run_bookkeeping`
+ * pins a run's entries and withdraws a deleted run's duties, `behaviour_taps` holds, `calendar_tick` writes the version's holidays once, `late_arrival_notice` reminds for a shift
  * nobody clocked into. `invitation_profile` is `e2e/invitation-profile.test.ts`; `statutory_drift` is
  * `statutory-research.test.ts`.
  */
@@ -11,7 +11,16 @@ import { Instant, PlainDate } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect, Schema } from 'effect';
 import { fixtureId, nativeId } from './fixture_values.ts';
-import { CATALOG, COMPANY, WORK, employer, employment, runOf, world } from './jurisdiction_kit.ts';
+import {
+	CATALOG,
+	COMPANY,
+	VERSION,
+	WORK,
+	employer,
+	employment,
+	runOf,
+	world
+} from './jurisdiction_kit.ts';
 
 const Started = Schema.Struct({ id: Schema.String });
 const Run = Schema.Struct({
@@ -33,7 +42,7 @@ const finished = Effect.fnUntraced(function* (t: Kit, output: unknown) {
 });
 
 it.effect(
-	'behaviour_taps pins what a run settled onto its payslip and holds what a validation held',
+	'payroll_run_bookkeeping pins what a run settled onto its payslip and behaviour_taps holds what a validation held',
 	() =>
 		world(
 			employer([
@@ -81,6 +90,74 @@ it.effect(
 				assert.deepEqual(failed, []);
 			})
 		)
+);
+
+it.effect(
+	'payroll_run_bookkeeping withdraws what a deleted run raised: unsettled obligations go, open tasks are dismissed',
+	() =>
+		world(employer([{ key: 'a', salary: 3000 }])).withRead(() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const hr = t.as(t.member(['hr_manager']));
+				const admin = t.as(t.admin);
+				yield* hr.act('payroll_run.create', [
+					{ company_id: COMPANY, period: '2026-03', kind: 'REGULAR' }
+				]);
+				const run = yield* runOf(hr, '2026-03');
+				yield* t.runDue();
+				const duty = (code: string, settled: string | null) => ({
+					duty_code: code,
+					occurrence_key: `${code}:2026-03`,
+					trigger_ref: run.id,
+					triggered_on: PlainDate('2026-03-01'),
+					due_on: PlainDate('2026-04-15'),
+					amount_due: Decimal.of('100'),
+					...(settled === null ? {} : { amount_settled: Decimal.of(settled) }),
+					company_id: COMPANY,
+					settings_id: VERSION
+				});
+				yield* admin.act('obligation.create', [duty('UNSETTLED', null), duty('SETTLED', '100')]);
+				yield* admin.act('regulatory_task.create', [
+					{
+						code: 'RETURN',
+						title: 'File the return',
+						subject_collection: 'payroll_run',
+						subject_id: run.id,
+						trigger_ref: run.id,
+						triggered_on: PlainDate('2026-03-01'),
+						due_on: PlainDate('2026-04-15'),
+						occurrence_key: 'RETURN:2026-03',
+						company_id: COMPANY,
+						settings_id: VERSION
+					}
+				]);
+				yield* hr.act('payroll_run.delete', [{ target: run.id }]);
+				yield* t.runDue();
+				const after = yield* admin.query({
+					obligation: { fields: ['duty_code'] },
+					regulatory_task: { fields: ['state', 'dismiss_reason', 'occurrence_key'] }
+				});
+				assert.deepEqual(
+					after.obligation.rows.map((row) => row.duty_code),
+					['SETTLED']
+				);
+				assert.deepEqual(
+					after.regulatory_task.rows.map((row) => [
+						row.state,
+						row.dismiss_reason,
+						row.occurrence_key
+					]),
+					[
+						[
+							'DISMISSED',
+							'The payroll run that raised it was deleted on 2026-03-01.',
+							'RETURN:2026-03:withdrawn:2026-03-01'
+						]
+					]
+				);
+			})
+		),
+	60_000
 );
 
 it.effect('calendar_tick writes the holidays the version lists, once', () =>

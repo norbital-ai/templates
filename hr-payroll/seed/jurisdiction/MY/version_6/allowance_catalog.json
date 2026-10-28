@@ -127,5 +127,23 @@
 				"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf"
 			}
 		]
+	},
+	{
+		"id": "ec0d71e4-05a8-5852-9b0f-27c45cd119e4",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"code": "PIECE_PAY",
+		"name": "Piece-rate pay",
+		"references": [
+			{
+				"title": "EA ss.60(3)(d), 60A(3)(a), 60D(3)(a)(ii), (aaa): a piece-rated employee is paid the rate per piece (roster day facts piece_units, piece_rate, else terms.base_salary), twice it on a rest day or a paid holiday, 1.5 times it for overtime pieces (overtime_units) and three times on a holiday. EA First Schedule paras 1A–2: these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.facts.overtime_by_contract applies them by contract. Rest day (2026-10-08, confirmation B3): EA s.60(3)(d) pays a piece-rated employee working on a rest day \"twice his ordinary rate per piece\" — every piece of the day, its overtime pieces included, at 2× (1.5× overtime pieces only on a working day; 3× on a holiday).",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"automatic": true,
+		"eligibility": "((has(terms.facts) && has(terms.facts.pay_basis)) ? terms.facts.pay_basis : \"MONTHLY\") == \"PIECE\"",
+		"amount": "(1.0) * (sum(work.days.filter(d, has(d.facts) && has(d.facts.piece_units)).map(d, double(d.facts.piece_units) * (has(d.facts.piece_rate) ? double(d.facts.piece_rate) : terms.base_salary) * (d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"] || d.day_type == \"REST\" ? 2.0 : 1.0) + (has(d.facts.overtime_units) ? double(d.facts.overtime_units) * (has(d.facts.piece_rate) ? double(d.facts.piece_rate) : terms.base_salary) * (d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"] ? 3.0 : d.day_type == \"REST\" ? 2.0 : 1.5) : 0.0))))",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["EPF", "EPF_PR", "EPF_NON_CITIZEN", "SOCSO", "SKBBK", "EIS", "PCB", "HRDF"]
 	}
 ]

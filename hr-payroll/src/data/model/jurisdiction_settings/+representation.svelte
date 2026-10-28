@@ -1,8 +1,9 @@
 <script lang="ts">
 	/**
 	 * A jurisdiction version: who it is and when it governs, what changed, its payroll settings by topic, then the
-	 * admin-level parts kept closed — the inputs it asks of entities and employees, its automatic rules, its suspension
-	 * kinds, research sources and reference tables. Sealing and voiding are the settings page's buttons, not fields.
+	 * admin-level parts kept closed — its time pay lines, the inputs it asks of entities and employees, its automatic rules, its suspension
+	 * catalogue and research sources. Its rule sets are the settings page's own tab. Sealing and voiding are
+	 * the settings page's buttons, not fields.
 	 */
 	import * as Predicate from 'effect/Predicate';
 	import { bolt } from '$bolt';
@@ -14,21 +15,16 @@
 		RecordShell,
 		Section,
 		StructuredData,
-		isJsonSchema,
 		Table,
+		isJsonSchema,
 		Textarea,
 		type FieldEditor,
-		type Json,
-		type Kind,
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
-	import { isJsonObject } from '../../../lib/payroll_engine/foundation.js';
-	import { isJsonList, isJsonRecord } from '../../../lib/ui/records/json_object.js';
+	import { isJsonObject, PAYROLL_DEFAULTS } from '../../../lib/payroll_engine/foundation.js';
 	import { RESEARCH_AGENT_NAMES } from '../../../lib/payroll_engine/research_agents.js';
 	import { STATUTORY_FIELDS } from '../../../lib/payroll_engine/statutory_fields.js';
-	import { SUSPENSION_KIND } from '../../../lib/payroll_engine/suspension_kinds.js';
-	import BehavioursEditor from '../../../lib/ui/settings/behaviours_editor.svelte';
 	import JsonFields from '../../../lib/ui/settings/json_fields.svelte';
 	import { labelled } from '../../../lib/ui/settings/labelled.js';
 
@@ -82,7 +78,7 @@
 			name: 'leavers',
 			title: 'section.leavers',
 			open: true,
-			keys: ['exit_raise_when', 'exit_overpayment', 'negative_net']
+			keys: ['exit_overpayment', 'negative_net']
 		},
 		{
 			name: 'payroll_rules',
@@ -96,6 +92,13 @@
 		open: boolean;
 		keys: readonly PayrollKey[];
 	}[];
+	/** `time_pay` by reserved kind: each kind lists its lines (a table), a kind the version omits stays blank. */
+	const timePayKinds = Object.fromEntries(
+		Object.entries(STATUTORY_FIELDS.settings.time_pay.shape.fields).map(([key, kind]) => [
+			key,
+			labelled(bolt, 'jurisdiction_settings', `time_pay.${key}`, kind)
+		])
+	);
 	const payrollSections = PAYROLL_SECTIONS.map((section) => ({
 		...section,
 		kinds: Object.fromEntries(
@@ -105,26 +108,6 @@
 			])
 		)
 	}));
-	const SUSPENSION_FIELDS: Readonly<Record<string, Kind>> = Object.fromEntries(
-		Object.entries(SUSPENSION_KIND.fields).map(([name, kind]) => [
-			name,
-			labelled(bolt, 'suspension_kind', name, kind)
-		])
-	);
-	const SUSPENSION_LIST = {
-		kind: 'list',
-		of: { kind: 'object', fields: SUSPENSION_FIELDS }
-	} as const;
-	/** A reference table as rows: a keyed lookup one row per key, a list of values one row per value. */
-	const tableRows = (table: Json): Json => {
-		const code = t('component.code');
-		const meaning = t('component.value');
-		if (isJsonRecord(table))
-			return Object.entries(table).map(([key, held]) => ({ [code]: key, [meaning]: held }));
-		if (isJsonList(table) && !table.every(isJsonRecord))
-			return table.map((held) => ({ [meaning]: held }));
-		return table;
-	};
 </script>
 
 {#snippet inputSchema(field: FieldEditor)}
@@ -185,24 +168,6 @@
 	{/if}
 {/snippet}
 
-{#snippet suspensionKinds({ value, id, name }: Pick<FieldEditor, 'value' | 'id' | 'name'>)}
-	<StructuredData kind={SUSPENSION_LIST} {value} mode="view" {id} {name} />
-{/snippet}
-
-{#snippet referenceTables({ value, id }: Pick<FieldEditor, 'value' | 'id'>)}
-	{@const tables = isJsonObject(value) ? Object.entries(value) : []}
-	<Stack {id} gap="md">
-		{#each tables as [name, table] (name)}
-			<Stack gap="xs">
-				<span class="text-sm font-medium">{name}</span>
-				<StructuredData value={tableRows(table)} mode="view" {name} />
-			</Stack>
-		{:else}
-			<p class="text-meta">—</p>
-		{/each}
-	</Stack>
-{/snippet}
-
 <RecordShell
 	of="jurisdiction_settings"
 	mode={view.mode}
@@ -226,7 +191,6 @@
 					<Grid minimum="card">
 						<Field name="name" />
 						<Field name="code" />
-						<Field name="jurisdiction_code" />
 						<Field name="effective_range" />
 						{#if record?.voided_at != null}
 							<Field name="void_reason" readonly />
@@ -253,9 +217,12 @@
 					<Section name={section.name} title={t(section.title)} defaultOpen={section.open}>
 						<Field name="payroll" label="">
 							{#snippet view(field)}
+								<!-- the effective values: a key the version omits shows the engine default -->
 								<JsonFields
 									readonly
-									value={field.value}
+									value={isJsonObject(field.value)
+										? { ...PAYROLL_DEFAULTS, ...field.value }
+										: field.value}
 									kinds={section.kinds}
 									name={field.name}
 									id={field.id}
@@ -274,6 +241,29 @@
 						</Field>
 					</Section>
 				{/each}
+				<Section name="time_pay" title={t('section.time_pay')} defaultOpen={false}>
+					<Field name="time_pay" label="">
+						{#snippet view(field)}
+							<JsonFields
+								readonly
+								value={field.value}
+								kinds={timePayKinds}
+								name={field.name}
+								id={field.id}
+							/>
+						{/snippet}
+						{#snippet editor(field)}
+							<JsonFields
+								value={field.value}
+								onChange={field.onChange}
+								kinds={timePayKinds}
+								name={field.name}
+								id={field.id}
+								disabled={field.disabled}
+							/>
+						{/snippet}
+					</Field>
+				</Section>
 				<Section
 					name="input_schemas"
 					title={t('section.information_collected')}
@@ -284,58 +274,21 @@
 						<Field name="employee_input_schema" editor={inputSchema} view={inputSchemaView} />
 					</Stack>
 				</Section>
-				<Section name="behaviours" title={t('section.automatic_rules')} defaultOpen={false}>
-					<Field name="behaviours" label="">
-						{#snippet view(field)}
-							<BehavioursEditor readonly value={field.value} />
-						{/snippet}
-						{#snippet editor(field)}
-							<BehavioursEditor
-								value={field.value}
-								onChange={field.onChange}
-								disabled={field.disabled}
-							/>
-						{/snippet}
-					</Field>
-				</Section>
-				<Section
-					name="suspension_kinds"
-					title={t('models.suspension_kind.label')}
-					defaultOpen={false}
-				>
-					<Field name="suspension_kinds" label="" view={suspensionKinds}>
-						{#snippet editor(field)}
-							<StructuredData
-								mode="edit"
-								kind={SUSPENSION_LIST}
-								name={field.name}
-								id={field.id}
-								value={field.value ?? []}
-								onChange={field.onChange}
-								disabled={field.disabled}
-							/>
-						{/snippet}
-					</Field>
-				</Section>
-				{#if record}
-					<Section name="rule_sets" title={t('section.rule_sets')}>
-						<Table
-							of="rule_set"
-							key="settings-rule-sets"
-							toolbar={{ new: false }}
-							where={{ settings_id: { eq: record.id } }}
-							orderBy={{ family: 'asc' }}
-							columns={['family', 'code', 'name']}
-						/>
-					</Section>
-				{/if}
 				<Section name="reference_data" title={t('section.research_sources')} defaultOpen={false}>
 					<Field name="sources" label="" view={sources} />
-				</Section>
-				<Section name="reference_tables" title={t('section.reference_tables')} defaultOpen={false}>
-					<Field name="reference_tables" label="" view={referenceTables} />
 				</Section>
 			{/snippet}
 		</Form>
 	{/key}
+	<!-- The version's suspension catalogue: its own rows, outside the version's form. -->
+	{#if record}
+		<Table
+			of="suspension_catalog"
+			key="settings-suspension-catalog"
+			toolbar={{ title: t('models.suspension_catalog.label'), new: record.sealed_at == null }}
+			where={{ settings_id: { eq: record.id } }}
+			orderBy={{ code: 'asc' }}
+			columns={['code', 'name', 'rate']}
+		/>
+	{/if}
 </RecordShell>

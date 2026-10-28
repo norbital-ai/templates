@@ -15,6 +15,7 @@
 	import { todayKey } from '../../../lib/ui/format/calendar.js';
 	import { governingVersion } from '../../../lib/ui/person/governing_version.svelte.js';
 	import MonthBoard from '../../../lib/ui/roster/month_board.svelte';
+	import { PAYROLL_DEFAULTS } from '../../../lib/payroll_engine/foundation.js';
 
 	const scope = companyScope();
 	const pay = createPayPeriodScope(() => scope.company);
@@ -24,7 +25,11 @@
 		() => String(pay.window?.start ?? today)
 	);
 	const timeZone = $derived(entityTimeZone(scope.company, version.current));
-	const policy = $derived(version.current?.payroll?.attendance ?? null);
+	const policy = $derived(
+		version.current == null
+			? null
+			: (version.current.payroll?.attendance ?? PAYROLL_DEFAULTS.attendance)
+	);
 
 	const contracts = $derived.by(() =>
 		scope.id == null

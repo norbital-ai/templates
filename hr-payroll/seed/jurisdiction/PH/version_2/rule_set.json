@@ -1,382 +1,8 @@
 [
 	{
-		"id": "fb73bb9e-bc2d-5bd4-8fb0-794c7848be28",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "BIR_1604C_ANNUAL_ALPHALIST",
-		"name": "BIR Form 1604-C with the alphalist of employees",
-		"references": [
-			{
-				"title": "BIR Form 1604-C guidelines; RR 2-98 s.2.79(B)(5)(b) as amended by RR 11-2018: on or before 31 January of the year following the calendar year of payment. Raised by the entity’s daily calendar tick, not by a payroll run: the duty is the year’s whatever runs exist — from 1 December of the year covered through its due day, once a year (`repeat_key` the year covered), for an entity with an employment in force on the day (headcount above zero). Amounts and lists come from the year’s payslips (the alphalist exports, the 2316 figures).",
-				"url": "https://bir-cdn.bir.gov.ph/local/pdf/1604-C%20Jan%202018%20Final.pdf"
-			}
-		],
-		"rules": {
-			"description": "File BIR Form 1604-C, the annual information return of income taxes withheld on compensation, with the alphabetical list of employees.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["calendar"]
-			},
-			"due": "string(int((int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))) + 1) + \"-01-31\"",
-			"when": "headcount > 0 && today >= (int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1)) + \"-12-01\" && today <= string(int((int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))) + 1) + \"-01-31\"",
-			"repeat_key": "(int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))"
-		}
-	},
-	{
-		"id": "17d51c54-bd95-5532-af15-3d31495b0b93",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "BIR_2316_CERTIFICATE",
-		"name": "BIR Form 2316 to every employee for the year",
-		"references": [
-			{
-				"title": "RR 2-98 s.2.83.1 as amended by RR 11-2018 s.12: to the employee on or before 31 January of the following year. Raised by the entity’s daily calendar tick, not by a payroll run: the duty is the year’s whatever runs exist — from 1 December of the year covered through its due day, once a year (`repeat_key` the year covered), for an entity with an employment in force on the day (headcount above zero). Amounts and lists come from the year’s payslips (the alphalist exports, the 2316 figures).",
-				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
-			}
-		],
-		"rules": {
-			"description": "Issue BIR Form 2316 (Certificate of Compensation Payment / Tax Withheld) to every employee, minimum-wage earners included; keep the employer copy ten years.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["calendar"]
-			},
-			"due": "string(int((int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))) + 1) + \"-01-31\"",
-			"when": "headcount > 0 && today >= (int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1)) + \"-12-01\" && today <= string(int((int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))) + 1) + \"-01-31\"",
-			"repeat_key": "(int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))"
-		}
-	},
-	{
-		"id": "3c4ddf14-85c6-5045-aa4e-86930d23ceb0",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "BIR_2316_SUBSTITUTED_FILING_LIST",
-		"name": "Duplicate 2316s with the certified list for substituted filing",
-		"references": [
-			{
-				"title": "RR 2-98 s.2.83.1 as amended by RR 11-2018 s.12: to the BIR not later than 28 February of the following year. Raised by the entity’s daily calendar tick, not by a payroll run: the duty is the year’s whatever runs exist — from 1 December of the year covered through its due day, once a year (`repeat_key` the year covered), for an entity with an employment in force on the day (headcount above zero). Amounts and lists come from the year’s payslips (the alphalist exports, the 2316 figures).",
-				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
-			}
-		],
-		"rules": {
-			"description": "Submit the duplicate 2316s of employees qualified for substituted filing with the Certified List of Employees Qualified for Substituted Filing.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["calendar"]
-			},
-			"due": "string(int((int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))) + 1) + \"-02-28\"",
-			"when": "headcount > 0 && today >= (int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1)) + \"-12-01\" && today <= string(int((int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))) + 1) + \"-02-28\"",
-			"repeat_key": "(int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))"
-		}
-	},
-	{
-		"id": "99e69a09-a8cb-5e87-99f5-882c9dbe7ddd",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "BIR_YEAR_END_ADJUSTMENT",
-		"name": "Year-end annualisation and refund of over-withholding",
-		"references": [
-			{
-				"title": "RR 2-98 s.2.79(B)(5)(b) as amended by RR 11-2018: the excess is refunded not later than 25 January of the following year. Raised by the entity’s daily calendar tick, not by a payroll run: the duty is the year’s whatever runs exist — from 1 December of the year covered through its due day, once a year (`repeat_key` the year covered), for an entity with an employment in force on the day (headcount above zero). Amounts and lists come from the year’s payslips (the alphalist exports, the 2316 figures).",
-				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
-			}
-		],
-		"rules": {
-			"description": "Annualise each employee’s tax at year end: withhold a deficiency from the last compensation of the year, or refund an over-withholding.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["calendar"]
-			},
-			"due": "string(int((int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))) + 1) + \"-01-25\"",
-			"when": "headcount > 0 && today >= (int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1)) + \"-12-01\" && today <= string(int((int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))) + 1) + \"-01-25\"",
-			"repeat_key": "(int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))"
-		}
-	},
-	{
-		"id": "75a45c1f-924e-5eca-be0b-8dc0beba4dc5",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "THIRTEENTH_MONTH_PAYMENT",
-		"name": "13th-month pay for the year",
-		"references": [
-			{
-				"title": "PD 851 and its Revised Guidelines; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.13 §E: not later than 24 December of each year; RA 10361 s.25. Raised by the entity’s daily calendar tick, not by a payroll run: the duty is the year’s whatever runs exist — from 1 December of the year covered through its due day, once a year (`repeat_key` the year covered), for an entity with an employment in force on the day (headcount above zero). Amounts and lists come from the year’s payslips (the alphalist exports, the 2316 figures).",
-				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
-			}
-		],
-		"rules": {
-			"description": "Pay rank-and-file employees (kasambahay included) at least one twelfth of the basic salary earned in the calendar year.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["calendar"]
-			},
-			"due": "(int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1)) + \"-12-24\"",
-			"when": "headcount > 0 && today >= (int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1)) + \"-12-01\" && today <= (int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1)) + \"-12-24\"",
-			"repeat_key": "(int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))"
-		}
-	},
-	{
-		"id": "71be7fa6-dacc-5496-9986-df94ce2b4653",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "THIRTEENTH_MONTH_DOLE_REPORT",
-		"name": "13th-month compliance report to DOLE",
-		"references": [
-			{
-				"title": "DOLE Labor Advisory 16-25; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.13 §L: not later than 15 January of the following year. Raised by the entity’s daily calendar tick, not by a payroll run: the duty is the year’s whatever runs exist — from 1 December of the year covered through its due day, once a year (`repeat_key` the year covered), for an entity with an employment in force on the day (headcount above zero). Amounts and lists come from the year’s payslips (the alphalist exports, the 2316 figures).",
-				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
-			}
-		],
-		"rules": {
-			"description": "Report 13th-month pay compliance through the DOLE Establishment Report System.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["calendar"]
-			},
-			"due": "string(int((int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))) + 1) + \"-01-15\"",
-			"when": "headcount > 0 && today >= (int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1)) + \"-12-01\" && today <= string(int((int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))) + 1) + \"-01-15\"",
-			"repeat_key": "(int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))"
-		}
-	},
-	{
-		"id": "e6e53227-a519-5924-9192-a2723de42065",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "SSS_EMPLOYEE_REPORT",
-		"name": "Report the new employee to SSS (R-1A)",
-		"references": [
-			{
-				"title": "RA 11199 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333) s.24(a): each employer \"shall immediately report\" its employees subject to compulsory coverage, relieved of damages for a contingency within 30 days of employment; SSS, Employers — Duties (https://www.sss.gov.ph/employer-er/, checked 7 October 2026): report employees \"for coverage within 30 days from hiring date\"."
-			}
-		],
-		"rules": {
-			"description": "Report the new employee for compulsory SSS coverage (Employment Report, R-1A).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 30)"
-		}
-	},
-	{
-		"id": "6202301f-38b8-5e57-a8d5-d3b5dfb6d27b",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "PHILHEALTH_EMPLOYEE_REPORT",
-		"name": "Report the new employee to PhilHealth (ER2)",
-		"references": [
-			{
-				"title": "PhilHealth, Reporting Your Employees; RA 11223 s.10: the ER2 within 30 days of the employee’s assumption of duty.",
-				"url": "https://www.philhealth.gov.ph/partners/employers/report.php"
-			}
-		],
-		"rules": {
-			"description": "Report the new employee on the Report of Employee-Members (ER2) with the PhilHealth Member Registration Form.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 30)"
-		}
-	},
-	{
-		"id": "dc67dd82-9855-5e1e-b645-1006438a091a",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "HDMF_EMPLOYEE_REGISTRATION",
-		"name": "Register the new employee with Pag-IBIG",
-		"references": [
-			{
-				"title": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016: each new hire within 30 days from the start of employment.",
-				"url": "https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf"
-			}
-		],
-		"rules": {
-			"description": "Register the newly hired employee with the Pag-IBIG Fund.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 30)"
-		}
-	},
-	{
-		"id": "a1d3deac-157e-5ec7-8fef-991dbbccd832",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "BIR_EMPLOYEE_TIN_REGISTRATION",
-		"name": "Register a first-time employee with the BIR (Form 1902)",
-		"references": [
-			{
-				"title": "RR 2-98 s.2.82 as amended by RR 11-2018 s.11: within 10 days from the date of employment. Raised on every hire; closed with the existing TIN when the employee has one.",
-				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
-			}
-		],
-		"rules": {
-			"description": "File the BIR Form 1902 of an employee without a TIN (or secure the TIN through eREG).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 10)"
-		}
-	},
-	{
-		"id": "f6a9260f-c4ee-59af-b485-96dbf47f5556",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "FINAL_PAY_RELEASE",
-		"name": "Final pay",
-		"references": [
-			{
-				"title": "DOLE Labor Advisory No. 06, s.2020, Parts II–III: final pay within 30 days from the date of separation unless a more favourable policy applies.",
-				"url": "https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf"
-			}
-		],
-		"rules": {
-			"description": "Release the final pay: unpaid salary, pro-rata 13th month, service incentive leave conversion, separation or retirement pay and refundables.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "add_days(exit_on, 30)"
-		}
-	},
-	{
-		"id": "129e5999-1310-5ac5-8852-fdaeca033c45",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "CERTIFICATE_OF_EMPLOYMENT",
-		"name": "Certificate of employment",
-		"references": [
-			{
-				"title": "DOLE Labor Advisory No. 06, s.2020 Part III: a certificate of employment within three days from the employee’s request; RA 10361 s.35: a kasambahay’s \"within five (5) days from request\" upon severance. Recorded default: the request is taken as made on the last day of work, and the shorter three days governs both.",
-				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514"
-			}
-		],
-		"rules": {
-			"description": "Issue the certificate of employment.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "add_days(exit_on, 3)"
-		}
-	},
-	{
-		"id": "caed377d-cec4-5953-aecc-c0ee1b099015",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "BIR_2316_LEAVER_CERTIFICATE",
-		"name": "BIR Form 2316 to a leaver",
-		"references": [
-			{
-				"title": "RR 2-98 s.2.83.1 as amended by RR 11-2018 s.12 (https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf): to a leaver on the day of the last payment of compensation. Recorded default: due with the latest lawful last payment, the final pay 30 days after the last day of work (DOLE Labor Advisory No. 06, s.2020, Parts II–III (https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf))."
-			}
-		],
-		"rules": {
-			"description": "Issue BIR Form 2316 to the separated employee.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "add_days(exit_on, 30)"
-		}
-	},
-	{
-		"id": "aea72e96-89da-561b-aed1-6d470cfeb9bd",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "HDMF_SEPARATION_REPORT",
-		"name": "Report the separation to Pag-IBIG",
-		"references": [
-			{
-				"title": "HDMF Circular 275 §E.5–E.7: within 30 days from the first day of occurrence or effectivity. Recorded default: counted from the last day of work.",
-				"url": "https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf"
-			}
-		],
-		"rules": {
-			"description": "Report the resignation, separation or death to the Pag-IBIG Fund.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "add_days(exit_on, 30)"
-		}
-	},
-	{
-		"id": "2022b791-411b-5b13-9ee3-25cc8dbd9c19",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "ALIEN_EMPLOYMENT_PERMIT",
-		"name": "Alien Employment Permit before a foreign national starts work",
-		"references": [
-			{
-				"title": "Labor Code art.40; DOLE Department Order No. 248 s.2025, New Rules and Regulations on the Employment of Foreign Nationals (21 January 2025; ONAR 25-0111,; supersedes DO 221-21): a non-resident foreign national may be employed only with an Alien Employment Permit issued before work starts. Recorded default: a profile `nationality` other than Philippine (PH, PHL, FILIPINO) is a foreign national; an unrecorded nationality raises nothing.",
-				"url": "https://naro.law.upd.edu.ph/issuances/7205"
-			}
-		],
-		"rules": {
-			"description": "Secure the DOLE Alien Employment Permit for a foreign national before the employment starts.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"applies_when": "employee != null && has(employee.nationality) && employee.nationality != null && employee.nationality != \"\" && !(employee.nationality.upperAscii() in [\"PH\", \"PHL\", \"FILIPINO\", \"PHILIPPINES\", \"PHILIPPINE\"])",
-			"due": "add_days(hired_on, 0)"
-		}
-	},
-	{
-		"id": "903f2ff3-d630-50cf-9948-c3dfc85004ce",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "AUTHORISED_CAUSE_TERMINATION_NOTICE",
-		"name": "Written notice of an authorised-cause termination to the employee and DOLE",
-		"references": [
-			{
-				"title": "Labor Code arts.298–299; DOLE Department Order 147-15; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.14 §E: served at least one month before the intended date of termination. Recorded default: the month counts back from the last day of work, so the duty is overdue when the exit is recorded later than that."
-			}
-		],
-		"rules": {
-			"description": "Serve written notice of a termination for an authorised cause (labour-saving devices, redundancy, retrenchment, closure, disease) on the employee and on DOLE (RKS Form 5 / Establishment Report System).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (contract.exit_facts != null && ((has(contract.exit_facts.termination_cause) && contract.exit_facts.termination_cause != \"\") || (has(contract.exit_facts.terminated_for_disease) && contract.exit_facts.terminated_for_disease)))",
-			"due": "add_months(exit_on, -1)"
-		}
-	},
-	{
 		"id": "a64d11f7-0590-556f-a130-48f350bb2c18",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "PAYROLL",
+		"family": "PARAMETERS",
 		"code": "minimum_wage",
 		"name": "Regional minimum wage (monthly, daily rate × 313 ÷ 12)",
 		"references": [
@@ -1178,584 +804,9 @@
 		}
 	},
 	{
-		"id": "c5e2811f-1fbe-569a-9a67-6bebfefdea84",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "PHILHEALTH_SEPARATION_REPORT",
-		"name": "Report the separated employee to PhilHealth (RF-1)",
-		"references": [
-			{
-				"title": "PhilHealth, Reporting Your Employees (https://www.philhealth.gov.ph/partners/employers/report.php, checked 7 October 2026): \"Indicate the names of separated employees in the RF-1 within 30 days from the date of separation\".",
-				"url": "https://www.philhealth.gov.ph/partners/employers/report.php"
-			}
-		],
-		"rules": {
-			"description": "Show the separated employee on the RF-1 remittance report.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"due": "add_days(exit_on, 30)",
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null"
-		}
-	},
-	{
-		"id": "f62c530e-e196-530f-a96f-ca2c74d877ca",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "SSS_MATERNITY_NOTIFICATION",
-		"name": "Transmit the maternity notice and advance the SSS maternity benefit",
-		"references": [
-			{
-				"title": "RA 11199 s.14-A as amended by RA 11210 s.5: the employer transmits the notice to SSS, and \"the full payment shall be advanced by the employer within thirty (30) days from the filing of the maternity leave application\". Raised by a MATERNITY_LEAVE entry (`row.catalog_code`), due 30 days after it is filed (`today`).",
-				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333"
-			}
-		],
-		"rules": {
-			"description": "Transmit the employee’s maternity notification to SSS and advance the full maternity benefit; claim reimbursement.",
-			"trigger": {
-				"collection": "leave_catalog_entry",
-				"events": ["created"]
-			},
-			"due": "add_days(today, 30)",
-			"applies_when": "has(row.catalog_code) && row.catalog_code == \"MATERNITY_LEAVE\""
-		}
-	},
-	{
-		"id": "e221c766-d79d-5aab-9603-87be6bcd5e62",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
-		"name": "Kasambahay written contract and barangay registration",
-		"references": [
-			{
-				"title": "RA 10361 ss.11 and 17: the contract before the commencement of service; registration with the barangay of the employer’s residence. Recorded default: both due on the first day of service.",
-				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514"
-			}
-		],
-		"rules": {
-			"description": "Execute the written employment contract with the kasambahay before service starts and register the kasambahay in the barangay Registry of Domestic Workers.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 0)",
-			"applies_when": "contract != null && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.employment_type) && t.employment_type == \"DOMESTIC\")"
-		}
-	},
-	{
-		"id": "ef51a68d-54fd-531f-9169-346f7d1fe974",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "PROBATIONARY_STANDARDS",
-		"name": "Make the regularisation standards known to a probationary employee",
-		"references": [
-			{
-				"title": "Omnibus Rules Implementing the Labor Code Book VI Rule I ss.5(c), 6(a), (d): standards at the time of engagement; probation not beyond six months (Labor Code art.296).",
-				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819"
-			}
-		],
-		"rules": {
-			"description": "Make known at engagement the reasonable standards under which the probationary employee will qualify as regular; probation ends within six months of the actual start.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 0)",
-			"applies_when": "contract != null && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.employment_type) && t.employment_type == \"PROBATION\")"
-		}
-	},
-	{
-		"id": "6666c9ac-2323-5f87-864e-bc1120b00cdc",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "HDMF_EMPLOYER_REGISTRATION",
-		"name": "Register the employer with the Pag-IBIG Fund",
-		"references": [
-			{
-				"title": "HDMF Circular 275 §C.4: employers submit their data \"within thirty (30) days from the start of their business operations\". Recorded default: counted from the entity’s effective start, else the month it was recorded.",
-				"url": "https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf"
-			}
-		],
-		"rules": {
-			"description": "Submit the employer’s data to the Pag-IBIG Fund.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["created"]
-			},
-			"due": "has(row.effective_range) && row.effective_range != null && has(row.effective_range.from) ? add_days(row.effective_range.from, 30) : add_days(period.from, 30)"
-		}
-	},
-	{
-		"id": "b529cc06-4176-5d76-8564-685862ada9c0",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "PROTECTION_ORDER_REMITTANCE",
-		"name": "Remit the protection-order support withheld",
-		"references": [
-			{
-				"title": "RA 9262 s.8(g): the court orders a percentage of the respondent’s salary \"to be withheld regularly by the respondent’s employer\" and remitted directly; failure or delay without justifiable cause is indirect contempt. Raised by each PROTECTION_ORDER_SUPPORT entry (`row.catalog_code`). Recorded default: due on the entry’s pay day.",
-				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128"
-			}
-		],
-		"rules": {
-			"description": "Remit the support the protection order fixes, withheld from the respondent employee’s pay, directly to the woman and/or child it names.",
-			"trigger": {
-				"collection": "adhoc_catalog_entry",
-				"events": ["created"]
-			},
-			"due": "add_days(row.occurred_on, 0)",
-			"applies_when": "has(row.catalog_code) && row.catalog_code == \"PROTECTION_ORDER_SUPPORT\""
-		}
-	},
-	{
-		"id": "04ffde0a-af75-5e47-a067-8726e7f55a13",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "COMPULSORY_RETIREMENT_AGE",
-		"name": "Compulsory retirement at sixty-five",
-		"references": [
-			{
-				"title": "Labor Code art.302 (RA 7641); DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.15 §B: retirement at sixty or more \"but not beyond 65 years\". Raised once, on the sixty-fifth birthday.",
-				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
-			}
-		],
-		"rules": {
-			"description": "Retire the employee at sixty-five and pay at least the RA 7641 retirement pay (22.5 days a year of service, five years’ service).",
-			"trigger": {
-				"collection": "calendar",
-				"events": ["daily"]
-			},
-			"due": "add_days(today, 0)",
-			"when": "employee != null && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && add_years(employee.date_of_birth, 65.0) == today && contract != null && (contract.effective_range.to == null || contract.effective_range.to >= today)"
-		}
-	},
-	{
-		"id": "29d617d8-6767-5c7f-a993-07269839d5ef",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "PROBATION_ENDS",
-		"name": "Probation ends: regularise or end the employment",
-		"references": [
-			{
-				"title": "Omnibus Rules Implementing the Labor Code Book VI Rule I s.6(a), (d); Labor Code art.296: probation \"shall not exceed six (6) months from the date the employee started working\". Raised a month ahead, due the day before the six months end.",
-				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819"
-			}
-		],
-		"rules": {
-			"description": "Decide on regularisation: a probationary employee allowed to work after six months is regular.",
-			"trigger": {
-				"collection": "calendar",
-				"events": ["daily"]
-			},
-			"due": "add_days(add_months(contract.effective_range.from, 6.0), -1)",
-			"when": "contract != null && add_months(contract.effective_range.from, 5.0) == today && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.employment_type) && t.employment_type == \"PROBATION\")"
-		}
-	},
-	{
-		"id": "a353c156-160b-59d9-bdac-fd869d904a58",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "KASAMBAHAY_TERMINATION_NOTICE",
-		"name": "Five days’ notice to end a kasambahay’s employment",
-		"references": [
-			{
-				"title": "RA 10361 s.32: \"If the duration of the domestic service is not determined … the employer or the domestic worker may give notice to end the working relationship five (5) days before the intended termination\". Due five days before the last day.",
-				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514"
-			}
-		],
-		"rules": {
-			"description": "Give the kasambahay five days’ notice of the end of an employment of undetermined duration.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"due": "add_days(exit_on, -5)",
-			"applies_when": "contract != null && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.employment_type) && t.employment_type == \"DOMESTIC\") && !(contract.exit_ground in [\"DISMISSAL\"])",
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null"
-		}
-	},
-	{
-		"id": "ec76833f-8c28-5c21-9df9-592cf8e9a38a",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "JUST_CAUSE_TWIN_NOTICE",
-		"name": "Twin-notice due process for a just-cause dismissal",
-		"references": [
-			{
-				"title": "Labor Code art.292(b): written notice of the causes and ample opportunity to be heard; DOLE Department Order 147-15 s.5.1(a): the first notice gives \"at least five (5) calendar days\" to explain. Due five days before the dismissal takes effect."
-			}
-		],
-		"rules": {
-			"description": "Serve the first written notice (charges, at least five calendar days to answer), hear the employee, then serve the written notice of decision.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"due": "add_days(exit_on, -5)",
-			"applies_when": "contract.exit_ground == \"DISMISSAL\"",
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null"
-		}
-	},
-	{
-		"id": "f9b7bb41-fedc-5d14-81c7-575d76a47643",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "CAREGIVER_CONTRACT",
-		"name": "Caregiver’s written employment contract",
-		"references": [
-			{
-				"title": "RA 11965 s.5: \"An employment contract shall be executed … before the commencement of the service\".",
-				"url": "https://lawphil.net/statutes/repacts/ra2023/ra_11965_2023.html"
-			}
-		],
-		"rules": {
-			"description": "Execute the caregiver’s employment contract, signed and notarised, before service starts; give the caregiver a copy.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 0)",
-			"applies_when": "contract != null && has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.employment_type) && t.employment_type == \"CAREGIVER\")"
-		}
-	},
-	{
-		"id": "6963e2ae-5910-5f05-abcf-a89a36e2eed2",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "SERVICE_CHARGE_DISTRIBUTION",
-		"name": "Distribute the collected service charges",
-		"references": [
-			{
-				"title": "Labor Code art.96 as amended by RA 11360; Omnibus Rules Implementing the Labor Code Book III Rule VI s.4: the shares are paid \"not less than once every two (2) weeks or twice a month at intervals not exceeding sixteen (16) days\". Raised by each run of an entity that collects service charges; due by the run’s last day.",
-				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819"
-			}
-		],
-		"rules": {
-			"description": "Distribute the period’s service charges completely and equally among the covered workers (managerial employees excepted).",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "add_days(period.to, 0)",
-			"applies_when": "company != null && has(company.facts.collects_service_charges) && company.facts.collects_service_charges"
-		}
-	},
-	{
-		"id": "85f176e3-afe0-5b4d-88b4-185af35fb9fe",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "EC_LOGBOOK_ENTRY",
-		"name": "Record the work-connected contingency in the EC logbook",
-		"references": [
-			{
-				"title": "PD 626 (Labor Code Book IV Title II) art.211 as relayed by the ECC: \"Entries in the logbook shall be made within five days from notice or knowledge of the occurrence of the contingency\". Raised by a leave entry the employer marks work-connected (entry fact `work_connected`, customer input).",
-				"url": "https://ecc.gov.ph/ecc-reminds-employers-to-comply-with-the-ec-logbook-template"
-			}
-		],
-		"rules": {
-			"description": "Enter the sickness, injury or death in the Employees’ Compensation logbook.",
-			"trigger": {
-				"collection": "leave_catalog_entry",
-				"events": ["created"]
-			},
-			"due": "add_days(today, 5)",
-			"applies_when": "has(row.facts) && row.facts != null && has(row.facts.work_connected) && row.facts.work_connected"
-		}
-	},
-	{
-		"id": "a358d4a2-ac5e-574b-a407-5a1ea120559d",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "EC_CONTINGENCY_REPORT",
-		"name": "Report the work-connected contingency to SSS",
-		"references": [
-			{
-				"title": "PD 626 art.211 (ECC): \"Within five days after entry in the logbook, the employer shall report to the System only those contingencies he deems to be work-connected\"."
-			}
-		],
-		"rules": {
-			"description": "Report the work-connected sickness, injury or death to SSS for Employees’ Compensation.",
-			"trigger": {
-				"collection": "leave_catalog_entry",
-				"events": ["created"]
-			},
-			"due": "add_days(today, 10)",
-			"applies_when": "has(row.facts) && row.facts != null && has(row.facts.work_connected) && row.facts.work_connected"
-		}
-	},
-	{
-		"id": "4aa5f48d-534e-5b2e-96db-376fba3c74ea",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "SSS_SICKNESS_NOTIFICATION",
-		"name": "Notify SSS of the employee’s confinement",
-		"references": [
-			{
-				"title": "RA 11199 s.14(c): reimbursement in full \"Provided, That the employer has notified the SSS of the confinement within five (5) calendar days after receipt of the notification from the employee member\"; the benefit begins after more than three days’ confinement. Raised by a medical or hospitalisation leave entry of more than three days.",
-				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333"
-			}
-		],
-		"rules": {
-			"description": "Notify SSS of the member’s confinement for the sickness benefit; advance the benefit on the regular paydays and claim reimbursement.",
-			"trigger": {
-				"collection": "leave_catalog_entry",
-				"events": ["created"]
-			},
-			"due": "add_days(today, 5)",
-			"applies_when": "has(row.catalog_code) && row.catalog_code in [\"MEDICAL_LEAVE\", \"HOSPITALIZATION_LEAVE\"] && has(row.days) && row.days != null && double(row.days) > 3.0"
-		}
-	},
-	{
-		"id": "3810fb40-b90d-5e0a-b733-eb671d5651cf",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "CERTIFICATE_OF_EMPLOYMENT_CURRENT",
-		"name": "Certificate of employment for a current employee",
-		"references": [
-			{
-				"title": "DOLE Labor Advisory No. 06, s.2020 Part III: within three days from the request. Raised when HR records the request on the person (employee fact `coe_requested_on`, customer input); one task per person record."
-			}
-		],
-		"rules": {
-			"description": "Issue the certificate of employment the employee asked for.",
-			"trigger": {
-				"collection": "employment_profile",
-				"events": ["updated"]
-			},
-			"due": "add_days(row.facts.coe_requested_on, 3)",
-			"applies_when": "has(row.facts) && row.facts != null && has(row.facts.coe_requested_on) && row.facts.coe_requested_on != \"\""
-		}
-	},
-	{
-		"id": "7aeeb617-badd-5290-a737-d2613b5532fb",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "BIR_WITHHOLDING_AGENT_REGISTRATION",
-		"name": "Register with the BIR as a withholding agent",
-		"references": [
-			{
-				"title": "NIRC s.236(A) as amended by RA 11976 (EOPT; annual registration fee abolished): register \"on or before the commencement of business\"."
-			}
-		],
-		"rules": {
-			"description": "Register the employer with the Revenue District Office (BIR Form 1903 / 1905 as withholding agent on compensation).",
-			"trigger": {
-				"collection": "entity",
-				"events": ["created"]
-			},
-			"due": "has(row.effective_range) && row.effective_range != null && has(row.effective_range.from) ? add_days(row.effective_range.from, 0) : add_days(period.from, 0)"
-		}
-	},
-	{
-		"id": "32747f2e-bbaf-530e-86a9-6b696052d7eb",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "SSS_EMPLOYER_REGISTRATION",
-		"name": "Register the employer with SSS (R-1)",
-		"references": [
-			{
-				"title": "RA 11199 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333) s.24(a): each employer \"shall immediately report\" its employees subject to compulsory coverage, which presupposes the employer’s registration; SSS Employers — Duties (https://www.sss.gov.ph/employer-er/): \"Register with SSS and secure an ER ID Number\". Recorded default: due on the first day of operations."
-			}
-		],
-		"rules": {
-			"description": "Register the employer with SSS (Employer Registration, R-1) and secure the employer number.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["created"]
-			},
-			"due": "has(row.effective_range) && row.effective_range != null && has(row.effective_range.from) ? add_days(row.effective_range.from, 0) : add_days(period.from, 0)"
-		}
-	},
-	{
-		"id": "36bf0ff7-084f-58db-a8d9-b2ffd7c21219",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "PHILHEALTH_EMPLOYER_REGISTRATION",
-		"name": "Register the employer with PhilHealth (ER1)",
-		"references": [
-			{
-				"title": "RA 11223 s.10 (employed members’ premiums are the employer’s to remit); PhilHealth employer reporting. Recorded default: due on the first day of operations, before the first ER2 (30 days from hire).",
-				"url": "https://www.philhealth.gov.ph/partners/employers/report.php"
-			}
-		],
-		"rules": {
-			"description": "Register the employer with PhilHealth (Employer Data Record, ER1).",
-			"trigger": {
-				"collection": "entity",
-				"events": ["created"]
-			},
-			"due": "has(row.effective_range) && row.effective_range != null && has(row.effective_range.from) ? add_days(row.effective_range.from, 0) : add_days(period.from, 0)"
-		}
-	},
-	{
-		"id": "a7b9a6eb-ac2f-57c0-9818-8e3983357a6f",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "SSS_LOAN_REMITTANCE",
-		"name": "Remit the SSS loan amortisations deducted",
-		"references": [
-			{
-				"title": "RA 11199 s.22(a) and s.28(h): an employer who deducts loan amortisations and fails to remit them within thirty days of their due date is presumed to have misappropriated them; due with the month’s contributions (the last day of the following month).",
-				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333"
-			}
-		],
-		"rules": {
-			"description": "Remit the SSS salary and calamity loan amortisations deducted on the payslip with the month’s contributions.",
-			"trigger": {
-				"collection": "payslip",
-				"events": ["updated"]
-			},
-			"due": "month_end(add_months(period.from, 1))",
-			"applies_when": "has(row.line_codes) && row.line_codes.exists(c, c == \"LOAN_RECOVERY_SSS_SALARY\")",
-			"when": "has(row.paid_on) && row.paid_on != null"
-		}
-	},
-	{
-		"id": "5d95e861-d5d3-5dfe-9cab-32353bcd8c54",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "PAGIBIG_LOAN_REMITTANCE",
-		"name": "Remit the Pag-IBIG loan amortisations and voluntary savings deducted",
-		"references": [
-			{
-				"title": "HDMF Circular 275 §E.4 (RA 9679 s.7): consented loan amortisations are remitted with the contributions, by the employer-name window of the following month."
-			}
-		],
-		"rules": {
-			"description": "Remit the Pag-IBIG salary/calamity loan amortisations, voluntary contributions and MP2 savings deducted, with the MCRF.",
-			"trigger": {
-				"collection": "payslip",
-				"events": ["updated"]
-			},
-			"due": "!has(company.facts.hdmf_remittance_group) || company.facts.hdmf_remittance_group <= 1.0 ? add_days(month_end(period.from), 14) : company.facts.hdmf_remittance_group == 2.0 ? add_days(month_end(period.from), 19) : company.facts.hdmf_remittance_group == 3.0 ? add_days(month_end(period.from), 24) : month_end(add_months(period.from, 1))",
-			"applies_when": "has(row.line_codes) && row.line_codes.exists(c, c in [\"LOAN_RECOVERY_PAGIBIG_SALARY\", \"LOAN_RECOVERY_PAGIBIG_CALAMITY\", \"HDMF_VOLUNTARY\", \"HDMF_MP2\"])",
-			"when": "has(row.paid_on) && row.paid_on != null"
-		}
-	},
-	{
-		"id": "f8ccc40b-be52-5294-afcb-a9ea05c80fc1",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "OBLIGATIONS",
-		"code": "SSS_CONTRIBUTION_REMITTANCE",
-		"name": "SSS contributions (SS, MPF, EC) for the month",
-		"references": [
-			{
-				"title": "SSS Circular 2019-012 as published on https://www.sss.gov.ph/pay-contribution/: on or before the last day of the month following the applicable month; RA 11199 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333) s.22(a): a late contribution carries a penalty of 2% a month. Recorded default: the calendar day (no next-working-day extension)."
-			}
-		],
-		"rules": {
-			"description": "Pay the month’s Regular SS, MPF and EC contributions (employee shares deducted, employer shares added) with a PRN and the electronic Contribution Collection List.",
-			"schemes": ["SSS", "SSS_MPF", "SSS_EC"],
-			"due": "month_end(add_months(period.from, 1))"
-		}
-	},
-	{
-		"id": "ac293243-30bb-5cff-9dd0-0db49d6e7ea9",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "OBLIGATIONS",
-		"code": "PHILHEALTH_PREMIUM_REMITTANCE",
-		"name": "PhilHealth premium for the month",
-		"references": [
-			{
-				"title": "PhilHealth Circular 0001 s.2014: the 11th–15th of the following month for a PhilHealth Employer Number ending 0–4, the 16th–20th for one ending 5–9. Recorded default: an employer without a recorded PEN (entity fact `philhealth_employer_number`) is due on the 15th, the earlier window; interest on missed premiums (UHC Act IRR s.9.2) is not computed.",
-				"url": "https://www.philhealth.gov.ph/partners/employers/pay_procedures.php"
-			}
-		],
-		"rules": {
-			"description": "Remit the month’s PhilHealth premium (both shares) through the Electronic Premium Remittance System with its remittance report.",
-			"schemes": ["PHIC"],
-			"due": "has(company.facts.philhealth_employer_number) && company.facts.philhealth_employer_number.matches(\"[5-9][^0-9]*$\") ? add_days(month_end(period.from), 20) : add_days(month_end(period.from), 15)"
-		}
-	},
-	{
-		"id": "f04413e0-595d-594b-87d1-1c5ed10c7583",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "OBLIGATIONS",
-		"code": "HDMF_CONTRIBUTION_REMITTANCE",
-		"name": "Pag-IBIG contributions for the month",
-		"references": [
-			{
-				"title": "HDMF Circular 275 §E.2, §E.4 (RA 9679 s.7): in the month following the period covered by the first letter of the employer’s name — A–D by the 14th, E–L the 19th, M–Q the 24th, R–Z or a numeral the month’s end; a penalty of 1/10 of 1% a day of delay. Recorded default: an employer without a recorded group (entity fact `hdmf_remittance_group`) is due on the 14th, the earliest window.",
-				"url": "https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf"
-			}
-		],
-		"rules": {
-			"description": "Remit the month’s Pag-IBIG contributions (employee and employer) and consented loan amortisations with the Membership Contribution Remittance Form.",
-			"schemes": ["HDMF"],
-			"due": "!has(company.facts.hdmf_remittance_group) || company.facts.hdmf_remittance_group <= 1.0 ? add_days(month_end(period.from), 14) : company.facts.hdmf_remittance_group == 2.0 ? add_days(month_end(period.from), 19) : company.facts.hdmf_remittance_group == 3.0 ? add_days(month_end(period.from), 24) : month_end(add_months(period.from, 1))"
-		}
-	},
-	{
-		"id": "3a202b4b-d5aa-51ec-852a-672dfd65d306",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "OBLIGATIONS",
-		"code": "BIR_1601C_MONTHLY_REMITTANCE",
-		"name": "BIR Form 1601-C and the compensation tax withheld",
-		"references": [
-			{
-				"title": "NIRC s.58(A), s.81; RR 2-98 s.2.58 as amended; BIR Form 1601-C guidelines: on or before the 10th day of the following month, December’s on or before 15 January. Manual filers’ days; an eFPS filer’s later industry-group day is not applied (never later than the law); the s.248 surcharge and s.249 interest are not computed.",
-				"url": "https://bir-cdn.bir.gov.ph/local/pdf/1601C%20final%20Jan%202018%20with%20DPA.pdf"
-			}
-		],
-		"rules": {
-			"description": "File BIR Form 1601-C and remit the income tax withheld on compensation for the month.",
-			"schemes": ["WTAX"],
-			"due": "period.key.endsWith(\"-12\") ? add_days(month_end(period.from), 15) : add_days(month_end(period.from), 10)"
-		}
-	},
-	{
-		"id": "3a3f3bbd-2987-5894-adb4-a61e7b0b38e1",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "OBLIGATIONS",
-		"code": "BIR_1603Q_FRINGE_BENEFITS",
-		"name": "BIR Form 1603Q and the fringe benefit tax",
-		"references": [
-			{
-				"title": "RR 11-2018 s.2.58(A)(2)(b) as amended: the returns \"1603 for final tax withheld on fringe benefits\" are filed and paid \"not later than the last day of the month following the close of the quarter during which the withholding was made\". Each run’s FBT joins its quarter’s return.",
-				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
-			}
-		],
-		"rules": {
-			"description": "File BIR Form 1603Q and remit the final tax on fringe benefits withheld in the quarter.",
-			"schemes": ["FBT"],
-			"due": "period.key.endsWith(\"-01\") || period.key.endsWith(\"-04\") || period.key.endsWith(\"-07\") || period.key.endsWith(\"-10\") ? month_end(add_months(period.from, 3)) : period.key.endsWith(\"-02\") || period.key.endsWith(\"-05\") || period.key.endsWith(\"-08\") || period.key.endsWith(\"-11\") ? month_end(add_months(period.from, 2)) : month_end(add_months(period.from, 1))"
-		}
-	},
-	{
 		"id": "b98a0228-ee1b-5c45-997c-cac865ccc9ab",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "PAYROLL",
+		"family": "PARAMETERS",
 		"code": "public_holidays",
 		"name": "National holidays",
 		"references": [
@@ -2090,7 +1141,6 @@
 	{
 		"id": "63a8545a-fadb-5b38-acfb-50808e8e1894",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "MINIMUM_WAGE_FLOOR_CONTRACT",
 		"name": "Contract rate below the floor on the term’s first day",
@@ -2105,7 +1155,6 @@
 	{
 		"id": "4cdf2eb5-2dd9-55f7-8dc4-a3fbf3809d29",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "MINIMUM_WAGE_FLOOR_PAYSLIP",
 		"name": "Rate below the floor in force on the period",
@@ -2120,7 +1169,6 @@
 	{
 		"id": "48e7e6c7-9641-58f8-8366-9a9508e54940",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "MINOR_WORKING_HOURS",
 		"name": "A worker under eighteen past eight hours a day, forty a week, or at night",
@@ -2135,7 +1183,6 @@
 	{
 		"id": "46f71c9e-ad4b-58a1-b400-550b567f1ce0",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "KASAMBAHAY_DAILY_REST",
 		"name": "A kasambahay without eight hours’ daily rest",
@@ -2150,7 +1197,6 @@
 	{
 		"id": "e48e0c88-c014-5086-882f-d62a012733de",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "WEEKLY_REST_DAY",
 		"name": "Seven consecutive days worked",
@@ -2165,7 +1211,6 @@
 	{
 		"id": "efe9d08b-eac4-5638-9407-14ee4936e915",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "PAY_FREQUENCY",
 		"name": "Wages paid less than twice a month",
@@ -2180,7 +1225,6 @@
 	{
 		"id": "dd5f00f1-0c9f-5ea5-9fe8-7d17692fb825",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "PROBATION_PAST_SIX_MONTHS",
 		"name": "Probation beyond six months",
@@ -2195,7 +1239,6 @@
 	{
 		"id": "6e07ac42-0d11-535e-bca9-e50b172185de",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "PROBATION_STILL_RECORDED",
 		"name": "Paid as probationary past six months",
@@ -2210,7 +1253,6 @@
 	{
 		"id": "afa4f380-5df5-523a-b37d-18f7d6063746",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "UNDERTIME_OFFSET",
 		"name": "Undertime offset against overtime",
@@ -2225,7 +1267,6 @@
 	{
 		"id": "5c9c0171-f86b-5136-8965-ee0e48867600",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "EBET_PROGRAM_RECORDED",
 		"name": "A trainee contract names its EBET programme",
@@ -2240,7 +1281,6 @@
 	{
 		"id": "bdca8ce1-7c33-5e9b-b73e-24642c787f94",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "SUBSTITUTED_FILING_DISQUALIFIED",
 		"name": "Not qualified for substituted filing",
@@ -2253,56 +1293,9 @@
 		}
 	},
 	{
-		"id": "636b1698-ffb2-5312-b0f8-48943a3ba0cb",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "ANNUAL_ESTABLISHMENT_REPORT_ON_WAGES",
-		"name": "Annual Establishment Report on Wages (NWPC)",
-		"references": [
-			{
-				"title": "Labor Code art.124 as amended by RA 6727, as the NWPC FAQs state it: all private establishments (sole proprietorships, partnerships, corporations, cooperatives, GOCCs without original charter) submit annually a verified itemised listing of their labour component below the managerial level, with their salaries and wages; branches file separately. The window is fixed each year by a DOLE labor advisory; the CY2026 advisory is not yet issued (NWPC read 2026-10-07), so the due day is a recorded default: the 31 August of the CY2025 window (Labor Advisory 08-26; NWPC 2025 AERW FAQs, https://nwpc.dole.gov.ph/2025-aerw-faqs/). Re-read the NWPC page each May and correct the day when the CY2026 advisory issues. Raised by the entity’s daily calendar tick, not by a payroll run: the duty is the year’s whatever runs exist — from 1 December of the year covered through its due day, once a year (`repeat_key` the year covered), for an entity with an employment in force on the day (headcount above zero). Amounts and lists come from the year’s payslips (the alphalist exports, the 2316 figures).",
-				"url": "https://nwpc.dole.gov.ph/2025-aerw-faqs/"
-			}
-		],
-		"rules": {
-			"description": "Submit the Annual Establishment Report on Wages: the verified itemised listing of the establishment’s rank-and-file labour component and their wages as of 31 December, one report per branch.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["calendar"]
-			},
-			"due": "string(int((int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))) + 1) + \"-08-31\"",
-			"when": "headcount > 0 && today >= (int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1)) + \"-12-01\" && today <= string(int((int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))) + 1) + \"-08-31\"",
-			"repeat_key": "(int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))"
-		}
-	},
-	{
-		"id": "3eae292f-f79e-53ee-ac3c-811490be5507",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "DOLE_ESTABLISHMENT_REGISTRATION",
-		"name": "Register the establishment with the DOLE regional office (Rule 1020)",
-		"references": [
-			{
-				"title": "Occupational Safety and Health Standards (as amended, 1989; OSHC copy https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf, read 2026-10-07) Rule 1021: \"Every employer ... shall register his business with the Regional Labor Office\"; Rule 1022: each establishment in one single location is one registrable unit; Rule 1023(2): \"New establishments shall register within thirty (30) days before operation.\" Rule 1024(2): free, valid for the life of the establishment, re-registered as new on a change of business name, location or ownership or on re-opening. RA 11058 and DO 198-18 keep the employer’s OSH duties under these Standards. Due on the entity’s first day of operations (its effective start, else the month it was recorded). A re-registration on a change of name, location or ownership is DOLE_ESTABLISHMENT_REREGISTRATION.",
-				"url": "https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf"
-			}
-		],
-		"rules": {
-			"description": "Register the establishment with the DOLE Regional Office having jurisdiction (OSH Standards Rule 1020), one registration per establishment location.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["created"]
-			},
-			"due": "has(row.effective_range) && row.effective_range != null && has(row.effective_range.from) ? add_days(row.effective_range.from, 0) : add_days(period.from, 0)"
-		}
-	},
-	{
 		"id": "1c25bfc5-88f8-59f1-908a-222a32dfb0e8",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "PAYROLL",
+		"family": "PARAMETERS",
 		"code": "case_kinds",
 		"name": "Workplace case kinds",
 		"references": [
@@ -2344,288 +1337,8 @@
 		}
 	},
 	{
-		"id": "7fe4901f-7fe9-5e72-ae5c-7b59296d5f02",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "SSS_LATE_REMITTANCE_PENALTY",
-		"name": "Pay the SSS late-remittance penalty",
-		"references": [
-			{
-				"title": "RA 11199 s.22(a) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333, read 2026-10-07): \"the delinquent employer shall pay besides the contribution a penalty thereon of two percent (2%) per month from the date the contribution falls due until paid.\" Raised when the SSS remittance is recorded paid after its due day; due the day it was paid.",
-				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333"
-			}
-		],
-		"rules": {
-			"description": "Pay the 2% a month penalty on the SSS contributions remitted after their due day, with the contributions.",
-			"trigger": {
-				"collection": "obligation",
-				"events": ["updated"],
-				"fields": ["state"]
-			},
-			"when": "row.state == \"FULFILLED\" && row.duty_code == \"SSS_CONTRIBUTION_REMITTANCE\" && has(row.fulfilled_on) && row.fulfilled_on != null && row.fulfilled_on > row.due_on",
-			"due": "row.fulfilled_on"
-		}
-	},
-	{
-		"id": "a89f21b5-9b28-53b1-96f0-6e5620aeb1cf",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "PHILHEALTH_LATE_REMITTANCE_INTEREST",
-		"name": "Pay the PhilHealth late-remittance interest",
-		"references": [
-			{
-				"title": "RA 11223 s.9 (Universal Health Care Act; https://lawphil.net/statutes/repacts/ra2019/ra_11223_2019.html, read 2026-10-07 — officialgazette.gov.ph answers 403; the E-Library copy was not located): employers \"shall be required to pay all missed contributions with an interest, compounded monthly, of at least three percent (3%)\"; RA 7875 s.16(v) as amended by RA 10606 lets PhilHealth fix interest or surcharges of not more than 3% a month. Raised when the PhilHealth remittance is recorded paid after its due day; due the day it was paid.",
-				"url": "https://lawphil.net/statutes/repacts/ra2019/ra_11223_2019.html"
-			}
-		],
-		"rules": {
-			"description": "Pay the missed PhilHealth premiums with interest compounded monthly at not less than 3% for employers.",
-			"trigger": {
-				"collection": "obligation",
-				"events": ["updated"],
-				"fields": ["state"]
-			},
-			"when": "row.state == \"FULFILLED\" && row.duty_code == \"PHILHEALTH_PREMIUM_REMITTANCE\" && has(row.fulfilled_on) && row.fulfilled_on != null && row.fulfilled_on > row.due_on",
-			"due": "row.fulfilled_on"
-		}
-	},
-	{
-		"id": "793e93f8-b543-5e20-82ee-266446f432f8",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "HDMF_LATE_REMITTANCE_PENALTY",
-		"name": "Pay the Pag-IBIG late-remittance penalty",
-		"references": [
-			{
-				"title": "HDMF Circular 275 §E (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf, read 2026-10-07): the employer \"shall be charged a penalty equivalent to 1/10 of 1% per day of delay of the amount due starting on the first day immediately following the due date until the date of full settlement\", the Board’s rate under RA 9679 s.13 (power to \"fix and impose interest and penalties upon unpaid contributions\"); RA 9679 s.23 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/19155) caps the statutory penalty at 3% a month. Raised when the Pag-IBIG remittance is recorded paid after its due day; due the day it was paid."
-			}
-		],
-		"rules": {
-			"description": "Pay the Pag-IBIG penalty of 1/10 of 1% a day of the amount due, from the day after the due day to full settlement.",
-			"trigger": {
-				"collection": "obligation",
-				"events": ["updated"],
-				"fields": ["state"]
-			},
-			"when": "row.state == \"FULFILLED\" && row.duty_code == \"HDMF_CONTRIBUTION_REMITTANCE\" && has(row.fulfilled_on) && row.fulfilled_on != null && row.fulfilled_on > row.due_on",
-			"due": "row.fulfilled_on"
-		}
-	},
-	{
-		"id": "04648569-62fe-5f8a-921a-661a12c71108",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "DOLE_WORK_ACCIDENT_REPORT",
-		"name": "Employer’s Work Accident/Illness Report (WAIR) to the DOLE regional office",
-		"references": [
-			{
-				"title": "OSH Standards Rule 1053.01(1) (https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf, read 2026-10-07): the formal report \"shall be submitted by the employer on or before the 20th day of the month following the date of occurrence of the accident or when the illness is established\"; DO 198-18 s.17 and Labor Advisory 04-19 ¶5(a) (both in the same OSHC edition) keep the WAIR. Raised when a WORK_ACCIDENT case (a disabling injury or illness) is opened; the occurrence is `facts.occurred_on`, else the opening day.",
-				"url": "https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf"
-			}
-		],
-		"rules": {
-			"description": "Report the work accident or occupational illness that resulted in a disabling condition to the DOLE regional office (form DOLE/BWC/HSD-IP-6, in duplicate, a copy to the employee).",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind == \"WORK_ACCIDENT\"",
-			"due": "add_days(month_end((has(row.facts) && row.facts != null && has(row.facts.occurred_on) && row.facts.occurred_on != \"\" ? row.facts.occurred_on : row.opened_on)), 20)"
-		}
-	},
-	{
-		"id": "a72185b6-f2f0-5f11-8df1-1b828f30f00c",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "DOLE_SERIOUS_ACCIDENT_NOTICE",
-		"name": "Notify the DOLE regional office of a death or permanent total disability within 24 hours",
-		"references": [
-			{
-				"title": "OSH Standards Rule 1053.01(2) (https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf, read 2026-10-07): \"the employer ... shall initially notify the Regional Labor Office ... within twenty four (24) hours after occurrence using the fastest available means of communication\"; Labor Advisory 04-19: serious injuries and deaths are notified immediately. Raised when a WORK_ACCIDENT case records `facts.outcome` DEATH or PERMANENT_TOTAL_DISABILITY; due the day after the occurrence.",
-				"url": "https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf"
-			}
-		],
-		"rules": {
-			"description": "Notify the DOLE regional office within 24 hours by the fastest available means when a work accident or illness results in death or permanent total disability, besides the WAIR.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind == \"WORK_ACCIDENT\" && has(row.facts) && row.facts != null && has(row.facts.outcome) && row.facts.outcome in [\"DEATH\", \"PERMANENT_TOTAL_DISABILITY\"]",
-			"due": "add_days((has(row.facts) && row.facts != null && has(row.facts.occurred_on) && row.facts.occurred_on != \"\" ? row.facts.occurred_on : row.opened_on), 1)"
-		}
-	},
-	{
-		"id": "e0ce7dfc-fa28-5568-aea8-a647dd22b976",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "DOLE_DANGEROUS_OCCURRENCE_REPORT",
-		"name": "Report a dangerous occurrence to the DOLE regional office",
-		"references": [
-			{
-				"title": "OSH Standards Rule 1053.02 (https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf, read 2026-10-07): a dangerous occurrence \"shall be investigated and reported by the employer upon occurrence\". Raised when a DANGEROUS_OCCURRENCE case is opened; due on the occurrence day.",
-				"url": "https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf"
-			}
-		],
-		"rules": {
-			"description": "Investigate and report the dangerous occurrence (boiler or pressure-vessel explosion, bursting wheel, crane collapse, a fire or electrical failure stopping work for 24 hours or more) to the DOLE regional office on form DOLE/BWC/HSD-IP-6.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind == \"DANGEROUS_OCCURRENCE\"",
-			"due": "add_days((has(row.facts) && row.facts != null && has(row.facts.occurred_on) && row.facts.occurred_on != \"\" ? row.facts.occurred_on : row.opened_on), 0)"
-		}
-	},
-	{
-		"id": "ee91a8e9-abf8-5b06-9b5c-5fc990d2befd",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "DOLE_ANNUAL_EXPOSURE_DATA_REPORT",
-		"name": "Annual Work Accident/Illness Exposure Data Report (AEDR)",
-		"references": [
-			{
-				"title": "OSH Standards Rule 1054(2) (https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf, read 2026-10-07): \"on or before the 30th day of the month following the end of each calendar year\"; Labor Advisory 04-19 ¶5(b): \"(with or without accident cases) on or before January 30 following the covered year\". Raised by the entity’s daily calendar tick, not by a payroll run: the duty is the year’s whatever runs exist — from 1 December of the year covered through its due day, once a year (`repeat_key` the year covered), for an entity with an employment in force on the day (headcount above zero). Amounts and lists come from the year’s payslips (the alphalist exports, the 2316 figures).",
-				"url": "https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf"
-			}
-		],
-		"rules": {
-			"description": "Submit the Annual Work Accident/Illness Exposure Data Report (form DOLE/BWC/HSD-IP-6b), with or without accident cases, to the Bureau of Working Conditions, a copy to the regional office.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["calendar"]
-			},
-			"due": "string(int((int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))) + 1) + \"-01-30\"",
-			"when": "headcount > 0 && today >= (int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1)) + \"-12-01\" && today <= string(int((int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))) + 1) + \"-01-30\"",
-			"repeat_key": "(int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))"
-		}
-	},
-	{
-		"id": "9742d17d-cb3d-5ab4-9e4c-013924c8a4dc",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "DOLE_ANNUAL_MEDICAL_REPORT",
-		"name": "Annual Medical Report (AMR) to the DOLE regional office",
-		"references": [
-			{
-				"title": "OSH Standards Rule 1965.01(4) (https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf, read 2026-10-07): the employer submits the annual medical report \"on or before the last day of March of the year following the covered period\"; Labor Advisory 04-19 ¶5(c): \"on or before March 31 following the covered year\"; DO 198-18 s.17 lists the AMR among the OSH reports. Raised by the entity’s daily calendar tick, not by a payroll run: the duty is the year’s whatever runs exist — from 1 December of the year covered through its due day, once a year (`repeat_key` the year covered), for an entity with an employment in force on the day (headcount above zero). Amounts and lists come from the year’s payslips (the alphalist exports, the 2316 figures).",
-				"url": "https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf"
-			}
-		],
-		"rules": {
-			"description": "Submit the Annual Medical Report (form DOLE/BWC/HSD/OH-47) to the DOLE regional office, a copy to the Bureau of Working Conditions.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["calendar"]
-			},
-			"due": "string(int((int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))) + 1) + \"-03-31\"",
-			"when": "headcount > 0 && today >= (int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1)) + \"-12-01\" && today <= string(int((int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))) + 1) + \"-03-31\"",
-			"repeat_key": "(int(today.substring(5, 7)) == 12 ? today.substring(0, 4) : string(int(today.substring(0, 4)) - 1))"
-		}
-	},
-	{
-		"id": "80445280-d242-5fab-ba79-64ff9db0cc73",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "DOLE_FLEXIBLE_WORK_ARRANGEMENT_NOTICE",
-		"name": "Notify the DOLE regional office before a flexible work arrangement starts",
-		"references": [
-			{
-				"title": "DOLE Department Advisory 02-09 Part V (https://web.archive.org/web/2020id_/http://www.bwc.dole.gov.ph/images/Issuances/DepartmentAdvisory/DA_02_09_2.pdf, read 2026-10-07): \"Prior to its implementation, the employer shall notify the Department through the Regional Office which has jurisdiction over the workplace, of the adoption of any of the above flexible work arrangements\"; Department Advisory 04-10 Part V repeats it. Raised when a FLEXIBLE_WORK_ARRANGEMENT case is opened; due the day before `facts.starts_on`, else before the opening day.",
-				"url": "https://web.archive.org/web/2020id_/http://www.bwc.dole.gov.ph/images/Issuances/DepartmentAdvisory/DA_02_09_2.pdf"
-			}
-		],
-		"rules": {
-			"description": "Notify the DOLE regional office with jurisdiction over the workplace, on the DA 02-09 report form, of the flexible work arrangement (compressed workweek, reduced workdays, rotation, forced leave, broken-time or flexi-holiday schedule) before it is implemented.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind == \"FLEXIBLE_WORK_ARRANGEMENT\"",
-			"due": "add_days((has(row.facts) && row.facts != null && has(row.facts.starts_on) && row.facts.starts_on != \"\" ? row.facts.starts_on : row.opened_on), -1)"
-		}
-	},
-	{
-		"id": "e1021879-05df-52df-8f08-cda9c3a1c96c",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "DOLE_TELECOMMUTING_NOTICE",
-		"name": "Notify the DOLE of a telecommuting program through the Establishment Report System",
-		"references": [
-			{
-				"title": "DO 237-22 (Revised IRR of RA 11165) s.10 (https://web.archive.org/web/2023id_/https://bwc.dole.gov.ph/images/Issuances/DepartmentOrder/DO_237_22.pdf, read 2026-10-07; supersedes DO 202-19): \"The employer shall notify the DOLE of the implementation of telecommuting through the Establishment Report System\". The rule names no period: a recorded default due on the program’s start (`facts.starts_on`, else the opening day). Raised when a TELECOMMUTING_PROGRAM case is opened.",
-				"url": "https://web.archive.org/web/2023id_/https://bwc.dole.gov.ph/images/Issuances/DepartmentOrder/DO_237_22.pdf"
-			}
-		],
-		"rules": {
-			"description": "Notify the DOLE of the telecommuting program through the Establishment Report System (reports.dole.gov.ph), listing every branch implementing it; keep the proof of voluntary adoption three years.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind == \"TELECOMMUTING_PROGRAM\"",
-			"due": "add_days((has(row.facts) && row.facts != null && has(row.facts.starts_on) && row.facts.starts_on != \"\" ? row.facts.starts_on : row.opened_on), 0)"
-		}
-	},
-	{
-		"id": "9052acb0-01aa-5e40-9273-db3d85bf8c1d",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "DOLE_SUSPENSION_EXTENSION_REPORT",
-		"name": "Report the extension of a suspension of employment to the DOLE ten days before",
-		"references": [
-			{
-				"title": "Omnibus Rules Book VI Rule I s.12 as amended by DO 215-20 (https://web.archive.org/web/2021id_/https://www.dole.gov.ph/php_assets/uploads/2020/10/DO-215-20-Rule-Amending-Section-12-of-Rule-I-Rules-Implementing-Book-VI-of-the-Labor-Code-on-Suspension-of-Employment-Relationship.pdf, read 2026-10-07): \"the employer shall report to the Department of Labor and Employment, through the Regional Offices, the extension of suspension of employment ten (10) days prior to the effectivity thereof subject to inspection\". A suspension of operations within six months (Labor Code art.301) has no DOLE report in the instruments read. Raised when a SUSPENSION_EXTENSION case is opened; the extension’s first day is `facts.starts_on`, else the opening day.",
-				"url": "https://web.archive.org/web/2021id_/https://www.dole.gov.ph/php_assets/uploads/2020/10/DO-215-20-Rule-Amending-Section-12-of-Rule-I-Rules-Implementing-Book-VI-of-the-Labor-Code-on-Suspension-of-Employment-Relationship.pdf"
-			}
-		],
-		"rules": {
-			"description": "Report to the DOLE regional office the extension of the suspension of employment beyond six months (declared war, pandemic or similar national emergency), ten days before it takes effect.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind == \"SUSPENSION_EXTENSION\"",
-			"due": "add_days((has(row.facts) && row.facts != null && has(row.facts.starts_on) && row.facts.starts_on != \"\" ? row.facts.starts_on : row.opened_on), -10)"
-		}
-	},
-	{
-		"id": "9b91ee02-7ee8-5e2a-ad1a-0365f528bd7b",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "SOLO_PARENT_FLEXIBLE_SCHEDULE",
-		"name": "Provide the solo parent’s flexible work schedule",
-		"references": [
-			{
-				"title": "RA 8972 s.6 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/3532, read 2026-10-07): \"The employer shall provide for a flexible working schedule for solo parents: Provided, That the same shall not affect individual and company productivity: Provided, further, That any employer may request exemption ... from the DOLE\"; s.3(c) as amended by RA 11861 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/95472) defines the schedule; s.7 as amended by RA 11861 s.6 forbids discrimination and gives solo parents priority for telecommuting. The Act names no period: a recorded default due on the request day. Raised when a SOLO_PARENT_FLEXIBLE_SCHEDULE case is opened (opened_on = the request)."
-			}
-		],
-		"rules": {
-			"description": "Give the solo parent employee a flexible work schedule (arrival and departure varied around the core hours), unless the DOLE has exempted the employer on meritorious grounds; solo parents have priority for a telecommuting program, and no term or condition may discriminate on account of the status.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind == \"SOLO_PARENT_FLEXIBLE_SCHEDULE\"",
-			"due": "add_days(row.opened_on, 0)"
-		}
-	},
-	{
 		"id": "fb1db212-6daa-530c-b2d1-13fe0316f7bc",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "WAGE_PAYMENT_IN_TOKENS",
 		"name": "Wages in tokens or vouchers",
@@ -2640,7 +1353,6 @@
 	{
 		"id": "76e4de93-5cc5-5114-8279-f0e99203ea40",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "WAGE_PAYMENT_MEDIUM_CONDITIONS",
 		"name": "Cheque, bank or e-wallet payment without the Rule VIII s.2 conditions",
@@ -2655,7 +1367,6 @@
 	{
 		"id": "f65ef11f-5c99-5e47-99c3-8309f6d16350",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "WAGE_PAYMENT_PLACE",
 		"name": "Wages paid in a bar, club or gaming place",
@@ -2670,7 +1381,6 @@
 	{
 		"id": "a63e6ba2-7d68-526f-86b6-42acc889df63",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "EXPORTS",
 		"code": "BIR_1604C_ALPHALIST_SCHEDULE_1",
 		"name": "BIR 1604-C alphalist — Schedule 1 (employees other than MWEs)",
@@ -2809,7 +1519,6 @@
 	{
 		"id": "8f98c63e-4798-5b9e-b1c0-8fbdad086491",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "EXPORTS",
 		"code": "BIR_1604C_ALPHALIST_SCHEDULE_2",
 		"name": "BIR 1604-C alphalist — Schedule 2 (minimum wage earners)",
@@ -2980,8 +1689,7 @@
 	{
 		"id": "7f72ca38-0b61-568c-8fc7-e01d86eccbfd",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "PAYROLL",
+		"family": "PARAMETERS",
 		"code": "record_retention",
 		"name": "Record retention after exit",
 		"references": [
@@ -2994,32 +1702,8 @@
 		}
 	},
 	{
-		"id": "72a58a20-f63e-55a2-af32-63a51cd8316b",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "PERSONAL_DATA_DISPOSAL",
-		"name": "Anonymise a former employee’s personal data after retention",
-		"references": [
-			{
-				"title": "NIRC s.235 as amended by RA 11976 (Ease of Paying Taxes Act) s.33 (https://lawphil.net/statutes/repacts/ra2024/ra_11976_2024.html, read 2026-10-07; officialgazette.gov.ph answers 403): books of accounts and other accounting records \"shall be preserved by them for a period of five (5) years reckoned from the day following the deadline in filing a return ... for the taxable year when the last entry was made\"; the exit year’s last payroll entry falls in the employer’s return for that year, due 15 April of the next year for a calendar-year taxpayer, so the records are kept to 15 April of the exit year + 6 — recorded as 31 December of the exit year + 6, which also covers a fiscal year ending by the following June. Longer than the Labor Code’s three years: Omnibus Rules Book III Rule X s.12 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819): employment records \"preserved for at least three (3) years from the date of the last entry\", and Labor Code art.306 (money claims prescribe in three years). RA 10173 (Data Privacy Act) s.11(e) (https://lawphil.net/statutes/repacts/ra2012/ra_10173_2012.html; privacy.gov.ph answers 403): personal information is \"Retained only for as long as necessary for the fulfillment of the purposes for which the data was obtained or for the establishment, exercise or defense of legal claims ... or as provided by law\" — so it is disposed of (anonymised) after."
-			}
-		],
-		"rules": {
-			"description": "Once the statutory retention ends (31 December of the exit year + 6: NIRC s.235 five years from the return deadline, longer than the Labor Code’s three years), stop retaining the former employee’s personal data: anonymise the profile (employment_profile anonymise, which record_retention releases on the same day) unless a legal claim or another law still needs it. Raised at the exit; due that day.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.effective_range.to != null",
-			"due": "string(int(exit_on.substring(0, 4)) + 6) + \"-12-31\""
-		}
-	},
-	{
 		"id": "9b481954-be81-5ada-ad0d-fd4e95f0c3f9",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "ROSTER_WEEKLY_REST",
 		"name": "Seventh consecutive day worked",
@@ -3034,7 +1718,6 @@
 	{
 		"id": "655d577d-17e8-55c9-aeb9-6f73570b0783",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "ROSTER_MINOR_HOURS",
 		"name": "A minor over the daily or weekly hours",
@@ -3050,7 +1733,6 @@
 	{
 		"id": "4c69f66c-b410-5a47-b136-7e355a421793",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "ROSTER_MINOR_NIGHT_WORK",
 		"name": "A minor working at night",
@@ -3066,7 +1748,6 @@
 	{
 		"id": "539c2662-94c3-5282-a0f8-7572d3c4ce71",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "ROSTER_KASAMBAHAY_DAILY_REST",
 		"name": "A kasambahay without eight hours’ daily rest",
@@ -3082,7 +1763,6 @@
 	{
 		"id": "deac47dd-0908-58cc-b3b6-2fea07a51166",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "ROSTER_COMPRESSED_WORKWEEK_CAP",
 		"name": "A planned day over twelve hours",
@@ -3096,33 +1776,8 @@
 		}
 	},
 	{
-		"id": "2d13fced-669a-58a1-9ca1-f622c7bce29b",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "DOLE_ESTABLISHMENT_REREGISTRATION",
-		"name": "Re-register the establishment with the DOLE regional office (Rule 1024(2))",
-		"references": [
-			{
-				"title": "OSH Standards Rule 1024(2) (https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf, read 2026-10-07): registration is valid for the life of the establishment \"except when any of the following conditions exists, in which case, re-registration as if it were a new establishment is required: a. change in business name, b. change in location, c. change in ownership, or d. re-opening after previous closing\". Raised when an entity update changes its `name`, `region` or `registration_number` (`row.before` holds the prior value; a new registration number is read as the change of ownership — recorded reading); due on the change day, since a new establishment registers before it operates (Rule 1023(2)). A re-opening is a new entity, raised by DOLE_ESTABLISHMENT_REGISTRATION.",
-				"url": "https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf"
-			}
-		],
-		"rules": {
-			"description": "Re-register the establishment with the DOLE regional office as if it were new: its business name, its location (the entity’s region) or its registration (read as a change of ownership) changed.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["updated"],
-				"fields": ["name", "region", "registration_number"]
-			},
-			"when": "has(row.before) && row.before != null && (\"name\" in row.before || \"region\" in row.before || \"registration_number\" in row.before)",
-			"due": "add_days(today, 0)"
-		}
-	},
-	{
 		"id": "ea4dd6a0-ed31-5ac0-a00e-83c912fd6e7b",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
 		"family": "VALIDATIONS",
 		"code": "ROSTER_MATERNITY_NIGHT_WORK",
 		"name": "Night work around childbirth",
@@ -3138,8 +1793,7 @@
 	{
 		"id": "07dee549-eabc-5ac2-943f-5ed0526da3ba",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "exit_grounds",
 		"name": "Exit grounds",
 		"rules": {
@@ -3187,8 +1841,7 @@
 	{
 		"id": "69088eae-bfa0-5e72-9da6-462f51315f71",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "holiday_kinds",
 		"name": "Holiday kinds",
 		"rules": {
@@ -3218,125 +1871,9 @@
 		}
 	},
 	{
-		"id": "81633516-5f60-5d60-b840-cfc6718eb10f",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "DPO_DESIGNATION",
-		"name": "Designate the Data Protection Officer",
-		"references": [
-			{
-				"title": "RA 10173 (Data Privacy Act) s.21(b) (https://lawphil.net/statutes/repacts/ra2012/ra_10173_2012.html, read 2026-10-07; privacy.gov.ph answers 403): the personal information controller \"shall designate an individual or individuals who are accountable for the organization’s compliance with this Act\"; payroll processes sensitive personal information (s.3(l): government-issued numbers, tax returns, health). Due on the entity’s first day of operations (recorded default: the Act names no period).",
-				"url": "https://lawphil.net/statutes/repacts/ra2012/ra_10173_2012.html"
-			}
-		],
-		"rules": {
-			"description": "Designate the individual accountable for the entity’s compliance with the Data Privacy Act — the Data Protection Officer — and make the designation known.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["created"]
-			},
-			"due": "has(row.effective_range) && row.effective_range != null && has(row.effective_range.from) ? add_days(row.effective_range.from, 0) : add_days(period.from, 0)"
-		}
-	},
-	{
-		"id": "485c49f3-d17b-5d89-aa9a-d7014e575673",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "NPC_REGISTRATION",
-		"name": "Register the data processing systems and DPO with the NPC",
-		"references": [
-			{
-				"title": "NPC Circular 2022-04 (https://web.archive.org/web/2024id_/https://privacy.gov.ph/wp-content/uploads/2023/05/Circular-2022-04-1.pdf, read 2026-10-07) s.5: a PIC \"that employs two hundred fifty (250) or more persons, or those processing sensitive personal information of one thousand (1,000) or more individuals ... shall register all Data Processing Systems\"; s.7: register \"within twenty (20) days from the commencement of such system or the effectivity date of such appointment\"; s.18: renewal 30 days before the one-year validity ends (NPC_REGISTRATION_RENEWAL, yearly); s.6: an entity outside s.5 files a sworn declaration instead. Raised at the entity’s creation when its headcount is 250 or more, or the entity fact `processes_sensitive_pi_1000` holds (customer input: the count of data subjects whose sensitive personal information is processed); due twenty days from its start.",
-				"url": "https://web.archive.org/web/2024id_/https://privacy.gov.ph/wp-content/uploads/2023/05/Circular-2022-04-1.pdf"
-			}
-		],
-		"rules": {
-			"description": "Register the payroll data processing system and the DPO with the National Privacy Commission (mandatory at 250 or more employees, or when processing sensitive personal information of 1,000 or more individuals); renew the one-year certificate within the 30 days before it expires.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["created"]
-			},
-			"applies_when": "headcount >= 250 || (has(company.facts.processes_sensitive_pi_1000) && company.facts.processes_sensitive_pi_1000)",
-			"due": "has(row.effective_range) && row.effective_range != null && has(row.effective_range.from) ? add_days(row.effective_range.from, 20) : add_days(period.from, 20)"
-		}
-	},
-	{
-		"id": "2677dd60-b5e6-5f1f-a299-c910e96a5eb7",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "NPC_BREACH_NOTIFICATION",
-		"name": "Notify the NPC and the data subjects of a personal data breach within 72 hours",
-		"references": [
-			{
-				"title": "NPC Circular 16-03 (https://web.archive.org/web/2018id_/http://privacy.gov.ph:80/wp-content/uploads/2016/12/sgd-npc-circular-16-03-personal-data-breach-management.pdf, read 2026-10-07) s.11 (when notification is required), s.17(A): \"The Commission shall be notified within seventy-two (72) hours upon knowledge of or the reasonable belief ... that a personal data breach has occurred\", s.17(C): the full report \"within five (5) days\"; s.18(A): data subjects \"within seventy-two (72) hours\"; RA 10173 s.20(f). Raised when a PERSONAL_DATA_BREACH case is opened (opened_on = the day of knowledge); due three days after.",
-				"url": "https://web.archive.org/web/2018id_/http://privacy.gov.ph:80/wp-content/uploads/2016/12/sgd-npc-circular-16-03-personal-data-breach-management.pdf"
-			}
-		],
-		"rules": {
-			"description": "Notify the National Privacy Commission and the affected data subjects within 72 hours of knowing of (or reasonably believing in) a notifiable personal data breach — sensitive personal information or information enabling identity fraud (SSS, PhilHealth, TIN numbers, financial data) acquired by an unauthorised person with a real risk of serious harm; the full report follows within five days when the breach involves 100 or more data subjects or sensitive information.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind == \"PERSONAL_DATA_BREACH\"",
-			"due": "add_days(row.opened_on, 3)"
-		}
-	},
-	{
-		"id": "6c8280af-b3b7-529e-8e22-78fc1b68fabe",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "NPC_BREACH_FULL_REPORT",
-		"name": "Submit the full personal data breach report to the NPC",
-		"references": [
-			{
-				"title": "NPC Circular 16-03 (https://web.archive.org/web/2018id_/http://privacy.gov.ph:80/wp-content/uploads/2016/12/sgd-npc-circular-16-03-personal-data-breach-management.pdf, read 2026-10-07) s.17(C): \"The full report of the personal data breach must be submitted within five (5) days, unless the personal information controller is granted additional time by the Commission\". Raised with the notification; due eight days after the day of knowledge (three for the notice, five for the report — recorded default).",
-				"url": "https://web.archive.org/web/2018id_/http://privacy.gov.ph:80/wp-content/uploads/2016/12/sgd-npc-circular-16-03-personal-data-breach-management.pdf"
-			}
-		],
-		"rules": {
-			"description": "Submit the full report of the personal data breach to the NPC within five days of the notification, unless the Commission grants more time.",
-			"trigger": {
-				"collection": "workplace_case",
-				"events": ["created"]
-			},
-			"when": "row.kind == \"PERSONAL_DATA_BREACH\"",
-			"due": "add_days(row.opened_on, 8)"
-		}
-	},
-	{
-		"id": "839a0c27-696b-5116-b117-945f4c8a6f96",
-		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "TASKS",
-		"code": "NPC_REGISTRATION_RENEWAL",
-		"name": "Renew the NPC registration (yearly)",
-		"references": [
-			{
-				"title": "NPC Circular 2022-04 (https://web.archive.org/web/2024id_/https://privacy.gov.ph/wp-content/uploads/2023/05/Circular-2022-04-1.pdf, read 2026-10-07) s.18: \"A PIC or PIP may only renew its registration thirty (30) days before the expiration of the one-year validity of its Certificate of Registration\"; s.5 (mandatory registration at 250 or more employees, or sensitive personal information of 1,000 or more individuals). Raised by the entity’s daily calendar tick thirty days before each anniversary of the entity fact `npc_registered_on` (customer input: the date the current certificate was issued), once a year (`repeat_key` the expiry year); due on the anniversary. A 29 February registration renews on 28 February.",
-				"url": "https://web.archive.org/web/2024id_/https://privacy.gov.ph/wp-content/uploads/2023/05/Circular-2022-04-1.pdf"
-			}
-		],
-		"rules": {
-			"description": "Renew the NPC registration of the data processing systems and the DPO: the Certificate of Registration is valid one year, and the renewal may be filed only in the thirty days before it expires.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["calendar"]
-			},
-			"when": "has(company.facts.npc_registered_on) && company.facts.npc_registered_on != \"\" && (headcount >= 250 || (has(company.facts.processes_sensitive_pi_1000) && company.facts.processes_sensitive_pi_1000)) && (((today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))) > company.facts.npc_registered_on && today >= add_days((today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))), -30) && today < (today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10)))) || (today >= add_days((string(int(today.substring(0, 4)) + 1) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))), -30) && today < (string(int(today.substring(0, 4)) + 1) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10)))))",
-			"repeat_key": "(((today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))) > company.facts.npc_registered_on && today >= add_days((today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))), -30) && today < (today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10)))) ? (today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))) : (string(int(today.substring(0, 4)) + 1) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10)))).substring(0, 4)",
-			"due": "(((today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))) > company.facts.npc_registered_on && today >= add_days((today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))), -30) && today < (today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10)))) ? (today.substring(0, 4) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))) : (string(int(today.substring(0, 4)) + 1) + (company.facts.npc_registered_on.substring(4, 10) == \"-02-29\" ? \"-02-28\" : company.facts.npc_registered_on.substring(4, 10))))"
-		}
-	},
-	{
 		"id": "46adfb62-95df-50ca-a781-5df58d8208b0",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
-		"scope": "JURISDICTION",
-		"family": "PAYROLL",
+		"family": "PARAMETERS",
 		"code": "salary_report",
 		"name": "Salary report grouping and company payments",
 		"rules": {
@@ -3446,7 +1983,6 @@
 		"id": "59c3b027-6f5f-5113-a59f-097db22b1a23",
 		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_PATTERN_CYCLE",
 		"name": "Roster keeps its pattern cycle",
 		"rules": {
@@ -3455,6 +1991,19 @@
 			"when": "cycle.planned.WORK != cycle.expected.WORK || cycle.planned.REST != cycle.expected.REST || cycle.planned.OFF != cycle.expected.OFF",
 			"message": "Swap days inside the cycle instead.",
 			"description": "A roster swap moves a day inside its shift pattern cycle; it never adds a work day or drops a rest or off day. Severity follows entity.validation_severity."
+		}
+	},
+	{
+		"id": "298c4293-4fd7-5982-a1f2-f96f79d1a846",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"family": "VALIDATIONS",
+		"code": "PAYROLL_RUN_KINDS",
+		"name": "PAYROLL_RUN_KINDS",
+		"rules": {
+			"site": "payroll_run",
+			"kind": "allow",
+			"when": "run.kind in [\"REGULAR\", \"OFF_CYCLE\"]",
+			"message": "The jurisdiction admits regular and off-cycle payroll runs."
 		}
 	}
 ]

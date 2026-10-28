@@ -11,6 +11,7 @@
 	import { inputSchema } from '@norbital-ai/std/kind';
 	import { Form, openRecord, RecordShell, type RecordView } from '@norbital-ai/ui';
 	import { governingVersion } from '../../../lib/ui/person/governing_version.svelte.js';
+	import { PAYROLL_DEFAULTS } from '../../../lib/payroll_engine/foundation.js';
 	import { employmentLabel, entityTimeZone } from '../../../lib/ui/scopes/create_scope.js';
 	import { createValues } from '../../../lib/ui/scopes/create_values.js';
 	import { formatCalendarDate } from '../../../lib/ui/format/display_formatters.js';
@@ -78,7 +79,11 @@
 		() => date
 	);
 	const timeZone = $derived(entityTimeZone(entity?.current?.entity.rows[0], version.current));
-	const policy = $derived(version.current?.payroll?.attendance ?? null);
+	const policy = $derived(
+		version.current == null
+			? null
+			: (version.current.payroll?.attendance ?? PAYROLL_DEFAULTS.attendance)
+	);
 	const holidays = $derived.by(() =>
 		companyId == null || date == null ? null : holidayRead(companyId, date, date)
 	);

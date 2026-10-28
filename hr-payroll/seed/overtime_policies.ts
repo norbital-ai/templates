@@ -194,7 +194,7 @@ const authorities: Record<string, string> = {
 export function overtimeRule(
 	settings: Record<string, Schema.Json>
 ): Record<string, Schema.Json> | null {
-	const lineage = settings['jurisdiction_code'];
+	const lineage = settings['code'];
 	if (!Predicate.isString(lineage)) return null;
 	const limits = Object.hasOwn(policies, lineage) ? policies[lineage] : undefined;
 	if (limits === undefined) return null;
@@ -208,8 +208,7 @@ export function overtimeRule(
 	return {
 		id: `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-8${hash.slice(17, 20)}-${hash.slice(20, 32)}`,
 		settings_id: settingsId,
-		family: 'PAYROLL',
-		scope: 'JURISDICTION',
+		family: 'PARAMETERS',
 		code: 'overtime_classification',
 		name: 'Overtime classification',
 		...(authority === undefined ? {} : { references: [{ title: authority }] }),

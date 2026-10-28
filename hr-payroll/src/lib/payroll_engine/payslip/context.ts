@@ -1,7 +1,6 @@
 import { Predicate } from 'effect';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect, Result, Schema } from 'effect';
-import { type SuspensionKind } from '../suspension_kinds.js';
 import { fromAbsolute, parseDateTime, toCalendarDateTime, toZoned } from '@internationalized/date';
 import {
 	addDays,
@@ -24,6 +23,7 @@ import {
 	Reads,
 	type Read,
 	numberOf,
+	PAYROLL_DEFAULTS,
 	Refusal
 } from '../foundation.js';
 import {
@@ -54,7 +54,8 @@ import {
 	ROSTER,
 	HOLIDAY,
 	CATALOG,
-	STATUTORY
+	STATUTORY,
+	SUSPENSION
 } from '../rows.js';
 import { type SettlementPeriod } from '../frequency.js';
 import type { Validation } from '../admit.js';
@@ -105,21 +106,14 @@ export const num = (value: unknown, fallback = 0): number => numberOf(value) ?? 
 // ponytail: `earned.history` reads 24 months back (a benefit averaged over the 12–18 months before a contingency);
 // rows pick their months from it. A longer look-back needs a larger read.
 export const LONG_HISTORY_MONTHS = 24;
-/** A version's required month window (`payroll.history_months`, `payroll.rolling_hours_months`); refuses when absent. */
+/** A version's month window (`payroll.history_months`, `payroll.rolling_hours_months`), else the engine default. */
 export const payrollMonths = (
 	version: Pick<SettingsRow, 'code' | 'payroll'> | undefined,
 	key: 'history_months' | 'rolling_hours_months'
 ) =>
 	Result.gen(function* () {
 		const payroll = yield* fieldValue(version?.payroll, 'jurisdiction_settings.payroll');
-		const months = payroll?.[key];
-		if (months == null)
-			return yield* Result.fail(
-				new Refusal({
-					message: `jurisdiction_settings ${version?.code ?? ''} needs payroll.${key}: the months it reads.`
-				})
-			);
-		return months;
+		return payroll?.[key] ?? PAYROLL_DEFAULTS[key];
 	});
 export const dayInRange = (day: string, range: CalendarRange): boolean =>
 	(range.from == null || day >= range.from) && (range.to == null || day <= range.to);
@@ -253,14 +247,7 @@ export type StatutoryRow = Pick<
 export type StatutoryConfiguration = StatutoryRow['configuration'];
 export type SettingsRow = Pick<
 	Row<'jurisdiction_settings'>,
-	| 'id'
-	| 'code'
-	| 'payroll'
-	| 'behaviours'
-	| 'suspension_kinds'
-	| 'effective_range'
-	| 'sealed_at'
-	| 'voided_at'
+	'id' | 'code' | 'payroll' | 'effective_range' | 'sealed_at' | 'voided_at'
 > & {
 	readonly rule_set?: readonly Pick<
 		Row<'rule_set'>,
@@ -312,14 +299,14 @@ export interface CatalogRow {
 	readonly pay_fraction?: string | null;
 	/** An ad hoc class whose entries may fall after the employment ends (`adhoc_catalog.payable_after_exit`). */
 	readonly payable_after_exit?: boolean;
-	/** An ad hoc class the final slip raises itself when its eligibility holds (`adhoc_catalog.raise_on_exit`). */
-	readonly raise_on_exit?: boolean;
 	/** A leave class's share of a row across periods: `WORKING_DAYS` (default) or `CALENDAR_DAYS`. */
 	readonly share_by?: string;
-	/** A prorated work line's stated divisor (CEL; default the period's calendar days). */
+	/** A prorated line's stated divisor (CEL; default the period's calendar days). */
 	readonly denominator?: string | null;
 	/** Whether an entry of the class must carry an amount (default true): a band-priced class need not. */
 	readonly amount_required?: boolean;
+	/** An allowance class priced on every salary slip without a contract line (`allowance_catalog.automatic`). */
+	readonly automatic?: boolean;
 }
 export type ContractTerm = NonNullable<
 	Exclude<ContractRow['facts'], Masked>['contract_terms']
@@ -347,6 +334,14 @@ export type EmployeeRow = Pick<
 	| 'children'
 	| 'facts'
 >;
+/**
+ * The exit an entry pays, when the exit behaviour raised it: its `facts.source`, `exit:<contract>:<code>:<day>/<ground>`.
+ * Its class's eligibility is judged at pay time, not on the write.
+ */
+export const exitSource = (row: Pick<EntryColumns, 'facts'>): string | null => {
+	const source = row.facts?.['source'];
+	return Predicate.isString(source) && source.startsWith('exit:') ? source : null;
+};
 /** An entry family's own columns; `facts` is the one open bag, merged last into the rule context. */
 export interface EntryColumns {
 	readonly amount?: unknown;
@@ -538,24 +533,18 @@ export const suspensionOn = (
 		if (named.length > 0) return named.includes(employment_id);
 		return held.worksite == null || held.worksite === '' || held.worksite === worksite;
 	});
-/** A version's inline suspension kinds by code. */
+/** A suspension catalogue row: its day flags and its pricing of one suspended day. */
+export type SuspensionKind = Pick<Row<'suspension_catalog'>, (typeof SUSPENSION)[number]>;
+/** A version's suspension catalogue by code. */
 export const suspensionKinds = (settings_id: Id<'jurisdiction_settings'>) =>
 	Effect.gen(function* () {
 		const { read } = yield* Reads;
-		const { jurisdiction_settings } = yield* read({
-			jurisdiction_settings: {
-				where: { id: { eq: settings_id } },
-				fields: ['suspension_kinds'],
-				limit: 1
-			}
+		const { suspension_catalog } = yield* read({
+			suspension_catalog: { where: { settings_id: { eq: settings_id } }, fields: SUSPENSION }
 		});
-		const kinds = yield* Effect.fromResult(
-			fieldValue(
-				jurisdiction_settings.rows[0]?.suspension_kinds,
-				'jurisdiction_settings.suspension_kinds'
-			)
+		return new Map<string, SuspensionKind>(
+			suspension_catalog.rows.map((kind) => [kind.code, kind])
 		);
-		return new Map((kinds ?? []).map((kind) => [kind.code, kind]));
 	});
 /** One stored CEL flag of a suspension kind; a kind that leaves it blank is refused. */
 const kindFlag = (
@@ -564,7 +553,7 @@ const kindFlag = (
 	context: DynObject
 ) => {
 	const expression = kind?.[flag];
-	const where = `suspension_kind ${kind?.code ?? ''}`;
+	const where = `suspension_catalog ${kind?.code ?? ''}`;
 	return expression == null || expression.trim() === ''
 		? Effect.fail(
 				new Refusal({ message: `${where} needs ${flag}: the CEL deciding a suspended day.` })
@@ -659,7 +648,7 @@ export const payrollRules = (
 } =>
 	Object.fromEntries(
 		(version?.rule_set ?? []).flatMap((row): [string, Json][] =>
-			row.family === 'PAYROLL' ? [[row.code, row.rules ?? {}]] : []
+			row.family === 'PARAMETERS' ? [[row.code, row.rules ?? {}]] : []
 		)
 	);
 export const FAMILIES = [
@@ -670,11 +659,11 @@ export const FAMILIES = [
 ] as const;
 /**
  * The catalogue layers a payroll build prices from, read under a `jurisdiction_settings` root: each version row comes
- * with its `statutory_contribution_catalog`, `work_catalog`, … and `rule_set` rows. Spread beside the root.
+ * with its `statutory_contribution_catalog`, `allowance_catalog`, … and `rule_set` rows. Spread beside the root.
  */
 export const GOVERNED = {
 	'jurisdiction_settings.statutory_contribution_catalog': { fields: STATUTORY },
-	'jurisdiction_settings.work_catalog': { fields: CATALOG.work_catalog },
+	'jurisdiction_settings.suspension_catalog': { fields: SUSPENSION },
 	'jurisdiction_settings.allowance_catalog': { fields: CATALOG.allowance_catalog },
 	'jurisdiction_settings.adhoc_catalog': { fields: CATALOG.adhoc_catalog },
 	'jurisdiction_settings.claim_catalog': { fields: CATALOG.claim_catalog },
@@ -688,7 +677,7 @@ export const loadGoverned = Effect.fnUntraced(function* (
 	ids: readonly Id<'jurisdiction_settings'>[]
 ) {
 	const { jurisdiction_settings } = yield* read({
-		jurisdiction_settings: { where: { id: { in: ids } }, fields: ['suspension_kinds'] },
+		jurisdiction_settings: { where: { id: { in: ids } }, fields: ['code', 'time_pay'] },
 		...GOVERNED
 	});
 	return jurisdiction_settings.rows;
@@ -842,7 +831,7 @@ export const governingVersion = Effect.fnUntraced(function* (
 			fields: SETTINGS
 		},
 		'jurisdiction_settings.rule_set': {
-			where: { family: { eq: 'PAYROLL' } },
+			where: { family: { eq: 'PARAMETERS' } },
 			fields: ['code', 'family', 'rules', 'settings_id']
 		}
 	});
@@ -1416,12 +1405,12 @@ const splitSpans = (
 export type AttendancePolicy = NonNullable<
 	NonNullable<Exclude<SettingsRow['payroll'], Masked>>['attendance']
 >;
-/** The governing version's attendance terms; refuses a version without them or with a nonpositive step. */
+/** The governing version's attendance terms, else the engine default; refuses a nonpositive step. */
 export const attendancePolicy = (version: Pick<SettingsRow, 'code' | 'payroll'> | undefined) =>
 	Result.gen(function* () {
 		const payroll = yield* fieldValue(version?.payroll, 'jurisdiction_settings.payroll');
-		const policy = payroll?.attendance;
-		if (policy == null || !(policy.step_hours > 0))
+		const policy = payroll?.attendance ?? PAYROLL_DEFAULTS.attendance;
+		if (!(policy.step_hours > 0))
 			return yield* Result.fail(
 				new Refusal({
 					message: `jurisdiction_settings ${version?.code ?? ''} needs payroll.attendance: a positive step_hours, rounding, overtime_window and untimed_credit_day_types.`
@@ -2035,7 +2024,7 @@ export const attendanceDays = (
 	asOf: string,
 	context: DynObject,
 	zone: string,
-	/** The version governing `asOf` (its suspension kinds), when the caller holds it. */
+	/** The version governing `asOf` (its attendance policy and suspension catalogue), when the caller holds it. */
 	governing?: SettingsRow,
 	prefetched?: AttendanceRead
 ) =>
@@ -2076,11 +2065,11 @@ export const attendanceDays = (
 		const version =
 			governing ?? (yield* governingVersion(yield* entityOf(contract.company_id), asOf));
 		const policy = yield* Effect.fromResult(attendancePolicy(version));
-		const kinds = new Map(
-			(yield* Effect.fromResult(
-				fieldValue(version.suspension_kinds, 'jurisdiction_settings.suspension_kinds')
-			)).map((kind) => [kind.code, kind])
-		);
+		// the version's suspension catalogue, read only when a suspension reaches the window
+		const kinds =
+			suspensions.length === 0
+				? new Map<string, SuspensionKind>()
+				: yield* suspensionKinds(version.id);
 		const covered = leave.flatMap((row) => {
 			const range = coverageRange(row.from, row.to, num(row.days, 1), row.occurred_on);
 			return range == null || range.to < from
@@ -2208,7 +2197,7 @@ export const leaveSubject = (
 					version: found
 				})
 			)),
-			// the governing version's PAYROLL rule tables (a region table: `rules.regions.by_region[company.region]`)
+			// the governing version's PARAMETERS rule tables (a region table: `rules.regions.by_region[company.region]`)
 			rules: payrollRules(found),
 			earned: yield* Effect.fromResult(
 				earnedFrom({
@@ -2216,7 +2205,7 @@ export const leaveSubject = (
 					period: asOf.slice(0, 7),
 					runKind: new Map(runs.map((run) => [run.id, run.kind ?? ''])),
 					contract,
-					yearStartMonth: payroll?.tax_year_start_month ?? 1,
+					yearStartMonth: payroll?.tax_year_start_month ?? PAYROLL_DEFAULTS.tax_year_start_month,
 					// No governing version: no payroll history window to read.
 					historyMonths:
 						found === undefined
@@ -2346,12 +2335,16 @@ export type SlipContext = {
 		readonly schemeCodes: ReadonlyMap<string, string>;
 		readonly workRows: readonly CatalogRow[];
 		readonly allowanceRows: readonly CatalogRow[];
+		/** Every leave class's pay lines (`leave_catalog.pay`), each priced once a slip beside the time lines. */
+		readonly leavePay: readonly CatalogRow[];
+		/** Every suspension kind's pay lines (`suspension_catalog.pay`), each priced once a salary slip beside the time lines. */
+		readonly suspensionPay: readonly CatalogRow[];
+		/** Every scheme's wage adjustments (`configuration.wage_adjustments`): unpaid EMPLOYER lines of a salary slip. */
+		readonly wageAdjustments: readonly CatalogRow[];
 		/** Every contract allowance's captured class id outside the governing version, to its code. */
 		readonly capturedAllowanceCodes: ReadonlyMap<string, string>;
 		readonly classes: ReadonlyMap<string, CatalogRow>;
 		readonly parts: SchemeParts;
-		/** The governing ad hoc classes flagged `raise_on_exit`. */
-		readonly exitClasses: readonly CatalogRow[];
 		readonly validations: readonly Validation[];
 		/** A statutory row of the version charges a month with no wage (`assess_without_wage`): keep a zero-wage slip. */
 		readonly assessesWithoutWage: boolean;
@@ -2402,7 +2395,7 @@ export type SlipContext = {
 		/** Each leave row's chain start: the first day of the back-to-back rows of its class it continues. */
 		readonly chainFrom: ReadonlyMap<string, string>;
 		readonly suspensions: readonly SuspensionRow[];
-		/** The version's suspension catalogue: each kind's CEL decides what a suspended day does. */
+		/** The version's suspension catalogue: each kind's CEL decides what a suspended day does and what it pays. */
 		readonly kinds: ReadonlyMap<string, SuspensionKind>;
 		/** Every approved leave row of the employment, settled or not: a switched month's month-to-date leave. */
 		readonly monthLeave: readonly EntryRow[];

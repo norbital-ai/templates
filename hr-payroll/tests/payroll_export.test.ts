@@ -55,7 +55,6 @@ const tables = () => {
 			id: nativeId('rule_set', fixtureId('xx-bank-csv')),
 			settings_id: VERSION,
 			family: 'EXPORTS',
-			scope: 'JURISDICTION',
 			code: 'bank_csv',
 			name: 'bank_csv',
 			rules: {

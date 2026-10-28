@@ -2,8 +2,7 @@
 	{
 		"id": "2ad10bfe-17de-41e7-b7eb-bdcf4ad8753b",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "regions",
 		"name": "Regions (cities) of China",
 		"references": [
@@ -294,562 +293,9 @@
 		}
 	},
 	{
-		"id": "518f31fb-f0fb-44a3-ab26-5f469b63f836",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "SI_MONTHLY_PAYMENT",
-		"name": "Social insurance monthly declaration and payment",
-		"references": [
-			{
-				"title": "社会保险法 第六十条第一款; 社会保险费征缴暂行条例 第十条. SH: 国家税务总局上海市税务局等五部门公告2023年第2号 (自2023年12月1日): \"用人单位应当于每月15日前自行向税务部门申报缴纳社会保险费\" https://shanghai.chinatax.gov.cn/zcfw/zcfgk/sbf/202311/t469352.html. KM: 国家税务总局云南省税务局公告2023年第5号 (自2023年7月1日): 用人单位应当于每月20日前申报应缴费额并缴纳社会保险费 https://zc.51shebao.com/detail/795061."
-			}
-		],
-		"rules": {
-			"description": "Declare and pay the month's social insurance with the employee shares withheld. Due: SH by the 15th of the contribution month, KM by the 20th.",
-			"schemes": ["PENSION", "MEDICAL", "UNEMPLOYMENT", "WORK_INJURY"],
-			"due": "add_days(period.from, int(rules.regions.by_region[company.region].si_payment_due_day) - 1)",
-			"applies_when": "(company != null && company.region in rules.regions.by_region)"
-		}
-	},
-	{
-		"id": "68d1cda1-a4cb-4273-a25c-815b33ae3867",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "HPF_MONTHLY_REMITTANCE",
-		"name": "Housing provident fund monthly remittance",
-		"references": [
-			{
-				"title": "住房公积金管理条例 第十九条第一款: 职工个人缴存的住房公积金, 由所在单位每月从其工资中代扣代缴; 单位应当于每月发放职工工资之日起5日内将单位缴存的和为职工代缴的住房公积金汇缴到住房公积金专户内."
-			}
-		],
-		"rules": {
-			"description": "Remit the housing provident fund within 5 days of the wage day (the run's pay day; the period end when the run has none).",
-			"schemes": ["HPF", "HPF_SUPPLEMENTARY"],
-			"due": "add_days((has(run.pay_date) && run.pay_date != null && run.pay_date != \"\" ? run.pay_date : period.to), 5)"
-		}
-	},
-	{
-		"id": "3bf3b495-d3fc-4228-af75-9b9a02626b29",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "IIT_MONTHLY_DECLARATION",
-		"name": "IIT withholding declaration and payment",
-		"references": [
-			{
-				"title": "个人所得税法 第十四条第一款 (次月十五日内缴入国库并报送扣缴申报表); 个人所得税扣缴申报管理办法(试行) 第六条 (按月预扣, 所属期为支付月份); 税收征收管理法实施细则 第一百零九条 (期限的最后一日是法定休假日的, 以休假日期满的次日为期限的最后一日; 在期限内有连续3日以上法定休假日的, 按休假日天数顺延); 国家税务总局办公厅《关于明确2026年度申报纳税期限的通知》(税总办征科函〔2025〕64号).",
-				"url": "https://fgk.chinatax.gov.cn/zcfgk/c102424/c5245729/content.html"
-			}
-		],
-		"rules": {
-			"description": "File the withholding return and pay the IIT withheld. The period is the month the wages are paid (run pay day, else the period end); due by the 15th of the next month as extended by the national filing calendar (2026: 20 Jan, 24 Feb, 16 Mar, 20 Apr, 22 May, 15 Jun, 15 Jul, 17 Aug, 15 Sep, 26 Oct, 16 Nov, 15 Dec).",
-			"schemes": ["IIT"],
-			"due": "add_months(month_start((has(run.pay_date) && run.pay_date != null && run.pay_date != \"\" ? run.pay_date : period.to)), 1).substring(0, 7) in {\"2025-12\": \"2025-12-15\", \"2026-01\": \"2026-01-20\", \"2026-02\": \"2026-02-24\", \"2026-03\": \"2026-03-16\", \"2026-04\": \"2026-04-20\", \"2026-05\": \"2026-05-22\", \"2026-06\": \"2026-06-15\", \"2026-07\": \"2026-07-15\", \"2026-08\": \"2026-08-17\", \"2026-09\": \"2026-09-15\", \"2026-10\": \"2026-10-26\", \"2026-11\": \"2026-11-16\", \"2026-12\": \"2026-12-15\"} ? {\"2025-12\": \"2025-12-15\", \"2026-01\": \"2026-01-20\", \"2026-02\": \"2026-02-24\", \"2026-03\": \"2026-03-16\", \"2026-04\": \"2026-04-20\", \"2026-05\": \"2026-05-22\", \"2026-06\": \"2026-06-15\", \"2026-07\": \"2026-07-15\", \"2026-08\": \"2026-08-17\", \"2026-09\": \"2026-09-15\", \"2026-10\": \"2026-10-26\", \"2026-11\": \"2026-11-16\", \"2026-12\": \"2026-12-15\"}[add_months(month_start((has(run.pay_date) && run.pay_date != null && run.pay_date != \"\" ? run.pay_date : period.to)), 1).substring(0, 7)] : add_days(add_months(month_start((has(run.pay_date) && run.pay_date != null && run.pay_date != \"\" ? run.pay_date : period.to)), 1), 14)"
-		}
-	},
-	{
-		"id": "0f4d09ac-38ff-437f-8eaf-dd75f6ad0c9f",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "IIT_INCOME_STATEMENT",
-		"name": "Annual income and withholding statement to employees",
-		"references": [
-			{
-				"title": "国家税务总局《个人所得税扣缴申报管理办法(试行)》(公告2018年第61号) 第十三条: 支付工资、薪金所得的扣缴义务人应当于年度终了后两个月内, 向纳税人提供其个人所得和已扣缴税款等信息."
-			}
-		],
-		"rules": {
-			"description": "Give each employee their prior-year wage income and the tax withheld. Raised on the January run; due by the end of February.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["01"],
-			"due": "month_end(add_months(period.from, 1))"
-		}
-	},
-	{
-		"id": "86073ed5-0d47-4410-b8ba-e95cb851cd80",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "IIT_ANNUAL_RECONCILIATION",
-		"name": "IIT annual reconciliation (综合所得汇算清缴)",
-		"references": [
-			{
-				"title": "个人所得税法 第十一条第一款: 居民个人取得综合所得, 按年计算个人所得税; 有扣缴义务人的, 由扣缴义务人按月或者按次预扣预缴税款; 需要办理汇算清缴的, 应当在取得所得的次年三月一日至六月三十日内办理汇算清缴; 第十二条. 国家税务总局《个人所得税综合所得汇算清缴管理办法》(国家税务总局令第57号, 2025年2月26日施行) 第五条 (三月一日至六月三十日), 第十四条第二项 (单位代为办理须经纳税人确认, 未确认的单位不得代为办理), 第十六条 (资料留存5年)."
-			}
-		],
-		"rules": {
-			"description": "Annual reconciliation of the prior year's comprehensive income from 1 March to 30 June; the employer files it for the employees who entrust it to them. Raised on the March run; due 30 June.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["03"],
-			"due": "month_end(add_months(period.from, 3))"
-		}
-	},
-	{
-		"id": "b6aabdc0-aaa5-48ae-b6e0-f2a7884db6ce",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SI_REGISTRATION",
-		"name": "Social insurance registration of a new employee",
-		"references": [
-			{
-				"title": "社会保险法 第五十八条第一款: 用人单位应当自用工之日起三十日内为其职工向社会保险经办机构申请办理社会保险登记."
-			}
-		],
-		"rules": {
-			"description": "Apply to the social insurance agency to register the new employee. Due: within 30 days of the start of employment.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 30)"
-		}
-	},
-	{
-		"id": "33c36bd5-079b-4161-8251-869c2781f19d",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "HPF_DEPOSIT_REGISTRATION",
-		"name": "Housing provident fund deposit registration",
-		"references": [
-			{
-				"title": "住房公积金管理条例 第十五条第一款: 单位录用职工的, 应当自录用之日起30日内向住房公积金管理中心办理缴存登记, 并办理职工住房公积金账户的设立或者转移手续."
-			}
-		],
-		"rules": {
-			"description": "Register the new employee's housing provident fund deposit and open the personal account. Due: within 30 days of hiring.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 30)"
-		}
-	},
-	{
-		"id": "ce9cdf9c-e94b-41cf-b149-d442d96d36b8",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "LABOUR_CONTRACT",
-		"name": "Written labour contract",
-		"references": [
-			{
-				"title": "劳动合同法 第十条第二款: 已建立劳动关系, 未同时订立书面劳动合同的, 应当自用工之日起一个月内订立书面劳动合同; 第八十二条第一款."
-			}
-		],
-		"rules": {
-			"description": "Conclude a written labour contract. Due: within one month of the start of employment; after that the employer owes double wages (第八十二条).",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_months(hired_on, 1)"
-		}
-	},
-	{
-		"id": "64d7bb97-f758-488a-a60d-152575bd4721",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "EMPLOYEE_ROSTER",
-		"name": "Employee roster entry (职工名册)",
-		"references": [
-			{
-				"title": "劳动合同法 第七条: 用人单位自用工之日起即与劳动者建立劳动关系; 用人单位应当建立职工名册备查; 劳动合同法实施条例 第八条 (名册内容)."
-			}
-		],
-		"rules": {
-			"description": "Enter the employee in the employee roster kept for inspection. Due: from the start of employment.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "hired_on"
-		}
-	},
-	{
-		"id": "aae861e0-0589-451d-b2db-5099998364e9",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "TERMINATION_CERTIFICATE",
-		"name": "Termination certificate",
-		"references": [
-			{
-				"title": "劳动合同法 第五十条第一款: 用人单位应当在解除或者终止劳动合同时出具解除或者终止劳动合同的证明; 劳动合同法实施条例 第二十四条 (证明内容)."
-			}
-		],
-		"rules": {
-			"description": "Issue the certificate of termination of the labour contract. Due: when the contract ends.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "exit_on"
-		}
-	},
-	{
-		"id": "c69ea631-a60b-479c-a886-fa93282d3a85",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SI_FILE_TRANSFER",
-		"name": "Personnel file and social insurance transfer",
-		"references": [
-			{
-				"title": "劳动合同法 第五十条第一款: 并在十五日内为劳动者办理档案和社会保险关系转移手续."
-			}
-		],
-		"rules": {
-			"description": "Complete the transfer of the personnel file and the social insurance relationship. Due: within 15 days of termination.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "add_days(exit_on, 15)"
-		}
-	},
-	{
-		"id": "16e4eaa5-8e78-414b-8e88-1abdf966c923",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "HPF_CHANGE_REGISTRATION",
-		"name": "Housing provident fund change registration on exit",
-		"references": [
-			{
-				"title": "住房公积金管理条例 第十五条第二款: 单位与职工终止劳动关系的, 单位应当自劳动关系终止之日起30日内向住房公积金管理中心办理变更登记, 并办理职工住房公积金账户转移或者封存手续."
-			}
-		],
-		"rules": {
-			"description": "Register the end of the employment with the housing provident fund centre (seal or transfer the account). Due: within 30 days of termination.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "add_days(exit_on, 30)"
-		}
-	},
-	{
-		"id": "0d444c18-e5b3-40c9-875f-f076f128d933",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "FINAL_WAGES",
-		"name": "Final wages",
-		"references": [
-			{
-				"title": "工资支付暂行规定 第九条: 劳动关系双方依法解除或终止劳动合同时, 用人单位应在解除或终止劳动合同时一次付清劳动者工资. KM: 昆明市工资支付条例 (2019年9月1日施行) 第十三条: \"自劳动关系终止或者解除之日起5个工作日内一次性付清劳动者工资\". SH: 上海市企业工资支付办法 (沪人社规〔2026〕10号) 第七条, on termination.",
-				"url": "https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=67457"
-			}
-		],
-		"rules": {
-			"description": "Pay the leaver's wages in full. Due: SH at the termination; KM within 5 working days of it.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "int(rules.regions.by_region[company.region].final_wages_working_days) > 0 ? add_working_days(exit_on, int(rules.regions.by_region[company.region].final_wages_working_days), holidays, [\"SATURDAY\", \"SUNDAY\"]) : exit_on",
-			"applies_when": "(company != null && company.region in rules.regions.by_region)"
-		}
-	},
-	{
-		"id": "193937a7-ceec-46fe-be5d-89383ea12b6c",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "ECONOMIC_COMPENSATION_PAYMENT",
-		"name": "Economic compensation payment",
-		"references": [
-			{
-				"title": "劳动合同法 第四十六条, 第五十条第二款: 用人单位依照本法有关规定应当向劳动者支付经济补偿的, 在办结工作交接时支付."
-			}
-		],
-		"rules": {
-			"description": "Pay the economic compensation on the grounds 第四十六条 makes it owing: the employer proposing a mutual termination (MUTUAL_EMPLOYER_PROPOSED), 第三十八条 employer default, 第四十条 incapacity, 第四十一条 layoff, bankruptcy or closure (第四十四条第四、五项), and fixed-term expiry unless the employee refused renewal on equal or better terms (`exit_facts.employee_refused_renewal_on_equal_terms`). Due when the handover is completed.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract != null && (contract.exit_ground in [\"MUTUAL_EMPLOYER_PROPOSED\", \"INCAPACITY\", \"ECONOMIC_LAYOFF\", \"EMPLOYER_DEFAULT\", \"BANKRUPTCY\", \"CLOSURE\"] || (contract.exit_ground == \"CONTRACT_EXPIRY\" && !(contract.exit_facts != null && has(contract.exit_facts.employee_refused_renewal_on_equal_terms) && contract.exit_facts.employee_refused_renewal_on_equal_terms == true)))",
-			"due": "exit_on"
-		}
-	},
-	{
-		"id": "e3df3e4c-763d-426b-b968-1811c477bb6d",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "TERMINATED_CONTRACT_RETENTION",
-		"name": "Retention of the terminated labour contract",
-		"references": [
-			{
-				"title": "劳动合同法 第五十条第三款: 用人单位对已经解除或者终止的劳动合同的文本, 至少保存二年备查."
-			}
-		],
-		"rules": {
-			"description": "Keep the text of the terminated or expired labour contract for at least two years for inspection.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "add_years(exit_on, 2)"
-		}
-	},
-	{
-		"id": "05e140ee-3bb2-4306-8547-cdaefc01c3cc",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORK_PERMIT",
-		"name": "Foreign employee work permit and work-type residence permit",
-		"references": [
-			{
-				"title": "出境入境管理法 第四十一条: 外国人在中国境内工作, 应当按照规定取得工作许可和工作类居留证件; 任何单位和个人不得聘用未取得工作许可和工作类居留证件的外国人; 国务院《关于取消台港澳人员在内地就业许可事项的决定》(国发〔2018〕28号)."
-			}
-		],
-		"rules": {
-			"description": "Obtain the work permit and work-type residence permit before a foreign national (nationality other than CN; Hong Kong, Macao and Taiwan residents no longer need one) starts work. Due: before the start of employment.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"applies_when": "employee != null && employee.nationality != null && employee.nationality != \"\" && !(employee.nationality in [\"CN\", \"HK\", \"MO\", \"TW\"])",
-			"due": "hired_on"
-		}
-	},
-	{
-		"id": "3257d7b9-f229-4902-be1c-dda94b47d971",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "ECONOMIC_LAYOFF_REPORT",
-		"name": "Economic layoff: explanation to the union or all staff and report to the labour authority",
-		"references": [
-			{
-				"title": "劳动合同法 第四十一条第一款: 需要裁减人员二十人以上或者裁减不足二十人但占企业职工总数百分之十以上的, 用人单位提前三十日向工会或者全体职工说明情况, 听取工会或者职工的意见后, 裁减人员方案经向劳动行政部门报告, 可以裁减人员."
-			}
-		],
-		"rules": {
-			"description": "For a layoff of 20 or more, or fewer than 20 but 10% or more of the workforce: explain the situation to the union or all employees 30 days in advance, hear their opinions, and report the layoff plan to the labour administration. Raised per leaver when the batch (`exit_facts.layoff_batch_size`) reaches 20 or 10% of the workforce (`headcount`); an unrecorded batch raises it. Due: 30 days before the layoff.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract != null && contract.exit_ground == \"ECONOMIC_LAYOFF\" && (contract.exit_facts == null || !has(contract.exit_facts.layoff_batch_size) || double(contract.exit_facts.layoff_batch_size) >= 20.0 || double(contract.exit_facts.layoff_batch_size) >= 0.1 * double(headcount))",
-			"due": "add_days(exit_on, -30)"
-		}
-	},
-	{
-		"id": "71a0f80c-13e1-450d-92db-7a49520c44c2",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "TERMINATION_NOTICE_ART40",
-		"name": "Thirty days' written notice (or a month's wage) for a 第四十条 termination",
-		"references": [
-			{
-				"title": "劳动合同法 第四十条: 用人单位提前三十日以书面形式通知劳动者本人或者额外支付劳动者一个月工资后, 可以解除劳动合同; 劳动合同法实施条例 第二十条 (额外支付的工资按照该劳动者上一个月的工资标准确定)."
-			}
-		],
-		"rules": {
-			"description": "Give the employee 30 days' written notice, or pay one month's wage in lieu (PAY_IN_LIEU_OF_NOTICE), before terminating under 第四十条 (illness or injury, incompetence, changed objective circumstances). Due: 30 days before the termination.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract != null && contract.exit_ground == \"INCAPACITY\"",
-			"due": "add_days(exit_on, -30)"
-		}
-	},
-	{
-		"id": "0e67e969-a839-487b-89cd-b0b3e1abdb71",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SI_BASE_ANNUAL_DECLARATION",
-		"name": "Annual contribution-wage declaration",
-		"references": [
-			{
-				"title": "国家税务总局上海市税务局通告2026年第1号《关于开展2026社保年度用人单位社会保险缴费工资申报工作的通告》: 申报时间2026年5月1日至2026年6月25日; 申报职工上一自然年度的月平均工资 https://shanghai.chinatax.gov.cn/zcfw/zcfgk/sbf/202604/t480144.html. KM: 国家税务总局云南省税务局 (云南税务 WeChat account, 2026-01-08) 《“社保费管理客户端”年度缴费工资申报操作指引——企业申报操作篇》: 企业2026年度社保费缴费工资集中申报截止时间为1月31日; 自2026年1月起, 企业缴费工资申报实现“一次申报、五险并用” https://mp.weixin.qq.com/s?__biz=MzA5NjY5OTEzNQ==&mid=2652065121&idx=1&sn=17e0daa2e4587ecf31522fb0cdce28fa; 国家税务总局西双版纳州税务局 (西双版纳税务, 2026-01-09) 《关于2026年用人单位社会保险费缴费工资申报的提示》: 2026年1月1日至1月31日为用人单位社会保险费缴费工资集中申报期; 各险种新申报缴费工资自2026年1月开始执行; 以职工本人上年度月平均工资据实申报 https://mp.weixin.qq.com/s?__biz=MzI5MTI4NDU3OQ==&mid=2247539265&idx=1&sn=11392640847f8a342c8ba029ee49ccba (both read 2026-10-08). The 2026 Kunming medical notice (禄劝县医疗保障局 2026-09-16, 2026年度昆明市职工医疗保险有关基数执行标准通知) moves only the base limits (4403–22017 from September 2026) and sets no declaration window."
-			}
-		],
-		"rules": {
-			"description": "Declare every insured employee's prior-calendar-year monthly average wage. Shanghai: for the July–June contribution year, raised on the May run, due 25 June (2026: 1 May – 25 June). Kunming (Yunnan): for the calendar year from January, one wage for all five insurances, raised on the December run, due 31 January (2026: 1 – 31 January). The window is set by each year's notice.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"applies_when": "(company != null && company.region in rules.regions.by_region) && rules.regions.by_region[company.region].si_base_declaration != null && period.from.substring(5, 7) == rules.regions.by_region[company.region].si_base_declaration.month",
-			"due": "add_days(month_start(add_months(period.from, 1)), int(rules.regions.by_region[company.region].si_base_declaration.due_day) - 1)"
-		}
-	},
-	{
-		"id": "afcb8124-2c21-4897-98cc-03501619879d",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "EMPLOYMENT_REGISTRATION",
-		"name": "Employment registration of a new hire",
-		"references": [
-			{
-				"title": "就业服务与就业管理规定 第六十二条第一款: 用人单位招用人员后, 应当于录用之日起30日内办理登记手续 (北京市人力资源和社会保障局2024年清单引用条文)",
-				"url": "https://rsj.beijing.gov.cn/xxgk/2024zcwj/202406/W020240617387510280074.docx"
-			}
-		],
-		"rules": {
-			"description": "Register the employment with the public employment service. Due: within 30 days of hiring.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "add_days(hired_on, 30)"
-		}
-	},
-	{
-		"id": "0e14ae6e-5c35-42bc-b806-872ae1941526",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "EMPLOYMENT_DEREGISTRATION",
-		"name": "Employment deregistration on exit",
-		"references": [
-			{
-				"title": "就业服务与就业管理规定 第六十二条第一款: 用人单位与职工终止或者解除劳动关系后, 应当于15日内办理登记手续."
-			}
-		],
-		"rules": {
-			"description": "Register the end of the employment with the public employment service. Due: within 15 days of termination.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "add_days(exit_on, 15)"
-		}
-	},
-	{
-		"id": "aa843be1-e9ba-49e7-aab5-aa1fd6a9b3c8",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORK_INJURY_RECOGNITION",
-		"name": "Work-injury recognition application",
-		"references": [
-			{
-				"title": "工伤保险条例 第十七条第一款: 职工发生事故伤害或者按照职业病防治法规定被诊断、鉴定为职业病, 所在单位应当自事故伤害发生之日或者被诊断、鉴定为职业病之日起30日内, 向统筹地区社会保险行政部门提出工伤认定申请."
-			}
-		],
-		"rules": {
-			"description": "Apply to the social insurance administration for work-injury recognition. Raised when a WORK_INJURY_LEAVE entry is created; due 30 days after the accident (`facts.accident_date`, else the entry day).",
-			"trigger": {
-				"collection": "leave_catalog_entry",
-				"events": ["created"]
-			},
-			"when": "row != null && row.catalog_code == \"WORK_INJURY_LEAVE\"",
-			"due": "add_days(row.facts != null && has(row.facts.accident_date) ? string(row.facts.accident_date) : string(row.occurred_on), 30)"
-		}
-	},
-	{
-		"id": "ccb22d34-d395-4d91-91b3-c3cd72a6d3f9",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SI_UNIT_REGISTRATION",
-		"name": "Employer social insurance registration",
-		"references": [
-			{
-				"title": "社会保险法 第五十七条第一款: 用人单位应当自成立之日起三十日内凭营业执照、登记证书或者单位印章, 向当地社会保险经办机构申请办理社会保险登记."
-			}
-		],
-		"rules": {
-			"description": "Register the new employer for social insurance. Due: within 30 days of its establishment (`established_on`).",
-			"trigger": {
-				"collection": "entity",
-				"events": ["created"]
-			},
-			"applies_when": "company != null && has(company.facts.established_on)",
-			"due": "add_days(string(company.facts.established_on), 30)"
-		}
-	},
-	{
-		"id": "3c4a42b7-c177-48ac-981c-105701b50f91",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SI_UNIT_CHANGE_REGISTRATION",
-		"name": "Employer social insurance change registration",
-		"references": [
-			{
-				"title": "社会保险法 第五十七条第二款: 用人单位的社会保险登记事项发生变更或者用人单位依法终止的, 应当自变更或者终止之日起三十日内, 到社会保险经办机构办理变更或者注销社会保险登记.",
-				"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
-			}
-		],
-		"rules": {
-			"description": "Register a change of the employer's registered particulars (its name) with social insurance within 30 days.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["updated"],
-				"fields": ["name"]
-			},
-			"when": "row != null && has(row.before) && row.before != null && \"name\" in row.before",
-			"due": "add_days(today, 30)"
-		}
-	},
-	{
-		"id": "22913fe2-5b5b-41f0-8ec3-e10d82e03214",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "HPF_UNIT_REGISTRATION",
-		"name": "Employer housing provident fund registration",
-		"references": [
-			{
-				"title": "住房公积金管理条例 第十四条第一款: 新设立的单位应当自设立之日起30日内向住房公积金管理中心办理住房公积金缴存登记, 并自登记之日起20日内, 为本单位职工办理住房公积金账户设立手续."
-			}
-		],
-		"rules": {
-			"description": "Register the new employer with the housing provident fund centre and open its account. Due: within 30 days of its establishment.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["created"]
-			},
-			"applies_when": "company != null && has(company.facts.established_on)",
-			"due": "add_days(string(company.facts.established_on), 30)"
-		}
-	},
-	{
 		"id": "4b6e0856-c1da-4407-8c44-b1adc49525f0",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MINIMUM_WAGE",
 		"name": "Minimum wage (最低工资)",
 		"rules": {
@@ -864,7 +310,6 @@
 		"id": "9ce4a3d8-1999-44d0-a423-df58e23cca4b",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "OVERTIME_MONTHLY_LIMIT",
 		"name": "Overtime limit 36 hours a month",
 		"rules": {
@@ -879,7 +324,6 @@
 		"id": "d59abda6-a236-4802-af40-29be95be16ef",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "OVERTIME_DAILY_LIMIT",
 		"name": "Overtime limit 3 hours a day",
 		"rules": {
@@ -891,54 +335,9 @@
 		}
 	},
 	{
-		"id": "178cb44f-9f3c-4cac-9a0a-96f9b011760c",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WRITTEN_CONTRACT_OVERDUE",
-		"name": "No written labour contract one month after hire (double wages)",
-		"references": [
-			{
-				"title": "劳动合同法 第十条第二款 (自用工之日起一个月内订立书面劳动合同); 第八十二条第一款: 用人单位自用工之日起超过一个月不满一年未与劳动者订立书面劳动合同的, 应当向劳动者每月支付二倍的工资; 劳动合同法实施条例 第六条."
-			}
-		],
-		"rules": {
-			"description": "One month after the start of employment no written contract is recorded on the terms (`facts.written_contract_signed_on`): conclude it now; from the second month the employer owes the employee twice the wage each month until it is signed (at most 11 months). Raised by the daily tick on that day.",
-			"trigger": {
-				"collection": "calendar",
-				"events": ["daily"]
-			},
-			"when": "contract != null && hired_on != null && today == add_months(hired_on, 1) && !(has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.written_contract_signed_on)))",
-			"due": "today"
-		}
-	},
-	{
-		"id": "3e3ea19b-7540-468e-ab3d-504a643c9045",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "DEEMED_OPEN_ENDED_CONTRACT",
-		"name": "No written contract after one year: deemed open-ended",
-		"references": [
-			{
-				"title": "劳动合同法 第十四条第三款: 用人单位自用工之日起满一年不与劳动者订立书面劳动合同的, 视为用人单位与劳动者已订立无固定期限劳动合同; 劳动合同法实施条例 第七条."
-			}
-		],
-		"rules": {
-			"description": "A full year after the start of employment no written contract is recorded: the employment is deemed an open-ended contract and a written one must be concluded at once. Raised by the daily tick on the anniversary.",
-			"trigger": {
-				"collection": "calendar",
-				"events": ["daily"]
-			},
-			"when": "contract != null && hired_on != null && today == add_years(hired_on, 1) && !(has(contract.facts) && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.facts) && has(t.facts.written_contract_signed_on)))",
-			"due": "today"
-		}
-	},
-	{
 		"id": "58058008-caa9-472f-aaf1-e4455f0344c4",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MINIMUM_WAGE_HOURLY",
 		"name": "Hourly minimum wage (非全日制)",
 		"rules": {
@@ -950,203 +349,9 @@
 		}
 	},
 	{
-		"id": "1b1b1bbb-ebae-43b6-9f98-4f2a67422ed3",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "UNION_FUND_REMITTANCE",
-		"name": "Union fund monthly remittance",
-		"references": [
-			{
-				"title": "上海市工会条例 (2002年修正) 第四十一条: 建立工会的企业、事业单位、机关应当于每月十五日前按照上月全部职工工资总额的百分之二向工会拨缴当月的工会经费; 成立工会筹备组织的, 自成立工会筹备组织之日起按前款规定拨缴 https://www.shanghai.gov.cn/nw5652/20200905/0001-5652_362.html. 云南省实施《中华人民共和国工会法》办法 (2022年11月30日修订) 第二十七条: 建立工会组织的用人单位按月依照上月全部职工工资总额的百分之二向工会拨缴经费 https://www.ynrd.gov.cn/html/2022/sssjrdcwhdsswuchy_1130/19708.html. Owner ruling (2026-10-07, binding): the Kunming union fund stays a monthly remittance; paying monthly is never late against the quarterly collection windows (4/7/10/12月 1-15日) that the secondary copies of 云工通〔2021〕1号 state."
-			}
-		],
-		"rules": {
-			"description": "Remit the union fund (2% of the previous month's total wages) on the city's day: the day it names in the next month, else the next month's end.",
-			"schemes": ["UNION_FUND"],
-			"applies_when": "(company != null && company.region in rules.regions.by_region) && ((has(company.facts.union_established) && company.facts.union_established == true) || (rules.regions.by_region[company.region].union_fund.preparatory == \"ORGANISATION\" && has(company.facts.union_preparatory) && company.facts.union_preparatory == true))",
-			"due": "rules.regions.by_region[company.region].union_fund.remittance_due_day == null ? month_end(add_months(month_start(period.from), 1)) : add_days(month_start(add_months(period.from, 1)), int(rules.regions.by_region[company.region].union_fund.remittance_due_day) - 1)"
-		}
-	},
-	{
-		"id": "dc6fdb92-0aa4-4106-b38b-a5943e4d7019",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "UNION_PREPARATORY_FUND",
-		"name": "Union preparatory fund quarterly declaration (Kunming, no union)",
-		"references": [
-			{
-				"title": "云南省总工会关于税务机关代收工会经费和建会筹备金有关事项的通知 (云工通〔2021〕1号) 一: 缴费单位应于季度终了后次月15日内到主管税务机关申报缴纳工会经费和建会筹备金, 第一征期4月1日—15日, 第二征期7月1日—15日, 第三征期10月1日—15日, 第四征期提前至每年12月1日—15日 https://www.ynjc.gov.cn/jcqzfxxgk/zhxx2708/20210709/1268119.html (Read 2026-10-08); 国家税务总局云南省税务局关于切换工会经费和建会筹备金征收渠道的通告 (2021年8月26日): 在每年固定的四个征期内申报缴纳, 非征期内不再受理申报 https://www.hhlx.gov.cn/info/3201/277421.htm (Read 2026-10-08); 中国工会章程 第三十八条第二款 (2%). A unit with a union stays on the monthly UNION_FUND_REMITTANCE (owner ruling 2026-10-07)."
-			}
-		],
-		"rules": {
-			"description": "A Kunming unit without a union declares and pays the 2% preparatory fund to the tax bureau in the collection period after the quarter: 1–15 April, July and October; the fourth quarter by 15 December.",
-			"schemes": ["UNION_FUND"],
-			"applies_when": "(company != null && company.region in rules.regions.by_region) && rules.regions.by_region[company.region].union_fund.preparatory == \"NO_UNION\" && !(has(company.facts.union_established) && company.facts.union_established == true)",
-			"due": "int(period.from.substring(5, 7)) >= 10 ? period.from.substring(0, 4) + \"-12-15\" : add_days(add_months(month_start(period.from), ((int(period.from.substring(5, 7)) - 1) / 3 + 1) * 3 - int(period.from.substring(5, 7)) + 1), 14)"
-		}
-	},
-	{
-		"id": "f466a089-4b4a-4de1-962f-aae4d9c6c356",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WAGE_STATEMENT",
-		"name": "Payslip to each employee",
-		"references": [
-			{
-				"title": "工资支付暂行规定 第六条第三款: 用人单位在支付工资时应向劳动者提供一份其个人的工资清单; 昆明市工资支付条例 第十二条; 上海市企业工资支付办法 第五条."
-			}
-		],
-		"rules": {
-			"description": "Give each employee a written statement of the wage paid (items, deductions, amount) with the payment.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "(row != null && has(row.pay_date) && row.pay_date != null && row.pay_date != \"\" ? string(row.pay_date) : period.to)"
-		}
-	},
-	{
-		"id": "47c87747-257b-4f52-906f-78be535d783d",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WAGE_RECORDS_RETENTION",
-		"name": "Wage payment records kept",
-		"references": [
-			{
-				"title": "工资支付暂行规定 第六条第二款: 书面记录支付劳动者工资的数额、时间、领取者的姓名以及签字, 并保存两年以上备查; 保障农民工工资支付条例 (国务院令第724号) 第十五条: 工资支付台账应当至少保存3年.",
-				"url": "https://www.gov.cn/zhengce/content/2020-01/07/content_5467278.htm"
-			}
-		],
-		"rules": {
-			"description": "Keep the wage payment record (amounts, dates, names and signatures) for inspection: at least 2 years, 3 years for the wage ledger where the employer employs migrant workers (`employs_migrant_workers`).",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"due": "add_years(period.to, has(company.facts.employs_migrant_workers) && company.facts.employs_migrant_workers == true ? 3 : 2)"
-		}
-	},
-	{
-		"id": "e6bda35a-9c48-4996-bbcb-feef177f576e",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "UNION_NOTICE_UNILATERAL",
-		"name": "Notify the union before a unilateral termination",
-		"references": [
-			{
-				"title": "劳动合同法 第四十三条: 用人单位单方解除劳动合同, 应当事先将理由通知工会; 用人单位违反法律、行政法规规定或者劳动合同约定的, 工会有权要求用人单位纠正."
-			}
-		],
-		"rules": {
-			"description": "Before terminating unilaterally (第三十九条 fault dismissal, 第四十条 incapacity), notify the union of the reasons and consider its opinion.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract != null && contract.exit_ground in [\"EMPLOYER_FAULT_DISMISSAL\", \"INCAPACITY\"]",
-			"due": "exit_on"
-		}
-	},
-	{
-		"id": "f87de625-b4da-4f2f-8b41-24687fa73c76",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "HPF_BASE_ANNUAL_ADJUSTMENT",
-		"name": "Housing provident fund annual base adjustment",
-		"references": [
-			{
-				"title": "住房公积金管理条例 第十六条: 职工住房公积金的月缴存额为职工本人上一年度月平均工资乘以职工住房公积金缴存比例; 上海 2026年度 基数调整自2026年7月开始 (沪公积金 2026年度通知); 昆明 缴存年度为1月1日至12月31日 (昆明市住房公积金管理中心 2026-01-04 通告)."
-			}
-		],
-		"rules": {
-			"description": "Adjust each employee's housing provident fund base once a year to the prior year's monthly average wage, before that month's remittance: Shanghai from 1 July, Kunming from 1 January.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"applies_when": "(company != null && company.region in rules.regions.by_region) && period.from.substring(5, 7) == rules.regions.by_region[company.region].hpf_base_adjustment_month",
-			"due": "add_days((row != null && has(row.pay_date) && row.pay_date != null && row.pay_date != \"\" ? string(row.pay_date) : period.to), 5)"
-		}
-	},
-	{
-		"id": "5cfc59ee-b1e4-430b-84dd-76ac041c8597",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SAD_RECORD_RETENTION",
-		"name": "Special-deduction information forms kept 5 years",
-		"references": [
-			{
-				"title": "个人所得税专项附加扣除操作办法（试行）(国家税务总局公告2022年第7号) 第二十四条: 纳税人报送给扣缴义务人的《扣除信息表》, 扣缴义务人应当自预扣预缴年度的次年起留存五年."
-			}
-		],
-		"rules": {
-			"description": "Keep the employees' special-additional-deduction information forms (扣除信息表) for the previous year for five years from the following year. Raised on the January run.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["01"],
-			"due": "add_days(add_years(period.from, 5), -1)"
-		}
-	},
-	{
-		"id": "b9c13b1f-e63f-49a2-ab77-21a08d810fd9",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "IIT_RECONCILIATION_RECORDS",
-		"name": "Reconciliation records kept 5 years",
-		"references": [
-			{
-				"title": "个人所得税综合所得汇算清缴管理办法 (国家税务总局令第57号) 第十四条第二项 (单位代为办理须经纳税人确认), 第十六条第三款 (信息资料自汇算清缴期结束之日起留存5年)"
-			}
-		],
-		"rules": {
-			"description": "Where the employer filed the annual reconciliation for employees who confirmed it, keep the income, deduction and relief records for five years from the end of the reconciliation period (30 June). Raised on the June run.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["06"],
-			"due": "add_years(month_end(period.from), 5)"
-		}
-	},
-	{
-		"id": "ddbdb8f6-2b94-427c-9a40-4522866f53f6",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "DISABLED_EMPLOYMENT_FUND",
-		"name": "Disabled persons' employment security fund declaration",
-		"references": [
-			{
-				"title": "残疾人就业保障金征收使用管理办法 (财税〔2015〕72号) 第八条、第九条 (比例1.5%); 财政部《关于延续实施残疾人就业保障金优惠政策的公告》(财政部公告2023年第98号: 至2027年12月31日, 安排比例1%以上按50%缴纳, 1%以下按90%缴纳; 在职职工总数30人以下的企业暂免); 上海市残疾人就业保障金征收使用管理实施办法; 国家税务总局上海市税务局《2025年度残疾人就业保障金缴费指南》(申报至2026年10月31日; 工资高于社平工资2倍的按2倍) https://shanghai.chinatax.gov.cn/tax/xwdt/ztzl/zcgll/cjrbzj/jfzy/202608/t481322.html. 残疾人就业保障金征收使用管理办法 (财税〔2015〕72号); 财政部公告2023年第98号; 云南省 2025年度 残疾人按比例就业情况联网认证 3月1日至10月31日, 9月至11月申报缴纳 (个旧市人民政府通告) https://www.hhgj.gov.cn/info/6711/587781.htm."
-			}
-		],
-		"rules": {
-			"description": "Declare the prior year's disabled-employee ratio and pay the fund in the city's month (`disabled_fund_month`): (prior-year average headcount × 1.5% − disabled employees) × prior-year average wage (capped at 2× the local average); at least 1% disabled pays 50%, under 1% pays 90% (to 2027-12-31); 30 or fewer employees are exempt.",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"applies_when": "(company != null && company.region in rules.regions.by_region) && period.from.substring(5, 7) == rules.regions.by_region[company.region].disabled_fund_month && headcount > 30",
-			"due": "month_end(period.from)"
-		}
-	},
-	{
 		"id": "befe7cc3-b95a-447a-b5a9-ec228595c8a5",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "PROBATION_LENGTH",
 		"name": "Probation length (试用期期限)",
 		"rules": {
@@ -1161,7 +366,6 @@
 		"id": "7c66d6c7-4e52-4056-b835-b4739ef1ad38",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "PROBATION_WAGE",
 		"name": "Probation wage (试用期工资)",
 		"rules": {
@@ -1176,7 +380,6 @@
 		"id": "d9fad133-b620-4389-a94c-affa50338ac7",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "SI_WAIVER_VOID",
 		"name": "Social insurance waiver is void",
 		"rules": {
@@ -1191,7 +394,6 @@
 		"id": "d3fe444a-0139-4800-8dc4-d69d8115d620",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "PART_TIME_HOURS",
 		"name": "Part-time hours (非全日制 4 h a day, 24 h a week)",
 		"rules": {
@@ -1206,7 +408,6 @@
 		"id": "47d3c64c-a808-45b5-9240-0bb66ca4fe41",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "PART_TIME_PAY_CYCLE",
 		"name": "Part-time pay cycle at most 15 days",
 		"rules": {
@@ -1221,7 +422,6 @@
 		"id": "7410946e-3ac8-4c98-83c8-9d620143c815",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "WEEKLY_REST",
 		"name": "At least one rest day a week",
 		"rules": {
@@ -1236,7 +436,6 @@
 		"id": "ae04bcf1-2902-40e0-bb7b-6daba507f224",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "MEDICAL_PERIOD_EXHAUSTED",
 		"name": "Medical treatment period exhausted (医疗期满)",
 		"rules": {
@@ -1251,7 +450,6 @@
 		"id": "fa295c72-8da5-46b9-852c-86eed5ccbf6d",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "WORK_INJURY_LEAVE_12_MONTHS",
 		"name": "Work-injury paid leave beyond 12 months",
 		"rules": {
@@ -1266,7 +464,6 @@
 		"id": "1cc74001-574f-402e-90b6-2926a8bb14f7",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "TERMINATION_PROTECTED",
 		"name": "Termination of a protected employee (第四十二条)",
 		"rules": {
@@ -1281,7 +478,6 @@
 		"id": "b3e36e7e-4066-4bea-a7ba-7eac95eb2e77",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "RETIREMENT_AGE_REACHED",
 		"name": "Statutory retirement age reached",
 		"rules": {
@@ -1296,7 +492,6 @@
 		"id": "5b227d15-682b-40b4-82ba-ae81bbceb2ba",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "PREGNANT_NURSING_OVERTIME",
 		"name": "Overtime or night work for a pregnant (7 months+) or nursing employee",
 		"rules": {
@@ -1311,7 +506,6 @@
 		"id": "dfc14329-087c-4d80-876d-05a33f5333d5",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "WAGE_PAID_LATE",
 		"name": "Wages paid after the agreed pay day",
 		"rules": {
@@ -1326,7 +520,6 @@
 		"id": "4ac03854-2544-4072-89a2-ae9abed27fc8",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_OVERTIME_DAILY",
 		"name": "More than 3 hours of overtime on a working day",
 		"rules": {
@@ -1342,7 +535,6 @@
 		"id": "b8ee78c3-1fc1-48bd-a433-042093bd74e0",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_UNRECORDED_OVERTIME",
 		"name": "Planned shift over 8 hours: the excess is not paid as overtime",
 		"rules": {
@@ -1358,7 +550,6 @@
 		"id": "4ffa62d8-8b2b-4500-b5f0-047d8d46b008",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_WEEKLY_REST",
 		"name": "Seven consecutive worked days without a rest day",
 		"rules": {
@@ -1373,7 +564,6 @@
 		"id": "ff975637-8969-4cbe-9f0b-f5832618910e",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_PART_TIME_WEEK",
 		"name": "A part-time employee worked over 24 hours in seven days",
 		"rules": {
@@ -1388,7 +578,6 @@
 		"id": "b2518034-bf22-4674-a8be-0f43b8f21e95",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_PREGNANT_NURSING",
 		"name": "Overtime or night work for an employee 7+ months pregnant or nursing an infant under 1",
 		"rules": {
@@ -1403,7 +592,6 @@
 		"id": "776ea763-5fc3-4a6f-b922-2ef67d85a69d",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_CHILD_LABOUR",
 		"name": "A person under 16 may not be employed (劳动法 第十五条); record the approval of an arts, sports or special-crafts unit if it applies",
 		"rules": {
@@ -1418,7 +606,6 @@
 		"id": "5c30f6bd-a9f9-4e55-b08f-a5149d3e261b",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "PROBATION_ONCE",
 		"name": "One probation per employee",
 		"rules": {
@@ -1433,7 +620,6 @@
 		"id": "5df6ba49-9636-41ee-aef2-f3dfb1437290",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "OPEN_ENDED_REQUIRED",
 		"name": "Open-ended contract required",
 		"rules": {
@@ -1448,7 +634,6 @@
 		"id": "d610d6b1-c76e-4f2d-92ba-f3d8a7ff70ae",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "LIVING_ALLOWANCE_NOT_RECORDED",
 		"name": "Stoppage living allowance not recorded",
 		"rules": {
@@ -1463,7 +648,6 @@
 		"id": "98a04669-011b-4d7b-b48e-cc7fc6fa2e25",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "DISABILITY_ALLOWANCE_SI_BASE",
 		"name": "伤残津贴 is the contribution base",
 		"rules": {
@@ -1477,8 +661,7 @@
 	{
 		"id": "af7a02dc-329d-49be-ba6a-95d1c46ca87f",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "public_holidays",
 		"name": "National public holidays (全国年节及纪念日)",
 		"references": [
@@ -1740,8 +923,7 @@
 	{
 		"id": "71b373c7-6c93-4707-9fb2-5e8e9eae332a",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "record_retention",
 		"name": "Personal-data retention after exit",
 		"references": [
@@ -1754,33 +936,9 @@
 		}
 	},
 	{
-		"id": "baa2029c-da8b-4951-94d4-aa8111eb8691",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PERSONAL_DATA_DISPOSAL",
-		"name": "Delete a former employee's personal information",
-		"references": [
-			{
-				"title": "Personal data of a former employee is kept to the end of the 10th year after the exit year — the longest retention of the records that need it: 税收征收管理法实施细则 第二十九条 (账簿、记账凭证、报表、完税凭证…其他有关涉税资料应当保存10年) https://fgk.chinatax.gov.cn/zcfgk/c100010/c5195082/content.html. Shorter: 劳动合同法 第五十条 (contract text 2 years), 保障农民工工资支付条例 第十五条 (wage ledger 3), 专项附加扣除 records 5. The payroll vouchers are accounting archives kept 30 years from the end of their year (会计档案管理办法 第十四条, ACCOUNTING_VOUCHER_RETENTION): the payslips keep their amounts after anonymisation. 个人信息保护法 第十九条 (最短时间), 第四十七条 (保存期限届满应当删除) https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm."
-			}
-		],
-		"rules": {
-			"description": "Once the 10-year tax-record retention has run (the end of the 10th year after the exit year), anonymise the former employee.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"due": "string(int(exit_on.substring(0, 4)) + 10) + \"-12-31\""
-		}
-	},
-	{
 		"id": "a46b2554-b66a-4d9e-b2a4-20c711d2ff2a",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "EXPORTS",
-		"scope": "JURISDICTION",
 		"code": "IIT_WITHHOLDING_RETURN",
 		"name": "个人所得税扣缴申报表 (IIT withholding return)",
 		"references": [
@@ -1964,8 +1122,7 @@
 	{
 		"id": "3b506566-7df2-54db-8d2c-52fc51a608ec",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "exit_grounds",
 		"name": "Exit grounds",
 		"rules": {
@@ -2025,8 +1182,7 @@
 	{
 		"id": "d4c8b781-af6c-5516-80fa-df95cebfd3be",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "PAYROLL",
-		"scope": "JURISDICTION",
+		"family": "PARAMETERS",
 		"code": "holiday_kinds",
 		"name": "Holiday kinds",
 		"rules": {
@@ -2052,294 +1208,9 @@
 		}
 	},
 	{
-		"id": "48e107ea-b10d-4e68-943b-eedd4b4ed2cf",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PI_PROCESSING_NOTICE",
-		"name": "Personal-information notice to the new employee",
-		"references": [
-			{
-				"title": "个人信息保护法 第十七条、第三十条; 第十三条第一款第(二)项 (人力资源管理所必需的处理不需同意, 但告知不免除).",
-				"url": "https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm"
-			}
-		],
-		"rules": {
-			"description": "Before processing a new employee's personal information, tell them who processes it, for what purpose and how, which kinds, how long it is kept, and how to exercise their rights; for sensitive information also its necessity and effect.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "hired_on"
-		}
-	},
-	{
-		"id": "bb2117f8-688a-4641-b0aa-e57a34d74af8",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SENSITIVE_PI_CONSENT",
-		"name": "Separate consent and impact assessment for sensitive personal information",
-		"references": [
-			{
-				"title": "个人信息保护法 第二十八条 (医疗健康、金融账户、不满十四周岁未成年人的个人信息为敏感个人信息), 第二十九条 (单独同意), 第五十五条第(一)项 (事前个人信息保护影响评估)",
-				"url": "https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm"
-			}
-		],
-		"rules": {
-			"description": "Obtain the employee's separate consent and record a personal-information impact assessment before processing sensitive information — health data (medical certificates), bank accounts, and the data of children under 14 for the special deductions.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"due": "hired_on"
-		}
-	},
-	{
-		"id": "7729a41b-801f-482a-898b-2271ebe8a3d1",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SENSITIVE_PI_CONSENT_MEDICAL",
-		"name": "Separate consent for a medical certificate",
-		"references": [
-			{
-				"title": "个人信息保护法",
-				"locator": "第二十八条、第二十九条",
-				"url": "https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm"
-			}
-		],
-		"rules": {
-			"description": "A sick-leave or work-injury record carries health data: hold the employee's separate consent for it.",
-			"trigger": {
-				"collection": "leave_catalog_entry",
-				"events": ["created"]
-			},
-			"when": "row != null && has(row.catalog_code) && row.catalog_code in [\"SICK_LEAVE\", \"WORK_INJURY_LEAVE\", \"MATERNITY_LEAVE\"]",
-			"due": "row.occurred_on"
-		}
-	},
-	{
-		"id": "d4c1f50a-6783-4c12-9318-cc259b15998e",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "CROSS_BORDER_HR_TRANSFER",
-		"name": "Notice and separate consent for an HR transfer abroad",
-		"references": [
-			{
-				"title": "促进和规范数据跨境流动规定 (2024) 第五条第(二)项, 第十条",
-				"url": "https://www.cac.gov.cn/2024-03/22/c_1712776611775634.htm"
-			},
-			{
-				"title": "个人信息保护法 第三十八条、第三十九条、第五十五条第(四)项",
-				"url": "https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm"
-			}
-		],
-		"rules": {
-			"description": "An entity that sends employee data to an overseas group (`transfers_hr_data_abroad`) for cross-border HR management under its labour rules is exempt from the security assessment, standard contract and certification, but must still tell the employee the recipient and purpose, obtain separate consent and record an impact assessment.",
-			"trigger": {
-				"collection": "entity",
-				"events": ["updated"],
-				"fields": ["facts"]
-			},
-			"when": "company != null && has(company.facts.transfers_hr_data_abroad) && company.facts.transfers_hr_data_abroad == true && row != null && has(row.before) && row.before != null && \"facts\" in row.before",
-			"due": "add_days(today, 0)"
-		}
-	},
-	{
-		"id": "c8301bd2-fa30-4143-9834-ec8f5f927dbe",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "PI_COMPLIANCE_AUDIT",
-		"name": "Periodic personal-information compliance audit",
-		"references": [
-			{
-				"title": "个人信息保护法 第五十四条: 个人信息处理者应当定期对其处理个人信息遵守法律、行政法规的情况进行合规审计 https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm; 个人信息保护合规审计管理办法 (自2025年5月1日, 国家网信办答记者问) https://www.cac.gov.cn/2025-02/14/c_1741232791991016.htm."
-			}
-		],
-		"rules": {
-			"description": "Audit the entity's personal-information processing against the law; raised each December as the periodic cadence (the measures fix every two years only for processors of more than 10 million people).",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["12"],
-			"due": "month_end(period.from)"
-		}
-	},
-	{
-		"id": "29b6aa78-66d3-49f5-87bf-4764615201aa",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "WORK_PERMIT_CANCELLATION",
-		"name": "Report the foreign employee's exit and return the permits",
-		"references": [
-			{
-				"title": "外国人在中国就业管理规定 (2017年修订) 第二十条: 被聘用的外国人与用人单位的劳动合同被解除后, 该用人单位应及时报告劳动、公安部门, 交还该外国人的就业证和居留证件, 并到公安机关办理出境手续.",
-				"url": "https://fgw.sh.gov.cn/cmsres/75/75595febc86042fc97aa5a0490cd85c1/eaa2d9be3646a526329e2f72e7e01207.pdf"
-			}
-		],
-		"rules": {
-			"description": "When a foreign employee's labour contract ends, report to the labour and public security authorities, return the work permit and residence document, and arrange the exit formalities.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["updated"],
-				"fields": ["exit_facts", "effective_range"]
-			},
-			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "employee != null && employee.nationality != null && employee.nationality != \"\" && !(employee.nationality in [\"CN\", \"HK\", \"MO\", \"TW\"])",
-			"due": "exit_on"
-		}
-	},
-	{
-		"id": "44962cae-ace0-459f-9269-c53924801276",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "JUVENILE_WORKER_REGISTRATION",
-		"name": "Register a juvenile worker and the pre-job health check",
-		"references": [
-			{
-				"title": "未成年工特殊保护规定 (劳部发〔1994〕498号) 第二条, 第六条第(一)项, 第九条"
-			},
-			{
-				"title": "劳动法",
-				"locator": "第五十八条、第六十五条",
-				"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
-			}
-		],
-		"rules": {
-			"description": "A worker aged 16–17 at hire: register with the county labour authority (未成年工登记证) and have the health check before the post is assigned.",
-			"trigger": {
-				"collection": "employment_contract",
-				"events": ["created"]
-			},
-			"applies_when": "employee != null && has(employee.date_of_birth) && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, hired_on) >= 16 && age_on(employee.date_of_birth, hired_on) < 18",
-			"due": "hired_on"
-		}
-	},
-	{
-		"id": "c1fc0935-435d-45d6-aacd-d4961165e47f",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "JUVENILE_WORKER_ANNUAL_CHECK",
-		"name": "Juvenile worker health check after a year of work",
-		"references": [
-			{
-				"title": "未成年工特殊保护规定 第六条第(二)项",
-				"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
-			}
-		],
-		"rules": {
-			"description": "A juvenile worker still under 18 on the first anniversary of hire: the health check after one year of work.",
-			"trigger": {
-				"collection": "calendar",
-				"events": ["daily"]
-			},
-			"when": "today == add_years(hired_on, 1) && employee != null && employee.date_of_birth != null && employee.date_of_birth != \"\" && age_on(employee.date_of_birth, today) < 18",
-			"due": "today"
-		}
-	},
-	{
-		"id": "e42d3eb9-7351-479b-a423-b2ac58a81180",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "OPEN_ENDED_CONTRACT_RIGHT",
-		"name": "Open-ended contract on the employee's request after 10 years",
-		"references": [
-			{
-				"title": "劳动合同法 第十四条第二款第(一)项",
-				"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
-			}
-		],
-		"rules": {
-			"description": "Ten years of continuous service on a fixed-term contract: if the employee asks for or agrees to a renewal, conclude an open-ended contract unless they ask for a fixed term. A reminder on the anniversary; the OPEN_ENDED_REQUIRED validation refuses a fixed-term renewal after 10 years or two consecutive fixed terms.",
-			"trigger": {
-				"collection": "calendar",
-				"events": ["daily"]
-			},
-			"when": "today == add_years(hired_on, 10) && contract != null && has(contract.effective_range) && contract.effective_range.to != null",
-			"due": "today"
-		}
-	},
-	{
-		"id": "7c2a2abf-9ebf-4bad-a88c-c2eae7f6c4d8",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "SI_LATE_SURCHARGE",
-		"name": "Social insurance paid late: the 0.05% daily surcharge",
-		"references": [
-			{
-				"title": "社会保险法 第八十六条: 自欠缴之日起, 按日加收万分之五的滞纳金; 社会保险费征缴暂行条例 第二十条.",
-				"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
-			}
-		],
-		"rules": {
-			"description": "The social insurance remittance was settled after its due day: pay the surcharge of 0.05% of the amount for each day from the due day; it may not be charged to employees.",
-			"trigger": {
-				"collection": "obligation",
-				"events": ["updated"],
-				"fields": ["fulfilled_on"]
-			},
-			"when": "row != null && has(row.duty_code) && row.duty_code == \"SI_MONTHLY_PAYMENT\" && has(row.fulfilled_on) && row.fulfilled_on != null && row.fulfilled_on > row.due_on",
-			"due": "row.fulfilled_on"
-		}
-	},
-	{
-		"id": "e3cc7678-c2c0-4eff-914f-cabfecec1acb",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "TASKS",
-		"scope": "JURISDICTION",
-		"code": "ACCOUNTING_VOUCHER_RETENTION",
-		"name": "Keep the year's payroll vouchers 30 years",
-		"references": [
-			{
-				"title": "会计档案管理办法 (财政部 国家档案局令第79号) 第十四条 and 附表 (会计凭证 30年)",
-				"url": "https://www.gov.cn/zhengce/2015-12/11/content_5717189.htm"
-			}
-		],
-		"rules": {
-			"description": "The payroll sheets and vouchers of the accounting year are kept 30 years from its end (accounting archive, outside the personal-data retention).",
-			"trigger": {
-				"collection": "payroll_run",
-				"events": ["created"]
-			},
-			"months": ["12"],
-			"due": "string(int(period.from.substring(0, 4)) + 30) + \"-12-31\""
-		}
-	},
-	{
-		"id": "72e64635-5be4-454a-a74a-e6e15184d3f1",
-		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"family": "OBLIGATIONS",
-		"scope": "JURISDICTION",
-		"code": "DISABLED_EMPLOYMENT_FUND_PAYMENT",
-		"name": "Disabled persons' employment security fund",
-		"references": [
-			{
-				"title": "残疾人就业保障金征收使用管理办法 (财税〔2015〕72号) 第八条、第九条; 残疾人就业保障金征收使用管理办法 (财税〔2015〕72号) 第八条、第九条; 财政部公告2023年第98号 (至2027年12月31日: 1%以上按50%, 1%以下按90%; 30人以下暂免); 云南省 残疾人按比例就业 联网认证 and 申报缴纳.",
-				"url": "https://www.hhgj.gov.cn/info/6711/587781.htm"
-			}
-		],
-		"rules": {
-			"description": "(prior-year average headcount × 1.5% − disabled employees) × the prior-year average wage, capped at 2× the local average; 50% where the disabled ratio is at least 1%, 90% under it (to 2027-12-31); none at 30 or fewer employees. Entity facts: prior_year_average_headcount, prior_year_disabled_employees, prior_year_average_wage, local_average_annual_wage.",
-			"schemes": [],
-			"applies_when": "(company != null && company.region in rules.regions.by_region) && period.from.substring(5, 7) == rules.regions.by_region[company.region].disabled_fund_month",
-			"amount": "(has(company.facts.prior_year_average_headcount) && has(company.facts.prior_year_average_wage) && has(company.facts.local_average_annual_wage) && double(company.facts.prior_year_average_headcount) > 30.0) ? round(max(0.0, double(company.facts.prior_year_average_headcount) * 0.015 - (has(company.facts.prior_year_disabled_employees) ? double(company.facts.prior_year_disabled_employees) : 0.0)) * min(double(company.facts.prior_year_average_wage), 2.0 * double(company.facts.local_average_annual_wage)) * ((has(company.facts.prior_year_disabled_employees) ? double(company.facts.prior_year_disabled_employees) : 0.0) / double(company.facts.prior_year_average_headcount) >= 0.01 ? 0.5 : 0.9), 0.01, \"HALF_UP\") : 0.0",
-			"due": "month_end(period.from)"
-		}
-	},
-	{
 		"id": "22e14a78-f229-5543-9434-d31919cf1b52",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
-		"scope": "JURISDICTION",
-		"family": "PAYROLL",
+		"family": "PARAMETERS",
 		"code": "salary_report",
 		"name": "Salary report grouping and company payments",
 		"rules": {
@@ -2384,7 +1255,6 @@
 		"id": "ce3dad3b-3413-584c-95f4-338dcc7eb994",
 		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
 		"family": "VALIDATIONS",
-		"scope": "JURISDICTION",
 		"code": "ROSTER_PATTERN_CYCLE",
 		"name": "Roster keeps its pattern cycle",
 		"rules": {
@@ -2393,6 +1263,19 @@
 			"when": "cycle.planned.WORK != cycle.expected.WORK || cycle.planned.REST != cycle.expected.REST || cycle.planned.OFF != cycle.expected.OFF",
 			"message": "Swap days inside the cycle instead.",
 			"description": "A roster swap moves a day inside its shift pattern cycle; it never adds a work day or drops a rest or off day. Severity follows entity.validation_severity."
+		}
+	},
+	{
+		"id": "ef53aae9-99c2-5ce1-8bc0-84189b413d46",
+		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
+		"family": "VALIDATIONS",
+		"code": "PAYROLL_RUN_KINDS",
+		"name": "PAYROLL_RUN_KINDS",
+		"rules": {
+			"site": "payroll_run",
+			"kind": "allow",
+			"when": "run.kind in [\"REGULAR\", \"OFF_CYCLE\"]",
+			"message": "The jurisdiction admits regular and off-cycle payroll runs."
 		}
 	}
 ]

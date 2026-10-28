@@ -20,7 +20,7 @@ import { severityOf, type Severity } from '../admit.js';
 import { reconcileAdditionalWages } from './additional_wages.js';
 
 export const CARRY_FAMILY = 'STATUTORY_CARRY';
-/** The adjustment families of an exit's own pay (`raise_on_exit`) and of a paid period repriced after its exit moved. */
+/** The adjustment families of an exit's own pay (raised by the exit behaviour) and of a paid period repriced after its exit moved. */
 
 const ContributionAmounts = Schema.Struct({
 	employee: Schema.Number,
