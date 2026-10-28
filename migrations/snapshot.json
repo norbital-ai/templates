@@ -540,7 +540,9 @@
 			"nativeRules": 2,
 			"search": {
 				"text": [
-					"job_title"
+					"job_title",
+					"job_number",
+					"project_id"
 				]
 			}
 		},
@@ -873,7 +875,8 @@
 			"nativeRules": 2,
 			"search": {
 				"text": [
-					"project_name"
+					"project_name",
+					"project_number"
 				]
 			}
 		},
@@ -1031,6 +1034,7 @@
 			"nativeRules": 2,
 			"search": {
 				"text": [
+					"location_code",
 					"location_name"
 				]
 			}
@@ -1039,7 +1043,7 @@
 			"fields": {
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -1118,7 +1122,7 @@
 			"fields": {
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -1198,7 +1202,7 @@
 				},
 				"updated_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				}
@@ -1222,7 +1226,7 @@
 				},
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -1550,7 +1554,7 @@
 				},
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -2126,7 +2130,7 @@
 				},
 				"started_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -2262,7 +2266,7 @@
 				},
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -2388,7 +2392,8 @@
 			"nativeRules": 2,
 			"search": {
 				"text": [
-					"worker_name"
+					"worker_name",
+					"worker_number"
 				]
 			}
 		}

@@ -104,7 +104,10 @@ export default model('job_assignments', {
 		site_location_id: { kind: 'ref', to: 'site_locations', inverse: 'job_assignments' }
 	},
 	search: { text: ['assignment_code'] },
-	read: 'all',
+	read: {
+		job_assignments: { fields: 'all' },
+		'job_assignments.site_location_id': { fields: ['project_id'] }
+	},
 	create: {
 		columns: { job_assignments: columns },
 		transform: function* (rows, ctx) {

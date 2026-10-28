@@ -3,7 +3,6 @@
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import { Field, Section, type RecordView } from '@norbital-ai/ui';
 	import RecordForm from '../../../lib/record-form.svelte';
-	import RefField from '../../../lib/ref-field.svelte';
 	let {
 		view
 	}: {
@@ -19,7 +18,7 @@
 			<Field name="reference_name" />
 			<Field name="reference_code" />
 			{#if view.mode !== 'create' || view.values.project_id == null}
-				<RefField name="project_id" ref="project" />
+				<Field name="project_id" />
 			{/if}
 			<Field name="category" />
 			<Field name="subcategory" />
@@ -38,7 +37,7 @@
 		name="specification"
 		title={t('section.specification')}
 		defaultOpen={false}
-		summary={record?.['bim_guid'] || record?.['data_source'] || t('component.not_set')}
+		summary={record?.['specification'] || record?.['data_source'] || t('component.not_set')}
 	>
 		<Grid minimum="compact">
 			<Column span="all"><Field name="specification" /></Column>

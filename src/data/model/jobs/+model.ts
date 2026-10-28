@@ -47,8 +47,11 @@ export default model('jobs', {
 			onDelete: 'setNull'
 		}
 	},
-	search: { text: ['job_title'] },
-	read: 'all',
+	search: { text: ['job_title', 'job_number', 'project_id'] },
+	read: {
+		jobs: { fields: 'all' },
+		'jobs.project_id': { fields: ['project_name', 'project_number'] }
+	},
 	create: { columns: { jobs: columns } },
 	update: { columns: { jobs: columns } }
 });

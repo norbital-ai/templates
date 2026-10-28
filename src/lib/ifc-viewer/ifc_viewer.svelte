@@ -3,7 +3,7 @@
 	import Icon from '@iconify/svelte';
 	import { Effect, Schema } from 'effect';
 	import { Button, cn } from '@norbital-ai/ui';
-	import { Bound, Imposter, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Grid, Imposter, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { watch } from 'runed';
 	import { convertIfcToFragments } from './ifc_viewer.converter.js';
 	import {
@@ -83,11 +83,9 @@
 		}).pipe(Effect.catch(() => Effect.succeed(rawUrl)));
 	}
 	type SelectedItem = {
-		modelId: string;
-		id: number;
 		title: string;
 		subtitle: string | null;
-		properties: string;
+		properties: readonly { readonly name: string; readonly value: string }[];
 	};
 	type LoadBanner =
 		| 'none'
@@ -275,23 +273,18 @@
 		}
 		return null;
 	}
-	function buildSelectedItem(
-		modelId: string,
-		id: number,
-		properties: ViewerItemData | null
-	): SelectedItem {
+	function buildSelectedItem(properties: ViewerItemData | null): SelectedItem {
 		const name = readPropertyValue(properties, 'Name');
 		const entityType = readPropertyValue(properties, 'type');
-		const globalId = readPropertyValue(properties, 'GlobalId');
-		const subtitleParts = [entityType, globalId ? `Global ID ${globalId}` : null].filter(
-			(part): part is string => part != null
-		);
 		return {
-			modelId,
-			id,
-			title: name ?? `Element #${id}`,
-			subtitle: subtitleParts.length > 0 ? subtitleParts.join(' • ') : null,
-			properties: JSON.stringify(properties, null, 2)
+			title: name ?? entityType ?? t('component.ifc_element'),
+			subtitle: name == null ? null : entityType,
+			// the element's named attributes; `_`-prefixed engine keys and the GlobalId are identifiers, not facts
+			properties: Object.keys(properties ?? {}).flatMap((key) => {
+				const value =
+					key.startsWith('_') || key === 'GlobalId' ? null : readPropertyValue(properties, key);
+				return value == null ? [] : [{ name: key, value }];
+			})
 		};
 	}
 	function clearMarkerVisualization(runtime: IFCViewerRuntime) {
@@ -580,7 +573,7 @@
 					}))[0]
 				: null;
 			if (viewer !== runtime) return;
-			selectedItem = buildSelectedItem(modelId, id, properties ?? null);
+			selectedItem = buildSelectedItem(properties ?? null);
 		});
 	}
 	function handleKeydown(event: KeyboardEvent): void {
@@ -670,13 +663,6 @@
 										<span class="block truncate text-[11px] text-muted-foreground">
 											{item.subtitle}
 										</span>
-									{:else}
-										<span class="block truncate text-[11px] text-muted-foreground">
-											{t('component.ifc_element_line', {
-												modelId: item.modelId,
-												elementId: item.id
-											})}
-										</span>
 									{/if}
 								</div>
 								<Icon
@@ -706,9 +692,14 @@
 								<Scroll
 									axis="both"
 									name="Selected element properties"
-									class="max-h-80 rounded-md bg-muted/50 p-3 text-[11px] wrap-break-word whitespace-pre-wrap text-muted-foreground"
+									class="max-h-80 rounded-md bg-muted/50 p-3 text-[11px] wrap-break-word text-muted-foreground"
 								>
-									<pre>{item.properties}</pre>
+									<Grid as="dl" tracks="minmax(6rem, 12rem) 1fr" gap="sm" rowGap="xs">
+										{#each item.properties as property (property.name)}
+											<dt>{property.name}</dt>
+											<dd class="text-foreground">{property.value}</dd>
+										{/each}
+									</Grid>
 								</Scroll>
 							</div>
 						{/if}

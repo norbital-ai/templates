@@ -16,7 +16,7 @@ const columns = [
 export default model('workers', {
 	description: 'Worker roster used for job assignment and compliance checks.',
 	icon: 'lucide:users',
-	label: 'worker_name',
+	label: ['worker_number', 'worker_name'],
 	fields: {
 		worker_name: { kind: 'text' },
 		worker_number: { kind: 'text', optional: true, unique: true },
@@ -31,7 +31,7 @@ export default model('workers', {
 		medical_check_date: { kind: 'date', optional: true },
 		safety_induction_date: { kind: 'date', optional: true }
 	},
-	search: { text: ['worker_name'] },
+	search: { text: ['worker_name', 'worker_number'] },
 	read: 'all',
 	create: { columns: { workers: columns } },
 	update: { columns: { workers: columns } }
