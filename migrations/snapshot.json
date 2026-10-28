@@ -168,6 +168,7 @@
 				},
 				"starts": {
 					"default": [],
+					"hidden": true,
 					"kind": "text",
 					"many": true
 				},
@@ -327,7 +328,13 @@
 			"index": [
 				"status"
 			],
-			"nativeRules": 2
+			"nativeRules": 2,
+			"search": {
+				"text": [
+					"phone",
+					"address"
+				]
+			}
 		},
 		"bookings": {
 			"audit": true,
@@ -406,7 +413,14 @@
 			"index": [
 				"status"
 			],
-			"nativeRules": 2
+			"nativeRules": 2,
+			"search": {
+				"text": [
+					"number",
+					"customer",
+					"service"
+				]
+			}
 		},
 		"customer_notices": {
 			"audit": true,
@@ -483,7 +497,13 @@
 					"optional": true
 				}
 			},
-			"nativeRules": 2
+			"nativeRules": 2,
+			"search": {
+				"text": [
+					"subject",
+					"visit"
+				]
+			}
 		},
 		"customers": {
 			"audit": true,
@@ -588,6 +608,7 @@
 			"audit": true,
 			"fields": {
 				"leg": {
+					"hidden": true,
 					"kind": "text",
 					"unique": true
 				},
@@ -670,7 +691,14 @@
 			"index": [
 				"issued_at"
 			],
-			"nativeRules": 2
+			"nativeRules": 2,
+			"search": {
+				"text": [
+					"helper",
+					"visit",
+					"reason"
+				]
+			}
 		},
 		"helpers": {
 			"audit": true,
@@ -804,6 +832,7 @@
 					"to": "services"
 				},
 				"starts": {
+					"hidden": true,
 					"kind": "text",
 					"many": true
 				}
@@ -867,13 +896,18 @@
 					]
 				}
 			},
-			"nativeRules": 2
+			"nativeRules": 2,
+			"search": {
+				"text": [
+					"name"
+				]
+			}
 		},
 		"sys_api_key": {
 			"fields": {
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -952,7 +986,7 @@
 			"fields": {
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -1032,7 +1066,7 @@
 				},
 				"updated_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				}
@@ -1056,7 +1090,7 @@
 				},
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -1384,7 +1418,7 @@
 				},
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -1960,7 +1994,7 @@
 				},
 				"started_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -2096,7 +2130,7 @@
 				},
 				"created_at": {
 					"default": {
-						"now": ""
+						"var": "now"
 					},
 					"kind": "instant"
 				},
@@ -2337,7 +2371,15 @@
 						}
 					}
 				}
-			]
+			],
+			"search": {
+				"text": [
+					"number",
+					"address",
+					"helper",
+					"booking"
+				]
+			}
 		}
 	},
 	"tz": "Asia/Singapore"

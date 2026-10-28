@@ -1,10 +1,10 @@
 import { policy, type Actor } from '@norbital-ai/bolt';
 /** The customer record the signed-in member is (bound by their mobile number). */
-const ME = { eq: { actor: 'party' } } as const;
+const ME = { eq: { var: 'requestor.party' } } as const;
 const MINE = { customer: ME } as const;
 const MY_VISITS = { booking: { is: MINE } } as const;
 /** A request is theirs by the number they signed in with. */
-const MY_NUMBER = { phone: { eq: { actor: 'phone' } } } as const;
+const MY_NUMBER = { phone: { eq: { var: 'requestor.phone' } } } as const;
 /** The first request raised under another number than the one the member signed in with; -1 when none. */
 const notMine = (rows: readonly { readonly phone?: string | null }[], actor: Actor) =>
 	rows.findIndex((r) => actor.kind !== 'member' || actor.phone === null || r.phone !== actor.phone);

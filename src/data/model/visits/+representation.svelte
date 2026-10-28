@@ -2,7 +2,14 @@
 	/** A visit, and for dispatch the helpers who could take it instead, best match first, each one click away. */
 	import { bolt } from '$bolt';
 	import { isMasked, type Masked } from '@norbital-ai/bolt';
-	import { type RecordSection, type RecordView, RecordShell, useKinds } from '@norbital-ai/ui';
+	import {
+		type RecordSection,
+		type RecordView,
+		enumText,
+		RecordShell,
+		useBolt,
+		useKinds
+	} from '@norbital-ai/ui';
 	import { Schema } from 'effect';
 	import Recovery from '../../../lib/Recovery.svelte';
 	import { excerpt, useWhen } from '../../../lib/summary.js';
@@ -14,6 +21,9 @@
 	} = $props();
 	const t = bolt.t;
 	const kinds = useKinds();
+	const ui = useBolt();
+	const word = (field: 'attention' | 'shift_check', value: string) =>
+		enumText(value, { t: (key) => ui.t(key), model: 'visits', field });
 	const summaryText = Schema.optionalKey(
 		Schema.Union([Schema.String, Schema.Null, Schema.Undefined, Schema.declare<Masked>(isMasked)])
 	);
@@ -43,9 +53,7 @@
 						title: t('section.attention'),
 						fields: ['attention', 'proposed_slot', 'proposed_helper', 'unavailable_helper'],
 						defaultOpen: !isMasked(record.attention) && record.attention !== 'none',
-						summary: isMasked(record.attention)
-							? ''
-							: t(`models.visits.fields.attention.${record.attention}`)
+						summary: isMasked(record.attention) ? '' : word('attention', record.attention)
 					},
 					{
 						name: 'checks',
@@ -53,9 +61,7 @@
 						fields: ['shift_check', 'shift_asked_at', 'mc', 'eta_minutes', 'eta_checked_at'],
 						defaultOpen: false,
 						summary: [
-							isMasked(record.shift_check)
-								? ''
-								: t(`models.visits.fields.shift_check.${record.shift_check}`),
+							isMasked(record.shift_check) ? '' : word('shift_check', record.shift_check),
 							typeof record.eta_minutes === 'number'
 								? t('component.eta', { minutes: record.eta_minutes })
 								: ''

@@ -31,7 +31,12 @@ export default model('bookings', {
 		visit_count: { kind: 'count', of: 'visits' }
 	},
 	index: ['status'],
-	read: 'all',
+	search: { text: ['number', 'customer', 'service'] },
+	read: {
+		bookings: { fields: 'all' },
+		'bookings.customer': { fields: ['name', 'phone', 'email', 'address'] },
+		'bookings.service': { fields: ['name'] }
+	},
 	create: {
 		columns: {
 			bookings: [

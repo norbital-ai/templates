@@ -5,11 +5,13 @@
 		Button,
 		TimeInput,
 		EmptyState,
+		enumText,
 		Label,
 		Sheet,
 		Textarea,
 		RunStatus,
-		notifyOutcome
+		notifyOutcome,
+		useBolt
 	} from '@norbital-ai/ui';
 	/**
 	 * A helper's day on their phone: the visit under way, the ones still to come with the drive to each from where the
@@ -34,8 +36,12 @@
 			: null
 	);
 	const helper = $derived(me?.current?.helpers.rows[0]);
-	const today = new Intl.DateTimeFormat('en-CA', { timeZone: zone }).format(new Date());
-	let selectedDay = $state(today);
+	const ui = useBolt();
+	const statusWord = (value: 'in_progress' | 'done') =>
+		enumText(value, { t: (key) => ui.t(key), model: 'visits', field: 'status' });
+	const clock = bolt.clock('day');
+	const today = $derived(clock.today);
+	let selectedDay = $state<string>(clock.today);
 	const span = $derived({
 		start: Instant(new Date(utcOf(selectedDay, 0, zone)).toISOString()),
 		end: Instant(new Date(utcOf(addDays(selectedDay, 1), 0, zone)).toISOString())
@@ -233,7 +239,7 @@
 			<Cluster gap="xs" justify="between" align="center">
 				<p class="text-lg font-semibold tabular-nums">{time(v.slot.start)} – {time(v.slot.end)}</p>
 				{#if v.status === 'in_progress'}
-					<Badge variant="info">{t('component.status_in_progress')}</Badge>
+					<Badge variant="info">{statusWord('in_progress')}</Badge>
 				{:else if next && isToday(v.slot.start) && minutes !== null}
 					<!-- the next visit's drive is the one that can make them late; later ones are for planning -->
 					<Badge variant={!next ? 'outline' : minutes > 30 ? 'warning' : 'success'}
@@ -280,18 +286,19 @@
 	title={helper ? t('app.helper.greeting', { name: helper.name }) : t('app.helper.today_title')}
 	description={t('app.helper.today_description')}
 >
+	{#snippet actions()}
+		<Label for="route-date" class="sr-only">{t('app.helper.date')}</Label>
+		<div class="w-40">
+			<TimeInput
+				id="route-date"
+				value={selectedDay}
+				onChange={(day: string | null) => (selectedDay = day ?? today)}
+			/>
+		</div>
+	{/snippet}
 	<Scroll name="today" inset>
 		<Center measure="reading">
 			<Stack gap="lg" class="py-6">
-				<Stack gap="sm">
-					<Label for="route-date">{t('app.helper.date')}</Label>
-					<TimeInput
-						id="route-date"
-						value={selectedDay}
-						onChange={(day: string | null) => (selectedDay = day ?? today)}
-					/>
-				</Stack>
-
 				{#if actor?.kind === 'member' && me?.current !== undefined && helper === undefined}<EmptyState
 						title={t('app.helper.not_a_helper')}
 					/>{/if}
@@ -356,7 +363,10 @@
 						</Cluster>
 						<p class="text-sm text-muted-foreground">{t('app.helper.route_description')}</p>
 						{#if open?.current === undefined}<p>{t('component.loading')}</p>
-						{:else if route.length === 0}<p>{t('app.helper.route_empty')}</p>
+						{:else if route.length === 0}<EmptyState
+								variant="inset"
+								title={t('app.helper.route_empty')}
+							/>
 						{:else}
 							<ol class="route">
 								{#each route as v, i (v.id)}
@@ -392,7 +402,7 @@
 												><p class="text-sm text-muted-foreground">
 													<span class="tabular-nums">{time(v.slot.start)}</span> · {v.address}
 												</p>
-												<Badge variant="success">{t('component.status_done')}</Badge></Cluster
+												<Badge variant="success">{statusWord('done')}</Badge></Cluster
 											>
 										{:else}{@render visitCard(v, state === 'next')}{/if}
 									</li>

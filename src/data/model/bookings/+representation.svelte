@@ -5,6 +5,7 @@
 		useKinds,
 		Button,
 		Combobox,
+		enumText,
 		TimeInput,
 		Label,
 		Picker,
@@ -12,6 +13,7 @@
 		Section,
 		Table,
 		RunStatus,
+		useBolt,
 		type RecordSection,
 		type RecordView
 	} from '@norbital-ai/ui';
@@ -29,7 +31,11 @@
 		view: RecordView<'bookings'>;
 	} = $props();
 	const t = bolt.t;
-	const today = new Intl.DateTimeFormat('en-CA', { timeZone: zone }).format(new Date());
+	const ui = useBolt();
+	const repeatWord = (value: string) =>
+		enumText(value, { t: (key) => ui.t(key), model: 'bookings', field: 'repeat' });
+	const day = bolt.clock('day');
+	const today = $derived<string>(day.today);
 	const REPEATS = ['once', 'weekly', 'fortnightly', 'monthly'] as const;
 	// a stored booking: what was booked, where, and its notes; the preferred helpers sit in a tab of their own
 	const sections: RecordSection[] = [
@@ -58,7 +64,7 @@
 	);
 	let preference = $state<'any' | 'preferred'>('any');
 	let helpers = $state<Id<'helpers'>[]>([]);
-	let from = $state(today);
+	let from = $state<string>(day.today);
 	let start = $state<string | null>(null);
 	let repeat = $state<(typeof REPEATS)[number]>('once');
 	let message = $state<string | null>(null);
@@ -242,7 +248,7 @@
 							value={repeat}
 							options={REPEATS.map((r) => ({
 								value: r,
-								label: t(`component.repeat_${r}`)
+								label: repeatWord(r)
 							}))}
 							onChange={(value) => {
 								if (value !== null) {

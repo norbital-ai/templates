@@ -1,5 +1,14 @@
 <script lang="ts">
-	import { useKinds, Badge, Board, TimeInput, Table, Tabs } from '@norbital-ai/ui';
+	import {
+		useKinds,
+		Badge,
+		Board,
+		enumText,
+		TimeInput,
+		Table,
+		Tabs,
+		useBolt
+	} from '@norbital-ai/ui';
 	/**
 	 * The day's schedule. By helper: one lane per helper, and dragging a visit to another lane reassigns it (the same
 	 * guard as every write: skill, hours, time off and the drive between visits). As a list: row actions to hand a visit
@@ -12,8 +21,12 @@
 	import { AppShell, Cluster, Stack } from '@norbital-ai/ui/layout';
 	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
 	const t = bolt.t;
-	const today = new Intl.DateTimeFormat('en-CA', { timeZone: zone }).format(new Date());
-	let day = $state(today);
+	const ui = useBolt();
+	/** A visit enum value in the catalog's words. */
+	const word = (field: 'status' | 'shift_check' | 'attention', value: string) =>
+		enumText(value, { t: (key) => ui.t(key), model: 'visits', field });
+	const clock = bolt.clock('day');
+	let day = $state<string>(clock.today);
 	/** The chosen workspace day, bounded by its two local midnights. */
 	const span = $derived({
 		start: Instant(new Date(utcOf(day, 0, zone)).toISOString()),
@@ -63,7 +76,7 @@
 
 {#snippet dayPicker()}
 	<div class="w-40">
-		<TimeInput value={day} onChange={(next: string | null) => (day = next ?? today)} />
+		<TimeInput value={day} onChange={(next: string | null) => (day = next ?? clock.today)} />
 	</div>
 {/snippet}
 
@@ -79,15 +92,15 @@
 		<Cluster gap="xs">
 			{#if row.status !== 'scheduled'}
 				<Badge variant={row.status === 'done' ? 'success' : 'info'}
-					>{t(`component.status_${row.status}`)}</Badge
+					>{word('status', row.status)}</Badge
 				>
 			{:else if row.shift_check !== 'not_due'}
 				<Badge variant={row.shift_check === 'confirmed' ? 'success' : 'outline'}
-					>{t(`component.shift_${row.shift_check}`)}</Badge
+					>{word('shift_check', row.shift_check)}</Badge
 				>
 			{/if}
 			{#if row.attention !== 'none'}
-				<Badge variant="warning">{t(`component.attention_${row.attention}`)}</Badge>
+				<Badge variant="warning">{word('attention', row.attention)}</Badge>
 			{/if}
 			{#if row.status === 'scheduled' && row.eta_minutes !== null}
 				<Badge variant="outline">{t('component.eta', { minutes: row.eta_minutes })}</Badge>
@@ -105,7 +118,7 @@
 		{where}
 		{card}
 		orderBy={{ number: 'asc' }}
-		toolbar={{ title: t('app.schedule.by_helper'), controls: dayPicker, new: false }}
+		toolbar={{ title: t('app.schedule.by_helper'), new: false }}
 	/>
 {/snippet}
 
@@ -115,7 +128,7 @@
 		key="list"
 		{where}
 		orderBy={{ number: 'asc' }}
-		toolbar={{ title: t('app.schedule.list'), controls: dayPicker, new: false }}
+		toolbar={{ title: t('app.schedule.list'), new: false }}
 		columns={['number', 'slot', 'helper', 'address', 'status', 'shift_check', 'eta_minutes']}
 		actions={[
 			{
@@ -137,6 +150,7 @@
 	description={t('app.schedule.board_description')}
 	variant="full"
 >
+	{#snippet actions()}{@render dayPicker()}{/snippet}
 	<Tabs
 		tabs={[
 			{

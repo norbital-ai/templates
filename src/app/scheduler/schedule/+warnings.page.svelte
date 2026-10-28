@@ -1,16 +1,14 @@
 <script lang="ts">
-	import { useKinds, EmptyState, Table, Tabs, Button, Sheet } from '@norbital-ai/ui';
+	import { useKinds, EmptyState, Table, Tabs } from '@norbital-ai/ui';
 	/**
 	 * What needs a person: visits flagged by the ETA check, left without a helper or waiting on a proposal; shift checks
 	 * still open; and the warning letters on file.
 	 */
 	import { bolt } from '$bolt';
-	import { AppShell, Stack, Cluster } from '@norbital-ai/ui/layout';
-	import type { Id, ListRow } from '@norbital-ai/bolt';
-	import Recovery from '../../../lib/Recovery.svelte';
+	import { AppShell, Stack } from '@norbital-ai/ui/layout';
+	import type { ListRow } from '@norbital-ai/bolt';
 	import Countdown from '../../../lib/Countdown.svelte';
 	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-	let selected = $state<Id<'visits'> | null>(null);
 	const t = bolt.t;
 </script>
 
@@ -34,15 +32,6 @@
 		><Countdown start={row.slot.start} /></Stack
 	>
 {/snippet}
-{#snippet reviewCell({ row }: { row: ListRow<'visits'> })}
-	<Cluster gap="sm"
-		><span>{row.number}</span><Button
-			variant="outline"
-			size="sm"
-			onclick={() => (selected = row.id)}>{t('app.recovery.review')}</Button
-		></Cluster
-	>
-{/snippet}
 {#snippet attention()}
 	<Table
 		empty={noAttention}
@@ -52,7 +41,7 @@
 		where={{ attention: { ne: 'none' }, status: { eq: 'scheduled' } }}
 		orderBy={{ number: 'asc' }}
 		columns={[
-			{ field: 'number', label: t('app.recovery.review'), cell: reviewCell },
+			'number',
 			'attention',
 			'proposed_helper',
 			{ field: 'slot', label: t('models.visits.fields.slot'), cell: timerCell }
@@ -127,13 +116,3 @@
 		]}
 	/>
 </AppShell>
-
-<Sheet
-	open={selected !== null}
-	onOpenChange={(open) => {
-		if (!open) selected = null;
-	}}
-	title={t('app.recovery.title')}
->
-	{#if selected !== null}{#key selected}<Recovery visit={selected} />{/key}{/if}
-</Sheet>

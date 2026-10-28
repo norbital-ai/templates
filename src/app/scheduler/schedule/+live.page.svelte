@@ -18,6 +18,9 @@
 			hour: 'numeric',
 			minute: '2-digit'
 		}).format(new Date(i));
+	/** The under-way window moves with the clock, minute by minute. */
+	const clock = bolt.clock('minute');
+	const now = $derived(Date.parse(clock.now));
 	const ahead = $derived(
 		bolt.query({
 			visits: {
@@ -26,8 +29,8 @@
 					status: { in: ['scheduled', 'in_progress'] },
 					slot: {
 						overlaps: {
-							start: Instant(new Date(Date.now() - 6 * HOUR).toISOString()),
-							end: Instant(new Date(Date.now() + 8 * HOUR).toISOString())
+							start: Instant(new Date(now - 6 * HOUR).toISOString()),
+							end: Instant(new Date(now + 8 * HOUR).toISOString())
 						}
 					}
 				},
@@ -38,9 +41,7 @@
 			'visits.booking.customer': { fields: ['name'] }
 		})
 	);
-	/** The under-way window moves with the clock, minute by minute. */
-	const clock = bolt.clock('minute');
-	const soon = $derived(Instant(new Date(Date.parse(clock.now) + 4 * HOUR).toISOString()));
+	const soon = $derived(Instant(new Date(now + 4 * HOUR).toISOString()));
 	/** Each helper's next stop: the visit under way, else the earliest still to start. */
 	const overlays = $derived.by(() => {
 		const next = new globalThis.Map<
@@ -49,7 +50,7 @@
 		>();
 		for (const v of ahead.current?.visits.rows ?? []) {
 			if (v.location === null || v.helper === null) continue;
-			if (v.status === 'scheduled' && Date.parse(v.slot.end!) < Date.now()) continue;
+			if (v.status === 'scheduled' && Date.parse(v.slot.end!) < now) continue;
 			const held = next.get(v.helper.id);
 			const sooner = (a: typeof v) => (a.status === 'in_progress' ? 0 : Date.parse(a.slot.start));
 			if (held === undefined || sooner(v) < sooner(held)) next.set(v.helper.id, v);

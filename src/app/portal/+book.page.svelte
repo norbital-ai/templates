@@ -5,6 +5,8 @@
 		useKinds,
 		Button,
 		Combobox,
+		EmptyState,
+		enumText,
 		Icon,
 		Input,
 		Label,
@@ -14,6 +16,7 @@
 		PointInput,
 		Spinner,
 		Textarea,
+		useBolt,
 		type Point
 	} from '@norbital-ai/ui';
 	import type { Id } from '@norbital-ai/bolt';
@@ -25,6 +28,9 @@
 	let { data }: { data: typeof Data.Type } = $props();
 	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
 	const t = bolt.t;
+	const ui = useBolt();
+	const repeatWord = (value: string) =>
+		enumText(value, { t: (key) => ui.t(key), model: 'bookings', field: 'repeat' });
 	const REPEATS = ['once', 'weekly', 'fortnightly', 'monthly'] as const;
 	const me = bolt.actor?.kind === 'member' ? bolt.actor : null;
 	const STEPS = ['details', 'time', 'done'] as const;
@@ -127,7 +133,7 @@
 			{
 				icon: 'lucide:repeat',
 				label: t('app.portal.row_repeat'),
-				value: t(`component.repeat_${repeat}`)
+				value: repeatWord(repeat)
 			},
 			{ icon: 'lucide:map-pin', label: t('app.portal.row_where'), value: address },
 			...(r.status === 'booked' && visit?.helper
@@ -354,7 +360,7 @@
 									value={repeat}
 									options={REPEATS.map((r) => ({
 										value: r,
-										label: t(`component.repeat_${r}`)
+										label: repeatWord(r)
 									}))}
 									onChange={(value) => {
 										if (value !== null) repeat = value;
@@ -430,7 +436,7 @@
 					{:else if quoted.status === 'failed'}
 						<p role="alert" class="text-sm text-destructive">{quoted.problem}</p>
 					{:else if days.length === 0}
-						<p class="text-sm">{t('app.portal.no_times')}</p>
+						<EmptyState variant="inset" title={t('app.portal.no_times')} />
 					{:else}
 						<SlotPicker
 							{days}

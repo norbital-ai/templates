@@ -1,16 +1,12 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { bolt } from '$bolt';
 	let {
 		start
 	}: {
 		start: string;
 	} = $props();
-	let now = $state(Date.now());
-	onMount(() => {
-		const timer = setInterval(() => (now = Date.now()), 30000);
-		return () => clearInterval(timer);
-	});
+	const clock = bolt.clock('minute');
+	const now = $derived(Date.parse(clock.now));
 	const minutes = $derived(Math.ceil(Math.abs(Date.parse(start) - now) / 60000));
 	const time = $derived(`${Math.floor(minutes / 60)}h ${minutes % 60}m`);
 	const overdue = $derived(Date.parse(start) <= now);

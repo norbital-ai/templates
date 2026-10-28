@@ -324,7 +324,7 @@ describe('booking', () => {
 						invocationId: 'invalid-preference-edit',
 						issuedAt: now,
 						authority: desk(t).authority,
-						bindings: { now, today: '2026-09-25', tz: 'Asia/Singapore', params: {} }
+						bindings: { now, today: '2026-09-25', tz: 'Asia/Singapore' }
 					})).outcome
 				).toMatchObject({ kind: 'refused', code: 'invalidInput', field: 'preferred_helpers' });
 				expect((yield* desk(t).query({ bookings: {} })).bookings.rows).toMatchObject([
@@ -357,7 +357,7 @@ describe('booking', () => {
 				invocationId: 'remove-preferred-helper',
 				issuedAt: now,
 				authority: t.as(t.admin).authority,
-				bindings: { now, today: '2026-09-25', tz: 'Asia/Singapore', params: {} }
+				bindings: { now, today: '2026-09-25', tz: 'Asia/Singapore' }
 			});
 			expect(removed.outcome).toMatchObject({ kind: 'refused', code: 'restricted' });
 			expect(
@@ -385,7 +385,7 @@ describe('booking', () => {
 				invocationId: 'remove-unused-helper',
 				issuedAt: now,
 				authority: t.as(t.admin).authority,
-				bindings: { now, today: '2026-09-25', tz: 'Asia/Singapore', params: {} }
+				bindings: { now, today: '2026-09-25', tz: 'Asia/Singapore' }
 			});
 			expect(unused.outcome.kind).toBe('committed');
 			expect(
