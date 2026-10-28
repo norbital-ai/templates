@@ -31,7 +31,7 @@ export const uninspectedPhotoFacts = (): {
 /** A message attachment is the same photo however often it is redelivered; an upload is its file. */
 export const photoSourceKey = (source: PhotoSource, fileId: string): string =>
 	source.kind === 'message'
-		? `${source.integration}:${source.conversation_id}:${source.attachment_id}`
+		? `${source.integration}:${source.conversation_id}:${source.message_id}:${source.attachment_id}`
 		: `workspace:${fileId}`;
 /** The photo's title: where it came from. */
 export const photoSummary = (source: PhotoSource): string =>
