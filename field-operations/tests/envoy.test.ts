@@ -260,7 +260,7 @@ describe('field_ops_whatsapp (G12 5)', () => {
 				);
 				expect(photo).toMatchObject({
 					source: { kind: 'message', integration: 'whatsapp' },
-					source_key: 'whatsapp:6591111111@s.whatsapp.net:IMG_0042.jpg',
+					source_key: `whatsapp:6591111111@s.whatsapp.net:${id}:IMG_0042.jpg`,
 					summary: expect.stringMatching(/^From whatsapp/),
 					name: 'IMG_0042.jpg'
 				});
