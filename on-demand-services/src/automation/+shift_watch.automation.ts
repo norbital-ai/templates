@@ -1,5 +1,5 @@
 import { Instant, PlainDate } from '@norbital-ai/std/date';
-import { automation, isMasked, type Id } from '@norbital-ai/bolt';
+import { automation, type Id } from '@norbital-ai/bolt';
 import * as Effect from 'effect/Effect';
 import { dayOf, recommend, settingsOf, visitsToMove, when, whatsapp } from '../lib/dispatch.js';
 import { localOf } from '@norbital-ai/std/zone';
@@ -13,12 +13,10 @@ const MINUTE = 60000;
 export default automation('shift_watch', {
 	description:
 		'Asks each helper to confirm their day two hours before its first visit, and proposes replacements for controller approval when they decline or do not answer, issuing a warning letter when there is no medical certificate.',
-	on: [
-		// not `*/5`: a cron run is keyed by its expression alone, so two automations on one expression run once between them
-		{ cron: '*/10 * * * *' },
-		{ updated: 'visits', where: { shift_check: { eq: 'declined' } }, fields: ['shift_check'] }
-	],
-	runAs: ['dispatch_automation'],
+	// not `*/5`: a cron run is keyed by its expression alone, so two automations on one expression run once between them;
+	// a decline also schedules it (the visits effect)
+	on: { cron: '*/10 * * * *' },
+	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
 		const now = Date.parse(ctx.now);
@@ -55,7 +53,7 @@ export default automation('shift_watch', {
 			);
 			yield* ctx.notify(
 				ask.flatMap((v) =>
-					v.helper!.user === null || isMasked(v.helper!.user)
+					v.helper!.user === null
 						? []
 						: [
 								{

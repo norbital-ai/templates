@@ -11,7 +11,6 @@ export const SHEET_COLUMNS = {
 	clock_out: 'Clock out',
 	overtime_consent: 'OT consent',
 	banked_overtime_hours: 'Banked overtime hours',
-	leave_code: 'Leave',
 	name: 'Name',
 	holiday: 'Holiday',
 	planned_overtime_hours: 'Planned OT hours',
@@ -45,10 +44,12 @@ export type SheetRecord = {
 	readonly approved_ot_2_end?: string;
 	readonly approved_ot_1_break_minutes?: number;
 	readonly approved_ot_2_break_minutes?: number;
-	readonly leave_code?: string;
 	readonly name?: string;
 	readonly holiday?: string;
 };
+
+/** One recorded leave on a day: `AL` for the whole day, `AL (AM)` or `AL (PM)` for a half (`AL (AM) + UL (PM)`). */
+export type LeavePart = { readonly code: string; readonly half: 'AM' | 'PM' | null };
 
 /** What the Work page shows: its entity (which resolves employee numbers) and its period (the template's days). */
 export type SheetContext = {
@@ -81,10 +82,8 @@ export type SheetKnown = {
 		readonly from: PlainDate | null;
 		readonly to: PlainDate | null;
 	}[];
-	/** `employment:date` → the leave class code recorded on the day. */
-	readonly leave: { readonly [key: string]: string };
-	/** `company:date` → the governing version's leave class ids by code, for the days the sheet names leave on. */
-	readonly classes: { readonly [key: string]: { readonly [code: string]: Id<'leave_catalog'> } };
+	/** `employment:date` → the leave recorded on the day, each part its class code and half (null: the whole day). */
+	readonly leave: { readonly [key: string]: readonly LeavePart[] };
 	/** `employment:date` → the stored intervals a row keeps (its clock matches them to the minute, or it has none). */
 	readonly kept: { readonly [key: string]: readonly StoredInterval[] };
 	/** `employment:date` → the stored `overtime_consented_at` (a mark or its own local day restates it). */

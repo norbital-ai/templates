@@ -3,7 +3,6 @@
 	import { Button, RecordShell, Table, Show, type RecordView } from '@norbital-ai/ui';
 	import RecordLink from '../../../lib/ui/record-link.svelte';
 	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
-	import { isMasked } from '@norbital-ai/bolt';
 	let {
 		view
 	}: {
@@ -27,7 +26,7 @@
 			<Grid as="dl" gap="md">
 				{#each ['order', 'ext_sales_order', 'ext_purchase_order'] as const as relation}
 					{@const value = shown.record[relation]}
-					{#if value && !isMasked(value)}<div>
+					{#if value}<div>
 							<dt class="text-xs font-medium text-muted-foreground">
 								{bolt.t(`models.transactions.fields.${relation}`)}
 							</dt>
@@ -57,7 +56,7 @@
 						</dd>
 					</div>{/each}
 			</Grid>
-			{#if shown.record.items && !isMasked(shown.record.items)}<Table
+			{#if shown.record.items}<Table
 					of={shown.record.items}
 					columns={[
 						{ field: 'product_name', label: bolt.t('models.order_lines.fields.product_name') },
@@ -84,7 +83,7 @@
 					toolbar={{ new: false, title: bolt.t('section.lines') }}
 				/>{/if}
 			<h3>{bolt.t('component.transaction_documents')}</h3>
-			{#if !isMasked(shown.record.documents) && shown.record.documents?.length}
+			{#if shown.record.documents?.length}
 				<Cluster gap="sm">
 					{#each shown.record.documents as document (document.sha256)}<Button
 							variant="outline"

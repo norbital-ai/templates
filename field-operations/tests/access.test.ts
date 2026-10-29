@@ -18,11 +18,15 @@ it.live(
 			const theirs = yield* siteWithJob(t);
 			const as = t.as(me);
 			expect(
-				(yield* as.query({ job_assignments: { limit: 50 } })).job_assignments.rows.map((r) => r.id)
+				(yield* as.query({
+					job_assignments: { output: 'contractor', limit: 50 }
+				})).job_assignments.rows.map((r) => r.id)
 			).toEqual([mine.job]);
-			expect((yield* as.query({ sites: { limit: 50 } })).sites.rows.map((r) => r.id)).toEqual([
-				mine.site
-			]);
+			expect(
+				(yield* as.query({ sites: { output: 'contractor', limit: 50 } })).sites.rows.map(
+					(r) => r.id
+				)
+			).toEqual([mine.site]);
 			// a site's other work stays out of its job layer
 			committed(
 				yield* t.as(t.member(CONTROLLER)).act('job_assignments.create', [
@@ -34,7 +38,10 @@ it.live(
 					}
 				])
 			);
-			const { sites } = yield* as.query({ sites: {}, 'sites.job_assignments': {} });
+			const { sites } = yield* as.query({
+				sites: { output: 'contractor' },
+				'sites.job_assignments': {}
+			});
 			expect(sites.rows.map((r) => r.job_assignments.map((job) => job.id))).toEqual([[mine.job]]);
 			yield* Effect.tryPromise({
 				try: () =>
@@ -51,6 +58,14 @@ it.live(
 					}
 				])
 			);
+			// their report's effect runs as them and schedules the review
+			yield* t.runDue();
+			expect(
+				yield* rows(
+					t,
+					"SELECT state FROM sys_run WHERE automation = 'job_assignments.effect.updated'"
+				)
+			).toEqual([{ state: 'succeeded' }]);
 			expect(
 				yield* Effect.flip(
 					as.act('job_assignments.update', [{ target: theirs.job, set: { status: 'completed' } }])

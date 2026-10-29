@@ -129,22 +129,21 @@
 		aria-hidden="true"
 		onwheel={forwardWheel}
 	>
-		<Stack gap="none" justify="center" shrink={false} class="w-40 border-r bg-card px-3">
+		<Stack gap="none" justify="center" class="w-40 border-r bg-card px-3">
 			<span class="font-semibold">{bolt.t('roster.person')}</span>
 			<span class="text-tiny text-muted-foreground">
 				{bolt.t('roster.plan_recorded')} · {bolt.t('component.work_day_actual')}
 			</span>
 		</Stack>
-		<Bound size="full" clip grow>
+		<Bound size="fill" clip>
 			<div bind:this={track} class="h-full w-max will-change-transform">
-				<Inline gap="none" align="stretch" fill>
+				<Inline gap="none" align="stretch" size="fill">
 					{#each dates as date (date)}
 						{@const holiday = holidayByDate.get(date)}
 						<Stack
 							gap="none"
 							align="center"
 							justify="center"
-							shrink={false}
 							title={holiday}
 							class={cn(
 								'h-10 w-18 min-w-18 max-w-18 bg-card text-center font-medium',
@@ -173,10 +172,18 @@
 {:else if people.length === 0}
 	<p class="text-sm text-muted-foreground">{bolt.t('roster.no_employments')}</p>
 {:else}
-	<Cover as="div" gap="none" top={header} class="rounded-lg border bg-card" aria-busy={loading}>
+	<Cover
+		as="div"
+		gap="none"
+		size="fill"
+		top={header}
+		class="rounded-lg border bg-card"
+		aria-busy={loading}
+	>
 		<Scroll
 			bind:ref={body}
 			axis="both"
+			size="fill"
 			name={bolt.t('roster.board_scroll_name')}
 			class="relative bg-card"
 			onscroll={syncHeader}

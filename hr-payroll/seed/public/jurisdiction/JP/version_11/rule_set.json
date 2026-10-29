@@ -1,0 +1,2854 @@
+[
+	{
+		"id": "1fcfea4d-3c3a-5dc2-adaf-dd325194ee15",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "PARAMETERS",
+		"code": "minimum_wage",
+		"name": "地域別最低賃金 (regional minimum wage, hourly)",
+		"references": [
+			{
+				"title": "最低賃金法 arts.9–14: each prefecture's 地域別最低賃金 (hourly, yen) with the day its order took effect, newest first: the 令和6年度 amount where it still governed on 1 December 2025, the 令和7年度 amount and the decided 令和8年度 amount (in force from its own day; 最低賃金法 art.14(2)). A line reads the amount in force on the last day of the pay period, which pays the higher amount for a whole month in which it took effect. Source: 厚生労働省「地域別最低賃金の全国一覧」 and 「平成14年度から令和8年度までの地域別最低賃金改定状況」 https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/roudoukijun/minimumichiran/index.html (令和8年度 list https://www.mhlw.go.jp/content/11200000/001753404.pdf). An industry-specific minimum wage (特定最低賃金, art.15) governs where higher: it is the entity’s company.facts.industry_minimum_wage_hourly, which MINIMUM_WAGE_TOP_UP compares."
+			}
+		],
+		"rules": {
+			"by_region": {
+				"HOKKAIDO": [
+					{
+						"from": "2026-10-01",
+						"amount": 1131
+					},
+					{
+						"from": "2025-10-04",
+						"amount": 1075
+					}
+				],
+				"AOMORI": [
+					{
+						"from": "2026-10-29",
+						"amount": 1090
+					},
+					{
+						"from": "2025-11-21",
+						"amount": 1029
+					}
+				],
+				"IWATE": [
+					{
+						"from": "2026-12-01",
+						"amount": 1090
+					},
+					{
+						"from": "2025-12-01",
+						"amount": 1031
+					}
+				],
+				"MIYAGI": [
+					{
+						"from": "2026-10-01",
+						"amount": 1098
+					},
+					{
+						"from": "2025-10-04",
+						"amount": 1038
+					}
+				],
+				"AKITA": [
+					{
+						"from": "2026-10-14",
+						"amount": 1090
+					},
+					{
+						"from": "2026-03-31",
+						"amount": 1031
+					},
+					{
+						"from": "2024-10-01",
+						"amount": 951
+					}
+				],
+				"YAMAGATA": [
+					{
+						"from": "2026-10-30",
+						"amount": 1092
+					},
+					{
+						"from": "2025-12-23",
+						"amount": 1032
+					},
+					{
+						"from": "2024-10-19",
+						"amount": 955
+					}
+				],
+				"FUKUSHIMA": [
+					{
+						"from": "2026-10-16",
+						"amount": 1094
+					},
+					{
+						"from": "2026-01-01",
+						"amount": 1033
+					},
+					{
+						"from": "2024-10-05",
+						"amount": 955
+					}
+				],
+				"IBARAKI": [
+					{
+						"from": "2026-10-18",
+						"amount": 1136
+					},
+					{
+						"from": "2025-10-12",
+						"amount": 1074
+					}
+				],
+				"TOCHIGI": [
+					{
+						"from": "2026-10-01",
+						"amount": 1125
+					},
+					{
+						"from": "2025-10-01",
+						"amount": 1068
+					}
+				],
+				"GUNMA": [
+					{
+						"from": "2026-10-03",
+						"amount": 1120
+					},
+					{
+						"from": "2026-03-01",
+						"amount": 1063
+					},
+					{
+						"from": "2024-10-04",
+						"amount": 985
+					}
+				],
+				"SAITAMA": [
+					{
+						"from": "2026-10-01",
+						"amount": 1196
+					},
+					{
+						"from": "2025-11-01",
+						"amount": 1141
+					}
+				],
+				"CHIBA": [
+					{
+						"from": "2026-10-01",
+						"amount": 1195
+					},
+					{
+						"from": "2025-10-03",
+						"amount": 1140
+					}
+				],
+				"TOKYO": [
+					{
+						"from": "2026-10-01",
+						"amount": 1280
+					},
+					{
+						"from": "2025-10-03",
+						"amount": 1226
+					}
+				],
+				"KANAGAWA": [
+					{
+						"from": "2026-10-01",
+						"amount": 1279
+					},
+					{
+						"from": "2025-10-04",
+						"amount": 1225
+					}
+				],
+				"NIIGATA": [
+					{
+						"from": "2026-10-01",
+						"amount": 1108
+					},
+					{
+						"from": "2025-10-02",
+						"amount": 1050
+					}
+				],
+				"TOYAMA": [
+					{
+						"from": "2026-10-01",
+						"amount": 1119
+					},
+					{
+						"from": "2025-10-12",
+						"amount": 1062
+					}
+				],
+				"ISHIKAWA": [
+					{
+						"from": "2026-10-03",
+						"amount": 1113
+					},
+					{
+						"from": "2025-10-08",
+						"amount": 1054
+					}
+				],
+				"FUKUI": [
+					{
+						"from": "2026-10-04",
+						"amount": 1112
+					},
+					{
+						"from": "2025-10-08",
+						"amount": 1053
+					}
+				],
+				"YAMANASHI": [
+					{
+						"from": "2026-11-01",
+						"amount": 1113
+					},
+					{
+						"from": "2025-12-01",
+						"amount": 1052
+					}
+				],
+				"NAGANO": [
+					{
+						"from": "2026-10-02",
+						"amount": 1117
+					},
+					{
+						"from": "2025-10-03",
+						"amount": 1061
+					}
+				],
+				"GIFU": [
+					{
+						"from": "2026-10-01",
+						"amount": 1121
+					},
+					{
+						"from": "2025-10-18",
+						"amount": 1065
+					}
+				],
+				"SHIZUOKA": [
+					{
+						"from": "2026-10-15",
+						"amount": 1154
+					},
+					{
+						"from": "2025-11-01",
+						"amount": 1097
+					}
+				],
+				"AICHI": [
+					{
+						"from": "2026-10-01",
+						"amount": 1195
+					},
+					{
+						"from": "2025-10-18",
+						"amount": 1140
+					}
+				],
+				"MIE": [
+					{
+						"from": "2026-10-01",
+						"amount": 1143
+					},
+					{
+						"from": "2025-11-21",
+						"amount": 1087
+					}
+				],
+				"SHIGA": [
+					{
+						"from": "2026-10-03",
+						"amount": 1136
+					},
+					{
+						"from": "2025-10-05",
+						"amount": 1080
+					}
+				],
+				"KYOTO": [
+					{
+						"from": "2026-11-16",
+						"amount": 1180
+					},
+					{
+						"from": "2025-11-21",
+						"amount": 1122
+					}
+				],
+				"OSAKA": [
+					{
+						"from": "2026-10-01",
+						"amount": 1231
+					},
+					{
+						"from": "2025-10-16",
+						"amount": 1177
+					}
+				],
+				"HYOGO": [
+					{
+						"from": "2026-10-01",
+						"amount": 1172
+					},
+					{
+						"from": "2025-10-04",
+						"amount": 1116
+					}
+				],
+				"NARA": [
+					{
+						"from": "2026-10-04",
+						"amount": 1107
+					},
+					{
+						"from": "2025-11-16",
+						"amount": 1051
+					}
+				],
+				"WAKAYAMA": [
+					{
+						"from": "2026-10-03",
+						"amount": 1101
+					},
+					{
+						"from": "2025-11-01",
+						"amount": 1045
+					}
+				],
+				"TOTTORI": [
+					{
+						"from": "2026-10-03",
+						"amount": 1090
+					},
+					{
+						"from": "2025-10-04",
+						"amount": 1030
+					}
+				],
+				"SHIMANE": [
+					{
+						"from": "2026-10-10",
+						"amount": 1092
+					},
+					{
+						"from": "2025-11-17",
+						"amount": 1033
+					}
+				],
+				"OKAYAMA": [
+					{
+						"from": "2026-10-02",
+						"amount": 1104
+					},
+					{
+						"from": "2025-12-01",
+						"amount": 1047
+					}
+				],
+				"HIROSHIMA": [
+					{
+						"from": "2026-10-11",
+						"amount": 1141
+					},
+					{
+						"from": "2025-11-01",
+						"amount": 1085
+					}
+				],
+				"YAMAGUCHI": [
+					{
+						"from": "2026-10-08",
+						"amount": 1101
+					},
+					{
+						"from": "2025-10-16",
+						"amount": 1043
+					}
+				],
+				"TOKUSHIMA": [
+					{
+						"from": "2026-11-01",
+						"amount": 1103
+					},
+					{
+						"from": "2026-01-01",
+						"amount": 1046
+					},
+					{
+						"from": "2024-11-01",
+						"amount": 980
+					}
+				],
+				"KAGAWA": [
+					{
+						"from": "2026-10-01",
+						"amount": 1092
+					},
+					{
+						"from": "2025-10-18",
+						"amount": 1036
+					}
+				],
+				"EHIME": [
+					{
+						"from": "2026-11-01",
+						"amount": 1093
+					},
+					{
+						"from": "2025-12-01",
+						"amount": 1033
+					}
+				],
+				"KOCHI": [
+					{
+						"from": "2026-10-29",
+						"amount": 1086
+					},
+					{
+						"from": "2025-12-01",
+						"amount": 1023
+					}
+				],
+				"FUKUOKA": [
+					{
+						"from": "2026-10-04",
+						"amount": 1114
+					},
+					{
+						"from": "2025-11-16",
+						"amount": 1057
+					}
+				],
+				"SAGA": [
+					{
+						"from": "2026-11-15",
+						"amount": 1095
+					},
+					{
+						"from": "2025-11-21",
+						"amount": 1030
+					}
+				],
+				"NAGASAKI": [
+					{
+						"from": "2026-11-02",
+						"amount": 1087
+					},
+					{
+						"from": "2025-12-01",
+						"amount": 1031
+					}
+				],
+				"KUMAMOTO": [
+					{
+						"from": "2026-12-01",
+						"amount": 1092
+					},
+					{
+						"from": "2026-01-01",
+						"amount": 1034
+					},
+					{
+						"from": "2024-10-05",
+						"amount": 952
+					}
+				],
+				"OITA": [
+					{
+						"from": "2026-11-01",
+						"amount": 1096
+					},
+					{
+						"from": "2026-01-01",
+						"amount": 1035
+					},
+					{
+						"from": "2024-10-05",
+						"amount": 954
+					}
+				],
+				"MIYAZAKI": [
+					{
+						"from": "2026-10-24",
+						"amount": 1085
+					},
+					{
+						"from": "2025-11-16",
+						"amount": 1023
+					}
+				],
+				"KAGOSHIMA": [
+					{
+						"from": "2026-10-25",
+						"amount": 1090
+					},
+					{
+						"from": "2025-11-01",
+						"amount": 1026
+					}
+				],
+				"OKINAWA": [
+					{
+						"from": "2026-12-02",
+						"amount": 1086
+					},
+					{
+						"from": "2025-12-01",
+						"amount": 1023
+					}
+				]
+			},
+			"unit": "HOUR"
+		}
+	},
+	{
+		"id": "45c24aba-8770-587b-b6a7-d9b99e33f106",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "PARAMETERS",
+		"code": "public_holidays",
+		"name": "国民の祝日・休日 (national holidays)",
+		"references": [
+			{
+				"title": "国民の祝日に関する法律 arts.2–3 (祝日, 振替休日, 国民の休日) as the 内閣府 calendar lists them (https://www8.cao.go.jp/chosei/shukujitsu/syukujitsu.csv, including the 2027 equinox days by the February 2026 官報), and the 行政機関の休日 of 29 December to 3 January (行政機関の休日に関する法律 art.1(1)(iii)) on which a government filing is not due. Written unpublished: a Japanese holiday carries no statutory premium; publishing it moves the due days of filings.",
+				"url": "https://www8.cao.go.jp/chosei/shukujitsu/syukujitsu.csv"
+			}
+		],
+		"rules": {
+			"holidays": [
+				{
+					"date": "2025-12-29",
+					"name": "年末年始の休日（行政機関）",
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
+				},
+				{
+					"date": "2025-12-30",
+					"name": "年末年始の休日（行政機関）",
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
+				},
+				{
+					"date": "2025-12-31",
+					"name": "年末年始の休日（行政機関）",
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
+				},
+				{
+					"date": "2026-01-01",
+					"name": "元日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2026-01-02",
+					"name": "年末年始の休日（行政機関）",
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
+				},
+				{
+					"date": "2026-01-03",
+					"name": "年末年始の休日（行政機関）",
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
+				},
+				{
+					"date": "2026-01-12",
+					"name": "成人の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2026-02-11",
+					"name": "建国記念の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2026-02-23",
+					"name": "天皇誕生日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2026-03-20",
+					"name": "春分の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html (date of the equinox per the 国立天文台 暦要項, 官報 of the preceding February)"
+				},
+				{
+					"date": "2026-04-29",
+					"name": "昭和の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2026-05-03",
+					"name": "憲法記念日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2026-05-04",
+					"name": "みどりの日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2026-05-05",
+					"name": "こどもの日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2026-05-06",
+					"name": "休日（振替休日）",
+					"kind": "SUBSTITUTE",
+					"replaces": "2026-05-03",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2026-07-20",
+					"name": "海の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2026-08-11",
+					"name": "山の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2026-09-21",
+					"name": "敬老の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2026-09-22",
+					"name": "休日（国民の休日）",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2026-09-23",
+					"name": "秋分の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html (date of the equinox per the 国立天文台 暦要項, 官報 of the preceding February)"
+				},
+				{
+					"date": "2026-10-12",
+					"name": "スポーツの日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2026-11-03",
+					"name": "文化の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2026-11-23",
+					"name": "勤労感謝の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2026-12-29",
+					"name": "年末年始の休日（行政機関）",
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
+				},
+				{
+					"date": "2026-12-30",
+					"name": "年末年始の休日（行政機関）",
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
+				},
+				{
+					"date": "2026-12-31",
+					"name": "年末年始の休日（行政機関）",
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
+				},
+				{
+					"date": "2027-01-01",
+					"name": "元日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2027-01-02",
+					"name": "年末年始の休日（行政機関）",
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
+				},
+				{
+					"date": "2027-01-03",
+					"name": "年末年始の休日（行政機関）",
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
+				},
+				{
+					"date": "2027-01-11",
+					"name": "成人の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2027-02-11",
+					"name": "建国記念の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2027-02-23",
+					"name": "天皇誕生日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2027-03-21",
+					"name": "春分の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html (date of the equinox per the 国立天文台 暦要項, 官報 of the preceding February)"
+				},
+				{
+					"date": "2027-03-22",
+					"name": "休日（振替休日）",
+					"kind": "SUBSTITUTE",
+					"replaces": "2027-03-21",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2027-04-29",
+					"name": "昭和の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2027-05-03",
+					"name": "憲法記念日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2027-05-04",
+					"name": "みどりの日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2027-05-05",
+					"name": "こどもの日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2027-07-19",
+					"name": "海の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2027-08-11",
+					"name": "山の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2027-09-20",
+					"name": "敬老の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2027-09-23",
+					"name": "秋分の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html (date of the equinox per the 国立天文台 暦要項, 官報 of the preceding February)"
+				},
+				{
+					"date": "2027-10-11",
+					"name": "スポーツの日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2027-11-03",
+					"name": "文化の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2027-11-23",
+					"name": "勤労感謝の日",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "国民の祝日に関する法律 arts.2–3 — 内閣府「国民の祝日について」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html"
+				},
+				{
+					"date": "2027-12-29",
+					"name": "年末年始の休日（行政機関）",
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
+				},
+				{
+					"date": "2027-12-30",
+					"name": "年末年始の休日（行政機関）",
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
+				},
+				{
+					"date": "2027-12-31",
+					"name": "年末年始の休日（行政機関）",
+					"kind": "SPECIAL_HOLIDAY",
+					"source": "行政機関の休日に関する法律 art.1(1)(iii) (29 December – 3 January; government offices closed, not a 国民の祝日)"
+				}
+			]
+		}
+	},
+	{
+		"id": "097e5fd7-83c9-56c2-8e78-222cf9ea1285",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "PARAMETERS",
+		"code": "night_work",
+		"name": "深夜の時間帯 (late-night window)",
+		"references": [
+			{
+				"title": "労働基準法 art.37(4): \"午後十時から午前五時まで\" (the ministry may set 23:00–06:00 for a region or period; no such order is in force)."
+			}
+		],
+		"rules": {
+			"from": "22:00",
+			"to": "05:00"
+		}
+	},
+	{
+		"id": "5d1a2735-17da-5a1f-a22e-d0a0398d819c",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "OVERTIME_MONTHLY_45H",
+		"name": "時間外労働の限度時間 45時間 (monthly overtime limit)",
+		"references": [
+			{
+				"title": "労働基準法 art.36(3)–(5): the limit is 45 hours a month and 360 hours a year; a special clause may exceed 45 hours in at most six months a year (働き方改革関連法, in force for all employers since April 2020). The yearly 360/720-hour totals and the 2–6 month 80-hour average need hours of earlier months, which no root carries."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& ((has(company.facts.working_time_regime)\n  ?company.facts.working_time_regime\n  :\"STANDARD\")\n==\"FLEX\"\n  ?max(\n    0.0,\n    sum(\n      work.days.filter(d, d.day_type != \"REST\").map(x, x.worked_hours)\n    )\n    - (has(company.facts.weekly_limit_44)\n    &&company.facts.weekly_limit_44 == true\n      ?44.0\n      :40.0)\n    *double(period.days)\n    /7.0\n  )\n  : (has(company.facts.working_time_regime)\n    ?company.facts.working_time_regime\n    :\"STANDARD\")\n  ==\"DEEMED\"\n    ?sum(\n      work.days.filter(d, d.day_type != \"REST\").filter(x, x.worked).map(\n        x,\n        max(\n          0.0,\n          (has(company.facts.deemed_daily_hours)\n            ?double(company.facts.deemed_daily_hours)\n            :8.0)\n          -8.0\n        )\n      )\n    )\n    :min(\n      sum(\n        work.days.filter(d, d.day_type != \"REST\").map(\n          x,\n          max(\n            0.0,\n            x.worked_hours\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max(8.0, x.scheduled_hours)\n              :8.0\n          ) )\n        )\n      )\n      +sum(\n        work.days.filter(d, d.day_type != \"REST\").filter(\n          s,\n          !work.days.filter(d, d.day_type != \"REST\").exists(\n            x,\n            x.date < s.date\n            &&x.date\n            >=add_days(\n              s.date,\n              0\n              - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7)\n              - (has(company.facts.week_start_day)\n                ?int(company.facts.week_start_day)\n                :0)\n              +7)\n              %7\n            ) )\n          )\n        ).map(\n          s,\n          max(\n            0.0,\n            (sum(\n              work.days.filter(d, d.day_type != \"REST\").filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            )\n            +sum((\n              has(work.week_before) ? work.week_before : []).filter(\n                d,\n                d.day_type != \"REST\"\n              ).filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            ))\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max((\n                has(company.facts.weekly_limit_44)\n                &&company.facts.weekly_limit_44 == true\n                  ?44.0\n                  :40.0),\n                (sum(\n                  work.days.filter(d, d.day_type != \"REST\").filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n                +sum((\n                  has(work.week_before) ? work.week_before : []).filter(\n                    d,\n                    d.day_type != \"REST\"\n                  ).filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n              ) )\n              : (has(company.facts.weekly_limit_44)\n              &&company.facts.weekly_limit_44 == true\n                ?44.0\n                :40.0\n          ) ))\n          -max(\n            0.0,\n            sum((\n              has(work.week_before) ? work.week_before : []).filter(\n                d,\n                d.day_type != \"REST\"\n              ).filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            )\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max((\n                has(company.facts.weekly_limit_44)\n                &&company.facts.weekly_limit_44 == true\n                  ?44.0\n                  :40.0),\n                sum((\n                  has(work.week_before) ? work.week_before : []).filter(\n                    d,\n                    d.day_type != \"REST\"\n                  ).filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n              )\n              : (has(company.facts.weekly_limit_44)\n              &&company.facts.weekly_limit_44 == true\n                ?44.0\n                :40.0\n          ) ))\n        )\n      ),\n      sum(\n        work.days.filter(d, d.day_type != \"REST\").map(\n          d,\n          d.overtime_hours\n        )\n      )\n    ))\n>45.0",
+			"message": "Overtime above 45 hours this month: lawful only under the special clause of the 36 agreement, and in at most six months a year (労働基準法 art.36(4)–(5)).",
+			"description": "Statutory overtime other than rest-day work beyond the 45-hour monthly limit (the statutory part of the approved overtime, as OVERTIME prices it)."
+		}
+	},
+	{
+		"id": "790c23aa-9fc9-5978-86ab-a8d4e805054f",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "OVERTIME_REST_DAY_100H",
+		"name": "時間外・休日労働 100時間未満 (absolute monthly cap)",
+		"references": [
+			{
+				"title": "労働基準法 art.36(6)(ii): overtime and rest-day work together must be under 100 hours in each month; art.119 (penalty). The wages are still owed, so the slip warns rather than refuses."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& ((has(company.facts.working_time_regime)\n  ?company.facts.working_time_regime\n  :\"STANDARD\")\n==\"FLEX\"\n  ?max(\n    0.0,\n    sum(\n      work.days.filter(d, d.day_type != \"REST\").map(x, x.worked_hours)\n    )\n    - (has(company.facts.weekly_limit_44)\n    &&company.facts.weekly_limit_44 == true\n      ?44.0\n      :40.0)\n    *double(period.days)\n    /7.0\n  )\n  : (has(company.facts.working_time_regime)\n    ?company.facts.working_time_regime\n    :\"STANDARD\")\n  ==\"DEEMED\"\n    ?sum(\n      work.days.filter(d, d.day_type != \"REST\").filter(x, x.worked).map(\n        x,\n        max(\n          0.0,\n          (has(company.facts.deemed_daily_hours)\n            ?double(company.facts.deemed_daily_hours)\n            :8.0)\n          -8.0\n        )\n      )\n    )\n    :min(\n      sum(\n        work.days.filter(d, d.day_type != \"REST\").map(\n          x,\n          max(\n            0.0,\n            x.worked_hours\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max(8.0, x.scheduled_hours)\n              :8.0\n          ) )\n        )\n      )\n      +sum(\n        work.days.filter(d, d.day_type != \"REST\").filter(\n          s,\n          !work.days.filter(d, d.day_type != \"REST\").exists(\n            x,\n            x.date < s.date\n            &&x.date\n            >=add_days(\n              s.date,\n              0\n              - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7)\n              - (has(company.facts.week_start_day)\n                ?int(company.facts.week_start_day)\n                :0)\n              +7)\n              %7\n            ) )\n          )\n        ).map(\n          s,\n          max(\n            0.0,\n            (sum(\n              work.days.filter(d, d.day_type != \"REST\").filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            )\n            +sum((\n              has(work.week_before) ? work.week_before : []).filter(\n                d,\n                d.day_type != \"REST\"\n              ).filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            ))\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max((\n                has(company.facts.weekly_limit_44)\n                &&company.facts.weekly_limit_44 == true\n                  ?44.0\n                  :40.0),\n                (sum(\n                  work.days.filter(d, d.day_type != \"REST\").filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n                +sum((\n                  has(work.week_before) ? work.week_before : []).filter(\n                    d,\n                    d.day_type != \"REST\"\n                  ).filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n              ) )\n              : (has(company.facts.weekly_limit_44)\n              &&company.facts.weekly_limit_44 == true\n                ?44.0\n                :40.0\n          ) ))\n          -max(\n            0.0,\n            sum((\n              has(work.week_before) ? work.week_before : []).filter(\n                d,\n                d.day_type != \"REST\"\n              ).filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            )\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max((\n                has(company.facts.weekly_limit_44)\n                &&company.facts.weekly_limit_44 == true\n                  ?44.0\n                  :40.0),\n                sum((\n                  has(work.week_before) ? work.week_before : []).filter(\n                    d,\n                    d.day_type != \"REST\"\n                  ).filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n              )\n              : (has(company.facts.weekly_limit_44)\n              &&company.facts.weekly_limit_44 == true\n                ?44.0\n                :40.0\n          ) ))\n        )\n      ),\n      sum(\n        work.days.filter(d, d.day_type != \"REST\").map(\n          d,\n          d.overtime_hours\n        )\n      )\n    ))\n+sum(work.days.filter(d, d.day_type == \"REST\").map(d, d.worked_hours))\n>=100.0",
+			"message": "Overtime and statutory rest-day work reached 100 hours this month; the law requires under 100 even under a special clause (労働基準法 art.36(6)(ii)).",
+			"description": "The absolute cap on overtime plus rest-day work in one month."
+		}
+	},
+	{
+		"id": "9f48d032-d360-51ff-bb5e-8b3a750c9f2a",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "OVERTIME_WITHOUT_AGREEMENT",
+		"name": "36協定の有効期間外の時間外労働 (overtime outside the 36 agreement)",
+		"references": [
+			{
+				"title": "労働基準法 art.36(1): overtime and rest-day work are lawful only under a written agreement filed with the labour standards office; customer input: company.facts.overtime_agreement_from, overtime_agreement_to."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (((has(company.facts.working_time_regime)\n  ?company.facts.working_time_regime\n  :\"STANDARD\")\n==\"FLEX\"\n  ?max(\n    0.0,\n    sum(\n      work.days.filter(d, d.day_type != \"REST\").map(x, x.worked_hours)\n    )\n    - (has(company.facts.weekly_limit_44)\n    &&company.facts.weekly_limit_44 == true\n      ?44.0\n      :40.0)\n    *double(period.days)\n    /7.0\n  )\n  : (has(company.facts.working_time_regime)\n    ?company.facts.working_time_regime\n    :\"STANDARD\")\n  ==\"DEEMED\"\n    ?sum(\n      work.days.filter(d, d.day_type != \"REST\").filter(x, x.worked).map(\n        x,\n        max(\n          0.0,\n          (has(company.facts.deemed_daily_hours)\n            ?double(company.facts.deemed_daily_hours)\n            :8.0)\n          -8.0\n        )\n      )\n    )\n    :min(\n      sum(\n        work.days.filter(d, d.day_type != \"REST\").map(\n          x,\n          max(\n            0.0,\n            x.worked_hours\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max(8.0, x.scheduled_hours)\n              :8.0\n          ) )\n        )\n      )\n      +sum(\n        work.days.filter(d, d.day_type != \"REST\").filter(\n          s,\n          !work.days.filter(d, d.day_type != \"REST\").exists(\n            x,\n            x.date < s.date\n            &&x.date\n            >=add_days(\n              s.date,\n              0\n              - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7)\n              - (has(company.facts.week_start_day)\n                ?int(company.facts.week_start_day)\n                :0)\n              +7)\n              %7\n            ) )\n          )\n        ).map(\n          s,\n          max(\n            0.0,\n            (sum(\n              work.days.filter(d, d.day_type != \"REST\").filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            )\n            +sum((\n              has(work.week_before) ? work.week_before : []).filter(\n                d,\n                d.day_type != \"REST\"\n              ).filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            ))\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max((\n                has(company.facts.weekly_limit_44)\n                &&company.facts.weekly_limit_44 == true\n                  ?44.0\n                  :40.0),\n                (sum(\n                  work.days.filter(d, d.day_type != \"REST\").filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n                +sum((\n                  has(work.week_before) ? work.week_before : []).filter(\n                    d,\n                    d.day_type != \"REST\"\n                  ).filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n              ) )\n              : (has(company.facts.weekly_limit_44)\n              &&company.facts.weekly_limit_44 == true\n                ?44.0\n                :40.0\n          ) ))\n          -max(\n            0.0,\n            sum((\n              has(work.week_before) ? work.week_before : []).filter(\n                d,\n                d.day_type != \"REST\"\n              ).filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            )\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max((\n                has(company.facts.weekly_limit_44)\n                &&company.facts.weekly_limit_44 == true\n                  ?44.0\n                  :40.0),\n                sum((\n                  has(work.week_before) ? work.week_before : []).filter(\n                    d,\n                    d.day_type != \"REST\"\n                  ).filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n              )\n              : (has(company.facts.weekly_limit_44)\n              &&company.facts.weekly_limit_44 == true\n                ?44.0\n                :40.0\n          ) ))\n        )\n      ),\n      sum(\n        work.days.filter(d, d.day_type != \"REST\").map(\n          d,\n          d.overtime_hours\n        )\n      )\n    ))\n>0.0\n||sum(work.days.filter(d, d.day_type == \"REST\").map(d, d.worked_hours))\n>0.0)\n&&has(company.facts.overtime_agreement_to)\n&& (period.to > company.facts.overtime_agreement_to\n|| (has(company.facts.overtime_agreement_from)\n&&period.from < company.facts.overtime_agreement_from))",
+			"message": "Overtime falls outside the period of the 36 agreement on record (company.facts overtime_agreement_from/to); overtime needs an agreement filed with the labour standards office (労働基準法 arts.32, 36(1)).",
+			"description": "Statutory overtime or rest-day work in a period the recorded agreement does not cover (overtime within the legal hours needs no agreement)."
+		}
+	},
+	{
+		"id": "155d244e-df3f-56ad-b3c6-e4e9dfd3e835",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "OVERTIME_YEAR_360H",
+		"name": "時間外労働の限度時間 年360時間 (yearly overtime limit)",
+		"references": [
+			{
+				"title": "労働基準法 art.36(2)(iv), (4): 360 hours a year counted from the agreement's 起算日 (company.facts.overtime_agreement_from; else 1 January) over hours.months. 新技術・新商品等の研究開発 is outside the limits (art.36(11)). hours.months does not split rest-day work or within-legal-hours overtime (every approved hour past the schedule) from statutory overtime, so the count includes them and errs high."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"\n&&sum(\n  hours.months.filter(\n    m,\n    m.month\n    >= (has(company.facts.overtime_agreement_from)\n      ? (period.month_key.substring(5, 7)\n      >=company.facts.overtime_agreement_from.substring(5, 7)\n        ?period.month_key.substring(0, 4)\n        :string(int(period.month_key.substring(0, 4)) - 1))\n      +\"-\"\n      +company.facts.overtime_agreement_from.substring(5, 7)\n      :period.month_key.substring(0, 4) + \"-01\"\n  ) ).map(\n    m,\n    m.overtime_hours\n  )\n)\n>360.0",
+			"message": "Overtime in this agreement year is above 360 hours: lawful only under the special clause of the 36 agreement (労働基準法 art.36(4)–(5)).",
+			"description": "時間外労働の限度時間 年360時間 (yearly overtime limit)"
+		}
+	},
+	{
+		"id": "9c2d40ee-3594-519c-96ed-2b304f6a1b7d",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "OVERTIME_YEAR_720H",
+		"name": "特別条項の上限 年720時間 (yearly cap under a special clause)",
+		"references": [
+			{
+				"title": "労働基準法 art.36(5); from April 2024 drivers 960 h (art.140), doctors by level (art.141 with 医師の労働時間短縮 省令) (company.facts.overtime_sector). hours.months and hours.month/year carry every approved hour past the schedule, within-legal-hours overtime included, so this count errs high."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"\n&&sum(\n  hours.months.filter(\n    m,\n    m.month\n    >= (has(company.facts.overtime_agreement_from)\n      ? (period.month_key.substring(5, 7)\n      >=company.facts.overtime_agreement_from.substring(5, 7)\n        ?period.month_key.substring(0, 4)\n        :string(int(period.month_key.substring(0, 4)) - 1))\n      +\"-\"\n      +company.facts.overtime_agreement_from.substring(5, 7)\n      :period.month_key.substring(0, 4) + \"-01\"\n  ) ).map(\n    m,\n    m.overtime_hours\n  )\n)\n> ((has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"DRIVER\", \"DOCTOR_A\"]\n  ?960.0\n  : (has(company.facts.overtime_sector)\n    ?company.facts.overtime_sector\n    :\"GENERAL\")\n  ==\"DOCTOR_BC\"\n    ?1860.0\n    :720.0)",
+			"message": "Overtime in this agreement year is above the yearly cap even under a special clause (720 hours; 960 for drivers and A-level doctors, 1,860 for B/C doctors) (労働基準法 arts.36(5), 140–141).",
+			"description": "特別条項の上限 年720時間 (yearly cap under a special clause)"
+		}
+	},
+	{
+		"id": "b6e43e9e-95f7-5b26-ad1d-1ed4abfa7833",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "OVERTIME_AVERAGE_80H",
+		"name": "複数月平均80時間以内 (2- to 6-month average cap)",
+		"references": [
+			{
+				"title": "労働基準法 art.36(6)(iii) over hours.months: each month’s overtime beyond the statutory limits plus every hour worked on a statutory rest day (法定休日, day_type REST: the approved overtime of those days is counted once, as rest-day work); work on another day off (所定休日, OFF) or a national holiday counts as overtime only where it exceeds the limits. Not applied to drivers, doctors, R&D or disaster recovery in construction (arts.139–141). hours.months and hours.month/year carry every approved hour past the schedule, within-legal-hours overtime included, so this count errs high."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)\n&& ((sum(\n  hours.months.filter(\n    m,\n    m.month >= add_months(period.month_from, -1).substring(0, 7)\n  ).map(\n    m,\n    m.overtime_hours\n    - (has(m.day_type) && has(m.day_type.REST)\n    &&has(m.day_type.REST.overtime_hours)\n      ?m.day_type.REST.overtime_hours\n      :0.0)\n    + (has(m.day_type) && has(m.day_type.REST)\n    &&has(m.day_type.REST.worked_hours)\n      ?m.day_type.REST.worked_hours\n      :0.0\n  ) )\n)\n/2.0)\n>80.0\n|| (sum(\n  hours.months.filter(\n    m,\n    m.month >= add_months(period.month_from, -2).substring(0, 7)\n  ).map(\n    m,\n    m.overtime_hours\n    - (has(m.day_type) && has(m.day_type.REST)\n    &&has(m.day_type.REST.overtime_hours)\n      ?m.day_type.REST.overtime_hours\n      :0.0)\n    + (has(m.day_type) && has(m.day_type.REST)\n    &&has(m.day_type.REST.worked_hours)\n      ?m.day_type.REST.worked_hours\n      :0.0\n  ) )\n)\n/3.0)\n>80.0\n|| (sum(\n  hours.months.filter(\n    m,\n    m.month >= add_months(period.month_from, -3).substring(0, 7)\n  ).map(\n    m,\n    m.overtime_hours\n    - (has(m.day_type) && has(m.day_type.REST)\n    &&has(m.day_type.REST.overtime_hours)\n      ?m.day_type.REST.overtime_hours\n      :0.0)\n    + (has(m.day_type) && has(m.day_type.REST)\n    &&has(m.day_type.REST.worked_hours)\n      ?m.day_type.REST.worked_hours\n      :0.0\n  ) )\n)\n/4.0)\n>80.0\n|| (sum(\n  hours.months.filter(\n    m,\n    m.month >= add_months(period.month_from, -4).substring(0, 7)\n  ).map(\n    m,\n    m.overtime_hours\n    - (has(m.day_type) && has(m.day_type.REST)\n    &&has(m.day_type.REST.overtime_hours)\n      ?m.day_type.REST.overtime_hours\n      :0.0)\n    + (has(m.day_type) && has(m.day_type.REST)\n    &&has(m.day_type.REST.worked_hours)\n      ?m.day_type.REST.worked_hours\n      :0.0\n  ) )\n)\n/5.0)\n>80.0\n|| (sum(\n  hours.months.filter(\n    m,\n    m.month >= add_months(period.month_from, -5).substring(0, 7)\n  ).map(\n    m,\n    m.overtime_hours\n    - (has(m.day_type) && has(m.day_type.REST)\n    &&has(m.day_type.REST.overtime_hours)\n      ?m.day_type.REST.overtime_hours\n      :0.0)\n    + (has(m.day_type) && has(m.day_type.REST)\n    &&has(m.day_type.REST.worked_hours)\n      ?m.day_type.REST.worked_hours\n      :0.0\n  ) )\n)\n/6.0)\n>80.0)",
+			"message": "Overtime and rest-day work average more than 80 hours a month over a 2- to 6-month span (労働基準法 art.36(6)(iii)).",
+			"description": "複数月平均80時間以内 (2- to 6-month average cap)"
+		}
+	},
+	{
+		"id": "0bcd6d8f-4fd9-56bb-ad40-22743a617cad",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "OVERTIME_SIX_MONTHS_OVER_45",
+		"name": "45時間超は年6か月まで (at most six months above 45 hours)",
+		"references": [
+			{
+				"title": "労働基準法 art.36(5): the special clause may exceed 45 hours a month in at most six months of the agreement year (hours.months from the 起算日). hours.months and hours.month/year carry every approved hour past the schedule, within-legal-hours overtime included, so this count errs high."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&size(\n  hours.months.filter(\n    m,\n    m.month\n    >= (has(company.facts.overtime_agreement_from)\n      ? (period.month_key.substring(5, 7)\n      >=company.facts.overtime_agreement_from.substring(5, 7)\n        ?period.month_key.substring(0, 4)\n        :string(int(period.month_key.substring(0, 4)) - 1))\n      +\"-\"\n      +company.facts.overtime_agreement_from.substring(5, 7)\n      :period.month_key.substring(0, 4) + \"-01\"\n  ) ).filter(\n    m,\n    m.overtime_hours > 45.0\n  )\n)\n>6",
+			"message": "More than six months in this agreement year have overtime above 45 hours (労働基準法 art.36(5)).",
+			"description": "45時間超は年6か月まで (at most six months above 45 hours)"
+		}
+	},
+	{
+		"id": "8302b018-6336-5c60-8d25-eb21b7d3cb83",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "OVERTIME_80H_NOTICE",
+		"name": "月80時間超の時間外・休日労働 (over 80 hours: notice and doctor interview)",
+		"references": [
+			{
+				"title": "労働安全衛生法 arts.66の8, 66の8の3 with 安衛則 art.52の2: the employer grasps everyone's hours (managers included) and informs a worker above 80 hours a month."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "((has(company.facts.working_time_regime)\n  ?company.facts.working_time_regime\n  :\"STANDARD\")\n==\"FLEX\"\n  ?max(\n    0.0,\n    sum(\n      work.days.filter(d, d.day_type != \"REST\").map(x, x.worked_hours)\n    )\n    - (has(company.facts.weekly_limit_44)\n    &&company.facts.weekly_limit_44 == true\n      ?44.0\n      :40.0)\n    *double(period.days)\n    /7.0\n  )\n  : (has(company.facts.working_time_regime)\n    ?company.facts.working_time_regime\n    :\"STANDARD\")\n  ==\"DEEMED\"\n    ?sum(\n      work.days.filter(d, d.day_type != \"REST\").filter(x, x.worked).map(\n        x,\n        max(\n          0.0,\n          (has(company.facts.deemed_daily_hours)\n            ?double(company.facts.deemed_daily_hours)\n            :8.0)\n          -8.0\n        )\n      )\n    )\n    :min(\n      sum(\n        work.days.filter(d, d.day_type != \"REST\").map(\n          x,\n          max(\n            0.0,\n            x.worked_hours\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max(8.0, x.scheduled_hours)\n              :8.0\n          ) )\n        )\n      )\n      +sum(\n        work.days.filter(d, d.day_type != \"REST\").filter(\n          s,\n          !work.days.filter(d, d.day_type != \"REST\").exists(\n            x,\n            x.date < s.date\n            &&x.date\n            >=add_days(\n              s.date,\n              0\n              - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7)\n              - (has(company.facts.week_start_day)\n                ?int(company.facts.week_start_day)\n                :0)\n              +7)\n              %7\n            ) )\n          )\n        ).map(\n          s,\n          max(\n            0.0,\n            (sum(\n              work.days.filter(d, d.day_type != \"REST\").filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            )\n            +sum((\n              has(work.week_before) ? work.week_before : []).filter(\n                d,\n                d.day_type != \"REST\"\n              ).filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            ))\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max((\n                has(company.facts.weekly_limit_44)\n                &&company.facts.weekly_limit_44 == true\n                  ?44.0\n                  :40.0),\n                (sum(\n                  work.days.filter(d, d.day_type != \"REST\").filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n                +sum((\n                  has(work.week_before) ? work.week_before : []).filter(\n                    d,\n                    d.day_type != \"REST\"\n                  ).filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n              ) )\n              : (has(company.facts.weekly_limit_44)\n              &&company.facts.weekly_limit_44 == true\n                ?44.0\n                :40.0\n          ) ))\n          -max(\n            0.0,\n            sum((\n              has(work.week_before) ? work.week_before : []).filter(\n                d,\n                d.day_type != \"REST\"\n              ).filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            )\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max((\n                has(company.facts.weekly_limit_44)\n                &&company.facts.weekly_limit_44 == true\n                  ?44.0\n                  :40.0),\n                sum((\n                  has(work.week_before) ? work.week_before : []).filter(\n                    d,\n                    d.day_type != \"REST\"\n                  ).filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n              )\n              : (has(company.facts.weekly_limit_44)\n              &&company.facts.weekly_limit_44 == true\n                ?44.0\n                :40.0\n          ) ))\n        )\n      ),\n      sum(\n        work.days.filter(d, d.day_type != \"REST\").map(\n          d,\n          d.overtime_hours\n        )\n      )\n    ))\n+sum(work.days.filter(d, d.day_type == \"REST\").map(d, d.worked_hours))\n>80.0",
+			"message": "Overtime and rest-day work exceed 80 hours this month: tell the worker promptly and arrange the doctor's interview on request (労働安全衛生法 art.66の8; 安衛則 arts.52の2–52の3).",
+			"description": "月80時間超の時間外・休日労働 (over 80 hours: notice and doctor interview)"
+		}
+	},
+	{
+		"id": "ae06270e-614c-5c5d-ae1b-911683b0902a",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "MINOR_LIMITS",
+		"name": "年少者の時間外・休日・深夜労働 (minors: no overtime, rest-day or night work)",
+		"references": [
+			{
+				"title": "労働基準法 art.60(1) (no 36-agreement overtime or rest-day work) and art.61(1) (no work 22:00–05:00), with the listed exceptions."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "employee.date_of_birth != \"\"\n&&age_on(employee.date_of_birth, period.to) < 18\n&& (((has(company.facts.working_time_regime)\n  ?company.facts.working_time_regime\n  :\"STANDARD\")\n==\"FLEX\"\n  ?max(\n    0.0,\n    sum(\n      work.days.filter(d, d.day_type != \"REST\").map(x, x.worked_hours)\n    )\n    - (has(company.facts.weekly_limit_44)\n    &&company.facts.weekly_limit_44 == true\n      ?44.0\n      :40.0)\n    *double(period.days)\n    /7.0\n  )\n  : (has(company.facts.working_time_regime)\n    ?company.facts.working_time_regime\n    :\"STANDARD\")\n  ==\"DEEMED\"\n    ?sum(\n      work.days.filter(d, d.day_type != \"REST\").filter(x, x.worked).map(\n        x,\n        max(\n          0.0,\n          (has(company.facts.deemed_daily_hours)\n            ?double(company.facts.deemed_daily_hours)\n            :8.0)\n          -8.0\n        )\n      )\n    )\n    :min(\n      sum(\n        work.days.filter(d, d.day_type != \"REST\").map(\n          x,\n          max(\n            0.0,\n            x.worked_hours\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max(8.0, x.scheduled_hours)\n              :8.0\n          ) )\n        )\n      )\n      +sum(\n        work.days.filter(d, d.day_type != \"REST\").filter(\n          s,\n          !work.days.filter(d, d.day_type != \"REST\").exists(\n            x,\n            x.date < s.date\n            &&x.date\n            >=add_days(\n              s.date,\n              0\n              - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7)\n              - (has(company.facts.week_start_day)\n                ?int(company.facts.week_start_day)\n                :0)\n              +7)\n              %7\n            ) )\n          )\n        ).map(\n          s,\n          max(\n            0.0,\n            (sum(\n              work.days.filter(d, d.day_type != \"REST\").filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            )\n            +sum((\n              has(work.week_before) ? work.week_before : []).filter(\n                d,\n                d.day_type != \"REST\"\n              ).filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            ))\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max((\n                has(company.facts.weekly_limit_44)\n                &&company.facts.weekly_limit_44 == true\n                  ?44.0\n                  :40.0),\n                (sum(\n                  work.days.filter(d, d.day_type != \"REST\").filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n                +sum((\n                  has(work.week_before) ? work.week_before : []).filter(\n                    d,\n                    d.day_type != \"REST\"\n                  ).filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n              ) )\n              : (has(company.facts.weekly_limit_44)\n              &&company.facts.weekly_limit_44 == true\n                ?44.0\n                :40.0\n          ) ))\n          -max(\n            0.0,\n            sum((\n              has(work.week_before) ? work.week_before : []).filter(\n                d,\n                d.day_type != \"REST\"\n              ).filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            )\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max((\n                has(company.facts.weekly_limit_44)\n                &&company.facts.weekly_limit_44 == true\n                  ?44.0\n                  :40.0),\n                sum((\n                  has(work.week_before) ? work.week_before : []).filter(\n                    d,\n                    d.day_type != \"REST\"\n                  ).filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n              )\n              : (has(company.facts.weekly_limit_44)\n              &&company.facts.weekly_limit_44 == true\n                ?44.0\n                :40.0\n          ) ))\n        )\n      ),\n      sum(\n        work.days.filter(d, d.day_type != \"REST\").map(\n          d,\n          d.overtime_hours\n        )\n      )\n    ))\n>0.0\n||sum(work.days.filter(d, d.day_type == \"REST\").map(d, d.worked_hours))\n>0.0\n||sum(\n  work.days.map(\n    d,\n    hours_between(\n      d.intervals,\n      rules.night_work[\"from\"],\n      rules.night_work.to\n    )\n  )\n)\n>0.0)",
+			"message": "A worker under 18 did overtime, rest-day or night work, which the law forbids (労働基準法 arts.60–61).",
+			"description": "年少者の時間外・休日・深夜労働 (minors: no overtime, rest-day or night work)"
+		}
+	},
+	{
+		"id": "af135e4d-f3b3-5476-b70b-3e479f8c516e",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "MATERNITY_LIMITS",
+		"name": "妊産婦の請求による時間外・休日・深夜の制限 (pregnant and post-partum workers)",
+		"references": [
+			{
+				"title": "労働基準法 art.66(2)–(3): on the worker's request no overtime, rest-day or night work (terms.facts.pregnancy_work_limits_requested)."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "(has(terms.facts.pregnancy_work_limits_requested)\n&&terms.facts.pregnancy_work_limits_requested == true)\n&& (((has(company.facts.working_time_regime)\n  ?company.facts.working_time_regime\n  :\"STANDARD\")\n==\"FLEX\"\n  ?max(\n    0.0,\n    sum(\n      work.days.filter(d, d.day_type != \"REST\").map(x, x.worked_hours)\n    )\n    - (has(company.facts.weekly_limit_44)\n    &&company.facts.weekly_limit_44 == true\n      ?44.0\n      :40.0)\n    *double(period.days)\n    /7.0\n  )\n  : (has(company.facts.working_time_regime)\n    ?company.facts.working_time_regime\n    :\"STANDARD\")\n  ==\"DEEMED\"\n    ?sum(\n      work.days.filter(d, d.day_type != \"REST\").filter(x, x.worked).map(\n        x,\n        max(\n          0.0,\n          (has(company.facts.deemed_daily_hours)\n            ?double(company.facts.deemed_daily_hours)\n            :8.0)\n          -8.0\n        )\n      )\n    )\n    :min(\n      sum(\n        work.days.filter(d, d.day_type != \"REST\").map(\n          x,\n          max(\n            0.0,\n            x.worked_hours\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max(8.0, x.scheduled_hours)\n              :8.0\n          ) )\n        )\n      )\n      +sum(\n        work.days.filter(d, d.day_type != \"REST\").filter(\n          s,\n          !work.days.filter(d, d.day_type != \"REST\").exists(\n            x,\n            x.date < s.date\n            &&x.date\n            >=add_days(\n              s.date,\n              0\n              - (((int(calendar_distance_days(\"2023-01-01\", s.date)) % 7)\n              - (has(company.facts.week_start_day)\n                ?int(company.facts.week_start_day)\n                :0)\n              +7)\n              %7\n            ) )\n          )\n        ).map(\n          s,\n          max(\n            0.0,\n            (sum(\n              work.days.filter(d, d.day_type != \"REST\").filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            )\n            +sum((\n              has(work.week_before) ? work.week_before : []).filter(\n                d,\n                d.day_type != \"REST\"\n              ).filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            ))\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max((\n                has(company.facts.weekly_limit_44)\n                &&company.facts.weekly_limit_44 == true\n                  ?44.0\n                  :40.0),\n                (sum(\n                  work.days.filter(d, d.day_type != \"REST\").filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n                +sum((\n                  has(work.week_before) ? work.week_before : []).filter(\n                    d,\n                    d.day_type != \"REST\"\n                  ).filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n              ) )\n              : (has(company.facts.weekly_limit_44)\n              &&company.facts.weekly_limit_44 == true\n                ?44.0\n                :40.0\n          ) ))\n          -max(\n            0.0,\n            sum((\n              has(work.week_before) ? work.week_before : []).filter(\n                d,\n                d.day_type != \"REST\"\n              ).filter(\n                x,\n                add_days(\n                  x.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", x.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n                ==add_days(\n                  s.date,\n                  0\n                  - (((int(calendar_distance_days(\"2023-01-01\", s.date))\n                  %7)\n                  - (has(company.facts.week_start_day)\n                    ?int(company.facts.week_start_day)\n                    :0)\n                  +7)\n                  %7\n                ) )\n              ).map(\n                x,\n                min(\n                  x.worked_hours,\n                  ((has(company.facts.working_time_regime)\n                    ?company.facts.working_time_regime\n                    :\"STANDARD\")\n                  ==\"VARIABLE\"\n                    ?max(8.0, x.scheduled_hours)\n                    :8.0\n                ) )\n              )\n            )\n            - ((has(company.facts.working_time_regime)\n              ?company.facts.working_time_regime\n              :\"STANDARD\")\n            ==\"VARIABLE\"\n              ?max((\n                has(company.facts.weekly_limit_44)\n                &&company.facts.weekly_limit_44 == true\n                  ?44.0\n                  :40.0),\n                sum((\n                  has(work.week_before) ? work.week_before : []).filter(\n                    d,\n                    d.day_type != \"REST\"\n                  ).filter(\n                    x,\n                    add_days(\n                      x.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", x.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                    ==add_days(\n                      s.date,\n                      0\n                      - (((int(\n                        calendar_distance_days(\"2023-01-01\", s.date)\n                      )\n                      %7)\n                      - (has(company.facts.week_start_day)\n                        ?int(company.facts.week_start_day)\n                        :0)\n                      +7)\n                      %7\n                    ) )\n                  ).map(\n                    x,\n                    x.scheduled_hours\n                  )\n                )\n              )\n              : (has(company.facts.weekly_limit_44)\n              &&company.facts.weekly_limit_44 == true\n                ?44.0\n                :40.0\n          ) ))\n        )\n      ),\n      sum(\n        work.days.filter(d, d.day_type != \"REST\").map(\n          d,\n          d.overtime_hours\n        )\n      )\n    ))\n>0.0\n||sum(work.days.filter(d, d.day_type == \"REST\").map(d, d.worked_hours))\n>0.0\n||sum(\n  work.days.map(\n    d,\n    hours_between(\n      d.intervals,\n      rules.night_work[\"from\"],\n      rules.night_work.to\n    )\n  )\n)\n>0.0)",
+			"message": "A pregnant or post-partum worker who asked to be excused did overtime, rest-day or night work (労働基準法 art.66).",
+			"description": "妊産婦の請求による時間外・休日・深夜の制限 (pregnant and post-partum workers)"
+		}
+	},
+	{
+		"id": "c874b928-bbb5-5c13-8cf3-65e478a66477",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "CHILDCARE_CARE_LIMITS",
+		"name": "育児・介護のための時間外・深夜の制限 (childcare and care limits)",
+		"references": [
+			{
+				"title": "育児・介護休業法 art.16の8 (no work beyond the schedule, to pre-school age from April 2025), art.17 (at most 24 h a month and 150 h a year), art.19 (no night work), on request (terms.facts). hours.months and hours.month/year carry every approved hour past the schedule, within-legal-hours overtime included, so this count errs high."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "((has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true)\n&& (hours.month.overtime_hours > 24.0\n||hours.year.overtime_hours > 150.0))\n|| ((has(terms.facts.no_overtime_requested)\n&&terms.facts.no_overtime_requested == true)\n&&work.overtime_hours > 0.0)\n|| ((has(terms.facts.night_work_exemption_requested)\n&&terms.facts.night_work_exemption_requested == true)\n&&sum(\n  work.days.map(\n    d,\n    hours_between(\n      d.intervals,\n      rules.night_work[\"from\"],\n      rules.night_work.to\n    )\n  )\n)\n>0.0)",
+			"message": "A worker who asked for the childcare or care limits did more overtime or night work than allowed (育児・介護休業法 arts.16の8, 17, 19).",
+			"description": "育児・介護のための時間外・深夜の制限 (childcare and care limits)"
+		}
+	},
+	{
+		"id": "4282427e-5226-57bd-9cbc-1d62e032631c",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "DAYTIME_STUDENT_EI",
+		"name": "昼間学生の雇用保険適用 (daytime students outside employment insurance)",
+		"references": [
+			{
+				"title": "雇用保険法 art.6(iv) with 施行規則 art.3の2; a worker 65 or over with several jobs is insured only on application (art.37の5, マルチジョブホルダー)."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "(has(terms.facts.daytime_student) && terms.facts.daytime_student == true)\n&&terms.statutory_work_category\nin [\"SOCIAL_AND_EMPLOYMENT\", \"EMPLOYMENT_ONLY\"]",
+			"message": "A daytime student is not insured for employment insurance (雇用保険法 art.6(iv)); check the coverage on the terms.",
+			"description": "昼間学生の雇用保険適用 (daytime students outside employment insurance)"
+		}
+	},
+	{
+		"id": "385a0220-33a5-5763-a98f-5d9d84897a98",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "SHORT_TIME_COVERAGE",
+		"name": "短時間労働者の社会保険適用 (short-time worker coverage)",
+		"references": [
+			{
+				"title": "健康保険法 art.3(1)(ix) and 厚生年金保険法 art.12(v) with 令和7年法律第74号 (wage requirement abolished 1 October 2026; the employer size falls to 36 in October 2027): company.headcount (contracts in force, standing in for the insured count), company.facts.voluntary_special_application; before October 2026 also the 88,000 monthly wage. The threshold is 平成24年法律第62号 附則 art.17(12) (a 特定適用事業所 has more than 50 特定労働者: insured persons under 70 who are not short-time workers), read with 附則 art.17の3の2 inserted by 令和7年法律第74号: more than 35 from 2027-10-01, 20 from 2029-10-01, 10 from 2032-10-01; 附則 art.17の3 ends the size test on 2035-10-01. The count is company.facts.insured_full_time_workers (the employer’s 特定労働者, as the pension office’s 特定適用事業所該当通知 states), else the entity’s contracts in force."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "has(terms.facts.weekly_scheduled_hours)\n&&double(terms.facts.weekly_scheduled_hours) >= 20.0\n&&double(terms.facts.weekly_scheduled_hours) < 30.0\n&& ((terms.statutory_work_category\nin [\"SOCIAL_AND_EMPLOYMENT\", \"SOCIAL_ONLY\"]\n&& (((has(company.facts.insured_full_time_workers)\n  ?double(company.facts.insured_full_time_workers)\n  :double(company.headcount))\n<=35\n&&!(has(company.facts.voluntary_special_application)\n&&company.facts.voluntary_special_application == true))\n|| (has(terms.facts.daytime_student)\n&&terms.facts.daytime_student == true)))\n|| (terms.statutory_work_category in [\"EMPLOYMENT_ONLY\", \"NONE\"]\n&& (has(company.facts.insured_full_time_workers)\n  ?double(company.facts.insured_full_time_workers)\n  :double(company.headcount))\n>35\n&&!(has(terms.facts.daytime_student)\n&&terms.facts.daytime_student == true)))",
+			"message": "The coverage on the terms does not match the short-time rule: 20–30 weekly hours are insured at an employer of 36 or more (or under a 任意特定適用 agreement), not a student (健康保険法 art.3(1)(ix)).",
+			"description": "短時間労働者の社会保険適用 (short-time worker coverage)"
+		}
+	},
+	{
+		"id": "d8560fdb-b948-545c-b681-98ec49b76fa4",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "DISCIPLINARY_DEDUCTION_LIMIT",
+		"name": "減給の総額制限 (disciplinary reductions above one tenth)",
+		"references": [
+			{
+				"title": "労働基準法 art.91: in all at most one tenth of the wages of one pay period."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "refuse",
+			"when": "has(payslip.lines.DISCIPLINARY_DEDUCTION)\n&&0.0 - payslip.lines.DISCIPLINARY_DEDUCTION\n>0.1 * (payslip.gross - payslip.lines.DISCIPLINARY_DEDUCTION)",
+			"message": "Disciplinary reductions exceed one tenth of the period's wages (労働基準法 art.91); carry the rest to a later period.",
+			"description": "減給の総額制限 (disciplinary reductions above one tenth)"
+		}
+	},
+	{
+		"id": "980b489b-6eae-525f-87ef-d1d0a4cd50fd",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "DIGITAL_WAGE_CONSENT",
+		"name": "賃金のデジタル払いの同意 (digital wage payment consent)",
+		"references": [
+			{
+				"title": "労働基準法 art.24(1) with 施行規則 art.7の2: payment through a 指定資金移動業者 only with the worker's consent after the required explanation."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "has(terms.facts.wage_payment_method)\n&&terms.facts.wage_payment_method == \"DIGITAL\"\n&&!has(terms.facts.digital_payment_consent_on)",
+			"message": "Wages paid to a designated fund-transfer account need the worker's written consent (労働基準法施行規則 art.7の2(1)(iii)).",
+			"description": "賃金のデジタル払いの同意 (digital wage payment consent)"
+		}
+	},
+	{
+		"id": "766a7529-15cf-5c7a-93a9-81facbe41a86",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "MINIMUM_WAGE_CONTRACT",
+		"name": "最低賃金を下回る労働契約 (contract below the minimum wage)",
+		"references": [
+			{
+				"title": "最低賃金法 arts.4, 7, 13 with 施行規則 arts.1–2: the minimum in force on the term's day (day) of the workplace's prefecture, less a permitted reduction, compared per hour."
+			}
+		],
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "term.work_classification != \"OFFICER\"\n&&has(company.facts.monthly_average_scheduled_hours)\n&& (has(term.facts) && has(term.facts.workplace_region)\n  ?term.facts.workplace_region\n  :company.region)\nin rules.minimum_wage.by_region\n&&term.base_salary > 0.0\n&& (has(term.facts) && has(term.facts.pay_basis)\n&&term.facts.pay_basis == \"HOURLY\"\n  ?term.base_salary\n  :has(term.facts) && has(term.facts.pay_basis)\n  &&term.facts.pay_basis == \"DAILY\"\n    ?term.base_salary\n    / (has(term.facts.scheduled_daily_hours)\n      ?double(term.facts.scheduled_daily_hours)\n      :8.0)\n    : (term.base_salary\n    +sum(\n      term.allowances.filter(\n        a,\n        !(has(a.code)\n        &&a.code in [\"FAMILY_ALLOWANCE\", \"COMMUTING_ALLOWANCE\"]\n      ) ).map(\n        a,\n        double(a.amount)\n      )\n    ))\n    /double(company.facts.monthly_average_scheduled_hours))\n<double(\n  first(\n    rules.minimum_wage.by_region[(has(term.facts)\n    &&has(term.facts.workplace_region)\n      ?term.facts.workplace_region\n      :company.region)].filter(\n      e,\n      e[\"from\"] <= day\n    )\n  ).amount\n)\n* (1.0\n- (has(term.facts) && has(term.facts.minimum_wage_reduction_rate)\n  ?double(term.facts.minimum_wage_reduction_rate)\n  :0.0))",
+			"message": "The wage is below the regional minimum wage in force on the term's first day; such a term is void (最低賃金法 art.4(2)).",
+			"description": "最低賃金を下回る労働契約 (contract below the minimum wage)"
+		}
+	},
+	{
+		"id": "44d27b13-b33f-55ea-ae2a-08e303683f34",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "PARAMETERS",
+		"code": "case_kinds",
+		"name": "業務上の案件の種類 (workplace case kinds)",
+		"references": [
+			{
+				"title": "健康保険法施行規則 art.38: a change in an insured person’s dependants (marriage, divorce, a dependant’s income or residence, death) is reported within 5 days; HR records it as a workplace_case DEPENDANT_CHANGE (facts.changed_on, facts.note). 個人情報保護法 art.26 and 番号法 art.29の4: a leak of employee or My Number data is a workplace_case DATA_BREACH (facts.discovered_on, sensitive, financial_harm, misconduct, my_number, affected_count)."
+			}
+		],
+		"rules": {
+			"description": "The workplace case kinds this version admits.",
+			"kinds": [
+				{
+					"code": "DEPENDANT_CHANGE",
+					"name": "被扶養者の異動 (dependant change)"
+				},
+				{
+					"code": "DATA_BREACH",
+					"name": "個人データの漏えい等 (personal-data breach)"
+				}
+			]
+		}
+	},
+	{
+		"id": "64a1463a-5614-518d-ba12-89b7a5d168ec",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "PARAMETERS",
+		"code": "withholding_daily_table",
+		"name": "源泉徴収税額表 日額表 (daily withholding tables)",
+		"references": [
+			{
+				"title": "所得税法 art.185(1)(i)ホ・ヘ, (ii)ホ・ヘ and (iii): salary paid daily is withheld on the 日額表; salary paid weekly or by any other period of days on its 日割額 (the pay divided by the days of the period) times those days; 労働した日ごとに支払われる給与 (日雇, terms.facts.daily_wage_earner) on the 丙欄 for each day worked. Each table applies to pay payable in its year (令和7年分, 令和8年分, 令和9年分). rows = [以上, 未満, 甲0–7人, 乙, 丙]; below the first row 甲 and 丙 are nil and 乙 is 3.063%; from formula_from each band is [edge, rate, 甲0–7人 at the edge] (甲), [edge, tax at the edge, rate] (乙, 丙), the excess times the rate dropped below 1 yen. Over 7 dependants: the 7-person tax less 50 yen each; a 従たる給与 declaration: 乙 less 50 yen per dependant. Transcribed from the NTA Excel and checked row by row against the NTA PDF.",
+				"url": "https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2027/data/08-14.xls"
+			}
+		],
+		"rules": {
+			"description": "The 日額表 (源泉徴収税額表 別表第二/第三) by the pay day’s year: 甲欄 by dependants 0–7, 乙欄 and 丙欄, the rows under 24,000 yen a day and the formula bands above it.",
+			"tables": [
+				{
+					"year": 2027,
+					"from": "2027-01-01",
+					"to": null,
+					"source": "https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2027/data/08-14.xls",
+					"notice": "令和9年分 日額表 (令和8年4月30日財務省告示第127号別表第二)",
+					"below": 3700,
+					"formula_from": 24000,
+					"rows": [
+						[3700, 3800, 5, 0, 0, 0, 0, 0, 0, 0, 130, 0],
+						[3800, 3900, 10, 0, 0, 0, 0, 0, 0, 0, 130, 0],
+						[3900, 4000, 15, 0, 0, 0, 0, 0, 0, 0, 140, 0],
+						[4000, 4100, 20, 0, 0, 0, 0, 0, 0, 0, 140, 0],
+						[4100, 4200, 25, 0, 0, 0, 0, 0, 0, 0, 150, 0],
+						[4200, 4300, 30, 0, 0, 0, 0, 0, 0, 0, 150, 0],
+						[4300, 4400, 35, 0, 0, 0, 0, 0, 0, 0, 170, 0],
+						[4400, 4500, 40, 0, 0, 0, 0, 0, 0, 0, 180, 0],
+						[4500, 4600, 45, 0, 0, 0, 0, 0, 0, 0, 200, 0],
+						[4600, 4700, 50, 0, 0, 0, 0, 0, 0, 0, 210, 0],
+						[4700, 4800, 55, 0, 0, 0, 0, 0, 0, 0, 230, 0],
+						[4800, 4900, 60, 5, 0, 0, 0, 0, 0, 0, 250, 0],
+						[4900, 5000, 65, 10, 0, 0, 0, 0, 0, 0, 270, 0],
+						[5000, 5100, 70, 15, 0, 0, 0, 0, 0, 0, 280, 0],
+						[5100, 5200, 75, 20, 0, 0, 0, 0, 0, 0, 290, 0],
+						[5200, 5300, 80, 25, 0, 0, 0, 0, 0, 0, 310, 0],
+						[5300, 5400, 85, 30, 0, 0, 0, 0, 0, 0, 320, 0],
+						[5400, 5500, 90, 35, 0, 0, 0, 0, 0, 0, 340, 0],
+						[5500, 5600, 95, 40, 0, 0, 0, 0, 0, 0, 350, 0],
+						[5600, 5700, 100, 45, 0, 0, 0, 0, 0, 0, 370, 0],
+						[5700, 5800, 105, 50, 0, 0, 0, 0, 0, 0, 380, 0],
+						[5800, 5900, 105, 55, 0, 0, 0, 0, 0, 0, 400, 0],
+						[5900, 6000, 110, 60, 5, 0, 0, 0, 0, 0, 410, 0],
+						[6000, 6100, 115, 60, 10, 0, 0, 0, 0, 0, 430, 0],
+						[6100, 6200, 115, 65, 10, 0, 0, 0, 0, 0, 450, 0],
+						[6200, 6300, 120, 70, 15, 0, 0, 0, 0, 0, 480, 0],
+						[6300, 6400, 125, 70, 20, 0, 0, 0, 0, 0, 520, 0],
+						[6400, 6500, 130, 75, 20, 0, 0, 0, 0, 0, 550, 0],
+						[6500, 6600, 130, 80, 25, 0, 0, 0, 0, 0, 590, 0],
+						[6600, 6700, 135, 80, 30, 0, 0, 0, 0, 0, 620, 0],
+						[6700, 6800, 140, 85, 35, 0, 0, 0, 0, 0, 660, 0],
+						[6800, 6900, 140, 90, 35, 0, 0, 0, 0, 0, 690, 0],
+						[6900, 7000, 150, 95, 40, 0, 0, 0, 0, 0, 740, 0],
+						[7000, 7100, 155, 95, 45, 0, 0, 0, 0, 0, 770, 0],
+						[7100, 7200, 155, 100, 45, 0, 0, 0, 0, 0, 800, 0],
+						[7200, 7300, 160, 105, 50, 0, 0, 0, 0, 0, 820, 0],
+						[7300, 7400, 165, 105, 55, 0, 0, 0, 0, 0, 850, 0],
+						[7400, 7500, 170, 110, 55, 5, 0, 0, 0, 0, 880, 0],
+						[7500, 7600, 170, 115, 60, 10, 0, 0, 0, 0, 920, 0],
+						[7600, 7700, 175, 115, 65, 10, 0, 0, 0, 0, 950, 0],
+						[7700, 7800, 180, 120, 70, 15, 0, 0, 0, 0, 980, 0],
+						[7800, 7900, 180, 125, 70, 20, 0, 0, 0, 0, 1020, 0],
+						[7900, 8000, 185, 130, 75, 20, 0, 0, 0, 0, 1050, 0],
+						[8000, 8100, 190, 130, 80, 25, 0, 0, 0, 0, 1080, 0],
+						[8100, 8200, 190, 135, 80, 30, 0, 0, 0, 0, 1120, 0],
+						[8200, 8300, 195, 140, 85, 35, 0, 0, 0, 0, 1150, 0],
+						[8300, 8400, 200, 140, 90, 35, 0, 0, 0, 0, 1180, 0],
+						[8400, 8500, 205, 150, 90, 40, 0, 0, 0, 0, 1210, 0],
+						[8500, 8600, 205, 155, 95, 45, 0, 0, 0, 0, 1260, 0],
+						[8600, 8700, 210, 155, 100, 45, 0, 0, 0, 0, 1290, 0],
+						[8700, 8800, 215, 160, 105, 50, 0, 0, 0, 0, 1320, 0],
+						[8800, 8900, 215, 165, 105, 55, 0, 0, 0, 0, 1360, 0],
+						[8900, 9000, 220, 170, 110, 55, 5, 0, 0, 0, 1390, 0],
+						[9000, 9100, 225, 170, 115, 60, 10, 0, 0, 0, 1420, 0],
+						[9100, 9200, 225, 175, 115, 65, 10, 0, 0, 0, 1460, 0],
+						[9200, 9300, 230, 180, 120, 70, 15, 0, 0, 0, 1490, 0],
+						[9300, 9400, 235, 180, 125, 70, 20, 0, 0, 0, 1520, 0],
+						[9400, 9500, 240, 185, 125, 75, 20, 0, 0, 0, 1550, 0],
+						[9500, 9600, 240, 190, 130, 80, 25, 0, 0, 0, 1590, 0],
+						[9600, 9700, 245, 190, 135, 80, 30, 0, 0, 0, 1630, 0],
+						[9700, 9800, 250, 195, 140, 85, 30, 0, 0, 0, 1670, 0],
+						[9800, 9900, 250, 200, 140, 90, 35, 0, 0, 0, 1710, 0],
+						[9900, 10000, 255, 205, 150, 90, 40, 0, 0, 0, 1750, 0],
+						[10000, 10100, 260, 205, 155, 95, 45, 0, 0, 0, 1790, 1],
+						[10100, 10200, 265, 210, 160, 100, 45, 0, 0, 0, 1830, 4],
+						[10200, 10300, 265, 215, 160, 105, 50, 0, 0, 0, 1850, 8],
+						[10300, 10400, 270, 220, 165, 110, 55, 0, 0, 0, 1880, 11],
+						[10400, 10500, 275, 220, 170, 110, 60, 5, 0, 0, 1910, 15],
+						[10500, 10600, 285, 225, 175, 115, 65, 10, 0, 0, 1930, 18],
+						[10600, 10700, 290, 230, 180, 120, 65, 15, 0, 0, 1960, 22],
+						[10700, 10800, 300, 235, 180, 125, 70, 20, 0, 0, 1990, 25],
+						[10800, 10900, 305, 240, 185, 130, 75, 20, 0, 0, 2030, 29],
+						[10900, 11000, 315, 240, 190, 130, 80, 25, 0, 0, 2060, 32],
+						[11000, 11100, 325, 245, 195, 135, 85, 30, 0, 0, 2090, 36],
+						[11100, 11200, 330, 250, 200, 140, 85, 35, 0, 0, 2130, 39],
+						[11200, 11300, 340, 255, 200, 150, 90, 40, 0, 0, 2160, 43],
+						[11300, 11400, 345, 260, 205, 155, 95, 40, 0, 0, 2200, 46],
+						[11400, 11500, 355, 260, 210, 155, 100, 45, 0, 0, 2240, 51],
+						[11500, 11600, 365, 265, 215, 160, 105, 50, 0, 0, 2270, 54],
+						[11600, 11700, 370, 270, 220, 165, 105, 55, 0, 0, 2300, 58],
+						[11700, 11800, 380, 275, 220, 170, 110, 60, 5, 0, 2340, 61],
+						[11800, 11900, 385, 280, 225, 175, 115, 60, 10, 0, 2370, 65],
+						[11900, 12000, 400, 290, 230, 175, 120, 65, 15, 0, 2410, 68],
+						[12000, 12100, 410, 295, 235, 180, 125, 70, 15, 0, 2440, 72],
+						[12100, 12200, 415, 305, 240, 185, 125, 75, 20, 0, 2470, 75],
+						[12200, 12300, 425, 315, 240, 190, 130, 80, 25, 0, 2510, 79],
+						[12300, 12400, 430, 320, 245, 195, 135, 80, 30, 0, 2540, 82],
+						[12400, 12500, 440, 330, 250, 195, 140, 85, 35, 0, 2570, 86],
+						[12500, 12600, 450, 335, 255, 200, 150, 90, 35, 0, 2600, 89],
+						[12600, 12700, 455, 345, 260, 205, 150, 95, 40, 0, 2630, 93],
+						[12700, 12800, 465, 355, 260, 210, 155, 100, 45, 0, 2660, 96],
+						[12800, 12900, 470, 360, 265, 215, 160, 100, 50, 0, 2700, 101],
+						[12900, 13000, 480, 370, 270, 215, 165, 105, 55, 0, 2740, 104],
+						[13000, 13100, 490, 375, 275, 220, 170, 110, 55, 5, 2800, 108],
+						[13100, 13200, 495, 385, 280, 225, 170, 115, 60, 10, 2850, 111],
+						[13200, 13300, 505, 400, 290, 230, 175, 120, 65, 15, 2910, 115],
+						[13300, 13400, 510, 405, 295, 235, 180, 120, 70, 15, 2960, 118],
+						[13400, 13500, 520, 415, 305, 235, 185, 125, 75, 20, 3020, 122],
+						[13500, 13600, 530, 420, 310, 240, 190, 130, 75, 25, 3070, 125],
+						[13600, 13700, 535, 430, 320, 245, 190, 135, 80, 30, 3130, 129],
+						[13700, 13800, 545, 440, 330, 250, 195, 140, 85, 35, 3190, 133],
+						[13800, 13900, 550, 445, 335, 255, 200, 140, 90, 35, 3250, 137],
+						[13900, 14000, 560, 455, 345, 255, 205, 150, 95, 40, 3310, 141],
+						[14000, 14100, 570, 460, 350, 260, 210, 155, 95, 45, 3360, 146],
+						[14100, 14200, 575, 470, 360, 265, 210, 160, 100, 50, 3420, 150],
+						[14200, 14300, 585, 480, 370, 270, 215, 165, 105, 55, 3470, 154],
+						[14300, 14400, 590, 485, 375, 275, 220, 165, 110, 55, 3530, 158],
+						[14400, 14500, 600, 495, 385, 280, 225, 170, 115, 60, 3580, 162],
+						[14500, 14600, 610, 500, 395, 285, 230, 175, 115, 65, 3640, 166],
+						[14600, 14700, 615, 510, 405, 295, 230, 180, 120, 70, 3700, 170],
+						[14700, 14800, 625, 520, 415, 300, 235, 185, 125, 75, 3760, 174],
+						[14800, 14900, 635, 525, 420, 310, 240, 185, 130, 75, 3810, 178],
+						[14900, 15000, 645, 535, 430, 320, 245, 190, 135, 80, 3870, 182],
+						[15000, 15100, 655, 540, 435, 325, 250, 195, 135, 85, 3930, 186],
+						[15100, 15200, 660, 550, 445, 335, 250, 200, 140, 90, 3980, 190],
+						[15200, 15300, 675, 560, 455, 340, 255, 205, 150, 95, 4040, 195],
+						[15300, 15400, 695, 565, 460, 350, 260, 205, 155, 95, 4090, 199],
+						[15400, 15500, 710, 575, 470, 360, 265, 210, 160, 100, 4160, 203],
+						[15500, 15600, 725, 580, 475, 365, 270, 215, 160, 105, 4210, 207],
+						[15600, 15700, 740, 590, 485, 375, 270, 220, 165, 110, 4270, 211],
+						[15700, 15800, 755, 600, 495, 380, 275, 225, 170, 115, 4320, 215],
+						[15800, 15900, 775, 605, 500, 395, 285, 225, 175, 115, 4380, 219],
+						[15900, 16000, 790, 615, 510, 405, 295, 230, 180, 120, 4430, 223],
+						[16000, 16100, 805, 620, 515, 410, 300, 235, 180, 125, 4480, 227],
+						[16100, 16200, 820, 635, 525, 420, 310, 240, 185, 130, 4540, 231],
+						[16200, 16300, 835, 645, 535, 425, 315, 245, 190, 135, 4590, 235],
+						[16300, 16400, 855, 650, 540, 435, 325, 245, 195, 135, 4650, 239],
+						[16400, 16500, 870, 660, 550, 445, 335, 250, 200, 140, 4700, 244],
+						[16500, 16600, 890, 675, 555, 450, 340, 255, 200, 150, 4760, 248],
+						[16600, 16700, 905, 690, 565, 460, 350, 260, 205, 155, 4810, 252],
+						[16700, 16800, 920, 705, 575, 465, 355, 265, 210, 160, 4860, 256],
+						[16800, 16900, 940, 720, 580, 475, 365, 265, 215, 160, 4910, 260],
+						[16900, 17000, 955, 740, 590, 485, 375, 270, 220, 165, 4970, 264],
+						[17000, 17100, 970, 755, 595, 490, 380, 275, 220, 170, 5020, 268],
+						[17100, 17200, 985, 770, 605, 500, 395, 285, 225, 175, 5070, 272],
+						[17200, 17300, 1000, 785, 615, 505, 400, 290, 230, 180, 5130, 276],
+						[17300, 17400, 1020, 800, 620, 515, 410, 300, 235, 180, 5190, 280],
+						[17400, 17500, 1035, 820, 635, 525, 420, 305, 240, 185, 5240, 284],
+						[17500, 17600, 1050, 835, 640, 530, 425, 315, 240, 190, 5290, 288],
+						[17600, 17700, 1065, 850, 650, 540, 435, 325, 245, 195, 5340, 293],
+						[17700, 17800, 1080, 865, 660, 545, 440, 330, 250, 200, 5390, 297],
+						[17800, 17900, 1100, 885, 670, 555, 450, 340, 255, 200, 5440, 301],
+						[17900, 18000, 1115, 905, 685, 565, 460, 345, 260, 205, 5490, 305],
+						[18000, 18100, 1135, 920, 705, 570, 465, 355, 260, 210, 5540, 309],
+						[18100, 18200, 1150, 935, 720, 580, 475, 365, 265, 215, 5580, 313],
+						[18200, 18300, 1165, 950, 735, 585, 480, 370, 270, 220, 5640, 317],
+						[18300, 18400, 1185, 970, 750, 595, 490, 380, 275, 220, 5690, 321],
+						[18400, 18500, 1200, 985, 770, 605, 500, 395, 285, 225, 5740, 325],
+						[18500, 18600, 1220, 1005, 785, 615, 510, 400, 290, 230, 5790, 329],
+						[18600, 18700, 1240, 1020, 805, 620, 515, 410, 300, 235, 5830, 333],
+						[18700, 18800, 1255, 1040, 825, 635, 525, 420, 310, 240, 5880, 337],
+						[18800, 18900, 1275, 1060, 840, 645, 535, 430, 320, 245, 5930, 342],
+						[18900, 19000, 1290, 1075, 860, 655, 545, 440, 330, 250, 5980, 346],
+						[19000, 19100, 1310, 1095, 880, 665, 555, 445, 335, 255, 6030, 350],
+						[19100, 19200, 1330, 1110, 900, 685, 560, 455, 345, 260, 6070, 354],
+						[19200, 19300, 1345, 1135, 920, 700, 570, 465, 355, 260, 6130, 358],
+						[19300, 19400, 1370, 1155, 935, 720, 580, 475, 365, 265, 6180, 362],
+						[19400, 19500, 1385, 1170, 955, 740, 590, 485, 375, 270, 6230, 366],
+						[19500, 19600, 1405, 1190, 970, 755, 600, 490, 380, 275, 6280, 370],
+						[19600, 19700, 1425, 1205, 990, 775, 605, 500, 395, 285, 6320, 374],
+						[19700, 19800, 1440, 1225, 1010, 790, 615, 510, 405, 295, 6370, 379],
+						[19800, 19900, 1460, 1245, 1025, 810, 625, 520, 415, 305, 6420, 387],
+						[19900, 20000, 1475, 1260, 1045, 830, 640, 530, 425, 310, 6470, 396],
+						[20000, 20100, 1495, 1280, 1060, 845, 650, 535, 430, 320, 6520, 404],
+						[20100, 20200, 1515, 1295, 1080, 865, 655, 545, 440, 330, 6570, 412],
+						[20200, 20300, 1530, 1315, 1100, 885, 670, 555, 450, 340, 6620, 420],
+						[20300, 20400, 1550, 1335, 1115, 905, 690, 565, 460, 350, 6670, 428],
+						[20400, 20500, 1565, 1350, 1140, 925, 705, 575, 470, 355, 6720, 436],
+						[20500, 20600, 1585, 1375, 1155, 940, 725, 580, 475, 365, 6770, 445],
+						[20600, 20700, 1610, 1390, 1175, 960, 745, 590, 485, 375, 6810, 453],
+						[20700, 20800, 1625, 1410, 1195, 975, 760, 600, 495, 385, 6860, 461],
+						[20800, 20900, 1645, 1430, 1210, 995, 780, 610, 505, 400, 6910, 469],
+						[20900, 21000, 1660, 1445, 1230, 1015, 795, 620, 515, 405, 6960, 477],
+						[21000, 21100, 1680, 1465, 1245, 1030, 815, 625, 520, 415, 7010, 485],
+						[21100, 21200, 1700, 1480, 1265, 1050, 835, 640, 530, 425, 7060, 494],
+						[21200, 21300, 1715, 1500, 1285, 1065, 850, 650, 540, 435, 7110, 502],
+						[21300, 21400, 1735, 1520, 1300, 1085, 870, 660, 550, 445, 7160, 510],
+						[21400, 21500, 1750, 1535, 1320, 1105, 890, 675, 560, 450, 7210, 518],
+						[21500, 21600, 1770, 1555, 1335, 1125, 910, 695, 565, 460, 7250, 526],
+						[21600, 21700, 1790, 1570, 1355, 1145, 930, 710, 575, 470, 7280, 535],
+						[21700, 21800, 1805, 1590, 1380, 1160, 945, 730, 585, 480, 7310, 543],
+						[21800, 21900, 1825, 1615, 1395, 1180, 965, 750, 595, 490, 7340, 551],
+						[21900, 22000, 1840, 1630, 1415, 1200, 980, 765, 605, 495, 7380, 559],
+						[22000, 22100, 1865, 1650, 1430, 1215, 1000, 785, 610, 505, 7410, 567],
+						[22100, 22200, 1885, 1665, 1450, 1235, 1020, 800, 620, 515, 7440, 575],
+						[22200, 22300, 1900, 1685, 1470, 1250, 1035, 820, 635, 525, 7480, 584],
+						[22300, 22400, 1920, 1705, 1485, 1270, 1055, 840, 645, 535, 7510, 592],
+						[22400, 22500, 1935, 1720, 1505, 1290, 1070, 855, 655, 540, 7550, 600],
+						[22500, 22600, 1955, 1740, 1520, 1305, 1090, 880, 665, 550, 7590, 608],
+						[22600, 22700, 1975, 1755, 1540, 1325, 1110, 895, 680, 560, 7620, 616],
+						[22700, 22800, 1990, 1775, 1560, 1340, 1130, 915, 700, 570, 7650, 624],
+						[22800, 22900, 2010, 1795, 1575, 1365, 1150, 935, 715, 580, 7680, 633],
+						[22900, 23000, 2025, 1810, 1595, 1385, 1165, 950, 735, 585, 7730, 641],
+						[23000, 23100, 2045, 1830, 1615, 1400, 1185, 970, 755, 595, 7780, 649],
+						[23100, 23200, 2065, 1850, 1635, 1420, 1205, 985, 770, 605, 7830, 657],
+						[23200, 23300, 2080, 1870, 1655, 1435, 1220, 1005, 790, 615, 7880, 665],
+						[23300, 23400, 2105, 1890, 1670, 1455, 1240, 1025, 805, 625, 7930, 673],
+						[23400, 23500, 2120, 1905, 1690, 1475, 1255, 1040, 825, 635, 7980, 682],
+						[23500, 23600, 2140, 1925, 1705, 1490, 1275, 1060, 845, 645, 8040, 690],
+						[23600, 23700, 2160, 1940, 1725, 1510, 1295, 1080, 860, 655, 8090, 698],
+						[23700, 23800, 2180, 1960, 1745, 1530, 1315, 1100, 885, 670, 8140, 706],
+						[23800, 23900, 2200, 1980, 1765, 1550, 1335, 1125, 905, 690, 8190, 714],
+						[23900, 24000, 2220, 2000, 1785, 1570, 1355, 1145, 925, 710, 8240, 722]
+					],
+					"kou": [
+						[116500, 0.45945, 37345, 37125, 36910, 36695, 36480, 36265, 36045, 35835],
+						[75000, 0.4084, 20395, 20175, 19960, 19745, 19530, 19315, 19095, 18885],
+						[73500, 0.4084, 19600, 19380, 19165, 18950, 18735, 18520, 18300, 18085],
+						[72500, 0.4084, 19005, 18785, 18570, 18355, 18145, 17930, 17710, 17495],
+						[71000, 0.4084, 18210, 17990, 17775, 17560, 17345, 17130, 16910, 16700],
+						[58000, 0.4084, 12745, 12525, 12310, 12100, 11885, 11670, 11450, 11235],
+						[32500, 0.33693, 4150, 3930, 3715, 3505, 3290, 3075, 2855, 2640],
+						[26500, 0.23483, 2740, 2520, 2305, 2095, 1880, 1665, 1445, 1230],
+						[24000, 0.2042, 2230, 2010, 1795, 1580, 1370, 1155, 935, 720]
+					],
+					"otsu": [
+						[58000, 22180, 0.45945],
+						[24000, 8290, 0.4084]
+					],
+					"hei": [
+						[116500, 28430, 0.4084],
+						[58000, 8720, 0.33693],
+						[32500, 2211, 0.25525],
+						[26500, 986, 0.2042],
+						[24000, 731, 0.1021]
+					]
+				}
+			]
+		}
+	},
+	{
+		"id": "6f060239-2d4d-5fc2-8d67-e55149085c56",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "PARAMETERS",
+		"code": "in_kind_values",
+		"name": "現物給与の価額 (remuneration in kind for social insurance)",
+		"references": [
+			{
+				"title": "健康保険法 art.46(1) and 厚生年金保険法 art.25: remuneration paid in kind is valued at the price the 厚生労働大臣 sets per prefecture (令和7年3月 厚生労働省告示, from 1 April 2025; 令和8年 厚生労働省告示: meals from 1 April 2026, housing from 1 October 2026), the prefecture of the office managing the insured person’s pay (a branch’s own prefecture where the head office manages it; terms.facts.insured_office_region, else company.region). Fractions under 1 yen are dropped; a room without tatami counts 1.65 m² as one 畳 (to 30 September 2026); a mid-month move-in is prorated by the days lived there. A society (健保組合) may set other values by its rules: entered as entry.facts.social_insurance_value. Transcribed from 日本年金機構 全国現物給与価額一覧表 (https://www.nenkin.go.jp/service/kounen/hokenryo/hoshu/20150511.files/2025.pdf, …/2026.pdf; the 2026 PDF prints 京都 1.810 for 1,810).",
+				"url": "https://www.nenkin.go.jp/service/kounen/hokenryo/hoshu/20150511.files/2025.pdf"
+			}
+		],
+		"rules": {
+			"description": "The 厚生労働大臣が定める現物給与の価額 by prefecture: meals (a month, a day, breakfast, lunch, dinner) and housing (per 畳 of the living rooms to 30 September 2026, per square metre of the whole floor area from 1 October 2026).",
+			"meals": [
+				{
+					"from": "2025-04-01",
+					"to": "2026-03-31",
+					"by_region": {
+						"HOKKAIDO": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"AOMORI": {
+							"month": 23400,
+							"day": 780,
+							"breakfast": 200,
+							"lunch": 270,
+							"dinner": 310
+						},
+						"IWATE": {
+							"month": 23400,
+							"day": 780,
+							"breakfast": 200,
+							"lunch": 270,
+							"dinner": 310
+						},
+						"MIYAGI": {
+							"month": 23400,
+							"day": 780,
+							"breakfast": 200,
+							"lunch": 270,
+							"dinner": 310
+						},
+						"AKITA": {
+							"month": 23700,
+							"day": 790,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 310
+						},
+						"YAMAGATA": {
+							"month": 24000,
+							"day": 800,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 320
+						},
+						"FUKUSHIMA": {
+							"month": 23400,
+							"day": 780,
+							"breakfast": 200,
+							"lunch": 270,
+							"dinner": 310
+						},
+						"IBARAKI": {
+							"month": 23400,
+							"day": 780,
+							"breakfast": 200,
+							"lunch": 270,
+							"dinner": 310
+						},
+						"TOCHIGI": {
+							"month": 23400,
+							"day": 780,
+							"breakfast": 200,
+							"lunch": 270,
+							"dinner": 310
+						},
+						"GUNMA": {
+							"month": 23100,
+							"day": 770,
+							"breakfast": 190,
+							"lunch": 270,
+							"dinner": 310
+						},
+						"SAITAMA": {
+							"month": 23400,
+							"day": 780,
+							"breakfast": 200,
+							"lunch": 270,
+							"dinner": 310
+						},
+						"CHIBA": {
+							"month": 23700,
+							"day": 790,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 310
+						},
+						"TOKYO": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"KANAGAWA": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"NIIGATA": {
+							"month": 23700,
+							"day": 790,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 310
+						},
+						"TOYAMA": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"ISHIKAWA": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"FUKUI": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"YAMANASHI": {
+							"month": 23400,
+							"day": 780,
+							"breakfast": 200,
+							"lunch": 270,
+							"dinner": 310
+						},
+						"NAGANO": {
+							"month": 22800,
+							"day": 760,
+							"breakfast": 190,
+							"lunch": 270,
+							"dinner": 300
+						},
+						"GIFU": {
+							"month": 23100,
+							"day": 770,
+							"breakfast": 190,
+							"lunch": 270,
+							"dinner": 310
+						},
+						"SHIZUOKA": {
+							"month": 23100,
+							"day": 770,
+							"breakfast": 190,
+							"lunch": 270,
+							"dinner": 310
+						},
+						"AICHI": {
+							"month": 23400,
+							"day": 780,
+							"breakfast": 200,
+							"lunch": 270,
+							"dinner": 310
+						},
+						"MIE": {
+							"month": 23700,
+							"day": 790,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 310
+						},
+						"SHIGA": {
+							"month": 23700,
+							"day": 790,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 310
+						},
+						"KYOTO": {
+							"month": 24000,
+							"day": 800,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 320
+						},
+						"OSAKA": {
+							"month": 23700,
+							"day": 790,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 310
+						},
+						"HYOGO": {
+							"month": 23700,
+							"day": 790,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 310
+						},
+						"NARA": {
+							"month": 23100,
+							"day": 770,
+							"breakfast": 190,
+							"lunch": 270,
+							"dinner": 310
+						},
+						"WAKAYAMA": {
+							"month": 23700,
+							"day": 790,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 310
+						},
+						"TOTTORI": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"SHIMANE": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"OKAYAMA": {
+							"month": 24000,
+							"day": 800,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 320
+						},
+						"HIROSHIMA": {
+							"month": 24000,
+							"day": 800,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 320
+						},
+						"YAMAGUCHI": {
+							"month": 24000,
+							"day": 800,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 320
+						},
+						"TOKUSHIMA": {
+							"month": 23700,
+							"day": 790,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 310
+						},
+						"KAGAWA": {
+							"month": 23700,
+							"day": 790,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 310
+						},
+						"EHIME": {
+							"month": 23700,
+							"day": 790,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 310
+						},
+						"KOCHI": {
+							"month": 24000,
+							"day": 800,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 320
+						},
+						"FUKUOKA": {
+							"month": 23400,
+							"day": 780,
+							"breakfast": 200,
+							"lunch": 270,
+							"dinner": 310
+						},
+						"SAGA": {
+							"month": 23100,
+							"day": 770,
+							"breakfast": 190,
+							"lunch": 270,
+							"dinner": 310
+						},
+						"NAGASAKI": {
+							"month": 24000,
+							"day": 800,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 320
+						},
+						"KUMAMOTO": {
+							"month": 24000,
+							"day": 800,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 320
+						},
+						"OITA": {
+							"month": 23400,
+							"day": 780,
+							"breakfast": 200,
+							"lunch": 270,
+							"dinner": 310
+						},
+						"MIYAZAKI": {
+							"month": 22800,
+							"day": 760,
+							"breakfast": 190,
+							"lunch": 270,
+							"dinner": 300
+						},
+						"KAGOSHIMA": {
+							"month": 23100,
+							"day": 770,
+							"breakfast": 190,
+							"lunch": 270,
+							"dinner": 310
+						},
+						"OKINAWA": {
+							"month": 25200,
+							"day": 840,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 340
+						}
+					}
+				},
+				{
+					"from": "2026-04-01",
+					"to": null,
+					"by_region": {
+						"HOKKAIDO": {
+							"month": 25500,
+							"day": 850,
+							"breakfast": 210,
+							"lunch": 300,
+							"dinner": 340
+						},
+						"AOMORI": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"IWATE": {
+							"month": 24600,
+							"day": 820,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 320
+						},
+						"MIYAGI": {
+							"month": 24600,
+							"day": 820,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 320
+						},
+						"AKITA": {
+							"month": 24600,
+							"day": 820,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 320
+						},
+						"YAMAGATA": {
+							"month": 25200,
+							"day": 840,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 340
+						},
+						"FUKUSHIMA": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"IBARAKI": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"TOCHIGI": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"GUNMA": {
+							"month": 23700,
+							"day": 790,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 310
+						},
+						"SAITAMA": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"CHIBA": {
+							"month": 24900,
+							"day": 830,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 330
+						},
+						"TOKYO": {
+							"month": 25500,
+							"day": 850,
+							"breakfast": 210,
+							"lunch": 300,
+							"dinner": 340
+						},
+						"KANAGAWA": {
+							"month": 25200,
+							"day": 840,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 340
+						},
+						"NIIGATA": {
+							"month": 24600,
+							"day": 820,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 320
+						},
+						"TOYAMA": {
+							"month": 24900,
+							"day": 830,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 330
+						},
+						"ISHIKAWA": {
+							"month": 25200,
+							"day": 840,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 340
+						},
+						"FUKUI": {
+							"month": 25500,
+							"day": 850,
+							"breakfast": 210,
+							"lunch": 300,
+							"dinner": 340
+						},
+						"YAMANASHI": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"NAGANO": {
+							"month": 23700,
+							"day": 790,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 310
+						},
+						"GIFU": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"SHIZUOKA": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"AICHI": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"MIE": {
+							"month": 24900,
+							"day": 830,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 330
+						},
+						"SHIGA": {
+							"month": 24600,
+							"day": 820,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 320
+						},
+						"KYOTO": {
+							"month": 25200,
+							"day": 840,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 340
+						},
+						"OSAKA": {
+							"month": 24600,
+							"day": 820,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 320
+						},
+						"HYOGO": {
+							"month": 24900,
+							"day": 830,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 330
+						},
+						"NARA": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"WAKAYAMA": {
+							"month": 24600,
+							"day": 820,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 320
+						},
+						"TOTTORI": {
+							"month": 25500,
+							"day": 850,
+							"breakfast": 210,
+							"lunch": 300,
+							"dinner": 340
+						},
+						"SHIMANE": {
+							"month": 25500,
+							"day": 850,
+							"breakfast": 210,
+							"lunch": 300,
+							"dinner": 340
+						},
+						"OKAYAMA": {
+							"month": 24900,
+							"day": 830,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 330
+						},
+						"HIROSHIMA": {
+							"month": 25200,
+							"day": 840,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 340
+						},
+						"YAMAGUCHI": {
+							"month": 25200,
+							"day": 840,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 340
+						},
+						"TOKUSHIMA": {
+							"month": 24900,
+							"day": 830,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 330
+						},
+						"KAGAWA": {
+							"month": 24900,
+							"day": 830,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 330
+						},
+						"EHIME": {
+							"month": 24900,
+							"day": 830,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 330
+						},
+						"KOCHI": {
+							"month": 25200,
+							"day": 840,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 340
+						},
+						"FUKUOKA": {
+							"month": 24600,
+							"day": 820,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 320
+						},
+						"SAGA": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"NAGASAKI": {
+							"month": 24900,
+							"day": 830,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 330
+						},
+						"KUMAMOTO": {
+							"month": 25200,
+							"day": 840,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 340
+						},
+						"OITA": {
+							"month": 24600,
+							"day": 820,
+							"breakfast": 210,
+							"lunch": 290,
+							"dinner": 320
+						},
+						"MIYAZAKI": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"KAGOSHIMA": {
+							"month": 24300,
+							"day": 810,
+							"breakfast": 200,
+							"lunch": 280,
+							"dinner": 330
+						},
+						"OKINAWA": {
+							"month": 26400,
+							"day": 880,
+							"breakfast": 220,
+							"lunch": 310,
+							"dinner": 350
+						}
+					}
+				}
+			],
+			"housing": [
+				{
+					"from": "2025-04-01",
+					"to": "2026-09-30",
+					"unit": "TATAMI",
+					"by_region": {
+						"HOKKAIDO": 1110,
+						"AOMORI": 1040,
+						"IWATE": 1110,
+						"MIYAGI": 1520,
+						"AKITA": 1110,
+						"YAMAGATA": 1250,
+						"FUKUSHIMA": 1200,
+						"IBARAKI": 1340,
+						"TOCHIGI": 1320,
+						"GUNMA": 1280,
+						"SAITAMA": 1810,
+						"CHIBA": 1760,
+						"TOKYO": 2830,
+						"KANAGAWA": 2150,
+						"NIIGATA": 1360,
+						"TOYAMA": 1290,
+						"ISHIKAWA": 1340,
+						"FUKUI": 1220,
+						"YAMANASHI": 1260,
+						"NAGANO": 1250,
+						"GIFU": 1230,
+						"SHIZUOKA": 1460,
+						"AICHI": 1560,
+						"MIE": 1260,
+						"SHIGA": 1410,
+						"KYOTO": 1810,
+						"OSAKA": 1780,
+						"HYOGO": 1580,
+						"NARA": 1310,
+						"WAKAYAMA": 1170,
+						"TOTTORI": 1190,
+						"SHIMANE": 1150,
+						"OKAYAMA": 1360,
+						"HIROSHIMA": 1410,
+						"YAMAGUCHI": 1140,
+						"TOKUSHIMA": 1160,
+						"KAGAWA": 1210,
+						"EHIME": 1130,
+						"KOCHI": 1130,
+						"FUKUOKA": 1430,
+						"SAGA": 1170,
+						"NAGASAKI": 1150,
+						"KUMAMOTO": 1150,
+						"OITA": 1170,
+						"MIYAZAKI": 1080,
+						"KAGOSHIMA": 1110,
+						"OKINAWA": 1290
+					}
+				},
+				{
+					"from": "2026-10-01",
+					"to": null,
+					"unit": "SQUARE_METRE",
+					"by_region": {
+						"HOKKAIDO": 530,
+						"AOMORI": 460,
+						"IWATE": 520,
+						"MIYAGI": 680,
+						"AKITA": 490,
+						"YAMAGATA": 540,
+						"FUKUSHIMA": 540,
+						"IBARAKI": 600,
+						"TOCHIGI": 590,
+						"GUNMA": 550,
+						"SAITAMA": 840,
+						"CHIBA": 830,
+						"TOKYO": 1330,
+						"KANAGAWA": 1010,
+						"NIIGATA": 580,
+						"TOYAMA": 560,
+						"ISHIKAWA": 580,
+						"FUKUI": 540,
+						"YAMANASHI": 560,
+						"NAGANO": 560,
+						"GIFU": 540,
+						"SHIZUOKA": 650,
+						"AICHI": 710,
+						"MIE": 580,
+						"SHIGA": 640,
+						"KYOTO": 830,
+						"OSAKA": 820,
+						"HYOGO": 730,
+						"NARA": 580,
+						"WAKAYAMA": 490,
+						"TOTTORI": 500,
+						"SHIMANE": 500,
+						"OKAYAMA": 620,
+						"HIROSHIMA": 670,
+						"YAMAGUCHI": 500,
+						"TOKUSHIMA": 510,
+						"KAGAWA": 550,
+						"EHIME": 500,
+						"KOCHI": 490,
+						"FUKUOKA": 670,
+						"SAGA": 510,
+						"NAGASAKI": 510,
+						"KUMAMOTO": 530,
+						"OITA": 530,
+						"MIYAZAKI": 490,
+						"KAGOSHIMA": 470,
+						"OKINAWA": 620
+					}
+				}
+			]
+		}
+	},
+	{
+		"id": "10961eaa-bbb1-501a-ad28-ca4cf64fbdf5",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "EXPORTS",
+		"code": "WAGE_LEDGER_CSV",
+		"name": "賃金台帳 (wage ledger)",
+		"references": [
+			{
+				"title": "労働基準法 art.108 with 施行規則 arts.54–55 and 様式第20号 (賃金台帳): name, sex, the wage calculation period, days and hours worked, overtime, rest-day and night hours, basic pay, the premiums, each allowance, wages in kind and each deduction (art.54(1)(i)–(viii)). The days and hours columns are left to the attendance record the run read (a payslip export carries amounts only)."
+			}
+		],
+		"rules": {
+			"description": "賃金台帳 (wage ledger) as a CSV: one row per worker for the selected runs, the items 労働基準法施行規則 art.54(1) requires, in the order of 様式第20号.",
+			"file": "\"chingin-daicho-\" + runs[0].period + \".csv\"",
+			"when": "size(slips) > 0",
+			"columns": [
+				{
+					"header": "氏名",
+					"value": "has(employee.name) ? employee.name : \"\""
+				},
+				{
+					"header": "性別",
+					"value": "has(employee.gender) && employee.gender != null ? (employee.gender == \"MALE\" ? \"男\" : employee.gender == \"FEMALE\" ? \"女\" : \"\") : \"\""
+				},
+				{
+					"header": "賃金計算期間",
+					"value": "slips[0].period + (size(slips) > 1 ? \"〜\" + slips[size(slips) - 1].period : \"\")"
+				},
+				{
+					"header": "労働日数",
+					"value": "\"\""
+				},
+				{
+					"header": "労働時間数",
+					"value": "\"\""
+				},
+				{
+					"header": "休日労働時間数",
+					"value": "\"\""
+				},
+				{
+					"header": "早出残業時間数",
+					"value": "\"\""
+				},
+				{
+					"header": "深夜労働時間数",
+					"value": "\"\""
+				},
+				{
+					"header": "基本給",
+					"value": "(has(totals.lines.BASIC) ? totals.lines.BASIC : 0.0) - max((has(totals.lines.NO_PAY_LEAVE) ? totals.lines.NO_PAY_LEAVE : 0.0), -(has(totals.lines.NO_PAY_LEAVE) ? totals.lines.NO_PAY_LEAVE : 0.0)) - max((has(totals.lines.SUSPENSION_DEDUCTION) ? totals.lines.SUSPENSION_DEDUCTION : 0.0), -(has(totals.lines.SUSPENSION_DEDUCTION) ? totals.lines.SUSPENSION_DEDUCTION : 0.0))"
+				},
+				{
+					"header": "所定時間外割増賃金",
+					"value": "(has(totals.lines.WITHIN_HOURS_OVERTIME) ? totals.lines.WITHIN_HOURS_OVERTIME : 0.0) + (has(totals.lines.OVERTIME) ? totals.lines.OVERTIME : 0.0) + (has(totals.lines.OVERTIME_OVER_60) ? totals.lines.OVERTIME_OVER_60 : 0.0) - max((has(totals.lines.OVERTIME_SUBSTITUTED) ? totals.lines.OVERTIME_SUBSTITUTED : 0.0), -(has(totals.lines.OVERTIME_SUBSTITUTED) ? totals.lines.OVERTIME_SUBSTITUTED : 0.0))"
+				},
+				{
+					"header": "休日労働割増賃金",
+					"value": "(has(totals.lines.REST_DAY_WORK) ? totals.lines.REST_DAY_WORK : 0.0)"
+				},
+				{
+					"header": "深夜労働割増賃金",
+					"value": "(has(totals.lines.NIGHT_WORK) ? totals.lines.NIGHT_WORK : 0.0)"
+				},
+				{
+					"header": "諸手当",
+					"value": "(has(totals.lines.FIXED_ALLOWANCE) ? totals.lines.FIXED_ALLOWANCE : 0.0) + (has(totals.lines.FAMILY_ALLOWANCE) ? totals.lines.FAMILY_ALLOWANCE : 0.0) + (has(totals.lines.HOUSING_ALLOWANCE) ? totals.lines.HOUSING_ALLOWANCE : 0.0) + (has(totals.lines.COMMUTING_ALLOWANCE) ? totals.lines.COMMUTING_ALLOWANCE : 0.0)"
+				},
+				{
+					"header": "その他の給与",
+					"value": "(has(totals.lines.SPECIAL_ALLOWANCE) ? totals.lines.SPECIAL_ALLOWANCE : 0.0) + (has(totals.lines.NIGHT_DUTY_ALLOWANCE) ? totals.lines.NIGHT_DUTY_ALLOWANCE : 0.0) + (has(totals.lines.NIGHT_MEAL_CASH) ? totals.lines.NIGHT_MEAL_CASH : 0.0) + (has(totals.lines.COMMUTER_PASS) ? totals.lines.COMMUTER_PASS : 0.0) + (has(totals.lines.SHUTDOWN_ALLOWANCE) ? totals.lines.SHUTDOWN_ALLOWANCE : 0.0) + (has(totals.lines.SUSPENSION_ALLOWANCE) ? totals.lines.SUSPENSION_ALLOWANCE : 0.0) + (has(totals.lines.ANNUAL_LEAVE_PAY) ? totals.lines.ANNUAL_LEAVE_PAY : 0.0) + (has(totals.lines.MINIMUM_WAGE_TOP_UP) ? totals.lines.MINIMUM_WAGE_TOP_UP : 0.0) + (has(totals.lines.BONUS) ? totals.lines.BONUS : 0.0) + (has(totals.lines.BONUS_OVER_SIX_MONTHS) ? totals.lines.BONUS_OVER_SIX_MONTHS : 0.0) + (has(totals.lines.DISMISSAL_NOTICE_ALLOWANCE) ? totals.lines.DISMISSAL_NOTICE_ALLOWANCE : 0.0) + (has(totals.lines.RETIREMENT_ALLOWANCE) ? totals.lines.RETIREMENT_ALLOWANCE : 0.0) + (has(totals.lines.INJURY_WAITING_COMPENSATION) ? totals.lines.INJURY_WAITING_COMPENSATION : 0.0) - max((has(totals.lines.DISCIPLINARY_DEDUCTION) ? totals.lines.DISCIPLINARY_DEDUCTION : 0.0), -(has(totals.lines.DISCIPLINARY_DEDUCTION) ? totals.lines.DISCIPLINARY_DEDUCTION : 0.0))"
+				},
+				{
+					"header": "総支給額",
+					"value": "totals.gross"
+				},
+				{
+					"header": "健康保険料・介護保険料",
+					"value": "(has(totals.statutory.HEALTH) ? totals.statutory.HEALTH.employee : 0.0) + (has(totals.statutory.HEALTH_BONUS) ? totals.statutory.HEALTH_BONUS.employee : 0.0)"
+				},
+				{
+					"header": "子ども・子育て支援金",
+					"value": "(has(totals.statutory.CHILD_SUPPORT) ? totals.statutory.CHILD_SUPPORT.employee : 0.0) + (has(totals.statutory.CHILD_SUPPORT_BONUS) ? totals.statutory.CHILD_SUPPORT_BONUS.employee : 0.0)"
+				},
+				{
+					"header": "厚生年金保険料",
+					"value": "(has(totals.statutory.PENSION) ? totals.statutory.PENSION.employee : 0.0) + (has(totals.statutory.PENSION_BONUS) ? totals.statutory.PENSION_BONUS.employee : 0.0)"
+				},
+				{
+					"header": "前月分社会保険料",
+					"value": "(has(totals.statutory.SI_PREVIOUS_MONTH) ? totals.statutory.SI_PREVIOUS_MONTH.employee : 0.0)"
+				},
+				{
+					"header": "雇用保険料",
+					"value": "(has(totals.statutory.EI) ? totals.statutory.EI.employee : 0.0) + (has(totals.statutory.EI_BONUS) ? totals.statutory.EI_BONUS.employee : 0.0)"
+				},
+				{
+					"header": "所得税",
+					"value": "(has(totals.statutory.INCOME_TAX) ? totals.statutory.INCOME_TAX.employee : 0.0) + (has(totals.statutory.RETIREMENT_TAX) ? totals.statutory.RETIREMENT_TAX.employee : 0.0) + (has(totals.statutory.YEAR_END_ADJUSTMENT) ? totals.statutory.YEAR_END_ADJUSTMENT.employee : 0.0)"
+				},
+				{
+					"header": "住民税",
+					"value": "(has(totals.statutory.RESIDENT_TAX) ? totals.statutory.RESIDENT_TAX.employee : 0.0) + (has(totals.statutory.RETIREMENT_RESIDENT_TAX) ? totals.statutory.RETIREMENT_RESIDENT_TAX.employee : 0.0)"
+				},
+				{
+					"header": "その他控除",
+					"value": "totals.total_deductions - ((has(totals.statutory.HEALTH) ? totals.statutory.HEALTH.employee : 0.0) + (has(totals.statutory.HEALTH_BONUS) ? totals.statutory.HEALTH_BONUS.employee : 0.0) + (has(totals.statutory.CHILD_SUPPORT) ? totals.statutory.CHILD_SUPPORT.employee : 0.0) + (has(totals.statutory.CHILD_SUPPORT_BONUS) ? totals.statutory.CHILD_SUPPORT_BONUS.employee : 0.0) + (has(totals.statutory.PENSION) ? totals.statutory.PENSION.employee : 0.0) + (has(totals.statutory.PENSION_BONUS) ? totals.statutory.PENSION_BONUS.employee : 0.0) + (has(totals.statutory.SI_PREVIOUS_MONTH) ? totals.statutory.SI_PREVIOUS_MONTH.employee : 0.0) + (has(totals.statutory.EI) ? totals.statutory.EI.employee : 0.0) + (has(totals.statutory.EI_BONUS) ? totals.statutory.EI_BONUS.employee : 0.0) + (has(totals.statutory.INCOME_TAX) ? totals.statutory.INCOME_TAX.employee : 0.0) + (has(totals.statutory.RETIREMENT_TAX) ? totals.statutory.RETIREMENT_TAX.employee : 0.0) + (has(totals.statutory.YEAR_END_ADJUSTMENT) ? totals.statutory.YEAR_END_ADJUSTMENT.employee : 0.0) + (has(totals.statutory.RESIDENT_TAX) ? totals.statutory.RESIDENT_TAX.employee : 0.0) + (has(totals.statutory.RETIREMENT_RESIDENT_TAX) ? totals.statutory.RETIREMENT_RESIDENT_TAX.employee : 0.0))"
+				},
+				{
+					"header": "控除額計",
+					"value": "totals.total_deductions"
+				},
+				{
+					"header": "実物給与",
+					"value": "(has(totals.lines.MEALS_IN_KIND) ? totals.lines.MEALS_IN_KIND : 0.0) + (has(totals.lines.HOUSING_IN_KIND) ? totals.lines.HOUSING_IN_KIND : 0.0) + (has(totals.lines.TAXABLE_BENEFIT) ? totals.lines.TAXABLE_BENEFIT : 0.0) + (has(totals.lines.LONG_SERVICE_AWARD) ? totals.lines.LONG_SERVICE_AWARD : 0.0)"
+				},
+				{
+					"header": "差引支給額",
+					"value": "totals.net"
+				}
+			]
+		}
+	},
+	{
+		"id": "62f97ddc-bc04-5b11-8df2-d534e5c547e8",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_DAILY_8H",
+		"name": "Worked beyond 8 hours a day with no 36 agreement in force",
+		"references": [
+			{
+				"title": "法定労働時間 1日8時間 (労働基準法 art.32(2)); beyond it only under a filed 36 agreement (art.36(1); company.facts.overtime_agreement_from/to) or in an emergency (art.33). Not for managers (art.41(ii)) or a variable, flex or deemed regime (company.facts.working_time_regime). A worked day is a fact to correct, not to refuse: warn."
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_out",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.working_time_regime)\n  ?company.facts.working_time_regime\n  :\"STANDARD\")\n==\"STANDARD\"\n&&day.worked_hours > 8.0\n&&!(has(company.facts.overtime_agreement_to)\n&&company.facts.overtime_agreement_to >= day.date\n&& (!has(company.facts.overtime_agreement_from)\n||company.facts.overtime_agreement_from <= day.date))",
+			"message": "Worked beyond 8 hours a day with no 36 agreement in force (労働基準法 arts.32(2), 36(1)).",
+			"description": "Worked beyond 8 hours a day with no 36 agreement in force"
+		}
+	},
+	{
+		"id": "4793c041-c2ec-5548-a6b5-69b5dce62900",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_WEEKLY_40H",
+		"name": "Worked beyond 40 hours in the week with no 36 agreement in force",
+		"references": [
+			{
+				"title": "法定労働時間 1週40時間 (労働基準法 art.32(1)), 44 hours for a 特例措置対象事業場 (施行規則 art.25の2; company.facts.weekly_limit_44); the week is the calendar week from company.facts.week_start_day (昭和63年1月1日 基発1号), read on its last day."
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_out",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.working_time_regime)\n  ?company.facts.working_time_regime\n  :\"STANDARD\")\n==\"STANDARD\"\n&&int(calendar_distance_days(\"2023-01-01\", day.date)) % 7\n== ((has(company.facts.week_start_day)\n  ?int(company.facts.week_start_day)\n  :0)\n+6)\n%7\n&&week.worked_hours\n> (has(company.facts.weekly_limit_44)\n&&company.facts.weekly_limit_44 == true\n  ?44.0\n  :40.0)\n&&!(has(company.facts.overtime_agreement_to)\n&&company.facts.overtime_agreement_to >= day.date\n&& (!has(company.facts.overtime_agreement_from)\n||company.facts.overtime_agreement_from <= day.date))",
+			"message": "Worked beyond 40 hours in the week with no 36 agreement in force (労働基準法 arts.32(1), 36(1)).",
+			"description": "Worked beyond 40 hours in the week with no 36 agreement in force"
+		}
+	},
+	{
+		"id": "965e192c-3cfa-5e58-9a4d-2f5112a8278c",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_OVERTIME_UNRECORDED",
+		"name": "A shift planned beyond 8 ordinary hours: its hours beyond 8 are statutory overtime the pay does not price",
+		"references": [
+			{
+				"title": "労働基準法 art.32(2) (8 hours a day) and art.37(1) (割増賃金 on every hour beyond it) and art.24 (full payment): overtime is every hour past the planned shift’s ordinary hours, so ordinary hours planned beyond 8 a day would carry the statutory premium unpriced. Not for managers (art.41(ii)) or a variable, flex or deemed regime (company.facts.working_time_regime)."
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_out",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.working_time_regime)\n  ?company.facts.working_time_regime\n  :\"STANDARD\")\n==\"STANDARD\"\n&&day.day_type != \"REST\"\n&&day.worked\n&&day.scheduled_hours > 8.0",
+			"message": "The planned shift has more than 8 ordinary hours: the hours beyond 8 are statutory overtime the planned day does not price; plan at most 8 ordinary hours and let the rest be overtime (労働基準法 arts.32(2), 37(1)).",
+			"description": "A shift planned beyond 8 ordinary hours: its hours beyond 8 are statutory overtime the pay does not price"
+		}
+	},
+	{
+		"id": "ffff789e-b340-5433-a5c6-f52ee27aedbb",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_BREAK",
+		"name": "Too short a break: 45 minutes beyond 6 hours of work, 1 hour beyond 8",
+		"references": [
+			{
+				"title": "労働基準法 art.34(1): a break of at least 45 minutes where the working time exceeds 6 hours and 1 hour where it exceeds 8, within the working time; the break is the gaps between the day’s clock intervals, and the working time is the time inside them (not the paid hours, which count the planned hours on a day left early). Not for managers (art.41)."
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_out",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&size(day.intervals) > 0\n&&day.intervals.all(i, i.end != null)\n&&hours_between(day.intervals, \"00:00\", \"00:00\") > 6.0\n&& (double(\n  calendar_distance_days(\n    day.intervals[0].start.substring(0, 10),\n    day.intervals[size(day.intervals) - 1].end.substring(0, 10)\n  )\n)\n*1440.0\n+double(\n  int(day.intervals[size(day.intervals) - 1].end.substring(11, 13)) * 60\n  +int(day.intervals[size(day.intervals) - 1].end.substring(14, 16))\n)\n-double(\n  int(day.intervals[0].start.substring(11, 13)) * 60\n  +int(day.intervals[0].start.substring(14, 16))\n))\n/60.0\n-hours_between(day.intervals, \"00:00\", \"00:00\")\n< (hours_between(day.intervals, \"00:00\", \"00:00\") > 8.0 ? 1.0 : 0.75)\n-0.001",
+			"message": "Too short a break: 45 minutes beyond 6 hours of work, 1 hour beyond 8 (労働基準法 art.34(1)).",
+			"description": "Too short a break: 45 minutes beyond 6 hours of work, 1 hour beyond 8"
+		}
+	},
+	{
+		"id": "b0e399e0-5b22-5b0e-8fb1-0c95005821a1",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_REST_DAY",
+		"name": "No rest day in the week",
+		"references": [
+			{
+				"title": "労働基準法 art.35(1): at least one rest day each week, unless the work rules use 4 rest days in 4 weeks (art.35(2); company.facts.variable_rest_days). Rest-day work needs a 36 agreement and the 35% premium (arts.36, 37)."
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "work_date",
+			"when": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&int(calendar_distance_days(\"2023-01-01\", day.date)) % 7\n== ((has(company.facts.week_start_day)\n  ?int(company.facts.week_start_day)\n  :0)\n+6)\n%7\n&&week.worked_days >= 7\n&&!(has(company.facts.variable_rest_days)\n&&company.facts.variable_rest_days == true)",
+			"message": "No rest day in the week (労働基準法 art.35(1)).",
+			"description": "No rest day in the week"
+		}
+	},
+	{
+		"id": "87a40749-cf25-5f8c-80a0-3913a8c8dc1a",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_MINOR_OVERTIME",
+		"name": "Overtime beyond 8 hours or rest-day work recorded for a worker under 18, which the law forbids",
+		"references": [
+			{
+				"title": "労働基準法 art.60(1): the 36 agreement (art.36) does not apply to a worker under 18, so no work beyond 8 hours a day or on the statutory rest day; overtime within 8 hours (past a shorter schedule) is lawful. Every hour past the schedule is approved overtime, so recording it is the forbidden instruction and the file is refused (an emergency under art.33 is not distinguished)."
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "refuse",
+			"column": "clock_out",
+			"when": "has(employee.date_of_birth) && employee.date_of_birth != null\n&&employee.date_of_birth != \"\"\n&&age_on(employee.date_of_birth, day.date) < 18\n&& (day.day_type == \"REST\"\n  ?day.worked_hours > 0.0\n  :day.worked_hours > 8.0)",
+			"message": "Overtime beyond 8 hours a day, or rest-day work, recorded for a worker under 18, which the law forbids (労働基準法 art.60(1)).",
+			"description": "Overtime beyond 8 hours or rest-day work recorded for a worker under 18, which the law forbids"
+		}
+	},
+	{
+		"id": "d49eae39-33c1-5d29-a6a7-cfff9c90af6c",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_MINOR_HOURS",
+		"name": "A worker under 18 worked beyond 8 hours a day or 40 a week",
+		"references": [
+			{
+				"title": "労働基準法 art.60(1), (3): no variable-hours or 36-agreement extension for a minor beyond the art.60(3) exceptions."
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_out",
+			"when": "has(employee.date_of_birth) && employee.date_of_birth != null\n&&employee.date_of_birth != \"\"\n&&age_on(employee.date_of_birth, day.date) < 18\n&& (day.worked_hours > 8.0\n|| (int(calendar_distance_days(\"2023-01-01\", day.date)) % 7\n== ((has(company.facts.week_start_day)\n  ?int(company.facts.week_start_day)\n  :0)\n+6)\n%7\n&&week.worked_hours > 40.0))",
+			"message": "A worker under 18 worked beyond 8 hours a day or 40 a week (労働基準法 art.60).",
+			"description": "A worker under 18 worked beyond 8 hours a day or 40 a week"
+		}
+	},
+	{
+		"id": "c5543a19-a09b-54c9-91d6-d3ef06f756de",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_MINOR_NIGHT",
+		"name": "A worker under 18 worked between 22:00 and 05:00",
+		"references": [
+			{
+				"title": "労働基準法 art.61(1): no night work for a worker under 18, except a male of 16 or over in a shift system (proviso) and the art.61(3)–(4) cases."
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "has(employee.date_of_birth) && employee.date_of_birth != null\n&&employee.date_of_birth != \"\"\n&&age_on(employee.date_of_birth, day.date) < 18\n&&hours_between(\n  day.intervals,\n  rules.night_work[\"from\"],\n  rules.night_work.to\n)\n>0.0",
+			"message": "A worker under 18 worked between 22:00 and 05:00 (労働基準法 art.61(1)).",
+			"description": "A worker under 18 worked between 22:00 and 05:00"
+		}
+	},
+	{
+		"id": "0c8781a7-2b78-5641-9f01-76967df2b5e8",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_MATERNITY_OVERTIME",
+		"name": "Overtime beyond 8 hours or rest-day work recorded for a pregnant or post-partum worker who asked to be excused",
+		"references": [
+			{
+				"title": "労働基準法 art.66(2): on the request of an 妊産婦 (terms.facts.pregnancy_work_limits_requested) the employer shall not make her work overtime beyond the statutory hours or on a rest day; every hour past the schedule is approved overtime, so a day beyond 8 hours or rest-day work is refused."
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "refuse",
+			"column": "clock_out",
+			"when": "(has(terms.facts.pregnancy_work_limits_requested)\n&&terms.facts.pregnancy_work_limits_requested == true)\n&& (day.day_type == \"REST\"\n  ?day.worked_hours > 0.0\n  :day.worked_hours > 8.0)",
+			"message": "Overtime beyond 8 hours a day, or rest-day work, recorded for a pregnant or post-partum worker who asked to be excused (労働基準法 art.66(2)).",
+			"description": "Overtime beyond 8 hours or rest-day work recorded for a pregnant or post-partum worker who asked to be excused"
+		}
+	},
+	{
+		"id": "625083d3-53f4-56a5-8666-09374bb5d9eb",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_MATERNITY_NIGHT",
+		"name": "A pregnant or post-partum worker who asked to be excused worked at night",
+		"references": [
+			{
+				"title": "労働基準法 art.66(3): no night work on the 妊産婦’s request."
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "(has(terms.facts.pregnancy_work_limits_requested)\n&&terms.facts.pregnancy_work_limits_requested == true)\n&&hours_between(\n  day.intervals,\n  rules.night_work[\"from\"],\n  rules.night_work.to\n)\n>0.0",
+			"message": "A pregnant or post-partum worker who asked to be excused worked at night (労働基準法 art.66(3)).",
+			"description": "A pregnant or post-partum worker who asked to be excused worked at night"
+		}
+	},
+	{
+		"id": "433aca67-6a17-5ca1-8c95-255ca5697979",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_CHILDCARE_OVERTIME",
+		"name": "Overtime approved for a worker who asked not to work beyond the schedule for childcare or care",
+		"references": [
+			{
+				"title": "育児・介護休業法 arts.16の8–16の9: a worker caring for a child before school age (from April 2025) or a family member who asks (terms.facts.no_overtime_requested) shall not be made to work beyond the scheduled hours: the approval is refused."
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "refuse",
+			"column": "clock_out",
+			"when": "(has(terms.facts.no_overtime_requested)\n&&terms.facts.no_overtime_requested == true)\n&&day.overtime_hours > 0.0",
+			"message": "Overtime approved for a worker who asked not to work beyond the schedule for childcare or care (育児・介護休業法 arts.16の8, 16の9).",
+			"description": "Overtime approved for a worker who asked not to work beyond the schedule for childcare or care"
+		}
+	},
+	{
+		"id": "bacdc86b-ac89-5d09-a7f9-df9a6472d86f",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_CHILDCARE_NIGHT",
+		"name": "A worker who asked to be excused from night work for childcare or care worked between 22:00 and 05:00",
+		"references": [
+			{
+				"title": "育児・介護休業法 arts.19–20 (terms.facts.night_work_exemption_requested)"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "(has(terms.facts.night_work_exemption_requested)\n&&terms.facts.night_work_exemption_requested == true)\n&&hours_between(\n  day.intervals,\n  rules.night_work[\"from\"],\n  rules.night_work.to\n)\n>0.0",
+			"message": "A worker who asked to be excused from night work for childcare or care worked between 22:00 and 05:00 (育児・介護休業法 arts.19, 20).",
+			"description": "A worker who asked to be excused from night work for childcare or care worked between 22:00 and 05:00"
+		}
+	},
+	{
+		"id": "166d23b9-b6f1-5317-acbf-4dc48f4e41c0",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_HAZARDOUS_OVERTIME",
+		"name": "More than 2 hours of overtime in a day on work harmful to health",
+		"references": [
+			{
+				"title": "労働基準法 art.36(6)(i) with 施行規則 art.18: 坑内労働 and the listed harmful work may run at most 2 hours beyond the daily limit, even under a 36 agreement (terms.facts.hazardous_work)."
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_out",
+			"when": "(has(terms.facts.hazardous_work) && terms.facts.hazardous_work == true)\n&&day.worked_hours > 10.0",
+			"message": "More than 2 hours of overtime in a day on work harmful to health (労働基準法 art.36(6)(i)).",
+			"description": "More than 2 hours of overtime in a day on work harmful to health"
+		}
+	},
+	{
+		"id": "16e7e249-f80e-53fc-9015-acee310bb729",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_REST_INTERVAL",
+		"name": "Less rest between the end of one day’s work and the next than the interval the employer applies",
+		"references": [
+			{
+				"title": "労働時間等の設定の改善に関する特別措置法 art.2(1) (the employer’s duty to try to secure rest between shifts; company.facts.work_interval_hours, the interval its rules adopt); for drivers the 改善基準告示 (令和4年厚生労働省告示第367号) sets at least 9 hours (company.facts.overtime_sector DRIVER)."
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "day.rest_hours_before != null\n&&day.rest_hours_before\n< (has(company.facts.work_interval_hours)\n  ?double(company.facts.work_interval_hours)\n  : (has(company.facts.overtime_sector)\n  &&company.facts.overtime_sector == \"DRIVER\")\n    ?9.0\n    :0.0)",
+			"message": "Less rest between the end of one day’s work and the next than the interval the employer applies (勤務間インターバル).",
+			"description": "Less rest between the end of one day’s work and the next than the interval the employer applies"
+		}
+	},
+	{
+		"id": "66e146c9-00dc-5761-852a-75f292be549b",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_LEAVE_ON_WORKED_DAY",
+		"name": "Leave recorded on a day with attendance: the leave or the clock times are wrong.",
+		"references": [
+			{
+				"title": "労働基準法 art.39 (annual leave is a release from the duty to work on that day) and art.108 with 施行規則 art.54(1)(ii)–(iii) (the wage ledger records the days and hours worked): a day cannot be both."
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "leave_code",
+			"when": "day.leave_code != \"\" && day.worked",
+			"message": "Leave recorded on a day with attendance: the leave or the clock times are wrong.",
+			"description": "Leave recorded on a day with attendance: the leave or the clock times are wrong."
+		}
+	},
+	{
+		"id": "9d6ff76c-d8ed-5e3e-963d-f3bdd4216662",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "PARAMETERS",
+		"code": "exit_grounds",
+		"name": "Exit grounds",
+		"references": [
+			{
+				"title": "労働基準法 第22条第1項 (退職時等の証明: the certificate states the ground of the exit, 退職の事由, including the reason for a dismissal), and the grounds this version’s notice, separation and insurance records compare (CEL employment.exit_ground)."
+			}
+		],
+		"rules": {
+			"description": "Why an employment ends (employment_contract.exit_ground, CEL employment.exit_ground): the grounds HR chooses from when it ends a contract. Every ground a record of this version compares is listed.",
+			"kinds": [
+				{
+					"code": "DEATH",
+					"name": "Death of the employee"
+				},
+				{
+					"code": "DISCIPLINARY_DISMISSAL",
+					"name": "Disciplinary dismissal"
+				},
+				{
+					"code": "DISMISSAL",
+					"name": "Dismissal by the employer"
+				},
+				{
+					"code": "END_OF_CONTRACT",
+					"name": "End of a fixed-term contract"
+				},
+				{
+					"code": "MUTUAL",
+					"name": "Mutual agreement"
+				},
+				{
+					"code": "REDUNDANCY",
+					"name": "Redundancy"
+				},
+				{
+					"code": "RESIGNATION",
+					"name": "Resignation by the employee"
+				},
+				{
+					"code": "RETIREMENT",
+					"name": "Retirement"
+				}
+			],
+			"groups": {
+				"EMPLOYER_DISMISSAL": ["DISCIPLINARY_DISMISSAL", "DISMISSAL", "REDUNDANCY"]
+			}
+		}
+	},
+	{
+		"id": "30f4364e-c266-5a77-b775-2f1b1a19ec52",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "PARAMETERS",
+		"code": "holiday_kinds",
+		"name": "Holiday kinds",
+		"references": [
+			{
+				"title": "国民の祝日に関する法律 第2条 (国民の祝日) and 第3条第2項 (振替休日: a holiday falling on a Sunday moves to the next non-holiday, SUBSTITUTE); SPECIAL_HOLIDAY is a day the entity observes beyond the Act (年末年始 and the like), priced by this version’s work records."
+			}
+		],
+		"rules": {
+			"description": "The kinds an entity's holiday row may carry (holiday.kind, CEL work.days[].holiday_kind and holidays[].kind): every kind a record of this version prices or the public_holidays calendar writes.",
+			"kinds": [
+				{
+					"code": "PUBLIC_HOLIDAY",
+					"name": "Public holiday"
+				},
+				{
+					"code": "SPECIAL_HOLIDAY",
+					"name": "Special holiday"
+				},
+				{
+					"code": "SUBSTITUTE",
+					"name": "Substitute holiday"
+				}
+			]
+		}
+	},
+	{
+		"id": "97c9e1f6-bd2b-51a9-a051-582f3ba7be18",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "WAGE_PAYMENT_MONTHLY",
+		"name": "毎月1回以上・一定期日払の原則 (wages at least monthly)",
+		"references": [
+			{
+				"title": "労働基準法 art.24(2): wages are paid at least once a month on a fixed day, except bonuses and the payments 施行規則 art.8 lists; an INTEGER_MONTHS pay frequency is for those only."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "has(company.pay_frequency) && company.pay_frequency == \"INTEGER_MONTHS\"",
+			"message": "Wages are paid less often than monthly: the law requires a payment at least once a month on a fixed day (労働基準法 art.24(2)).",
+			"description": "毎月1回以上・一定期日払の原則 (wages at least monthly)"
+		}
+	},
+	{
+		"id": "834d4dd3-ccd2-5579-b38d-088177ab7c7b",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "EI_COVERAGE_HOURS",
+		"name": "雇用保険の適用 (employment insurance by weekly hours)",
+		"references": [
+			{
+				"title": "雇用保険法 art.6(i): a worker of under 20 scheduled hours a week is outside employment insurance (20 before 1 October 2028; 雇用保険法等の一部を改正する法律, 令和6年法律第26号, lowers it to 10 from that day); a daytime student (art.6(iv), terms.facts.daytime_student) is outside it whatever the hours. terms.statutory_work_category records the coverage."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "has(terms.facts.weekly_scheduled_hours)\n&&!(has(terms.facts.daytime_student)\n&&terms.facts.daytime_student == true)\n&& ((double(terms.facts.weekly_scheduled_hours) >= 20.0\n&&terms.statutory_work_category in [\"SOCIAL_ONLY\", \"NONE\"])\n|| (double(terms.facts.weekly_scheduled_hours) < 20.0\n&&terms.statutory_work_category\nin [\"SOCIAL_AND_EMPLOYMENT\", \"EMPLOYMENT_ONLY\"]))",
+			"message": "Employment insurance coverage does not match the weekly hours: 20 hours or more a week is insured (雇用保険法 art.6(i)).",
+			"description": "雇用保険の適用 (employment insurance by weekly hours)"
+		}
+	},
+	{
+		"id": "d574e9dc-c2c7-5944-a7e4-0d1cf62828c1",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "PARAMETERS",
+		"code": "salary_report",
+		"name": "Salary report grouping and company payments",
+		"references": [
+			{
+				"title": "Payroll application reporting configuration: grouped salary listing and company-payment classification, following the requested export format. Dated catalogue and rule-set authorities govern payroll calculations."
+			}
+		],
+		"rules": {
+			"group_order": [
+				"Basic pay",
+				"Allowances",
+				"Overtime and other work",
+				"Back pay and other earnings",
+				"Leave pay",
+				"Pre-gross deductions",
+				"Gross pay",
+				"Claims and other pay",
+				"Loans and other deductions",
+				"Employee statutory",
+				"Total deductions",
+				"Net pay",
+				"Employer statutory",
+				"Tax and benefit information",
+				"Company bank charges",
+				"Total company payment"
+			],
+			"items": [
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "EMERGENCY_ADVANCE",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "SALARY_ADVANCE",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "STAFF_LOAN",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "WORK",
+					"code": "ANNUAL_LEAVE_PAY",
+					"group": "Leave pay"
+				},
+				{
+					"family": "WORK",
+					"code": "BASIC",
+					"group": "Basic pay"
+				}
+			]
+		}
+	},
+	{
+		"id": "628a95de-7767-5543-8ee1-76e6bfbf1a73",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_PATTERN_CYCLE",
+		"name": "Roster keeps its pattern cycle",
+		"references": [
+			{
+				"title": "労働基準法 art.89(i): the work rules state the start and end of work, breaks, rest days and, for shift work, the rotation; art.35: at least one rest day each week or 4 in 4 weeks. A roster swap moves days inside the rotation; adding a work day or dropping a rest or off day departs from the work rules."
+			}
+		],
+		"rules": {
+			"site": "cycle",
+			"kind": "refuse",
+			"when": "cycle.planned.WORK != cycle.expected.WORK\n||cycle.planned.REST != cycle.expected.REST\n||cycle.planned.OFF != cycle.expected.OFF",
+			"message": "Swap days inside the cycle instead.",
+			"description": "A roster swap moves a day inside its shift pattern cycle; it never adds a work day or drops a rest or off day. Severity follows entity.validation_severity."
+		}
+	},
+	{
+		"id": "eb73ed89-c1dc-5ad6-a7d3-191721f04cd3",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "VALIDATIONS",
+		"code": "PAYROLL_RUN_KINDS",
+		"name": "PAYROLL_RUN_KINDS",
+		"rules": {
+			"site": "payroll_run",
+			"kind": "allow",
+			"when": "run.kind in [\"REGULAR\", \"OFF_CYCLE\"]",
+			"message": "The jurisdiction admits regular and off-cycle payroll runs."
+		}
+	}
+]

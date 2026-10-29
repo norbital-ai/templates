@@ -1,0 +1,879 @@
+[
+	{
+		"id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"code": "CN",
+		"name": "China — 1 January 2026",
+		"sealed_at": "2026-10-06T00:00:00.000Z",
+		"voided_at": null,
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-06-30"
+		},
+		"payroll": {
+			"currency": "CNY",
+			"timezone": "Asia/Shanghai",
+			"week_start": 0,
+			"roster_week": "ROLLING",
+			"monthly_wage": "terms.base_salary\n+sum(\n  terms.allowances.filter(\n    a,\n    !(a.code\n    in [\n      \"ONLY_CHILD_ALLOWANCE\",\n      \"CHILDCARE_SUBSIDY\",\n      \"TRAVEL_ALLOWANCE\",\n      \"MEAL_SUBSIDY_OUT\"\n    ]\n  ) ).map(\n    a,\n    a.amount\n  )\n)"
+		},
+		"time_pay": {
+			"BASIC": [
+				{
+					"code": "BASIC",
+					"name": "Basic salary (基本工资)",
+					"references": [
+						{
+							"title": "劳动合同法 第十七条; 工资支付暂行规定 第七条. A full month pays the monthly salary; a part month pays the working days covered (planned WORK days) ÷ 21.75, capped at the month, or — without a shift plan, or on a sub-monthly part — the calendar days covered ÷ the days of the period. 人力资源社会保障部《关于职工全年月平均工作时间和工资折算问题的通知》(人社部发〔2025〕2号, 自2025年1月1日): 月计薪天数 (365 − 104) ÷ 12 = 21.75 天; 日工资 = 月工资收入 ÷ 21.75; 小时工资 = 月工资收入 ÷ (21.75 × 8); 年工作日 248 天, 季 62 天, 月 20.67 天 https://www.gov.cn/zhengce/zhengceku/202501/content_6995777.htm (it replaced 劳社部发〔2008〕3号).",
+							"url": "https://www.gov.cn/zhengce/zhengceku/202501/content_6995777.htm"
+						}
+					],
+					"eligibility": "true",
+					"quantity": "(period.covered_days >= period.days\n  ?1.0\n  : (period.parts == 1.0 && double(period.covered_working_days) > 0.0\n    ?min(1.0, double(period.covered_working_days) / 21.75)\n    :double(period.covered_days) / double(period.days)))",
+					"rate": "terms.base_salary / double(period.parts)",
+					"prorated": true,
+					"denominator": "double(period.days)",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": [
+						"PENSION",
+						"MEDICAL",
+						"MAJOR_MEDICAL",
+						"UNEMPLOYMENT",
+						"WORK_INJURY",
+						"HPF",
+						"HPF_SUPPLEMENTARY",
+						"UNION_FUND",
+						"IIT",
+						"IIT.DEDUCTIONS"
+					]
+				}
+			],
+			"OVERTIME": [
+				{
+					"code": "OVERTIME",
+					"name": "Overtime on working days (延长工作时间 150%)",
+					"references": [
+						{
+							"title": "劳动法 第四十四条第一项; 工资支付暂行规定 第十三条第一款第一项. Standard hours only: the overtime on working days — the hours recorded past the planned shift's ordinary hours, in completed half-hours, less hours banked as time off — a declared make-up working day (MAKEUP_WORKDAY) included. Comprehensive hours are paid by COMPREHENSIVE_OVERTIME, flexible hours have no overtime pay (工资支付暂行规定 第十三条第三、四款). 人力资源社会保障部《关于职工全年月平均工作时间和工资折算问题的通知》(人社部发〔2025〕2号, 自2025年1月1日): 月计薪天数 (365 − 104) ÷ 12 = 21.75 天; 日工资 = 月工资收入 ÷ 21.75; 小时工资 = 月工资收入 ÷ (21.75 × 8); 年工作日 248 天, 季 62 天, 月 20.67 天 https://www.gov.cn/zhengce/zhengceku/202501/content_6995777.htm (it replaced 劳社部发〔2008〕3号). The base is the post's normal monthly wage — base salary plus the fixed wage allowances (FIXED_ALLOWANCE, foreign language and children-education allowances), not the meal, transport, housing or welfare items. SH: 上海市企业工资支付办法 第九条 (沪人社综发〔2016〕29号 https://rsj.sh.gov.cn/cmsres/d0/d0e5518fe1964ed29aace7972dbfd27c/9f0ad57d930d69d45c17b8afd764245d.pdf, and 沪人社规〔2026〕10号 from 2026-08-01 https://rsj.sh.gov.cn/cmsres/ee/ee4c819d093644fe9dbd470d2aa0d1dd/3bf28e8da2b7faa5c9fc6359be7780fc.pdf, same text): 加班工资和假期工资的计算基数为劳动者所在岗位相对应的正常出勤月工资, 不包括年终奖, 上下班交通补贴、工作餐补贴、住房补贴, 中夜班津贴、夏季高温津贴、加班工资; 不得低于本市规定的最低工资标准. KM: no Kunming base rule was read (昆明市工资支付条例 unreachable); the national 月工资收入 (人社部发〔2025〕2号: 日工资 = 月工资收入 ÷ 21.75) is the same post wage, without a floor."
+						}
+					],
+					"eligibility": "((terms.work_classification in [\"STANDARD\", \"\"])\n  ?sum(\n    work.days.filter(\n      d,\n      !((d.day_type in [\"REST\", \"OFF\"] || d.holiday_kind == \"SUBSTITUTE\")\n      &&d.holiday_kind != \"PUBLIC_HOLIDAY\"\n      &&d.holiday_kind != \"MAKEUP_WORKDAY\")\n      &&d.holiday_kind != \"PUBLIC_HOLIDAY\"\n    ).map(\n      d,\n      d.overtime_hours\n    )\n  )\n  :0.0)\n>0.0",
+					"quantity": "(terms.work_classification in [\"STANDARD\", \"\"])\n  ?sum(\n    work.days.filter(\n      d,\n      !((d.day_type in [\"REST\", \"OFF\"] || d.holiday_kind == \"SUBSTITUTE\")\n      &&d.holiday_kind != \"PUBLIC_HOLIDAY\"\n      &&d.holiday_kind != \"MAKEUP_WORKDAY\")\n      &&d.holiday_kind != \"PUBLIC_HOLIDAY\"\n    ).map(\n      d,\n      d.overtime_hours\n    )\n  )\n  :0.0",
+					"rate": "(company.region in rules.regions.by_region)\n  ? (1.5\n  * (((rules.regions.by_region[company.region].wage_base_floor_minimum_wage\n    ?max(\n      terms.base_salary\n      +sum(\n        terms.allowances.filter(\n          a,\n          a.code\n          in [\n            \"FIXED_ALLOWANCE\",\n            \"FOREIGN_LANGUAGE_ALLOWANCE\",\n            \"FOREIGN_CHILD_EDUCATION_ALLOWANCE\"\n          ]\n        ).map(\n          a,\n          double(a.amount)\n        )\n      ),\n      (double(\n        rules.regions.by_region[company.region].minimum_wage.zones[(has(\n          company.facts.wage_zone\n        )\n          ?string(company.facts.wage_zone)\n          :rules.regions.by_region[company.region].minimum_wage.default_zone)].amount\n      )\n    ) )\n    :terms.base_salary\n    +sum(\n      terms.allowances.filter(\n        a,\n        a.code\n        in [\n          \"FIXED_ALLOWANCE\",\n          \"FOREIGN_LANGUAGE_ALLOWANCE\",\n          \"FOREIGN_CHILD_EDUCATION_ALLOWANCE\"\n        ]\n      ).map(\n        a,\n        double(a.amount)\n      )\n    )))\n  /21.75\n  /8.0))\n  :0.0",
+					"prorated": false,
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["UNION_FUND", "IIT"]
+				},
+				{
+					"code": "COMPREHENSIVE_OVERTIME",
+					"name": "Comprehensive-hours overtime (综合计算工时 150%)",
+					"references": [
+						{
+							"title": "工资支付暂行规定 第十三条第三款: 实行综合计算工时工作制的, 综合计算工作时间超过法定标准工作时间的部分视为延长工作时间 (150%); 劳部发〔1994〕503号; 上海市企业工资支付办法 (沪人社规〔2026〕10号) 第十三条. The cycle is the approval's (`terms.facts.comprehensive_cycle_months` 1, 3 or 12, calendar-aligned); at the cycle's last month payroll settles the overtime recorded past the planned shifts' ordinary hours (completed half-hours) less banked hours (`hours.month.paid_overtime_hours` / `hours.rolling.paid_overtime_hours` / `hours.year.paid_overtime_hours`), excluding public-holiday overtime, paid with the holiday's other hours by HOLIDAY_WORK. Time within the planned shifts is ordinary and adds no overtime. 人力资源社会保障部《关于职工全年月平均工作时间和工资折算问题的通知》(人社部发〔2025〕2号, 自2025年1月1日): 月计薪天数 (365 − 104) ÷ 12 = 21.75 天; 日工资 = 月工资收入 ÷ 21.75; 小时工资 = 月工资收入 ÷ (21.75 × 8); 年工作日 248 天, 季 62 天, 月 20.67 天 https://www.gov.cn/zhengce/zhengceku/202501/content_6995777.htm (it replaced 劳社部发〔2008〕3号). The base is the post's normal monthly wage — base salary plus the fixed wage allowances (FIXED_ALLOWANCE, foreign language and children-education allowances), not the meal, transport, housing or welfare items. SH: 上海市企业工资支付办法 第九条 (沪人社综发〔2016〕29号 https://rsj.sh.gov.cn/cmsres/d0/d0e5518fe1964ed29aace7972dbfd27c/9f0ad57d930d69d45c17b8afd764245d.pdf, and 沪人社规〔2026〕10号 from 2026-08-01 https://rsj.sh.gov.cn/cmsres/ee/ee4c819d093644fe9dbd470d2aa0d1dd/3bf28e8da2b7faa5c9fc6359be7780fc.pdf, same text): 加班工资和假期工资的计算基数为劳动者所在岗位相对应的正常出勤月工资, 不包括年终奖, 上下班交通补贴、工作餐补贴、住房补贴, 中夜班津贴、夏季高温津贴、加班工资; 不得低于本市规定的最低工资标准. KM: no Kunming base rule was read (昆明市工资支付条例 unreachable); the national 月工资收入 (人社部发〔2025〕2号: 日工资 = 月工资收入 ÷ 21.75) is the same post wage, without a floor."
+						}
+					],
+					"eligibility": "(terms.work_classification == \"COMPREHENSIVE\"\n&& ((has(terms.facts.comprehensive_cycle_months)\n  ?double(terms.facts.comprehensive_cycle_months)\n  :1.0)\n==1.0\n|| ((has(terms.facts.comprehensive_cycle_months)\n  ?double(terms.facts.comprehensive_cycle_months)\n  :1.0)\n==3.0\n&&months_through(period.from.substring(0, 4) + \"-01-01\", period.from)\nin [3.0, 6.0, 9.0, 12.0])\n|| ((has(terms.facts.comprehensive_cycle_months)\n  ?double(terms.facts.comprehensive_cycle_months)\n  :1.0)\n==12.0\n&&months_through(period.from.substring(0, 4) + \"-01-01\", period.from)\n==12.0))\n  ?max(\n    0.0,\n    ((has(terms.facts.comprehensive_cycle_months)\n      ?double(terms.facts.comprehensive_cycle_months)\n      :1.0)\n    ==3.0\n      ?hours.rolling.paid_overtime_hours\n      - (has(hours.rolling.holiday_kind)\n      &&has(hours.rolling.holiday_kind.PUBLIC_HOLIDAY)\n        ?hours.rolling.holiday_kind.PUBLIC_HOLIDAY.paid_overtime_hours\n        :0.0)\n      : ((has(terms.facts.comprehensive_cycle_months)\n        ?double(terms.facts.comprehensive_cycle_months)\n        :1.0)\n      ==12.0\n        ?hours.year.paid_overtime_hours\n        - (has(hours.year.holiday_kind)\n        &&has(hours.year.holiday_kind.PUBLIC_HOLIDAY)\n          ?hours.year.holiday_kind.PUBLIC_HOLIDAY.paid_overtime_hours\n          :0.0)\n        :hours.month.paid_overtime_hours\n        - (has(hours.month.holiday_kind)\n        &&has(hours.month.holiday_kind.PUBLIC_HOLIDAY)\n          ?hours.month.holiday_kind.PUBLIC_HOLIDAY.paid_overtime_hours\n          :0.0\n  ) )))\n  :0.0)\n>0.0",
+					"quantity": "terms.work_classification == \"COMPREHENSIVE\"\n&& ((has(terms.facts.comprehensive_cycle_months)\n  ?double(terms.facts.comprehensive_cycle_months)\n  :1.0)\n==1.0\n|| ((has(terms.facts.comprehensive_cycle_months)\n  ?double(terms.facts.comprehensive_cycle_months)\n  :1.0)\n==3.0\n&&months_through(period.from.substring(0, 4) + \"-01-01\", period.from)\nin [3.0, 6.0, 9.0, 12.0])\n|| ((has(terms.facts.comprehensive_cycle_months)\n  ?double(terms.facts.comprehensive_cycle_months)\n  :1.0)\n==12.0\n&&months_through(period.from.substring(0, 4) + \"-01-01\", period.from)\n==12.0))\n  ?max(\n    0.0,\n    ((has(terms.facts.comprehensive_cycle_months)\n      ?double(terms.facts.comprehensive_cycle_months)\n      :1.0)\n    ==3.0\n      ?hours.rolling.paid_overtime_hours\n      - (has(hours.rolling.holiday_kind)\n      &&has(hours.rolling.holiday_kind.PUBLIC_HOLIDAY)\n        ?hours.rolling.holiday_kind.PUBLIC_HOLIDAY.paid_overtime_hours\n        :0.0)\n      : ((has(terms.facts.comprehensive_cycle_months)\n        ?double(terms.facts.comprehensive_cycle_months)\n        :1.0)\n      ==12.0\n        ?hours.year.paid_overtime_hours\n        - (has(hours.year.holiday_kind)\n        &&has(hours.year.holiday_kind.PUBLIC_HOLIDAY)\n          ?hours.year.holiday_kind.PUBLIC_HOLIDAY.paid_overtime_hours\n          :0.0)\n        :hours.month.paid_overtime_hours\n        - (has(hours.month.holiday_kind)\n        &&has(hours.month.holiday_kind.PUBLIC_HOLIDAY)\n          ?hours.month.holiday_kind.PUBLIC_HOLIDAY.paid_overtime_hours\n          :0.0\n  ) )))\n  :0.0",
+					"rate": "(company.region in rules.regions.by_region)\n  ? (1.5\n  * (((rules.regions.by_region[company.region].wage_base_floor_minimum_wage\n    ?max(\n      terms.base_salary\n      +sum(\n        terms.allowances.filter(\n          a,\n          a.code\n          in [\n            \"FIXED_ALLOWANCE\",\n            \"FOREIGN_LANGUAGE_ALLOWANCE\",\n            \"FOREIGN_CHILD_EDUCATION_ALLOWANCE\"\n          ]\n        ).map(\n          a,\n          double(a.amount)\n        )\n      ),\n      (double(\n        rules.regions.by_region[company.region].minimum_wage.zones[(has(\n          company.facts.wage_zone\n        )\n          ?string(company.facts.wage_zone)\n          :rules.regions.by_region[company.region].minimum_wage.default_zone)].amount\n      )\n    ) )\n    :terms.base_salary\n    +sum(\n      terms.allowances.filter(\n        a,\n        a.code\n        in [\n          \"FIXED_ALLOWANCE\",\n          \"FOREIGN_LANGUAGE_ALLOWANCE\",\n          \"FOREIGN_CHILD_EDUCATION_ALLOWANCE\"\n        ]\n      ).map(\n        a,\n        double(a.amount)\n      )\n    )))\n  /21.75\n  /8.0))\n  :0.0",
+					"prorated": false,
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["UNION_FUND", "IIT"]
+				}
+			],
+			"REST_DAY_WORK": [
+				{
+					"code": "REST_DAY_WORK",
+					"name": "Rest-day work (休息日 200%)",
+					"references": [
+						{
+							"title": "劳动法 第四十四条第二项: 休息日安排劳动者工作又不能安排补休的, 支付不低于工资的200%; 工资支付暂行规定 第十三条. Standard hours only: every paid hour worked on a planned REST/OFF day or a SUBSTITUTE day off (a day off on a planned shift counts that shift's hours too), less hours banked as compensatory rest; never a MAKEUP_WORKDAY. An entity that gives compensatory rest records `rest_day_work_compensated`. 人力资源社会保障部《关于职工全年月平均工作时间和工资折算问题的通知》(人社部发〔2025〕2号, 自2025年1月1日): 月计薪天数 (365 − 104) ÷ 12 = 21.75 天; 日工资 = 月工资收入 ÷ 21.75; 小时工资 = 月工资收入 ÷ (21.75 × 8); 年工作日 248 天, 季 62 天, 月 20.67 天 https://www.gov.cn/zhengce/zhengceku/202501/content_6995777.htm (it replaced 劳社部发〔2008〕3号). The base is the post's normal monthly wage — base salary plus the fixed wage allowances (FIXED_ALLOWANCE, foreign language and children-education allowances), not the meal, transport, housing or welfare items. SH: 上海市企业工资支付办法 第九条 (沪人社综发〔2016〕29号 https://rsj.sh.gov.cn/cmsres/d0/d0e5518fe1964ed29aace7972dbfd27c/9f0ad57d930d69d45c17b8afd764245d.pdf, and 沪人社规〔2026〕10号 from 2026-08-01 https://rsj.sh.gov.cn/cmsres/ee/ee4c819d093644fe9dbd470d2aa0d1dd/3bf28e8da2b7faa5c9fc6359be7780fc.pdf, same text): 加班工资和假期工资的计算基数为劳动者所在岗位相对应的正常出勤月工资, 不包括年终奖, 上下班交通补贴、工作餐补贴、住房补贴, 中夜班津贴、夏季高温津贴、加班工资; 不得低于本市规定的最低工资标准. KM: no Kunming base rule was read (昆明市工资支付条例 unreachable); the national 月工资收入 (人社部发〔2025〕2号: 日工资 = 月工资收入 ÷ 21.75) is the same post wage, without a floor."
+						}
+					],
+					"eligibility": "((terms.work_classification in [\"STANDARD\", \"\"])\n&&!(has(company.facts.rest_day_work_compensated)\n&&company.facts.rest_day_work_compensated == true)\n  ?sum(\n    work.days.filter(\n      d,\n      ((d.day_type in [\"REST\", \"OFF\"] || d.holiday_kind == \"SUBSTITUTE\")\n      &&d.holiday_kind != \"PUBLIC_HOLIDAY\"\n      &&d.holiday_kind != \"MAKEUP_WORKDAY\"\n    ) ).map(\n      d,\n      d.worked_hours - d.banked_hours\n    )\n  )\n  :0.0)\n>0.0",
+					"quantity": "(terms.work_classification in [\"STANDARD\", \"\"])\n&&!(has(company.facts.rest_day_work_compensated)\n&&company.facts.rest_day_work_compensated == true)\n  ?sum(\n    work.days.filter(\n      d,\n      ((d.day_type in [\"REST\", \"OFF\"] || d.holiday_kind == \"SUBSTITUTE\")\n      &&d.holiday_kind != \"PUBLIC_HOLIDAY\"\n      &&d.holiday_kind != \"MAKEUP_WORKDAY\"\n    ) ).map(\n      d,\n      d.worked_hours - d.banked_hours\n    )\n  )\n  :0.0",
+					"rate": "(company.region in rules.regions.by_region)\n  ? (2.0\n  * (((rules.regions.by_region[company.region].wage_base_floor_minimum_wage\n    ?max(\n      terms.base_salary\n      +sum(\n        terms.allowances.filter(\n          a,\n          a.code\n          in [\n            \"FIXED_ALLOWANCE\",\n            \"FOREIGN_LANGUAGE_ALLOWANCE\",\n            \"FOREIGN_CHILD_EDUCATION_ALLOWANCE\"\n          ]\n        ).map(\n          a,\n          double(a.amount)\n        )\n      ),\n      (double(\n        rules.regions.by_region[company.region].minimum_wage.zones[(has(\n          company.facts.wage_zone\n        )\n          ?string(company.facts.wage_zone)\n          :rules.regions.by_region[company.region].minimum_wage.default_zone)].amount\n      )\n    ) )\n    :terms.base_salary\n    +sum(\n      terms.allowances.filter(\n        a,\n        a.code\n        in [\n          \"FIXED_ALLOWANCE\",\n          \"FOREIGN_LANGUAGE_ALLOWANCE\",\n          \"FOREIGN_CHILD_EDUCATION_ALLOWANCE\"\n        ]\n      ).map(\n        a,\n        double(a.amount)\n      )\n    )))\n  /21.75\n  /8.0))\n  :0.0",
+					"prorated": false,
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["UNION_FUND", "IIT"]
+				}
+			],
+			"HOLIDAY_WORK": [
+				{
+					"code": "HOLIDAY_WORK",
+					"name": "Statutory holiday work (法定休假日 300%)",
+					"references": [
+						{
+							"title": "劳动法 第四十四条第三项; 工资支付暂行规定 第十三条. Every paid hour worked on the day — the planned shift's hours and the overtime past them, less hours banked — is paid at 300%. Paid for standard and comprehensive hours (第十三条第三款); flexible hours only in Shanghai (上海市企业工资支付办法 沪人社规〔2026〕10号 第十三条: 不定时工时制的劳动者在法定休假节日由企业安排工作的, 按300%支付). The statutory days are the PUBLIC_HOLIDAY rows of the version's public_holidays table; bridging days off are SUBSTITUTE (rest days) and a partial-citizen holiday (SPECIAL_HOLIDAY) is ordinary time. 人力资源社会保障部《关于职工全年月平均工作时间和工资折算问题的通知》(人社部发〔2025〕2号, 自2025年1月1日): 月计薪天数 (365 − 104) ÷ 12 = 21.75 天; 日工资 = 月工资收入 ÷ 21.75; 小时工资 = 月工资收入 ÷ (21.75 × 8); 年工作日 248 天, 季 62 天, 月 20.67 天 https://www.gov.cn/zhengce/zhengceku/202501/content_6995777.htm (it replaced 劳社部发〔2008〕3号). The base is the post's normal monthly wage — base salary plus the fixed wage allowances (FIXED_ALLOWANCE, foreign language and children-education allowances), not the meal, transport, housing or welfare items. SH: 上海市企业工资支付办法 第九条 (沪人社综发〔2016〕29号 https://rsj.sh.gov.cn/cmsres/d0/d0e5518fe1964ed29aace7972dbfd27c/9f0ad57d930d69d45c17b8afd764245d.pdf, and 沪人社规〔2026〕10号 from 2026-08-01 https://rsj.sh.gov.cn/cmsres/ee/ee4c819d093644fe9dbd470d2aa0d1dd/3bf28e8da2b7faa5c9fc6359be7780fc.pdf, same text): 加班工资和假期工资的计算基数为劳动者所在岗位相对应的正常出勤月工资, 不包括年终奖, 上下班交通补贴、工作餐补贴、住房补贴, 中夜班津贴、夏季高温津贴、加班工资; 不得低于本市规定的最低工资标准. KM: no Kunming base rule was read (昆明市工资支付条例 unreachable); the national 月工资收入 (人社部发〔2025〕2号: 日工资 = 月工资收入 ÷ 21.75) is the same post wage, without a floor."
+						}
+					],
+					"eligibility": "(company.region in rules.regions.by_region)\n&& (((terms.work_classification in [\"STANDARD\", \"\", \"COMPREHENSIVE\"]\n|| (terms.work_classification == \"FLEXIBLE\"\n&&rules.regions.by_region[company.region].flexible_hours_holiday_premium))\n  ?sum(\n    work.days.filter(d, d.holiday_kind == \"PUBLIC_HOLIDAY\").map(\n      d,\n      d.worked_hours - d.banked_hours\n    )\n  )\n  :0.0)\n>0.0)",
+					"quantity": "(company.region in rules.regions.by_region)\n  ? ((terms.work_classification in [\"STANDARD\", \"\", \"COMPREHENSIVE\"]\n  || (terms.work_classification == \"FLEXIBLE\"\n  &&rules.regions.by_region[company.region].flexible_hours_holiday_premium))\n    ?sum(\n      work.days.filter(d, d.holiday_kind == \"PUBLIC_HOLIDAY\").map(\n        d,\n        d.worked_hours - d.banked_hours\n      )\n    )\n    :0.0)\n  :0.0",
+					"rate": "(company.region in rules.regions.by_region)\n  ? (3.0\n  * (((rules.regions.by_region[company.region].wage_base_floor_minimum_wage\n    ?max(\n      terms.base_salary\n      +sum(\n        terms.allowances.filter(\n          a,\n          a.code\n          in [\n            \"FIXED_ALLOWANCE\",\n            \"FOREIGN_LANGUAGE_ALLOWANCE\",\n            \"FOREIGN_CHILD_EDUCATION_ALLOWANCE\"\n          ]\n        ).map(\n          a,\n          double(a.amount)\n        )\n      ),\n      (double(\n        rules.regions.by_region[company.region].minimum_wage.zones[(has(\n          company.facts.wage_zone\n        )\n          ?string(company.facts.wage_zone)\n          :rules.regions.by_region[company.region].minimum_wage.default_zone)].amount\n      )\n    ) )\n    :terms.base_salary\n    +sum(\n      terms.allowances.filter(\n        a,\n        a.code\n        in [\n          \"FIXED_ALLOWANCE\",\n          \"FOREIGN_LANGUAGE_ALLOWANCE\",\n          \"FOREIGN_CHILD_EDUCATION_ALLOWANCE\"\n        ]\n      ).map(\n        a,\n        double(a.amount)\n      )\n    )))\n  /21.75\n  /8.0))\n  :0.0",
+					"prorated": false,
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["UNION_FUND", "IIT"]
+				}
+			]
+		},
+		"sources": {
+			"entries": [
+				{
+					"agent": "catalog",
+					"url": "http://www.npc.gov.cn/",
+					"instructions": "中国人大网 (NPC). Read 劳动法 for the overtime, rest-day and statutory-holiday work premiums (150% / 200% / 300%) and 劳动合同法 for economic compensation (N, the 2N damages for unlawful termination, the cap at three times the local average wage and 12 years), the one month's pay in lieu of notice (代通知金) and the double wage for missing written contracts. Use 法律法规 / 法律文本 and the 全国人大常委会公报; check the promulgation and commencement dates and every later amendment decision."
+				},
+				{
+					"agent": "catalog",
+					"url": "https://www.gov.cn/",
+					"instructions": "中国政府网 (State Council). Read 职工带薪年休假条例 and 企业职工带薪年休假实施办法 (entitlement by cumulative service, pro-rating, excluded periods), 女职工劳动保护特别规定 (national maternity leave), 工伤保险条例 (停工留薪期 pay and the employer-paid work-injury benefits) and 工资支付暂行规定 (stoppage pay and pay during statutory activities). Search 政策 > 国务院政策文件库 (zhengceku) by title or 文号."
+				},
+				{
+					"agent": "catalog",
+					"url": "https://rsj.sh.gov.cn/",
+					"instructions": "上海市人力资源和社会保障局. Read 上海市企业工资支付办法 for the overtime pay base and stoppage pay, the Shanghai sick-pay scale and medical treatment period, the high-temperature allowance and the one-off work-injury subsidies. Use 政务公开 > 政策文件 (沪人社规) and 通知公告; read the PDF of each 沪人社规."
+				},
+				{
+					"agent": "catalog",
+					"url": "https://ybj.sh.gov.cn/",
+					"instructions": "上海市医疗保障局. Read the Shanghai maternity benefit (生育津贴) rules: who pays during maternity leave, the benefit base and the employer's top-up of any difference. Use 政务公开 > 规范性文件 (沪医保规) and check each notice's 有效期."
+				},
+				{
+					"agent": "catalog",
+					"url": "https://www.shanghai.gov.cn/",
+					"instructions": "上海市人民政府. Read 上海市人口与计划生育条例 (extended maternity, paternity, marriage and childcare leave), 上海市女职工劳动保护办法 (prenatal and nursing leave) and 上海市老年人权益保障条例 (elder-care leave): length, eligibility and whether the leave is paid. Use 政策发布 / 信息公开 > 规章 and the site search."
+				},
+				{
+					"agent": "catalog",
+					"url": "https://www.ynrd.gov.cn/",
+					"instructions": "云南人大网 (Yunnan Provincial People's Congress). Read 云南省人口与计划生育条例 (extended maternity, paternity, marriage and childcare leave), 云南省老年人权益保障条例 (elder-care leave) and 昆明市工资支付条例 for sick pay and stoppage pay. Use 权威发布 > 常委会公告 / 决议决定 and the site search; check amendment decisions. The site is intermittently slow: retry once before reporting it unreachable."
+				},
+				{
+					"agent": "catalog",
+					"url": "https://longling.gov.cn/",
+					"instructions": "Read the Yunnan high-temperature allowance notice and the Yunnan work-injury local measures for the employer-paid work-injury benefits. 龙陵县人民政府 is a Yunnan county portal that republishes province-wide notices (the 云南省人社厅 and 云南省税务局 portals are unreachable from the research hosts). Use 政务公开 search for 社会保险 / 最低工资 / 人社; quote the provincial 文号 and confirm the notice is province-wide."
+				},
+				{
+					"agent": "contribution",
+					"url": "http://www.npc.gov.cn/",
+					"instructions": "中国人大网 (NPC). Read 社会保险法 (the five insurances, who contributes, employee withholding), 个人所得税法 (rate tables, the cumulative withholding basis, resident taxation) and 工会法 (the 2% trade-union fund on the payroll). Use 法律法规 / 法律文本 and the 全国人大常委会公报; check the promulgation and commencement dates and every later amendment decision."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.gov.cn/",
+					"instructions": "中国政府网 (State Council). Read 工伤保险条例 (industry risk classes and rate floating), 失业保险条例, 住房公积金管理条例 (5–12% shares and the base), the national MOHRSS/MOF notices on the phased unemployment-insurance rate, and 在中国境内就业的外国人参加社会保险暂行办法 (foreign-employee coverage). Search 政策 > 国务院政策文件库 (zhengceku) by title or 文号."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://rsj.sh.gov.cn/",
+					"instructions": "上海市人力资源和社会保障局. Read the Shanghai social-insurance contribution base floor and ceiling (the contribution year runs from 1 July), the pension, unemployment and work-injury rates and the work-injury industry classes. Use 政务公开 > 政策文件 (沪人社规) and 通知公告; read the PDF of each 沪人社规."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://ybj.sh.gov.cn/",
+					"instructions": "上海市医疗保障局. Read the Shanghai employee basic medical insurance (maternity merged in) rates and base, and how long-term-care insurance is funded. Use 政务公开 > 规范性文件 (沪医保规) and check each notice's 有效期 (the medical rate notice is time-limited)."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://shanghai.chinatax.gov.cn/",
+					"instructions": "国家税务总局上海市税务局 (the national portals fgk.chinatax.gov.cn and www.chinatax.gov.cn answer automated readers with a script challenge, so use this one). In 政策文件 > 政策法规库 (个人所得税 and 社会保险费 categories) read the national IIT instruments it republishes: the cumulative withholding method (公告2018年第61号) and its rate table, the 5,000 basic deduction and special additional deductions (国发〔2023〕13号 and later amounts), and the preferential treatments (annual bonus, separation pay, equity incentives, expatriate allowances, each with its expiry date); also the disabled-employment security fund rate and calculation, the union-fund collection by tax, and local IIT withholding guidance (纳税服务 > 办税指南, 通知公告)."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.shanghai.gov.cn/",
+					"instructions": "上海市人民政府. Read the 上海市住房公积金管理委员会 notices on housing-fund rates and base limits (the fund centre's own site is unreachable) and 上海市工会条例 for the union fund. Use 政策发布 / 信息公开 > 规章 and the site search."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.ynrd.gov.cn/",
+					"instructions": "云南人大网. Read 云南省失业保险条例. Use 权威发布 > 常委会公告 / 决议决定 and the site search; check amendment decisions. The site is intermittently slow: retry once before reporting it unreachable."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://longling.gov.cn/",
+					"instructions": "Read the Yunnan pension, unemployment and work-injury contribution bases and rates, including the phased unemployment rate. 龙陵县人民政府 is a Yunnan county portal that republishes province-wide notices (the 云南省人社厅 and 云南省税务局 portals are unreachable from the research hosts). Use 政务公开 search for 社会保险 / 最低工资 / 人社; quote the provincial 文号 and confirm the notice is province-wide."
+				},
+				{
+					"agent": "rules",
+					"url": "http://www.npc.gov.cn/",
+					"instructions": "中国人大网 (NPC). Read 劳动法 for hours of work, the overtime limits (1 hour a day, 3 hours in special cases, 36 hours a month), the weekly rest day and the young-worker (16–18) restrictions; 劳动合同法 for probation length and the probation pay floor; 就业促进法 for the equal-employment prohibitions. Use 法律法规 / 法律文本 and the 全国人大常委会公报; check the promulgation and commencement dates and every later amendment decision."
+				},
+				{
+					"agent": "rules",
+					"url": "https://www.gov.cn/",
+					"instructions": "中国政府网 (State Council). Read 最低工资规定 (what is excluded from the minimum-wage test), 工资支付暂行规定 (pay in currency, at least monthly, the 20% ceiling on deductions for losses, wage-record retention), 保障农民工工资支付条例 (payment and wage-register retention) and 国务院关于职工工作时间的规定 (the 40-hour week). Search 政策 > 国务院政策文件库 (zhengceku) by title or 文号."
+				},
+				{
+					"agent": "rules",
+					"url": "https://rsj.sh.gov.cn/",
+					"instructions": "上海市人力资源和社会保障局. Read the Shanghai monthly and hourly minimum wage and its exclusions, and 上海市企业工资支付办法 for payment timing and deduction limits. Use 政务公开 > 政策文件 (沪人社规) and 通知公告; read the PDF of each 沪人社规."
+				},
+				{
+					"agent": "rules",
+					"url": "https://www.ynrd.gov.cn/",
+					"instructions": "云南人大网. Read 昆明市工资支付条例 for Kunming payment timing and deduction limits. Use 权威发布 > 常委会公告 / 决议决定 and the site search; check amendment decisions. The site is intermittently slow: retry once before reporting it unreachable."
+				},
+				{
+					"agent": "rules",
+					"url": "https://longling.gov.cn/",
+					"instructions": "Read the Yunnan minimum-wage classes (云人社发 最低工资标准) and the classification of Kunming's districts and counties into them. 龙陵县人民政府 is a Yunnan county portal that republishes province-wide notices (the 云南省人社厅 and 云南省税务局 portals are unreachable from the research hosts). Use 政务公开 search for 社会保险 / 最低工资 / 人社; quote the provincial 文号 and confirm the notice is province-wide."
+				},
+				{
+					"agent": "behaviour",
+					"url": "http://www.npc.gov.cn/",
+					"instructions": "中国人大网 (NPC). Read 劳动法 art. 44 for what rest-day work causes (compensatory rest first, otherwise premium pay) and what statutory-holiday work causes; 劳动合同法 arts. 44–45 for the events that end or extend a contract (reaching the statutory retirement age, medical treatment periods, pregnancy) and art. 50 for what an exit requires on the last day. Use 法律法规 / 法律文本 and the 全国人大常委会公报; check the promulgation and commencement dates and every later amendment decision."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.gov.cn/",
+					"instructions": "中国政府网 (State Council). Read 企业职工带薪年休假实施办法 for what joining and leaving cause (pro-rated entitlement, 300% pay for untaken leave on exit) and 全国年节及纪念日放假办法 only for the rule on a holiday falling on a weekend (补假), not for dates. Search 政策 > 国务院政策文件库 (zhengceku) by title or 文号."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://rsj.sh.gov.cn/",
+					"instructions": "上海市人力资源和社会保障局. Read 上海市企业工资支付办法 for when final pay is due on an exit and what a stoppage longer than one wage cycle changes. Use 政务公开 > 政策文件 (沪人社规) and 通知公告; read the PDF of each 沪人社规."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.ynrd.gov.cn/",
+					"instructions": "云南人大网. Read 昆明市工资支付条例 for the final pay due within 5 working days of an exit. Use 权威发布 > 常委会公告 / 决议决定 and the site search; check amendment decisions. The site is intermittently slow: retry once before reporting it unreachable."
+				},
+				{
+					"agent": "obligations",
+					"url": "http://www.npc.gov.cn/",
+					"instructions": "中国人大网 (NPC). Read 社会保险法 for social-insurance registration within 30 days of hire and the monthly declaration and payment duty; 劳动合同法 for the written contract within one month, notice periods, the duty to notify the union before a unilateral termination, the retrenchment procedure (art. 41: explain to the union or all staff 30 days ahead and report to the labour administration) and the termination certificate and file transfer within 15 days; 个人信息保护法 for the employer's personal-data duties. Use 法律法规 / 法律文本 and the 全国人大常委会公报; check the promulgation and commencement dates and every later amendment decision."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.gov.cn/",
+					"instructions": "中国政府网 (State Council). Read 住房公积金管理条例 (housing-fund registration and deposit deadlines), 工伤保险条例 (the work-injury report deadline), 工资支付暂行规定 (the written wage list to each employee), and the foreign-worker rules (外国人在中国就业管理规定, 外国人入境出境管理条例: work permit, employment registration and residence duties). Search 政策 > 国务院政策文件库 (zhengceku) by title or 文号."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.cac.gov.cn/",
+					"instructions": "国家互联网信息办公室. Read the implementing rules of employee personal-data protection: personal information protection compliance audits, sensitive personal information handling, the cross-border transfer rules (标准合同办法 and its filing, 促进和规范数据跨境流动规定 and its HR-management exemption) and security assessments. Use 政务 > 政策法规 and 通知公告; the PIPL statute text itself is under npc.gov.cn."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://shanghai.chinatax.gov.cn/",
+					"instructions": "国家税务总局上海市税务局 (the national portals fgk.chinatax.gov.cn and www.chinatax.gov.cn answer automated readers with a script challenge, so use this one). Read the monthly IIT declaration calendar and annual reconciliation duty, the social-insurance and union-fund payment and declaration due days, the annual contribution-base declaration window and the disabled-employment security fund declaration period (纳税服务 > 办税指南, 通知公告)."
+				},
+				{
+					"agent": "settings",
+					"url": "http://www.npc.gov.cn/",
+					"instructions": "中国人大网 (NPC). Read 个人所得税法 for the tax year (the calendar year) and the resident / non-resident test (183 days), and the 2024 NPC Standing Committee decision on the gradual raising of the statutory retirement age for the retirement-age schedule by birth date, gender and job category. Use 法律法规 / 法律文本 and the 全国人大常委会公报; check the promulgation and commencement dates and every later amendment decision."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.gov.cn/",
+					"instructions": "中国政府网 (State Council). Read the notice on 职工全年月平均工作时间和工资折算 (the 21.75-day monthly pay days) for the monthly-wage basis, 工资支付暂行规定 for the pay date when it falls on a rest day or holiday, and the foreign-worker rules (外国人在中国就业管理规定, 在中国境内就业的外国人参加社会保险暂行办法) for the facts held for foreign employees (work permit, nationality, social-insurance exemption by treaty). Search 政策 > 国务院政策文件库 (zhengceku) by title or 文号."
+				},
+				{
+					"agent": "settings",
+					"url": "https://shanghai.chinatax.gov.cn/",
+					"instructions": "国家税务总局上海市税务局 (the national portals fgk.chinatax.gov.cn and www.chinatax.gov.cn answer automated readers with a script challenge, so use this one). Read 纳税服务 > 办税指南 for the identifiers a withholding agent and each employee must hold (纳税人识别号, 证件类型 and number, resident status) and the IIT tax year."
+				}
+			],
+			"agents": {
+				"catalog": "Compare the snapshot against operative, published official law; specific document URLs are evidence citations, not registry entries. Open each portal directly and use its navigation or site search; record the document URL, issuer, 文号, publication and effective dates and the quoted clause or table for each proposed change. Read annexes and amendments and inspect scanned PDFs visually; a draft, 征求意见稿, budget speech or press summary is not operative law. Shanghai and Kunming (Yunnan) entities carry their own local leave and allowance rules on top of the national ones: read both levels and keep the region each applies to. Never sign in or upload customer records; verify publication and effective dates, quote the exact wording, and report unresolved evidence rather than guessing.",
+				"contribution": "Compare the snapshot against operative, published official law; specific document URLs are evidence citations, not registry entries. Open each portal directly and use its navigation or site search; record the document URL, issuer, 文号, publication and effective dates and the quoted clause or table for each proposed change. Read annexes and amendments and inspect scanned PDFs visually; a draft, 征求意见稿, budget speech or press summary is not operative law. Rates and bases are set per province or city (Shanghai, Yunnan/Kunming) and revised on fixed cycles; note each notice's validity period. Kunming municipal medical security (昆明市医疗保障局) and the Kunming housing provident fund centre have no portal the research tools can reach (km.gov.cn hosts return empty replies or time out): report those values as unverified. Never sign in or upload customer records; verify publication and effective dates, quote the exact wording, and report unresolved evidence rather than guessing.",
+				"rules": "Compare the snapshot against operative, published official law; specific document URLs are evidence citations, not registry entries. Open each portal directly and use its navigation or site search; record the document URL, issuer, 文号, publication and effective dates and the quoted clause or table for each proposed change. Read annexes and amendments and inspect scanned PDFs visually; a draft, 征求意见稿, budget speech or press summary is not operative law. Minimum wage is set per locality (Shanghai, Yunnan classes): match each entity's district or county to its class. Never sign in or upload customer records; verify publication and effective dates, quote the exact wording, and report unresolved evidence rather than guessing.",
+				"behaviour": "Compare the snapshot against operative, published official law; specific document URLs are evidence citations, not registry entries. Open each portal directly and use its navigation or site search; record the document URL, issuer, 文号, publication and effective dates and the quoted clause or table for each proposed change. Read annexes and amendments and inspect scanned PDFs visually; a draft, 征求意见稿, budget speech or press summary is not operative law. Read the operative clause for what each event (rest-day or holiday work, exit, contract end, payroll run) must cause; national rules apply unless a Shanghai or Kunming instrument says otherwise. Never sign in or upload customer records; verify publication and effective dates, quote the exact wording, and report unresolved evidence rather than guessing.",
+				"obligations": "Compare the snapshot against operative, published official law; specific document URLs are evidence citations, not registry entries. Open each portal directly and use its navigation or site search; record the document URL, issuer, 文号, publication and effective dates and the quoted clause or table for each proposed change. Read annexes and amendments and inspect scanned PDFs visually; a draft, 征求意见稿, budget speech or press summary is not operative law. Record each duty's trigger, deadline and receiving authority; Shanghai collection calendars are published by the local tax bureau. Never sign in or upload customer records; verify publication and effective dates, quote the exact wording, and report unresolved evidence rather than guessing.",
+				"settings": "Compare the snapshot against operative, published official law; specific document URLs are evidence citations, not registry entries. Open each portal directly and use its navigation or site search; record the document URL, issuer, 文号, publication and effective dates and the quoted clause or table for each proposed change. Read annexes and amendments and inspect scanned PDFs visually; a draft, 征求意见稿, budget speech or press summary is not operative law. Settings follow the national rules unless a Shanghai or Kunming instrument varies them. Never sign in or upload customer records; verify publication and effective dates, quote the exact wording, and report unresolved evidence rather than guessing."
+			}
+		},
+		"cloned_from_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
+		"change_summary": "1 January 2026: the phased 1% unemployment-insurance rate (人社部发〔2024〕40号, 沪人社规〔2024〕25号 art.1, 云人社发〔2025〕9号) ran to 31 December 2025 and no extension was located: by owner ruling 0.5% / 0.5% is charged in both cities, provisional until a 2026 rate notice, with a warning on every payslip; Yunnan 2026 contribution-year limits 4403–22017 for pension, unemployment and work injury (云人社发〔2026〕8号, published 21 August 2026 for the 2026 calendar year); Kunming 2026 housing provident fund standard (upper 32543, zone floors 2270/2120/1970). Shanghai medical insurance continues at 9%/2% under 沪医保规〔2026〕2号 from 1 March 2026.",
+		"employee_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "CN employee inputs",
+			"additionalProperties": false,
+			"properties": {
+				"contract_terms": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"summary": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"base_salary": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"currency": {
+										"type": "string",
+										"const": "CNY"
+									},
+									"value": {
+										"type": "number",
+										"minimum": 0
+									}
+								}
+							},
+							"currency": {
+								"type": "string",
+								"const": "CNY"
+							},
+							"allowances": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"catalogue_id": {
+											"type": "string"
+										},
+										"amount": {
+											"type": "object",
+											"additionalProperties": false,
+											"properties": {
+												"currency": {
+													"type": "string",
+													"const": "CNY"
+												},
+												"value": {
+													"type": "number",
+													"minimum": 0
+												}
+											}
+										}
+									}
+								}
+							},
+							"employment_type": {
+								"type": "string",
+								"enum": [
+									"PERMANENT",
+									"FIXED_TERM",
+									"PROJECT",
+									"PART_TIME",
+									"INTERN",
+									"RETIREE_REHIRE"
+								],
+								"description": "劳动合同法 第十二条: PERMANENT 无固定期限, FIXED_TERM 固定期限, PROJECT 以完成一定工作任务为期限; PART_TIME 非全日制用工 (第六十八条, work-injury insurance only); INTERN a student intern and RETIREE_REHIRE a re-hired retiree are not in a labour relationship and outside social insurance and the housing provident fund."
+							},
+							"work_classification": {
+								"type": "string",
+								"enum": ["STANDARD", "COMPREHENSIVE", "FLEXIBLE"],
+								"description": "劳动法 第三十六条、第三十九条; 劳动部《关于企业实行不定时工作制和综合计算工时工作制的审批办法》(劳部发〔1994〕503号): standard hours, approved comprehensive hours, or approved flexible hours."
+							},
+							"statutory_work_category": {
+								"type": "string"
+							},
+							"residency_status": {
+								"type": "string",
+								"enum": ["RESIDENT", "NON_RESIDENT"],
+								"description": "个人所得税法 第一条: RESIDENT has a domicile in China or stays 183 days or more in the tax year; NON_RESIDENT otherwise. IIT refuses any other value."
+							},
+							"residency_since": {
+								"type": "string",
+								"format": "date"
+							},
+							"pay_frequency": {
+								"type": "string"
+							},
+							"job_title": {
+								"type": "string"
+							},
+							"department": {
+								"type": "string"
+							},
+							"shift_pattern_id": {
+								"type": "string"
+							},
+							"facts": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"si_contribution_base": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Declared social insurance and HPF contribution base (月缴费基数)",
+										"description": "社会保险法 第十二条; 住房公积金管理条例 第十六条: the prior-year monthly average wage declared each contribution year (a new hire: the first month's wage). Stored on the contract terms (`terms.facts`). Unrecorded is the contract monthly wage. The city floor and ceiling apply."
+									},
+									"written_contract_signed_on": {
+										"type": "string",
+										"format": "date",
+										"title": "Written labour contract signed on",
+										"description": "劳动合同法 第十条、第八十二条: the day the written contract was concluded; absent one month after hire raises WRITTEN_CONTRACT_OVERDUE (double wages), absent after a year DEEMED_OPEN_ENDED_CONTRACT."
+									},
+									"hourly_rate": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Hourly rate (part-time)",
+										"description": "劳动合同法 第七十二条: checked against the local hourly minimum wage."
+									},
+									"probation": {
+										"type": "boolean",
+										"default": false,
+										"title": "Probation term (试用期)",
+										"description": "劳动合同法 第十九条、第二十条."
+									},
+									"contract_wage": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Agreed post-probation wage",
+										"description": "劳动合同法 第二十条: probation pay at least 80% of it."
+									},
+									"post_lowest_wage": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Lowest wage of the same post",
+										"description": "劳动合同法 第二十条."
+									},
+									"comprehensive_cycle_months": {
+										"type": "integer",
+										"enum": [1, 3, 12],
+										"title": "Comprehensive-hours cycle (months)",
+										"description": "劳部发〔1994〕503号: the approved cycle (month, quarter, year)."
+									},
+									"high_temperature_exposed": {
+										"type": "boolean",
+										"default": false,
+										"title": "Outdoor or uncooled work in summer (Shanghai)",
+										"description": "沪人社规〔2019〕19号."
+									},
+									"social_insurance_waived": {
+										"type": "boolean",
+										"default": false,
+										"title": "Social insurance waiver (void)",
+										"description": "法释〔2025〕12号 第十九条: refused."
+									},
+									"school_vacation_days": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Statutory school vacation days a year (寒暑假)",
+										"description": "职工带薪年休假条例 第四条(一); 实施办法 第七条: annual leave is reduced by these days, none when they reach it."
+									},
+									"employee_requested_fixed_term": {
+										"type": "boolean",
+										"default": false,
+										"title": "Employee asked for a fixed term (劳动者提出订立固定期限劳动合同)",
+										"description": "劳动合同法 第十四条第二款: after 10 years or two consecutive fixed terms, a fixed-term renewal stands only at the employee's request."
+									},
+									"fixed_term": {
+										"type": "boolean",
+										"description": "A fixed-term contract: while true the employment is not permanent (`permanent_when`)."
+									}
+								}
+							}
+						},
+						"required": ["employment_type", "work_classification", "residency_status"]
+					}
+				},
+				"exit_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"layoff_batch_size": {
+							"type": "integer",
+							"minimum": 1,
+							"title": "People cut in the same layoff",
+							"description": "劳动合同法 第四十一条: 20 or more, or 10% of the workforce, needs the 30-day explanation and report."
+						},
+						"employee_refused_renewal_on_equal_terms": {
+							"type": "boolean",
+							"default": false,
+							"title": "Employee refused renewal on equal or better terms",
+							"description": "劳动合同法 第四十六条第五项: no compensation on expiry."
+						},
+						"occupational_disease_or_injury": {
+							"type": "boolean",
+							"default": false,
+							"title": "Occupational disease, suspected, or work injury (protected)",
+							"description": "劳动合同法 第四十二条第一、二项."
+						}
+					},
+					"description": "Stored on employment_contract.exit_facts."
+				},
+				"employment_statutory_facts": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"statutory_contribution_id": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"status": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"kind": {
+										"type": "string"
+									},
+									"reference_number": {
+										"type": "string",
+										"description": "Social security number or tax identification number of the person for this scheme."
+									},
+									"since": {
+										"type": "string",
+										"format": "date"
+									},
+									"elections": {
+										"type": "object",
+										"additionalProperties": false,
+										"properties": {
+											"children_education_children": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "Children in education (子女教育)",
+												"description": "国发〔2023〕13号: 2000 a month for each child from age 3 to the end of full-time education."
+											},
+											"children_education_split": {
+												"type": "boolean",
+												"default": false,
+												"title": "Children education split 50/50 with the other parent",
+												"description": "国发〔2018〕41号 第六条: one parent takes 100% or each takes 50%."
+											},
+											"infant_care_children": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "Children under 3 (3岁以下婴幼儿照护)",
+												"description": "国发〔2022〕8号 as raised by 国发〔2023〕13号: 2000 a month for each child under 3."
+											},
+											"infant_care_split": {
+												"type": "boolean",
+												"default": false,
+												"title": "Infant care split 50/50 with the other parent",
+												"description": "国发〔2022〕8号 第二条."
+											},
+											"continuing_education_degree": {
+												"type": "boolean",
+												"default": false,
+												"title": "Degree continuing education (学历继续教育)",
+												"description": "国发〔2018〕41号 第八条: 400 a month during the degree education, at most 48 months."
+											},
+											"housing_loan_interest": {
+												"type": "boolean",
+												"default": false,
+												"title": "First-home loan interest (住房贷款利息)",
+												"description": "国发〔2018〕41号 第十四条: 1000 a month, at most 240 months; not with housing rent."
+											},
+											"housing_rent": {
+												"type": "boolean",
+												"default": false,
+												"title": "Housing rent (住房租金)",
+												"description": "国发〔2018〕41号 第十七条第一项: 1500 a month in a municipality or provincial capital (Shanghai, Kunming); not with loan interest."
+											},
+											"elderly_support_only_child": {
+												"type": "boolean",
+												"default": false,
+												"title": "Only child supporting a parent aged 60+ (赡养老人)",
+												"description": "国发〔2023〕13号: 3000 a month for an only child."
+											},
+											"elderly_support_monthly": {
+												"type": "number",
+												"minimum": 0,
+												"maximum": 1500,
+												"default": 0,
+												"title": "Agreed elderly-support share (not an only child)",
+												"description": "国发〔2023〕13号: siblings share 3000 a month, at most 1500 each."
+											},
+											"annual_bonus_separate": {
+												"type": "boolean",
+												"default": false,
+												"title": "Tax the annual one-time bonus separately",
+												"description": "财政部 税务总局公告2023年第30号: to 31 December 2027 the annual bonus may be taxed apart from comprehensive income, once a year."
+											},
+											"prior_year_60000": {
+												"type": "boolean",
+												"default": false,
+												"title": "Prior-year wages ≤ 60,000 here (公告2020年第19号)",
+												"description": "The 60,000 deduction applies from January."
+											},
+											"first_job_in_year": {
+												"type": "boolean",
+												"default": false,
+												"title": "First wage income of the year (公告2020年第13号)",
+												"description": "Cumulative deduction from January in the hire month."
+											},
+											"personal_pension_monthly": {
+												"type": "number",
+												"minimum": 0,
+												"title": "Personal pension contribution a month",
+												"description": "财政部 税务总局公告2022年第34号: 12,000 a year."
+											},
+											"commercial_health_monthly": {
+												"type": "number",
+												"minimum": 0,
+												"title": "Tax-qualified health insurance a month",
+												"description": "财税〔2017〕39号: 200 a month."
+											},
+											"annuity_employee_monthly": {
+												"type": "number",
+												"minimum": 0,
+												"title": "Enterprise annuity employee contribution a month",
+												"description": "财税〔2013〕103号: up to 4% of the base."
+											},
+											"foreign_allowance_exemption": {
+												"type": "boolean",
+												"default": false,
+												"title": "Foreign allowance exemption instead of special deductions",
+												"description": "财政部 税务总局公告2023年第29号."
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"china_workday_share": {
+							"type": "number",
+							"minimum": 0,
+							"maximum": 1,
+							"default": 1,
+							"title": "Share of the month worked in China (non-resident)",
+							"description": "财政部 税务总局公告2019年第35号 第二条: a non-resident's wage 收入额 is the China-workday share (境内工作天数 ÷ 当期公历天数). Customer input; default 1."
+						},
+						"retirement_category": {
+							"type": "string",
+							"enum": ["FEMALE_50", "FEMALE_55"],
+							"title": "Original statutory retirement age (women)",
+							"description": "全国人民代表大会常务委员会《关于实施渐进式延迟法定退休年龄的决定》(2024年9月13日, 自2025年1月1日) 及《国务院关于渐进式延迟法定退休年龄的办法》第二条: 男职工和原法定退休年龄为五十五周岁的女职工每四个月延迟一个月, 分别逐步延迟至六十三周岁和五十八周岁; 原法定退休年龄为五十周岁的女职工每二个月延迟一个月, 逐步延迟至五十五周岁 https://www.gov.cn/yaowen/liebiao/202409/content_6974294.htm. Women record `retirement_category` FEMALE_55 (cadres) or FEMALE_50 (default, workers)."
+						},
+						"only_child": {
+							"type": "boolean",
+							"default": false,
+							"title": "Only child (独生子女)",
+							"description": "上海市老年人权益保障条例 (陪护假 7 days); 云南省老年人权益保障条例 第二十四条 (护理假 20 days)."
+						},
+						"si_exempt_schemes": {
+							"type": "array",
+							"items": {
+								"type": "string",
+								"enum": ["PENSION", "MEDICAL", "UNEMPLOYMENT", "WORK_INJURY"]
+							},
+							"title": "Schemes exempted by a social-security agreement",
+							"description": "人社部令第16号 and the bilateral agreement: the schemes the certificate of coverage exempts."
+						},
+						"hpf_voluntary": {
+							"type": "boolean",
+							"default": false,
+							"title": "Joins the housing provident fund voluntarily (foreign / HK / MO / TW)",
+							"description": "上海市住房公积金缴存管理办法; 建金〔2017〕237号."
+						},
+						"non_domiciled_resident": {
+							"type": "boolean",
+							"default": false,
+							"title": "Resident without domicile in China",
+							"description": "财政部 税务总局公告2019年第35号 第二条: wages apportioned by the China-workday share."
+						},
+						"minor_employment_approved": {
+							"type": "boolean",
+							"default": false,
+							"title": "Approved employment under 16 (文艺、体育、特种工艺)",
+							"description": "劳动法 第十五条: an arts, sports or special-crafts unit may employ a person under 16 with approval."
+						},
+						"offshore_paid_share": {
+							"type": "number",
+							"minimum": 0,
+							"maximum": 1,
+							"title": "Share of wages paid from abroad (境外支付工资 ÷ 境内外工资总额)",
+							"description": "财政部 税务总局公告2019年第35号 二(二): only wages paid from abroad for work abroad are excluded. 0 when the PRC entity pays everything."
+						},
+						"consecutive_resident_years": {
+							"type": "integer",
+							"minimum": 0,
+							"title": "Completed consecutive 183-day years before this one",
+							"description": "公告2019年第35号 二(二)2: from the 7th consecutive year all wages are taxed."
+						}
+					},
+					"description": "Person facts on employment_profile.facts; no CN rule reads one."
+				}
+			}
+		},
+		"entity_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "CN entity inputs",
+			"additionalProperties": false,
+			"properties": {
+				"hpf_rate_percent": {
+					"type": "integer",
+					"minimum": 5,
+					"maximum": 12,
+					"title": "Housing provident fund rate (%)",
+					"description": "住房公积金管理条例 第十八条: employer and employee at the same rate; Shanghai 5–7%, Kunming 5–12%."
+				},
+				"hpf_supplementary_rate_percent": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 5,
+					"title": "Shanghai supplementary HPF rate (%)",
+					"description": "Shanghai 补充住房公积金 1–5%; unrecorded is none."
+				},
+				"work_injury_rate_percent": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 5,
+					"title": "Notified work-injury rate (%)",
+					"description": "人社部发〔2015〕71号: the floated rate the social insurance agency notified; unrecorded is the industry-class base rate (risk_class 1–8)."
+				},
+				"union_established": {
+					"type": "boolean",
+					"default": false,
+					"title": "Trade union established",
+					"description": "工会法 第四十三条: a unit with a union remits 2% of total wages."
+				},
+				"state_owned": {
+					"type": "boolean",
+					"default": false,
+					"title": "State-owned unit (全民所有制)",
+					"description": "国务院关于职工探亲待遇的规定 第二条: home-visit leave and its fares bind 国家机关、人民团体和全民所有制企业、事业单位."
+				},
+				"unified_social_credit_code": {
+					"type": "string",
+					"title": "统一社会信用代码",
+					"description": "The employer registration number for tax (IIT withholding) and social insurance registration."
+				},
+				"si_registration_number": {
+					"type": "string",
+					"title": "Social insurance employer number (单位社保编号)"
+				},
+				"hpf_account_number": {
+					"type": "string",
+					"title": "Housing provident fund employer account (单位公积金账号)"
+				},
+				"rest_day_work_compensated": {
+					"type": "boolean",
+					"default": false,
+					"title": "Rest-day work compensated by time off (补休)",
+					"description": "劳动法 第四十四条第二项: rest-day work is paid at 200% only when no compensatory rest is arranged; an entity that arranges it records true."
+				},
+				"wi_voluntary_interns_and_retirees": {
+					"type": "boolean",
+					"default": false,
+					"title": "Shanghai: interns and over-age workers in work-injury insurance",
+					"description": "沪人社规〔2025〕22号 (from 2025-12-01): the employer may insure interns and workers past retirement age for work injury only."
+				},
+				"established_on": {
+					"type": "string",
+					"format": "date",
+					"title": "Date of establishment (成立日期)",
+					"description": "社会保险法 第五十七条; 住房公积金管理条例 第十四条: the 30-day unit registrations run from it."
+				},
+				"local_average_annual_wage": {
+					"type": "number",
+					"minimum": 0,
+					"title": "Local average annual wage (上年职工平均工资)",
+					"description": "财税〔2018〕164号 五(一): termination pay within 3 × this figure is exempt from IIT. The city's published figure."
+				},
+				"employs_migrant_workers": {
+					"type": "boolean",
+					"default": false,
+					"title": "Employs migrant workers (农民工)",
+					"description": "保障农民工工资支付条例 第十五条: wage ledger kept 3 years."
+				},
+				"wage_payday": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 31,
+					"title": "Agreed pay day (day of month)",
+					"description": "工资支付暂行规定 第七条."
+				},
+				"wage_payday_month_offset": {
+					"type": "integer",
+					"enum": [0, 1],
+					"title": "Pay day month (0 the same month, 1 the next)",
+					"description": "工资支付暂行规定 第七条."
+				},
+				"union_preparatory": {
+					"type": "boolean",
+					"default": false,
+					"title": "Trade union preparatory organisation established (工会筹备组织)",
+					"description": "上海市工会条例 第四十一条: a Shanghai unit with a union preparatory organisation remits 2% of total wages from its establishment."
+				},
+				"transfers_hr_data_abroad": {
+					"type": "boolean",
+					"default": false,
+					"title": "Sends employee data to an overseas group (跨境人力资源管理)",
+					"description": "促进和规范数据跨境流动规定 第五条(二); 个人信息保护法 第三十九条."
+				},
+				"prior_year_average_headcount": {
+					"type": "number",
+					"minimum": 0,
+					"title": "Prior-year average headcount (上年用人单位在职职工人数)",
+					"description": "财税〔2015〕72号 第八条."
+				},
+				"prior_year_disabled_employees": {
+					"type": "number",
+					"minimum": 0,
+					"title": "Prior-year disabled employees (上年实际安排残疾人就业人数)",
+					"description": "财税〔2015〕72号 第八条."
+				},
+				"prior_year_average_wage": {
+					"type": "number",
+					"minimum": 0,
+					"title": "Prior-year average annual wage of the entity (上年在职职工年平均工资)",
+					"description": "财税〔2015〕72号 第八条; capped at 2× the local average."
+				},
+				"wage_zone": {
+					"type": "string",
+					"enum": ["1", "2", "3"],
+					"default": "1",
+					"title": "Minimum-wage zone of the region (最低工资档次)",
+					"description": "The zone key of the region's minimum-wage table (`rules.regions`; Kunming classes 1–3); blank = the region's default zone. Also the Kunming housing-fund floor."
+				},
+				"sick_pay_percent": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 100,
+					"title": "Sick pay (% of wage, employer policy)",
+					"description": "Where the region sets only a floor (`rules.regions.*.sick_pay.scale` null): the share of the wage the employer pays on sick leave; unrecorded is the floor (80% of the minimum wage, 劳部发〔1995〕309号 第59条)."
+				}
+			}
+		}
+	}
+]

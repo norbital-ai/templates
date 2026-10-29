@@ -6,7 +6,7 @@ export default automation('rfi_followup_watch', {
 	description:
 		'Sweeps the open RFIs every morning at 6am and publishes the first 25 by due date as a JSON extract so queries still waiting on the design team can be chased.',
 	on: DAILY_0600,
-	runAs: ['construction_read'],
+	policies: ['construction_read'],
 	output: digestOutput(fields),
 	run: function* (_, ctx) {
 		const {

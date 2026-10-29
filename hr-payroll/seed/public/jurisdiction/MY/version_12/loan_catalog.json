@@ -1,0 +1,62 @@
+[
+	{
+		"id": "f2d17a37-9cd9-5f91-9141-b3a5cd00bf84",
+		"settings_id": "8900fe35-3c3f-548a-baab-59271ba74868",
+		"code": "LOAN_RECOVERY_AIR_TICKET",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "!has(entry.facts.principal)\n||double(entry.facts.principal) <= terms.monthly_wage\n|| (has(entry.facts.advance_purpose)\n&&entry.facts.advance_purpose\nin [\n  \"HOUSE\",\n  \"LAND\",\n  \"VEHICLE\",\n  \"EMPLOYER_SHARES\",\n  \"COMPUTER\",\n  \"MEDICAL_TREATMENT\",\n  \"SOCSO_DISABLEMENT\",\n  \"EDUCATION\",\n  \"DG_APPROVED\"\n])",
+		"name": "Air ticket loan recovery",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "eeb67b16-f8f7-581f-a552-70be9efa63e7",
+		"settings_id": "8900fe35-3c3f-548a-baab-59271ba74868",
+		"code": "LOAN_RECOVERY_FESTIVE_ADVANCE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "!has(entry.facts.principal)\n||double(entry.facts.principal) <= terms.monthly_wage\n|| (has(entry.facts.advance_purpose)\n&&entry.facts.advance_purpose\nin [\n  \"HOUSE\",\n  \"LAND\",\n  \"VEHICLE\",\n  \"EMPLOYER_SHARES\",\n  \"COMPUTER\",\n  \"MEDICAL_TREATMENT\",\n  \"SOCSO_DISABLEMENT\",\n  \"EDUCATION\",\n  \"DG_APPROVED\"\n])",
+		"name": "Hari Raya (festive) advance recovery",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "6e3e99ba-39a6-54c2-b9d0-c57e0283e872",
+		"settings_id": "8900fe35-3c3f-548a-baab-59271ba74868",
+		"code": "AIR_TICKET_DEDUCTION",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "!has(entry.facts.principal)\n||double(entry.facts.principal) <= terms.monthly_wage\n|| (has(entry.facts.advance_purpose)\n&&entry.facts.advance_purpose\nin [\n  \"HOUSE\",\n  \"LAND\",\n  \"VEHICLE\",\n  \"EMPLOYER_SHARES\",\n  \"COMPUTER\",\n  \"MEDICAL_TREATMENT\",\n  \"SOCSO_DISABLEMENT\",\n  \"EDUCATION\",\n  \"DG_APPROVED\"\n])",
+		"name": "Air ticket deduction",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	},
+	{
+		"id": "5f141157-4538-59ed-a9e5-2e3468cb4590",
+		"settings_id": "8900fe35-3c3f-548a-baab-59271ba74868",
+		"code": "APPROVED_HOUSING_LOAN",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "!has(entry.facts.principal)\n||double(entry.facts.principal) <= terms.monthly_wage\n|| (has(entry.facts.advance_purpose)\n&&entry.facts.advance_purpose\nin [\n  \"HOUSE\",\n  \"LAND\",\n  \"VEHICLE\",\n  \"EMPLOYER_SHARES\",\n  \"COMPUTER\",\n  \"MEDICAL_TREATMENT\",\n  \"SOCSO_DISABLEMENT\",\n  \"EDUCATION\",\n  \"DG_APPROVED\"\n])",
+		"name": "Housing loan with Director General approval",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	}
+]

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { it } from '@effect/vitest';
-import { TestWorkspace } from '@norbital-ai/bolt/test';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import { kindsOf } from '../src/lib/payroll_engine/listed_kinds.ts';

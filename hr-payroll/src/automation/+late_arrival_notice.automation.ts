@@ -3,7 +3,6 @@ import { addDays } from '@norbital-ai/std/date';
 import { Effect, Result, Schema } from 'effect';
 import { lateArrivalNotices } from '../lib/payroll_engine/late_arrival.js';
 import { movementFromRow } from '../lib/payroll_engine/leave.js';
-import { fieldValue } from '../lib/payroll_engine/foundation.js';
 import { zoneOn } from '../lib/payroll_engine/payslip/context.js';
 import type { TeamName } from '@norbital-ai/bolt';
 import teams from '../access_control/team/+team.js';
@@ -20,7 +19,7 @@ export default automation('late_arrival_notice', {
 		'Every five minutes, one in-app reminder per person-day to the production manager when a rostered WORK shift has no clock-in after the entity’s late-arrival grace. Days covered by committed TIME_OFF are skipped.',
 	on: { cron: '*/5 * * * *' },
 	output: { kind: 'object', fields: { checked: { kind: 'int' }, reminded: { kind: 'int' } } },
-	runAs: ['late_arrival_notice_automation'],
+	policies: ['late_arrival_notice_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
 		const since = addDays(ctx.today, -2);
@@ -96,35 +95,25 @@ export default automation('late_arrival_notice', {
 				notified.map((entity) =>
 					Result.gen(function* () {
 						const byShift = new Map(entity.shift_definition.map((row) => [row.id, row]));
-						const grace = yield* fieldValue(
-							entity.late_arrival_grace_minutes,
-							'entity.late_arrival_grace_minutes'
-						);
+						const grace = entity.late_arrival_grace_minutes;
 						const zone = yield* zoneOn(entity, versions, String(ctx.today));
-						return yield* Result.all(
-							entity.employment_contract.flatMap((contract) =>
-								contract.roster_entry.map((row) =>
-									Result.gen(function* () {
-										const shift_id = yield* fieldValue(
-											row.shift_definition_id,
-											'roster_entry.shift_definition_id'
-										);
-										const shift = shift_id == null ? undefined : byShift.get(shift_id);
-										return {
-											roster_entry_id: row.id,
-											employment_id: row.employment_id,
-											work_date: String(row.work_date).slice(0, 10),
-											worked_intervals: row.worked_intervals,
-											shift: shift?.variant ?? null,
-											grace_minutes: grace,
-											time_zone: zone,
-											employee_name: contract.employee_id?.name ?? '',
-											employee_number: contract.employee_number ?? '',
-											shift_code: shift?.code ?? ''
-										};
-									})
-								)
-							)
+						return entity.employment_contract.flatMap((contract) =>
+							contract.roster_entry.map((row) => {
+								const shift_id = row.shift_definition_id;
+								const shift = shift_id == null ? undefined : byShift.get(shift_id);
+								return {
+									roster_entry_id: row.id,
+									employment_id: row.employment_id,
+									work_date: String(row.work_date).slice(0, 10),
+									worked_intervals: row.worked_intervals,
+									shift: shift?.variant ?? null,
+									grace_minutes: grace,
+									time_zone: zone,
+									employee_name: contract.employee_id?.name ?? '',
+									employee_number: contract.employee_number ?? '',
+									shift_code: shift?.code ?? ''
+								};
+							})
 						);
 					})
 				)

@@ -6,19 +6,11 @@
  */
 import assert from 'node:assert/strict';
 import { layer } from '@effect/vitest';
-import { TestWorkspace } from '@norbital-ai/bolt/test';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Instant, PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import { fixtureId, nativeId } from './fixture_values.ts';
-import {
-	COMPANY,
-	VERSION,
-	WORK,
-	employer,
-	employment,
-	runOf,
-	world
-} from './jurisdiction_kit.ts';
+import { COMPANY, VERSION, WORK, employer, employment, runOf, world } from './jurisdiction_kit.ts';
 
 const MARCH = { company_id: COMPANY, period: '2026-03', kind: 'REGULAR' } as const;
 const APRIL = { ...MARCH, period: '2026-04' } as const;

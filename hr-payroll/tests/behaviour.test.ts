@@ -7,7 +7,7 @@
  */
 import assert from 'node:assert/strict';
 import { it } from '@effect/vitest';
-import { TestWorkspace } from '@norbital-ai/bolt/test';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { datePeriod } from '@norbital-ai/std/date';
 import { Effect, Result, type Schema } from 'effect';
 import {

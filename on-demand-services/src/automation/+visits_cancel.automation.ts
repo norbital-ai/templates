@@ -12,7 +12,7 @@ export default automation('visits_cancel', {
 	input: {
 		targets: { kind: 'list', of: { kind: 'id', of: 'visits' }, min: 1 }
 	},
-	runAs: 'trigger',
+	policies: ['operations'],
 	run: function* ({ targets }, ctx) {
 		const { rows: targetsOf } = (yield* ctx.query({ visits: { where: { id: { in: targets } } } }))
 			.visits;

@@ -1,7 +1,12 @@
 import type { Committed, PendingApproval, Id, Insert } from '@norbital-ai/bolt';
 import { Ai, Port, type Json } from '@norbital-ai/bolt/engine';
 import { Unavailable } from '@norbital-ai/bolt/errors';
-import { TestWorkspace, type Kit, type TestOptions, type TestPorts } from '@norbital-ai/bolt/test';
+import {
+	TestWorkspace,
+	type Kit,
+	type TestOptions,
+	type TestPorts
+} from '@norbital-ai/bolt-cli/test';
 import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
 import { Effect, Layer, Schema, Stream } from 'effect';
 import { PlainDate } from '@norbital-ai/std/date';

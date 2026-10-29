@@ -1,0 +1,17 @@
+[
+	{
+		"id": "f7ac1c9c-226d-5829-99e9-5532f38b7165",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "STAFF_LOAN",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "has(entry.facts.written_agreement_reference)\n&&entry.facts.written_agreement_reference != \"\"",
+		"name": "Staff loan",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount"
+			}
+		]
+	}
+]

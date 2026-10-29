@@ -1,0 +1,791 @@
+[
+	{
+		"id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "PH",
+		"name": "Philippines — 6 January 2026 (RR 29-2025)",
+		"sealed_at": "2026-09-30T00:00:00.000Z",
+		"voided_at": null,
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": null
+		},
+		"payroll": {
+			"currency": "PHP",
+			"timezone": "Asia/Manila",
+			"week_start": 0,
+			"roster_week": "ROLLING",
+			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))"
+		},
+		"time_pay": {
+			"BASIC": [
+				{
+					"code": "BASIC",
+					"name": "Basic salary",
+					"references": [
+						{
+							"title": "Labor Code art.82; Omnibus Rules Book III Rule IV s.2: a monthly salary is prorated by the paid days of the settlement period (`terms.base_salary ÷ period.parts × paid_days ÷ days`); a daily-paid contract (`terms.facts.rate_basis` DAILY, customer input) is paid its daily rate for each ordinary WORK day worked and each paid-leave day."
+						}
+					],
+					"eligibility": "true",
+					"quantity": "(has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\")\n  ?double(\n    size(\n      work.days.filter(\n        d,\n        d.worked && d.day_type in [\"WORK\", \"OFF\"]\n        &&d.holiday_kind == \"\"\n      )\n    )\n  )\n  +sum(\n    leave.rows.filter(r, !r.is_npl && r.activity == \"TIME_OFF\").map(\n      r,\n      r.days * r.pay_fraction\n    )\n  )\n  :period.paid_days / period.days",
+					"rate": "(has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\")\n  ?terms.base_salary\n  :terms.base_salary / period.parts",
+					"prorated": true,
+					"denominator": "double(period.days)",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "PHIC", "HDMF", "WTAX.WAGE"]
+				}
+			],
+			"OVERTIME": [
+				{
+					"code": "OVERTIME",
+					"name": "Overtime",
+					"references": [
+						{
+							"title": "Labor Code art.87; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.4 §C and ch.1 §A: hours beyond eight a day at 125% of the hourly rate on an ordinary day, 169% on a rest or special day, 195% on a special day that is the rest day or on a double special day, 253.5% on a double special rest day, 260% / 338% on a regular holiday (rest day), 390% / 507% on a double holiday (the day’s paid hours beyond eight, `work.days[].worked_hours` − 8 and never more than its derived `overtime_hours`: the first eight hours of a rest day, holiday or off day are priced once, by its day line). Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2).",
+							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
+						}
+					],
+					"eligibility": "employment.classification != \"MANAGERIAL\"\n&&terms.employment_type != \"DOMESTIC\"\n&&!(terms.statutory_work_category\nin [\"FIELD_PERSONNEL\", \"TASK_BASIS\", \"PIECE_RATE\"])\n&&sum(\n  work.days.map(\n    d,\n    min(d.overtime_hours, max(0.0, d.worked_hours - 8.0))\n    * (d.holiday_kind == \"DOUBLE_HOLIDAY\"\n      ? (d.day_type == \"REST\" ? 5.07 : 3.9)\n      :d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n        ? (d.day_type == \"REST\" ? 3.38 : 2.6)\n        :d.holiday_kind == \"DOUBLE_SPECIAL\"\n          ? (d.day_type == \"REST\" ? 2.535 : 1.95)\n          :d.holiday_kind == \"SPECIAL_HOLIDAY\"\n            ? (d.day_type == \"REST\" ? 1.95 : 1.69)\n            :d.day_type == \"REST\" ? 1.69 : 1.25\n  ) )\n)\n>0.0",
+					"quantity": "sum(\n  work.days.map(\n    d,\n    min(d.overtime_hours, max(0.0, d.worked_hours - 8.0))\n    * (d.holiday_kind == \"DOUBLE_HOLIDAY\"\n      ? (d.day_type == \"REST\" ? 5.07 : 3.9)\n      :d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n        ? (d.day_type == \"REST\" ? 3.38 : 2.6)\n        :d.holiday_kind == \"DOUBLE_SPECIAL\"\n          ? (d.day_type == \"REST\" ? 2.535 : 1.95)\n          :d.holiday_kind == \"SPECIAL_HOLIDAY\"\n            ? (d.day_type == \"REST\" ? 1.95 : 1.69)\n            :d.day_type == \"REST\" ? 1.69 : 1.25\n  ) )\n)",
+					"rate": "(((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\")\n  ?terms.base_salary\n  :terms.base_salary * 12.0\n  / (has(terms.facts.days_per_year)\n    ?double(terms.facts.days_per_year)\n    :313.0))\n/ (has(terms.facts.hours_per_day)\n  ?double(terms.facts.hours_per_day)\n  :8.0))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.WAGE"]
+				}
+			],
+			"REST_DAY_WORK": [
+				{
+					"code": "REST_DAY_WORK",
+					"name": "Rest-day work",
+					"references": [
+						{
+							"title": "Labor Code art.93(a)–(b); DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.3 §D: work on the scheduled rest day is paid at least 130% for its first eight hours. WTAX: part of the minimum wage earner’s exempt pay (`WTAX.WAGE`) — NIRC s.24(A)(2) as amended by RA 10963 and RR 2-98 s.2.78.1(B)(13) as amended by RR 11-2018 exempt the statutory minimum wage with the holiday pay, overtime pay, night shift differential and hazard pay an MWE earns; owner ruling (binding, 2026-10-07): the rest-day and special-day premiums are within that holiday and premium pay, so an MWE is not taxed on them. A non-MWE is taxed on them as on all wage pay. Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2).",
+							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
+						}
+					],
+					"eligibility": "employment.classification != \"MANAGERIAL\"\n&&terms.employment_type != \"DOMESTIC\"\n&&!(terms.statutory_work_category\nin [\"FIELD_PERSONNEL\", \"TASK_BASIS\", \"PIECE_RATE\"])\n&&sum(\n  work.days.filter(\n    d,\n    d.day_type == \"REST\" && d.holiday_kind == \"\" && d.worked\n  ).map(\n    d,\n    min(d.worked_hours, 8.0)\n    * (1.3\n    - ((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\")\n      ?0.0\n      : ((has(terms.facts.days_per_year)\n        ?double(terms.facts.days_per_year)\n        :313.0)\n      ==365.0\n        ?1.0\n        :0.0\n  ) )))\n)\n>0.0",
+					"quantity": "sum(\n  work.days.filter(\n    d,\n    d.day_type == \"REST\" && d.holiday_kind == \"\" && d.worked\n  ).map(\n    d,\n    min(d.worked_hours, 8.0)\n    * (1.3\n    - ((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\")\n      ?0.0\n      : ((has(terms.facts.days_per_year)\n        ?double(terms.facts.days_per_year)\n        :313.0)\n      ==365.0\n        ?1.0\n        :0.0\n  ) )))\n)",
+					"rate": "(((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\")\n  ?terms.base_salary\n  :terms.base_salary * 12.0\n  / (has(terms.facts.days_per_year)\n    ?double(terms.facts.days_per_year)\n    :313.0))\n/ (has(terms.facts.hours_per_day)\n  ?double(terms.facts.hours_per_day)\n  :8.0))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.WAGE"]
+				},
+				{
+					"code": "OFF_DAY_WORK",
+					"name": "Work on an unpaid off day",
+					"references": [
+						{
+							"title": "DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.2 §E: on a 261 or 253 factor the salary pays 241 ordinary working days, so the week’s second non-working day (`day_type` OFF) is unpaid; hours worked on it are paid at 100% for the first eight. On 365/313/305 factors the day is inside the salary. Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2).",
+							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
+						}
+					],
+					"eligibility": "!(has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\")\n&&employment.classification != \"MANAGERIAL\"\n&&terms.employment_type != \"DOMESTIC\"\n&&!(terms.statutory_work_category\nin [\"FIELD_PERSONNEL\", \"TASK_BASIS\", \"PIECE_RATE\"])\n&& ((has(terms.facts.days_per_year)\n  ?double(terms.facts.days_per_year)\n  :313.0)\nin [261.0, 253.0]\n  ?1.0\n  :0.0)\n*sum(\n  work.days.filter(\n    d,\n    d.day_type == \"OFF\" && d.holiday_kind == \"\" && d.worked\n  ).map(\n    d,\n    min(d.worked_hours, 8.0)\n  )\n)\n>0.0",
+					"quantity": "((has(terms.facts.days_per_year)\n  ?double(terms.facts.days_per_year)\n  :313.0)\nin [261.0, 253.0]\n  ?1.0\n  :0.0)\n*sum(\n  work.days.filter(\n    d,\n    d.day_type == \"OFF\" && d.holiday_kind == \"\" && d.worked\n  ).map(\n    d,\n    min(d.worked_hours, 8.0)\n  )\n)",
+					"rate": "(((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\")\n  ?terms.base_salary\n  :terms.base_salary * 12.0\n  / (has(terms.facts.days_per_year)\n    ?double(terms.facts.days_per_year)\n    :313.0))\n/ (has(terms.facts.hours_per_day)\n  ?double(terms.facts.hours_per_day)\n  :8.0))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.WAGE"]
+				}
+			],
+			"HOLIDAY_WORK": [
+				{
+					"code": "HOLIDAY_WORK",
+					"name": "Regular-holiday work",
+					"references": [
+						{
+							"title": "Labor Code art.94; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.2 §D and ch.1 §A: work on a regular holiday is paid 200% for its first eight hours (260% on the rest day, 300% / 390% on a double holiday). Holiday pay excludes retail and service establishments regularly employing fewer than ten (entity fact `retail_or_service_establishment` with `company.headcount`), kasambahay, managerial staff and field / task workers (Omnibus Rules Book III Rule IV s.1). Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2).",
+							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
+						}
+					],
+					"eligibility": "employment.classification != \"MANAGERIAL\"\n&&terms.employment_type != \"DOMESTIC\"\n&&!(terms.statutory_work_category\nin [\"FIELD_PERSONNEL\", \"TASK_BASIS\", \"PIECE_RATE\"])\n&&!((has(company.facts.retail_or_service_establishment)\n&&company.facts.retail_or_service_establishment)\n&&company.headcount < 10.0)\n&&sum(\n  work.days.filter(\n    d,\n    (d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n    ||d.holiday_kind == \"DOUBLE_HOLIDAY\")\n    &&d.worked\n  ).map(\n    d,\n    min(d.worked_hours, 8.0)\n    * ((d.holiday_kind == \"DOUBLE_HOLIDAY\"\n      ? (d.day_type == \"REST\" ? 3.9 : 3.0)\n      :d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n        ? (d.day_type == \"REST\" ? 2.6 : 2.0)\n        :d.holiday_kind == \"DOUBLE_SPECIAL\"\n          ? (d.day_type == \"REST\" ? 1.95 : 1.5)\n          :d.holiday_kind == \"SPECIAL_HOLIDAY\"\n            ? (d.day_type == \"REST\" ? 1.5 : 1.3)\n            :d.day_type == \"REST\" ? 1.3 : 1.0)\n    - ((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\")\n      ?0.0\n      :1.0\n  ) ))\n)\n>0.0",
+					"quantity": "sum(\n  work.days.filter(\n    d,\n    (d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n    ||d.holiday_kind == \"DOUBLE_HOLIDAY\")\n    &&d.worked\n  ).map(\n    d,\n    min(d.worked_hours, 8.0)\n    * ((d.holiday_kind == \"DOUBLE_HOLIDAY\"\n      ? (d.day_type == \"REST\" ? 3.9 : 3.0)\n      :d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n        ? (d.day_type == \"REST\" ? 2.6 : 2.0)\n        :d.holiday_kind == \"DOUBLE_SPECIAL\"\n          ? (d.day_type == \"REST\" ? 1.95 : 1.5)\n          :d.holiday_kind == \"SPECIAL_HOLIDAY\"\n            ? (d.day_type == \"REST\" ? 1.5 : 1.3)\n            :d.day_type == \"REST\" ? 1.3 : 1.0)\n    - ((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\")\n      ?0.0\n      :1.0\n  ) ))\n)",
+					"rate": "(((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\")\n  ?terms.base_salary\n  :terms.base_salary * 12.0\n  / (has(terms.facts.days_per_year)\n    ?double(terms.facts.days_per_year)\n    :313.0))\n/ (has(terms.facts.hours_per_day)\n  ?double(terms.facts.hours_per_day)\n  :8.0))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.WAGE"]
+				},
+				{
+					"code": "SPECIAL_HOLIDAY_WORK",
+					"name": "Special-day work",
+					"references": [
+						{
+							"title": "Labor Code art.93(c) with the yearly holiday proclamation; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.3 §D and ch.1 §A: a special (non-working) day worked is paid 130% for its first eight hours (150% on the rest day); a double special day 150% (195% on the rest day); unworked, no work no pay. WTAX: part of the minimum wage earner’s exempt pay (`WTAX.WAGE`) — NIRC s.24(A)(2) as amended by RA 10963 and RR 2-98 s.2.78.1(B)(13) as amended by RR 11-2018 exempt the statutory minimum wage with the holiday pay, overtime pay, night shift differential and hazard pay an MWE earns; owner ruling (binding, 2026-10-07): the rest-day and special-day premiums are within that holiday and premium pay, so an MWE is not taxed on them. A non-MWE is taxed on them as on all wage pay. Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2).",
+							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
+						}
+					],
+					"eligibility": "employment.classification != \"MANAGERIAL\"\n&&terms.employment_type != \"DOMESTIC\"\n&&!(terms.statutory_work_category\nin [\"FIELD_PERSONNEL\", \"TASK_BASIS\", \"PIECE_RATE\"])\n&&sum(\n  work.days.filter(\n    d,\n    d.holiday_kind in [\"SPECIAL_HOLIDAY\", \"DOUBLE_SPECIAL\"] && d.worked\n  ).map(\n    d,\n    min(d.worked_hours, 8.0)\n    * ((d.holiday_kind == \"DOUBLE_HOLIDAY\"\n      ? (d.day_type == \"REST\" ? 3.9 : 3.0)\n      :d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n        ? (d.day_type == \"REST\" ? 2.6 : 2.0)\n        :d.holiday_kind == \"DOUBLE_SPECIAL\"\n          ? (d.day_type == \"REST\" ? 1.95 : 1.5)\n          :d.holiday_kind == \"SPECIAL_HOLIDAY\"\n            ? (d.day_type == \"REST\" ? 1.5 : 1.3)\n            :d.day_type == \"REST\" ? 1.3 : 1.0)\n    - (d.day_type == \"REST\"\n      ? ((has(terms.facts.rate_basis)\n      &&terms.facts.rate_basis == \"DAILY\")\n        ?0.0\n        : ((has(terms.facts.days_per_year)\n          ?double(terms.facts.days_per_year)\n          :313.0)\n        ==365.0\n          ?1.0\n          :0.0))\n      : ((has(terms.facts.rate_basis)\n      &&terms.facts.rate_basis == \"DAILY\")\n        ?0.0\n        : ((has(terms.facts.days_per_year)\n          ?double(terms.facts.days_per_year)\n          :313.0)\n        in [365.0, 313.0, 261.0]\n          ?1.0\n          :0.0\n  ) ))))\n)\n>0.0",
+					"quantity": "sum(\n  work.days.filter(\n    d,\n    d.holiday_kind in [\"SPECIAL_HOLIDAY\", \"DOUBLE_SPECIAL\"] && d.worked\n  ).map(\n    d,\n    min(d.worked_hours, 8.0)\n    * ((d.holiday_kind == \"DOUBLE_HOLIDAY\"\n      ? (d.day_type == \"REST\" ? 3.9 : 3.0)\n      :d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n        ? (d.day_type == \"REST\" ? 2.6 : 2.0)\n        :d.holiday_kind == \"DOUBLE_SPECIAL\"\n          ? (d.day_type == \"REST\" ? 1.95 : 1.5)\n          :d.holiday_kind == \"SPECIAL_HOLIDAY\"\n            ? (d.day_type == \"REST\" ? 1.5 : 1.3)\n            :d.day_type == \"REST\" ? 1.3 : 1.0)\n    - (d.day_type == \"REST\"\n      ? ((has(terms.facts.rate_basis)\n      &&terms.facts.rate_basis == \"DAILY\")\n        ?0.0\n        : ((has(terms.facts.days_per_year)\n          ?double(terms.facts.days_per_year)\n          :313.0)\n        ==365.0\n          ?1.0\n          :0.0))\n      : ((has(terms.facts.rate_basis)\n      &&terms.facts.rate_basis == \"DAILY\")\n        ?0.0\n        : ((has(terms.facts.days_per_year)\n          ?double(terms.facts.days_per_year)\n          :313.0)\n        in [365.0, 313.0, 261.0]\n          ?1.0\n          :0.0\n  ) ))))\n)",
+					"rate": "(((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\")\n  ?terms.base_salary\n  :terms.base_salary * 12.0\n  / (has(terms.facts.days_per_year)\n    ?double(terms.facts.days_per_year)\n    :313.0))\n/ (has(terms.facts.hours_per_day)\n  ?double(terms.facts.hours_per_day)\n  :8.0))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.WAGE"]
+				}
+			],
+			"NIGHT_WORK": [
+				{
+					"code": "NIGHT_SHIFT_DIFFERENTIAL",
+					"name": "Night-shift differential",
+					"references": [
+						{
+							"title": "Labor Code art.86; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.5 and ch.1 §A: 10% of the hour’s own rate for each hour worked between 10:00 p.m. and 6:00 a.m. (`hours_between(d.intervals, \"22:00\", \"06:00\")`) — on the day’s multiple for an ordinary night hour and on the overtime multiple for a night hour that is also overtime (ordinary day 125% × 110%); a night hour that is also overtime is read from the overtime’s own span (`d.overtime_intervals`), up to the hours beyond eight that OVERTIME prices; on a 0-hour rest day or holiday, whose overtime span is the whole day, those hours are taken inside the night window first. Retail and service establishments regularly employing not more than five workers are outside it (headcount, or entity fact `nsd_small_retail_exempt`). Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2).",
+							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
+						}
+					],
+					"eligibility": "employment.classification != \"MANAGERIAL\"\n&&terms.employment_type != \"DOMESTIC\"\n&&!(terms.statutory_work_category\nin [\"FIELD_PERSONNEL\", \"TASK_BASIS\", \"PIECE_RATE\"])\n&&!((has(company.facts.nsd_small_retail_exempt)\n&&company.facts.nsd_small_retail_exempt)\n|| ((has(company.facts.retail_or_service_establishment)\n&&company.facts.retail_or_service_establishment)\n&&company.headcount <= 5.0))\n&&sum(\n  work.days.map(\n    d,\n    (max(\n      0.0,\n      hours_between(d.intervals, \"22:00\", \"06:00\")\n      -min(\n        hours_between(d.overtime_intervals, \"22:00\", \"06:00\"),\n        min(d.overtime_hours, max(0.0, d.worked_hours - 8.0))\n      )\n    )\n    * (d.holiday_kind == \"DOUBLE_HOLIDAY\"\n      ? (d.day_type == \"REST\" ? 3.9 : 3.0)\n      :d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n        ? (d.day_type == \"REST\" ? 2.6 : 2.0)\n        :d.holiday_kind == \"DOUBLE_SPECIAL\"\n          ? (d.day_type == \"REST\" ? 1.95 : 1.5)\n          :d.holiday_kind == \"SPECIAL_HOLIDAY\"\n            ? (d.day_type == \"REST\" ? 1.5 : 1.3)\n            :d.day_type == \"REST\" ? 1.3 : 1.0)\n    +min(\n      hours_between(d.overtime_intervals, \"22:00\", \"06:00\"),\n      min(d.overtime_hours, max(0.0, d.worked_hours - 8.0))\n    )\n    * (d.holiday_kind == \"DOUBLE_HOLIDAY\"\n      ? (d.day_type == \"REST\" ? 5.07 : 3.9)\n      :d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n        ? (d.day_type == \"REST\" ? 3.38 : 2.6)\n        :d.holiday_kind == \"DOUBLE_SPECIAL\"\n          ? (d.day_type == \"REST\" ? 2.535 : 1.95)\n          :d.holiday_kind == \"SPECIAL_HOLIDAY\"\n            ? (d.day_type == \"REST\" ? 1.95 : 1.69)\n            :d.day_type == \"REST\" ? 1.69 : 1.25))\n    *0.1\n  )\n)\n>0.0",
+					"quantity": "sum(\n  work.days.map(\n    d,\n    (max(\n      0.0,\n      hours_between(d.intervals, \"22:00\", \"06:00\")\n      -min(\n        hours_between(d.overtime_intervals, \"22:00\", \"06:00\"),\n        min(d.overtime_hours, max(0.0, d.worked_hours - 8.0))\n      )\n    )\n    * (d.holiday_kind == \"DOUBLE_HOLIDAY\"\n      ? (d.day_type == \"REST\" ? 3.9 : 3.0)\n      :d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n        ? (d.day_type == \"REST\" ? 2.6 : 2.0)\n        :d.holiday_kind == \"DOUBLE_SPECIAL\"\n          ? (d.day_type == \"REST\" ? 1.95 : 1.5)\n          :d.holiday_kind == \"SPECIAL_HOLIDAY\"\n            ? (d.day_type == \"REST\" ? 1.5 : 1.3)\n            :d.day_type == \"REST\" ? 1.3 : 1.0)\n    +min(\n      hours_between(d.overtime_intervals, \"22:00\", \"06:00\"),\n      min(d.overtime_hours, max(0.0, d.worked_hours - 8.0))\n    )\n    * (d.holiday_kind == \"DOUBLE_HOLIDAY\"\n      ? (d.day_type == \"REST\" ? 5.07 : 3.9)\n      :d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n        ? (d.day_type == \"REST\" ? 3.38 : 2.6)\n        :d.holiday_kind == \"DOUBLE_SPECIAL\"\n          ? (d.day_type == \"REST\" ? 2.535 : 1.95)\n          :d.holiday_kind == \"SPECIAL_HOLIDAY\"\n            ? (d.day_type == \"REST\" ? 1.95 : 1.69)\n            :d.day_type == \"REST\" ? 1.69 : 1.25))\n    *0.1\n  )\n)",
+					"rate": "(((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\")\n  ?terms.base_salary\n  :terms.base_salary * 12.0\n  / (has(terms.facts.days_per_year)\n    ?double(terms.facts.days_per_year)\n    :313.0))\n/ (has(terms.facts.hours_per_day)\n  ?double(terms.facts.hours_per_day)\n  :8.0))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.WAGE"]
+				}
+			],
+			"PAID_HOLIDAY": [
+				{
+					"code": "DOUBLE_HOLIDAY_UNWORKED",
+					"name": "Double holiday not worked",
+					"references": [
+						{
+							"title": "Labor Code art.94; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.2 holiday pay §D.3: \"If the employee does not work on a double regular holiday, the employer shall pay 200%\" — the salary (or, daily-paid, the DAILY_HOLIDAY_PAY line) pays one of the two holidays and this line the second. Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2).",
+							"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
+						}
+					],
+					"eligibility": "employment.classification != \"MANAGERIAL\"\n&&terms.employment_type != \"DOMESTIC\"\n&&!(terms.statutory_work_category\nin [\"FIELD_PERSONNEL\", \"TASK_BASIS\", \"PIECE_RATE\"])\n&&!((has(company.facts.retail_or_service_establishment)\n&&company.facts.retail_or_service_establishment)\n&&company.headcount < 10.0)\n&&double(\n  size(\n    work.days.filter(\n      d,\n      d.holiday_kind == \"DOUBLE_HOLIDAY\" && !d.worked\n      && (!(has(terms.facts.rate_basis)\n      &&terms.facts.rate_basis == \"DAILY\")\n      ||!work.days.exists(\n        p,\n        p.date < d.date && p.day_type == \"WORK\"\n        && (p.holiday_kind == \"\" || p.worked)\n        &&!work.days.exists(\n          q,\n          q.date > p.date && q.date < d.date && q.day_type == \"WORK\"\n          && (q.holiday_kind == \"\" || q.worked\n        ) )\n        &&!p.worked\n        &&!leave.rows.exists(\n          r,\n          !r.is_npl && has(r.from) && r.from != null && r.from <= p.date\n          && ((has(r.to) && r.to != null) ? r.to : r.from) >= p.date\n        )\n      )\n    ) )\n  )\n)\n>0.0",
+					"quantity": "double(\n  size(\n    work.days.filter(\n      d,\n      d.holiday_kind == \"DOUBLE_HOLIDAY\" && !d.worked\n      && (!(has(terms.facts.rate_basis)\n      &&terms.facts.rate_basis == \"DAILY\")\n      ||!work.days.exists(\n        p,\n        p.date < d.date && p.day_type == \"WORK\"\n        && (p.holiday_kind == \"\" || p.worked)\n        &&!work.days.exists(\n          q,\n          q.date > p.date && q.date < d.date && q.day_type == \"WORK\"\n          && (q.holiday_kind == \"\" || q.worked\n        ) )\n        &&!p.worked\n        &&!leave.rows.exists(\n          r,\n          !r.is_npl && has(r.from) && r.from != null && r.from <= p.date\n          && ((has(r.to) && r.to != null) ? r.to : r.from) >= p.date\n        )\n      )\n    ) )\n  )\n)",
+					"rate": "((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\")\n  ?terms.base_salary\n  :terms.base_salary * 12.0\n  / (has(terms.facts.days_per_year)\n    ?double(terms.facts.days_per_year)\n    :313.0))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.WAGE"]
+				},
+				{
+					"code": "DAILY_HOLIDAY_PAY",
+					"name": "Regular holiday pay (daily-paid)",
+					"references": [
+						{
+							"title": "Labor Code art.94; Omnibus Rules Implementing the Labor Code (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819) Book III Rule IV ss.2, 6, 10; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 (https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf) ch.2: a daily-paid employee is paid 100% for an unworked regular holiday (a double holiday adds the DOUBLE_HOLIDAY_UNWORKED line), unless on leave without pay on the working day immediately before it — a rest day or non-working day in between is skipped (s.6(c)), and of two successive holidays the second is paid when the first is worked (s.10). Rates: a day is the monthly basic × 12 ÷ `terms.facts.days_per_year` (DOLE Handbook ch.2 §D–E; 313 when unrecorded), or the contract’s own daily rate when `terms.facts.rate_basis` is DAILY (customer input); an hour is that day ÷ `terms.facts.hours_per_day` (8 when unrecorded). A monthly salary already pays the days its factor counts (regular holidays always; special days on 365/313/261; rest days on 365), so a worked day adds what the Handbook total exceeds that; a daily-paid contract is paid every worked or paid day on its own (Omnibus Rules Book III Rule IV s.2)."
+						}
+					],
+					"eligibility": "(has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\")\n&&employment.classification != \"MANAGERIAL\"\n&&terms.employment_type != \"DOMESTIC\"\n&&!(terms.statutory_work_category\nin [\"FIELD_PERSONNEL\", \"TASK_BASIS\", \"PIECE_RATE\"])\n&&!((has(company.facts.retail_or_service_establishment)\n&&company.facts.retail_or_service_establishment)\n&&company.headcount < 10.0)\n&&double(\n  size(\n    work.days.filter(\n      d,\n      (d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n      ||d.holiday_kind == \"DOUBLE_HOLIDAY\")\n      &&!d.worked\n      &&!work.days.exists(\n        p,\n        p.date < d.date && p.day_type == \"WORK\"\n        && (p.holiday_kind == \"\" || p.worked)\n        &&!work.days.exists(\n          q,\n          q.date > p.date && q.date < d.date && q.day_type == \"WORK\"\n          && (q.holiday_kind == \"\" || q.worked\n        ) )\n        &&!p.worked\n        &&!leave.rows.exists(\n          r,\n          !r.is_npl && has(r.from) && r.from != null && r.from <= p.date\n          && ((has(r.to) && r.to != null) ? r.to : r.from) >= p.date\n        )\n      )\n    )\n  )\n)\n>0.0",
+					"quantity": "double(\n  size(\n    work.days.filter(\n      d,\n      (d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n      ||d.holiday_kind == \"DOUBLE_HOLIDAY\")\n      &&!d.worked\n      &&!work.days.exists(\n        p,\n        p.date < d.date && p.day_type == \"WORK\"\n        && (p.holiday_kind == \"\" || p.worked)\n        &&!work.days.exists(\n          q,\n          q.date > p.date && q.date < d.date && q.day_type == \"WORK\"\n          && (q.holiday_kind == \"\" || q.worked\n        ) )\n        &&!p.worked\n        &&!leave.rows.exists(\n          r,\n          !r.is_npl && has(r.from) && r.from != null && r.from <= p.date\n          && ((has(r.to) && r.to != null) ? r.to : r.from) >= p.date\n        )\n      )\n    )\n  )\n)",
+					"rate": "((has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\")\n  ?terms.base_salary\n  :terms.base_salary * 12.0\n  / (has(terms.facts.days_per_year)\n    ?double(terms.facts.days_per_year)\n    :313.0))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSS", "SSS_MPF", "SSS_EC", "HDMF", "WTAX.WAGE"]
+				}
+			]
+		},
+		"sources": {
+			"entries": [
+				{
+					"agent": "catalog",
+					"url": "https://lawphil.net/",
+					"instructions": "Pay and leave items in the statutes. Labor Code (PD 442: Statutes > Presidential Decrees > 1974, direct https://lawphil.net/statutes/presdecs/pd1974/pd_442_1974.html): Book III arts.86 (night-shift differential), 87 (overtime pay), 93 (rest-day and special-day premium), 94 (regular holiday pay), 95 (service incentive leave and its exclusions), 96 as amended by RA 11360 (service-charge shares); Book VI arts.298-299 (separation pay), 301 (suspension of operations: the kinds of bona fide suspension and their pay) and 302 (retirement pay, with RA 7641 and RA 10757 under Statutes > Republic Acts). PD 851 13th-month pay (Statutes > Presidential Decrees > 1975, https://lawphil.net/statutes/presdecs/pd1975/pd_851_1975.html). Statutory leave under Statutes > Republic Acts by year: RA 11210 maternity (with its allocation to the other parent and the unpaid extension), RA 8187 paternity, RA 11861 solo parent, RA 9262 s.43 VAWC leave and protection-order support, RA 9710 s.18 special leave for women; RA 10361 (Batas Kasambahay) and RA 11965 (caregivers) for domestic and caregiver leave, 13th-month and benefit terms. For each item read who qualifies, the days or amount, the pay basis and the service conditions; quote the signed text and enactment date."
+				},
+				{
+					"agent": "catalog",
+					"url": "https://nwpc.dole.gov.ph/",
+					"instructions": "DOLE Handbook on Workers' Statutory Monetary Benefits (2024 edition, under Resources; direct PDF https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf). Read the chapters on overtime, night-shift differential, premium pay for rest-day and special-day work, holiday pay, service incentive leave, the 13th-month pay with its Revised Guidelines (who is covered, what counts as basic salary), separation pay, retirement pay and the statutory leave benefits: the rates for each day type taken alone and the worked computation examples. Cite the chapter and section and the statute it restates."
+				},
+				{
+					"agent": "catalog",
+					"url": "https://www.sss.gov.ph/",
+					"instructions": "SSS benefits that pass through payroll and SSS member loans. Sickness Benefit (https://www.sss.gov.ph/sickness-benefit/) and Maternity Benefit (https://www.sss.gov.ph/maternity-benefit/): the employer-advanced daily allowance, the days covered, the average-daily-salary-credit basis and what SSS reimburses; Unemployment Benefit (https://www.sss.gov.ph/unemployment-benefit/) for involuntary separation; Salary Loan (https://www.sss.gov.ph/salary-loan/) and Calamity Loan (https://www.sss.gov.ph/calamity-loan/) for the amortisation the employer deducts. Record the circular number and effectivity listed on each page."
+				},
+				{
+					"agent": "catalog",
+					"url": "https://naro.law.upd.edu.ph/",
+					"instructions": "Pag-IBIG Fund loan circulars (Agencies > home-development-mutual-fund and pag-ibig-fund): the multi-purpose and calamity loan programmes, the amortisation the employer deducts from pay and the voluntary and MP2 savings an employee may elect through payroll. Use the ONAR search box with the issuance number or the Agencies directory (https://naro.law.upd.edu.ph/agencies); open 'View document' for the certified scan, read it page by page, and record the ONAR registration number and filing date with the issue date."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.sss.gov.ph/",
+					"instructions": "SSS contributions under RA 11199: the Pay Contribution page (https://www.sss.gov.ph/pay-contribution/) and the circulars it lists (Circular No. and effectivity month) for the contribution rate, the monthly salary credit brackets, the minimum and maximum MSC, the employer/employee shares and the Mandatory Provident Fund (WISP) split above the regular MSC ceiling; the household-employer schedule (Circular 2024-007, published as https://www.sss.gov.ph/wp-content/uploads/2024/12/Cir-2024-007-HR-Kasambahay-scaled.jpg) for kasambahay coverage and the employer-borne share below the RA 10361 threshold; the Employees' Compensation Program page (https://www.sss.gov.ph/employees-compensation-program/) for the EC premium SSS collects from private employers. Record coverage age limits, the compensation counted, rounding and the month each schedule applies from."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.philhealth.gov.ph/",
+					"instructions": "National Health Insurance premium under RA 11223: premium rate, income floor and ceiling, employer/employee split and the compensation counted, and kasambahay and household-employer premiums (Circular 2020-0005 Rev.1, https://www.philhealth.gov.ph/circulars/2020/circ2020-0005.pdf). Read Circulars (/circulars/, by year) and Advisories (/advisories/<year>/), open the signed PDF, and record the circular or advisory number, signing date and the contribution month it applies from."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://naro.law.upd.edu.ph/",
+					"instructions": "Pag-IBIG Fund (HDMF) contribution circulars (Agencies > home-development-mutual-fund and pag-ibig-fund): coverage and membership (Circular 274, https://naro.law.upd.edu.ph/issuances/5476), the contribution rates and the maximum monthly fund salary (Circular 460). BIR revenue regulations on withholding on compensation (Agencies > bureau-of-internal-revenue, https://naro.law.upd.edu.ph/agencies/bureau-of-internal-revenue): RR 2-98 as amended by RR 11-2018 for the withholding tables by pay period (Annex E), the exempt minimum-wage-earner pay, the 13th-month and other-benefits exclusion, the de minimis ceilings of RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (dated 27 October 2025, posted 22 December 2025, in force fifteen days later on 6 January 2026 under its s.3), the year-end annualisation method, and the fringe benefit tax on managerial and supervisory employees. Use the ONAR search box with the issuance number or the Agencies directory (https://naro.law.upd.edu.ph/agencies); open 'View document' for the certified scan, read it page by page, and record the ONAR registration number and filing date with the issue date."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://lawphil.net/",
+					"instructions": "Statute texts of the contribution and tax schemes (Statutes > Republic Acts, by year): RA 11199 Social Security Act of 2018 ss.4, 8, 9, 18-19 (https://lawphil.net/statutes/repacts/ra2019/ra_11199_2019.html); RA 11223 Universal Health Care Act s.10 (https://lawphil.net/statutes/repacts/ra2019/ra_11223_2019.html); RA 9679 HDMF Law ss.6-7 (https://lawphil.net/statutes/repacts/ra2009/ra_9679_2009.html); RA 10361 s.30 for who pays a kasambahay's contributions; and the NIRC (RA 8424, https://lawphil.net/statutes/repacts/ra1997/ra_8424_1997.html) as amended by RA 10963 TRAIN (https://lawphil.net/statutes/repacts/ra2017/ra_10963_2017.html): ss.24(A)(2) individual rate table, 25 non-resident aliens, 32(B)(6)-(7) exclusions, 33 fringe benefit tax, 79 withholding on compensation. Quote the section as amended and in force for the period."
+				},
+				{
+					"agent": "rules",
+					"url": "https://nwpc.dole.gov.ph/",
+					"instructions": "Minimum wages only. Each Regional Tripartite Wages and Productivity Board has a page under the RTWPBs menu (e.g. /ncr/, /car/, /region-iva/) listing its wage orders for non-agriculture, agriculture, retail/service and small-establishment classes and its domestic-worker (kasambahay) wage orders, with the order number, tranche dates and rates; the consolidated 'Latest Wage Orders Matrix' PDF sits under Resources (wp-content/uploads). Record each order's effectivity and tranche dates, the daily or monthly rate per class and area, exemptions, and any litigation or suspension note on the regional page."
+				},
+				{
+					"agent": "rules",
+					"url": "https://lawphil.net/",
+					"instructions": "Limits in the statutes. Labor Code (https://lawphil.net/statutes/presdecs/pd1974/pd_442_1974.html): Book III arts.82-90 (coverage, normal hours, meal periods, compressed and emergency overtime), 91-92 (weekly rest day), 102-105 (forms, frequency, place and direct payment of wages), 113-116 (permitted deductions and their ceilings), 139 with RA 9231 (https://lawphil.net/statutes/repacts/ra2003/ra_9231_2003.html) for child and young-worker age and hours, 158 as inserted by RA 10151 for night work, Book VI arts.296-302 (probation, just and authorised causes, retirement age). RA 10361 for kasambahay minimum age, daily and weekly rest and wage payment. Record retention: the Labor Code's implementing rules on payroll records, NIRC s.235 as amended by RA 11976 (https://lawphil.net/statutes/repacts/ra2024/ra_11976_2024.html) and RA 10173 Data Privacy Act s.11(e) (https://lawphil.net/statutes/repacts/ra2012/ra_10173_2012.html). Quote the limit and its unit."
+				},
+				{
+					"agent": "rules",
+					"url": "https://naro.law.upd.edu.ph/",
+					"instructions": "National Privacy Commission circulars on how long employee personal data may be retained (Agencies > national-privacy-commission), and DOLE department orders setting working-time limits such as flexible work and telecommuting arrangements (Agencies > department-of-labor-and-employment). Use the ONAR search box with the issuance number or the Agencies directory (https://naro.law.upd.edu.ph/agencies); open 'View document' for the certified scan, read it page by page, and record the ONAR registration number and filing date with the issue date."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://nwpc.dole.gov.ph/",
+					"instructions": "DOLE Handbook on Workers' Statutory Monetary Benefits (2024 edition, https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf): the holiday-pay chapter's rules for coinciding day types (a regular or special day falling on the rest day, two regular holidays on one day, successive holidays, absence on the workday before a holiday), the 13th-month chapter on separation before the payment date (Revised Guidelines on PD 851 para.6), the service incentive leave chapter on conversion of unused leave at separation, and which payments a separation by each ground must raise. Record which event triggers which payment and when."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://lawphil.net/",
+					"instructions": "Event consequences in the statutes. Labor Code (https://lawphil.net/statutes/presdecs/pd1974/pd_442_1974.html): arts.93-94 and the Omnibus Rules Book III Rule IV on holiday pay where a holiday coincides with a rest day or another holiday; art.95 on commutation of unused service incentive leave; art.301 on a suspension of operations beyond six months becoming a termination; arts.298-299 on which exits must raise separation pay. RA 10361 on what a kasambahay's early termination by either side forfeits or indemnifies. Quote the trigger and the consequence."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://naro.law.upd.edu.ph/",
+					"instructions": "BIR revenue regulations on when withholding must be reconciled (Agencies > bureau-of-internal-revenue): RR 2-98 s.2.79(B)(5) as amended by RR 11-2018 on the year-end adjustment on the last payroll of the year and on separation before year end, and the refund or deficiency it causes. DOLE department orders on suspension of operations: what the end of the permitted period causes (Agencies > department-of-labor-and-employment). Use the ONAR search box with the issuance number or the Agencies directory (https://naro.law.upd.edu.ph/agencies); open 'View document' for the certified scan, read it page by page, and record the ONAR registration number and filing date with the issue date."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.sss.gov.ph/",
+					"instructions": "Employer duties to SSS: the Employer page (https://www.sss.gov.ph/employer-er/) for employer registration, reporting new and separated employees, monthly contribution and loan remittance deadlines by employer number, the contribution collection list and late-payment penalties; the Sickness and Maternity Benefit pages for the employer's notification deadlines; the Employees' Compensation Program page for contingency reporting. Record each duty's trigger, deadline and form."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.philhealth.gov.ph/",
+					"instructions": "Employer duties to PhilHealth: Reporting Your Employees (https://www.philhealth.gov.ph/partners/employers/report.php) for employer registration, the ER2 for new employees and separation reporting; Payment Procedures (https://www.philhealth.gov.ph/partners/employers/pay_procedures.php) for the monthly remittance deadline, the RF-1 remittance report and interest on late remittance. Confirm deadlines against the signed circular in Circulars or Advisories."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://naro.law.upd.edu.ph/",
+					"instructions": "Filed rules that set employer deadlines. Pag-IBIG Fund (Agencies > home-development-mutual-fund and pag-ibig-fund): employer and employee registration, remittance deadlines, separation reports and late-remittance penalties. BIR (Agencies > bureau-of-internal-revenue): registration as withholding agent and of employees' TINs, BIR Forms 1601-C (monthly), 1603Q (fringe benefits), 1604-C with the alphalist schedules and its file format, 2316 issuance and substituted filing. National Privacy Commission (Agencies > national-privacy-commission): registration of data processing systems and its renewal, data protection officer designation, breach notification and full report deadlines, disposal of personal data after retention. DOLE (Agencies > department-of-labor-and-employment): DO 248 s.2025 alien employment permit (https://naro.law.upd.edu.ph/issuances/7205), DO 147-15 termination notices, establishment registration, occupational safety and health reports and notices of flexible work, telecommuting and suspension of operations. Use the ONAR search box with the issuance number or the Agencies directory (https://naro.law.upd.edu.ph/agencies); open 'View document' for the certified scan, read it page by page, and record the ONAR registration number and filing date with the issue date."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://lawphil.net/",
+					"instructions": "Employer duties in the statutes. Labor Code (https://lawphil.net/statutes/presdecs/pd1974/pd_442_1974.html): arts.292(b), 297-299 on the twin-notice rule and the thirty-day notice of an authorised-cause termination to the employee and DOLE; art.96 as amended by RA 11360 on when service-charge shares are distributed. NIRC (https://lawphil.net/statutes/repacts/ra1997/ra_8424_1997.html) ss.58, 81, 83 and 236 as amended by RA 11976 on returns, certificates and registration. RA 10361 on the kasambahay contract, registry and termination notice; RA 11965 s.5 on the caregiver's written contract; RA 11861 on the solo parent's flexible schedule; RA 9262 on remitting support under a protection order; payslip and payroll-record duties in the Labor Code's implementing rules and RA 10361. Quote the deadline and the addressee."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://nwpc.dole.gov.ph/",
+					"instructions": "DOLE Handbook on Workers' Statutory Monetary Benefits (2024 edition, https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf): the 13th-month chapter's compliance report to DOLE and payment deadline, the final-pay and certificate-of-employment release periods, the termination chapter's report to the DOLE field office, and any establishment report on wages the Handbook names. Cite the chapter and the advisory or order it restates."
+				},
+				{
+					"agent": "settings",
+					"url": "https://lawphil.net/",
+					"instructions": "Payroll-level settings. NIRC (https://lawphil.net/statutes/repacts/ra1997/ra_8424_1997.html) for the taxable year of individuals and the currency of tax amounts. Statutory facts the payroll must hold: the identifiers each law requires an employer and employee to carry (TIN under NIRC s.236, SSS number under RA 11199, PhilHealth number under RA 11223, Pag-IBIG MID under RA 9679), minimum wage earner status (NIRC s.24(A)(2)), solo parent identification (RA 11861), kasambahay and caregiver status (RA 10361, RA 11965) and a foreign national's permit (Labor Code art.40)."
+				},
+				{
+					"agent": "settings",
+					"url": "https://nwpc.dole.gov.ph/",
+					"instructions": "DOLE Handbook on Workers' Statutory Monetary Benefits (2024 edition, https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf): the equivalent monthly rate and the factors for converting daily and monthly rates (by days paid a year), which allowances integrate into the monthly wage, and the final-pay chapter on how an exit is settled in the last pay and how amounts owed by the employee are recovered. On the regional pages read only which wage region an establishment belongs to."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.sss.gov.ph/",
+					"instructions": "The Employer (https://www.sss.gov.ph/employer-er/) and Employees (https://www.sss.gov.ph/employees/) pages for the employer number and SS number a payroll holds and the household-employer and business-employer classes; read only which facts and numbers must be held, not the duties or rates."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.philhealth.gov.ph/",
+					"instructions": "Reporting Your Employees (https://www.philhealth.gov.ph/partners/employers/report.php): the PhilHealth employer number and member identification number (PIN) the payroll must hold for the entity and each employee, as the ER2 and RF-1 fields require them."
+				},
+				{
+					"agent": "settings",
+					"url": "https://naro.law.upd.edu.ph/",
+					"instructions": "BIR (Agencies > bureau-of-internal-revenue): the facts the withholding rules need the payroll to hold, such as the employee's previous-employer compensation and tax from the 2316 and the minimum wage earner and non-resident alien status in RR 2-98 as amended by RR 11-2018; Pag-IBIG (Agencies > home-development-mutual-fund) for the employer and member ID numbers. Use the ONAR search box with the issuance number or the Agencies directory (https://naro.law.upd.edu.ph/agencies); open 'View document' for the certified scan, read it page by page, and record the ONAR registration number and filing date with the issue date."
+				}
+			],
+			"agents": {
+				"catalog": "Compare this version's leave, claim, ad hoc, allowance, loan, work and suspension catalogues with the law in force from 6 January 2026. lawphil.net (Arellano Law Foundation) is the readable copy of statutes because the Official Gazette, Senate, House, Supreme Court E-Library and DOLE sites put their research tools behind a security check; ONAR (naro.law.upd.edu.ph) is the readable official filed copy of agency rules for the same reason. Read pay-law definitions and amounts only: the tax and contribution treatment of an item, its event consequences and its filing duties are read elsewhere. Public holidays and the holiday calendar are out of scope. Never sign in; check every instrument's effective date against this version's period; quote the exact wording with its section; report unresolved or unreadable evidence instead of guessing.",
+				"contribution": "Compare this version's SSS, SSS EC, Mandatory Provident Fund, PhilHealth, Pag-IBIG and withholding-tax schemes with the law in force from 6 January 2026. bir.gov.ph renders no text and pagibigfund.gov.ph challenges the browser: read BIR regulations and HDMF circulars as filed on ONAR, and NIRC text on lawphil.net. Read coverage, base, rates, bands, ceilings, shares and rounding; for a schedule changed mid-period record both with their start months. Never sign in; check every instrument's effective date against this version's period; quote the exact wording with its section; report unresolved or unreadable evidence instead of guessing.",
+				"rules": "Compare this version's minimum wage, hours, overtime limits, rest days, wage payment, deduction ceilings, young-worker limits, probation and record retention rules with the law in force from 6 January 2026. lawphil.net (Arellano Law Foundation) is the readable copy of statutes because the Official Gazette, Senate, House, Supreme Court E-Library and DOLE sites put their research tools behind a security check; ONAR (naro.law.upd.edu.ph) is the readable official filed copy of agency rules for the same reason. A regional wage order is dated within the minimum-wage rule, not a version of its own. Never sign in; check every instrument's effective date against this version's period; quote the exact wording with its section; report unresolved or unreadable evidence instead of guessing.",
+				"behaviour": "Compare this version's event rules with what the law requires an event to cause from 6 January 2026: a holiday coinciding with a rest day or another holiday, an exit by each ground, a suspension of operations, the last payroll of the year. lawphil.net (Arellano Law Foundation) is the readable copy of statutes because the Official Gazette, Senate, House, Supreme Court E-Library and DOLE sites put their research tools behind a security check; ONAR (naro.law.upd.edu.ph) is the readable official filed copy of agency rules for the same reason. Read triggers and consequences, not rates or deadlines. Never sign in; check every instrument's effective date against this version's period; quote the exact wording with its section; report unresolved or unreadable evidence instead of guessing.",
+				"obligations": "Compare this version's employer duties with the law in force from 6 January 2026: registrations, remittances, returns and forms, notices of hire, separation and termination, registers, payslips and statutory exports. bir.gov.ph renders no text, and pagibigfund.gov.ph and privacy.gov.ph block the browser: read their rules as filed on ONAR. For each duty record its trigger, deadline, form and addressee. Never sign in; check every instrument's effective date against this version's period; quote the exact wording with its section; report unresolved or unreadable evidence instead of guessing.",
+				"settings": "Compare this version's payroll settings (currency, tax year, pay date and semi-monthly split, monthly-wage basis, negative net, exit handling) and its employee and entity input facts with the law in force from 6 January 2026. lawphil.net (Arellano Law Foundation) is the readable copy of statutes because the Official Gazette, Senate, House, Supreme Court E-Library and DOLE sites put their research tools behind a security check; ONAR (naro.law.upd.edu.ph) is the readable official filed copy of agency rules for the same reason. Never sign in; check every instrument's effective date against this version's period; quote the exact wording with its section; report unresolved or unreadable evidence instead of guessing."
+			}
+		},
+		"cloned_from_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"change_summary": "RR 29-2025 (dated 27 October 2025, posted on the BIR website 22 December 2025, in force fifteen days later, 6 January 2026; s.3) raises every de minimis ceiling of RR 2-98 s.2.78.1(A)(3): monetised leave 10 → 12 days, dependants’ medical ₱1,500 → ₱2,000 a semester, rice ₱2,000 → ₱2,500 and laundry ₱300 → ₱400 a month, uniform ₱7,000 → ₱8,000, medical assistance, achievement awards and CBA/productivity ₱10,000 → ₱12,000, Christmas gifts ₱5,000 → ₱6,000, the overtime/night meal 25% → 30% of the regional minimum wage. Later regional wage orders are dated entries of the PAYROLL rule `minimum_wage`, not versions.",
+		"employee_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "PH employee inputs",
+			"additionalProperties": false,
+			"properties": {
+				"contract_terms": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"summary": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"base_salary": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"currency": {
+										"type": "string",
+										"const": "PHP"
+									},
+									"value": {
+										"type": "number",
+										"minimum": 0
+									}
+								}
+							},
+							"currency": {
+								"type": "string",
+								"const": "PHP"
+							},
+							"allowances": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"catalogue_id": {
+											"type": "string"
+										},
+										"amount": {
+											"type": "object",
+											"additionalProperties": false,
+											"properties": {
+												"currency": {
+													"type": "string",
+													"const": "PHP"
+												},
+												"value": {
+													"type": "number",
+													"minimum": 0
+												}
+											}
+										}
+									}
+								}
+							},
+							"employment_type": {
+								"type": "string",
+								"enum": [
+									"PERMANENT",
+									"PROBATION",
+									"FIXED_TERM",
+									"PROJECT",
+									"SEASONAL",
+									"CASUAL",
+									"PART_TIME",
+									"APPRENTICE",
+									"INTERN",
+									"DOMESTIC",
+									"CAREGIVER"
+								],
+								"description": "Labor Code arts.295–296 (regular, project, seasonal, casual, probationary), fixed-term employment, arts.58–72 apprentices, RA 12063 trainees and RA 10361 (Batas Kasambahay) DOMESTIC: a kasambahay takes ANNUAL_LEAVE_DOMESTIC, no company loan, the domestic wage floor and the household contribution rules. CAREGIVER: RA 11965 (Caregivers’ Welfare Act) — the regional minimum wage, twice-monthly pay, 13th month, five-day SIL, overtime and night-shift pay, SSS/PhilHealth/Pag-IBIG from the first day."
+							},
+							"work_classification": {
+								"type": "string",
+								"enum": ["RANK_AND_FILE", "SUPERVISORY", "MANAGERIAL"],
+								"description": "Labor Code arts.82, 219(m): managerial employees are outside SIL, 13th month, premium, overtime and night pay; SUPERVISORY and MANAGERIAL fringe benefits bear the FBT (NIRC s.33), rank-and-file’s are compensation."
+							},
+							"statutory_work_category": {
+								"type": "string",
+								"enum": ["NON_FIELD", "FIELD_PERSONNEL", "TASK_BASIS", "PIECE_RATE"],
+								"description": "Labor Code art.82 field personnel and task-basis workers are outside service incentive leave; task-basis workers outside 13th-month pay, piece-rate workers inside it (PD 851 Revised Guidelines)."
+							},
+							"residency_status": {
+								"type": "string",
+								"enum": [
+									"CITIZEN",
+									"PERMANENT_RESIDENT",
+									"RESIDENT_ALIEN",
+									"NON_RESIDENT_ALIEN_ETB",
+									"NON_RESIDENT_ALIEN_NETB"
+								],
+								"description": "NIRC ss.22(E)–(G), 24(A), 25(A)–(B): NON_RESIDENT_ALIEN_NETB (not engaged in trade or business) is withheld 25% final on gross compensation; the others on the graduated tables."
+							},
+							"residency_since": {
+								"type": "string",
+								"format": "date"
+							},
+							"pay_frequency": {
+								"type": "string"
+							},
+							"job_title": {
+								"type": "string"
+							},
+							"department": {
+								"type": "string"
+							},
+							"shift_pattern_id": {
+								"type": "string"
+							},
+							"facts": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"days_per_year": {
+										"type": "integer",
+										"enum": [253, 261, 305, 313, 365],
+										"default": 313,
+										"title": "Days-per-year factor",
+										"description": "The factor that turns the monthly basic into a daily rate (DOLE Handbook 2024 ch.2 §D–E): 365 when rest days, special days and regular holidays are paid; 313 on a six-day week; 261 on a five-day week; 305 / 253 where the special days are unpaid. Read by every day- and hour-rated line, retirement pay, the kasambahay pay, the WTAX leave ceiling and the minimum-wage-earner floor. Unrecorded is 313."
+									},
+									"ebet_program": {
+										"type": "string",
+										"enum": ["GENERAL", "APPRENTICESHIP", "UPSKILLING"],
+										"title": "Registered EBET programme",
+										"description": "Customer input. RA 12063 (Enterprise-Based Education and Training Framework Act) s.4: the programme an INTERN or APPRENTICE contract is enrolled in — general training (an allowance, no wage floor, s.13(a)), apprenticeship (75% of the floor, s.13(b)), upskilling (the full wage, s.12)."
+									},
+									"rate_basis": {
+										"type": "string",
+										"enum": ["MONTHLY", "DAILY"],
+										"default": "MONTHLY",
+										"title": "Rate basis",
+										"description": "Customer input. MONTHLY: `base_salary` is the monthly salary. DAILY: `base_salary` is the daily rate, paid for each day worked or on paid leave plus unworked regular holidays (Omnibus Rules Book III Rule IV s.2)."
+									},
+									"hours_per_day": {
+										"type": "number",
+										"minimum": 1,
+										"maximum": 24,
+										"default": 8,
+										"title": "Normal hours a day",
+										"description": "Customer input. A part-time contract’s normal hours; the hourly rate and the minimum-wage and MWE tests read the rate for an 8-hour day. Unrecorded is 8."
+									},
+									"wage_region": {
+										"type": "string",
+										"title": "Workplace wage-order key",
+										"description": "Customer input. The key of the PAYROLL rule `minimum_wage` for the employee’s place of work (RA 6727 s.4: the floor follows the workplace), when it differs from the entity’s `region`."
+									},
+									"mine_worker": {
+										"type": "string",
+										"enum": ["UNDERGROUND", "SURFACE"],
+										"title": "Mine worker",
+										"description": "Customer input. RA 8558 / RA 10757: retirement from fifty, compulsory at sixty."
+									},
+									"wage_payment_medium": {
+										"type": "string",
+										"enum": ["CASH", "CHEQUE", "BANK_TRANSFER", "E_WALLET", "TOKEN_OR_VOUCHER"],
+										"title": "Wage payment medium",
+										"description": "Customer input. Omnibus Rules Book III Rule VIII s.1: wages in legal tender; tokens, promissory notes, vouchers or coupons are absolutely prohibited. s.2: cheques or money orders only where customary, under a CBA, or on all four conditions (the entity fact `wage_payment_conditions_met`)."
+									},
+									"wage_payment_place": {
+										"type": "string",
+										"enum": [
+											"AT_OR_NEAR_WORKPLACE",
+											"ELSEWHERE_EMERGENCY",
+											"ELSEWHERE_FREE_TRANSPORT",
+											"ELSEWHERE_ANALOGOUS",
+											"BAR_CLUB_OR_GAMING_PLACE"
+										],
+										"title": "Wage payment place",
+										"description": "Customer input. Omnibus Rules Book III Rule VIII s.4: at or near the place of undertaking; elsewhere only when peace and order or a calamity prevents it, the employer gives free transport both ways, or in analogous circumstances (the collecting time is hours worked); never in a bar, club, drinking, massage, dance or gaming place unless the employee works there."
+									},
+									"employed_at_payment_place": {
+										"type": "boolean",
+										"title": "Employee works at the bar, club or gaming place",
+										"description": "Customer input. Omnibus Rules Book III Rule VIII s.4(d): the exception for persons employed in those places."
+									},
+									"solo_parent": {
+										"type": "boolean",
+										"description": "A solo parent who presented a valid Solo Parent ID card (RA 8972 as amended by RA 11861 ss.8, 15, 20): solo parent leave and the extra 15 days of maternity leave read it. Absent means not a solo parent."
+									},
+									"fixed_term": {
+										"type": "boolean",
+										"description": "A fixed-term contract: while true the employment is not permanent (`permanent_when`)."
+									}
+								}
+							}
+						},
+						"required": [
+							"employment_type",
+							"work_classification",
+							"statutory_work_category",
+							"residency_status"
+						]
+					}
+				},
+				"exit_facts": {
+					"type": "object",
+					"additionalProperties": true,
+					"description": "Stored on employment_contract.exit_facts when the contract closes (with the offboarding ground, last_day and note).",
+					"properties": {
+						"termination_cause": {
+							"type": "string",
+							"enum": [
+								"LABOR_SAVING_DEVICES",
+								"REDUNDANCY",
+								"RETRENCHMENT",
+								"CLOSURE_NOT_DUE_TO_SERIOUS_LOSSES",
+								"CLOSURE_DUE_TO_SERIOUS_LOSSES",
+								"DISEASE",
+								"SECURITY_GUARD_NO_ASSIGNMENT",
+								"CONTRACTOR_NO_ASSIGNMENT",
+								"IMPOSSIBLE_REINSTATEMENT",
+								"SUSPENSION_OVER_SIX_MONTHS"
+							],
+							"description": "Labor Code arts.298–299 and DOLE Handbook 2024 ch.14 §C (customer input): the authorised cause. Labour-saving devices, redundancy and an impossible reinstatement pay a month a year; retrenchment, a closure not due to serious losses, disease, a security guard without assignment for six months (DO 150-16) and a contractor’s worker without assignment for three months (DO 174-17 s.13) half a month a year, at least a month; a closure due to serious losses pays none. A bona fide suspension of operations past six months (art.301; DO 215-20) is retrenchment pay, half a month a year."
+						},
+						"terminated_for_disease": {
+							"type": "boolean",
+							"description": "Labor Code art.299: separation pay of one month or half a month a year, whichever is greater."
+						},
+						"kasambahay_unjust_dismissal": {
+							"type": "boolean",
+							"description": "RA 10361 s.32: fifteen days’ pay as indemnity."
+						},
+						"kasambahay_unjustified_departure": {
+							"type": "boolean",
+							"description": "RA 10361 s.32: up to fifteen days’ unpaid salary forfeited."
+						}
+					}
+				},
+				"employment_statutory_facts": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"statutory_contribution_id": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"status": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"kind": {
+										"type": "string"
+									},
+									"reference_number": {
+										"type": "string",
+										"description": "The member number for the scheme: SSS number, PhilHealth Identification Number, Pag-IBIG MID number or BIR TIN."
+									},
+									"since": {
+										"type": "string",
+										"format": "date"
+									},
+									"elections": {
+										"type": "object",
+										"additionalProperties": false,
+										"properties": {
+											"covered_before_60": {
+												"type": "boolean",
+												"default": false,
+												"title": "SSS member covered before sixty",
+												"description": "SSS standing election (RA 11199 s.9(a)), an override: coverage past sixty is derived from the employment — hired before sixty, or an SSS charge on this payroll in the twelve months before; set this when the member was first covered before sixty through an earlier employer. Nothing is charged from sixty-five (s.12-B)."
+											},
+											"exempt_by_totalisation": {
+												"type": "boolean",
+												"default": false,
+												"title": "Exempt from SSS under a social security agreement",
+												"description": "SSS standing election (customer input): a foreign employee covered by their own system under a Philippine bilateral social security agreement."
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Person facts on employment_profile.facts (CEL employee.facts.*).",
+					"properties": {
+						"previous_employer_taxable_compensation": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Previous employer’s taxable compensation this year",
+							"description": "Customer input from the previous employer’s BIR Form 2316 (RR 2-98 s.2.79(B)(5)(b) Step 2): added to the year-end annualisation. Its presence also disqualifies substituted filing."
+						},
+						"previous_employer_tax_withheld": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Tax withheld by the previous employer this year",
+							"description": "Customer input from the previous employer’s 2316: credited in the annualisation."
+						},
+						"coe_requested_on": {
+							"type": "string",
+							"format": "date",
+							"title": "Certificate of employment requested on",
+							"description": "Customer input: the day a current employee asked for a certificate of employment (DOLE LA 06-20 Part III: within three days)."
+						},
+						"night_work_alternative_until": {
+							"type": "string",
+							"format": "date",
+							"title": "Alternative to night work until",
+							"description": "Customer input: the last day of an additional period, during pregnancy or after the post-childbirth period, for which a medical certificate states that an alternative to night work is necessary for the health of the mother or child (Labor Code art.158(b) as inserted by RA 10151)."
+						},
+						"last_name": {
+							"type": "string",
+							"title": "Last name",
+							"description": "Customer input: the surname as the BIR records it (with its particles, e.g. DELA CRUZ). When set, the 1604-C alphalist reads the declared name parts instead of splitting `name`."
+						},
+						"first_name": {
+							"type": "string",
+							"title": "First name",
+							"description": "Customer input: the given name(s) for the BIR alphalist (with last_name)."
+						},
+						"middle_name": {
+							"type": "string",
+							"title": "Middle name",
+							"description": "Customer input: the middle name for the BIR alphalist (with last_name)."
+						},
+						"retirement_plan_exemption_availed": {
+							"type": "boolean",
+							"default": false,
+							"title": "RA 4917 retirement exemption already availed",
+							"description": "Customer input: the employee already received a tax-exempt retirement benefit under a private plan (NIRC s.32(B)(6)(a): the exemption is availed of only once)."
+						}
+					}
+				}
+			}
+		},
+		"entity_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "PH entity inputs",
+			"description": "entity.facts (CEL company.facts.*). The entity `region` column names the wage-order floor key of the PAYROLL rule `minimum_wage` (by_region, or by_employment_type.DOMESTIC for a household employer).",
+			"additionalProperties": false,
+			"properties": {
+				"small_establishment": {
+					"type": "boolean",
+					"title": "Regularly fewer than ten employees",
+					"description": "Labor Code art.95(b); Omnibus Rules Book III Rule V s.1(e): outside service incentive leave."
+				},
+				"retirement_exempt_establishment": {
+					"type": "boolean",
+					"title": "Retail, service or agricultural establishment of ten or fewer",
+					"description": "Labor Code art.302 (RA 7641): outside retirement pay."
+				},
+				"bmbe_certificate_of_authority": {
+					"type": "boolean",
+					"default": false,
+					"title": "Certified BMBE",
+					"description": "RA 9178 s.8: a Barangay Micro Business Enterprise with a current Certificate of Authority is exempt from the Minimum Wage Law, so its non-household employees are not minimum wage earners for WTAX."
+				},
+				"sss_employer_number": {
+					"type": "string",
+					"title": "SSS employer number",
+					"description": "RA 11199 s.24."
+				},
+				"philhealth_employer_number": {
+					"type": "string",
+					"title": "PhilHealth Employer Number (PEN)",
+					"description": "RA 11223 s.10; its last digit picks the remittance window (PhilHealth Circular 0001 s.2014)."
+				},
+				"hdmf_employer_id": {
+					"type": "string",
+					"title": "Pag-IBIG employer ID",
+					"description": "RA 9679 s.6; HDMF Circular 275."
+				},
+				"bir_tin": {
+					"type": "string",
+					"title": "BIR TIN of the withholding agent",
+					"description": "NIRC s.236."
+				},
+				"bir_rdo_code": {
+					"type": "string",
+					"title": "BIR Revenue District Office"
+				},
+				"hdmf_remittance_group": {
+					"type": "integer",
+					"enum": [1, 2, 3, 4],
+					"title": "Pag-IBIG remittance group",
+					"description": "HDMF Circular 275 §E.2: the first letter of the employer’s registered name picks the window in the month after the period — 1 = A–D (10th–14th), 2 = E–L (15th–19th), 3 = M–Q (20th–24th), 4 = R–Z or a numeral (25th to month-end). Unrecorded, the earliest window governs."
+				},
+				"nsd_small_retail_exempt": {
+					"type": "boolean",
+					"default": false,
+					"title": "Retail or service establishment of five workers or fewer",
+					"description": "DOLE Handbook 2024 ch.5 §B.2 (Labor Code art.86; Omnibus Rules Book III Rule II s.1): outside the night-shift differential. Unrecorded, the differential is paid."
+				},
+				"minimum_wage_exemption_approved": {
+					"type": "boolean",
+					"default": false,
+					"title": "Exempted from the wage order by the regional board",
+					"description": "RA 6727 s.4(c): an establishment the regional wages board exempted from the wage order in force. Unrecorded, no exemption."
+				},
+				"retail_or_service_establishment": {
+					"type": "boolean",
+					"default": false,
+					"title": "Retail or service establishment",
+					"description": "Customer input. With the entity’s headcount: holiday pay excludes one regularly employing fewer than ten (Omnibus Rules Book III Rule IV s.1(b)), the night-shift differential one of five or fewer."
+				},
+				"maternity_differential_exempt": {
+					"type": "boolean",
+					"default": false,
+					"title": "Exempt from the maternity salary differential",
+					"description": "Customer input. RA 11210 s.5(c) and IRR Rule VI: distressed, retail/service of ten or fewer, micro business, or already paying the equivalent."
+				},
+				"collects_service_charges": {
+					"type": "boolean",
+					"default": false,
+					"title": "Collects service charges",
+					"description": "Customer input. Labor Code art.96 as amended by RA 11360: hotels, restaurants and similar establishments."
+				},
+				"wage_payment_conditions_met": {
+					"type": "boolean",
+					"title": "Cheque or bank payment conditions met",
+					"description": "Customer input, one per establishment. Omnibus Rules Book III Rule VIII s.2: payment of wages by cheque, money order, bank transfer or e-wallet is customary since the Code took effect or stipulated in a CBA, or all hold — an encashment facility within one kilometre of the workplace, no pecuniary benefit to the employer, reasonable paid time to withdraw, and the employees’ written consent."
+				},
+				"bir_qualified_retirement_plan": {
+					"type": "boolean",
+					"default": false,
+					"title": "BIR-qualified retirement plan",
+					"description": "Customer input: the employer maintains a reasonable private benefit plan the BIR has approved as tax-qualified (NIRC s.32(B)(6)(a), RA 4917)."
+				},
+				"processes_sensitive_pi_1000": {
+					"type": "boolean",
+					"default": false,
+					"title": "Processes sensitive personal information of 1,000 or more individuals",
+					"description": "Customer input (NPC Circular 2022-04 s.5): mandatory NPC registration below 250 employees."
+				},
+				"npc_registered_on": {
+					"type": "string",
+					"format": "date",
+					"title": "NPC registration date",
+					"description": "Customer input: the issue date of the current NPC Certificate of Registration (NPC Circular 2022-04 s.18: valid one year, renewed in the thirty days before it expires)."
+				}
+			}
+		}
+	}
+]

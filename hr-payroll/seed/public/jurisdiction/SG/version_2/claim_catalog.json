@@ -1,0 +1,207 @@
+[
+	{
+		"id": "b7f2e769-4705-5f0d-ba1f-ea50def531ef",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"code": "MEDICAL_TREATMENT_REIMBURSEMENT",
+		"name": "Qualified medical, dental or TCM reimbursement",
+		"references": [
+			{
+				"title": "CPF Act 1953 s.2(1), CPF (Wages — Excluded Payments) Notification 2019 paras.2–3 https://sso.agc.gov.sg/SL/CPFA1953-N12?DocDate=20251217 ; Skills Development Levy Act 1979 s.2, SDL (Wages — Excluded Payments) Notification 2023 paras.2–3 https://sso.agc.gov.sg/SL/SDLA1979-S375-2023?DocDate=20230614"
+			}
+		],
+		"destination": "NET",
+		"direction": "ADD",
+		"counts_toward": [],
+		"eligibility": "",
+		"qualifies_when": "entry.due_on >= \"2023-06-15\" && entry.incurred_on != \"\"\n&&entry.incurred_on <= entry.due_on\n&&entry.facts.amount_incurred >= entry.amount\n&&entry.facts.patient\nin [\n  \"EMPLOYEE\",\n  \"SPOUSE\",\n  \"NATURAL_CHILD\",\n  \"STEPCHILD\",\n  \"ADOPTED_CHILD\",\n  \"GUARDIANSHIP_CHILD\",\n  \"FOSTER_CHILD\"\n]\n&& (entry.facts.patient == \"EMPLOYEE\"\n|| (entry.facts.relationship_recognised\n&&entry.facts.relationship_from != \"\"\n&&entry.facts.relationship_from <= entry.due_on\n&& (entry.facts.relationship_through == \"\"\n||entry.due_on <= entry.facts.relationship_through)))\n&&entry.facts.practitioner_qualified\n&& ((entry.facts.treatment == \"DENTAL_HYGIENE\"\n&&!entry.facts.solely_aesthetic)\n|| (entry.facts.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"]\n&&entry.facts.treatment_necessary\n&&!entry.facts.solely_aesthetic))",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "2d06aade-ee42-527e-8f37-37e0e563d0a9",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"code": "MEDICAL_CONSULTATION_FEE",
+		"name": "Medical consultation fee for certified sick leave",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.89(7A), read 2026-10-07: after 3 months’ service the employer bears or reimburses the fee of the examination when the practitioner is appointed by the employer or is a medical officer and the employee is certified to paid sick leave; s.89(8): a Commissioner-approved healthcare scheme discharges it; s.89(10): not for cosmetic treatment. A medical reimbursement, outside CPF and SDL wages (CPF (Wages — Excluded Payments) Notification 2019). Customer input: entry.facts.practitioner (EMPLOYER_APPOINTED | MEDICAL_OFFICER | OTHER), paid_sick_leave_certified, cosmetic.",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr89-"
+			}
+		],
+		"destination": "NET",
+		"direction": "ADD",
+		"counts_toward": [],
+		"eligibility": "",
+		"qualifies_when": "employment.service_months >= 3 && has(entry.facts.practitioner)\n&&entry.facts.practitioner in [\"EMPLOYER_APPOINTED\", \"MEDICAL_OFFICER\"]\n&&has(entry.facts.paid_sick_leave_certified)\n&&entry.facts.paid_sick_leave_certified == true\n&&!(has(entry.facts.cosmetic) && entry.facts.cosmetic == true)",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "4c92211f-85fe-58bb-b499-c0995b4beaf9",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"code": "PER_DIEM_OFFICIAL_REIMBURSEMENT",
+		"name": "Per diem reimbursement of actual official expenses",
+		"references": [
+			{
+				"title": "CPF Board, per-diem payments: official-purpose expense reimbursements do not attract CPF only when the employer can prove the purpose and the reimbursement does not exceed actual expenditure. A lump-sum allowance remains wages. https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-on-per-diem-payments (retrieved 2026-10-03).",
+				"url": "https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-on-per-diem-payments"
+			}
+		],
+		"destination": "NET",
+		"direction": "ADD",
+		"counts_toward": [],
+		"eligibility": "",
+		"qualifies_when": "entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on\n&&entry.facts.official_purpose\n&&entry.facts.actual_expenditure >= entry.amount\n&&entry.facts.purpose_reference != \"\"",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		]
+	},
+	{
+		"id": "ebcdf06b-e097-53f5-3b61-b5d59de22961",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"code": "ADOPTION_REIMBURSEMENT",
+		"name": "Government-paid adoption leave reimbursement",
+		"references": [
+			{
+				"title": "Current CDCA s9(1),(1A),(1B),12AA,12DA; CDCR7 thirteen D branches. Requires the original lawful source admission and exact statutory origin derivation. MSF ProFamily Leave (read 2026-10-07): $2,500 a week including CPF; a day-based claim is capped at $2,500 ÷ the working days a week, so entry.quantity is the weeks claimed = days ÷ working days a week. Per-child-order totals (MSF, read 2026-10-07): GPML $20,000 (1st/2nd) or $40,000 (3rd+), GPPL $10,000, GPAL $20,000 or $30,000 — the claim adds to the same child’s earlier claims (entry.facts.child_id, child_order). Employer-paid portion (MSF): GPAL weeks 1–4 of a 1st or 2nd child are employer-paid; customer input: entry.facts.claim_from_week (the first week the claim covers)."
+			}
+		],
+		"destination": "EMPLOYER",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"eligibility": "",
+		"qualifies_when": "entry.facts.service_months >= 3\n&&entry.facts[\"cdca_original_statutory_origin\"] != \"\"\n&&entry.amount <= 2500.0 * entry.quantity\n&&entry.amount\n+sum(\n  earlier.rows.filter(\n    r,\n    has(r.child_id) && has(entry.child_id)\n    &&r.child_id == entry.child_id\n  ).map(\n    r,\n    r.amount\n  )\n)\n<= (has(entry.child_order) && entry.child_order >= 3 ? 30000.0 : 20000.0)\n&& (!has(entry.claim_from_week)\n|| (has(entry.child_order) && entry.child_order >= 3)\n||entry.claim_from_week >= 5)",
+		"counts_toward": []
+	},
+	{
+		"id": "52ac7fdd-782f-5f3e-68f8-d33ccf8ba4b2",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"code": "GPML_REIMBURSEMENT",
+		"name": "Government-paid maternity leave reimbursement",
+		"references": [
+			{
+				"title": "Current CDCA s9(1),(1A),(1B),12AA,12DA; CDCR7 thirteen D branches. Requires the original lawful source admission and exact statutory origin derivation. MSF ProFamily Leave (read 2026-10-07): $2,500 a week including CPF; a day-based claim is capped at $2,500 ÷ the working days a week, so entry.quantity is the weeks claimed = days ÷ working days a week. Per-child-order totals (MSF, read 2026-10-07): GPML $20,000 (1st/2nd) or $40,000 (3rd+), GPPL $10,000, GPAL $20,000 or $30,000 — the claim adds to the same child’s earlier claims (entry.facts.child_id, child_order). Employer-paid portion (MSF): GPML weeks 1–8 of a 1st or 2nd child are employer-paid; customer input: entry.facts.claim_from_week (the first week the claim covers)."
+			}
+		],
+		"destination": "EMPLOYER",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"eligibility": "",
+		"qualifies_when": "entry.facts.service_months >= 3\n&&entry.facts[\"cdca_original_statutory_origin\"] != \"\"\n&&entry.amount <= 2500.0 * entry.quantity\n&&entry.amount\n+sum(\n  earlier.rows.filter(\n    r,\n    has(r.child_id) && has(entry.child_id)\n    &&r.child_id == entry.child_id\n  ).map(\n    r,\n    r.amount\n  )\n)\n<= (has(entry.child_order) && entry.child_order >= 3 ? 40000.0 : 20000.0)\n&& (!has(entry.claim_from_week)\n|| (has(entry.child_order) && entry.child_order >= 3)\n||entry.claim_from_week >= 9)",
+		"counts_toward": []
+	},
+	{
+		"id": "12c163c6-d014-577f-e007-758e6d23cd10",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"code": "GPPL_REIMBURSEMENT",
+		"name": "Government-paid paternity leave reimbursement",
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act2001 ss12H,12I,12J; Child Development Co-Savings(Leave and Benefits)Regulations2017 reg8. Qualified original statutory paternity arrangements only; actual individually paid leave wages/employer CPF, original weekly index, actual allowance history and source-funded workdays. Four-week April2025 Scheme origins; two-week other/stillbirth origins. Government refund and employer cost are separately source-linked; no refund is an employee grant. https://sso.agc.gov.sg/Act/CDCSA2001?ProvIds=P13-; https://sso.agc.gov.sg/SL/CDCSA2001-S358-2017?ProvIds=pr8- MSF ProFamily Leave (read 2026-10-07): $2,500 a week including CPF; a day-based claim is capped at $2,500 ÷ the working days a week, so entry.quantity is the weeks claimed = days ÷ working days a week. Per-child-order totals (MSF, read 2026-10-07): GPML $20,000 (1st/2nd) or $40,000 (3rd+), GPPL $10,000, GPAL $20,000 or $30,000 — the claim adds to the same child’s earlier claims (entry.facts.child_id, child_order)."
+			}
+		],
+		"destination": "EMPLOYER",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"eligibility": "",
+		"qualifies_when": "entry.facts.service_months >= 3\n&&entry.facts[\"cdca_original_statutory_origin\"] != \"\"\n&&entry.amount <= 2500.0 * entry.quantity\n&&entry.amount\n+sum(\n  earlier.rows.filter(\n    r,\n    has(r.child_id) && has(entry.child_id)\n    &&r.child_id == entry.child_id\n  ).map(\n    r,\n    r.amount\n  )\n)\n<=10000.0",
+		"counts_toward": []
+	},
+	{
+		"id": "67b3005b-3861-5e10-a196-36febe14aa6e",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"code": "WICA_MEDICAL",
+		"name": "WICA medical insurer recovery",
+		"references": [
+			{
+				"title": "Work Injury Compensation Act 2019 ss.2, 3, 7–12, 17 and First Schedule paras.4 and 6; MOM WICA types of compensation and medical-leave-wages calculator."
+			}
+		],
+		"destination": "EMPLOYER",
+		"direction": "ADD",
+		"bands": [],
+		"eligibility": "",
+		"qualifies_when": "",
+		"counts_toward": []
+	},
+	{
+		"id": "e3ccc8d7-d3c4-5cb4-899c-1498056771c2",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"code": "GPSPL_REIMBURSEMENT",
+		"name": "Government-paid shared parental leave reimbursement",
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 ss.12DA–12DD; MSF ProFamily Leave, Shared parental leave, read 2026-10-07: reimbursed at up to $2,500 a week including CPF, claimed no later than 3 months after the last day of the leave; entry.quantity is the weeks claimed (days ÷ working days a week).",
+				"url": "https://www.profamilyleave.msf.gov.sg/schemes/shared-parental-leave"
+			}
+		],
+		"destination": "EMPLOYER",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"eligibility": "",
+		"qualifies_when": "entry.facts.service_months >= 3\n&&entry.amount <= 2500.0 * entry.quantity",
+		"counts_toward": []
+	},
+	{
+		"id": "83a3b020-580f-5f71-bfab-5b865f0bead1",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"code": "GPCL_REIMBURSEMENT",
+		"name": "Government-paid childcare leave reimbursement",
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 s.12B; MSF ProFamily Leave, Childcare leave, read 2026-10-07: GPCL days 4–6 and both extended childcare days are reimbursed at up to $500 a day including CPF ($1,500 / $1,000 a year), claimed no later than 3 months after the calendar year; entry.quantity is the days claimed. Employer-paid portion (MSF): GPCL days 1–3 of the year are employer-paid (ECL days are all reimbursed); customer input: entry.facts.claim_from_day (the first day the claim covers). Yearly totals per child (MSF): $1,500 of GPCL (days 4–6) or $1,000 of ECL (a child of 7 or over, entry.facts.child_birthdate) across the same child’s claims of the calendar year.",
+				"url": "https://www.profamilyleave.msf.gov.sg/schemes/childcare-leave"
+			}
+		],
+		"destination": "EMPLOYER",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"eligibility": "",
+		"qualifies_when": "entry.facts.service_months >= 3\n&&entry.amount <= 500.0 * entry.quantity\n&& (!has(entry.claim_from_day)\n|| (has(entry.child_birthdate)\n&&age_on(entry.child_birthdate, entry.occurred_on) >= 7)\n||entry.claim_from_day >= 4)\n&&entry.amount\n+sum(\n  earlier.rows.filter(\n    r,\n    has(r.child_id) && has(entry.child_id)\n    &&r.child_id == entry.child_id\n    &&string(r.occurred_on).substring(0, 4)\n    ==string(entry.occurred_on).substring(0, 4)\n  ).map(\n    r,\n    r.amount\n  )\n)\n<= (has(entry.child_birthdate)\n&&age_on(entry.child_birthdate, entry.occurred_on) >= 7\n  ?1000.0\n  :1500.0)",
+		"counts_toward": []
+	}
+]

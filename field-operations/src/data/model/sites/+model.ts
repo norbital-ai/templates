@@ -19,6 +19,18 @@ const jobs = [
 	'description',
 	'assignee_contact'
 ] as const;
+/** A site's jobs as its readers see them. */
+const siteJobs = [
+	'title',
+	'nature',
+	'scheduled_for',
+	'status',
+	'assignee_user_id',
+	'assignee_contact',
+	'description',
+	'summary',
+	'completed_at'
+] as const;
 type Place = {
 	readonly location?: Point | null;
 	readonly address?: string | null;
@@ -112,18 +124,24 @@ export default model('sites', {
 	read: {
 		sites: { fields: 'all' },
 		/** The work at a site: how a message naming an address finds its job (today's, else the next pending). */
-		'sites.job_assignments': {
-			fields: [
-				'title',
-				'nature',
-				'scheduled_for',
-				'status',
-				'assignee_user_id',
-				'assignee_contact',
-				'description',
-				'summary',
-				'completed_at'
-			]
+		'sites.job_assignments': { fields: siteJobs }
+	},
+	outputs: {
+		/** A contractor's view of the sites they work at: the place and the dwelling, never its key. */
+		contractor: {
+			sites: {
+				fields: [
+					'site_code',
+					'name',
+					'location',
+					'address',
+					'unit_number',
+					'client_name',
+					'house_type',
+					'floor_area_sqm'
+				]
+			},
+			'sites.job_assignments': { fields: siteJobs }
 		}
 	},
 	create: {

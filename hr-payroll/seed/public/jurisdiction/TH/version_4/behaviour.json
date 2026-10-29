@@ -1,0 +1,1768 @@
+[
+	{
+		"id": "69594149-02f7-5e01-882e-77059aca15f0",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "hold-payslips",
+		"order": 100,
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"when": "has(event.row.holds) && event.row.holds != null\n&&size(event.row.holds) > 0",
+		"fields": ["holds"],
+		"reads": {
+			"slips": {
+				"collection": "payslip",
+				"where": {
+					"payroll_run_id": {
+						"eq": "event.row.id"
+					},
+					"status": {
+						"eq": "\"DRAFT\""
+					}
+				},
+				"select": ["id", "employment_id"]
+			}
+		},
+		"effect": "event.row.holds.map(\n  h,\n  {\n    \"collection\": \"payslip\",\n    \"operation\": \"update\",\n    \"data\": {\n      \"target\": slips.filter(s, s.employment_id == h.employment_id).map(\n        s,\n        s.id\n      ),\n      \"set\": {\"status\": \"ON_HOLD\"}\n    }\n  }\n).filter(\n  w,\n  size(w.data.target) > 0\n)"
+	},
+	{
+		"id": "38865ea0-fc2c-5a38-9395-36c9057ba78a",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "retract-exit-effects",
+		"order": 200,
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"when": "has(event.row.before) && event.row.before != null\n&& (\"effective_range\" in event.row.before\n||\"exit_ground\" in event.row.before\n||\"exit_facts\" in event.row.before)",
+		"fields": ["before", "exit_facts", "exit_ground", "effective_range"],
+		"reads": {
+			"movements": {
+				"collection": "leave_catalog_entry",
+				"where": {
+					"employment_id": {
+						"eq": "event.row.id"
+					},
+					"payslip_id": {
+						"isNull": true
+					}
+				},
+				"select": ["reference"]
+			},
+			"tasks": {
+				"collection": "regulatory_task",
+				"where": {
+					"subject_id": {
+						"eq": "event.row.id"
+					},
+					"state": {
+						"eq": "\"OPEN\""
+					}
+				},
+				"select": ["occurrence_key", "facts"]
+			},
+			"exit_pay": {
+				"collection": "adhoc_catalog_entry",
+				"where": {
+					"employment_id": {
+						"eq": "event.row.id"
+					},
+					"payslip_id": {
+						"isNull": true
+					}
+				},
+				"select": ["facts"]
+			}
+		},
+		"effect": "movements.filter(\n  m,\n  m.reference != null\n  &&m.reference.startsWith(\"exit:\" + event.row.id + \":\")\n  &&!((event.row.exit_facts != null\n  &&event.row.effective_range.to != null\n    ?string(event.row.effective_range.to) + \"/\"\n    + (has(event.row.exit_ground) && event.row.exit_ground != null\n      ?event.row.exit_ground\n      :\"\")\n    :\"\")\n  !=\"\"\n  &&m.reference.endsWith(\n    \":\"\n    + (event.row.exit_facts != null\n    &&event.row.effective_range.to != null\n      ?string(event.row.effective_range.to) + \"/\"\n      + (has(event.row.exit_ground) && event.row.exit_ground != null\n        ?event.row.exit_ground\n        :\"\")\n      :\"\"\n  ) )\n) ).map(\n  m,\n  {\n    \"collection\": \"leave_catalog_entry\",\n    \"operation\": \"delete\",\n    \"data\": {\"target\": [m.id]}\n  }\n)\n+tasks.filter(\n  t,\n  t.facts != null && has(t.facts.exit_key)\n  &&t.facts.exit_key\n  != (event.row.exit_facts != null\n  &&event.row.effective_range.to != null\n    ?string(event.row.effective_range.to) + \"/\"\n    + (has(event.row.exit_ground) && event.row.exit_ground != null\n      ?event.row.exit_ground\n      :\"\")\n    :\"\"\n) ).map(\n  t,\n  {\n    \"collection\": \"regulatory_task\",\n    \"operation\": \"update\",\n    \"data\": {\n      \"target\": [t.id],\n      \"set\": {\n        \"state\": \"DISMISSED\",\n        \"dismiss_reason\": \"The exit it answered was changed on \"\n        +event.day\n        +\".\",\n        \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day\n      }\n    }\n  }\n)\n+exit_pay.filter(\n  e,\n  e.facts != null && has(e.facts.source)\n  &&string(e.facts.source).startsWith(\"exit:\" + event.row.id + \":\")\n  &&!((event.row.effective_range.to != null\n  &&has(event.row.exit_ground)\n  &&event.row.exit_ground != null\n  &&event.row.exit_ground != \"\"\n    ?string(event.row.effective_range.to) + \"/\" + event.row.exit_ground\n    :\"\")\n  !=\"\"\n  &&string(e.facts.source).endsWith(\n    \":\"\n    + (event.row.effective_range.to != null\n    &&has(event.row.exit_ground)\n    &&event.row.exit_ground != null\n    &&event.row.exit_ground != \"\"\n      ?string(event.row.effective_range.to) + \"/\"\n      +event.row.exit_ground\n      :\"\"\n  ) )\n) ).map(\n  e,\n  {\n    \"collection\": \"adhoc_catalog_entry\",\n    \"operation\": \"delete\",\n    \"data\": {\"target\": [e.id]}\n  }\n)"
+	},
+	{
+		"id": "b6d6f4da-31b0-5a31-810b-38acef95c76f",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "encash-leave-on-exit",
+		"order": 300,
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"when": "event.row.exit_facts != null && event.row.effective_range.to != null",
+		"fields": ["exit_facts", "effective_range"],
+		"reads": {
+			"catalogues": {
+				"collection": "leave_catalog",
+				"where": {
+					"settings_id": {
+						"eq": "event.settings_id"
+					},
+					"encash_on_exit": {
+						"eq": true
+					}
+				},
+				"select": ["id", "code", "unit", "entitlement"]
+			},
+			"movements": {
+				"collection": "leave_catalog_entry",
+				"where": {
+					"employment_id": {
+						"eq": "event.row.id"
+					}
+				},
+				"select": ["catalog_id", "activity", "days", "reference"]
+			}
+		},
+		"effect": "catalogues.filter(\n  c,\n  has(c.entitlement) && c.entitlement != null && has(c.entitlement.days)\n  &&!movements.exists(\n    m,\n    m.reference\n    ==\"exit:\" + event.row.id + \":\" + c.code + \":\"\n    +string(event.row.effective_range.to)\n    +\"/\"\n    + (has(event.row.exit_ground) && event.row.exit_ground != null\n      ?event.row.exit_ground\n      :\"\"\n  ) )\n).map(\n  c,\n  {\n    \"collection\": \"leave_catalog_entry\",\n    \"operation\": \"create\",\n    \"data\": {\n      \"catalog_id\": c.id,\n      \"employment_id\": event.row.id,\n      \"occurred_on\": event.row.effective_range.to,\n      \"activity\": \"ENCASHMENT\",\n      \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\"\n      +string(event.row.effective_range.to)\n      +\"/\"\n      + (has(event.row.exit_ground) && event.row.exit_ground != null\n        ?event.row.exit_ground\n        :\"\"),\n      \"days\": max(\n        0.0,\n        sum(\n          event.leave_balances.filter(b, b.code == c.code).map(\n            b,\n            b.remaining\n          )\n        )\n      )\n    }\n  }\n).filter(\n  w,\n  w.data.days > 0\n)"
+	},
+	{
+		"id": "cb4a34e4-398f-58db-a5ac-afd0f99ea2c6",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "SSO_CONTRIBUTION_REMITTANCE",
+		"name": "Social Security contribution return and payment (Sor Por Sor 1-10)",
+		"order": 401,
+		"references": [
+			{
+				"title": "Social Security Act B.E. 2533 s.47 para 2: both shares \"within the fifteenth day of the month following the month in which the deduction is made\"; s.49: a 2% a month surcharge on late payment.",
+				"url": "https://www.sso.go.th/wpr/download/download_by_pool_file/47435"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "File the monthly contribution return (Sor Por Sor 1-10) and pay the employee contributions deducted with the employer's own 5% to the Social Security Office.",
+			"schemes": ["SSO"],
+			"due": "add_days(period.to, 15)"
+		}
+	},
+	{
+		"id": "4fe8428d-84c0-5051-b828-5435a8aea174",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "PND1_FILING",
+		"name": "PND1 monthly withholding return",
+		"order": 402,
+		"references": [
+			{
+				"title": "Revenue Code ss.52 and 59 (within seven days of the payment) as extended by the Ministry of Finance notification of 24 July 2001: the tax withheld under s.50(1) is remitted and the PND1 return filed within seven days from the end of the month of payment. https://www.rd.go.th/2625.html An employer filing online (entity fact files_online) has until the 15th: Ministry of Finance notification on the e-filing extension (No. 7, as amended by No. 8) cl.1.3, for returns due 1 February 2024 to 31 January 2027 https://www.rd.go.th/fileadmin/user_upload/kormor/newlaw/mofexpandfornet7A.pdf."
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "File form PND1 for the salary withholding of the month and pay the tax withheld. A return filed and paid through the Revenue Department e-filing system has 8 more days under the Ministry of Finance notification extending e-filing deadlines; the statutory 7th is the due date here.",
+			"schemes": ["PND1"],
+			"due": "(has(company.facts.files_online) && company.facts.files_online)\n&&add_days(period.to, 7) <= \"2027-01-31\"\n  ?add_days(period.to, 15)\n  :add_days(period.to, 7)"
+		}
+	},
+	{
+		"id": "4cbf3dc2-7a43-5ba0-9ea1-82e471f95786",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "PVD_REMITTANCE",
+		"name": "Provident fund contributions paid into the fund",
+		"order": 403,
+		"references": [
+			{
+				"title": "Provident Fund Act s.10 as amended by Act No. 4 B.E. 2558 (2015): remit employee and employer contributions within three working days from wage payment. https://www.sec.or.th/TH/Documents/ActandRoyalEnactment/Act/act-pvd2530-codified.pdf Deadline uses the run pay_date, or the default period-end pay day for older runs without it. Actual payment corrections and late-remittance assessment remain to be verified.",
+				"url": "https://www.sec.or.th/TH/Documents/ActandRoyalEnactment/Act/act-pvd2530-codified.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Pay the members' contributions deducted and the employer's contributions into the registered provident fund.",
+			"schemes": ["PVD"],
+			"due": "add_working_days(\n  has(period.pay_date) && period.pay_date != null\n  &&period.pay_date != \"\"\n    ?period.pay_date\n    :period.to,\n  3,\n  holidays,\n  [\"SATURDAY\", \"SUNDAY\"]\n)"
+		}
+	},
+	{
+		"id": "9eaf3afb-4ff2-5871-99f3-ec7065c692d0",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "EWF_REMITTANCE",
+		"name": "Employee Welfare Fund contributions",
+		"order": 404,
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.131 (Council of State consolidated Thai text https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09, read 2026-10-08): at each payment of wages the employer deducts the member's contribution and pays its own, even when wages are paid late; remittance follows the rules of the Employee Welfare Fund committee (para 4). Rates: Ministerial Regulation B.E. 2568 (Royal Gazette vol.142 part 60 Kor, 15 September 2025, in force 1 October 2026) https://ratchakitcha.soc.go.th/documents/86102.pdf. The 15th of the following month is the committee's time as the Department of Labour Protection and Welfare publishes it. Current DLPW remittance FAQ Q11 (https://itserver15.labour.go.th/ewfundTemplate/media-file.php?id=18, read 2026-10-10): remit by the 15th of the month after actual wage payment, including off-cycle payments; October wages paid on 5 November are due on 15 December."
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Remit the members' 0.25% deducted from wages with the employer's 0.25% to the Employee Welfare Fund.",
+			"schemes": ["EWF"],
+			"due": "add_days(\n  add_months(\n    month_start(\n      has(period.pay_date) && period.pay_date != null\n      &&period.pay_date != \"\"\n        ?period.pay_date\n        :period.to\n    ),\n    1\n  ),\n  14\n)"
+		}
+	},
+	{
+		"id": "a0f133ce-a684-5d53-9080-5810d032335b",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "SKILL_DEVELOPMENT_FUND_PAYMENT",
+		"name": "Skill Development Fund contribution",
+		"order": 405,
+		"references": [
+			{
+				"title": "Skill Development Promotion Act B.E. 2545 (as amended B.E. 2557) s.30; Department of Skill Development guidance for employers in the compulsory scheme (contribution formula and example) https://www.dsd.go.th/sdpaa/Region/Download_Doc/13824; Ministry of Labour notice 1 July 2015 clauses5-8, Gazette vol.132 special part172 Ngor, 23 July 2015 pp.11-12; scope notice 9 April 2015 clause5; official DSD inspection manual กสพ.-01-2568 pp.18-21 and appendix pp.25-27: https://sdfund.dsd.go.th/Uploads/mas_document/127/file/คู่มือปฏิบัติงานการตรวจแบบแสดงการส่งเงินสมทบกองทุนฯ%20(สท_compressed%20(1)_95ad28d6-0c5a-4a31-aad5-9531d4fd44c4.pdf?uu_id=2M847; Act section4 (state bodies excluded) and Ministry scope notice 9 April 2015 clause4 (specified seasonal agriculture, private schools, private higher education and non-profit foundations/charities excluded); official DSD manual กสพ.-01-2568 appendix p.25."
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Pay the year's Skill Development Fund contribution with Sor Tor 2 within March of the following year: the lowest statutory minimum daily wage × 30 × the employees short of training 50% of the average month-end headcount from the first month reaching 100 employees through December, discarding fractions × all months from that first qualifying month through December, including later months below 100 ÷ 100. Raised with the December run over the qualifying window's month-end headcounts and the registrar-certified trained count (entity fact sdf_trained_employees); a zero contribution is not raised.",
+			"schemes": [],
+			"months": ["12"],
+			"due": "month_end(add_months(period.from, 3))",
+			"amount": "!(!has(company.facts.sdf_exemption)\n||company.facts.sdf_exemption == \"NONE\")\n  ?0.0\n  : (size(headcount_months.filter(m, double(m.headcount) >= 100.0)) == 0\n    ?0.0\n    :round(\n      min(\n        rules.minimum_wage.by_region.map(\n          region,\n          double(rules.minimum_wage.by_region[region])\n        )\n      )\n      *30.0\n      *max(\n        0.0,\n        round(\n          0.5\n          * (sum(\n            headcount_months.filter(\n              m,\n              m.month\n              >=first(\n                headcount_months.filter(n, double(n.headcount) >= 100.0)\n              ).month\n            ).map(\n              m,\n              double(m.headcount)\n            )\n          )\n          /double(\n            size(\n              headcount_months.filter(\n                m,\n                m.month\n                >=first(\n                  headcount_months.filter(\n                    n,\n                    double(n.headcount) >= 100.0\n                  )\n                ).month\n              )\n            )\n          )),\n          1.0,\n          \"DOWN\"\n        )\n        - (has(company.facts.sdf_trained_employees)\n          ?double(company.facts.sdf_trained_employees)\n          :0.0\n      ) )\n      *double(\n        size(\n          headcount_months.filter(\n            m,\n            m.month\n            >=first(\n              headcount_months.filter(n, double(n.headcount) >= 100.0)\n            ).month\n          )\n        )\n      )\n      /100.0,\n      0.01,\n      \"HALF_UP\"\n    ))"
+		}
+	},
+	{
+		"id": "ef08dde8-9334-50a1-9f87-134154f4347d",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "encash-leave-at-window-end",
+		"order": 500,
+		"target_collection": "calendar",
+		"events": ["daily"],
+		"when": "size(event.leave_balances) > 0",
+		"reads": {
+			"catalogues": {
+				"collection": "leave_catalog",
+				"where": {
+					"settings_id": {
+						"eq": "event.settings_id"
+					},
+					"encash_at_window_end": {
+						"eq": true
+					}
+				},
+				"select": ["id", "code"]
+			},
+			"movements": {
+				"collection": "leave_catalog_entry",
+				"where": {
+					"employment_id": {
+						"eq": "event.row.id"
+					},
+					"activity": {
+						"eq": "\"ENCASHMENT\""
+					}
+				},
+				"select": ["reference"]
+			}
+		},
+		"effect": "catalogues.filter(\n  c,\n  !movements.exists(\n    m,\n    m.reference\n    ==\"window:\" + event.row.id + \":\" + c.code + \":\" + event.day\n  )\n).map(\n  c,\n  {\n    \"collection\": \"leave_catalog_entry\",\n    \"operation\": \"create\",\n    \"data\": {\n      \"catalog_id\": c.id,\n      \"employment_id\": event.row.id,\n      \"occurred_on\": event.day,\n      \"activity\": \"ENCASHMENT\",\n      \"reference\": \"window:\" + event.row.id + \":\" + c.code + \":\"\n      +event.day,\n      \"days\": max(\n        0.0,\n        sum(\n          event.leave_balances.filter(\n            b,\n            b.code == c.code && b.window_to == event.day\n          ).map(\n            b,\n            b.remaining\n          )\n        )\n      )\n    }\n  }\n).filter(\n  w,\n  w.data.days > 0\n)"
+	},
+	{
+		"id": "8aa796b0-8aa9-5239-86d4-cfacd119158d",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "PND1_KOR_ANNUAL",
+		"name": "PND1 Kor annual withholding return",
+		"order": 601,
+		"references": [
+			{
+				"title": "Revenue Code s.58(2) (within January) as extended by the Ministry of Finance notification of 2 November 1983 under s.3 octo para 2, cl.1(2): the return of income under s.40(1) and (2) is filed within February each year. https://www.rd.go.th/2619.html Filed online (entity fact files_online), PND1 Kor is due by 8 March: Ministry of Finance notification No. 9 cl.1 (Royal Gazette 16 December 2025, in force 17 December 2025) https://www.rd.go.th/fileadmin/user_upload/kormor/newlaw/mofexpandfornet9A.pdf, for returns due within the No. 7 window (to 31 January 2027) https://www.rd.go.th/fileadmin/user_upload/kormor/newlaw/mofexpandfornet7A.pdf."
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "File form PND1 Kor listing each employee's employment income and tax withheld for the previous calendar year.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["02"],
+			"due": "(has(company.facts.files_online) && company.facts.files_online)\n&&month_end(period.from) <= \"2027-01-31\"\n  ?period.from.substring(0, 4) + \"-03-08\"\n  :month_end(period.from)"
+		}
+	},
+	{
+		"id": "a992921a-aa71-5099-af92-210c694138c6",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "WITHHOLDING_CERTIFICATE_ANNUAL",
+		"name": "Withholding certificate to employees (50 Tawi)",
+		"order": 602,
+		"references": [
+			{
+				"title": "Revenue Code s.50 bis; Revenue Department guidance on withholding certificates: for income under s.40(1) and (2) the certificate is issued by 15 February of the year after the tax year (within one month of leaving for an employee who leaves during the year).",
+				"url": "https://www.rd.go.th/fileadmin/images/image_law/images/guide100248.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Give each employee who worked to the end of the year the withholding tax certificate (50 Tawi) for the previous calendar year.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["02"],
+			"due": "add_days(period.from, 14)"
+		}
+	},
+	{
+		"id": "618420a3-ee11-5171-a2b2-d53eafc9090f",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "WCF_ANNUAL_CONTRIBUTION",
+		"name": "Workmen's Compensation Fund annual contribution",
+		"order": 603,
+		"references": [
+			{
+				"title": "the Ministry of Labour notification on business types, sizes and areas liable to contribute, contribution rates, deposits and the assessment and collection of contributions (21 February 2019, under WCA ss.44 para 1 and 45) cl.13: from the second year the estimated contribution for the whole year is paid within January (the first within 30 days of becoming liable, WCA s.44; payment by instalments on approval under cl.16-18); WCA s.46: 2% a month on late payment.",
+				"url": "https://www.sso.go.th/wpr/download/download_by_pool_file/14479"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Pay the year's WCF contribution the Social Security Office assessed (Kor Tor 26 Kor) on the estimated wages of the year, at most 240,000 baht a person. A task, not a remittance row: the amount is the SSO assessment, not the run totals (the WCF scheme line accrues the liability month by month).",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["01"],
+			"due": "month_end(period.from)",
+			"applies_when": "!(has(company.facts.wcf_instalments) && company.facts.wcf_instalments)"
+		}
+	},
+	{
+		"id": "a5211065-b028-525d-9dea-978a580c5c16",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "WCF_WAGE_STATEMENT",
+		"name": "Workmen's Compensation Fund wage statement (Kor Tor 20 Kor)",
+		"order": 604,
+		"references": [
+			{
+				"title": "the Ministry of Labour notification on business types, sizes and areas liable to contribute, contribution rates, deposits and the assessment and collection of contributions (21 February 2019, under WCA ss.44 para 1 and 45) cl.14 para 1: within February each year the employer reports the wages actually paid in the previous year (Kor Tor 20 Kor).",
+				"url": "https://www.sso.go.th/wpr/download/download_by_pool_file/14479"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Report the wages actually paid in the previous year on form Kor Tor 20 Kor (e-wage); the SSO adjusts the contribution.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["02"],
+			"due": "month_end(period.from)"
+		}
+	},
+	{
+		"id": "ffb3c5b8-863c-592b-b37a-29cc1c9bdbf9",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "EMPLOYMENT_CONDITIONS_REPORT",
+		"name": "Annual employment and working conditions report (Kor Ror 11)",
+		"order": 605,
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.115/1 (inserted by LPA (No. 2) B.E. 2551; paragraph one replaced by LPA (No. 9) B.E. 2568 s.9, Royal Gazette vol.142 part 74 Kor, 7 November 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): an employer of ten or more files the report on employment and working conditions within January each year.",
+				"url": "https://ratchakitcha.soc.go.th/documents/89818.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "An employer of ten or more employees submits the annual report on employment and working conditions to the Department of Labour Protection and Welfare.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["01"],
+			"applies_when": "double(headcount) >= 10.0",
+			"due": "month_end(period.from)"
+		}
+	},
+	{
+		"id": "abd72dcb-c4e9-5a2c-b780-c2991a677fdb",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "DISABLED_EMPLOYMENT_QUOTA",
+		"name": "Disabled-person employment quota or fund contribution",
+		"order": 606,
+		"references": [
+			{
+				"title": "Persons with Disabilities Empowerment Act B.E. 2550 ss.33-35; Ministerial Regulation on the number of persons with disabilities employers must employ and the fund contribution B.E. 2554 cl.3 (count on 1 October) and cl.5 para 2 as amended by No. 2 B.E. 2560 (Royal Gazette vol. 134 part 103 Kor, 5 October 2017): paid by 31 March each year. Office of the Council of State consolidated texts https://www.ocs.go.th/searchlaw/law-index/item/6494 and https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZDlTeDI5VEFDSGt3NkEzTXp4T0ludz09, read 2026-10-08."
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "An employer of 100 or more employees employs one person with disabilities for every 100 employees who are not disabled, a remainder above 50 counting as another 100 (Ministerial Regulation B.E. 2554 cl.3), or pays the Empowerment of Persons with Disabilities Fund for each one short (s.34) the lowest minimum daily wage in force last in the previous year × 365 (cl.5), or arranges the s.35 alternatives. Raised on the January run when the entity's contracts in force that day number 100 or more (the Regulation counts on 1 October, branches in one province together); due 31 March.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["01"],
+			"applies_when": "double(headcount) >= 100.0",
+			"due": "month_end(add_months(period.from, 2))"
+		}
+	},
+	{
+		"id": "e9fb82d9-08d2-5afb-80c5-406d522c87c8",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "SSO_REGISTRATION",
+		"name": "Register the employee with the Social Security Office (Sor Por Sor 1-03)",
+		"order": 607,
+		"references": [
+			{
+				"title": "Social Security Act B.E. 2533 s.34: \"within thirty days from the date on which the employees have become insured persons\".",
+				"url": "https://www.sso.go.th/wpr/download/download_by_pool_file/47435"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Submit the insured-person registration (Sor Por Sor 1-03) for a new employee.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"due": "add_days(hired_on, 30)"
+		}
+	},
+	{
+		"id": "c3fbb71f-bda3-579e-b99a-28f2d94c0f82",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "EMPLOYEE_REGISTER",
+		"name": "Employee register entry",
+		"order": 608,
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.112: an employer of ten or more keeps an employee register in Thai, made \"within fifteen days as from the date the employees start working\" (Office of the Council of State translation https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf).",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "An employer of ten or more employees enters the employee in the employee register kept at the workplace.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"applies_when": "double(headcount) >= 10.0",
+			"due": "add_days(hired_on, 15)"
+		}
+	},
+	{
+		"id": "e9273e22-606d-5964-8480-f8f722dce24c",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "SSO_EXIT_NOTIFICATION",
+		"name": "Notify the Social Security Office of the employee leaving (Sor Por Sor 6-09)",
+		"order": 609,
+		"references": [
+			{
+				"title": "Social Security Act B.E. 2533 s.44 para 1 (as amended by the SSA (No. 4) B.E. 2558): a change in the particulars filed, including the employee leaving, is notified \"within the fifteenth day of the month following the month in which the change has taken place\".",
+				"url": "https://www.sso.go.th/wpr/download/download_by_pool_file/47435"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Notify the termination of the insured person on form Sor Por Sor 6-09.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null\n&&contract.effective_range.to != null",
+			"due": "add_days(month_end(exit_on), 15)"
+		}
+	},
+	{
+		"id": "edb5b119-ac05-5bd3-b5b7-71fceceebe9e",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "FINAL_PAY",
+		"name": "Pay wages and money due on termination",
+		"order": 610,
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.70 para 2: where the employer terminates the employment, \"wage, overtime pay, holiday pay and holiday overtime pay\" are paid \"within three days as from the employment termination date\" (text as in the Council of State translation; s.70 as amended by LPA (No. 7) B.E. 2562 keeps the three-day rule; https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf). Severance (s.118) and the annual-leave pay of s.67 are owed on termination without this deadline.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Pay the wages, overtime pay, holiday pay and holiday overtime pay due when the employer ends the employment.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null\n&&contract.effective_range.to != null",
+			"applies_when": "contract.exit_ground\nin [\n  \"DISMISSAL\",\n  \"DISMISSAL_FOR_CAUSE\",\n  \"REDUNDANCY\",\n  \"RETIREMENT\",\n  \"END_OF_CONTRACT\"\n]",
+			"due": "add_days(exit_on, 3)"
+		}
+	},
+	{
+		"id": "0504ac86-96c8-5b75-8ce2-8d4e5e7eee70",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "WITHHOLDING_CERTIFICATE_ON_EXIT",
+		"name": "Withholding certificate to a leaving employee (50 Tawi)",
+		"order": 611,
+		"references": [
+			{
+				"title": "Revenue Code s.50 bis; Revenue Department guidance on withholding certificates: within one month of the day the employee leaves during the tax year.",
+				"url": "https://www.rd.go.th/fileadmin/images/image_law/images/guide100248.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Give a leaving employee the withholding tax certificate for the income paid in the year.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null\n&&contract.effective_range.to != null",
+			"due": "add_months(exit_on, 1)"
+		}
+	},
+	{
+		"id": "df7d77be-4fff-56f2-82e0-d563d08253df",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "FOREIGN_WORKER_HIRE_NOTIFICATION",
+		"name": "Notify the registrar of a foreign employee taken on",
+		"order": 612,
+		"references": [
+			{
+				"title": "Royal Ordinance on the Management of the Employment of Foreign Workers B.E. 2560 s.13 (as amended by the Royal Ordinance (No. 2) B.E. 2561): the employer notifies the registrar of the name, nationality and work of a foreign worker within 15 days of employing them, and within 15 days of the day the worker leaves, with the reason; an employer whose foreign staff are permitted under the investment-promotion or petroleum law (s.62) is exempt (employee fact work_permit_basis SECTION_62). Department of Employment, Chiang Mai Provincial Employment Office briefing:",
+				"url": "https://chiangmai.boi.go.th/uploads/file_download/file/20180828/th-bdfgjloz2459.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Notify the Department of Employment registrar of the name, nationality and work of a foreign employee taken on.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"applies_when": "employee.nationality != \"\" && employee.nationality != \"TH\"\n&&!(has(employee.facts) && employee.facts != null\n&&has(employee.facts.work_permit_basis)\n&&employee.facts.work_permit_basis == \"SECTION_62\")",
+			"due": "add_days(hired_on, 15)"
+		}
+	},
+	{
+		"id": "241165ac-54eb-5ec2-b8c6-8dc5d6f21bd5",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "FOREIGN_WORKER_EXIT_NOTIFICATION",
+		"name": "Notify the registrar of a foreign employee leaving",
+		"order": 613,
+		"references": [
+			{
+				"title": "Royal Ordinance on the Management of the Employment of Foreign Workers B.E. 2560 s.13 (as amended by the Royal Ordinance (No. 2) B.E. 2561): the employer notifies the registrar of the name, nationality and work of a foreign worker within 15 days of employing them, and within 15 days of the day the worker leaves, with the reason; an employer whose foreign staff are permitted under the investment-promotion or petroleum law (s.62) is exempt (employee fact work_permit_basis SECTION_62). Department of Employment, Chiang Mai Provincial Employment Office briefing:",
+				"url": "https://chiangmai.boi.go.th/uploads/file_download/file/20180828/th-bdfgjloz2459.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Notify the Department of Employment registrar that the employment of a foreign employee has ended, with the reason.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null\n&&contract.effective_range.to != null",
+			"applies_when": "employee.nationality != \"\" && employee.nationality != \"TH\"\n&&!(has(employee.facts) && employee.facts != null\n&&has(employee.facts.work_permit_basis)\n&&employee.facts.work_permit_basis == \"SECTION_62\")",
+			"due": "add_days(exit_on, 15)"
+		}
+	},
+	{
+		"id": "c057f822-8107-54a7-838e-564d3d7aa88e",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "WCF_ADDITIONAL_CONTRIBUTION",
+		"name": "Workmen's Compensation Fund additional contribution (Kor Tor 25 Kor)",
+		"order": 614,
+		"references": [
+			{
+				"title": "the Ministry of Labour notification on business types, sizes and areas liable to contribute, contribution rates, deposits and the assessment and collection of contributions (21 February 2019, under WCA ss.44 para 1 and 45) cl.15 para 2: an additional contribution from the cl.14 statement is paid within March; WCA s.46: 2% a month on late payment.",
+				"url": "https://www.sso.go.th/wpr/download/download_by_pool_file/14479"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Where the wages reported on Kor Tor 20 Kor exceed the January estimate, pay the additional contribution the Social Security Office bills on form Kor Tor 25 Kor.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["03"],
+			"due": "month_end(period.from)"
+		}
+	},
+	{
+		"id": "817f962e-28c5-56b9-9019-b2e05efa5d1d",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "EMPLOYER_REGISTRATION",
+		"name": "Register as an employer with the Social Security Office (Sor Por Sor 1-01) and the WCF",
+		"order": 615,
+		"references": [
+			{
+				"title": "Social Security Act B.E. 2533 s.34 and Workmen's Compensation Act B.E. 2537 as amended by the Workmen's Compensation Act (No. 2) B.E. 2561 s.44: the employer files the registration within 30 days of the day it first has an employee (SSO WCF employer guide: \"ขึ้นทะเบียนนายจ้าง พร้อมกับขึ้นทะเบียนลูกจ้าง ภายใน 30 วัน\").",
+				"url": "https://www.sso.go.th/wpr/assets/upload/files_storage/sso_th/21f9d80408a598636551a7c559cd7920.pdf"
+			}
+		],
+		"target_collection": "entity",
+		"events": ["created"],
+		"definition": {
+			"description": "Register the business as an employer under the Social Security Act and the Workmen's Compensation Act once it first employs an employee.",
+			"trigger": {
+				"collection": "entity",
+				"events": ["created"]
+			},
+			"applies_when": "has(row.facts.first_employee_on)",
+			"due": "add_days(row.facts.first_employee_on, 30)"
+		}
+	},
+	{
+		"id": "b4fd2462-f59f-56fa-aebe-65ee3496dd9e",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "WORK_RULES",
+		"name": "Announce work rules in Thai (10 employees)",
+		"order": 616,
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.108: an employer of ten or more has work rules in Thai, announced within 15 days of the day the employees reach ten, posted and kept at the workplace (Office of the Council of State English translation (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)). The former duty to send a copy to the Director-General was repealed by Order of the Head of the NCPO No. 21/2560 (4 April 2017; summarised by Tilleke & Gibbins, https://www.tilleke.com/ja/insights/thailand-amendments-labor-protection-act). Raised on the hire that brings the contracts in force to ten."
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "An employer that comes to employ ten employees announces work rules in Thai, posts them at the workplace and keeps a copy there.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"applies_when": "double(headcount) >= 10.0 && double(headcount) < 11.0",
+			"due": "add_days(hired_on, 15)"
+		}
+	},
+	{
+		"id": "edf2cd00-659c-590a-9b4b-a707121c2e04",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "WORK_INJURY_NOTIFICATION",
+		"name": "Notify the SSO of a work injury (Kor Tor 16)",
+		"order": 617,
+		"references": [
+			{
+				"title": "Workmen's Compensation Act B.E. 2537 as amended by the Workmen's Compensation Act (No. 2) B.E. 2561 s.48: \"ให้นายจ้างแจ้งเหตุดังกล่าวต่อสำนักงาน … ภายในสิบห้าวันนับแต่วันที่นายจ้างทราบ\" — within 15 days of the day the employer knows. https://www.sso.go.th/wpr/assets/upload/files_storage/sso_th/84244ea51a2464c0713a98ddd8cc0955.pdf Raised by a WORK_INJURY_LEAVE entry; its first day stands for the day the employer knew.",
+				"url": "https://www.sso.go.th/wpr/assets/upload/files_storage/sso_th/84244ea51a2464c0713a98ddd8cc0955.pdf"
+			}
+		],
+		"target_collection": "leave_catalog_entry",
+		"events": ["created"],
+		"definition": {
+			"description": "Notify the Social Security Office of an employee's work injury, sickness or disappearance.",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"events": ["created"]
+			},
+			"when": "row.catalog_code == \"WORK_INJURY_LEAVE\"",
+			"due": "add_days(\n  has(row.from) && row.from != null ? row.from : row.occurred_on,\n  15\n)"
+		}
+	},
+	{
+		"id": "fd1fc18f-243c-5dbe-be28-929685fa9e9d",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "WCF_CLOSING_WAGE_STATEMENT",
+		"name": "WCF wage statement on closing the business",
+		"order": 618,
+		"references": [
+			{
+				"title": "the Ministry of Labour notification on business types, sizes and areas liable to contribute, contribution rates, deposits and the assessment and collection of contributions (21 February 2019, under WCA ss.44 para 1 and 45) cl.14 para 2: an employer that ceases business reports the wages \"ภายในสามสิบวันนับแต่วันที่เลิกกิจการ\". https://www.sso.go.th/wpr/download/download_by_pool_file/14479 Customer input: entity fact business_closed_on.",
+				"url": "https://www.sso.go.th/wpr/download/download_by_pool_file/14479"
+			}
+		],
+		"target_collection": "entity",
+		"events": ["updated"],
+		"definition": {
+			"description": "On closing the business, report the wages paid up to the closing day so the SSO can settle the year's WCF contribution.",
+			"trigger": {
+				"collection": "entity",
+				"events": ["updated"]
+			},
+			"applies_when": "has(row.facts.business_closed_on)",
+			"due": "add_days(row.facts.business_closed_on, 30)"
+		}
+	},
+	{
+		"id": "5b4794ec-7f9d-5251-a143-684050672846",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "YOUNG_WORKER_HIRE_NOTICE",
+		"name": "Notify the labour inspector of a child employee",
+		"order": 619,
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.45(1): employing a child under 18, the employer notifies the labour inspector within 15 days of the day the child starts work, and keeps a record of working conditions (s.45(2)). Office of the Council of State English translation.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Notify the labour inspector of a child employee.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"applies_when": "employee != null && employee.date_of_birth != \"\"\n&&age_on(employee.date_of_birth, hired_on) < 18",
+			"due": "add_days(hired_on, 15)"
+		}
+	},
+	{
+		"id": "7c3e890f-05e2-5ea2-a768-506a77e31750",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "YOUNG_WORKER_EXIT_NOTICE",
+		"name": "Notify the labour inspector that a child employee has left",
+		"order": 620,
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.45(3): notify the termination of a child's employment to the labour inspector within 7 days. Office of the Council of State English translation.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Notify the labour inspector that a child employee has left.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null\n&&contract.effective_range.to != null",
+			"applies_when": "employee != null && employee.date_of_birth != \"\"\n&&age_on(employee.date_of_birth, exit_on) < 18",
+			"due": "add_days(exit_on, 7)"
+		}
+	},
+	{
+		"id": "90317951-f310-5f17-b01b-58cc5ed07581",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "TEMPORARY_SHUTDOWN_NOTICE",
+		"name": "Notify a temporary cessation of business",
+		"order": 621,
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.75 para 2: the employer informs the employees and the labour inspector before ceasing business temporarily. Due the day before the cessation starts. Office of the Council of State English translation.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"target_collection": "work_suspension",
+		"events": ["created"],
+		"definition": {
+			"description": "Notify a temporary cessation of business.",
+			"trigger": {
+				"collection": "work_suspension",
+				"events": ["created"]
+			},
+			"when": "row.kind == \"TEMPORARY_CESSATION\"",
+			"due": "add_days(row.starts_on, -1)"
+		}
+	},
+	{
+		"id": "64d0ea25-7eea-5ab6-b658-0609051e7fd2",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "TECHNOLOGY_REDUNDANCY_NOTICE",
+		"name": "Give 60 days' notice of a technology redundancy",
+		"order": 622,
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.121 para 1: the termination day, reason and list of employees go to the labour inspector and the employees at least 60 days before the termination; otherwise TECHNOLOGY_NOTICE_IN_LIEU is owed. Office of the Council of State English translation.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Give 60 days' notice of a technology redundancy.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null\n&&contract.effective_range.to != null",
+			"applies_when": "has(contract.exit_facts.special_severance_ground)\n&&contract.exit_facts.special_severance_ground == \"TECHNOLOGY\"",
+			"due": "add_days(exit_on, -60)"
+		}
+	},
+	{
+		"id": "fde0a246-c1ec-56f2-b87f-003ba3421d4c",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "RETIREMENT_SEVERANCE",
+		"name": "Pay severance on retirement",
+		"order": 623,
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.118/1 (LPA (No. 6) B.E. 2560): retirement at the agreed age, or at 60 on 30 days' notice from the employee where no or a later age is agreed, is a termination owing s.118 severance (adhoc SEVERANCE_PAY). Secondary summary of the No. 6 text:",
+				"url": "https://www.tilleke.com/ja/insights/thailand-amendments-labor-protection-act"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Pay severance on retirement.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null\n&&contract.effective_range.to != null",
+			"applies_when": "contract.exit_ground == \"RETIREMENT\"",
+			"due": "exit_on"
+		}
+	},
+	{
+		"id": "8e802c4f-6ae6-5726-bafb-5903abaafc7a",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "SECURITY_DEPOSIT_RETURN",
+		"name": "Return the security deposit",
+		"order": 624,
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.10 para 2: security money is returned with any interest within 7 days of the exit; late return carries s.9 interest. Customer input: employee fact security_deposit_held. Office of the Council of State English translation.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Return the security deposit.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null\n&&contract.effective_range.to != null",
+			"applies_when": "employee != null && has(employee.facts) && employee.facts != null\n&&has(employee.facts.security_deposit_held)\n&&employee.facts.security_deposit_held",
+			"due": "add_days(exit_on, 7)"
+		}
+	},
+	{
+		"id": "25406abc-e01f-5b44-87f6-f2a01c262948",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "EMPLOYEE_REGISTER_UPDATE",
+		"name": "Update the employee register",
+		"order": 625,
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.113: the register (name, sex, nationality, birth date, address, start, position, wage and benefits, end) is amended within 15 days of a change. Office of the Council of State English translation.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"target_collection": "employment_profile",
+		"events": ["updated"],
+		"definition": {
+			"description": "Update the employee register.",
+			"trigger": {
+				"collection": "employment_profile",
+				"events": ["updated"]
+			},
+			"applies_when": "double(headcount) >= 10.0",
+			"due": "add_days(today, 15)"
+		}
+	},
+	{
+		"id": "057b3b95-f917-5bcc-9ef7-15924e069fbb",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "RECORDS_RETENTION",
+		"name": "Keep the employee register and wage records",
+		"order": 626,
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.114: an employer of ten or more keeps wage-payment documents signed by the employee or bank-transfer evidence; s.115: the register for at least two years after each exit and the wage documents two years after payment (longer while a complaint or labour case is open). Due is the earliest disposal day. Office of the Council of State English translation.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Keep the employee register and wage records.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null\n&&contract.effective_range.to != null",
+			"due": "add_years(exit_on, 2)"
+		}
+	},
+	{
+		"id": "3a40bb4d-96c9-5288-97b2-685a1dacb224",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "WORK_PERMIT_RENEWAL",
+		"name": "Renew a foreign worker's work permit",
+		"order": 627,
+		"references": [
+			{
+				"title": "Royal Ordinance on the Management of the Employment of Foreign Workers B.E. 2560 ss.8-9 (as amended B.E. 2561): a foreign worker works only with a valid permit and in the permitted work. Raised 30 days before the permit's expiry (employee fact work_permit_expires_on, customer input).",
+				"url": "https://chiangmai.boi.go.th/uploads/file_download/file/20180828/th-bdfgjloz2459.pdf"
+			}
+		],
+		"target_collection": "calendar",
+		"events": ["daily"],
+		"definition": {
+			"description": "Renew a foreign worker's work permit.",
+			"trigger": {
+				"collection": "calendar",
+				"events": ["daily"]
+			},
+			"when": "employee != null && has(employee.facts) && employee.facts != null\n&&has(employee.facts.work_permit_expires_on)\n&&today == add_days(employee.facts.work_permit_expires_on, -30)",
+			"due": "employee.facts.work_permit_expires_on"
+		}
+	},
+	{
+		"id": "949f23d4-81ed-59ee-8d69-8f8290d1e632",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "SKILL_DEVELOPMENT_REGISTRATION",
+		"name": "Register with the Department of Skill Development (Sor Tor 1)",
+		"order": 628,
+		"references": [
+			{
+				"title": "Skill Development Promotion Act B.E. 2545 (as amended B.E. 2557): an employer of 100 or more registers (Sor Tor 1, Sor Tor 4) when it reaches 100 employees. Department of Skill Development guidance:; Act section4 (state bodies excluded) and Ministry scope notice 9 April 2015 clause4 (specified seasonal agriculture, private schools, private higher education and non-profit foundations/charities excluded); official DSD manual กสพ.-01-2568 appendix p.25.",
+				"url": "https://www.dsd.go.th/sdpaa/Region/Download_Doc/13824"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Register or verify registration with the Department of Skill Development (Sor Tor 1) once the undertaking has at least 100 employees, including a hiring/import jump from below to above 100. Record the verified registration reference on the entity. One company occurrence is raised across hires while that reference is absent; a later hire must not create another registration task. Exempt employer categories remain excluded. The triggering hire date is an operational verification due date, not a newly asserted statutory filing period or evidence of when the employer first reached the threshold.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"applies_when": "(!has(company.facts.sdf_exemption)\n||company.facts.sdf_exemption == \"NONE\")\n&&double(headcount) >= 100.0\n&& (!has(company.facts.sdf_registration_reference)\n||company.facts.sdf_registration_reference == \"\")",
+			"due": "hired_on",
+			"occurrence": "\"registration\""
+		}
+	},
+	{
+		"id": "76f8b85e-d242-5dc3-9f64-36b2347ffa2b",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "SKILL_DEVELOPMENT_CONTRIBUTION",
+		"name": "Skill Development Fund contribution return (Sor Tor 2)",
+		"order": 629,
+		"references": [
+			{
+				"title": "Skill Development Promotion Act B.E. 2545 (as amended): an employer of 100 or more that did not train at least 50% of its average employees in the calendar year contributes 1% of the wage base for the shortfall and files Sor Tor 2 within March of the following year. Department of Skill Development guidance:; Act section4 (state bodies excluded) and Ministry scope notice 9 April 2015 clause4 (specified seasonal agriculture, private schools, private higher education and non-profit foundations/charities excluded); official DSD manual กสพ.-01-2568 appendix p.25.",
+				"url": "https://www.dsd.go.th/sdpaa/Region/Download_Doc/13824"
+			}
+		],
+		"target_collection": "entity",
+		"events": ["calendar"],
+		"definition": {
+			"description": "File the previous calendar year’s Sor Tor 2 return within March, including when no March payroll exists or current headcount has fallen below 100. The annual company calendar checks the reporting year’s month-end headcounts; reaching 100 in that year requires the annual review even after a later reduction. Verify the certified training, category and any contribution assessment; the task does not assume a contribution is due merely because it files the return.",
+			"trigger": {
+				"collection": "entity",
+				"events": ["calendar"]
+			},
+			"months": ["03"],
+			"applies_when": "(!has(company.facts.sdf_exemption)\n||company.facts.sdf_exemption == \"NONE\")\n&&previous_year_headcount_months.exists(m, double(m.headcount) >= 100.0)",
+			"due": "month_end(today)",
+			"occurrence": "add_years(today, -1).substring(0, 4)"
+		}
+	},
+	{
+		"id": "b00d2ee4-95e0-541c-9b87-db06e3fb4e9a",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "SKILL_DEVELOPMENT_COURSE_CERTIFICATION",
+		"name": "Review outstanding annual training applications",
+		"order": 630,
+		"references": [
+			{
+				"title": "Skill Development Promotion Committee notice dated 21 September 2016, clause 4; Royal Gazette vol.133 special part 262 Ngor, 16 November 2016, pp.1–2. Electronic applications for employee upskilling or retraining courses and costs: within 60 calendar days after completion, including public holidays, and no later than 15 January of the following year. Ministry of Labour official copy: https://www.mol.go.th/wp-content/uploads/sites/2/2020/10/109.e-Service-ฝึกยกระดับ-ฝึกเปลี่ยนสาขาอาชีพ.pdf. DSD operational guidance for FY2567 (November 2023), printed p.175, confirms the same deadline: https://eit2.dsd.go.th/~qrcode/qr1/PLAN/Plan_2566.pdf. Skill Development Promotion Act B.E. 2545 (as amended): training counted toward the 50% is certified within 60 days of the course ending and no later than 15 January of the following year. Department of Skill Development guidance: https://www.dsd.go.th/sdpaa/Region/Download_Doc/13824; Act section4 (state bodies excluded) and Ministry scope notice 9 April 2015 clause4 (specified seasonal agriculture, private schools, private higher education and non-profit foundations/charities excluded); official DSD manual กสพ.-01-2568 appendix p.25."
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Final annual check for outstanding training course and cost applications by 15 January. This January reminder does not replace the earlier 60-calendar-day deadline for each course; record each qualifying completed employee upskilling or retraining course as a workplace case on its actual completion date.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["01"],
+			"applies_when": "(!has(company.facts.sdf_exemption)\n||company.facts.sdf_exemption == \"NONE\")\n&& (double(headcount) >= 100.0)",
+			"due": "add_days(period.from, 14)"
+		}
+	},
+	{
+		"id": "f44c0d80-3533-5ebf-9606-2622ae2159de",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "SKILL_DEVELOPMENT_COURSE_APPLICATION",
+		"name": "Apply for approval of the completed training course and costs",
+		"order": 631,
+		"references": [
+			{
+				"title": "Skill Development Promotion Committee notice dated 21 September 2016, clause 4; Royal Gazette vol.133 special part 262 Ngor, 16 November 2016, pp.1–2. Electronic applications for employee upskilling or retraining courses and costs: within 60 calendar days after completion, including public holidays, and no later than 15 January of the following year. Ministry of Labour official copy: https://www.mol.go.th/wp-content/uploads/sites/2/2020/10/109.e-Service-ฝึกยกระดับ-ฝึกเปลี่ยนสาขาอาชีพ.pdf. DSD operational guidance for FY2567 (November 2023), printed p.175, confirms the same deadline: https://eit2.dsd.go.th/~qrcode/qr1/PLAN/Plan_2566.pdf."
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "Open a separate case for each qualifying employee upskilling or retraining course for which course/cost approval is sought, using the actual course completion date as opened_on. File the application and supporting course, schedule and actual cost evidence within 60 calendar days, capped at 15 January of the next year. Recording the case does not establish eligibility or registrar approval; only certified training may be counted toward the annual target. This also supports eligible voluntary applications below the fund headcount threshold.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind == \"SKILL_DEVELOPMENT_COURSE_COMPLETED\"",
+			"due": "add_days(row.opened_on, 60)\n<add_years(row.opened_on.substring(0, 4) + \"-01-15\", 1)\n  ?add_days(row.opened_on, 60)\n  :add_years(row.opened_on.substring(0, 4) + \"-01-15\", 1)"
+		}
+	},
+	{
+		"id": "f7050cab-840e-57bc-a8bd-3620ae987d39",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "PVD_LATE_SURCHARGE",
+		"name": "Pay the provident fund late-remittance surcharge",
+		"order": 632,
+		"references": [
+			{
+				"title": "Provident Fund Act s.10 paragraph 3, amended by Act No. 4 B.E. 2558 (2015): remittance later than three working days from wage payment bears a 5% monthly surcharge on the late contributions.",
+				"url": "https://www.sec.or.th/TH/Documents/ActandRoyalEnactment/Act/act-pvd2530-codified.pdf"
+			}
+		],
+		"target_collection": "obligation",
+		"events": ["updated"],
+		"definition": {
+			"description": "Pay the provident fund surcharge: 5% per month of employee or employer contributions remitted late. Verify the fund assessment for the overdue amount and elapsed period; this task does not infer a part-month rounding convention.",
+			"trigger": {
+				"collection": "obligation",
+				"events": ["updated"],
+				"fields": ["state"]
+			},
+			"when": "row.state == \"FULFILLED\" && row.duty_code == \"PVD_REMITTANCE\"\n&&has(row.fulfilled_on)\n&&row.fulfilled_on != null\n&&row.fulfilled_on > row.due_on",
+			"due": "row.fulfilled_on"
+		}
+	},
+	{
+		"id": "0fc99405-3de0-5133-a795-593a8a18b847",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "SSO_LATE_SURCHARGE",
+		"name": "Pay the SSO late-remittance surcharge",
+		"order": 633,
+		"references": [
+			{
+				"title": "Social Security Act B.E. 2533 s.49 para 1 (as amended by No. 4 B.E. 2558): a contribution not remitted, or short, by the s.47 day bears a surcharge of 2% a month of the unremitted amount from the day after it was due, at most the contribution itself; para 2: a contribution the employer failed to deduct is still the employer's to remit with the surcharge. Raised when the remittance is recorded paid after its due day; the surcharge is paid with it.",
+				"url": "https://www.sso.go.th/wpr/download/download_by_pool_file/47435"
+			}
+		],
+		"target_collection": "obligation",
+		"events": ["updated"],
+		"definition": {
+			"description": "Pay the SSO late-remittance surcharge.",
+			"trigger": {
+				"collection": "obligation",
+				"events": ["updated"],
+				"fields": ["state"]
+			},
+			"when": "row.state == \"FULFILLED\"\n&&row.duty_code == \"SSO_CONTRIBUTION_REMITTANCE\"\n&&has(row.fulfilled_on)\n&&row.fulfilled_on != null\n&&row.fulfilled_on > row.due_on",
+			"due": "row.fulfilled_on"
+		}
+	},
+	{
+		"id": "5d9dde09-1b79-56ee-90f1-e8e2730b7444",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "PND1_LATE_SURCHARGE",
+		"name": "Pay the PND1 late-payment surcharge",
+		"order": 634,
+		"references": [
+			{
+				"title": "Revenue Code s.27: tax not paid or remitted in time bears a surcharge of 1.5% a month or part of a month of the tax, from the day after the deadline to the payment day, at most the tax (0.75% within an extension). Raised when the PND1 remittance is recorded paid after its due day.",
+				"url": "https://www.rd.go.th/english/37745.html"
+			}
+		],
+		"target_collection": "obligation",
+		"events": ["updated"],
+		"definition": {
+			"description": "Pay the PND1 late-payment surcharge.",
+			"trigger": {
+				"collection": "obligation",
+				"events": ["updated"],
+				"fields": ["state"]
+			},
+			"when": "row.state == \"FULFILLED\" && row.duty_code == \"PND1_FILING\"\n&&has(row.fulfilled_on)\n&&row.fulfilled_on != null\n&&row.fulfilled_on > row.due_on",
+			"due": "row.fulfilled_on"
+		}
+	},
+	{
+		"id": "115dd89b-4bb4-5cb2-8c69-c97de2783456",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "EWF_LATE_SURCHARGE",
+		"name": "Pay the Employee Welfare Fund late-remittance surcharge",
+		"order": 635,
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s.131 para 3: cumulative money or counterpart money not remitted in full in time bears a surcharge of 5% a month of the unremitted amount; a remaining part-month of 15 days or more counts as a month, less is not counted; the employer may not plead a failure to deduct. Raised when the remittance is recorded paid after its due day. Office of the Council of State English translation.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"target_collection": "obligation",
+		"events": ["updated"],
+		"definition": {
+			"description": "Pay the Employee Welfare Fund late-remittance surcharge.",
+			"trigger": {
+				"collection": "obligation",
+				"events": ["updated"],
+				"fields": ["state"]
+			},
+			"when": "row.state == \"FULFILLED\" && row.duty_code == \"EWF_REMITTANCE\"\n&&has(row.fulfilled_on)\n&&row.fulfilled_on != null\n&&row.fulfilled_on > row.due_on",
+			"due": "row.fulfilled_on"
+		}
+	},
+	{
+		"id": "2bf52762-b8b7-50ef-ab28-5a6ab5974a16",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "WCF_INSTALMENT_DEPOSIT",
+		"name": "Deposit 25% of the year's WCF contribution (instalment payer)",
+		"order": 636,
+		"references": [
+			{
+				"title": "Ministry of Labour notification of 21 February 2019 cl.16-17: an employer allowed to pay the WCF contribution by instalments (entity fact wcf_instalments, the SSO's approval) deposits 25% of the estimated year's contribution within January.",
+				"url": "https://www.sso.go.th/wpr/download/download_by_pool_file/14479"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Deposit 25% of the year's WCF contribution (instalment payer).",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["01"],
+			"applies_when": "(has(company.facts.wcf_instalments) && company.facts.wcf_instalments)",
+			"due": "month_end(period.from)"
+		}
+	},
+	{
+		"id": "1a5c65fe-434e-528c-a0b1-b4519a19bf41",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "WCF_INSTALMENT",
+		"name": "Pay the quarter's WCF instalment and report its wages",
+		"order": 637,
+		"references": [
+			{
+				"title": "Ministry of Labour notification of 21 February 2019 cl.18: the instalment payer pays in four instalments a year, each within the month after its quarter ends, reporting the quarter's total wages.",
+				"url": "https://www.sso.go.th/wpr/download/download_by_pool_file/14479"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Pay the quarter's WCF instalment and report its wages.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["01", "04", "07", "10"],
+			"applies_when": "(has(company.facts.wcf_instalments) && company.facts.wcf_instalments)",
+			"due": "month_end(period.from)"
+		}
+	},
+	{
+		"id": "b61c8c26-6fc4-59ee-9814-5a77910daab4",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "WCF_LATE_SURCHARGE",
+		"name": "WCF_LATE_SURCHARGE",
+		"order": 638,
+		"references": [
+			{
+				"title": "Workmen’s Compensation Act B.E. 2537 s.46 para 1 (as amended by No. 2 B.E. 2561), Office of the Council of State translation published by the SSO",
+				"url": "https://www.sso.go.th/wpr/download/download_by_pool_file/47436"
+			}
+		],
+		"target_collection": "regulatory_task",
+		"events": ["updated"],
+		"definition": {
+			"description": "Pay the Workmen’s Compensation Fund late-payment surcharge: 2% a month of the contribution not remitted, or short, from the day after its due day, at most the contribution itself. Raised when a WCF contribution task (the annual or additional contribution, the instalment deposit or an instalment) is marked done after its due day; the surcharge is paid with it.",
+			"trigger": {
+				"collection": "regulatory_task",
+				"events": ["updated"],
+				"fields": ["state", "done_on"]
+			},
+			"when": "row.state == \"DONE\"\n&&row.code\nin [\n  \"WCF_ANNUAL_CONTRIBUTION\",\n  \"WCF_ADDITIONAL_CONTRIBUTION\",\n  \"WCF_INSTALMENT_DEPOSIT\",\n  \"WCF_INSTALMENT\"\n]\n&&has(row.done_on)\n&&row.done_on != null\n&&row.done_on > row.due_on",
+			"due": "row.done_on"
+		}
+	},
+	{
+		"id": "cd415f0e-76eb-509a-ab4b-5eb5ea37958c",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "PDPA_PRIVACY_NOTICE",
+		"name": "PDPA_PRIVACY_NOTICE",
+		"order": 639,
+		"references": [
+			{
+				"title": "PDPA s.23 (Personal Data Protection Act B.E. 2562 (Government Gazette vol.136 part 69 Gor, 27 May 2019), unofficial English translation)",
+				"url": "https://cc.kmutt.ac.th/Files/Act%20Eng/personal-data-protection-act-2019-en.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Tell the new employee, before or when collecting their personal data, the purposes and lawful bases, what is collected and for how long it is kept, who it may be disclosed to, the controller's (and any DPO's) contact details and their rights.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "f4f49e19-4e0d-5aeb-84bd-90c0fec62f9b",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "PDPA_SENSITIVE_DATA_CONSENT",
+		"name": "PDPA_SENSITIVE_DATA_CONSENT",
+		"order": 640,
+		"references": [
+			{
+				"title": "PDPA s.26 (Personal Data Protection Act B.E. 2562 (Government Gazette vol.136 part 69 Gor, 27 May 2019), unofficial English translation)",
+				"url": "https://cc.kmutt.ac.th/Files/Act%20Eng/personal-data-protection-act-2019-en.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Obtain the employee's explicit consent before collecting sensitive personal data — health (medical certificates), biometric data (face or fingerprint attendance), criminal records, religion, disability, trade union membership — unless a s.26 exception applies (e.g. occupational medicine or the assessment of working capacity required by law).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "8d1e67f1-d536-56da-8201-f5c4e8eece93",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "PDPA_BREACH_NOTICE",
+		"name": "PDPA_BREACH_NOTICE",
+		"order": 641,
+		"references": [
+			{
+				"title": "PDPA s.37(4) (Personal Data Protection Act B.E. 2562 (Government Gazette vol.136 part 69 Gor, 27 May 2019), unofficial English translation)",
+				"url": "https://cc.kmutt.ac.th/Files/Act%20Eng/personal-data-protection-act-2019-en.pdf"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "Notify the PDPC Office of a personal data breach without delay and, where feasible, within 72 hours of becoming aware of it (unless it is unlikely to risk the persons' rights and freedoms); where the risk is high, notify the data subjects and the remedies without delay too. Raised when a PERSONAL_DATA_BREACH case is opened on the day of discovery; due three days later.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind == \"PERSONAL_DATA_BREACH\"",
+			"due": "add_days(row.opened_on, 3)"
+		}
+	},
+	{
+		"id": "9380e2c3-73d0-5f77-a177-64c033f53394",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "PDPA_CROSS_BORDER_TRANSFER",
+		"name": "PDPA_CROSS_BORDER_TRANSFER",
+		"order": 642,
+		"references": [
+			{
+				"title": "PDPA ss.28–29 (Personal Data Protection Act B.E. 2562 (Government Gazette vol.136 part 69 Gor, 27 May 2019), unofficial English translation)",
+				"url": "https://cc.kmutt.ac.th/Files/Act%20Eng/personal-data-protection-act-2019-en.pdf"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "Before sending or transferring personal data abroad (a foreign parent, a cloud or payroll provider), confirm the destination has adequate protection under the PDPC's rules, or that a s.28 exception applies (consent after being told of the inadequacy, a contract with the employee, compliance with law), or that a s.29 group policy covers it. Raised when a PERSONAL_DATA_TRANSFER_ABROAD case is opened; due that day.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind == \"PERSONAL_DATA_TRANSFER_ABROAD\"",
+			"due": "row.opened_on"
+		}
+	},
+	{
+		"id": "33de0bed-5415-57b8-af09-027ec60e2d79",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "PDPA_PROCESSING_RECORDS",
+		"name": "PDPA_PROCESSING_RECORDS",
+		"order": 643,
+		"references": [
+			{
+				"title": "PDPA s.39 (Personal Data Protection Act B.E. 2562 (Government Gazette vol.136 part 69 Gor, 27 May 2019), unofficial English translation)",
+				"url": "https://cc.kmutt.ac.th/Files/Act%20Eng/personal-data-protection-act-2019-en.pdf"
+			}
+		],
+		"target_collection": "entity",
+		"events": ["created"],
+		"definition": {
+			"description": "Keep the record of processing — the personal data collected, the purpose of each category, the controller's details, the retention period, access rights and conditions, s.27 uses or disclosures, refused requests and the security measures — in writing or electronically, for the data subjects and the Office to check. Raised when the entity is created.",
+			"trigger": {
+				"collection": "entity",
+				"events": ["created"]
+			},
+			"due": "today"
+		}
+	},
+	{
+		"id": "b885f271-80d8-5685-8ac1-d979a92090c7",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "PERSONAL_DATA_DISPOSAL",
+		"name": "PERSONAL_DATA_DISPOSAL",
+		"order": 644,
+		"references": [
+			{
+				"title": "PDPA s.37(3) (Personal Data Protection Act B.E. 2562 (Government Gazette vol.136 part 69 Gor, 27 May 2019), unofficial English translation); Accounting Act B.E. 2543 s.14",
+				"url": "https://cc.kmutt.ac.th/Files/Act%20Eng/personal-data-protection-act-2019-en.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Erase or destroy a former employee's personal data when its retention period ends, unless keeping it is needed to establish or defend legal claims or to comply with the law. Raised on the exit; due when the retention ends (five years after the exit year ends).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null\n&&contract.effective_range.to != null",
+			"due": "add_years(exit_on.substring(0, 4) + \"-12-31\", 5)"
+		}
+	},
+	{
+		"id": "9bb3b2a1-c9fd-583e-8564-9326fc369c17",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "SKILL_DEVELOPMENT_LATE_SURCHARGE",
+		"name": "SKILL_DEVELOPMENT_LATE_SURCHARGE",
+		"order": 645,
+		"references": [
+			{
+				"title": "Skill Development Promotion Act B.E. 2545 s.31, replaced by Act No. 2 B.E. 2557 section 10; Royal Gazette vol.131 Part87 Kor, 26 December 2014, p.24 (PDF p.6), Department of Skill Development official copy:",
+				"url": "https://sdfund.dsd.go.th/Content/Detail/6?content_type=act"
+			}
+		],
+		"target_collection": "obligation",
+		"events": ["updated"],
+		"definition": {
+			"description": "Pay the Skill Development Fund surcharge on a contribution paid after March: 1.5% a month of the amount unpaid or short, a remaining part-month of 15 days or more counting as a month. Raised when the year's contribution is recorded paid after its due day; the surcharge is paid with it.",
+			"trigger": {
+				"collection": "obligation",
+				"events": ["updated"],
+				"fields": ["state"]
+			},
+			"when": "row.state == \"FULFILLED\"\n&&row.duty_code == \"SKILL_DEVELOPMENT_FUND_PAYMENT\"\n&&has(row.fulfilled_on)\n&&row.fulfilled_on != null\n&&row.fulfilled_on > row.due_on",
+			"due": "row.fulfilled_on"
+		}
+	},
+	{
+		"id": "85fcd390-ac86-505b-96a6-066235d0bb9f",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "DISABILITY_FUND_LATE_INTEREST",
+		"name": "Pay interest on a late Empowerment of Persons with Disabilities Fund contribution",
+		"order": 646,
+		"references": [
+			{
+				"title": "Persons with Disabilities Empowerment Act B.E. 2550 s.34 para 2: an employer who must pay the fund but does not pay, pays late or pays short \"ให้เสียดอกเบี้ยในอัตราร้อยละเจ็ดครึ่งต่อปี\" of the amount not yet paid in; Ministerial Regulation B.E. 2554 cl.5 para 2 as amended by No. 2 B.E. 2560: payment by 31 March each year. Office of the Council of State consolidated texts https://www.ocs.go.th/searchlaw/law-index/item/6494 and https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZDlTeDI5VEFDSGt3NkEzTXp4T0ludz09, read 2026-10-08."
+			}
+		],
+		"target_collection": "regulatory_task",
+		"events": ["updated"],
+		"definition": {
+			"description": "Pay interest at 7.5% a year on the fund contribution not paid, paid late or paid short, on the unpaid amount from the day after its 31 March due day to the day paid. Raised when the disability quota duty (met by paying the fund) is marked done after its due day; the interest is paid with it.",
+			"trigger": {
+				"collection": "regulatory_task",
+				"events": ["updated"],
+				"fields": ["state", "done_on"]
+			},
+			"when": "row.state == \"DONE\" && row.code == \"DISABLED_EMPLOYMENT_QUOTA\"\n&&has(row.done_on)\n&&row.done_on != null\n&&row.done_on > row.due_on",
+			"due": "row.done_on"
+		}
+	},
+	{
+		"id": "3bdab792-49c4-5892-a07f-6e293ed0e30a",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "RELOCATION_POSTED_NOTICE",
+		"name": "Post the workplace relocation notice",
+		"order": 647,
+		"references": [
+			{
+				"title": "Labour Protection Act as amended by Act No. 7 B.E. 2562, s.120 paragraph 1; Royal Gazette volume 136 part 43 Kor, 5 April 2019, Ministry of Labour copy.",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "Post a visible notice identifying affected employees, the new workplace and relocation date for at least 30 consecutive days before relocation. Record facts.relocation_on. If it is missing, this task is due immediately to establish the date; that fallback is a verification deadline.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind == \"WORKPLACE_RELOCATION\"",
+			"due": "has(row.facts.relocation_on) && row.facts.relocation_on != null\n&&row.facts.relocation_on != \"\"\n  ?add_days(row.facts.relocation_on, -30)\n  :row.opened_on"
+		}
+	},
+	{
+		"id": "c649d3ae-da0a-5f12-a72e-c46e60628dc4",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "RELOCATION_SPECIAL_PAYMENT",
+		"name": "Assess and pay relocation special compensation",
+		"order": 648,
+		"references": [
+			{
+				"title": "Labour Protection Act as amended by Act No. 7 B.E. 2562, s.120 paragraphs 2-4; Royal Gazette volume 136 part 43 Kor, 5 April 2019, Ministry of Labour copy.",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "Verify the employee’s written refusal within 30 days of the posted notice (or relocation if no notice) and substantial impact on ordinary family life. Employment ends on relocation; pay eligible special severance at least at the s.118 rate, and 30 days final wage in lieu where notice was not posted. Both payments are due within seven days of termination. Record facts.relocation_on; if missing, this task is due immediately to establish the date.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind == \"RELOCATION_EMPLOYEE_REFUSAL\"",
+			"due": "has(row.facts.relocation_on) && row.facts.relocation_on != null\n&&row.facts.relocation_on != \"\"\n  ?add_days(row.facts.relocation_on, 7)\n  :row.opened_on"
+		}
+	},
+	{
+		"id": "3fcd07c3-8aed-5603-b559-cb7f03cdd457",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "RELOCATION_BOARD_PETITION",
+		"name": "Petition the Labour Welfare Committee on disputed relocation refusal",
+		"order": 649,
+		"references": [
+			{
+				"title": "Labour Protection Act as amended by Act No. 7 B.E. 2562, s.120 paragraph 5; Royal Gazette volume 136 part 43 Kor, 5 April 2019, Ministry of Labour copy.",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "If disputing the employee’s stated reasons, petition the Labour Welfare Committee within 30 days after receipt of the employee’s written notification. Open this case on that receipt date.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind == \"RELOCATION_EMPLOYER_OBJECTION\"",
+			"due": "add_days(row.opened_on, 30)"
+		}
+	},
+	{
+		"id": "c4712e62-8473-5f9b-a665-19ffca340a1c",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "RELOCATION_BOARD_ORDER_RESPONSE",
+		"name": "Pay relocation compensation ordered or lodge the court challenge",
+		"order": 650,
+		"references": [
+			{
+				"title": "Labour Protection Act as amended by Act No. 7 B.E. 2562, s.120/1 paragraphs 1 and 4; Royal Gazette volume 136 part 43 Kor, 5 April 2019, Ministry of Labour copy.",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "Pay the compensation ordered within 30 days after learning the Labour Welfare Committee order, or lodge a court challenge within that period. An employer bringing the case must first lodge court security equal to the ordered payment. Open this case on the date the employer learns the order.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind == \"RELOCATION_BOARD_ORDER\"",
+			"due": "add_days(row.opened_on, 30)"
+		}
+	},
+	{
+		"id": "63249c5a-8964-5416-b143-4d8565b0b59a",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "EWF_WELFARE_ACCOUNT_DISCLOSURE",
+		"name": "Disclose the equivalent-welfare bank account",
+		"order": 651,
+		"references": [
+			{
+				"title": "Ministerial Regulation prescribing employee welfare on termination or death B.E. 2567, clause 5; Royal Gazette vol.141 part 71 Kor, 22 November 2024, pp.85–87. Council of State official copy:. Commencement deferred to 1 October 2026 by Regulation No. 2 B.E. 2568, Royal Gazette vol.142 part 60 Kor, 15 September 2025.",
+				"url": "https://www.ocs.go.th/searchlaw/law-index/item/13230"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "Open on the first employee withholding under an equivalent-welfare arrangement. Disclose the bank or financial institution, employee account name and account number within seven days. This case identifies the qualifying equivalent-welfare arrangement; it does not establish a company-wide exemption merely because a provident fund is offered.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind == \"EQUIVALENT_WELFARE_FIRST_WITHHOLDING\"\n&&row.opened_on >= \"2026-10-01\"",
+			"due": "add_days(row.opened_on, 7)"
+		}
+	},
+	{
+		"id": "48afdcad-4c3a-51c4-915a-f27ac6023500",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "EWF_WELFARE_ACCOUNT_INSPECTION",
+		"name": "Respond to an equivalent-welfare account inspection request",
+		"order": 652,
+		"references": [
+			{
+				"title": "Ministerial Regulation prescribing employee welfare on termination or death B.E. 2567, clause 6; Royal Gazette vol.141 part 71 Kor, 22 November 2024, pp.85–87. Council of State official copy:. Commencement deferred to 1 October 2026 by Regulation No. 2 B.E. 2568, Royal Gazette vol.142 part 60 Kor, 15 September 2025.",
+				"url": "https://www.ocs.go.th/searchlaw/law-index/item/13230"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "Open on receipt of the employee’s account inspection request. Provide access through the inspection system or supply the account statement and supporting documents within fifteen days. This case identifies the qualifying equivalent-welfare arrangement; it does not establish a company-wide exemption merely because a provident fund is offered.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind == \"EQUIVALENT_WELFARE_INSPECTION_REQUEST\"\n&&row.opened_on >= \"2026-10-01\"",
+			"due": "add_days(row.opened_on, 15)"
+		}
+	},
+	{
+		"id": "58a2c5ad-782c-5e3d-a72e-7c43c66d6fa7",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "EWF_WELFARE_ACCOUNT_RETURN",
+		"name": "Return the equivalent-welfare account and exit certificate",
+		"order": 653,
+		"references": [
+			{
+				"title": "Ministerial Regulation prescribing employee welfare on termination or death B.E. 2567, clause 7; Royal Gazette vol.141 part 71 Kor, 22 November 2024, pp.85–87. Council of State official copy:. Commencement deferred to 1 October 2026 by Regulation No. 2 B.E. 2568, Royal Gazette vol.142 part 60 Kor, 15 September 2025.",
+				"url": "https://www.ocs.go.th/searchlaw/law-index/item/13230"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "Open on the actual employment end date, whether dismissal, resignation, retirement or agreed termination. Return the employee account and issue the employment-end certificate within thirty days. This case identifies the qualifying equivalent-welfare arrangement; it does not establish a company-wide exemption merely because a provident fund is offered.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind == \"EQUIVALENT_WELFARE_EMPLOYMENT_END\"\n&&row.opened_on >= \"2026-10-01\"",
+			"due": "add_days(row.opened_on, 30)"
+		}
+	},
+	{
+		"id": "18ef0f78-aeee-5c07-881d-a52a8cebe36d",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "EWF_WELFARE_SETUP_VERIFICATION",
+		"name": "Verify the equivalent-welfare arrangement",
+		"order": 654,
+		"references": [
+			{
+				"title": "Ministerial Regulation prescribing employee welfare on termination or death B.E. 2567, clauses 2–4; Royal Gazette vol.141 part 71 Kor, 22 November 2024, pp.85–87. Council of State official copy:. Commencement deferred to 1 October 2026 by Regulation No. 2 B.E. 2568, Royal Gazette vol.142 part 60 Kor, 15 September 2025.",
+				"url": "https://www.ocs.go.th/searchlaw/law-index/item/13230"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "Verify the written welfare terms covering employee and employer rates, collection, inspection, account returns, exit/death payment periods and beneficiary designation. Terms must not unreasonably restrict employee entitlement. Employee deductions and employer contributions are required at each wage payment, at rates no lower than provident-fund requirements. Deposit the funds in the individual employee-named account at a commercial bank or financial institution; withdrawal requires the employment-end certificate or proof of death or court-declared disappearance. Record evidence before relying on equivalent welfare for an EWF exemption. Open this case when establishing or reviewing that arrangement. The case date is an internal verification due date; these clauses prescribe ongoing conditions, not a numeric filing deadline.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind == \"EQUIVALENT_WELFARE_SETUP\" && row.opened_on >= \"2026-10-01\"",
+			"due": "row.opened_on"
+		}
+	},
+	{
+		"id": "9df153d0-5cbf-554d-9d0e-d21df58a8c21",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "EWF_WELFARE_BENEFICIARY_WITHDRAWAL",
+		"name": "Facilitate an equivalent-welfare beneficiary withdrawal",
+		"order": 655,
+		"references": [
+			{
+				"title": "Ministerial Regulation prescribing employee welfare on termination or death B.E. 2567, clauses 8; Royal Gazette vol.141 part 71 Kor, 22 November 2024, pp.85–87. Council of State official copy:. Commencement deferred to 1 October 2026 by Regulation No. 2 B.E. 2568, Royal Gazette vol.142 part 60 Kor, 15 September 2025.",
+				"url": "https://www.ocs.go.th/searchlaw/law-index/item/13230"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "On a beneficiary request following death or court-declared disappearance, facilitate withdrawal from the individual employee account. Verify the death or court declaration and the beneficiary designated in the employee’s will or written instruction, or the heirs where no beneficiary is designated. Open the case on receipt of the request. The case date is an operational response due date; clause 8 requires assistance upon request and does not prescribe a numeric number of days.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind == \"EQUIVALENT_WELFARE_BENEFICIARY_REQUEST\"\n&&row.opened_on >= \"2026-10-01\"",
+			"due": "row.opened_on"
+		}
+	},
+	{
+		"id": "3898f24e-9861-55aa-b2ee-83be26ef311b",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "write-public-holidays",
+		"order": 700,
+		"target_collection": "entity",
+		"events": ["created", "calendar"],
+		"when": "true",
+		"reads": {
+			"calendar": {
+				"collection": "rule_set",
+				"where": {
+					"settings_id": {
+						"eq": "event.settings_id"
+					},
+					"family": {
+						"eq": "\"PARAMETERS\""
+					},
+					"code": {
+						"eq": "\"public_holidays\""
+					}
+				},
+				"select": ["rules"]
+			},
+			"held": {
+				"collection": "holiday",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					}
+				},
+				"select": ["date"]
+			}
+		},
+		"effect": "calendar.exists(c, has(c.rules.holidays))\n  ?first(calendar).rules.holidays.filter(\n    h,\n    (!has(h.regions) || event.row.region in h.regions)\n    &&!held.exists(x, x.date == h.date)\n  ).map(\n    h,\n    {\n      \"collection\": \"holiday\",\n      \"operation\": \"create\",\n      \"data\": {\n        \"company_id\": event.company_id,\n        \"date\": h.date,\n        \"name\": h.name,\n        \"kind\": has(h.kind) ? h.kind : \"PUBLIC_HOLIDAY\",\n        \"replaces\": has(h.replaces) ? h.replaces : null,\n        \"given_to\": has(h.given_to) ? h.given_to : \"EVERYONE\"\n      }\n    }\n  )\n  :[]"
+	},
+	{
+		"id": "0bb13764-a056-5c04-b9da-7941b6b61793",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "obligation-program",
+		"name": "Every obligation row's program",
+		"order": 401,
+		"events": [],
+		"when": "true",
+		"fields": ["period", "company_id", "pay_date"],
+		"reads": {
+			"company": {
+				"collection": "entity",
+				"where": {
+					"id": {
+						"eq": "event.company_id"
+					}
+				},
+				"select": ["name", "region", "risk_class", "time_zone", "facts"]
+			},
+			"holidays": {
+				"collection": "holiday",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					},
+					"published_at": {
+						"isNull": false
+					},
+					"date": {
+						"gte": "add_days(event.day, -31)",
+						"lte": "add_days(event.day, 400)"
+					}
+				},
+				"select": ["date", "name", "kind"]
+			},
+			"raised": {
+				"collection": "obligation",
+				"where": {
+					"trigger_ref": {
+						"eq": "event.row.id"
+					}
+				},
+				"select": ["duty_code"]
+			}
+		},
+		"effect": "[\n  {\n    \"code\": behaviour.code,\n    \"name\": behaviour.name,\n    \"references\": behaviour.references,\n    \"rules\": behaviour.definition\n  }\n].filter(\n  d,\n  (!has(d.rules.months)\n  ||d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m)))\n  && (!has(d.rules.applies_when)\n  ||configured_eval(\n    d.rules.applies_when,\n    {\n      \"period\": {\n        \"key\": event.period.key,\n        \"from\": event.period.from,\n        \"to\": event.period.to,\n        \"pay_date\": has(event.row.pay_date)\n        &&event.row.pay_date != null\n        &&event.row.pay_date != \"\"\n          ?event.row.pay_date\n          :event.period.to\n      },\n      \"rules\": event.rules,\n      \"company\": first(company),\n      \"run\": run,\n      \"holidays\": holidays.map(h, h.date),\n      \"holidays_named\": holidays.filter(\n        h,\n        h.date >= event.day && h.date <= add_months(event.day, 12)\n      ).map(\n        h,\n        {\n          \"date\": h.date,\n          \"name\": has(h.name) ? h.name : \"\",\n          \"kind\": h.kind\n        }\n      )\n    }\n  )\n  ==true)\n  &&!raised.exists(o, o.duty_code == d.code)\n).map(\n  d,\n  {\n    \"collection\": \"obligation\",\n    \"operation\": \"create\",\n    \"data\": {\n      \"duty_code\": d.code,\n      \"references\": d.references,\n      \"company_id\": event.company_id,\n      \"settings_id\": event.settings_id,\n      \"trigger_ref\": event.row.id,\n      \"triggered_on\": event.day,\n      \"due_on\": configured_eval(\n        d.rules.due,\n        {\n          \"period\": {\n            \"key\": event.period.key,\n            \"from\": event.period.from,\n            \"to\": event.period.to,\n            \"pay_date\": has(event.row.pay_date)\n            &&event.row.pay_date != null\n            &&event.row.pay_date != \"\"\n              ?event.row.pay_date\n              :event.period.to\n          },\n          \"rules\": event.rules,\n          \"company\": first(company),\n          \"run\": run,\n          \"holidays\": holidays.map(h, h.date),\n          \"holidays_named\": holidays.filter(\n            h,\n            h.date >= event.day && h.date <= add_months(event.day, 12)\n          ).map(\n            h,\n            {\n              \"date\": h.date,\n              \"name\": has(h.name) ? h.name : \"\",\n              \"kind\": h.kind\n            }\n          )\n        }\n      ),\n      \"amount_due\": has(d.rules.amount)\n        ?configured_eval(\n          d.rules.amount,\n          {\n            \"rules\": event.rules,\n            \"total\": sum(\n              d.rules.schemes.map(\n                s,\n                s in run.totals.schemes\n                  ?run.totals.schemes[s].employee\n                  +run.totals.schemes[s].employer\n                  :0.0\n              )\n            ),\n            \"run\": run,\n            \"period\": {\n              \"key\": event.period.key,\n              \"from\": event.period.from,\n              \"to\": event.period.to,\n              \"pay_date\": has(event.row.pay_date)\n              &&event.row.pay_date != null\n              &&event.row.pay_date != \"\"\n                ?event.row.pay_date\n                :event.period.to\n            },\n            \"company\": first(company),\n            \"headcount_months\": event.headcount_months\n          }\n        )\n        :round(\n          sum(\n            d.rules.schemes.map(\n              s,\n              s in run.totals.schemes\n                ?run.totals.schemes[s].employee\n                +run.totals.schemes[s].employer\n                :0.0\n            )\n          ),\n          0.01\n        ),\n      \"occurrence_key\": d.code + \":\" + event.row.id\n    }\n  }\n).filter(\n  w,\n  w.data.amount_due > 0.0\n)"
+	},
+	{
+		"id": "90f44011-1f16-5092-81cf-41436c89631b",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"code": "task-program",
+		"name": "Every task row's program",
+		"order": 601,
+		"events": [],
+		"when": "true",
+		"fields": [
+			"period",
+			"company_id",
+			"employment_id",
+			"status",
+			"employee_id",
+			"effective_range",
+			"facts"
+		],
+		"reads": {
+			"company": {
+				"collection": "entity",
+				"where": {
+					"id": {
+						"eq": "event.company_id"
+					}
+				},
+				"select": ["name", "region", "risk_class", "time_zone", "registration_number", "facts"]
+			},
+			"contract": {
+				"collection": "employment_contract",
+				"where": {
+					"id": {
+						"in": "(event.employment_id == null ? [] : [event.employment_id])"
+					}
+				},
+				"select": [
+					"id",
+					"company_id",
+					"employee_id",
+					"effective_range",
+					"prior_service_months",
+					"engagement",
+					"exit_ground",
+					"exit_facts",
+					"facts"
+				]
+			},
+			"employee": {
+				"collection": "employment_profile",
+				"where": {
+					"id": {
+						"in": "(event.employee_id == null ? [] : [event.employee_id])"
+					}
+				},
+				"select": ["nationality", "gender", "date_of_birth", "marital_status", "children", "facts"]
+			},
+			"holidays": {
+				"collection": "holiday",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					},
+					"published_at": {
+						"isNull": false
+					},
+					"date": {
+						"gte": "add_days(event.day, -31)",
+						"lte": "add_days(event.day, 400)"
+					}
+				},
+				"select": ["date", "name", "kind"]
+			},
+			"raised": {
+				"collection": "regulatory_task",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					},
+					"triggered_on": {
+						"gte": "add_days(event.day, -400)"
+					}
+				},
+				"select": ["occurrence_key"]
+			},
+			"subject_tasks": {
+				"collection": "regulatory_task",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					},
+					"subject_id": {
+						"eq": "event.row.id"
+					}
+				},
+				"select": ["occurrence_key"]
+			}
+		},
+		"effect": "[\n  {\n    \"code\": behaviour.code,\n    \"name\": behaviour.name,\n    \"references\": behaviour.references,\n    \"rules\": behaviour.definition\n  }\n].filter(\n  d,\n  has(d.rules.trigger) && d.rules.trigger.collection == event.collection\n  &&event.action in d.rules.trigger.events\n  && (!has(d.rules.months)\n  ||d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m)))\n  && (!has(d.rules.when)\n  ||configured_eval(\n    d.rules.when,\n    {\n      \"row\": event.row,\n      \"rules\": event.rules,\n      \"period\": event.period,\n      \"company\": first(company),\n      \"contract\": first(contract),\n      \"employee\": first(employee),\n      \"hired_on\": size(contract) > 0\n        ?first(contract).effective_range.from\n        :null,\n      \"exit_on\": size(contract) > 0\n        ?first(contract).effective_range.to\n        :null,\n      \"holidays\": holidays.map(h, h.date),\n      \"holidays_named\": holidays.filter(\n        h,\n        h.date >= event.day && h.date <= add_months(event.day, 12)\n      ).map(\n        h,\n        {\n          \"date\": h.date,\n          \"name\": has(h.name) ? h.name : \"\",\n          \"kind\": h.kind\n        }\n      ),\n      \"today\": event.day,\n      \"headcount\": event.headcount,\n      \"previous_year_headcount_months\": has(\n        event.previous_year_headcount_months\n      )\n        ?event.previous_year_headcount_months\n        :[],\n      \"separations\": event.separations,\n      \"headcount_by_worksite\": event.headcount_by_worksite,\n      \"headcount_permanent\": event.headcount_permanent,\n      \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite\n    }\n  )\n  ==true)\n  && (!has(d.rules.applies_when)\n  ||configured_eval(\n    d.rules.applies_when,\n    {\n      \"row\": event.row,\n      \"rules\": event.rules,\n      \"period\": event.period,\n      \"company\": first(company),\n      \"contract\": first(contract),\n      \"employee\": first(employee),\n      \"hired_on\": size(contract) > 0\n        ?first(contract).effective_range.from\n        :null,\n      \"exit_on\": size(contract) > 0\n        ?first(contract).effective_range.to\n        :null,\n      \"holidays\": holidays.map(h, h.date),\n      \"holidays_named\": holidays.filter(\n        h,\n        h.date >= event.day && h.date <= add_months(event.day, 12)\n      ).map(\n        h,\n        {\n          \"date\": h.date,\n          \"name\": has(h.name) ? h.name : \"\",\n          \"kind\": h.kind\n        }\n      ),\n      \"today\": event.day,\n      \"headcount\": event.headcount,\n      \"previous_year_headcount_months\": has(\n        event.previous_year_headcount_months\n      )\n        ?event.previous_year_headcount_months\n        :[],\n      \"separations\": event.separations,\n      \"headcount_by_worksite\": event.headcount_by_worksite,\n      \"headcount_permanent\": event.headcount_permanent,\n      \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite\n    }\n  )\n  ==true)\n  &&!(raised + subject_tasks).exists(\n    t,\n    t.occurrence_key\n    ==d.code + \":\" + event.company_id + \":\"\n    + (has(d.rules.occurrence)\n      ?string(\n        configured_eval(\n          d.rules.occurrence,\n          {\n            \"row\": event.row,\n            \"rules\": event.rules,\n            \"period\": event.period,\n            \"company\": first(company),\n            \"contract\": first(contract),\n            \"employee\": first(employee),\n            \"hired_on\": size(contract) > 0\n              ?first(contract).effective_range.from\n              :null,\n            \"exit_on\": size(contract) > 0\n              ?first(contract).effective_range.to\n              :null,\n            \"holidays\": holidays.map(h, h.date),\n            \"holidays_named\": holidays.filter(\n              h,\n              h.date >= event.day && h.date <= add_months(event.day, 12)\n            ).map(\n              h,\n              {\n                \"date\": h.date,\n                \"name\": has(h.name) ? h.name : \"\",\n                \"kind\": h.kind\n              }\n            ),\n            \"today\": event.day,\n            \"headcount\": event.headcount,\n            \"previous_year_headcount_months\": has(\n              event.previous_year_headcount_months\n            )\n              ?event.previous_year_headcount_months\n              :[],\n            \"separations\": event.separations,\n            \"headcount_by_worksite\": event.headcount_by_worksite,\n            \"headcount_permanent\": event.headcount_permanent,\n            \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite\n          }\n        )\n      )\n      :has(d.rules.repeat_key)\n        ?event.row.id + \":\"\n        +string(\n          configured_eval(\n            d.rules.repeat_key,\n            {\n              \"row\": event.row,\n              \"rules\": event.rules,\n              \"period\": event.period,\n              \"company\": first(company),\n              \"contract\": first(contract),\n              \"employee\": first(employee),\n              \"hired_on\": size(contract) > 0\n                ?first(contract).effective_range.from\n                :null,\n              \"exit_on\": size(contract) > 0\n                ?first(contract).effective_range.to\n                :null,\n              \"holidays\": holidays.map(h, h.date),\n              \"holidays_named\": holidays.filter(\n                h,\n                h.date >= event.day\n                &&h.date <= add_months(event.day, 12)\n              ).map(\n                h,\n                {\n                  \"date\": h.date,\n                  \"name\": has(h.name) ? h.name : \"\",\n                  \"kind\": h.kind\n                }\n              ),\n              \"today\": event.day,\n              \"headcount\": event.headcount,\n              \"previous_year_headcount_months\": has(\n                event.previous_year_headcount_months\n              )\n                ?event.previous_year_headcount_months\n                :[],\n              \"separations\": event.separations,\n              \"headcount_by_worksite\": event.headcount_by_worksite,\n              \"headcount_permanent\": event.headcount_permanent,\n              \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite\n            }\n          )\n        )\n        : (event.collection == \"payroll_run\"\n          ?event.row.period\n          :event.collection == \"calendar\"\n            ?event.row.id + \":\" + event.day\n            :event.row.id\n  ) ))\n).map(\n  d,\n  {\n    \"collection\": \"regulatory_task\",\n    \"operation\": \"create\",\n    \"data\": {\n      \"facts\": (event.collection in [\"employment_contract\", \"calendar\"]\n      &&has(event.row.exit_facts)\n      &&event.row.exit_facts != null\n      &&has(event.row.effective_range)\n      &&event.row.effective_range.to != null\n        ?{\n          \"exit_key\": string(event.row.effective_range.to) + \"/\"\n          + (has(event.row.exit_ground) && event.row.exit_ground != null\n            ?event.row.exit_ground\n            :\"\")\n        }\n        :{}),\n      \"code\": d.code,\n      \"title\": d.name,\n      \"references\": d.references,\n      \"subject_collection\": event.collection,\n      \"subject_id\": event.row.id,\n      \"company_id\": event.company_id,\n      \"settings_id\": event.settings_id,\n      \"trigger_ref\": event.row.id,\n      \"triggered_on\": event.day,\n      \"due_on\": configured_eval(\n        d.rules.due,\n        {\n          \"row\": event.row,\n          \"rules\": event.rules,\n          \"period\": event.period,\n          \"company\": first(company),\n          \"contract\": first(contract),\n          \"employee\": first(employee),\n          \"hired_on\": size(contract) > 0\n            ?first(contract).effective_range.from\n            :null,\n          \"exit_on\": size(contract) > 0\n            ?first(contract).effective_range.to\n            :null,\n          \"holidays\": holidays.map(h, h.date),\n          \"holidays_named\": holidays.filter(\n            h,\n            h.date >= event.day && h.date <= add_months(event.day, 12)\n          ).map(\n            h,\n            {\n              \"date\": h.date,\n              \"name\": has(h.name) ? h.name : \"\",\n              \"kind\": h.kind\n            }\n          ),\n          \"today\": event.day,\n          \"headcount\": event.headcount,\n          \"previous_year_headcount_months\": has(\n            event.previous_year_headcount_months\n          )\n            ?event.previous_year_headcount_months\n            :[],\n          \"separations\": event.separations,\n          \"headcount_by_worksite\": event.headcount_by_worksite,\n          \"headcount_permanent\": event.headcount_permanent,\n          \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite\n        }\n      ),\n      \"occurrence_key\": d.code + \":\" + event.company_id + \":\"\n      + (has(d.rules.occurrence)\n        ?string(\n          configured_eval(\n            d.rules.occurrence,\n            {\n              \"row\": event.row,\n              \"rules\": event.rules,\n              \"period\": event.period,\n              \"company\": first(company),\n              \"contract\": first(contract),\n              \"employee\": first(employee),\n              \"hired_on\": size(contract) > 0\n                ?first(contract).effective_range.from\n                :null,\n              \"exit_on\": size(contract) > 0\n                ?first(contract).effective_range.to\n                :null,\n              \"holidays\": holidays.map(h, h.date),\n              \"holidays_named\": holidays.filter(\n                h,\n                h.date >= event.day\n                &&h.date <= add_months(event.day, 12)\n              ).map(\n                h,\n                {\n                  \"date\": h.date,\n                  \"name\": has(h.name) ? h.name : \"\",\n                  \"kind\": h.kind\n                }\n              ),\n              \"today\": event.day,\n              \"headcount\": event.headcount,\n              \"previous_year_headcount_months\": has(\n                event.previous_year_headcount_months\n              )\n                ?event.previous_year_headcount_months\n                :[],\n              \"separations\": event.separations,\n              \"headcount_by_worksite\": event.headcount_by_worksite,\n              \"headcount_permanent\": event.headcount_permanent,\n              \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite\n            }\n          )\n        )\n        :has(d.rules.repeat_key)\n          ?event.row.id + \":\"\n          +string(\n            configured_eval(\n              d.rules.repeat_key,\n              {\n                \"row\": event.row,\n                \"rules\": event.rules,\n                \"period\": event.period,\n                \"company\": first(company),\n                \"contract\": first(contract),\n                \"employee\": first(employee),\n                \"hired_on\": size(contract) > 0\n                  ?first(contract).effective_range.from\n                  :null,\n                \"exit_on\": size(contract) > 0\n                  ?first(contract).effective_range.to\n                  :null,\n                \"holidays\": holidays.map(h, h.date),\n                \"holidays_named\": holidays.filter(\n                  h,\n                  h.date >= event.day\n                  &&h.date <= add_months(event.day, 12)\n                ).map(\n                  h,\n                  {\n                    \"date\": h.date,\n                    \"name\": has(h.name) ? h.name : \"\",\n                    \"kind\": h.kind\n                  }\n                ),\n                \"today\": event.day,\n                \"headcount\": event.headcount,\n                \"previous_year_headcount_months\": has(\n                  event.previous_year_headcount_months\n                )\n                  ?event.previous_year_headcount_months\n                  :[],\n                \"separations\": event.separations,\n                \"headcount_by_worksite\": event.headcount_by_worksite,\n                \"headcount_permanent\": event.headcount_permanent,\n                \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite\n              }\n            )\n          )\n          : (event.collection == \"payroll_run\"\n            ?event.row.period\n            :event.collection == \"calendar\"\n              ?event.row.id + \":\" + event.day\n              :event.row.id))\n    }\n  }\n)"
+	}
+]

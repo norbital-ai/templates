@@ -1,0 +1,1537 @@
+[
+	{
+		"id": "36e917e0-25bf-5213-9963-368bc49451bf",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "hold-payslips",
+		"order": 100,
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"when": "has(event.row.holds) && event.row.holds != null\n&&size(event.row.holds) > 0",
+		"fields": ["holds"],
+		"reads": {
+			"slips": {
+				"collection": "payslip",
+				"where": {
+					"payroll_run_id": {
+						"eq": "event.row.id"
+					},
+					"status": {
+						"eq": "\"DRAFT\""
+					}
+				},
+				"select": ["id", "employment_id"]
+			}
+		},
+		"effect": "event.row.holds.map(\n  h,\n  {\n    \"collection\": \"payslip\",\n    \"operation\": \"update\",\n    \"data\": {\n      \"target\": slips.filter(s, s.employment_id == h.employment_id).map(\n        s,\n        s.id\n      ),\n      \"set\": {\"status\": \"ON_HOLD\"}\n    }\n  }\n).filter(\n  w,\n  size(w.data.target) > 0\n)"
+	},
+	{
+		"id": "3dc42e43-8525-5d94-a79e-0bdad41498a0",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "retract-exit-effects",
+		"order": 200,
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"when": "has(event.row.before) && event.row.before != null\n&& (\"effective_range\" in event.row.before\n||\"exit_ground\" in event.row.before\n||\"exit_facts\" in event.row.before)",
+		"fields": ["before", "exit_facts", "exit_ground", "effective_range"],
+		"reads": {
+			"movements": {
+				"collection": "leave_catalog_entry",
+				"where": {
+					"employment_id": {
+						"eq": "event.row.id"
+					},
+					"payslip_id": {
+						"isNull": true
+					}
+				},
+				"select": ["reference"]
+			},
+			"tasks": {
+				"collection": "regulatory_task",
+				"where": {
+					"subject_id": {
+						"eq": "event.row.id"
+					},
+					"state": {
+						"eq": "\"OPEN\""
+					}
+				},
+				"select": ["occurrence_key", "facts"]
+			},
+			"exit_pay": {
+				"collection": "adhoc_catalog_entry",
+				"where": {
+					"employment_id": {
+						"eq": "event.row.id"
+					},
+					"payslip_id": {
+						"isNull": true
+					}
+				},
+				"select": ["facts"]
+			}
+		},
+		"effect": "movements.filter(\n  m,\n  m.reference != null\n  &&m.reference.startsWith(\"exit:\" + event.row.id + \":\")\n  &&!((event.row.exit_facts != null\n  &&event.row.effective_range.to != null\n    ?string(event.row.effective_range.to) + \"/\"\n    + (has(event.row.exit_ground) && event.row.exit_ground != null\n      ?event.row.exit_ground\n      :\"\")\n    :\"\")\n  !=\"\"\n  &&m.reference.endsWith(\n    \":\"\n    + (event.row.exit_facts != null\n    &&event.row.effective_range.to != null\n      ?string(event.row.effective_range.to) + \"/\"\n      + (has(event.row.exit_ground) && event.row.exit_ground != null\n        ?event.row.exit_ground\n        :\"\")\n      :\"\"\n  ) )\n) ).map(\n  m,\n  {\n    \"collection\": \"leave_catalog_entry\",\n    \"operation\": \"delete\",\n    \"data\": {\"target\": [m.id]}\n  }\n)\n+tasks.filter(\n  t,\n  t.facts != null && has(t.facts.exit_key)\n  &&t.facts.exit_key\n  != (event.row.exit_facts != null\n  &&event.row.effective_range.to != null\n    ?string(event.row.effective_range.to) + \"/\"\n    + (has(event.row.exit_ground) && event.row.exit_ground != null\n      ?event.row.exit_ground\n      :\"\")\n    :\"\"\n) ).map(\n  t,\n  {\n    \"collection\": \"regulatory_task\",\n    \"operation\": \"update\",\n    \"data\": {\n      \"target\": [t.id],\n      \"set\": {\n        \"state\": \"DISMISSED\",\n        \"dismiss_reason\": \"The exit it answered was changed on \"\n        +event.day\n        +\".\",\n        \"occurrence_key\": t.occurrence_key + \":withdrawn:\" + event.day\n      }\n    }\n  }\n)\n+exit_pay.filter(\n  e,\n  e.facts != null && has(e.facts.source)\n  &&string(e.facts.source).startsWith(\"exit:\" + event.row.id + \":\")\n  &&!((event.row.effective_range.to != null\n  &&has(event.row.exit_ground)\n  &&event.row.exit_ground != null\n  &&event.row.exit_ground != \"\"\n    ?string(event.row.effective_range.to) + \"/\" + event.row.exit_ground\n    :\"\")\n  !=\"\"\n  &&string(e.facts.source).endsWith(\n    \":\"\n    + (event.row.effective_range.to != null\n    &&has(event.row.exit_ground)\n    &&event.row.exit_ground != null\n    &&event.row.exit_ground != \"\"\n      ?string(event.row.effective_range.to) + \"/\"\n      +event.row.exit_ground\n      :\"\"\n  ) )\n) ).map(\n  e,\n  {\n    \"collection\": \"adhoc_catalog_entry\",\n    \"operation\": \"delete\",\n    \"data\": {\"target\": [e.id]}\n  }\n)"
+	},
+	{
+		"id": "cf00d901-4789-530d-9189-131ef1f3fe69",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "encash-leave-on-exit",
+		"order": 300,
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"when": "event.row.exit_facts != null && event.row.effective_range.to != null",
+		"fields": ["exit_facts", "effective_range"],
+		"reads": {
+			"catalogues": {
+				"collection": "leave_catalog",
+				"where": {
+					"settings_id": {
+						"eq": "event.settings_id"
+					},
+					"encash_on_exit": {
+						"eq": true
+					}
+				},
+				"select": ["id", "code", "unit", "entitlement"]
+			},
+			"movements": {
+				"collection": "leave_catalog_entry",
+				"where": {
+					"employment_id": {
+						"eq": "event.row.id"
+					}
+				},
+				"select": ["catalog_id", "activity", "days", "reference"]
+			}
+		},
+		"effect": "catalogues.filter(\n  c,\n  has(c.entitlement) && c.entitlement != null && has(c.entitlement.days)\n  &&!movements.exists(\n    m,\n    m.reference\n    ==\"exit:\" + event.row.id + \":\" + c.code + \":\"\n    +string(event.row.effective_range.to)\n    +\"/\"\n    + (has(event.row.exit_ground) && event.row.exit_ground != null\n      ?event.row.exit_ground\n      :\"\"\n  ) )\n).map(\n  c,\n  {\n    \"collection\": \"leave_catalog_entry\",\n    \"operation\": \"create\",\n    \"data\": {\n      \"catalog_id\": c.id,\n      \"employment_id\": event.row.id,\n      \"occurred_on\": event.row.effective_range.to,\n      \"activity\": \"ENCASHMENT\",\n      \"reference\": \"exit:\" + event.row.id + \":\" + c.code + \":\"\n      +string(event.row.effective_range.to)\n      +\"/\"\n      + (has(event.row.exit_ground) && event.row.exit_ground != null\n        ?event.row.exit_ground\n        :\"\"),\n      \"days\": max(\n        0.0,\n        sum(\n          event.leave_balances.filter(b, b.code == c.code).map(\n            b,\n            b.remaining\n          )\n        )\n      )\n    }\n  }\n).filter(\n  w,\n  w.data.days > 0\n)"
+	},
+	{
+		"id": "93c53dcc-fab4-55e7-94bb-4e4a56957541",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "BPJS_KETENAGAKERJAAN_REMITTANCE",
+		"name": "BPJS Ketenagakerjaan contributions (JHT, JKK, JKM, JP)",
+		"order": 401,
+		"references": [
+			{
+				"title": "PP 44/2015 arts.21–22(1) (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf); PP 46/2015 (JHT billed with them)"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Withhold the employee JHT and JP shares and pay them with the employer JHT, JKK, JKM and JP contributions of the wage month by the 15th of the following month; late payment carries a 2% fine per month late, borne by the employer. A 15th on a Saturday, Sunday or published holiday rolls to the next working day (PP 44/2015 art.21(3)).",
+			"schemes": ["JHT", "JP", "JKK", "JKM"],
+			"due": "next_working_day(\n  add_days(period.to, 15),\n  holidays,\n  [\"SATURDAY\", \"SUNDAY\"]\n)"
+		}
+	},
+	{
+		"id": "852c8d74-5d33-5668-9bd8-9ef33093698d",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "BPJS_KESEHATAN_REMITTANCE",
+		"name": "BPJS Kesehatan contribution",
+		"order": 402,
+		"references": [
+			{
+				"title": "Perpres 82/2018 arts.39(1), 42 as amended by Perpres 64/2020 and 59/2024",
+				"url": "https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Collect the worker's 1% (and any elected extra-member 1%) and pay it with the 4% employer contribution by the 10th of each month; unpaid by month end suspends cover from the 1st of the next month. A 10th on a Saturday, Sunday or published holiday rolls to the next working day (art.39(4)).",
+			"schemes": ["KESEHATAN"],
+			"due": "next_working_day(\n  add_days(period.from, 9),\n  holidays,\n  [\"SATURDAY\", \"SUNDAY\"]\n)"
+		}
+	},
+	{
+		"id": "77e13a81-7b2c-5e37-84c5-ef2dc0e44d3f",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "PPH21_PAYMENT",
+		"name": "PPh 21/26 deposit",
+		"order": 403,
+		"references": [
+			{
+				"title": "PMK 81/2024 art.94(2); PMK 105/2025 art.5(1)–(2), PMK 10/2025 art.5(1)–(2) (DTP paid in cash to the worker, not deposited)",
+				"url": "https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Deposit the PPh 21 and PPh 26 withheld in the tax period by the 15th of the following month, rolled to the next working day when that is a weekend or published holiday; PPh 21 borne by the government (PPH21_DTP, a negative charge) is reported, not deposited.",
+			"schemes": ["PPH21", "PPH21_DTP", "PPH21_FINAL_SEVERANCE", "PPH21_FINAL_PENSION", "PPH26"],
+			"due": "next_working_day(\n  add_days(period.to, 15),\n  holidays,\n  [\"SATURDAY\", \"SUNDAY\"]\n)"
+		}
+	},
+	{
+		"id": "8d87455d-b1e8-5a58-9ca6-d842f8d59747",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "DKPTKA_PAYMENT",
+		"name": "DKPTKA foreign-worker compensation fund",
+		"order": 404,
+		"references": [
+			{
+				"title": "PP 34/2021 arts.1 angka 7, 6–7; USD 100 per position per month, paid in advance (Kemnaker PNBP tariff, as PP 34/2021 applies it; secondary)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP342021.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Pay the DKPTKA, USD 100 per foreign worker per month, in advance: the month’s charge falls due on its first day.",
+			"schemes": ["DKPTKA"],
+			"due": "period.from"
+		}
+	},
+	{
+		"id": "8209af81-7ebf-583a-b706-7652121a5aa5",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "encash-leave-at-window-end",
+		"order": 500,
+		"target_collection": "calendar",
+		"events": ["daily"],
+		"when": "size(event.leave_balances) > 0",
+		"reads": {
+			"catalogues": {
+				"collection": "leave_catalog",
+				"where": {
+					"settings_id": {
+						"eq": "event.settings_id"
+					},
+					"encash_at_window_end": {
+						"eq": true
+					}
+				},
+				"select": ["id", "code"]
+			},
+			"movements": {
+				"collection": "leave_catalog_entry",
+				"where": {
+					"employment_id": {
+						"eq": "event.row.id"
+					},
+					"activity": {
+						"eq": "\"ENCASHMENT\""
+					}
+				},
+				"select": ["reference"]
+			}
+		},
+		"effect": "catalogues.filter(\n  c,\n  !movements.exists(\n    m,\n    m.reference\n    ==\"window:\" + event.row.id + \":\" + c.code + \":\" + event.day\n  )\n).map(\n  c,\n  {\n    \"collection\": \"leave_catalog_entry\",\n    \"operation\": \"create\",\n    \"data\": {\n      \"catalog_id\": c.id,\n      \"employment_id\": event.row.id,\n      \"occurred_on\": event.day,\n      \"activity\": \"ENCASHMENT\",\n      \"reference\": \"window:\" + event.row.id + \":\" + c.code + \":\"\n      +event.day,\n      \"days\": max(\n        0.0,\n        sum(\n          event.leave_balances.filter(\n            b,\n            b.code == c.code && b.window_to == event.day\n          ).map(\n            b,\n            b.remaining\n          )\n        )\n      )\n    }\n  }\n).filter(\n  w,\n  w.data.days > 0\n)"
+	},
+	{
+		"id": "c606b039-582b-5c69-96c2-423466e471ca",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "PPH21_SPT_MASA",
+		"name": "SPT Masa PPh 21/26",
+		"order": 601,
+		"references": [
+			{
+				"title": "UU KUP",
+				"locator": "art.3(3)(a) and art.7(1)"
+			},
+			{
+				"title": "PMK 81/2024"
+			},
+			{
+				"title": "PER-11/PJ/2025",
+				"url": "https://jdih.kemenkeu.go.id/dok/per-11pj2025"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "File the SPT Masa PPh 21/26 with the month's withholding slips (bukti potong) within 20 days after the tax period ends; late filing Rp100,000 per SPT Masa. A due day on a Saturday, Sunday or published holiday rolls to the next working day.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"due": "next_working_day(\n  add_days(period.to, 20),\n  holidays,\n  [\"SATURDAY\", \"SUNDAY\"]\n)"
+		}
+	},
+	{
+		"id": "a9464084-bdc7-5acb-9abb-a61b72abbb27",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "PPH21_BPA1_YEAR_END",
+		"name": "Bukti potong 1721-A1 (BPA1) for the tax year",
+		"order": 602,
+		"references": [
+			{
+				"title": "PER-11/PJ/2025",
+				"locator": "art.7(2)",
+				"url": "https://jdih.kemenkeu.go.id/dok/per-11pj2025"
+			},
+			{
+				"title": "PMK 168/2023",
+				"locator": "art.13"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Give each permanent employee the annual withholding slip (formulir 1721-A1 / BPA1) for the tax year within one month after December, the last tax period.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["12"],
+			"due": "month_end(add_months(period.from, 1))"
+		}
+	},
+	{
+		"id": "e4706fdb-a026-5b7c-8b16-3a2fb622c369",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "PTKP_STATUS_ANNUAL",
+		"name": "PTKP status as at 1 January",
+		"order": 603,
+		"references": [
+			{
+				"title": "PMK 168/2023",
+				"locator": "art.9"
+			},
+			{
+				"title": "UU PPh",
+				"locator": "art.7(2)"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Fix each employee's PTKP status (marital status and dependants) on the circumstances at the start of the calendar year and record it before the January withholding; the TER category follows it.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["01"],
+			"due": "period.from"
+		}
+	},
+	{
+		"id": "8adf9ae7-9e16-5179-8594-35fa2cbac7de",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "MINIMUM_WAGE_COMPLIANCE",
+		"name": "New provincial and city minimum wages in force",
+		"order": 604,
+		"references": [
+			{
+				"title": "PP 36/2021 arts.23(3), 25 as amended by PP 51/2023 and PP 49/2025",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/2025pp049.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Apply the governor's UMP/UMK decree for the year from its commencement on 1 January: no basic plus fixed allowances below the workplace minimum.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["01"],
+			"due": "period.from"
+		}
+	},
+	{
+		"id": "61665379-48dc-5878-8ec5-9fa41c81e4b7",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "PAYSLIP_ISSUE",
+		"name": "Wage slip",
+		"order": 605,
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.53(2)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"target_collection": "payslip",
+		"events": ["updated"],
+		"definition": {
+			"description": "Give each worker a wage slip (\"bukti pembayaran Upah\") at the time the wage is paid. Raised per payslip when it is marked paid, due that day.",
+			"trigger": {
+				"collection": "payslip",
+				"events": ["updated"]
+			},
+			"when": "has(row.paid_on) && row.paid_on != null",
+			"due": "row.paid_on"
+		}
+	},
+	{
+		"id": "609248ad-ae13-56ec-94d5-ddd9dc1ec7f8",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "BPJS_KETENAGAKERJAAN_REGISTRATION",
+		"name": "BPJS Ketenagakerjaan registration of a new worker",
+		"order": 606,
+		"references": [
+			{
+				"title": "PP 45/2015",
+				"locator": "art.4(1)–(2)",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf"
+			},
+			{
+				"title": "PP 44/2015",
+				"locator": "arts.6–7",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			},
+			{
+				"title": "UU 24/2011",
+				"locator": "art.15(1)"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Register the new worker for JKK, JKM, JHT and JP (JKP follows) within 30 days of the first day of work, with the worker's and family data; the participant card goes to the worker within 3 working days of receipt. Not raised for a foreign worker whose terms plan less than 6 months in Indonesia (UU 24/2011 art.14; PP 34/2021 art.8: private insurance instead).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"due": "add_days(hired_on, 30)",
+			"applies_when": "(employee == null || !has(employee.nationality)\n||employee.nationality == \"ID\"\n||contract == null\n||!has(contract.facts)\n||contract.facts == null\n||!has(contract.facts.contract_terms)\n||!contract.facts.contract_terms.exists(\n  t,\n  has(t.facts) && has(t.facts.indonesia_work_months_planned)\n  &&t.facts.indonesia_work_months_planned < 6.0\n))"
+		}
+	},
+	{
+		"id": "bc74ea66-3c29-57bd-a130-64c7b7d2d0a0",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "BPJS_KESEHATAN_REGISTRATION",
+		"name": "BPJS Kesehatan registration of a new worker",
+		"order": 607,
+		"references": [
+			{
+				"title": "Perpres 82/2018 arts.13–14, 17 as amended",
+				"url": "https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Register the new worker and family (spouse and up to three children) with BPJS Kesehatan on employment; a foreigner once working six months in Indonesia. Not raised for a foreign worker whose terms plan less than 6 months in Indonesia (UU 24/2011 art.14; PP 34/2021 art.8: private insurance instead).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"due": "hired_on",
+			"applies_when": "(employee == null || !has(employee.nationality)\n||employee.nationality == \"ID\"\n||contract == null\n||!has(contract.facts)\n||contract.facts == null\n||!has(contract.facts.contract_terms)\n||!contract.facts.contract_terms.exists(\n  t,\n  has(t.facts) && has(t.facts.indonesia_work_months_planned)\n  &&t.facts.indonesia_work_months_planned < 6.0\n))"
+		}
+	},
+	{
+		"id": "e726974e-d330-5345-bcd5-cdc61e56162b",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "PTKP_STATUS_AT_HIRE",
+		"name": "PTKP status and tax identity of a new employee",
+		"order": 608,
+		"references": [
+			{
+				"title": "PMK 168/2023",
+				"locator": "art.9"
+			},
+			{
+				"title": "UU PPh",
+				"locator": "art.21(5a)"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Record the new employee's NIK/NPWP and PTKP status (marital status, dependants) before the first withholding.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "d283d063-501d-5ef1-955d-80228d3bbd5e",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "PKWT_REGISTRATION",
+		"name": "PKWT registration with the ministry",
+		"order": 609,
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.14",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Register a fixed-term contract (PKWT) online within 3 working days of signing (in writing at the regency/city manpower office within 7 working days where the online service is unavailable). Three working days (no Saturday, Sunday or published holiday). Waive it for a PKWTT (open-ended) hire.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"applies_when": "!has(contract.facts) || contract.facts == null\n||!has(contract.facts.contract_terms)\n||contract.facts.contract_terms.exists(\n  t,\n  t.employment_type == \"CONTRACT\"\n)",
+			"due": "add_working_days(hired_on, 3, holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "6b03c355-16b6-5325-aeab-acb3e1375c23",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "FOREIGN_WORKER_RPTKA_DKPTKA",
+		"name": "RPTKA approval and DKPTKA payment for a foreign worker",
+		"order": 610,
+		"references": [
+			{
+				"title": "PP 34/2021",
+				"locator": "arts.1 angka 7, 23",
+				"url": "https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Before a foreign worker starts, hold the approved RPTKA and pay the DKPTKA compensation fund for the period worked in Indonesia. Raised for a hire whose nationality is not ID (ISO 3166-1 alpha-2).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"applies_when": "(employee == null || !has(employee.nationality)\n||employee.nationality != \"ID\")",
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "ff168ec1-4481-5917-a5ab-7beb290cfcc0",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "PPH21_BPA1_EXIT",
+		"name": "Bukti potong 1721-A1 (BPA1) for a leaver",
+		"order": 611,
+		"references": [
+			{
+				"title": "PER-11/PJ/2025",
+				"locator": "art.7(2)",
+				"url": "https://jdih.kemenkeu.go.id/dok/per-11pj2025"
+			},
+			{
+				"title": "PMK 168/2023",
+				"locator": "art.13"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Give a permanent employee (PERMANENT, or a full-time PKWT paid regularly) who stops working the annual withholding slip for the part year within one month after the exit month, the last tax period. Not raised for a part-time or daily worker (pegawai tidak tetap), who has the monthly bukti potong (PPH21_BUKTI_POTONG).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null\n&&contract.effective_range.to != null",
+			"due": "month_end(add_months(exit_on, 1))",
+			"applies_when": "(contract == null || !has(contract.facts) || contract.facts == null\n||!has(contract.facts.contract_terms)\n||size(contract.facts.contract_terms) == 0\n||contract.facts.contract_terms.exists(\n  t,\n  !has(t.employment_type)\n  ||t.employment_type in [\"PERMANENT\", \"CONTRACT\"]\n))"
+		}
+	},
+	{
+		"id": "6bbbdd29-a739-5fc8-a0f3-c36ff0c7324c",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "JKP_PHK_NOTIFICATION",
+		"name": "Termination notice to BPJS Ketenagakerjaan (JKP)",
+		"order": 612,
+		"references": [
+			{
+				"title": "Permenaker 2/2025",
+				"locator": "art.9",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/2025pmnaker002.pdf"
+			},
+			{
+				"title": "PP 37/2021 art.20 as amended by PP 6/2025"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Report a JKP participant's termination of employment (PHK) to BPJS Ketenagakerjaan through SIAPkerja within 7 working days; seven working days (no Saturday, Sunday or published holiday). Raised only for a termination cause JKP covers (not resignation, retirement, total permanent disability or death; the end of a PKWT records no cause) of an Indonesian national; not raised for a worker 54 or over when hired (never a JKP participant: PP 37/2021 art.4 as amended by PP 6/2025), the hire day standing for the registration day.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null\n&&contract.effective_range.to != null",
+			"applies_when": "has(contract.exit_facts) && contract.exit_facts != null\n&&has(contract.exit_facts.termination_cause)\n&&!(contract.exit_facts.termination_cause\nin [\n  \"VOLUNTARY_RESIGNATION\",\n  \"RETIREMENT\",\n  \"DEATH\",\n  \"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\"\n])\n&&!(employee == null || !has(employee.nationality)\n||employee.nationality != \"ID\")\n&& (employee == null || !has(employee.date_of_birth)\n||employee.date_of_birth == \"\"\n||hired_on == null\n||double(age_on(employee.date_of_birth, hired_on)) < 54.0)",
+			"due": "add_working_days(exit_on, 7, holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "b07d5060-8c37-58a9-9179-4c9269a0feba",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "TERMINATION_REPORT",
+		"name": "Report of a termination of employment",
+		"order": 613,
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.38",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Report the termination to the ministry and the provincial/regency manpower office once the worker received the notice and did not reject it. Raised for an employer-initiated termination cause (not a resignation or death).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null\n&&contract.effective_range.to != null",
+			"applies_when": "has(contract.exit_facts) && contract.exit_facts != null\n&&has(contract.exit_facts.termination_cause)\n&&!(contract.exit_facts.termination_cause\nin [\"VOLUNTARY_RESIGNATION\", \"DEATH\"])",
+			"due": "exit_on"
+		}
+	},
+	{
+		"id": "31258b49-04e3-5982-9857-6266afeda902",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "WLKP_ESTABLISHMENT_REPORT",
+		"name": "Compulsory employment report (WLKP) on establishment",
+		"order": 614,
+		"references": [
+			{
+				"title": "UU 7/1981",
+				"locator": "arts.6, 8",
+				"url": "https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981"
+			},
+			{
+				"title": "Permenaker 18/2017 as amended by Permenaker 4/2019"
+			}
+		],
+		"target_collection": "entity",
+		"events": ["created"],
+		"definition": {
+			"description": "Report the company's employment data to the manpower ministry (Wajib Lapor Ketenagakerjaan di Perusahaan, online) within 30 days of establishing, reopening or moving the company. Raised when the entity is created; the due day counts from the first day of that month, never later than the deadline. The annual report thereafter is not raised (its anniversary is not on the duty context).",
+			"trigger": {
+				"collection": "entity",
+				"events": ["created"]
+			},
+			"due": "add_days(period.from, 30)"
+		}
+	},
+	{
+		"id": "4847c042-9df4-5ba4-a8a3-253a1a47a8a8",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "WLKP_ANNUAL_REPORT",
+		"name": "Annual compulsory employment report (WLKP)",
+		"order": 615,
+		"references": [
+			{
+				"title": "UU 7/1981 art.8(1): the report is repeated every year; Permenaker 18/2017 as amended by Permenaker 4/2019",
+				"url": "https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Report the company's employment data to the manpower ministry (WLKP online) every year, on the anniversary of its first report (`company.facts.wlkp_first_reported_on`). Raised once a year with that month's payroll run (one per company); a company without the date recorded raises nothing — record it.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"when": "has(company.facts.wlkp_first_reported_on)\n&&months_through(company.facts.wlkp_first_reported_on, period.from)\n>1.0\n&&int(\n  months_through(company.facts.wlkp_first_reported_on, period.from)\n  -1.0\n)\n%12\n==0",
+			"due": "add_months(\n  company.facts.wlkp_first_reported_on,\n  int(\n    months_through(company.facts.wlkp_first_reported_on, period.from)\n    -1.0\n  )\n)"
+		}
+	},
+	{
+		"id": "b772b234-16ab-5812-8467-03c630e4bfe3",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "WORK_ACCIDENT_REPORT",
+		"name": "Work accident report to BPJS Ketenagakerjaan (stage I)",
+		"order": 616,
+		"references": [
+			{
+				"title": "PP 44/2015",
+				"locator": "art.43",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			},
+			{
+				"title": "UU 24/2011",
+				"locator": "art.15"
+			}
+		],
+		"target_collection": "leave_catalog_entry",
+		"events": ["created"],
+		"definition": {
+			"description": "Report a work accident or occupational disease to BPJS Ketenagakerjaan and the manpower office within 2 × 24 hours of it (stage I). Raised when a WORK_ACCIDENT_LEAVE absence is recorded, counted from its first day; stage II is WORK_ACCIDENT_REPORT_STAGE2.",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"events": ["created"]
+			},
+			"when": "row.catalog_code == \"WORK_ACCIDENT_LEAVE\"",
+			"due": "add_days(\n  has(row.from) && row.from != null ? row.from : row.occurred_on,\n  2\n)"
+		}
+	},
+	{
+		"id": "9d2f6e14-67a3-53ab-8c59-048d49bd16e4",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "COMPANY_REGULATION_RENEWAL",
+		"name": "Renewal of the company regulations (Peraturan Perusahaan)",
+		"order": 617,
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "arts.108(1), 111(3)",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			},
+			{
+				"title": "Permenaker 28/2014"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "An employer of 10 or more workers must have company regulations ratified by the minister or official; they are valid for at most 2 years and must be renewed. Raised with the payroll run of the month the recorded validity ends (`company.facts.company_regulation_valid_until`), for a company of 10 or more workers.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"applies_when": "headcount >= 10.0",
+			"when": "has(company.facts.company_regulation_valid_until)\n&&company.facts.company_regulation_valid_until >= period.from\n&&company.facts.company_regulation_valid_until <= period.to",
+			"due": "company.facts.company_regulation_valid_until"
+		}
+	},
+	{
+		"id": "b923de21-7031-52a3-95be-af9a7e92d788",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "OVERTIME_WRITTEN_ORDER",
+		"name": "Written overtime order and consent",
+		"order": 618,
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "arts.28–29",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"target_collection": "roster_entry",
+		"events": ["created", "updated"],
+		"definition": {
+			"description": "Overtime needs the employer's order and the worker's written or digital consent, and the employer keeps a list of the overtime worked (art.28). Raised when an attendance day is created or updated carrying approved overtime hours with no recorded consent (`overtime_consented_at`), due that day; meals of 1,400 kcal for 4 hours or more (art.29(1)(c)) are not tracked.",
+			"trigger": {
+				"collection": "roster_entry",
+				"events": ["created", "updated"]
+			},
+			"when": "has(row.approved_overtime_hours) && row.approved_overtime_hours != null\n&&row.approved_overtime_hours > 0.0\n&& (!has(row.overtime_consented_at) || row.overtime_consented_at == null)",
+			"due": "row.work_date"
+		}
+	},
+	{
+		"id": "c3484087-850e-57fc-83b9-5b3f6403ac48",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "THR_PAYMENT",
+		"name": "THR before the religious holiday",
+		"order": 619,
+		"references": [
+			{
+				"title": "Permenaker 6/2016",
+				"locator": "arts.1(2), 2, 5(1), 5(4), 10",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf"
+			},
+			{
+				"title": "PP 36/2021",
+				"locator": "art.62"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Pay the religious holiday allowance (THR) at the latest 7 days before each worker’s own religious holiday — Idul Fitri (Islam), Christmas / Kelahiran Yesus Kristus (Catholic and Protestant), Nyepi (Hindu), Waisak (Buddhist), Imlek (Konghucu); a late THR carries a 5% fine (LATE_THR_FINE). Raised with the payroll run of the month the 7-day deadline falls in, from the company’s published holidays (by name, Indonesian SKB names or English); waive it where no worker’s holiday is the one named.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"when": "holidays_named.exists(\n  h,\n  h.kind == \"PUBLIC_HOLIDAY\"\n  &&[\n    \"Idul Fitri\",\n    \"Idulfitri\",\n    \"Eid al-Fitr\",\n    \"Natal\",\n    \"Kelahiran Yesus Kristus\",\n    \"Christmas\",\n    \"Nyepi\",\n    \"Waisak\",\n    \"Vesak\",\n    \"Imlek\",\n    \"Chinese New Year\"\n  ].exists(\n    k,\n    h.name.contains(k)\n  )\n  &&add_days(h.date, -7) >= period.from\n  &&add_days(h.date, -7) <= period.to\n)",
+			"due": "add_days(\n  first(\n    holidays_named.filter(\n      h,\n      h.kind == \"PUBLIC_HOLIDAY\"\n      &&[\n        \"Idul Fitri\",\n        \"Idulfitri\",\n        \"Eid al-Fitr\",\n        \"Natal\",\n        \"Kelahiran Yesus Kristus\",\n        \"Christmas\",\n        \"Nyepi\",\n        \"Waisak\",\n        \"Vesak\",\n        \"Imlek\",\n        \"Chinese New Year\"\n      ].exists(\n        k,\n        h.name.contains(k)\n      )\n      &&add_days(h.date, -7) >= period.from\n    )\n  ).date,\n  -7\n)"
+		}
+	},
+	{
+		"id": "171dc87b-2970-51b9-82f3-6c0cce627101",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "PPH21_BUKTI_POTONG",
+		"name": "Monthly PPh 21/26 withholding slips",
+		"order": 620,
+		"references": [
+			{
+				"title": "PMK 168/2023",
+				"locator": "arts.19(2)–(3), 20(1)(b), 20(3)",
+				"url": "https://jdih.kemenkeu.go.id/dok/pmk-168-tahun-2023"
+			},
+			{
+				"title": "PER-11/PJ/2025"
+			},
+			{
+				"title": "PMK 105/2025",
+				"locator": "art.5(3)"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Make and give each recipient paid in the month the monthly withholding slip (BPMP for a permanent employee, BP21 for a non-permanent one, BP26), including a nil withholding and the DTP incentive, by the end of the month the tax is owed.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"due": "month_end(period.from)"
+		}
+	},
+	{
+		"id": "7c80bead-2516-5753-ba7f-6ac99187411e",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "LATE_WAGE_FINE",
+		"name": "Late wage: fine owed to the worker",
+		"order": 621,
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "arts.55(1), 61(1)–(2)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"target_collection": "payslip",
+		"events": ["updated"],
+		"definition": {
+			"description": "A wage paid on or after the 4th day counted from its due day (the due day being day 1) carries a fine to the worker (LATE_WAGE_FINE adhoc class): 5% a day from the 4th to the 8th day, then 1% more a day, at most 50% in a month, plus interest after a month; the wage stays due. Raised when a payslip is marked paid on or after that 4th day.",
+			"trigger": {
+				"collection": "payslip",
+				"events": ["updated"]
+			},
+			"when": "has(row.paid_on) && row.paid_on != null && has(row.pay_due_date)\n&&row.pay_due_date != null\n&&row.pay_due_date != \"\"\n&&row.paid_on >= add_days(row.pay_due_date, 3)",
+			"due": "row.paid_on"
+		}
+	},
+	{
+		"id": "b832a413-9786-59b6-acec-e45c3b927298",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "LATE_THR_FINE",
+		"name": "Late THR: 5% fine",
+		"order": 622,
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.62"
+			},
+			{
+				"title": "Permenaker 6/2016",
+				"locator": "arts.5(4), 10(1)–(2)"
+			}
+		],
+		"target_collection": "adhoc_catalog_entry",
+		"events": ["created"],
+		"definition": {
+			"description": "A THR paid later than 7 days before the holiday carries a fine of 5% of the THR due, used for the workers’ welfare (LATE_THR_FINE adhoc class); the THR stays due. Raised when a THR entry is recorded after the deadline.",
+			"trigger": {
+				"collection": "adhoc_catalog_entry",
+				"events": ["created"]
+			},
+			"when": "has(row.catalog_code) && row.catalog_code in [\"THR\", \"THR_HOLIDAY\"]\n&&has(row.facts)\n&&row.facts != null\n&&has(row.facts.holiday_date)\n&&row.occurred_on > add_days(row.facts.holiday_date, -7)",
+			"due": "row.occurred_on"
+		}
+	},
+	{
+		"id": "f00b8018-2166-5a18-aac9-6031a98c6275",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "PKWT_TERM_END_COMPENSATION",
+		"name": "PKWT period ended: pay its compensation",
+		"order": 623,
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "arts.15(2), 15(4), 16",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"target_collection": "calendar",
+		"events": ["daily"],
+		"definition": {
+			"description": "A fixed-term (PKWT) period that ends while the employment continues (an extension follows) owes its uang kompensasi at its end, for that period; the extension’s compensation follows when it ends. Raised by the daily tick on the last day of a CONTRACT term that is not the exit day; pay it as a PKWT_COMPENSATION entry.",
+			"trigger": {
+				"collection": "calendar",
+				"events": ["daily"]
+			},
+			"when": "contract != null && has(contract.facts) && contract.facts != null\n&&has(contract.facts.contract_terms)\n&&contract.facts.contract_terms.exists(\n  t,\n  has(t.employment_type) && t.employment_type == \"CONTRACT\"\n  &&has(t.effective_range)\n  &&has(t.effective_range.to)\n  &&t.effective_range.to == today\n)\n&& (exit_on == null || exit_on > today)",
+			"due": "today"
+		}
+	},
+	{
+		"id": "5d637dde-682e-5d59-a769-ae215e8fca46",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "FOREIGN_WORKER_COMPANION_TRAINING",
+		"name": "Foreign worker: companion, training and Indonesian language",
+		"order": 624,
+		"references": [
+			{
+				"title": "PP 34/2021",
+				"locator": "art.7(1)–(3)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP342021.pdf"
+			},
+			{
+				"title": "UU 13/2003 art.45 as amended by UU 6/2023"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Appoint an Indonesian companion worker (tenaga kerja pendamping) for the foreign worker, train the companion for the position, give the foreign worker Indonesian-language training and repatriate the worker when the contract ends. Not owed for directors, commissioners, a representative-office head, foundation organs or temporary work (art.7(3)); waive it then.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"applies_when": "(employee == null || !has(employee.nationality)\n||employee.nationality != \"ID\")",
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "0ed2d14f-1bd5-5d56-9b50-c663b18f05cf",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "DISABILITY_QUOTA_REVIEW",
+		"name": "Disability employment quota (1%)",
+		"order": 625,
+		"references": [
+			{
+				"title": "UU 8/2016",
+				"locator": "art.53(2)",
+				"url": "https://peraturan.bpk.go.id/Details/37251/uu-no-8-tahun-2016"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "A private company must employ persons with disabilities as at least 1% of its workers. Raised with the January run of a company of 100 or more workers (where 1% is at least one person) to check the year’s quota.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["01"],
+			"applies_when": "headcount >= 100.0",
+			"due": "period.to"
+		}
+	},
+	{
+		"id": "7d5bf93f-1eb9-5183-a8f9-b6c4d4775ab1",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "LKS_BIPARTIT_FORMATION",
+		"name": "Bipartite cooperation body (LKS Bipartit)",
+		"order": 626,
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "art.106(1)",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "A company employing 50 or more workers must form a bipartite cooperation body (LKS Bipartit) and register it with the manpower office. Raised with each run of such a company until the formation day is recorded (company.facts.lks_bipartit_formed_on).",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"applies_when": "headcount >= 50.0",
+			"when": "!has(company.facts.lks_bipartit_formed_on)\n||company.facts.lks_bipartit_formed_on == \"\"",
+			"due": "period.to"
+		}
+	},
+	{
+		"id": "f57868fe-a63a-59ec-99ed-957cd2d9df12",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "K3_SMK3_P2K3",
+		"name": "Occupational safety: SMK3 and P2K3",
+		"order": 627,
+		"references": [
+			{
+				"title": "UU 1/1970",
+				"locator": "art.10"
+			},
+			{
+				"title": "PP 50/2012",
+				"locator": "art.5(2)",
+				"url": "https://peraturan.bpk.go.id/Details/5245/pp-no-50-tahun-2012"
+			},
+			{
+				"title": "Permenaker PER.04/MEN/1987",
+				"locator": "art.2"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "A company of 100 or more workers, or with a high hazard potential (company.facts.k3_high_hazard), must apply an occupational safety and health management system (SMK3) and keep a safety committee (P2K3). Raised with the January run to review both for the year.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["01"],
+			"applies_when": "headcount >= 100.0\n|| (company != null && has(company.facts)\n&&has(company.facts.k3_high_hazard)\n&&company.facts.k3_high_hazard == true)",
+			"due": "period.to"
+		}
+	},
+	{
+		"id": "b6c90105-a53e-5fbc-b182-27cb95c15082",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "WORKER_HEALTH_EXAMINATION",
+		"name": "Periodic health examination of workers",
+		"order": 628,
+		"references": [
+			{
+				"title": "Permenakertrans PER.02/MEN/1980, official Kemnaker-hosted text read 2026-10-10: https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf arts.2, 3(2)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Every company examines its workers’ health periodically, at least once a year; a pre-employment examination precedes work (art.2). Raised with the January run.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["01"],
+			"due": "period.to"
+		}
+	},
+	{
+		"id": "5609e977-5675-5d7f-b89d-a45c68d37436",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "WAGE_STRUCTURE_SCALE",
+		"name": "Wage structure and scale",
+		"order": 629,
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "arts.20–22",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Draw up and apply the company’s wage structure and scale, reviewed with the year’s minimum wage, and notify each worker individually of at least the scale of their own grade.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["01"],
+			"due": "period.to"
+		}
+	},
+	{
+		"id": "e08fcbad-7391-5629-8ff7-e8d9f7bb079e",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "WAGE_SCALE_NOTICE_AT_HIRE",
+		"name": "Notify a new worker of their wage scale",
+		"order": 630,
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.21(2)–(3)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Notify the new worker individually of the wage structure and scale of their grade.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "3c622c44-42d6-55b3-ad14-bbb2e9304376",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "TERMINATION_NOTICE_LATE",
+		"name": "Termination notice short of 14 working days",
+		"order": 631,
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.37(2)–(4)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "An employer-initiated termination must be notified in writing at least 14 working days before it takes effect (7 during probation). Raised on the recorded exit when no notice day is recorded (exit_facts.notice_given_on) or it was given later than that: the termination is defective until the notice period is honoured.",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null\n&&contract.effective_range.to != null",
+			"applies_when": "contract != null && has(contract.exit_facts)\n&&contract.exit_facts != null\n&&has(contract.exit_facts.termination_cause)\n&&contract.exit_facts.termination_cause\nin [\n  \"MERGER_CONSOLIDATION_SEPARATION\",\n  \"ACQUISITION\",\n  \"EFFICIENCY_ACTUAL_LOSS\",\n  \"EFFICIENCY_PREVENT_LOSS\",\n  \"CLOSURE_LOSS\",\n  \"CLOSURE_NO_LOSS\",\n  \"FORCE_MAJEURE_CLOSURE\",\n  \"FORCE_MAJEURE_NO_CLOSURE\",\n  \"DEBT_SUSPENSION_LOSS\",\n  \"DEBT_SUSPENSION_NO_LOSS\",\n  \"BANKRUPTCY\",\n  \"VIOLATION_AFTER_WARNINGS\",\n  \"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY\",\n  \"RETIREMENT\",\n  \"DETENTION_CAUSED_LOSS\",\n  \"DETENTION_NO_LOSS\"\n]\n&& (!has(contract.exit_facts.notice_given_on)\n||contract.exit_facts.notice_given_on == \"\"\n||add_working_days(\n  contract.exit_facts.notice_given_on,\n  (has(contract.exit_facts.in_probation)\n  &&contract.exit_facts.in_probation == true)\n    ?7\n    :14,\n  holidays,\n  [\"SATURDAY\", \"SUNDAY\"]\n)\n>exit_on)",
+			"due": "exit_on"
+		}
+	},
+	{
+		"id": "2c3d02d1-e38a-5f3b-b94b-3a7aa8d64397",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "WORK_ACCIDENT_REPORT_STAGE2",
+		"name": "Work accident report, stage II",
+		"order": 632,
+		"references": [
+			{
+				"title": "PP 44/2015 art.43 as amended by PP 82/2019",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			}
+		],
+		"target_collection": "leave_catalog_entry",
+		"events": ["created"],
+		"definition": {
+			"description": "Report stage II of a work accident or occupational disease to BPJS Ketenagakerjaan within 2 × 24 hours of the doctor’s certificate of its outcome, with the STMB claim. Raised when a WORK_ACCIDENT_LEAVE absence records the certificate day (facts.doctor_certificate_on).",
+			"trigger": {
+				"collection": "leave_catalog_entry",
+				"events": ["created"]
+			},
+			"when": "row.catalog_code == \"WORK_ACCIDENT_LEAVE\" && has(row.facts)\n&&row.facts != null\n&&has(row.facts.doctor_certificate_on)\n&&row.facts.doctor_certificate_on != \"\"",
+			"due": "add_days(row.facts.doctor_certificate_on, 2)"
+		}
+	},
+	{
+		"id": "89619872-02fc-5b04-a3ab-8585ab1ee78e",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "BPJS_KETENAGAKERJAAN_WAGE_CHANGE",
+		"name": "BPJS_KETENAGAKERJAAN_WAGE_CHANGE",
+		"order": 633,
+		"references": [
+			{
+				"title": "PP 44/2015",
+				"locator": "art.9(3)",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Report a change in the worker's wage (basic plus fixed allowances) to BPJS Ketenagakerjaan within 7 working days of the change. Raised on the contract write that adds or changes a term whose wage differs from the term ending the day before — for any effective date, so a term entered late raises too — once per change (repeat_key = the new term's first day); due seven working days after that day (no Saturday, Sunday or published holiday).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["facts"]
+			},
+			"when": "has(row.terms_written)\n&&row.terms_written.exists(\n  t,\n  has(t.effective_range) && has(t.base_salary) && contract != null\n  &&has(contract.facts)\n  &&contract.facts != null\n  &&has(contract.facts.contract_terms)\n  &&contract.facts.contract_terms.exists(\n    p,\n    has(p.effective_range) && has(p.effective_range.to)\n    &&p.effective_range.to == add_days(t.effective_range.from, -1)\n    &&has(p.base_salary)\n    && (double(p.base_salary.value)\n    + (has(p.allowances) && size(p.allowances) > 0\n      ?sum(p.allowances.map(a, double(a.amount.value)))\n      :0.0))\n    != (double(t.base_salary.value)\n    + (has(t.allowances) && size(t.allowances) > 0\n      ?sum(t.allowances.map(a, double(a.amount.value)))\n      :0.0\n  ) ))\n)",
+			"applies_when": "(employee == null || !has(employee.nationality)\n||employee.nationality == \"ID\"\n||contract == null\n||!has(contract.facts)\n||contract.facts == null\n||!has(contract.facts.contract_terms)\n||!contract.facts.contract_terms.exists(\n  t,\n  has(t.facts) && has(t.facts.indonesia_work_months_planned)\n  &&t.facts.indonesia_work_months_planned < 6.0\n))",
+			"due": "add_working_days(\n  first(\n    row.terms_written.filter(\n      t,\n      has(t.effective_range) && has(t.base_salary) && contract != null\n      &&has(contract.facts)\n      &&contract.facts != null\n      &&has(contract.facts.contract_terms)\n      &&contract.facts.contract_terms.exists(\n        p,\n        has(p.effective_range) && has(p.effective_range.to)\n        &&p.effective_range.to == add_days(t.effective_range.from, -1)\n        &&has(p.base_salary)\n        && (double(p.base_salary.value)\n        + (has(p.allowances) && size(p.allowances) > 0\n          ?sum(p.allowances.map(a, double(a.amount.value)))\n          :0.0))\n        != (double(t.base_salary.value)\n        + (has(t.allowances) && size(t.allowances) > 0\n          ?sum(t.allowances.map(a, double(a.amount.value)))\n          :0.0\n      ) ))\n    )\n  ).effective_range.from,\n  7,\n  holidays,\n  [\"SATURDAY\", \"SUNDAY\"]\n)",
+			"repeat_key": "first(row.terms_written.filter(t, has(t.effective_range) && has(t.base_salary) && contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(p, has(p.effective_range) && has(p.effective_range.to) && p.effective_range.to == add_days(t.effective_range.from, -1) && has(p.base_salary) && (double(p.base_salary.value) + (has(p.allowances) && size(p.allowances) > 0 ? sum(p.allowances.map(a, double(a.amount.value))) : 0.0)) != (double(t.base_salary.value) + (has(t.allowances) && size(t.allowances) > 0 ? sum(t.allowances.map(a, double(a.amount.value))) : 0.0))))).effective_range.from"
+		}
+	},
+	{
+		"id": "28f39290-5770-5e65-876b-a318559de150",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "BPJS_KETENAGAKERJAAN_EXIT_REPORT",
+		"name": "BPJS_KETENAGAKERJAAN_EXIT_REPORT",
+		"order": 634,
+		"references": [
+			{
+				"title": "PP 44/2015",
+				"locator": "art.9(3)",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "Report the change in the number of workers — the worker leaving — to BPJS Ketenagakerjaan within 7 working days of the exit, whatever the cause (the JKP termination report is JKP_PHK_NOTIFICATION).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null\n&&contract.effective_range.to != null",
+			"applies_when": "(employee == null || !has(employee.nationality)\n||employee.nationality == \"ID\"\n||contract == null\n||!has(contract.facts)\n||contract.facts == null\n||!has(contract.facts.contract_terms)\n||!contract.facts.contract_terms.exists(\n  t,\n  has(t.facts) && has(t.facts.indonesia_work_months_planned)\n  &&t.facts.indonesia_work_months_planned < 6.0\n))",
+			"due": "add_working_days(exit_on, 7, holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "959509ae-8be3-5c0e-9fa2-5597b6f80f82",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "BPJS_KETENAGAKERJAAN_ENTITY_CHANGE",
+		"name": "BPJS_KETENAGAKERJAAN_ENTITY_CHANGE",
+		"order": 635,
+		"references": [
+			{
+				"title": "PP 44/2015",
+				"locator": "art.9(3)",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			}
+		],
+		"target_collection": "entity",
+		"events": ["updated"],
+		"definition": {
+			"description": "Report a change of the employer's own registered data — its name, registration number or the province it is located in (the office address) — to BPJS Ketenagakerjaan within 7 working days of the change. Raised on the entity update that changed one of them (row.before), once per new state; due seven working days after the update.",
+			"trigger": {
+				"collection": "entity",
+				"events": ["updated"],
+				"fields": ["name", "registration_number", "region"]
+			},
+			"when": "has(row.before) && row.before != null\n&& (\"name\" in row.before || \"registration_number\" in row.before\n||\"region\" in row.before)",
+			"repeat_key": "row.name + \":\" + (has(row.registration_number) && row.registration_number != null ? row.registration_number : \"\") + \":\" + (has(row.region) && row.region != null ? row.region : \"\")",
+			"due": "add_working_days(today, 7, holidays, [\"SATURDAY\", \"SUNDAY\"])"
+		}
+	},
+	{
+		"id": "caf6dc0c-7693-5354-bc6d-e4f4271f53f6",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "TAX_RECORDS_RETENTION",
+		"name": "TAX_RECORDS_RETENTION",
+		"order": 636,
+		"references": [
+			{
+				"title": "UU 6/1983 as amended by UU 28/2007 (KUP)",
+				"locator": "art.28(11)",
+				"url": "https://www.pajak.go.id/id/undang-undang-nomor-28-tahun-2007"
+			}
+		],
+		"target_collection": "payroll_run",
+		"events": ["created"],
+		"definition": {
+			"description": "Keep the books, records and documents of the past year — payroll, withholding slips and returns, including electronically held data — for 10 years in Indonesia, at the taxpayer's seat. Raised on the January run.",
+			"trigger": {
+				"collection": "payroll_run",
+				"events": ["created"]
+			},
+			"months": ["01"],
+			"due": "month_end(period.from)"
+		}
+	},
+	{
+		"id": "126bcf43-2e17-5433-b51a-0fb505fe1512",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "PDP_BREACH_NOTICE",
+		"name": "PDP_BREACH_NOTICE",
+		"order": 637,
+		"references": [
+			{
+				"title": "UU 27/2022 (Pelindungan Data Pribadi)",
+				"locator": "art.46(1)–(2)",
+				"url": "https://peraturan.bpk.go.id/Download/224884/UU%20Nomor%2027%20Tahun%202022.pdf"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "A failure of personal data protection: notify the data subjects and the supervisory institution in writing within 3 × 24 hours — the data disclosed, when and how, and the handling and recovery steps (art.46(2)). Raised when a PERSONAL_DATA_BREACH case is opened; due three days after its opening day.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind == \"PERSONAL_DATA_BREACH\"",
+			"due": "add_days(row.opened_on, 3)"
+		}
+	},
+	{
+		"id": "ceb5f1df-ce2f-592b-855e-e37f2f0aed30",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "PDP_SUBJECT_REQUEST",
+		"name": "PDP_SUBJECT_REQUEST",
+		"order": 638,
+		"references": [
+			{
+				"title": "UU 27/2022",
+				"locator": "arts.30(1)–(2), 32(2), 40(2), 41(1)",
+				"url": "https://peraturan.bpk.go.id/Download/224884/UU%20Nomor%2027%20Tahun%202022.pdf"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "Answer an employee's personal-data request within 3 × 24 hours of receiving it: give access with the processing record (art.32(2)), update or correct the data and tell the employee (art.30), stop processing on a withdrawn consent (art.40(2)), or suspend or restrict processing (art.41(1)). Raised when such a case is opened; due three days after its opening day.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind\nin [\n  \"PERSONAL_DATA_ACCESS_REQUEST\",\n  \"PERSONAL_DATA_CORRECTION_REQUEST\",\n  \"PERSONAL_DATA_CONSENT_WITHDRAWAL\",\n  \"PERSONAL_DATA_RESTRICTION_REQUEST\"\n]",
+			"due": "add_days(row.opened_on, 3)"
+		}
+	},
+	{
+		"id": "27c9ac05-3d25-51f8-ba96-d9b5d89c5f6c",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE",
+		"name": "BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE",
+		"order": 639,
+		"references": [
+			{
+				"title": "PP 44/2015",
+				"locator": "art.9(1)–(2)",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			}
+		],
+		"target_collection": "employment_profile",
+		"events": ["updated"],
+		"definition": {
+			"description": "Forward a participant's changed personal or family data (marital status, children) to BPJS Ketenagakerjaan within 7 working days of receiving it. Raised on a profile update that changed one of them (row.before holds the prior values), once per family state (repeat_key), due 7 working days after the update.",
+			"trigger": {
+				"collection": "employment_profile",
+				"events": ["updated"]
+			},
+			"applies_when": "(employee == null || !has(employee.nationality)\n||employee.nationality == \"ID\"\n||contract == null\n||!has(contract.facts)\n||contract.facts == null\n||!has(contract.facts.contract_terms)\n||!contract.facts.contract_terms.exists(\n  t,\n  has(t.facts) && has(t.facts.indonesia_work_months_planned)\n  &&t.facts.indonesia_work_months_planned < 6.0\n))",
+			"repeat_key": "(has(employee.marital_status) && employee.marital_status != null ? employee.marital_status : \"\") + \":\" + string(has(employee.children) && employee.children != null ? size(employee.children) : 0)",
+			"due": "add_working_days(today, 7, holidays, [\"SATURDAY\", \"SUNDAY\"])",
+			"when": "has(row.before) && row.before != null\n&& (has(row.before.marital_status) || has(row.before.children))"
+		}
+	},
+	{
+		"id": "41c00549-f55c-5048-9271-b51c19c8b0a6",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "PERSONAL_DATA_DISPOSAL",
+		"name": "PERSONAL_DATA_DISPOSAL",
+		"order": 640,
+		"references": [
+			{
+				"title": "UU 27/2022",
+				"locator": "arts.42(1)(a), 44(1)(a), 45",
+				"url": "https://peraturan.bpk.go.id/Download/224884/UU%20Nomor%2027%20Tahun%202022.pdf"
+			},
+			{
+				"title": "UU KUP",
+				"locator": "art.28(11)"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["updated"],
+		"definition": {
+			"description": "End the processing of a former employee's personal data and destroy it once its retention period ends, and tell the employee of the deletion. Raised on the exit; due when the retention ends (10 years after the exit's tax year ends).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["updated"],
+				"fields": ["exit_facts", "effective_range"]
+			},
+			"when": "contract != null && contract.exit_facts != null\n&&contract.effective_range.to != null",
+			"due": "add_years(exit_on.substring(0, 4) + \"-12-31\", 10)"
+		}
+	},
+	{
+		"id": "3ca76af1-d007-55ee-a269-c96c584c197b",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "PRE_EMPLOYMENT_HEALTH_EXAMINATION",
+		"name": "PRE_EMPLOYMENT_HEALTH_EXAMINATION",
+		"order": 641,
+		"references": [
+			{
+				"title": "Permenakertrans PER.02/MEN/1980, official Kemnaker-hosted text read 2026-10-10: https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf art.2(2), (7)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf"
+			}
+		],
+		"target_collection": "employment_contract",
+		"events": ["created"],
+		"definition": {
+			"description": "Conduct the pre-employment examination before work starts. An examination by a qualifying physician within the previous three calendar months, accepted without doubt, exempts a repeat examination (art.2(7)).",
+			"trigger": {
+				"collection": "employment_contract",
+				"events": ["created"]
+			},
+			"when": "!(contract != null && has(contract.facts) && contract.facts != null\n&&has(contract.facts.contract_terms)\n&&contract.facts.contract_terms.exists(\n  t,\n  has(t.effective_range) && has(t.effective_range.from)\n  &&t.effective_range.from <= hired_on\n  && (!has(t.effective_range.to) || t.effective_range.to == null\n  ||t.effective_range.to >= hired_on)\n  &&has(t.facts)\n  &&has(t.facts.pre_employment_exam_on)\n  &&t.facts.pre_employment_exam_on != \"\"\n  &&t.facts.pre_employment_exam_on <= hired_on\n  &&t.facts.pre_employment_exam_on >= add_months(hired_on, -3)\n  &&has(t.facts.pre_employment_exam_accepted)\n  &&t.facts.pre_employment_exam_accepted == true\n))",
+			"due": "hired_on"
+		}
+	},
+	{
+		"id": "303549fd-4cda-5904-b6af-12914427ef6d",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "WORKER_HEALTH_EXAMINATION_REPORT",
+		"name": "WORKER_HEALTH_EXAMINATION_REPORT",
+		"order": 642,
+		"references": [
+			{
+				"title": "Permenakertrans PER.02/MEN/1980, official Kemnaker-hosted text read 2026-10-10: https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf art.6(2)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf"
+			}
+		],
+		"target_collection": "workplace_case",
+		"events": ["created"],
+		"definition": {
+			"description": "Report pre-employment, periodic or special worker health examinations to the local regional office of Ditjen Binalindung Tenaga Kerja within two calendar months after examination. Record a WORKER_HEALTH_EXAMINATION_COMPLETED case with the examination day as its opening date.",
+			"trigger": {
+				"collection": "workplace_case",
+				"events": ["created"]
+			},
+			"when": "row.kind == \"WORKER_HEALTH_EXAMINATION_COMPLETED\"",
+			"due": "add_months(row.opened_on, 2)"
+		}
+	},
+	{
+		"id": "72cb5513-01c2-5075-b2bc-cb5107f420a8",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "write-public-holidays",
+		"order": 700,
+		"target_collection": "entity",
+		"events": ["created", "calendar"],
+		"when": "true",
+		"reads": {
+			"calendar": {
+				"collection": "rule_set",
+				"where": {
+					"settings_id": {
+						"eq": "event.settings_id"
+					},
+					"family": {
+						"eq": "\"PARAMETERS\""
+					},
+					"code": {
+						"eq": "\"public_holidays\""
+					}
+				},
+				"select": ["rules"]
+			},
+			"held": {
+				"collection": "holiday",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					}
+				},
+				"select": ["date"]
+			}
+		},
+		"effect": "calendar.exists(c, has(c.rules.holidays))\n  ?first(calendar).rules.holidays.filter(\n    h,\n    (!has(h.regions) || event.row.region in h.regions)\n    &&!held.exists(x, x.date == h.date)\n  ).map(\n    h,\n    {\n      \"collection\": \"holiday\",\n      \"operation\": \"create\",\n      \"data\": {\n        \"company_id\": event.company_id,\n        \"date\": h.date,\n        \"name\": h.name,\n        \"kind\": has(h.kind) ? h.kind : \"PUBLIC_HOLIDAY\",\n        \"replaces\": has(h.replaces) ? h.replaces : null,\n        \"given_to\": has(h.given_to) ? h.given_to : \"EVERYONE\"\n      }\n    }\n  )\n  :[]"
+	},
+	{
+		"id": "120d0669-ad7e-555e-8f9e-70298bd6f9f4",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "obligation-program",
+		"name": "Every obligation row's program",
+		"order": 401,
+		"events": [],
+		"when": "true",
+		"fields": ["period", "company_id"],
+		"reads": {
+			"company": {
+				"collection": "entity",
+				"where": {
+					"id": {
+						"eq": "event.company_id"
+					}
+				},
+				"select": ["name", "region", "risk_class", "time_zone", "facts"]
+			},
+			"holidays": {
+				"collection": "holiday",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					},
+					"published_at": {
+						"isNull": false
+					},
+					"date": {
+						"gte": "add_days(event.day, -31)",
+						"lte": "add_days(event.day, 400)"
+					}
+				},
+				"select": ["date", "name", "kind"]
+			},
+			"raised": {
+				"collection": "obligation",
+				"where": {
+					"trigger_ref": {
+						"eq": "event.row.id"
+					}
+				},
+				"select": ["duty_code"]
+			}
+		},
+		"effect": "[\n  {\n    \"code\": behaviour.code,\n    \"name\": behaviour.name,\n    \"references\": behaviour.references,\n    \"rules\": behaviour.definition\n  }\n].filter(\n  d,\n  (!has(d.rules.months)\n  ||d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m)))\n  && (!has(d.rules.applies_when)\n  ||configured_eval(\n    d.rules.applies_when,\n    {\n      \"period\": event.period,\n      \"rules\": event.rules,\n      \"company\": first(company),\n      \"run\": run,\n      \"holidays\": holidays.map(h, h.date),\n      \"holidays_named\": holidays.filter(\n        h,\n        h.date >= event.day && h.date <= add_months(event.day, 12)\n      ).map(\n        h,\n        {\n          \"date\": h.date,\n          \"name\": has(h.name) ? h.name : \"\",\n          \"kind\": h.kind\n        }\n      )\n    }\n  )\n  ==true)\n  &&!raised.exists(o, o.duty_code == d.code)\n).map(\n  d,\n  {\n    \"collection\": \"obligation\",\n    \"operation\": \"create\",\n    \"data\": {\n      \"duty_code\": d.code,\n      \"references\": d.references,\n      \"company_id\": event.company_id,\n      \"settings_id\": event.settings_id,\n      \"trigger_ref\": event.row.id,\n      \"triggered_on\": event.day,\n      \"due_on\": configured_eval(\n        d.rules.due,\n        {\n          \"period\": event.period,\n          \"rules\": event.rules,\n          \"company\": first(company),\n          \"run\": run,\n          \"holidays\": holidays.map(h, h.date),\n          \"holidays_named\": holidays.filter(\n            h,\n            h.date >= event.day && h.date <= add_months(event.day, 12)\n          ).map(\n            h,\n            {\n              \"date\": h.date,\n              \"name\": has(h.name) ? h.name : \"\",\n              \"kind\": h.kind\n            }\n          )\n        }\n      ),\n      \"amount_due\": has(d.rules.amount)\n        ?configured_eval(\n          d.rules.amount,\n          {\n            \"rules\": event.rules,\n            \"total\": sum(\n              d.rules.schemes.map(\n                s,\n                s in run.totals.schemes\n                  ?run.totals.schemes[s].employee\n                  +run.totals.schemes[s].employer\n                  :0.0\n              )\n            ),\n            \"run\": run,\n            \"period\": event.period,\n            \"company\": first(company),\n            \"headcount_months\": event.headcount_months\n          }\n        )\n        :round(\n          sum(\n            d.rules.schemes.map(\n              s,\n              s in run.totals.schemes\n                ?run.totals.schemes[s].employee\n                +run.totals.schemes[s].employer\n                :0.0\n            )\n          ),\n          0.01\n        ),\n      \"occurrence_key\": d.code + \":\" + event.row.id\n    }\n  }\n).filter(\n  w,\n  w.data.amount_due > 0.0\n)"
+	},
+	{
+		"id": "4d23b007-efb4-56c2-b43b-9ce15d5f7447",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"code": "task-program",
+		"name": "Every task row's program",
+		"order": 601,
+		"events": [],
+		"when": "true",
+		"fields": [
+			"period",
+			"company_id",
+			"employment_id",
+			"status",
+			"employee_id",
+			"effective_range",
+			"facts"
+		],
+		"reads": {
+			"company": {
+				"collection": "entity",
+				"where": {
+					"id": {
+						"eq": "event.company_id"
+					}
+				},
+				"select": ["name", "region", "risk_class", "time_zone", "registration_number", "facts"]
+			},
+			"contract": {
+				"collection": "employment_contract",
+				"where": {
+					"id": {
+						"in": "(event.employment_id == null ? [] : [event.employment_id])"
+					}
+				},
+				"select": [
+					"id",
+					"company_id",
+					"employee_id",
+					"effective_range",
+					"prior_service_months",
+					"engagement",
+					"exit_ground",
+					"exit_facts",
+					"facts"
+				]
+			},
+			"employee": {
+				"collection": "employment_profile",
+				"where": {
+					"id": {
+						"in": "(event.employee_id == null ? [] : [event.employee_id])"
+					}
+				},
+				"select": ["nationality", "gender", "date_of_birth", "marital_status", "children", "facts"]
+			},
+			"holidays": {
+				"collection": "holiday",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					},
+					"published_at": {
+						"isNull": false
+					},
+					"date": {
+						"gte": "add_days(event.day, -31)",
+						"lte": "add_days(event.day, 400)"
+					}
+				},
+				"select": ["date", "name", "kind"]
+			},
+			"raised": {
+				"collection": "regulatory_task",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					},
+					"triggered_on": {
+						"gte": "add_days(event.day, -400)"
+					}
+				},
+				"select": ["occurrence_key"]
+			},
+			"subject_tasks": {
+				"collection": "regulatory_task",
+				"where": {
+					"company_id": {
+						"eq": "event.company_id"
+					},
+					"subject_id": {
+						"eq": "event.row.id"
+					}
+				},
+				"select": ["occurrence_key"]
+			}
+		},
+		"effect": "[\n  {\n    \"code\": behaviour.code,\n    \"name\": behaviour.name,\n    \"references\": behaviour.references,\n    \"rules\": behaviour.definition\n  }\n].filter(\n  d,\n  has(d.rules.trigger) && d.rules.trigger.collection == event.collection\n  &&event.action in d.rules.trigger.events\n  && (!has(d.rules.months)\n  ||d.rules.months.exists(m, event.period.key.endsWith(\"-\" + m)))\n  && (!has(d.rules.when)\n  ||configured_eval(\n    d.rules.when,\n    {\n      \"row\": event.row,\n      \"rules\": event.rules,\n      \"period\": event.period,\n      \"company\": first(company),\n      \"contract\": first(contract),\n      \"employee\": first(employee),\n      \"hired_on\": size(contract) > 0\n        ?first(contract).effective_range.from\n        :null,\n      \"exit_on\": size(contract) > 0\n        ?first(contract).effective_range.to\n        :null,\n      \"holidays\": holidays.map(h, h.date),\n      \"holidays_named\": holidays.filter(\n        h,\n        h.date >= event.day && h.date <= add_months(event.day, 12)\n      ).map(\n        h,\n        {\n          \"date\": h.date,\n          \"name\": has(h.name) ? h.name : \"\",\n          \"kind\": h.kind\n        }\n      ),\n      \"today\": event.day,\n      \"headcount\": event.headcount,\n      \"previous_year_headcount_months\": has(\n        event.previous_year_headcount_months\n      )\n        ?event.previous_year_headcount_months\n        :[],\n      \"separations\": event.separations,\n      \"headcount_by_worksite\": event.headcount_by_worksite,\n      \"headcount_permanent\": event.headcount_permanent,\n      \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite\n    }\n  )\n  ==true)\n  && (!has(d.rules.applies_when)\n  ||configured_eval(\n    d.rules.applies_when,\n    {\n      \"row\": event.row,\n      \"rules\": event.rules,\n      \"period\": event.period,\n      \"company\": first(company),\n      \"contract\": first(contract),\n      \"employee\": first(employee),\n      \"hired_on\": size(contract) > 0\n        ?first(contract).effective_range.from\n        :null,\n      \"exit_on\": size(contract) > 0\n        ?first(contract).effective_range.to\n        :null,\n      \"holidays\": holidays.map(h, h.date),\n      \"holidays_named\": holidays.filter(\n        h,\n        h.date >= event.day && h.date <= add_months(event.day, 12)\n      ).map(\n        h,\n        {\n          \"date\": h.date,\n          \"name\": has(h.name) ? h.name : \"\",\n          \"kind\": h.kind\n        }\n      ),\n      \"today\": event.day,\n      \"headcount\": event.headcount,\n      \"previous_year_headcount_months\": has(\n        event.previous_year_headcount_months\n      )\n        ?event.previous_year_headcount_months\n        :[],\n      \"separations\": event.separations,\n      \"headcount_by_worksite\": event.headcount_by_worksite,\n      \"headcount_permanent\": event.headcount_permanent,\n      \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite\n    }\n  )\n  ==true)\n  &&!(raised + subject_tasks).exists(\n    t,\n    t.occurrence_key\n    ==d.code + \":\" + event.company_id + \":\"\n    + (has(d.rules.occurrence)\n      ?string(\n        configured_eval(\n          d.rules.occurrence,\n          {\n            \"row\": event.row,\n            \"rules\": event.rules,\n            \"period\": event.period,\n            \"company\": first(company),\n            \"contract\": first(contract),\n            \"employee\": first(employee),\n            \"hired_on\": size(contract) > 0\n              ?first(contract).effective_range.from\n              :null,\n            \"exit_on\": size(contract) > 0\n              ?first(contract).effective_range.to\n              :null,\n            \"holidays\": holidays.map(h, h.date),\n            \"holidays_named\": holidays.filter(\n              h,\n              h.date >= event.day && h.date <= add_months(event.day, 12)\n            ).map(\n              h,\n              {\n                \"date\": h.date,\n                \"name\": has(h.name) ? h.name : \"\",\n                \"kind\": h.kind\n              }\n            ),\n            \"today\": event.day,\n            \"headcount\": event.headcount,\n            \"previous_year_headcount_months\": has(\n              event.previous_year_headcount_months\n            )\n              ?event.previous_year_headcount_months\n              :[],\n            \"separations\": event.separations,\n            \"headcount_by_worksite\": event.headcount_by_worksite,\n            \"headcount_permanent\": event.headcount_permanent,\n            \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite\n          }\n        )\n      )\n      :has(d.rules.repeat_key)\n        ?event.row.id + \":\"\n        +string(\n          configured_eval(\n            d.rules.repeat_key,\n            {\n              \"row\": event.row,\n              \"rules\": event.rules,\n              \"period\": event.period,\n              \"company\": first(company),\n              \"contract\": first(contract),\n              \"employee\": first(employee),\n              \"hired_on\": size(contract) > 0\n                ?first(contract).effective_range.from\n                :null,\n              \"exit_on\": size(contract) > 0\n                ?first(contract).effective_range.to\n                :null,\n              \"holidays\": holidays.map(h, h.date),\n              \"holidays_named\": holidays.filter(\n                h,\n                h.date >= event.day\n                &&h.date <= add_months(event.day, 12)\n              ).map(\n                h,\n                {\n                  \"date\": h.date,\n                  \"name\": has(h.name) ? h.name : \"\",\n                  \"kind\": h.kind\n                }\n              ),\n              \"today\": event.day,\n              \"headcount\": event.headcount,\n              \"previous_year_headcount_months\": has(\n                event.previous_year_headcount_months\n              )\n                ?event.previous_year_headcount_months\n                :[],\n              \"separations\": event.separations,\n              \"headcount_by_worksite\": event.headcount_by_worksite,\n              \"headcount_permanent\": event.headcount_permanent,\n              \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite\n            }\n          )\n        )\n        : (event.collection == \"payroll_run\"\n          ?event.row.period\n          :event.collection == \"calendar\"\n            ?event.row.id + \":\" + event.day\n            :event.row.id\n  ) ))\n).map(\n  d,\n  {\n    \"collection\": \"regulatory_task\",\n    \"operation\": \"create\",\n    \"data\": {\n      \"facts\": (event.collection in [\"employment_contract\", \"calendar\"]\n      &&has(event.row.exit_facts)\n      &&event.row.exit_facts != null\n      &&has(event.row.effective_range)\n      &&event.row.effective_range.to != null\n        ?{\n          \"exit_key\": string(event.row.effective_range.to) + \"/\"\n          + (has(event.row.exit_ground) && event.row.exit_ground != null\n            ?event.row.exit_ground\n            :\"\")\n        }\n        :{}),\n      \"code\": d.code,\n      \"title\": d.name,\n      \"references\": d.references,\n      \"subject_collection\": event.collection,\n      \"subject_id\": event.row.id,\n      \"company_id\": event.company_id,\n      \"settings_id\": event.settings_id,\n      \"trigger_ref\": event.row.id,\n      \"triggered_on\": event.day,\n      \"due_on\": configured_eval(\n        d.rules.due,\n        {\n          \"row\": event.row,\n          \"rules\": event.rules,\n          \"period\": event.period,\n          \"company\": first(company),\n          \"contract\": first(contract),\n          \"employee\": first(employee),\n          \"hired_on\": size(contract) > 0\n            ?first(contract).effective_range.from\n            :null,\n          \"exit_on\": size(contract) > 0\n            ?first(contract).effective_range.to\n            :null,\n          \"holidays\": holidays.map(h, h.date),\n          \"holidays_named\": holidays.filter(\n            h,\n            h.date >= event.day && h.date <= add_months(event.day, 12)\n          ).map(\n            h,\n            {\n              \"date\": h.date,\n              \"name\": has(h.name) ? h.name : \"\",\n              \"kind\": h.kind\n            }\n          ),\n          \"today\": event.day,\n          \"headcount\": event.headcount,\n          \"previous_year_headcount_months\": has(\n            event.previous_year_headcount_months\n          )\n            ?event.previous_year_headcount_months\n            :[],\n          \"separations\": event.separations,\n          \"headcount_by_worksite\": event.headcount_by_worksite,\n          \"headcount_permanent\": event.headcount_permanent,\n          \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite\n        }\n      ),\n      \"occurrence_key\": d.code + \":\" + event.company_id + \":\"\n      + (has(d.rules.occurrence)\n        ?string(\n          configured_eval(\n            d.rules.occurrence,\n            {\n              \"row\": event.row,\n              \"rules\": event.rules,\n              \"period\": event.period,\n              \"company\": first(company),\n              \"contract\": first(contract),\n              \"employee\": first(employee),\n              \"hired_on\": size(contract) > 0\n                ?first(contract).effective_range.from\n                :null,\n              \"exit_on\": size(contract) > 0\n                ?first(contract).effective_range.to\n                :null,\n              \"holidays\": holidays.map(h, h.date),\n              \"holidays_named\": holidays.filter(\n                h,\n                h.date >= event.day\n                &&h.date <= add_months(event.day, 12)\n              ).map(\n                h,\n                {\n                  \"date\": h.date,\n                  \"name\": has(h.name) ? h.name : \"\",\n                  \"kind\": h.kind\n                }\n              ),\n              \"today\": event.day,\n              \"headcount\": event.headcount,\n              \"previous_year_headcount_months\": has(\n                event.previous_year_headcount_months\n              )\n                ?event.previous_year_headcount_months\n                :[],\n              \"separations\": event.separations,\n              \"headcount_by_worksite\": event.headcount_by_worksite,\n              \"headcount_permanent\": event.headcount_permanent,\n              \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite\n            }\n          )\n        )\n        :has(d.rules.repeat_key)\n          ?event.row.id + \":\"\n          +string(\n            configured_eval(\n              d.rules.repeat_key,\n              {\n                \"row\": event.row,\n                \"rules\": event.rules,\n                \"period\": event.period,\n                \"company\": first(company),\n                \"contract\": first(contract),\n                \"employee\": first(employee),\n                \"hired_on\": size(contract) > 0\n                  ?first(contract).effective_range.from\n                  :null,\n                \"exit_on\": size(contract) > 0\n                  ?first(contract).effective_range.to\n                  :null,\n                \"holidays\": holidays.map(h, h.date),\n                \"holidays_named\": holidays.filter(\n                  h,\n                  h.date >= event.day\n                  &&h.date <= add_months(event.day, 12)\n                ).map(\n                  h,\n                  {\n                    \"date\": h.date,\n                    \"name\": has(h.name) ? h.name : \"\",\n                    \"kind\": h.kind\n                  }\n                ),\n                \"today\": event.day,\n                \"headcount\": event.headcount,\n                \"previous_year_headcount_months\": has(\n                  event.previous_year_headcount_months\n                )\n                  ?event.previous_year_headcount_months\n                  :[],\n                \"separations\": event.separations,\n                \"headcount_by_worksite\": event.headcount_by_worksite,\n                \"headcount_permanent\": event.headcount_permanent,\n                \"headcount_permanent_by_worksite\": event.headcount_permanent_by_worksite\n              }\n            )\n          )\n          : (event.collection == \"payroll_run\"\n            ?event.row.period\n            :event.collection == \"calendar\"\n              ?event.row.id + \":\" + event.day\n              :event.row.id))\n    }\n  }\n)"
+	}
+]

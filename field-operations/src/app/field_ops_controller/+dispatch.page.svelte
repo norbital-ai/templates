@@ -223,7 +223,7 @@
 	description={t('app.field_ops_controller.header_description')}
 >
 	{#snippet actions()}{@render dayPicker()}{/snippet}
-	<Stack gap="sm" fill>
+	<Stack gap="sm" size="fill">
 		<!-- the sheet picker the import action opens -->
 		<input
 			bind:this={picker}
@@ -253,7 +253,7 @@
 			collapse="switch"
 			switchLabels={[t('app.field_ops_controller.tab_dispatch'), t('component.section_map')]}
 			gap="md"
-			fill
+			size="fill"
 		>
 			{#snippet start()}
 				<Board
@@ -285,7 +285,7 @@
 				/>
 			{/snippet}
 			{#snippet end()}
-				<Stack gap="sm" fill>
+				<Stack gap="sm" size="fill">
 					{#if mappedSites.length > 0}
 						<!-- `isolate`: Leaflet's pane z-indexes stay below the record sheet -->
 						<div class="isolate">

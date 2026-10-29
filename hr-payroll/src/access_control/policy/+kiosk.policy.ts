@@ -1,26 +1,6 @@
 import { policy } from '@norbital-ai/bolt';
 import { MEMBER_LIMITS } from './grants.js';
 
-const PROFILE_FIELDS = [
-	'name',
-	'email',
-	'phone',
-	'face_embedding',
-	'face_photo',
-	'face_enrollment_status',
-	'face_enrolled_at',
-	'face_match_count',
-	'face_last_match_at'
-] as const;
-const CONTRACT_FIELDS = [
-	'employee_id',
-	'company_id',
-	'employee_number',
-	'effective_range'
-] as const;
-const ENTITY_FIELDS = ['name', 'settings_code'] as const;
-const ROSTER_FIELDS = ['employment_id', 'work_date', 'worked_intervals'] as const;
-
 /**
  * The attendance-kiosk device: the attendance kiosk (opening it and running inside it), punches for people, and enrolments that land PENDING for HR. The update
  * check keeps APPROVED out of kiosk reach: it may enrol NONE → APPROVED or refresh an APPROVED face, never undo one.
@@ -31,15 +11,10 @@ export default policy({
 	capabilities: { kiosks: ['attendance'] },
 	grants: {
 		sys_file: {
-			read: {
-				sys_file: {
-					where: { field: { eq: 'employment_profile.face_photo' } },
-					fields: ['field', 'size', 'sha256', 'created_at']
-				}
-			}
+			outputs: { meta: { sys_file: { where: { field: { eq: 'employment_profile.face_photo' } } } } }
 		},
 		employment_profile: {
-			read: { employment_profile: { fields: PROFILE_FIELDS } },
+			outputs: { kiosk: true },
 			create: {
 				columns: {
 					employment_profile: [
@@ -88,36 +63,18 @@ export default policy({
 			}
 		},
 		employment_contract: {
-			read: {
-				employment_contract: { fields: CONTRACT_FIELDS },
-				'employment_contract.employee_id': { fields: PROFILE_FIELDS },
-				'employment_contract.company_id': { fields: ENTITY_FIELDS }
-			},
+			outputs: { kiosk: true },
 			create: {
 				columns: {
 					employment_contract: ['employee_id', 'company_id', 'employee_number', 'effective_range']
 				}
 			}
 		},
-		entity: {
-			read: {
-				entity: { fields: ENTITY_FIELDS },
-				'entity.employment_contract': { fields: CONTRACT_FIELDS },
-				'entity.employment_contract.employee_id': { fields: PROFILE_FIELDS },
-				'entity.employment_contract.roster_entry': { fields: ROSTER_FIELDS },
-				// the kiosk reads no leave
-				'entity.employment_contract.leave_catalog_entry': { where: { id: { in: [] } } }
-			}
-		},
-		jurisdiction_settings: {
-			read: {
-				jurisdiction_settings: {
-					fields: ['code', 'name', 'sealed_at', 'voided_at', 'effective_range', 'payroll']
-				}
-			}
-		},
+		// the kiosk output reads no leave
+		entity: { outputs: { kiosk: true } },
+		jurisdiction_settings: { outputs: { kiosk: true } },
 		roster_entry: {
-			read: { roster_entry: { fields: ROSTER_FIELDS } },
+			outputs: { kiosk: true },
 			create: { columns: { roster_entry: ['employment_id', 'work_date', 'worked_intervals'] } },
 			update: { columns: { roster_entry: ['worked_intervals'] } }
 		}

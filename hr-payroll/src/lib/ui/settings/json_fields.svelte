@@ -5,7 +5,6 @@
 	 * removes it. `kinds` are the keys' labelled kinds, in display order.
 	 */
 	import { bolt } from '$bolt';
-	import { isMasked } from '@norbital-ai/bolt';
 	import {
 		StructuredData,
 		useBolt,
@@ -57,17 +56,13 @@
 	};
 </script>
 
-{#if isMasked(value)}
-	<p class="text-meta">{t('component.error')}</p>
-{:else}
-	<StructuredData
-		kind={{ kind: 'object', fields: kinds }}
-		value={selected}
-		mode={readonly ? 'view' : 'edit'}
-		onChange={set}
-		{name}
-		{id}
-		{disabled}
-		{errors}
-	/>
-{/if}
+<StructuredData
+	kind={{ kind: 'object', fields: kinds }}
+	value={selected}
+	mode={readonly ? 'view' : 'edit'}
+	onChange={set}
+	{name}
+	{id}
+	{disabled}
+	{errors}
+/>

@@ -13,5 +13,10 @@ export default model('helper_time_off', {
 	read: 'all',
 	create: { columns: { helper_time_off: ['helper', 'period', 'reason'] } },
 	update: { columns: { helper_time_off: ['period', 'reason'] } },
-	delete: {}
+	delete: {},
+	effect: {
+		created: function* (_, ctx) {
+			yield* ctx.schedule('publish_openings', {}, { key: 'publish_openings' });
+		}
+	}
 });

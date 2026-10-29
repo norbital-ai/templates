@@ -3,7 +3,6 @@
 	import { Show, type RecordView } from '@norbital-ai/ui';
 	import RecordLink from './record-link.svelte';
 	import { Grid } from '@norbital-ai/ui/layout';
-	import { isMasked } from '@norbital-ai/bolt';
 	let {
 		of,
 		view
@@ -24,7 +23,7 @@
 		<div>
 			<dt class="text-sm text-muted-foreground">{bolt.t(`models.${of}.fields.order`)}</dt>
 			<dd>
-				{#if view.record.order && !isMasked(view.record.order)}
+				{#if view.record.order}
 					<RecordLink of="orders" id={String(view.record.order)} />
 				{/if}
 			</dd>

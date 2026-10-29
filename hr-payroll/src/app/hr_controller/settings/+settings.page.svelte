@@ -21,6 +21,9 @@
 
 	const all = jurisdictionVersions();
 	let chosen = $state<Id<'jurisdiction_settings'> | null>(null);
+	// held here, not in the strips: the scope's reload remounts them, which would reset their selection
+	let tab = $state('general');
+	let catalogueTab = $state<string>('leave_catalog');
 	const scope = $derived(
 		resolveJurisdictionScope(all.current?.jurisdiction_settings.rows ?? [], chosen)
 	);
@@ -148,6 +151,7 @@
 
 {#snippet catalogues()}
 	<Tabs
+		bind:value={catalogueTab}
 		tabs={CATALOGUES.map(([collection, icon]) => ({
 			name: collection,
 			title: bolt.t(`app.settings.${collection}`),
@@ -196,6 +200,7 @@
 			<EmptyState title={bolt.t('app.settings.choose_jurisdiction_empty')} />
 		{:else}
 			<Tabs
+				bind:value={tab}
 				tabs={[
 					{
 						name: 'general',

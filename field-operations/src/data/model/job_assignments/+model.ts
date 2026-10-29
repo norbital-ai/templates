@@ -77,7 +77,7 @@ export default model('job_assignments', {
 	index: ['scheduled_for', 'suspicion_checked_at'],
 	search: {
 		// `site_id` matches the site's own search text (name, address, unit, code, client); `external_ref` stays out, as
-		// the contractor's grant masks it and a masked field refuses the search
+		// the contractor's output omits it
 		text: ['title', 'nature', 'summary', 'site_id'],
 		// `/semantic` in the jobs search box: the work described, on the host's default embedding model. `dim` is the width
 		// of the `bolt_embedding` column every job's vector and every probe are read at, so the host's model must honour it.
@@ -89,6 +89,28 @@ export default model('job_assignments', {
 		'job_assignments.photo_evidence': { fields: ['photo', 'summary', 'flags', 'created_at'] },
 		'job_assignments.site_id': {
 			fields: ['name', 'address', 'unit_number', 'site_code', 'client_name', 'site_key']
+		}
+	},
+	outputs: {
+		/** A contractor's view of the jobs they hold: the work order and its progress, never dispatch provenance. */
+		contractor: {
+			job_assignments: {
+				fields: [
+					'site_id',
+					'title',
+					'nature',
+					'scheduled_for',
+					'description',
+					'assignee_user_id',
+					'dispatched_at',
+					'status',
+					'completed_at',
+					'amount_charged',
+					'location',
+					'location_address',
+					'summary'
+				]
+			}
 		}
 	},
 	create: {
@@ -151,5 +173,21 @@ export default model('job_assignments', {
 			});
 		}
 	},
-	delete: {}
+	delete: {},
+	effect: {
+		created: function* (_rows, ctx) {
+			yield* ctx.schedule('review_job_assignment_suspicion', {}, { key: 'suspicion_review' });
+		},
+		// a change that cleared the review's stamp; a writer whose output omits the stamp sees it `undefined` on both
+		// sides and counts (the review sweeps only unchecked jobs), while the review's own stamp is skipped
+		updated: function* (changes, ctx) {
+			if (
+				changes.some(
+					({ before, after }) =>
+						after.suspicion_checked_at == null && before.suspicion_checked_at !== null
+				)
+			)
+				yield* ctx.schedule('review_job_assignment_suspicion', {}, { key: 'suspicion_review' });
+		}
+	}
 });

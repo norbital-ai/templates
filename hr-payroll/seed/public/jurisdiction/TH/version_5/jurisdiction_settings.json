@@ -1,0 +1,845 @@
+[
+	{
+		"id": "c7b8b330-0e29-567d-be9a-5689702b3e7f",
+		"code": "TH",
+		"name": "Thailand — 1 January 2029",
+		"sealed_at": "2026-10-06T12:00:00.000Z",
+		"voided_at": null,
+		"effective_range": {
+			"from": "2029-01-01",
+			"to": "2031-09-30"
+		},
+		"payroll": {
+			"currency": "THB",
+			"timezone": "Asia/Bangkok",
+			"week_start": 1,
+			"roster_week": "CALENDAR",
+			"monthly_wage": "terms.base_salary\n+sum(\n  terms.allowances.filter(\n    a,\n    (has(a.code) && a.code == \"FIXED_ALLOWANCE\")\n    || (has(a.catalogue_id)\n    &&a.catalogue_id\n    in [\n      \"fc9a212c-9211-5c59-9aeb-85a201239776\",\n      \"809d9c7c-1bc6-5d54-9156-ef55401b4e79\",\n      \"f650c89d-d8ab-58d1-80f3-6e64da1dda7d\",\n      \"2a210c86-30c6-5cd1-84f6-cadc4d2ecf93\",\n      \"3f512ae5-3e16-5787-90c6-c8ba68404cbd\",\n      \"60b8520e-a707-5cbd-91c5-299840c94ff7\",\n      \"d13ea036-7c8c-546d-b931-37096d29b205\"\n    ]\n  ) ).map(\n    a,\n    a.amount\n  )\n)"
+		},
+		"time_pay": {
+			"BASIC": [
+				{
+					"code": "BASIC",
+					"name": "Basic salary",
+					"references": [
+						{
+							"title": "Labour Protection Act B.E. 2541 (1998) s.5 (\"wage\": money paid for work in normal working time) and s.70 (paid at least once a month). A monthly-paid employee: the contract amount scaled to the days employed in the month. A semi-monthly or ten-day period pays the monthly salary divided by the parts of the month (LPA s.70 allows payment more often than monthly)."
+						}
+					],
+					"eligibility": "!(has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\")\n&&!(has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\")",
+					"quantity": "period.paid_days / period.days",
+					"rate": "terms.base_salary / double(period.parts)",
+					"prorated": true,
+					"denominator": "double(period.days)",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSO", "WCF", "PND1", "PVD", "EWF"]
+				},
+				{
+					"code": "BASIC_DAILY",
+					"name": "Daily wages",
+					"references": [
+						{
+							"title": "Labour Protection Act B.E. 2541 (1998) s.5, s.56 and s.57-59: a daily-paid employee (contract terms fact pay_basis DAILY; base_salary is the day rate) is paid for each working day worked, each traditional holiday (s.56(2)) and each paid leave day at the leave class's pay fraction; a weekly holiday is unpaid for a daily-paid employee (s.56(1))."
+						}
+					],
+					"eligibility": "(has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\")",
+					"quantity": "(double(\n  size(\n    work.days.filter(\n      d,\n      d.day_type == \"WORK\" && d.holiday_kind == \"\"\n      &&d.worked_hours > 0.0\n    )\n  )\n)\n+double(\n  size(\n    work.days.filter(d, d.holiday_kind != \"\" && d.day_type != \"REST\")\n  )\n)\n+sum(\n  leave.rows.filter(r, r.activity == \"TIME_OFF\" && !r.is_npl).map(\n    r,\n    r.days * r.pay_fraction\n  )\n))",
+					"rate": "terms.base_salary",
+					"prorated": false,
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSO", "WCF", "PND1", "PVD", "EWF"]
+				}
+			],
+			"OVERTIME": [
+				{
+					"code": "OVERTIME",
+					"name": "Overtime on a working day (1.5x)",
+					"references": [
+						{
+							"title": "Labour Protection Act B.E. 2541 s.61: overtime on a working day at not less than 1.5 times the hourly wage; s.68: the hourly wage of a monthly-paid employee is the monthly wage ÷ (30 × the average normal hours a day) — contract fact normal_hours_per_day, else 8 (7 for hazardous work, s.23). s.65: an employee with power to hire, reward or dismiss for the employer (contract fact overtime_category MANAGER) gets no overtime pay; the listed s.65(2)-(8) work (SECTION_65_OTHER) is paid 1 × the hourly wage. Office of the Council of State English translation. Neither SSO nor WCF wage (SSA s.5 and WCA s.5 count only normal working hours and days). s.69: where normal time is fixed by the week (contract fact weekly_normal_hours), overtime is the week's hours beyond it, counting traditional and annual holidays and leave days as working days of the normal day; a Monday-Sunday week is counted within the pay period. Overtime hours are the engine-derived hours worked past the planned shift in completed half-hours, less banked hours; work on a weekly rest day or holiday is priced by HOLIDAY_WORK and HOLIDAY_OVERTIME instead. A piece worker (contract fact pay_basis PIECE, piece_rate per unit; roster day facts units and overtime_units) is paid per unit at the same multiples (ss.61-63: \"the wage paid upon piece-work basis … per the unit of work\"), and the 2× of s.62(2) on the weekly holiday s.56(1) leaves unpaid. Office of the Council of State English translation. Piece-overtime payment requires derived overtime on the same day; the configured piece units and unit rate remain separate from the derived hours.",
+							"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+						}
+					],
+					"eligibility": "(has(terms.facts.overtime_category) ? terms.facts.overtime_category : \"\")\n!=\"MANAGER\"\n&& ((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\")\n  ?sum(\n    work.days.filter(d, !(d.holiday_kind != \"\" || d.day_type == \"REST\")).map(\n      d,\n      (d.overtime_hours > 0.0 && has(d.facts) && d.facts != null\n      &&has(d.facts.overtime_units)\n        ?double(d.facts.overtime_units)\n        :0.0\n    ) )\n  )\n  : (has(terms.facts.weekly_normal_hours)\n    ?sum(\n      work.days.filter(\n        d,\n        !work.days.exists(\n          e,\n          (int(calendar_distance_days(\"1900-01-01\", e.date)) / 7)\n          == (int(calendar_distance_days(\"1900-01-01\", d.date)) / 7)\n          &&e.date < d.date\n        )\n      ).map(\n        d,\n        max(\n          0.0,\n          sum(\n            work.days.filter(\n              e,\n              (int(calendar_distance_days(\"1900-01-01\", e.date)) / 7)\n              == (int(calendar_distance_days(\"1900-01-01\", d.date)) / 7)\n              &&!(e.holiday_kind != \"\" || e.day_type == \"REST\"\n            ) ).map(\n              e,\n              e.worked_hours - e.banked_hours\n            )\n          )\n          + (has(terms.facts.normal_hours_per_day)\n            ?double(terms.facts.normal_hours_per_day)\n            : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0))\n          *double(\n            size(\n              work.days.filter(\n                e,\n                (int(calendar_distance_days(\"1900-01-01\", e.date)) / 7)\n                == (int(calendar_distance_days(\"1900-01-01\", d.date))\n                /7)\n                && ((e.holiday_kind != \"\" && e.day_type != \"REST\"\n                &&!e.worked)\n                || (!(e.holiday_kind != \"\" || e.day_type == \"REST\")\n                && (has(leave.rows) ? leave.rows : []).exists(\n                  r,\n                  r.activity == \"TIME_OFF\" && r.from <= e.date\n                  &&r.to >= e.date\n                )\n              ) ))\n            )\n          )\n          -double(terms.facts.weekly_normal_hours)\n        )\n      )\n    )\n    :sum(\n      work.days.filter(\n        d,\n        !(d.holiday_kind != \"\" || d.day_type == \"REST\"\n      ) ).map(\n        d,\n        d.overtime_hours\n      )\n    )))\n>0.0",
+					"quantity": "((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\")\n  ?sum(\n    work.days.filter(d, !(d.holiday_kind != \"\" || d.day_type == \"REST\")).map(\n      d,\n      (d.overtime_hours > 0.0 && has(d.facts) && d.facts != null\n      &&has(d.facts.overtime_units)\n        ?double(d.facts.overtime_units)\n        :0.0\n    ) )\n  )\n  : (has(terms.facts.weekly_normal_hours)\n    ?sum(\n      work.days.filter(\n        d,\n        !work.days.exists(\n          e,\n          (int(calendar_distance_days(\"1900-01-01\", e.date)) / 7)\n          == (int(calendar_distance_days(\"1900-01-01\", d.date)) / 7)\n          &&e.date < d.date\n        )\n      ).map(\n        d,\n        max(\n          0.0,\n          sum(\n            work.days.filter(\n              e,\n              (int(calendar_distance_days(\"1900-01-01\", e.date)) / 7)\n              == (int(calendar_distance_days(\"1900-01-01\", d.date)) / 7)\n              &&!(e.holiday_kind != \"\" || e.day_type == \"REST\"\n            ) ).map(\n              e,\n              e.worked_hours - e.banked_hours\n            )\n          )\n          + (has(terms.facts.normal_hours_per_day)\n            ?double(terms.facts.normal_hours_per_day)\n            : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0))\n          *double(\n            size(\n              work.days.filter(\n                e,\n                (int(calendar_distance_days(\"1900-01-01\", e.date)) / 7)\n                == (int(calendar_distance_days(\"1900-01-01\", d.date))\n                /7)\n                && ((e.holiday_kind != \"\" && e.day_type != \"REST\"\n                &&!e.worked)\n                || (!(e.holiday_kind != \"\" || e.day_type == \"REST\")\n                && (has(leave.rows) ? leave.rows : []).exists(\n                  r,\n                  r.activity == \"TIME_OFF\" && r.from <= e.date\n                  &&r.to >= e.date\n                )\n              ) ))\n            )\n          )\n          -double(terms.facts.weekly_normal_hours)\n        )\n      )\n    )\n    :sum(\n      work.days.filter(\n        d,\n        !(d.holiday_kind != \"\" || d.day_type == \"REST\"\n      ) ).map(\n        d,\n        d.overtime_hours\n      )\n    )))",
+					"rate": "((has(terms.facts.overtime_category)\n  ?terms.facts.overtime_category\n  :\"\")\n==\"SECTION_65_OTHER\"\n  ?1.0\n  :1.5)\n* ((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\")\n  ? (has(terms.facts.piece_rate) ? double(terms.facts.piece_rate) : 0.0)\n  : (((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\")\n    ?terms.base_salary\n    : ((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\")\n      ? (has(earned.previous_month.PIECE_WORK)\n      &&has(hours.previous_month.worked_hours)\n      &&hours.previous_month.worked_hours > 0.0\n        ?earned.previous_month.PIECE_WORK\n        / (hours.previous_month.worked_hours\n        / (has(terms.facts.normal_hours_per_day)\n          ?double(terms.facts.normal_hours_per_day)\n          : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0)))\n        :0.0)\n      :terms.monthly_wage / 30.0))\n  / (has(terms.facts.normal_hours_per_day)\n    ?double(terms.facts.normal_hours_per_day)\n    : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0))))",
+					"prorated": false,
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["PND1"]
+				}
+			],
+			"HOLIDAY_WORK": [
+				{
+					"code": "HOLIDAY_WORK",
+					"name": "Holiday work in normal hours",
+					"references": [
+						{
+							"title": "Labour Protection Act B.E. 2541 s.62: work in normal hours on a holiday is paid (1) at least 1 × the hourly wage per hour when the employee is already paid for that holiday — every holiday of a monthly-paid employee and the traditional and annual holidays of a daily-paid one (s.56) — (2) at least 2 × when the holiday is unpaid, the weekly holiday of a daily-paid employee. s.66: none for a s.65(1) manager unless the employer agrees. Hours are the paid hours of the holiday or weekly rest day (the planned hours plus the overtime the engine derives, less banked hours), at most the normal day; on a 0-hour rest day every hour worked is first normal time up to the normal day. Office of the Council of State English translation. Neither SSO nor WCF wage. A piece worker (contract fact pay_basis PIECE, piece_rate per unit; roster day facts units and overtime_units) is paid per unit at the same multiples (ss.61-63: \"the wage paid upon piece-work basis … per the unit of work\"), and the 2× of s.62(2) on the weekly holiday s.56(1) leaves unpaid. Office of the Council of State English translation.",
+							"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+						}
+					],
+					"eligibility": "(has(terms.facts.overtime_category) ? terms.facts.overtime_category : \"\")\n!=\"MANAGER\"\n&& ((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\")\n  ?sum(\n    work.days.filter(d, (d.holiday_kind != \"\" || d.day_type == \"REST\")).map(\n      d,\n      (has(d.facts) && d.facts != null && has(d.facts.units)\n        ?double(d.facts.units)\n        :0.0)\n      * (((has(terms.facts.pay_basis)\n      &&terms.facts.pay_basis == \"DAILY\")\n      || (has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\"))\n      &&d.day_type == \"REST\"\n      &&d.holiday_kind == \"\"\n        ?2.0\n        :1.0\n    ) )\n  )\n  :sum(\n    work.days.filter(d, (d.holiday_kind != \"\" || d.day_type == \"REST\")).map(\n      d,\n      min(\n        max(d.worked_hours - d.banked_hours, 0.0),\n        (has(terms.facts.normal_hours_per_day)\n          ?double(terms.facts.normal_hours_per_day)\n          : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0\n      ) ))\n      * (((has(terms.facts.pay_basis)\n      &&terms.facts.pay_basis == \"DAILY\")\n      || (has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\"))\n      &&d.day_type == \"REST\"\n      &&d.holiday_kind == \"\"\n        ?2.0\n        :1.0\n    ) )\n  ))\n>0.0",
+					"quantity": "((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\")\n  ?sum(\n    work.days.filter(d, (d.holiday_kind != \"\" || d.day_type == \"REST\")).map(\n      d,\n      (has(d.facts) && d.facts != null && has(d.facts.units)\n        ?double(d.facts.units)\n        :0.0)\n      * (((has(terms.facts.pay_basis)\n      &&terms.facts.pay_basis == \"DAILY\")\n      || (has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\"))\n      &&d.day_type == \"REST\"\n      &&d.holiday_kind == \"\"\n        ?2.0\n        :1.0\n    ) )\n  )\n  :sum(\n    work.days.filter(d, (d.holiday_kind != \"\" || d.day_type == \"REST\")).map(\n      d,\n      min(\n        max(d.worked_hours - d.banked_hours, 0.0),\n        (has(terms.facts.normal_hours_per_day)\n          ?double(terms.facts.normal_hours_per_day)\n          : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0\n      ) ))\n      * (((has(terms.facts.pay_basis)\n      &&terms.facts.pay_basis == \"DAILY\")\n      || (has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\"))\n      &&d.day_type == \"REST\"\n      &&d.holiday_kind == \"\"\n        ?2.0\n        :1.0\n    ) )\n  ))",
+					"rate": "((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\")\n  ? (has(terms.facts.piece_rate) ? double(terms.facts.piece_rate) : 0.0)\n  : (((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\")\n    ?terms.base_salary\n    : ((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\")\n      ? (has(earned.previous_month.PIECE_WORK)\n      &&has(hours.previous_month.worked_hours)\n      &&hours.previous_month.worked_hours > 0.0\n        ?earned.previous_month.PIECE_WORK\n        / (hours.previous_month.worked_hours\n        / (has(terms.facts.normal_hours_per_day)\n          ?double(terms.facts.normal_hours_per_day)\n          : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0)))\n        :0.0)\n      :terms.monthly_wage / 30.0))\n  / (has(terms.facts.normal_hours_per_day)\n    ?double(terms.facts.normal_hours_per_day)\n    : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0))))",
+					"prorated": false,
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["PND1"]
+				}
+			],
+			"HOLIDAY_OVERTIME": [
+				{
+					"code": "HOLIDAY_OVERTIME",
+					"name": "Overtime on a holiday (3x)",
+					"references": [
+						{
+							"title": "Labour Protection Act B.E. 2541 s.63: overtime on a holiday at not less than 3 times the hourly wage; s.65: none for a manager, 1 × for the s.65(2)-(8) work. Hours are the paid hours of the holiday or weekly rest day beyond the normal day (normal_hours_per_day, else 8 or 7 hazardous), less banked hours; the hours within it are HOLIDAY_WORK. Office of the Council of State English translation. Neither SSO nor WCF wage. A piece worker (contract fact pay_basis PIECE, piece_rate per unit; roster day facts units and overtime_units) is paid per unit at the same multiples (ss.61-63: \"the wage paid upon piece-work basis … per the unit of work\"), and the 2× of s.62(2) on the weekly holiday s.56(1) leaves unpaid. Office of the Council of State English translation. Piece-overtime payment requires derived overtime on the same day; the configured piece units and unit rate remain separate from the derived hours.",
+							"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+						}
+					],
+					"eligibility": "(has(terms.facts.overtime_category) ? terms.facts.overtime_category : \"\")\n!=\"MANAGER\"\n&& ((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\")\n  ?sum(\n    work.days.filter(d, (d.holiday_kind != \"\" || d.day_type == \"REST\")).map(\n      d,\n      (d.overtime_hours > 0.0 && has(d.facts) && d.facts != null\n      &&has(d.facts.overtime_units)\n        ?double(d.facts.overtime_units)\n        :0.0\n    ) )\n  )\n  :sum(\n    work.days.filter(d, (d.holiday_kind != \"\" || d.day_type == \"REST\")).map(\n      d,\n      max(\n        d.worked_hours - d.banked_hours\n        - (has(terms.facts.normal_hours_per_day)\n          ?double(terms.facts.normal_hours_per_day)\n          : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0)),\n        0.0\n      )\n    )\n  ))\n>0.0",
+					"quantity": "((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\")\n  ?sum(\n    work.days.filter(d, (d.holiday_kind != \"\" || d.day_type == \"REST\")).map(\n      d,\n      (d.overtime_hours > 0.0 && has(d.facts) && d.facts != null\n      &&has(d.facts.overtime_units)\n        ?double(d.facts.overtime_units)\n        :0.0\n    ) )\n  )\n  :sum(\n    work.days.filter(d, (d.holiday_kind != \"\" || d.day_type == \"REST\")).map(\n      d,\n      max(\n        d.worked_hours - d.banked_hours\n        - (has(terms.facts.normal_hours_per_day)\n          ?double(terms.facts.normal_hours_per_day)\n          : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0)),\n        0.0\n      )\n    )\n  ))",
+					"rate": "((has(terms.facts.overtime_category)\n  ?terms.facts.overtime_category\n  :\"\")\n==\"SECTION_65_OTHER\"\n  ?1.0\n  :3.0)\n* ((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\")\n  ? (has(terms.facts.piece_rate) ? double(terms.facts.piece_rate) : 0.0)\n  : (((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\")\n    ?terms.base_salary\n    : ((has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\")\n      ? (has(earned.previous_month.PIECE_WORK)\n      &&has(hours.previous_month.worked_hours)\n      &&hours.previous_month.worked_hours > 0.0\n        ?earned.previous_month.PIECE_WORK\n        / (hours.previous_month.worked_hours\n        / (has(terms.facts.normal_hours_per_day)\n          ?double(terms.facts.normal_hours_per_day)\n          : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0)))\n        :0.0)\n      :terms.monthly_wage / 30.0))\n  / (has(terms.facts.normal_hours_per_day)\n    ?double(terms.facts.normal_hours_per_day)\n    : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0))))",
+					"prorated": false,
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["PND1"]
+				}
+			],
+			"PAID_HOLIDAY": [
+				{
+					"code": "PIECE_PAID_DAYS",
+					"name": "Piece worker holiday and leave pay",
+					"references": [
+						{
+							"title": "Labour Protection Act B.E. 2541 s.56(2)-(3): traditional and annual holidays are paid (not the weekly holiday, s.56(1)); ss.57-59: paid sick, sterilisation, military and maternity leave; s.60: for a piece worker the day is \"the average wages paid … for work on the last period of payment before such holiday or leave\" — read as last month's piece-work wages per normal day worked. Office of the Council of State English translation",
+							"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+						}
+					],
+					"eligibility": "(has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\")\n&& (double(\n  size(\n    work.days.filter(d, d.holiday_kind != \"\" && d.day_type != \"REST\")\n  )\n)\n+sum(\n  leave.rows.filter(r, r.activity == \"TIME_OFF\" && !r.is_npl).map(\n    r,\n    r.days * r.pay_fraction\n  )\n))\n>0.0",
+					"quantity": "double(\n  size(\n    work.days.filter(d, d.holiday_kind != \"\" && d.day_type != \"REST\")\n  )\n)\n+sum(\n  leave.rows.filter(r, r.activity == \"TIME_OFF\" && !r.is_npl).map(\n    r,\n    r.days * r.pay_fraction\n  )\n)",
+					"rate": "has(earned.previous_month.PIECE_WORK)\n&&has(hours.previous_month.worked_hours)\n&&hours.previous_month.worked_hours > 0.0\n  ?earned.previous_month.PIECE_WORK\n  / (hours.previous_month.worked_hours\n  / (has(terms.facts.normal_hours_per_day)\n    ?double(terms.facts.normal_hours_per_day)\n    : (terms.work_classification == \"HAZARDOUS\" ? 7.0 : 8.0)))\n  :0.0",
+					"prorated": false,
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SSO", "WCF", "PND1", "PVD", "EWF"]
+				}
+			]
+		},
+		"sources": {
+			"entries": [
+				{
+					"agent": "catalog",
+					"url": "https://phitsanulok.mol.go.th/%E0%B8%AD%E0%B8%B1%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%84%E0%B9%88%E0%B8%B2%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%87%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3",
+					"instructions": "Provincial labour office of the Ministry of Labour. Its กฎหมายแรงงาน menu (from the main menu or the ดาวน์โหลด category) carries the Labour Protection Act (ฉบับที่ 7) B.E. 2562 (direct PDF https://phitsanulok.mol.go.th/wp-content/uploads/sites/23/2020/05/labour_2541_7.pdf); the base Act B.E. 2541 and other amendments are not hosted on a registered site, so cite sections as amended and report any section whose operative text you cannot read. The Ministry's main portal (mol.go.th) is bot-challenged and is not used. Read the Act for the statutory leave classes and entitlements (sick, business, maternity, sterilisation, military, training and annual leave, with pay conditions), the termination benefits (the severance pay bands by length of service, special severance on relocation or technology change, payment in lieu of notice) and the work items pay is built from (overtime, holiday work and holiday overtime pay, rest-day pay, leave pay, piece-rate wages) with their multipliers."
+				},
+				{
+					"agent": "catalog",
+					"url": "https://www.sso.go.th/wpr/",
+					"instructions": "Social Security Office. Read only the cash benefits that coordinate with leave pay: maternity, sickness and unemployment benefits (who pays which days, the benefit rate and its wage base). Use the กฎหมาย menu (https://www.sso.go.th/wpr/main/law) for the Act and ministerial regulations fixing the benefits, and the benefit pages for the current amounts."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.sso.go.th/wpr/",
+					"instructions": "Social Security Office. Read the SSF contribution of s.33 insured employees (rate, wage floor and ceiling and their dated steps, insurable age, wage exclusions, assessment on wages paid), the s.39/s.40 distinction, and the Workmen's Compensation Fund (rates by business code, experience rating, the wage base and ceiling). Use the กฎหมาย menu (https://www.sso.go.th/wpr/main/law) for the Acts, ministerial regulations and notifications. A news item announcing a rate change is not the instrument: find the ministerial regulation."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://itserver15.labour.go.th/ewfundTemplate/eServiceTmpPortal.php",
+					"instructions": "Department of Labour Protection and Welfare public portal of the Employee Welfare Fund (กองทุนสงเคราะห์ลูกจ้าง). Read coverage (employers of ten or more), the contribution rates and their dated steps under the Ministerial Regulation B.E. 2568, the wage base and ceiling, and the exemption of members of a registered provident fund (individual eligibility evidence). Open the manuals and FAQs (ewfund-media.php) and the public media files (e.g. media-file.php?id=18); do not use the ewfund or e-Service logins."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.rd.go.th/284.html",
+					"instructions": "Revenue Department tax-law collection (รวมกฎหมายภาษี). Read salary withholding: Revenue Code ss.40, 42, 47, 48 and 50 (income classes, exemptions, allowances and deductions, the progressive rate scale and the withholding computation), Royal Decree exemptions and the severance exemption (Ministerial Regulation No. 126 item 2(51)). Follow the Revenue Code, royal decree, ministerial regulation and departmental instruction lists on this page and the individual income tax pages (the rate scale is at https://www.rd.go.th/59670.html). The English pages are not kept current; read the Thai pages."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://sdfund.dsd.go.th/",
+					"instructions": "Skill Development Fund of the Department of Skill Development. Read the Skill Development Promotion Act levy: employers in scope (100 or more employees), the 50% training ratio, the contribution base and rate. Use กฏหมายและระเบียบ (Content/Detail pages) and the manuals under Uploads. www.dsd.go.th is bot-challenged and is not used."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://ejob.dep.go.th/",
+					"instructions": "Department of Empowerment of Persons with Disabilities site on employing persons with disabilities. Read the employment quota (one person with disabilities per 100 employees, the headcount date) and the s.34 fund payment base for a shortfall. Use คลังความรู้ for the ministerial regulations and notifications. www.dep.go.th does not respond and is not used."
+				},
+				{
+					"agent": "rules",
+					"url": "https://phitsanulok.mol.go.th/%E0%B8%AD%E0%B8%B1%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%84%E0%B9%88%E0%B8%B2%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%87%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3",
+					"instructions": "This page lists the Wage Committee notifications on minimum wage rates (ประกาศคณะกรรมการค่าจ้าง เรื่อง อัตราค่าจ้างขั้นต่ำ ฉบับที่ 12, 13, 14 ...) with their effective dates and repeal status: the authority for the statutory minimum daily wage of every province and district, the 400-baht categories (Bangkok, hotels of categories 2-4, service establishments) and, under the download and labour-law menus, the skill-standard wage notifications (อัตราค่าจ้างตามมาตรฐานฝีมือ). Open each notification PDF and read the clause-by-clause province table; check whether a newer ฉบับ is listed and when it takes effect. A Wage Committee resolution or Cabinet acknowledgment is not law until the notification is gazetted. Provincial labour office of the Ministry of Labour. Its กฎหมายแรงงาน menu (from the main menu or the ดาวน์โหลด category) carries the Labour Protection Act (ฉบับที่ 7) B.E. 2562 (direct PDF https://phitsanulok.mol.go.th/wp-content/uploads/sites/23/2020/05/labour_2541_7.pdf); the base Act B.E. 2541 and other amendments are not hosted on a registered site, so cite sections as amended and report any section whose operative text you cannot read. The Ministry's main portal (mol.go.th) is bot-challenged and is not used. Read the Act for hours of work, overtime and holiday-work limits and consent, rest days, wage periods and payment methods, deduction ceilings, child and young-worker limits and employer record retention."
+				},
+				{
+					"agent": "rules",
+					"url": "https://www.rd.go.th/284.html",
+					"instructions": "Revenue Department tax-law collection. Read only the retention period of tax and withholding documents (Revenue Code and departmental instructions on this page). Read the Thai pages."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://phitsanulok.mol.go.th/%E0%B8%AD%E0%B8%B1%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%84%E0%B9%88%E0%B8%B2%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%87%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3",
+					"instructions": "Provincial labour office of the Ministry of Labour. Its กฎหมายแรงงาน menu (from the main menu or the ดาวน์โหลด category) carries the Labour Protection Act (ฉบับที่ 7) B.E. 2562 (direct PDF https://phitsanulok.mol.go.th/wp-content/uploads/sites/23/2020/05/labour_2541_7.pdf); the base Act B.E. 2541 and other amendments are not hosted on a registered site, so cite sections as amended and report any section whose operative text you cannot read. The Ministry's main portal (mol.go.th) is bot-challenged and is not used. Read the Act for the event rules it requires: a traditional holiday falling on a weekly rest day and its substitute day, what an employee's termination or exit must trigger (final wages and severance payable within the statutory period, payment in lieu of notice), and what each wage payment date must settle (overtime and holiday pay paid with the wages)."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.sso.go.th/wpr/",
+					"instructions": "Social Security Office. Read only the event effects of an employee's exit on social security: when s.33 insured status ends and the s.39 continuation election. Use the กฎหมาย menu (https://www.sso.go.th/wpr/main/law) for the Act sections."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.sso.go.th/wpr/",
+					"instructions": "Social Security Office. Read the employer duties and deadlines: employer and employee registration and exit notices (สปส.1-01, 1-03, 6-09), the monthly contribution return สปส.1-10 and its file layout, the s.49 late surcharge, and for the Workmen's Compensation Fund the annual wage statement กท.20ก, instalments and the injury notification กท.16. Use the กฎหมาย menu (https://www.sso.go.th/wpr/main/law) for the Acts and the download and manual sections for forms and file specifications."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://itserver15.labour.go.th/ewfundTemplate/eServiceTmpPortal.php",
+					"instructions": "Employee Welfare Fund public portal. Read remittance in the month after the wage-payment month and the late surcharge, from the manuals and FAQs (ewfund-media.php) and the public media files; do not use the ewfund or e-Service logins."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.rd.go.th/284.html",
+					"instructions": "Revenue Department tax-law collection. Read Revenue Code ss.52, 58 and 59 and the departmental instructions for PND1 and PND1 Kor filing and their e-filing extension, the 50 Tawi certificate and the PND1 attachment file format. Read the Thai pages."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://sdfund.dsd.go.th/",
+					"instructions": "Skill Development Fund. Read the Sor Tor 2 return and payment by March, the late surcharge, and the course certification and application deadlines, from กฏหมายและระเบียบ (Content/Detail pages) and the manuals under Uploads."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://ejob.dep.go.th/",
+					"instructions": "Department of Empowerment of Persons with Disabilities site. Read the s.34 payment due date (31 March), the s.35 alternatives, the 7.5% late interest and the annual report. Use คลังความรู้ and แบบรายงาน for the regulations and forms."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://phitsanulok.mol.go.th/%E0%B8%AD%E0%B8%B1%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%84%E0%B9%88%E0%B8%B2%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%87%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3",
+					"instructions": "Provincial labour office of the Ministry of Labour. Its กฎหมายแรงงาน menu (from the main menu or the ดาวน์โหลด category) carries the Labour Protection Act (ฉบับที่ 7) B.E. 2562 (direct PDF https://phitsanulok.mol.go.th/wp-content/uploads/sites/23/2020/05/labour_2541_7.pdf); the base Act B.E. 2541 and other amendments are not hosted on a registered site, so cite sections as amended and report any section whose operative text you cannot read. The Ministry's main portal (mol.go.th) is bot-challenged and is not used. Read the Act for employer notices and registers: work rules and their filing, the employee register and wage and overtime records, notices to the labour inspector (child employment, retrenchment on technology change) and their deadlines."
+				},
+				{
+					"agent": "settings",
+					"url": "https://phitsanulok.mol.go.th/%E0%B8%AD%E0%B8%B1%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%84%E0%B9%88%E0%B8%B2%E0%B8%88%E0%B9%89%E0%B8%B2%E0%B8%87%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3",
+					"instructions": "Provincial labour office of the Ministry of Labour. Its กฎหมายแรงงาน menu (from the main menu or the ดาวน์โหลด category) carries the Labour Protection Act (ฉบับที่ 7) B.E. 2562 (direct PDF https://phitsanulok.mol.go.th/wp-content/uploads/sites/23/2020/05/labour_2541_7.pdf); the base Act B.E. 2541 and other amendments are not hosted on a registered site, so cite sections as amended and report any section whose operative text you cannot read. The Ministry's main portal (mol.go.th) is bot-challenged and is not used. Read the Act for the payroll settings it fixes: how often and when wages must be paid (wage periods and pay date), and the monthly-wage basis for deriving a daily or hourly rate."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.rd.go.th/284.html",
+					"instructions": "Revenue Department tax-law collection. Read the tax year and the taxpayer identification the employer and each employee must hold for withholding (tax identification number, the employee allowance declaration ล.ย.01). Read the Thai pages."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.sso.go.th/wpr/",
+					"instructions": "Social Security Office. Read the identifiers and facts a payroll must hold: the employer account and branch numbers, the employee's insured number and registration facts, and the Workmen's Compensation business classification code. Use the download and manual sections for the registration forms."
+				}
+			],
+			"agents": {
+				"catalog": "Thai labour law is read in Thai; the leave and termination provisions sit in the Labour Protection Act as amended, and social security benefits only where they coordinate with employer-paid leave. Never sign in; verify each instrument's effective date and repeal status; quote the exact Thai wording with the document URL as the citation; report unresolved evidence instead of guessing.",
+				"contribution": "Thailand's statutory schemes are social security (SSF), the Workmen's Compensation Fund, the Employee Welfare Fund, the skill development levy, the disability quota payment and salary withholding tax; each rate change is made by a ministerial regulation or notification, not by news items. Never sign in; verify each instrument's effective date and repeal status; quote the exact Thai wording with the document URL as the citation; report unresolved evidence instead of guessing.",
+				"rules": "Minimum wages are set per province by gazetted Wage Committee notifications; the other limits come from the Labour Protection Act as amended. Never sign in; verify each instrument's effective date and repeal status; quote the exact Thai wording with the document URL as the citation; report unresolved evidence instead of guessing.",
+				"behaviour": "Event rules come from the Labour Protection Act as amended and the Social Security Act; public holiday dates are out of scope. Never sign in; verify each instrument's effective date and repeal status; quote the exact Thai wording with the document URL as the citation; report unresolved evidence instead of guessing.",
+				"obligations": "Each agency publishes its own forms and deadlines (SSO, Revenue Department, Employee Welfare Fund, Skill Development Fund, disability employment); read the forms and manuals alongside the instruments. Never sign in; verify each instrument's effective date and repeal status; quote the exact Thai wording with the document URL as the citation; report unresolved evidence instead of guessing.",
+				"settings": "The Thai tax year is the calendar year and wages are paid in THB; read the Thai pages, the English pages are not kept current. Never sign in; verify each instrument's effective date and repeal status; quote the exact Thai wording with the document URL as the citation; report unresolved evidence instead of guessing."
+			}
+		},
+		"change_summary": "The Ministerial Regulation on the s.33 contribution wage base B.E. 2568 raises the maximum to 20,000 baht from 1 January 2029 (1,000 baht each side at most).",
+		"employee_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "TH employee inputs",
+			"additionalProperties": false,
+			"properties": {
+				"contract_terms": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"summary": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"base_salary": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"currency": {
+										"type": "string",
+										"const": "THB"
+									},
+									"value": {
+										"type": "number",
+										"minimum": 0
+									}
+								}
+							},
+							"currency": {
+								"type": "string",
+								"const": "THB"
+							},
+							"allowances": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"catalogue_id": {
+											"type": "string"
+										},
+										"amount": {
+											"type": "object",
+											"additionalProperties": false,
+											"properties": {
+												"currency": {
+													"type": "string",
+													"const": "THB"
+												},
+												"value": {
+													"type": "number",
+													"minimum": 0
+												}
+											}
+										}
+									}
+								}
+							},
+							"employment_type": {
+								"type": "string",
+								"enum": ["PERMANENT", "FIXED_TERM", "PROBATION", "PART_TIME"],
+								"description": "Labour Protection Act B.E. 2541 (1998) s.17 (a contract with or without a definite term) and s.118 para 3 (a fixed-term contract for specific project, seasonal or occasional work of up to two years owes no severance pay). PROBATION is a contract on probation (s.17 para 2); PART_TIME is recorded for reporting only."
+							},
+							"work_classification": {
+								"type": "string",
+								"enum": ["ORDINARY", "HAZARDOUS"],
+								"description": "Labour Protection Act B.E. 2541 (1998) s.23 and Ministerial Regulation No. 2 (B.E. 2541): normal working time is at most 8 hours a day and 48 a week; work that may harm health and safety is at most 7 hours a day and 42 a week. The hourly wage for overtime and holiday work divides the day wage by these hours (s.68; Wage Committee Notification No. 14 cl.19)."
+							},
+							"residency_status": {
+								"type": "string",
+								"enum": ["RESIDENT", "NON_RESIDENT"],
+								"description": "Revenue Code s.41: a person present in Thailand for 180 days or more in a tax year is resident. Employment income for work in Thailand is withheld under s.50(1) either way; recorded for the annual return."
+							},
+							"residency_since": {
+								"type": "string",
+								"format": "date"
+							},
+							"pay_frequency": {
+								"type": "string"
+							},
+							"job_title": {
+								"type": "string"
+							},
+							"department": {
+								"type": "string"
+							},
+							"shift_pattern_id": {
+								"type": "string"
+							},
+							"facts": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"pay_basis": {
+										"type": "string",
+										"enum": ["MONTHLY", "DAILY", "PIECE"],
+										"default": "MONTHLY",
+										"title": "Pay basis",
+										"description": "Labour Protection Act B.E. 2541 ss.5, 56, 60-63, 68: DAILY when the wage is fixed by the day (base_salary is then the day rate); PIECE when paid by the unit of work (piece_rate per unit; the roster day records units and overtime_units); unrecorded is a monthly wage."
+									},
+									"normal_hours_per_day": {
+										"type": "number",
+										"exclusiveMinimum": 0,
+										"maximum": 8,
+										"title": "Average normal hours a day",
+										"description": "Labour Protection Act B.E. 2541 s.68: the hourly wage divides the day wage by the average normal working hours a day; unrecorded is 8 (7 for hazardous work)."
+									},
+									"overtime_category": {
+										"type": "string",
+										"enum": ["MANAGER", "SECTION_65_OTHER"],
+										"title": "Overtime-exempt category (LPA s.65)",
+										"description": "Labour Protection Act B.E. 2541 s.65: MANAGER — power to hire, reward, cut wages or dismiss for the employer (s.65(1)): no overtime or holiday overtime pay, and no holiday pay unless agreed (s.66); SECTION_65_OTHER — the work listed in s.65(2)-(8): paid 1 × the hourly wage for overtime."
+									},
+									"continuous_work": {
+										"type": "boolean",
+										"default": false,
+										"title": "Continuous or emergency work",
+										"description": "Labour Protection Act B.E. 2541 ss.24-25: work that must continue by its nature, or emergency work, needs no consent."
+									},
+									"skill_standard_day_rate": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Skill-standard day rate of the trade",
+										"description": "Wage Committee notification on wage rates by skill standard: the day rate for the worker's certified trade and level."
+									},
+									"annual_leave_carry_forward_days": {
+										"type": "number",
+										"minimum": 0,
+										"default": 0,
+										"title": "Annual leave days carried forward by agreement",
+										"description": "Labour Protection Act B.E. 2541 s.30: untaken annual leave may be carried forward by agreement; paid on any exit (s.67 para 2)."
+									},
+									"security_deposit_post": {
+										"type": "boolean",
+										"default": false,
+										"title": "Post allowed to take a security deposit",
+										"description": "Labour Protection Act B.E. 2541 s.10 with the Minister's notification on security money."
+									},
+									"piece_rate": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Piece rate (baht a unit)",
+										"description": "Labour Protection Act B.E. 2541 ss.61-63: the wage per unit of work of a piece worker."
+									},
+									"weekly_normal_hours": {
+										"type": "number",
+										"exclusiveMinimum": 0,
+										"maximum": 48,
+										"title": "Normal hours a week (weekly basis)",
+										"description": "Labour Protection Act B.E. 2541 ss.23, 69: normal time fixed by the week; overtime is counted over the week with holidays and leave as working days."
+									},
+									"spouse_status": {
+										"type": "string",
+										"enum": ["NONE", "WITHOUT_INCOME", "WITH_INCOME"],
+										"description": "The spouse’s income: WITHOUT_INCOME with marital_status MARRIED gives the 60,000 spouse allowance in PND1 (Revenue Code s.47(1)(b))."
+									},
+									"disabled": {
+										"type": "boolean",
+										"description": "A disabled person: the 190,000 exemption of the aged or disabled in PND1 (Revenue Code s.42(17))."
+									},
+									"fixed_term": {
+										"type": "boolean",
+										"description": "A fixed-term contract: while true the employment is not permanent (`permanent_when`)."
+									}
+								}
+							}
+						},
+						"required": ["employment_type", "work_classification", "residency_status"]
+					}
+				},
+				"exit_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored on employment_contract.exit_facts when the contract closes.",
+					"properties": {
+						"section_119_ground": {
+							"type": "boolean",
+							"default": false,
+							"title": "Dismissed on a section 119 ground",
+							"description": "Labour Protection Act B.E. 2541 (1998) s.119: no severance pay where the employee was dismissed for dishonesty, an intentional offence against the employer, wilful damage, a serious breach of work rules after a written warning, three consecutive working days' absence without cause, or imprisonment; s.67 then also withholds annual-leave pay for the year of dismissal."
+						},
+						"fixed_term_project": {
+							"type": "boolean",
+							"default": false,
+							"title": "End of a fixed-term project, seasonal or occasional contract of up to two years",
+							"description": "Labour Protection Act B.E. 2541 s.118 para 3: no severance."
+						},
+						"special_severance_ground": {
+							"type": "string",
+							"enum": ["TECHNOLOGY", "RELOCATION"],
+							"title": "Special severance ground",
+							"description": "Labour Protection Act B.E. 2541 ss.120-122."
+						}
+					}
+				},
+				"employment_statutory_facts": {
+					"type": "array",
+					"description": "Stored at employment_profile.facts.employment_statutory_facts: one standing per scheme per instant; the CEL reads the standing in force as scheme.standing / scheme.elections.* (elections.CODE.* from another scheme).",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"statutory_contribution_id": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"status": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"kind": {
+										"type": "string",
+										"enum": ["INSURED", "MEMBER", "TAXPAYER", "VOLUNTARY"],
+										"description": "SSO: INSURED (SSA s.33). PVD: MEMBER of the employer's registered fund (Provident Fund Act s.10). PND1: TAXPAYER, the standing that carries the Lor Yor 01 declaration (Revenue Code s.50(1)). EWF: VOLUNTARY, a PVD member who joins the Employee Welfare Fund with the employer's consent (DLPW EWF membership FAQ Q6); employees outside the PVD need no EWF standing."
+									},
+									"reference_number": {
+										"type": "string"
+									},
+									"since": {
+										"type": "string",
+										"format": "date"
+									},
+									"elections": {
+										"type": "object",
+										"additionalProperties": false,
+										"properties": {
+											"employee_percent": {
+												"type": "number",
+												"minimum": 2,
+												"maximum": 15,
+												"title": "PVD: member contribution rate (%)",
+												"description": "Provident Fund Act B.E. 2530 (1987) s.10: a member contributes 2% to 15% of wages to the registered fund the employer set up."
+											},
+											"child_allowance_count": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: children qualifying for the child allowance",
+												"description": "Revenue Code s.47(1)(c): 30,000 baht a year for each legitimate or adopted child under 20, or under 25 and studying, or of any age and adjudged incompetent."
+											},
+											"second_child_from_2018_count": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: of those, second and later children born in or after 2018",
+												"description": "Revenue Code s.47(1)(c) as amended by the Revenue Code Amendment Act (No. 49) B.E. 2562: a further 30,000 baht (60,000 in all) for the second and each later legitimate child born on or after 1 January 2018; adopted children do not count (\"ยกเว้นบุตรบุญธรรม\", Revenue Department https://www.rd.go.th/62777.html)."
+											},
+											"other_annual_deductions": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: other annual allowances and deductions declared on Lor Yor 01",
+												"description": "Revenue Code s.47: parent and disabled-dependant allowances, life and health insurance premiums, home-loan interest and the other deductions the employee declares, in baht for the year. Spouse, child, social security and provident fund deductions are computed from their own inputs and must not be repeated here."
+											},
+											"previous_employer_income": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: income from an earlier employer this year",
+												"description": "Tor Por 4/2528: joins the annual estimate (50 Tawi of the earlier employer)."
+											},
+											"previous_employer_tax": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: tax withheld by an earlier employer this year",
+												"description": "Credited against the year's tax."
+											},
+											"parents_count": {
+												"type": "integer",
+												"minimum": 0,
+												"maximum": 4,
+												"default": 0,
+												"title": "PND1: parents allowance (count)",
+												"description": "Revenue Code s.47(1)(g): 30,000 for each parent of the taxpayer or of a spouse without income, aged 60+ with income of at most 30,000."
+											},
+											"disabled_dependants_count": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: disabled dependants (count)",
+												"description": "Revenue Code s.47(1)(h): 60,000 for each disabled or incapacitated dependant with income of at most 30,000."
+											},
+											"parents_health_insurance": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: parents' health insurance paid",
+												"description": "Up to 15,000."
+											},
+											"life_insurance": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: life insurance premiums paid",
+												"description": "Up to 100,000."
+											},
+											"home_loan_interest": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: home-loan interest paid",
+												"description": "Up to 100,000."
+											},
+											"pension_insurance": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: pension life insurance premiums paid",
+												"description": "Up to 15% of income and 200,000, within 500,000 with the provident fund."
+											},
+											"exempt_190k_used_elsewhere": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PND1: part of the 190,000 exemption used on other income",
+												"description": "The exemption for a taxpayer aged 65+ or disabled is at most 190,000 across all income."
+											},
+											"severance_separate": {
+												"type": "boolean",
+												"default": false,
+												"title": "PND1: tax severance separately (s.48(5))",
+												"description": "With five years' service, the lump sum on leaving is taxed apart from other income."
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Person facts, stored as the other keys of employment_profile.facts; the CEL reads them as employee.facts.*. Profile columns (gender, marital_status, spouse_status, nationality as ISO 3166-1 alpha-2, children) are model fields, not keys here.",
+					"properties": {
+						"tax_id": {
+							"type": "string",
+							"pattern": "^[0-9]{13}$",
+							"title": "13-digit taxpayer identification number (the citizen ID for a Thai national)"
+						},
+						"sso_number": {
+							"type": "string",
+							"title": "Social security number of the insured person"
+						},
+						"work_permit_basis": {
+							"type": "string",
+							"enum": ["ROYAL_ORDINANCE", "SECTION_62"],
+							"title": "Basis of a foreign worker's permission to work",
+							"description": "Royal Ordinance on the Management of the Employment of Foreign Workers B.E. 2560 s.62: SECTION_62 when the worker is permitted under the investment-promotion, petroleum or another law the section names; the employer is then exempt from the s.13 notices."
+						},
+						"deduction_consent": {
+							"type": "boolean",
+							"default": false,
+							"title": "Prior consent to deductions above the s.76 limits",
+							"description": "Labour Protection Act s.76 para 2: the 10% and one-fifth limits do not apply \"where prior consent is given by the employee\" (https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf)."
+						},
+						"sso_excluded_category": {
+							"type": "string",
+							"enum": [
+								"FOREIGN_GOVERNMENT_OR_INTERNATIONAL",
+								"POSTED_FROM_ABROAD",
+								"PRIVATE_SCHOOL_TEACHER",
+								"HOUSEHOLD_NO_BUSINESS",
+								"SEASONAL_AGRICULTURE",
+								"OTHER_EXCLUDED"
+							],
+							"title": "Outside the Social Security Act (s.4)",
+							"description": "SSA s.4 and the Royal Decree under it: employment the Act does not cover. https://www.sso.go.th/wpr/download/download_by_pool_file/47435"
+						},
+						"pregnant": {
+							"type": "boolean",
+							"default": false,
+							"title": "Pregnant",
+							"description": "Labour Protection Act B.E. 2541 s.39: no night, overtime or holiday work."
+						},
+						"security_deposit_held": {
+							"type": "boolean",
+							"default": false,
+							"title": "Security deposit held",
+							"description": "Labour Protection Act B.E. 2541 s.10: returned within 7 days of the exit."
+						},
+						"work_permit_expires_on": {
+							"type": "string",
+							"format": "date",
+							"title": "Work permit expiry",
+							"description": "Royal Ordinance B.E. 2560 ss.8-9: renew before expiry."
+						},
+						"sso_continuing_insured": {
+							"type": "boolean",
+							"default": false,
+							"title": "Insured under SSA s.33 before 60 and still insured",
+							"description": "SSA s.33 para 2: an employee who was an insured person before reaching 60 and joins this employer without a break in insured employment stays insured after 60; true registers and charges them whatever their age at this contract’s start."
+						},
+						"name_title": {
+							"type": "string",
+							"enum": ["นาย", "นางสาว", "นาง"],
+							"title": "Name title",
+							"description": "The title on the SSO contribution file (prefix code 003 นาย, 004 นางสาว, 005 นาง; other titles need a code from the SSO) and the PND1 attachment. Unrecorded: from gender and marital status. https://www.sso.go.th/wpr/assets/upload/files_storage/sso_th/949575a913c647db4f68facd08402585.zip"
+						},
+						"given_name": {
+							"type": "string",
+							"title": "First name (as on the ID card)",
+							"description": "SSO FNAME (30) and RD FNAME; unrecorded: the profile name before its first space."
+						},
+						"family_name": {
+							"type": "string",
+							"title": "Surname (as on the ID card)",
+							"description": "SSO LNAME (35) and RD SNAME; unrecorded: the profile name after its first space."
+						},
+						"address_district": {
+							"type": "string",
+							"title": "District (amphoe / khet)",
+							"description": "RD central format AMPHUR, mandatory on the PND1 attachment. https://www.rd.go.th/fileadmin/user_upload/WHT/Download/FormatPND1V2_0.pdf"
+						},
+						"address_province": {
+							"type": "string",
+							"title": "Province",
+							"description": "RD central format PROVINCE, mandatory on the PND1 attachment. https://www.rd.go.th/fileadmin/user_upload/WHT/Download/FormatPND1V2_0.pdf"
+						},
+						"address_postcode": {
+							"type": "string",
+							"pattern": "^[0-9]{5}$",
+							"title": "Postcode",
+							"description": "RD central format POSTAL_CODE (5 digits), mandatory on the PND1 attachment. https://www.rd.go.th/fileadmin/user_upload/WHT/Download/FormatPND1V2_0.pdf"
+						}
+					}
+				}
+			}
+		},
+		"entity_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "TH entity inputs",
+			"additionalProperties": false,
+			"description": "Stored on entity.facts. entity.region names the minimum-wage area of the workplace, one of the keys of the PAYROLL rule set minimum_wage.by_region (Wage Committee Notification on Minimum Wage Rates (No. 14), Royal Gazette 1 July 2025, in force 1 July 2025 (repeals No. 13 of 23 December 2024 and the hotel notification of 27 March 2024)); entity.risk_class is the WCF business code the Social Security Office assigned (Table 1 of the Ministry of Labour notification of 21 February 2019, five digits such as 01111), which sets the base WCF rate.",
+			"properties": {
+				"tax_id": {
+					"type": "string",
+					"pattern": "^[0-9]{13}$",
+					"title": "Employer 13-digit taxpayer identification number (PND1 / PND1 Kor filer)"
+				},
+				"sso_employer_account_number": {
+					"type": "string",
+					"pattern": "^[0-9]{10}$",
+					"title": "Social Security employer account number",
+					"description": "Social Security Act B.E. 2533 (1990) s.34: the employer registers with the Social Security Office within 30 days of employing an insured person."
+				},
+				"sso_branch_number": {
+					"type": "string",
+					"pattern": "^[0-9]{6}$",
+					"title": "Social Security branch (establishment) number"
+				},
+				"wcf_rate_percent": {
+					"type": "number",
+					"minimum": 0.2,
+					"maximum": 1,
+					"title": "Experience-rated WCF rate the SSO notified (%)",
+					"description": "the Ministry of Labour notification on business types, sizes and areas liable to contribute, contribution rates, deposits and the assessment and collection of contributions (21 February 2019, under WCA ss.44 para 1 and 45) cl.19: from the fifth year of contributions the rate is lowered or raised by the employer's loss ratio and notified by the SSO; recorded here it overrides the Table 1 rate of entity risk_class. https://www.sso.go.th/wpr/download/download_by_pool_file/14479"
+				},
+				"pvd_employer_percent": {
+					"type": "number",
+					"minimum": 2,
+					"maximum": 15,
+					"title": "Provident fund employer contribution rate under the fund rules (%)",
+					"description": "Provident Fund Act s.10 as amended in 2015: the employer rate is independently prescribed by the registered fund rules, normally 2%-15% of wages. Required for a member; no employee-rate fallback. https://www.sec.or.th/TH/Documents/ActandRoyalEnactment/Act/act-pvd2530-codified.pdf"
+				},
+				"minimum_wage_400_business": {
+					"type": "boolean",
+					"default": false,
+					"title": "Hotel (category 2-4) or service establishment",
+					"description": "Wage Committee Notification on Minimum Wage Rates (No. 14), Royal Gazette 1 July 2025, in force 1 July 2025 (repeals No. 13 of 23 December 2024 and the hotel notification of 27 March 2024): 400 baht a day applies nationwide to hotel businesses of categories 2, 3 and 4 under the hotel law and to service establishments under the Service Establishments Act B.E. 2509, whatever the province."
+				},
+				"first_employee_on": {
+					"type": "string",
+					"format": "date",
+					"title": "Day the business first employed an employee",
+					"description": "Social Security Act s.34 and Workmen's Compensation Act B.E. 2537 as amended by the Workmen's Compensation Act (No. 2) B.E. 2561 s.44: the employer registers within 30 days of this day."
+				},
+				"minimum_wage_exempt": {
+					"type": "boolean",
+					"default": false,
+					"title": "Outside the minimum-wage notification",
+					"description": "Wage Committee Notification No. 13 explanatory note item 7 (repeated for No. 14): the minimum wage does not bind central, regional and local government, state enterprises under the state-enterprise labour relations law, employers whose work is not for economic profit, sea-cargo loading or unloading, home work, or agricultural work not employed all year round. https://www.mol.go.th/"
+				},
+				"files_online": {
+					"type": "boolean",
+					"default": false,
+					"title": "Files PND1 / PND1 Kor online",
+					"description": "Ministry of Finance e-filing extension: an online PND1 is due the 15th after month-end and an online PND1 Kor by 8 March, for returns due to 31 January 2027 (https://www.rd.go.th/fileadmin/user_upload/kormor/newlaw/mofexpandfornet7A.pdf, https://www.rd.go.th/fileadmin/user_upload/kormor/newlaw/mofexpandfornet9A.pdf)."
+				},
+				"business_closed_on": {
+					"type": "string",
+					"format": "date",
+					"title": "Day the business ceased",
+					"description": "the Ministry of Labour notification on business types, sizes and areas liable to contribute, contribution rates, deposits and the assessment and collection of contributions (21 February 2019, under WCA ss.44 para 1 and 45) cl.14 para 2: the wage statement is due within 30 days of this day."
+				},
+				"ewf_exempt": {
+					"type": "boolean",
+					"default": false,
+					"title": "Business-wide legal or equivalent-welfare EWF exemption",
+					"description": "Record only a verified legal business exemption or qualifying equivalent termination/death welfare covering the employees. Offering a provident fund to only some employees does not exempt others, including probationers and opt-outs. Individual PVD membership is read separately from each employee’s dated statutory standing. DLPW Legal Division guidance 2.2(5)(2), page 6. https://www.siamsafety.com/Employee_welfare_fund.pdf"
+				},
+				"wcf_instalments": {
+					"type": "boolean",
+					"default": false,
+					"title": "WCF contribution paid by instalments (SSO approval)",
+					"description": "Ministry of Labour notification of 21 February 2019 cl.16-18: a 25% deposit in January and four quarterly instalments."
+				},
+				"sdf_trained_employees": {
+					"type": "integer",
+					"minimum": 0,
+					"title": "Employees trained in the year (Skill Development Fund)",
+					"description": "The year's employees trained under a course the registrar approved, tested to the national skill standard or certified for competence, counted once each (leavers included), as the Sor Tor 2 return reports them. Unrecorded is none trained."
+				},
+				"rd_branch_number": {
+					"type": "string",
+					"pattern": "^[0-9]{6}$",
+					"default": "000000",
+					"title": "Revenue Department branch number (000000 head office)",
+					"description": "RD central format for PND1 / PND1 Kor (BRANCH_NO): the VAT or SBT branch, 000000 for the head office. https://www.rd.go.th/fileadmin/user_upload/WHT/Download/FormatPND1V2_0.pdf"
+				},
+				"rd_branch_type": {
+					"type": "string",
+					"enum": ["V", "S"],
+					"title": "Revenue Department branch type",
+					"description": "RD central format BRANCH_TYPE: V a VAT branch, S a specific-business-tax branch (V when both; unrecorded when neither). https://www.rd.go.th/fileadmin/user_upload/WHT/Download/FormatPND1V2_0.pdf"
+				},
+				"rd_large_taxpayer": {
+					"type": "boolean",
+					"default": false,
+					"title": "Large taxpayer (LTO)",
+					"description": "RD central format LTO flag. https://www.rd.go.th/fileadmin/user_upload/WHT/Download/FormatPND1V2_0.pdf"
+				},
+				"rd_filing_reference": {
+					"type": "string",
+					"maxLength": 20,
+					"title": "RD e-filing registration reference (USER_ID)",
+					"description": "RD central format USER_ID: the registration reference for a file upload. https://www.rd.go.th/fileadmin/user_upload/WHT/Download/FormatPND1V2_0.pdf"
+				},
+				"sdf_exemption": {
+					"type": "string",
+					"enum": [
+						"NONE",
+						"SEASONAL_AGRICULTURE",
+						"PRIVATE_SCHOOL",
+						"PRIVATE_HIGHER_EDUCATION",
+						"NON_PROFIT",
+						"STATE_BODY"
+					],
+					"default": "NONE",
+					"title": "Verified Skill Development Fund scope exemption",
+					"description": "Select only with evidence of the legal employer category. Seasonal agriculture covers cultivation, fishing, forestry, animal husbandry or salt production without year-round employees and without related activities. Private schools and private higher education must fall under their respective laws. Non-profit foundations, charitable organisations or organisations established by law must not seek economic profit. State ministries, departments, agencies and organisations are outside Act section 4. Ministry scope notice 9 April 2015 clause 4; DSD official manual กสพ.-01-2568 appendix p.25. NONE retains the ordinary employer duties. Existing unpaid obligations remain payable even if the current category changes."
+				},
+				"sdf_registration_reference": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Verified Department of Skill Development employer registration reference (Sor Tor 1/Sor Tor 4). Record only after checking the registration evidence. An absent reference leaves the company registration task open at headcount >=100; this reference does not prove annual training or fund-payment compliance."
+				}
+			}
+		},
+		"cloned_from_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1"
+	}
+]

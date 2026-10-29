@@ -19,6 +19,7 @@ import { admitContractTerms, loadContractWriteBatch } from '../../../lib/payroll
 import { exitGroundRefusal, refuseClosedUpdate } from '../../../lib/payroll_engine/offboarding.js';
 import { kindsOf } from '../../../lib/payroll_engine/listed_kinds.js';
 import { versionOn } from '../../../lib/payroll_engine/payslip/context.js';
+import { moved, tap } from '../../../lib/payroll_engine/taps.js';
 
 const create_columns = [
 	'employee_number',
@@ -361,6 +362,28 @@ export default model('employment_contract', {
 		'employment_contract.employee_id': { fields: 'all' },
 		'employment_contract.company_id': { fields: 'all' }
 	},
+	outputs: {
+		// the attendance kiosk: the employment a punch lands on, its person and entity
+		kiosk: {
+			employment_contract: {
+				fields: ['employee_id', 'company_id', 'employee_number', 'effective_range']
+			},
+			'employment_contract.employee_id': {
+				fields: [
+					'name',
+					'email',
+					'phone',
+					'face_embedding',
+					'face_photo',
+					'face_enrollment_status',
+					'face_enrolled_at',
+					'face_match_count',
+					'face_last_match_at'
+				]
+			},
+			'employment_contract.company_id': { fields: ['name', 'settings_code'] }
+		}
+	},
 	create: {
 		columns: { employment_contract: create_columns },
 		transform: function* (rows, ctx) {
@@ -387,6 +410,29 @@ export default model('employment_contract', {
 				const { id: _id, $delete: _delete, ...set } = transformed[index] ?? {};
 				return { ...original, ...set };
 			});
+		}
+	},
+	// The jurisdiction behaviour rules for this model's writes (`behaviour_taps`), started as the writer.
+	effect: {
+		created: function* (rows, ctx) {
+			yield* tap(ctx, 'created', { model: 'employment_contract', ids: rows.map((row) => row.id) });
+		},
+		updated: function* (changes, ctx) {
+			// every declared field but its refs and `before`: a term written for any day raises its duty on the write (`row.terms_written`), a duty keyed to any other change guards on `row.before`
+			const ids = moved(changes, [
+				'employee_number',
+				'contract_number',
+				'bank',
+				'effective_range',
+				'signed_contract_end',
+				'engagement',
+				'prior_service_months',
+				'exit_ground',
+				'exit_facts',
+				'comments',
+				'facts'
+			]);
+			yield* tap(ctx, 'updated', { model: 'employment_contract', ids });
 		}
 	}
 });

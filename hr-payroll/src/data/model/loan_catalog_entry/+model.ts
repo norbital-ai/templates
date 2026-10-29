@@ -18,6 +18,7 @@ import {
 	loadEntry
 } from '../../../lib/payroll_engine/admit.js';
 import { runEngine } from '../../../lib/payroll_engine/foundation.js';
+import { moved, tap } from '../../../lib/payroll_engine/taps.js';
 
 const columns = [
 	'catalog_id',
@@ -233,16 +234,15 @@ const transformRows = Effect.fnUntraced(function* (
 					{ loan_repayment_entry: plans.map((plan) => plan.catalog_id) },
 					candidates
 				).pipe(Effect.catchTag('Refusal', (error) => ctx.refuse(error.message)));
-	const locked = yield* (
+	const locked =
 		prefetched === undefined
-			? entrySettlementLocks(ctx.db.query, 'loan_repayment_entry', candidates)
+			? yield* entrySettlementLocks(ctx.db.query, 'loan_repayment_entry', candidates)
 			: entryLocksFrom(
 					'loan_repayment_entry',
 					candidates,
 					prefetched.lockRuns,
 					prefetched.lockSlips
-				)
-	).pipe(Effect.catchTag('Refusal', (error) => ctx.refuse(error.message)));
+				);
 	for (const [index, input] of inputs.entries()) {
 		const before = existing[index];
 		const captured = children.filter(
@@ -476,6 +476,22 @@ export default model('loan_catalog_entry', {
 				rows,
 				ctx
 			);
+		}
+	},
+	// The jurisdiction behaviour rules for this model's writes (`behaviour_taps`), started as the writer.
+	effect: {
+		created: function* (rows, ctx) {
+			yield* tap(ctx, 'created', { model: 'loan_catalog_entry', ids: rows.map((row) => row.id) });
+		},
+		updated: function* (changes, ctx) {
+			const ids = moved(changes, [
+				'principal_amount',
+				'repayment_period',
+				'repayment_frequency',
+				'advance_made_on',
+				'facts'
+			]);
+			yield* tap(ctx, 'updated', { model: 'loan_catalog_entry', ids });
 		}
 	}
 });

@@ -1,4 +1,5 @@
 import { Decimal } from '@norbital-ai/std/decimal';
+import { logisticsLine } from '../../../lib/logistics.js';
 import { model, type Id, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
 import { currentAgreement } from '../../../lib/agreements.js';
@@ -267,6 +268,13 @@ export default model('order_lines', {
 		order_lines: { fields: 'all' },
 		'order_lines.product': { fields: ['name', 'external_code'] },
 		'order_lines.order': { fields: ['ledger', 'direction'] }
+	},
+	outputs: {
+		logistics: {
+			order_lines: { fields: logisticsLine },
+			'order_lines.product': { fields: ['name', 'external_code'] },
+			'order_lines.order': { fields: ['ledger', 'direction'] }
+		}
 	},
 	// a line created through its order's `'orders.lines'` layer runs this after the order's own `create.transform`
 	create: {

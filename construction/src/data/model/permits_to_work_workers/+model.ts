@@ -26,7 +26,7 @@ export default model('permits_to_work_workers', {
 	description: 'Join table linking permits to work to workers.',
 	label: 'name',
 	fields: {
-		/** `<permit> · <worker>`, derived on every write (and by `seed/seed.ts`): a label is never a foreign key. */
+		/** `<permit> · <worker>`, derived on every write (and by `seed/+seeder.ts`): a label is never a foreign key. */
 		name: { kind: 'text', optional: true },
 		permits_to_work_id: { kind: 'ref', to: 'permits_to_work', inverse: 'permits_to_work_workers' },
 		worker_id: { kind: 'ref', to: 'workers', inverse: 'permits_to_work_workers' }

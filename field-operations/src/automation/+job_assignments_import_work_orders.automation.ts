@@ -46,7 +46,7 @@ const WORK_ORDER_ROW = {
 export default automation('job_assignments_import_work_orders', {
 	description:
 		'Creates job assignments from a work-order sheet, matching existing sites and skipping filed rows. The complete sheet is checked before sites and jobs commit together.',
-	runAs: 'trigger',
+	policies: ['field_ops_controller'],
 	input: { rows: { kind: 'list', min: 1, max: 5000, of: WORK_ORDER_ROW } },
 	output: {
 		kind: 'object',

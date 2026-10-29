@@ -8,6 +8,7 @@ import {
 } from '@norbital-ai/bolt';
 import { transformEntries } from '../../../lib/payroll_engine/admit.js';
 import { Effect } from 'effect';
+import { moved, tap } from '../../../lib/payroll_engine/taps.js';
 
 type WriteInput = Omit<UpdateSet<'adhoc_catalog_entry'>, 'id'> &
 	Partial<Omit<CreateRow<'adhoc_catalog_entry'>, 'id'>> & {
@@ -146,6 +147,16 @@ export default model('adhoc_catalog_entry', {
 				rows,
 				ctx
 			);
+		}
+	},
+	// The jurisdiction behaviour rules for this model's writes (`behaviour_taps`), started as the writer.
+	effect: {
+		created: function* (rows, ctx) {
+			yield* tap(ctx, 'created', { model: 'adhoc_catalog_entry', ids: rows.map((row) => row.id) });
+		},
+		updated: function* (changes, ctx) {
+			const ids = moved(changes, ['amount', 'facts']);
+			yield* tap(ctx, 'updated', { model: 'adhoc_catalog_entry', ids });
 		}
 	}
 });

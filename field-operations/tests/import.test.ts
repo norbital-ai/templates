@@ -1,6 +1,6 @@
 import { present } from './test-runtime.js';
 import { Effect } from 'effect';
-import { TestWorkspace } from '@norbital-ai/bolt/test';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 /**
  * The work-order sheet import (L-TPL-field-operations-017): the sample xlsx files its jobs once, one new site per
  * address the workspace lacks; a second import files nothing; new work at a filed address lands on that site; a bad

@@ -4,7 +4,7 @@
  */
 import assert from 'node:assert/strict';
 import { it } from '@effect/vitest';
-import { TestWorkspace } from '@norbital-ai/bolt/test';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
 import { SalaryReport } from '../src/lib/payroll_engine/salary_report.ts';
 import { fixtureId, nativeId } from './fixture_values.ts';

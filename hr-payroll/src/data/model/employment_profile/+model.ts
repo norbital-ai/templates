@@ -8,8 +8,8 @@ import {
 } from '@norbital-ai/bolt';
 import { refuseEmploymentFactsBatch } from '../../../lib/payroll_engine/employment_facts.js';
 import { beforeOf, runEngine } from '../../../lib/payroll_engine/foundation.js';
-import { admitAnonymiseBatch, anonymousProfile } from '../../../lib/payroll_engine/admit.js';
 import { Effect } from 'effect';
+import { moved, tap } from '../../../lib/payroll_engine/taps.js';
 
 const create_columns = [
 	'name',
@@ -36,7 +36,6 @@ const create_columns = [
 ] as const;
 
 const update_columns = [
-	'anonymised_at',
 	'name',
 	'date_of_birth',
 	'gender',
@@ -71,28 +70,14 @@ const transformRows = Effect.fnUntraced(function* (
 	existing: readonly (StoredRow<'employment_profile'> | undefined)[],
 	ctx: WriteCtx<'employment_profile'>
 ) {
-	const anonymising = inputs.flatMap((input, index) => {
-		const before = existing[index];
-		return before !== undefined && input.anonymised_at != null && before.anonymised_at == null
-			? [before.id]
-			: [];
-	});
-	if (anonymising.length > 0)
-		yield* runEngine(admitAnonymiseBatch(anonymising, String(ctx.today)), ctx.db.query, ctx.refuse);
 	const messages = yield* refuseEmploymentFactsBatch(
-		inputs.map((input, index) =>
-			existing[index] !== undefined && anonymising.includes(existing[index].id)
-				? undefined
-				: { ...existing[index], ...input }.facts
-		),
+		inputs.map((input, index) => ({ ...existing[index], ...input }).facts),
 		ctx.db.query
 	);
 	for (const [row, message] of messages.entries())
 		if (message !== null) return yield* ctx.refuse(message, { row });
 	return inputs.map((input, index): WriteInput => {
 		const before = existing[index];
-		if (before !== undefined && input.anonymised_at != null && anonymising.includes(before.id))
-			return { ...anonymousProfile(), anonymised_at: input.anonymised_at };
 		return before === undefined ? input : { ...input, before: beforeOf(before, input) };
 	});
 });
@@ -242,11 +227,6 @@ export default model('employment_profile', {
 			kind: 'instant',
 			optional: true
 		},
-		anonymised_at: {
-			kind: 'instant',
-			optional: true,
-			help: 'When the former employee was anonymised after the retention period; personal fields are blank since.'
-		},
 		face_match_count: {
 			kind: 'int',
 			min: 0,
@@ -292,6 +272,24 @@ export default model('employment_profile', {
 		employment_profile: { fields: 'all' },
 		'employment_profile.employment_contract': { fields: ['company_id', 'effective_range'] }
 	},
+	outputs: {
+		// the attendance kiosk: who may punch and their enrolled face
+		kiosk: {
+			employment_profile: {
+				fields: [
+					'name',
+					'email',
+					'phone',
+					'face_embedding',
+					'face_photo',
+					'face_enrollment_status',
+					'face_enrolled_at',
+					'face_match_count',
+					'face_last_match_at'
+				]
+			}
+		}
+	},
 	create: {
 		columns: { employment_profile: create_columns },
 		transform: function* (rows, ctx) {
@@ -318,6 +316,30 @@ export default model('employment_profile', {
 				const { id: _id, $delete: _delete, ...set } = transformed[index] ?? {};
 				return { ...original, ...set };
 			});
+		}
+	},
+	// The jurisdiction behaviour rules for this model's writes (`behaviour_taps`), started as the writer.
+	effect: {
+		created: function* (rows, ctx) {
+			yield* tap(ctx, 'created', { model: 'employment_profile', ids: rows.map((row) => row.id) });
+		},
+		updated: function* (changes, ctx) {
+			// every declared field but its refs and `before`; biometric bookkeeping (a kiosk match on every punch) is no duty's change
+			const ids = moved(changes, [
+				'name',
+				'date_of_birth',
+				'gender',
+				'marital_status',
+				'children',
+				'nationality',
+				'identity_number',
+				'email',
+				'phone',
+				'address',
+				'location',
+				'facts'
+			]);
+			yield* tap(ctx, 'updated', { model: 'employment_profile', ids });
 		}
 	}
 });

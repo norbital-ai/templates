@@ -43,7 +43,7 @@ sent to them.
 The portal requests private `availability_requests` after the verified customer supplies their
 destination, preference and recurrence. The separate `openings` model is a public service-level
 summary; it names no helper or customer and does not reserve capacity. Closing sign-up in
-**Settings → People** stops new numbers from joining.
+**Command center → People** stops new numbers from joining.
 
 To embed the portal, frame it:
 
@@ -202,19 +202,23 @@ and reassign by hand if need be.
 
 ## Automations and integrations
 
-All run as `dispatch_automation`.
+All run as `dispatch_automation`. Row-event work lives in the models' `effect`, which runs as the
+writer (a customer, the desk, a helper or a dispatch run) and schedules these runs; each writer's
+policy lists the runs it may start.
 
-| Automation             | Trigger                                              | What it does                                                                         |
-| ---------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `check_drives`         | every 15 min; booking created; visit or home changed | Times and caches drives, reassigns unreachable visits, rebalances to a local optimum |
-| `publish_openings`     | every 15 min and on change                           | Publishes each active service's free start times for the next two weeks              |
-| `prepare_availability` | availability request created                         | Computes a verified customer's travel-aware starts                                   |
-| `portal_intake`        | booking request created                              | Books a portal request through the desk's matching                                   |
-| `shift_watch`          | every 10 min                                         | Runs the pre-shift confirmation and prepares replacements                            |
-| `eta_watch`            | every 5 min                                          | Flags visits whose helper cannot arrive in time                                      |
-| `warning_letter`       | helper warning created                               | Renders the PDF warning letter and attaches it                                       |
-| `deliver_notices`      | customer notice created                              | Sends the notice on WhatsApp and records whether it went                             |
-| `helper_alerts`        | visit assigned or moved                              | In-app assignment alerts and a WhatsApp message to the helper                        |
+| Automation             | Trigger                                                         | What it does                                                                         |
+| ---------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `check_drives`         | every 15 min; scheduled on booking created, visit or home moved | Times and caches drives, reassigns unreachable visits, rebalances to a local optimum |
+| `publish_openings`     | every 15 min; scheduled on change                               | Publishes each active service's free start times for the next two weeks              |
+| `prepare_availability` | scheduled on availability request created                       | Computes a verified customer's travel-aware starts                                   |
+| `portal_intake`        | scheduled on booking request created                            | Books a portal request through the desk's matching                                   |
+| `shift_watch`          | every 10 min; scheduled on a declined shift                     | Runs the pre-shift confirmation and prepares replacements                            |
+| `eta_watch`            | every 5 min                                                     | Flags visits whose helper cannot arrive in time                                      |
+| `warning_letter`       | scheduled on helper warning created                             | Renders the PDF warning letter and attaches it                                       |
+| `deliver_notices`      | scheduled on customer notice created                            | Sends the notice on WhatsApp and records whether it went                             |
+
+The `visits` effect itself tells a helper when visits are given to them or moved: an in-app alert
+and one WhatsApp message listing the visits.
 
 `src/+workspace.ts` names three connections, each an integration instance an administrator pairs
 under **Settings → Integrations** with the business's own account:
@@ -256,7 +260,7 @@ src/
 │                           booking_requests, availability_requests, openings, dispatch_settings, drive_times;
 │                           with native write guards and the notices' `mail` sync
 ├── automation/             shift_watch, eta_watch, check_drives, warning_letter,
-│                           portal_intake, prepare_availability, publish_openings, deliver_notices, helper_alerts;
+│                           portal_intake, prepare_availability, publish_openings, deliver_notices;
 │                           bookings_book, bookings_cancel, helpers_offboard and visits_* recovery/shift operations
 ├── integration/            google_routes (http)
 ├── lib/matching.ts         the matching rules, pure and unit-tested
@@ -273,11 +277,11 @@ preferred helpers, and each operation's customer notices, commit in the same gua
 
 ## Seed
 
-- **base** — `seed/*.json`: three helpers, two customers, four services and the dispatch settings.
-- **sample** (private) — `seed/seed.ts` reads the seed bank tree `on-demand-services` with
-  `bolt build --bank=<checkout>`: a cleaning company's desk, cleaners and customers, and booking
-  intents dated by days from the build. Each intent is matched in order by `planBooking`, so the
-  seeded week is what the desk would have built.
+No public rows: a new workspace starts empty, with no services or dispatch settings row (matching
+falls back to the `DEFAULTS` in `src/lib/matching.ts`). `seed/+seeder.ts` names the seed bank's
+private tree `on-demand-services`, whose rows `bolt seed --bank=<checkout>` loads into a demo
+environment as they are: a cleaning company's desk, cleaners, customers, services, dispatch settings,
+bookings and visits.
 
 ## Checks
 

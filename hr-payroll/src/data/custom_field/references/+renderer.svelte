@@ -87,7 +87,7 @@
 {:else if rows.length === 0}
 	<span class="text-muted-foreground">—</span>
 {:else if view.dense}
-	<Bound as="span" size="auto" clip>
+	<Bound as="span" clip>
 		<Inline as="span" gap="xs">
 			{#each rows as reference, index (index)}{@render chip(reference)}{/each}
 		</Inline>
@@ -98,12 +98,15 @@
 			<li>
 				<details class="group">
 					<summary class="cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden">
-						<Cluster as="span" gap="xs" align="center">
+						<!-- closed, one line: a title may be a whole passage, which opening shows in full -->
+						<Cluster as="span" gap="xs" align="start" class="flex-nowrap">
 							<Icon
 								name="lucide:chevron-right"
-								class="size-3.5 text-muted-foreground transition-transform group-open:rotate-90"
+								class="mt-0.5 size-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
 							/>
-							<span class="font-medium">{reference.title}</span>
+							<span class="line-clamp-1 min-w-0 font-medium group-open:line-clamp-none"
+								>{reference.title}</span
+							>
 							{#if reference.locator}
 								<span class="text-muted-foreground">{reference.locator}</span>
 							{/if}

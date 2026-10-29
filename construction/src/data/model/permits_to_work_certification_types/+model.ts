@@ -26,7 +26,7 @@ export default model('permits_to_work_certification_types', {
 	description: 'Join table linking permits to work to certification types.',
 	label: 'name',
 	fields: {
-		/** `<permit> · <certification>`, derived on every write (and by `seed/seed.ts`): a label is never a foreign key. */
+		/** `<permit> · <certification>`, derived on every write (and by `seed/+seeder.ts`): a label is never a foreign key. */
 		name: { kind: 'text', optional: true },
 		permits_to_work_id: {
 			kind: 'ref',

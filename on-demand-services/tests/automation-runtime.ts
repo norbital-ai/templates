@@ -1,7 +1,7 @@
 import { Effect, Schema } from 'effect';
 import type { Committed, PendingApproval, RunHandle } from '@norbital-ai/bolt';
 import { ActRefused, type ActFailure } from '@norbital-ai/bolt/errors';
-import type { Kit } from '@norbital-ai/bolt/test';
+import type { Kit } from '@norbital-ai/bolt-cli/test';
 import { present } from './test-runtime.js';
 
 const Run = Schema.Struct({

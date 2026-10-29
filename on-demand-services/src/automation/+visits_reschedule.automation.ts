@@ -14,7 +14,7 @@ export default automation('visits_reschedule', {
 		targets: { kind: 'list', of: { kind: 'id', of: 'visits' }, min: 1 },
 		start: { kind: 'instant' }
 	},
-	runAs: 'trigger',
+	policies: ['operations'],
 	run: function* ({ start, targets }, ctx) {
 		const { rows: targetsOf } = (yield* ctx.query({ visits: { where: { id: { in: targets } } } }))
 			.visits;

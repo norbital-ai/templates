@@ -71,7 +71,7 @@
 <Stack
 	gap="none"
 	justify="center"
-	fill
+	size="fill"
 	class={cn(
 		'relative rounded-sm px-1 pt-0.5 pb-1.5 text-center tabular-nums',
 		!day.employed && 'bg-muted/20 text-muted-foreground/40',

@@ -1,12 +1,12 @@
 import type { Id } from '@norbital-ai/bolt';
 import { inputSchema } from '@norbital-ai/std/kind';
 import { Context, Effect, Layer, Schema } from 'effect';
-import { TestWorkspace, type TestOptions, type TestPorts } from '@norbital-ai/bolt/test';
+import { TestWorkspace, type TestOptions, type TestPorts } from '@norbital-ai/bolt-cli/test';
 /** Each caller owns this workspace's scope and every engine service it acquired. */
 export const workspace = Effect.fnUntraced(function* <P extends TestPorts = never>(
 	options: TestOptions<P>
 ) {
-	const services = yield* Layer.build(TestWorkspace.layer(options));
+	const services = yield* Layer.build(TestWorkspace.layer({ ...options }));
 	return { ...Context.get(services, TestWorkspace), services };
 });
 export type T = Effect.Success<ReturnType<typeof workspace>>;

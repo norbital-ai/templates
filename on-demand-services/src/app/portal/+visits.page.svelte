@@ -48,7 +48,7 @@
 		}).format(new Date(i));
 </script>
 
-<Scroll name="my-visits" inset>
+<Scroll name="my-visits" size="fill" inset>
 	<Center measure="reading">
 		<Stack gap="lg" class="py-6">
 			<Stack gap="xs">

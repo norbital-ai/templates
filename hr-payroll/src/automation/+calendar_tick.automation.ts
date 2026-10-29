@@ -40,7 +40,7 @@ export default automation('calendar_tick', {
 	description:
 		'Runs the jurisdiction behaviour rules once a day for every employment in force, so date-driven duties (anniversaries, ages reached, leave-year ends) raise their tasks.',
 	on: { cron: '@daily' },
-	runAs: ['hr_controller'],
+	policies: ['hr_controller'],
 	concurrency: { max: 1 },
 	run: function* (_input, ctx) {
 		const calendarTick = Effect.fnUntraced(function* () {

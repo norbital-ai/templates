@@ -26,20 +26,15 @@ Browser canvas bilinear resizing can differ slightly from OpenCV's interpolation
 
 The kiosk keeps only a face inside its visible silhouette eligible, but preserves
 the surrounding camera image for these crops. Masking everything outside the face
-would erase the screen and print context the model uses. Models and the pinned
-ONNX Runtime Web WASM files are served from the release itself; no CDN or external
-inference service receives camera frames.
-
-ONNX Runtime Web is pinned to 1.23.2. Its MIT license and third-party notices
-are copied from the [v1.23.2 source](https://github.com/microsoft/onnxruntime/tree/v1.23.2)
-and shipped alongside the model and MiniVision license.
+would erase the screen and print context the model uses. Inference runs in the
+browser; no CDN or external inference service receives camera frames.
 
 The live threshold is 0.8. This is a starting operating point, not a measured
 camera-specific false-accept rate. The upstream real and spoof samples are
 inputs for integration edge case tests, not proof against all phones, replays, or cameras.
 
-## Shipped files (0.0.1)
+## Shipped files
 
-The workspace `assets/` directory is served at `/assets/*` from the release, so the kiosk loads everything from it:
-`human/{blazeface,facemesh,iris,faceres}.{json,bin}` are copied unchanged from `@vladmandic/human@3.3.6/models`, and
-`ort-wasm-simd-threaded.{wasm,mjs}` from `onnxruntime-web@1.23.2/dist`. Re-copy both when either dependency moves.
+Only `minifasnet.onnx` ships in the release (served at `/assets/models/`). The browser fetches the large
+dependencies itself from jsdelivr at their pinned versions: Human's face models from `@vladmandic/human@3.3.6/models`
+(`KIOSK_MODEL_BASE`) and onnxruntime's wasm from the installed `onnxruntime-web`.

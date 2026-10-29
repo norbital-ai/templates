@@ -1,5 +1,5 @@
 import { automation } from '@norbital-ai/bolt';
-import { declineShift } from '../lib/visit-recovery.js';
+import { declineShift, ownVisits } from '../lib/visit-recovery.js';
 
 export default automation('visits_decline_shift', {
 	description:
@@ -8,6 +8,9 @@ export default automation('visits_decline_shift', {
 		targets: { kind: 'list', of: { kind: 'id', of: 'visits' }, min: 1 },
 		mc: { kind: 'bool' }
 	},
-	runAs: 'trigger',
-	run: declineShift
+	policies: ['helper_shift'],
+	run: function* (input, ctx) {
+		yield* ownVisits(ctx, input.targets);
+		return yield* declineShift(input, ctx);
+	}
 });

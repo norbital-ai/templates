@@ -1,0 +1,52 @@
+[
+	{
+		"id": "b8311b74-dbf7-58f9-b1ee-998a50c45c1c",
+		"settings_id": "25a4270e-7f7a-5017-8014-cd2f377a4e65",
+		"code": "SALARY_ADVANCE",
+		"name": "Salary advance",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "!(has(entry.advance_made_on)\n&&entry.occurred_on > add_months(entry.advance_made_on, 12))",
+		"bands": []
+	},
+	{
+		"id": "f72f24d4-cd56-5a0a-b4c9-569fa36a77d0",
+		"settings_id": "25a4270e-7f7a-5017-8014-cd2f377a4e65",
+		"code": "FESTIVE_ADVANCE",
+		"name": "Festive advance",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "!(has(entry.advance_made_on)\n&&entry.occurred_on > add_months(entry.advance_made_on, 12))",
+		"bands": []
+	},
+	{
+		"id": "ceda005e-5755-565d-a5d0-1a6578d4b5dd",
+		"settings_id": "25a4270e-7f7a-5017-8014-cd2f377a4e65",
+		"code": "SALARY_OVERPAYMENT",
+		"name": "Salary overpayment recovery",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"bands": []
+	},
+	{
+		"id": "085ff139-7264-5df6-9dd9-4b094c7116e3",
+		"settings_id": "25a4270e-7f7a-5017-8014-cd2f377a4e65",
+		"code": "UNEARNED_BENEFIT_RECOVERY",
+		"name": "Unearned benefit recovery",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "",
+		"bands": []
+	},
+	{
+		"id": "82d46570-71a7-58e6-9d4c-c3ba58660a58",
+		"settings_id": "25a4270e-7f7a-5017-8014-cd2f377a4e65",
+		"code": "TRAVEL_ADVANCE",
+		"name": "Travel advance",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"eligibility": "!(has(entry.advance_made_on)\n&&entry.occurred_on > add_months(entry.advance_made_on, 12))\n&&!(has(entry.advance_made_on) && employment.start_date != \"\"\n&&entry.advance_made_on < employment.start_date)",
+		"bands": []
+	}
+]

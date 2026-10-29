@@ -1,6 +1,6 @@
 import { present } from './test-runtime.js';
 import type { Id } from '@norbital-ai/bolt';
-import { TestWorkspace } from '@norbital-ai/bolt/test';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { createHash } from 'node:crypto';
 /**
@@ -55,41 +55,39 @@ layer(shared())('field-operations rules', (it) => {
 			});
 		})
 	);
-	it.effect(
-		'requires a location on writes and derives the title, keeping the unit',
-		() =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				const as = t.as(t.member(CONTROLLER));
-				expect(
-					yield* Effect.flip(as.act('sites.create', [{ address: 'Unresolved address' }]))
-				).toMatchObject({ _tag: 'ActRefused', message: 'Choose a location for the site.' });
-				const [created] = committed(
-					yield* as.act('sites.create', [
-						{ location: { lat: 1.34, lng: 103.77 }, unit_number: '05-12' }
-					])
-				);
-				const site = fixtureId('sites', created);
-				expect(yield* siteRow(as, site)).toMatchObject({
-					name: '1.34, 103.77',
-					unit_number: '05-12'
-				});
-				committed(
-					yield* as.act('sites.update', [
-						{
-							target: site,
-							set: {
-								location: { lat: 1.35, lng: 103.78 },
-								address: 'Resolved map address, Singapore 598236'
-							}
+	it.effect('requires a location on writes and derives the title, keeping the unit', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const as = t.as(t.member(CONTROLLER));
+			expect(
+				yield* Effect.flip(as.act('sites.create', [{ address: 'Unresolved address' }]))
+			).toMatchObject({ _tag: 'ActRefused', message: 'Choose a location for the site.' });
+			const [created] = committed(
+				yield* as.act('sites.create', [
+					{ location: { lat: 1.34, lng: 103.77 }, unit_number: '05-12' }
+				])
+			);
+			const site = fixtureId('sites', created);
+			expect(yield* siteRow(as, site)).toMatchObject({
+				name: '1.34, 103.77',
+				unit_number: '05-12'
+			});
+			committed(
+				yield* as.act('sites.update', [
+					{
+						target: site,
+						set: {
+							location: { lat: 1.35, lng: 103.78 },
+							address: 'Resolved map address, Singapore 598236'
 						}
-					])
-				);
-				expect(yield* siteRow(as, site)).toMatchObject({
-					name: 'Resolved map address, Singapore 598236',
-					unit_number: '05-12'
-				});
-			})
+					}
+				])
+			);
+			expect(yield* siteRow(as, site)).toMatchObject({
+				name: 'Resolved map address, Singapore 598236',
+				unit_number: '05-12'
+			});
+		})
 	);
 	it.effect(
 		'a local contractor number links the member and dispatches; completing stamps once, and any change but the stamp makes the job unread',
@@ -133,7 +131,8 @@ layer(shared())('field-operations rules', (it) => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const { job } = yield* siteWithJob(t);
-			const as = t.as(yield* person(t, CONTROLLER));
+			const controller = yield* person(t, CONTROLLER);
+			const as = t.as(controller);
 			const [createdFinding] = committed(
 				yield* as.act('suspicious_activity_logs.create', [
 					{ job_assignment_id: job, reason: 'Two sites in one set' }
@@ -171,7 +170,10 @@ layer(shared())('field-operations rules', (it) => {
 				'SELECT resolution, resolved_at, resolved_by FROM suspicious_activity_logs WHERE id = $1',
 				[finding]
 			);
-			expect(resolved).toMatchObject([{ resolution: 'Same site, two doors' }]);
+			// the run's trigger is the controller who started it
+			expect(resolved).toMatchObject([
+				{ resolution: 'Same site, two doors', resolved_by: controller.id }
+			]);
 			expect(yield* resolve('again')).toMatchObject({
 				state: 'failed',
 				error: { code: 'refused' }

@@ -96,6 +96,7 @@
 				]}
 				toolbar={{
 					title: bolt.t('app.scheduling.board_title'),
+					description: bolt.t('app.work.sheet_help'),
 					new: false,
 					context: { company_id: companyId, from: window.start, to: window.end }
 				}}

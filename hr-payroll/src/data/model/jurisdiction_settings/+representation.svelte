@@ -7,7 +7,7 @@
 	 */
 	import * as Predicate from 'effect/Predicate';
 	import { bolt } from '$bolt';
-	import { isMasked, type MessageKey } from '@norbital-ai/bolt';
+	import type { MessageKey } from '@norbital-ai/bolt';
 	import {
 		Field,
 		Form,
@@ -110,18 +110,14 @@
 </script>
 
 {#snippet inputSchema(field: FieldEditor)}
-	{#if isMasked(field.value)}
-		<p class="text-meta">{t('component.error')}</p>
-	{:else}
-		<StructuredData
-			mode="schema"
-			schema={isJsonSchema(field.value) ? field.value : EMPTY_SCHEMA}
-			onChange={field.onChange}
-			name={field.name}
-			id={field.id}
-			disabled={field.disabled}
-		/>
-	{/if}
+	<StructuredData
+		mode="schema"
+		schema={isJsonSchema(field.value) ? field.value : EMPTY_SCHEMA}
+		onChange={field.onChange}
+		name={field.name}
+		id={field.id}
+		disabled={field.disabled}
+	/>
 {/snippet}
 
 {#snippet sources({ value, id }: Pick<FieldEditor, 'value' | 'id'>)}
@@ -158,9 +154,7 @@
 {/snippet}
 
 {#snippet inputSchemaView({ value, id, name }: Pick<FieldEditor, 'value' | 'id' | 'name'>)}
-	{#if isMasked(value)}
-		<p class="text-meta">{t('component.error')}</p>
-	{:else if isJsonSchema(value)}
+	{#if isJsonSchema(value)}
 		<StructuredData schema={value} mode="schema" {id} {name} />
 	{:else}
 		<StructuredData {value} mode="view" {id} {name} />

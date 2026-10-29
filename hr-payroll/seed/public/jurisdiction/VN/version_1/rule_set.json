@@ -1,0 +1,886 @@
+[
+	{
+		"id": "ffd52da5-6353-5e00-bc7b-014c12ebd647",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "PARAMETERS",
+		"code": "case_kinds",
+		"name": "Workplace case kinds",
+		"rules": {
+			"kinds": [
+				{
+					"code": "PERSONAL_DATA_BREACH",
+					"name": "Personal data protection violation (Law 91/2025 art.23; Decree 13/2023 art.23 before 2026)"
+				}
+			]
+		}
+	},
+	{
+		"id": "2f031c6b-3a66-5dd3-8c5a-36949e32dd6c",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "PARAMETERS",
+		"code": "minimum_wage",
+		"name": "Regional minimum wage",
+		"references": [
+			{
+				"title": "Nghị định 74/2024/NĐ-CP art.3: monthly and hourly minimum wages by region from 1 July 2024; an hourly-paid worker is held to the hourly column. Decree 74/2024 art.4 (December 2025) and Decree 293/2025 art.4 (2026 onward): minimum wages govern wage agreements and payment; weekly wages convert at 52/12. Art.4(3): weekly and daily wages may satisfy either the monthly or the hourly minimum after conversion using lawful normal working time."
+			}
+		],
+		"rules": {
+			"by_region": {
+				"I": 4960000,
+				"II": 4410000,
+				"III": 3860000,
+				"IV": 3450000
+			},
+			"hourly_by_region": {
+				"I": 23800,
+				"II": 21200,
+				"III": 18600,
+				"IV": 16600
+			}
+		}
+	},
+	{
+		"id": "988f0f25-6de9-4572-b826-1244fe272cf7",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"name": "working_time",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.105(1)–(2): normal hours at most 8 a day and 48 a week; Decree 145/2020/NĐ-CP arts.54(1)(a3)–(a4), 55(1)(a). The fallback is used only where the entity plans no shifts."
+			}
+		],
+		"family": "PARAMETERS",
+		"code": "working_time",
+		"rules": {
+			"normal_hours_per_day": 8,
+			"fallback_working_days": 26
+		}
+	},
+	{
+		"id": "917c58d2-7fe1-4c39-85aa-9cde1b92c233",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"name": "night_window",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.106: night work is counted from 22:00 to 06:00 the next morning."
+			}
+		],
+		"family": "PARAMETERS",
+		"code": "night_window",
+		"rules": {
+			"from": "22:00",
+			"to": "06:00"
+		}
+	},
+	{
+		"id": "a9f8180d-2d02-410a-96b2-80a52ce7f515",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"name": "MINIMUM_WAGE_FLOOR",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 arts.90(2), 91; Decree 74/2024/NĐ-CP art.3 (the version’s rules.minimum_wage.by_region). An entity without a recorded region is checked against Region IV, the lowest floor; part-time, probation (at least 85% of the job wage, art.26) and intern terms are outside the monthly check.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"family": "VALIDATIONS",
+		"code": "MINIMUM_WAGE_FLOOR",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"description": "A monthly wage for the job below the regional minimum wage of the entity’s region.",
+			"when": "!(terms.employment_type in [\"PART_TIME\", \"PROBATION\", \"INTERN\"])\n&&terms.base_salary > 0.0\n&&terms.base_salary\n<double(\n  rules.minimum_wage.by_region[company.region in [\"II\", \"III\", \"IV\"]\n    ?company.region\n    :\"I\"]\n)",
+			"message": "The monthly wage is below the regional minimum wage for the entity’s region (Labour Code art.90(2), art.91)."
+		}
+	},
+	{
+		"id": "b3f4560e-ed47-49d5-94e5-b7eb502e66a0",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"name": "OVERTIME_MONTHLY_CAP",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.107(2)(b): overtime may not exceed 40 hours a month. Counted: derived overtime on working days, and every paid hour on a rest day or public holiday.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"family": "VALIDATIONS",
+		"code": "OVERTIME_MONTHLY_CAP",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"description": "Overtime above 40 hours in the month.",
+			"when": "sum(\n  work.days.map(\n    d,\n    (work.holidays.exists(\n      h,\n      h.date == d.date\n      &&h.kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"]\n      && (h.given_to != \"ONLY_IF_OFF_ON_REPLACED_DATE\"\n      || (h.replaces != \"\" && !(h.replaces in work.dates\n    ) )))\n    ||d.day_type in [\"REST\", \"OFF\"])\n      ?d.worked_hours\n      :d.overtime_hours\n  )\n)\n>40.0",
+			"message": "overtime exceeds 40 hours in the month (Labour Code art.107(2)(b))."
+		}
+	},
+	{
+		"id": "d3917927-17f1-4a70-9d10-a7c403ff7931",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"name": "OVERTIME_DAILY_CAP",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.107(2)(a): overtime at most 50% of the normal hours of a day; under a weekly regime normal plus overtime hours at most 12 a day.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"family": "VALIDATIONS",
+		"code": "OVERTIME_DAILY_CAP",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"description": "Overtime above half the normal hours of a day, or a day above 12 hours under the weekly regime.",
+			"when": "(has(terms.facts.normal_hours_arrangement)\n&&terms.facts.normal_hours_arrangement == \"WEEKLY\")\n  ?work.days.exists(d, d.scheduled_hours + d.overtime_hours > 12.0)\n  :work.days.exists(\n    d,\n    d.scheduled_hours > 0.0\n    &&d.overtime_hours > 0.5 * d.scheduled_hours\n  )",
+			"message": "a day’s overtime exceeds the daily limit (Labour Code art.107(2)(a))."
+		}
+	},
+	{
+		"id": "abc59d19-07b4-459e-b723-39d5e5bedf1d",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"name": "DAMAGE_DEDUCTION_CEILING",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.102(3): the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory social insurance, health insurance, unemployment insurance and personal income tax.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"family": "VALIDATIONS",
+		"code": "DAMAGE_DEDUCTION_CEILING",
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"description": "A damage-compensation deduction above 30% of the month’s wage after compulsory insurance and PIT.",
+			"when": "has(payslip.lines.PROPERTY_DAMAGE_COMPENSATION)\n&&-payslip.lines.PROPERTY_DAMAGE_COMPENSATION\n>0.3 * (payslip.gross - payslip.statutory_employee)",
+			"message": "the damage deduction exceeds 30% of the wage after SI, HI, UI and PIT (Labour Code art.102(3)); the slip is held."
+		}
+	},
+	{
+		"id": "a2a72ea0-a34c-4fa2-93e0-24d3384fbbc6",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "VALIDATIONS",
+		"code": "OVERTIME_ANNUAL_CAP",
+		"name": "OVERTIME_ANNUAL_CAP",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.107(2)(b): at most 200 hours a year; art.107(3): 300 hours in the sectors and cases listed, after notifying the provincial labour authority (art.107(4); Decree 145/2020/NĐ-CP arts.61–62). Counted from hours.year: all overtime (banked included; every hour on a 0-hour rest day) plus the planned hours worked on public, substitute and double holidays, each hour once.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"description": "Overtime above 200 hours in the calendar year, or 300 in the sectors and cases Decree 145/2020 art.61 lists.",
+			"when": "(hours.year.overtime_hours\n+max(\n  0.0,\n  (has(hours.year.holiday_kind)\n  &&has(hours.year.holiday_kind.PUBLIC_HOLIDAY)\n    ?hours.year.holiday_kind.PUBLIC_HOLIDAY.worked_hours\n    :0.0)\n  - (has(hours.year.holiday_kind)\n  &&has(hours.year.holiday_kind.PUBLIC_HOLIDAY)\n    ?hours.year.holiday_kind.PUBLIC_HOLIDAY.overtime_hours\n    :0.0\n) )\n+max(\n  0.0,\n  (has(hours.year.holiday_kind)\n  &&has(hours.year.holiday_kind.SUBSTITUTE)\n    ?hours.year.holiday_kind.SUBSTITUTE.worked_hours\n    :0.0)\n  - (has(hours.year.holiday_kind)\n  &&has(hours.year.holiday_kind.SUBSTITUTE)\n    ?hours.year.holiday_kind.SUBSTITUTE.overtime_hours\n    :0.0\n) )\n+max(\n  0.0,\n  (has(hours.year.holiday_kind)\n  &&has(hours.year.holiday_kind.DOUBLE_HOLIDAY)\n    ?hours.year.holiday_kind.DOUBLE_HOLIDAY.worked_hours\n    :0.0)\n  - (has(hours.year.holiday_kind)\n  &&has(hours.year.holiday_kind.DOUBLE_HOLIDAY)\n    ?hours.year.holiday_kind.DOUBLE_HOLIDAY.overtime_hours\n    :0.0\n) ))\n> ((has(company.facts.overtime_300h_sector)\n&&company.facts.overtime_300h_sector == true)\n  ?300.0\n  :200.0)",
+			"message": "overtime this year exceeds 200 hours (300 in the listed sectors) (Labour Code art.107(2)(b), (3))."
+		}
+	},
+	{
+		"id": "9b59414d-c01b-4f59-9f31-0f7861eecdf8",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"name": "public_holidays",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.112(1) (11 days: 1 January; five days of Tết; Hùng Kings 10/3 lunar; 30 April; 1 May; 2 September and one adjacent day) and art.111(3) (a holiday on the weekly rest day is taken on the next working day); Tết 2026 and 2 September 2026 per Bộ Nội vụ Thông báo 9441/TB-BNV of 16 October 2025 (16–20 February 2026; 1–2 September 2026); 24 November from 1 July 2026 per Nghị quyết 28/2026/QH16 art.2 (https://vanban.chinhphu.vn/?classid=1&docid=218008&orggroupid=1&pageid=27160).  https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"family": "PARAMETERS",
+		"code": "public_holidays",
+		"rules": {
+			"holidays": []
+		}
+	},
+	{
+		"id": "fe1b604f-a537-47fa-a63a-cf344683b0f2",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"name": "REGION_REQUIRED",
+		"references": [
+			{
+				"title": "Decree 74/2024/NĐ-CP arts.3–4: the minimum wage is the region of the employer’s place of operation."
+			}
+		],
+		"family": "VALIDATIONS",
+		"code": "REGION_REQUIRED",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"description": "The entity’s minimum-wage region is unrecorded.",
+			"when": "!(company.region in [\"I\", \"II\", \"III\", \"IV\"])",
+			"message": "Record the entity’s minimum-wage region (I–IV) before writing terms: the floor is the region of the place of work."
+		}
+	},
+	{
+		"id": "a07df46a-b26a-408a-9b2c-c113a0aea005",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"name": "HOURLY_MINIMUM_WAGE",
+		"references": [
+			{
+				"title": "Decree 74/2024/NĐ-CP art.3(2), art.4: an hourly-paid worker is paid at least the regional hourly minimum (term fact hourly_rate)."
+			}
+		],
+		"family": "VALIDATIONS",
+		"code": "HOURLY_MINIMUM_WAGE",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"description": "An hourly rate below the regional hourly minimum.",
+			"when": "has(terms.facts.hourly_rate)\n&&double(terms.facts.hourly_rate)\n<double(\n  rules.minimum_wage.hourly_by_region[company.region\n  in [\"II\", \"III\", \"IV\"]\n    ?company.region\n    :\"I\"]\n)",
+			"message": "The hourly rate is below the regional hourly minimum wage."
+		}
+	},
+	{
+		"id": "8c0859a6-0e42-49c1-a9bc-fc0b2257f3c7",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"name": "PROBATION_WAGE",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14",
+				"locator": "art.26.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"family": "VALIDATIONS",
+		"code": "PROBATION_WAGE",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"description": "A probation wage below 85% of the job wage.",
+			"when": "terms.employment_type == \"PROBATION\"\n&&has(terms.facts.probation_job_wage)\n&&terms.base_salary < 0.85 * double(terms.facts.probation_job_wage)",
+			"message": "The probation wage is below 85% of the job’s wage (Labour Code art.26)."
+		}
+	},
+	{
+		"id": "ddb792a9-8f05-4e28-b262-2ad60665eae6",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"name": "PROBATION_PERIOD",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.25: at most 180 days for an enterprise manager, 60 for a college-level job, 30 for an intermediate or technical job, 6 working days for any other.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"family": "VALIDATIONS",
+		"code": "PROBATION_PERIOD",
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"description": "A probation longer than the job class allows.",
+			"when": "terms.employment_type == \"PROBATION\" && terms.effective_to != \"\"\n&&has(terms.facts.probation_class)\n&& (terms.facts.probation_class == \"OTHER\"\n  ?terms.effective_to\n  >add_working_days(terms.effective_from, 5, [], [\"SATURDAY\", \"SUNDAY\"])\n  :double(\n    calendar_distance_days(terms.effective_from, terms.effective_to)\n  )\n  +1.0\n  > (terms.facts.probation_class == \"ENTERPRISE_MANAGER\"\n    ?180.0\n    :terms.facts.probation_class == \"COLLEGE_OR_ABOVE\" ? 60.0 : 30.0))",
+			"message": "The probation is longer than Labour Code art.25 allows for the job class."
+		}
+	},
+	{
+		"id": "a6ec5375-6f76-4b9e-a681-461c25e9051c",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"name": "PREGNANT_OR_INFANT_NIGHT_OVERTIME",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.137(1)(a): unless she agrees, no night work, overtime or long business trips from the seventh month of pregnancy (sixth in remote areas) or while raising a child under 12 months. Read on employee.children (estimated_delivery_date three months ahead, child_birthdate) and the day’s consent (work.days[].overtime_consented, the work-day sheet’s per-day consent column: owner ruling, consent is per day, never an employee fact).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"family": "VALIDATIONS",
+		"code": "PREGNANT_OR_INFANT_NIGHT_OVERTIME",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"description": "Night work or overtime by a worker from the seventh month of pregnancy or with a child under 12 months, without her consent recorded for that day.",
+			"when": "work.days.exists(\n  d,\n  (employee.children.exists(\n    c,\n    has(c.estimated_delivery_date) && c.estimated_delivery_date != \"\"\n    && (!has(c.child_birthdate) || c.child_birthdate == \"\")\n    &&d.date >= add_months(c.estimated_delivery_date, -3)\n  )\n  ||employee.children.exists(\n    c,\n    has(c.child_birthdate) && c.child_birthdate != \"\"\n    &&add_months(c.child_birthdate, 12) > d.date\n  ))\n  &&!(has(d.overtime_consented) && d.overtime_consented == true)\n  && (d.overtime_hours > 0.0\n  ||hours_between(\n    d.intervals,\n    rules.night_window.from,\n    rules.night_window.to\n  )\n  >0.0\n) )",
+			"message": "night work or overtime by a pregnant worker from the seventh month or one with a child under 12 months, without recorded consent (Labour Code art.137(1)(a))."
+		}
+	},
+	{
+		"id": "9fe5ebc8-e50f-43c2-b010-43ae61bd7b03",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"name": "MINOR_WORKING_TIME",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.146(1)(b): a worker from 15 to under 18 works at most 8 hours a day and 40 a week, overtime and night work only in the jobs the Minister lists (term fact minor_listed_job).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"family": "VALIDATIONS",
+		"code": "MINOR_WORKING_TIME",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"description": "A worker aged 15 to 18 over 8 hours a day, or on overtime or night work outside the listed jobs.",
+			"when": "employee.age != null && employee.age >= 15 && employee.age < 18\n&&!(has(terms.facts.minor_listed_job)\n&&terms.facts.minor_listed_job == true)\n&& (work.days.exists(d, d.worked_hours > 8.0 || d.overtime_hours > 0.0)\n||sum(\n  work.days.map(\n    d,\n    hours_between(\n      d.intervals,\n      rules.night_window.from,\n      rules.night_window.to\n    )\n  )\n)\n>0.0)",
+			"message": "a worker under 18 works over 8 hours a day, overtime or nights outside the listed jobs (Labour Code art.146)."
+		}
+	},
+	{
+		"id": "4f005365-42c4-4c22-bce8-413880e883bc",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"name": "WEEKLY_REST",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.111(1): at least 24 consecutive hours of rest each week; where the cycle does not allow it, at least four days a month on average (entity fact rest_averaged_monthly).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"family": "VALIDATIONS",
+		"code": "WEEKLY_REST",
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"description": "No 24-hour weekly rest in a seven-day run, or under four rest days in the month where rest is averaged.",
+			"when": "(has(company.facts.rest_averaged_monthly)\n&&company.facts.rest_averaged_monthly == true)\n  ?size(work.days.filter(d, !d.worked)) < 4 && size(work.days) >= 28\n  :work.days.exists(\n    d,\n    size(\n      work.days.filter(\n        x,\n        x.date >= d.date && x.date <= add_days(d.date, 6)\n      )\n    )\n    ==7\n    &&work.days.filter(\n      x,\n      x.date >= d.date && x.date <= add_days(d.date, 6)\n    ).all(\n      x,\n      x.worked\n    )\n  )",
+			"message": "seven days in a row worked with no weekly rest (Labour Code art.111)."
+		}
+	},
+	{
+		"id": "2f4ac240-64da-54dc-9e51-01671b5b61eb",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_NORMAL_HOURS_DAY",
+		"name": "ROSTER_NORMAL_HOURS_DAY",
+		"references": [
+			{
+				"title": "Labour Code 2019 art.105(1)–(2): normal working hours at most 8 a day and 48 a week; under a weekly arrangement at most 10 a day (term fact normal_hours_arrangement).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "day.worked\n&&day.scheduled_hours\n> ((has(terms.facts.normal_hours_arrangement)\n&&terms.facts.normal_hours_arrangement == \"WEEKLY\")\n  ?10.0\n  :8.0)",
+			"message": "normal hours above 8 in the day (10 under a weekly arrangement) (Labour Code art.105).",
+			"description": "normal hours above 8 in the day (10 under a weekly arrangement) (Labour Code art.105)."
+		}
+	},
+	{
+		"id": "a53ed45e-2971-57f0-8f53-8ede8701ec4b",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_NORMAL_HOURS_WEEK",
+		"name": "ROSTER_NORMAL_HOURS_WEEK",
+		"references": [
+			{
+				"title": "Labour Code 2019 art.105(1)–(2): at most 48 normal hours a week.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "week.worked_hours - week.overtime_hours > 48.0",
+			"message": "normal hours above 48 in the seven days ending on this day (Labour Code art.105(1)).",
+			"description": "normal hours above 48 in the seven days ending on this day (Labour Code art.105(1))."
+		}
+	},
+	{
+		"id": "702832d7-97bc-5db9-b75e-76c985fbcb4f",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_OVERTIME_DAY",
+		"name": "ROSTER_OVERTIME_DAY",
+		"references": [
+			{
+				"title": "Labour Code 2019 art.107(2)(b): overtime at most 50% of the normal hours of a day; under a weekly arrangement normal plus overtime at most 12 a day.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_out",
+			"when": "day.overtime_hours > 0.0\n&& ((has(terms.facts.normal_hours_arrangement)\n&&terms.facts.normal_hours_arrangement == \"WEEKLY\")\n  ? (day.worked_hours - day.overtime_hours) + day.overtime_hours > 12.0\n  :day.overtime_hours\n  >0.5 * (day.scheduled_hours > 0.0 ? day.scheduled_hours : 8.0))",
+			"message": "overtime above half the day’s normal hours (12 hours in all under a weekly arrangement) (Labour Code art.107(2)(b)).",
+			"description": "overtime above half the day’s normal hours (12 hours in all under a weekly arrangement) (Labour Code art.107(2)(b))."
+		}
+	},
+	{
+		"id": "290c058f-c15d-5618-bf41-03831ee37c2f",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_SHIFT_CHANGE_REST",
+		"name": "ROSTER_SHIFT_CHANGE_REST",
+		"references": [
+			{
+				"title": "Labour Code 2019 art.110: a shift worker rests at least 12 hours before moving to another shift.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "day.rest_hours_before != null && day.rest_hours_before < 12.0",
+			"message": "under 12 hours of rest since the previous day’s work (Labour Code art.110).",
+			"description": "under 12 hours of rest since the previous day’s work (Labour Code art.110)."
+		}
+	},
+	{
+		"id": "c6f13650-b940-541d-9acf-77236e956152",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_WEEKLY_REST",
+		"name": "ROSTER_WEEKLY_REST",
+		"references": [
+			{
+				"title": "Labour Code 2019 art.111(1): at least 24 consecutive hours of rest each week; where the work cycle does not allow it, four days a month on average (entity fact rest_averaged_monthly).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "work_date",
+			"when": "day.worked && week.worked_days >= 7\n&&!(has(company.facts.rest_averaged_monthly)\n&&company.facts.rest_averaged_monthly == true)",
+			"message": "seven days in a row worked without the 24-hour weekly rest (Labour Code art.111(1)).",
+			"description": "seven days in a row worked without the 24-hour weekly rest (Labour Code art.111(1))."
+		}
+	},
+	{
+		"id": "6004f231-af30-5e06-8fc6-186b6ad7aa72",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_MINOR_WORKING_TIME",
+		"name": "ROSTER_MINOR_WORKING_TIME",
+		"references": [
+			{
+				"title": "Labour Code 2019 art.146: under 15 at most 4 hours a day and 20 a week, no overtime or night work; from 15 to under 18 at most 8 a day and 40 a week, overtime and night work only in the jobs the Minister lists (term fact minor_listed_job); night is 22:00–06:00 (art.106).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "employee.date_of_birth != null && employee.date_of_birth != \"\"\n&&day.worked\n&& (double(age_on(employee.date_of_birth, day.date)) < 15.0\n  ? (day.worked_hours > 4.0 || week.worked_hours > 20.0\n  ||day.overtime_hours > 0.0\n  ||hours_between(\n    day.intervals,\n    rules.night_window.from,\n    rules.night_window.to\n  )\n  >0.0)\n  : (double(age_on(employee.date_of_birth, day.date)) < 18.0\n  && (day.worked_hours > 8.0 || week.worked_hours > 40.0\n  || (!(has(terms.facts.minor_listed_job)\n  &&terms.facts.minor_listed_job == true)\n  && (day.overtime_hours > 0.0\n  ||hours_between(\n    day.intervals,\n    rules.night_window.from,\n    rules.night_window.to\n  )\n  >0.0)))))",
+			"message": "a worker under 18 above the minors’ hours, or on overtime or night work (Labour Code art.146).",
+			"description": "a worker under 18 above the minors’ hours, or on overtime or night work (Labour Code art.146)."
+		}
+	},
+	{
+		"id": "1f0765d1-210a-5798-b70e-104241f13fd7",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_MATERNITY_NIGHT_OVERTIME",
+		"name": "ROSTER_MATERNITY_NIGHT_OVERTIME",
+		"references": [
+			{
+				"title": "Labour Code 2019 art.137(1): no night work, overtime or long business trips from the seventh month of pregnancy (estimated delivery within three months on employee.children) or while raising a child under 12 months, unless she agrees (day.overtime_consented, the sheet’s per-day consent: owner ruling, consent is per day).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_out",
+			"when": "(employee.children.exists(\n  c,\n  has(c.estimated_delivery_date) && c.estimated_delivery_date != \"\"\n  && (!has(c.child_birthdate) || c.child_birthdate == \"\")\n  &&day.date >= add_months(c.estimated_delivery_date, -3)\n)\n||employee.children.exists(\n  c,\n  has(c.child_birthdate) && c.child_birthdate != \"\"\n  &&add_months(c.child_birthdate, 12) > day.date\n))\n&&!(has(day.overtime_consented) && day.overtime_consented == true)\n&&day.worked\n&& (day.overtime_hours > 0.0\n||hours_between(\n  day.intervals,\n  rules.night_window.from,\n  rules.night_window.to\n)\n>0.0)",
+			"message": "night work or overtime from the seventh month of pregnancy or with a child under 12 months, without her consent (Labour Code art.137(1)).",
+			"description": "night work or overtime from the seventh month of pregnancy or with a child under 12 months, without her consent (Labour Code art.137(1))."
+		}
+	},
+	{
+		"id": "d1ed8132-381e-5a7d-bbc8-08fbe6141391",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_UNDER_13",
+		"name": "ROSTER_UNDER_13",
+		"references": [
+			{
+				"title": "Labour Code 2019 art.145(3): the employer may not recruit or use a person under 13, except in arts, physical training or sports work that does not harm the child, with the provincial labour authority’s consent (term fact child_arts_sports_approved).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "refuse",
+			"column": "employee_number",
+			"when": "employee.date_of_birth != null && employee.date_of_birth != \"\"\n&&day.worked\n&&double(age_on(employee.date_of_birth, day.date)) < 13.0\n&&!(has(terms.facts.child_arts_sports_approved)\n&&terms.facts.child_arts_sports_approved == true)",
+			"message": "a child under 13 may not be employed except in arts or sports work the provincial labour authority approved (Labour Code art.145(3)): remove the day or record the approval.",
+			"description": "a child under 13 may not be employed except in arts or sports work the provincial labour authority approved (Labour Code art.145(3)): remove the day or record the approval."
+		}
+	},
+	{
+		"id": "21d5a34d-6572-5f54-af26-d137ad66e4e1",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "PARAMETERS",
+		"code": "exit_grounds",
+		"name": "Exit grounds",
+		"rules": {
+			"description": "Why an employment ends (employment_contract.exit_ground, CEL employment.exit_ground): the grounds HR chooses from when it ends a contract. Every ground a record of this version compares is listed.",
+			"kinds": [
+				{
+					"code": "DEATH",
+					"name": "Death of the employee"
+				},
+				{
+					"code": "DISMISSAL",
+					"name": "Dismissal by the employer"
+				},
+				{
+					"code": "EMPLOYER_CLOSURE",
+					"name": "Employer ceased operation or the individual employer died (art.34(7))"
+				},
+				{
+					"code": "END_OF_CONTRACT",
+					"name": "End of a fixed-term contract"
+				},
+				{
+					"code": "IMPRISONMENT",
+					"name": "Employee imprisoned, sentenced or barred from the work by a court (art.34(4))"
+				},
+				{
+					"code": "MUTUAL",
+					"name": "Mutual agreement"
+				},
+				{
+					"code": "REDUNDANCY",
+					"name": "Redundancy"
+				},
+				{
+					"code": "RESIGNATION",
+					"name": "Resignation by the employee"
+				},
+				{
+					"code": "RETIREMENT",
+					"name": "Retirement"
+				},
+				{
+					"code": "RETRENCHMENT",
+					"name": "Retrenchment"
+				},
+				{
+					"code": "UNILATERAL",
+					"name": "Unilateral termination by the employer"
+				}
+			],
+			"groups": {
+				"WORKFORCE_REDUCTION": ["REDUNDANCY", "RETRENCHMENT"]
+			}
+		}
+	},
+	{
+		"id": "1e8c77e5-dea6-55e9-91b5-65c858b6b019",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "PARAMETERS",
+		"code": "holiday_kinds",
+		"name": "Holiday kinds",
+		"rules": {
+			"description": "The kinds an entity's holiday row may carry (holiday.kind, CEL work.days[].holiday_kind and holidays[].kind): every kind a record of this version prices or the public_holidays calendar writes.",
+			"kinds": [
+				{
+					"code": "PUBLIC_HOLIDAY",
+					"name": "Public holiday"
+				},
+				{
+					"code": "SUBSTITUTE",
+					"name": "Substitute holiday"
+				},
+				{
+					"code": "DOUBLE_HOLIDAY",
+					"name": "Two public holidays on one day"
+				}
+			]
+		}
+	},
+	{
+		"id": "c370a0c7-d384-57bf-b3f6-3bbf1a65d409",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "EXPORTS",
+		"code": "SI_HI_UI_CHANGE_LIST",
+		"name": "Danh sách tham gia, điều chỉnh đóng BHXH, BHYT, BHTN (Mẫu D02-LT)",
+		"references": [
+			{
+				"title": "Quyết định 366/QĐ-BHXH ngày 29/4/2026 (Quy trình thu BHXH, BHYT, BHTN; cấp sổ BHXH, thẻ BHYT; in force 01/5/2026, replacing Quyết định 595/QĐ-BHXH and its amendments, art.2), Phụ lục danh mục biểu mẫu item 6 (D02-LT) with the template “3. Mau D02-LT.xlsx” and its guide “3a. HD Mau D02-LT.docx”, read 2026-10-08 https://baohiemxahoi.gov.vn/vanban/Pages/default.aspx?ItemID=5018 (files https://baohiemxahoi.gov.vn:4545/File_Server_BHXH/documents/BHXHVN_366-QD-BHXH_2942026.pdf and https://baohiemxahoi.gov.vn:4545/File_Server_BHXH/documents/Mau%20bieu.rar); Law 41/2024/QH15 arts.28(1), 33(5), 53(8)."
+			}
+		],
+		"rules": {
+			"description": "Part B of the D02-LT list (columns A, B and 1–19) for the selected run’s month: a row for each SI participant hired in the month (Tăng lao động, from the month when the month is charged, else the next), each contract term starting in the month after the first (Điều chỉnh tiền lương, from the month) and each exit in the month (Giảm lao động do nghỉ việc, from the next month when the month is charged, else the month; the termination date in column 19). Column 4 is the term’s base salary, column 9 the allowances of the SI salary (the SI assessment’s), columns 10–12 the contract type. Columns 5–8 (state pay scale) are left empty. Customer input: employee facts si_number (column 1, empty for a first registration: VSS issues it) and hi_registered_facility (column 16), entity fact vss_result_delivery (column 17). Outside compulsory SI (a pensioner, a domestic worker, a contract under one month) is not listed. Part A (the unit) is the VSS registration. A month the SI rule did not charge (14 or more unpaid, sick or maternity working days, Law 41/2024 art.33(5), or a maternity month, art.53(8)) with the slip’s leave of those classes (slips[].leave) is listed as a reduction for that month only (columns 14 and 15 the month: the guide’s “từ tháng … đến tháng”, so participation resumes the next month unless the next month’s list reduces it again), its reason by the class with the most days — Giảm do nghỉ thai sản (maternity, miscarriage, prenatal, contraception, paternity), Giảm do nghỉ ốm đau (sick, child sick care, convalescence) or Giảm do nghỉ không hưởng lương (unpaid, unpaid bereavement, a stoppage by the worker’s fault) — and each leave’s dates in column 19 (the guide: “ghi rõ thời gian nghỉ … vào cột 19”). The hire and exit months keep their own rows (VN-OBLIGATION-52). The unpaid-leave reduction (Giảm do nghỉ không hưởng lương) stops BHXH and BHTN only: health insurance stays charged on the payslip, and column 19 says so (“BHYT tiếp tục đóng”). Decision 366/QĐ-BHXH Điều 4(2)(b) leaves the contribution to Law 41/2024 arts.33–34 and the HI Law arts.13, 15; Law 41/2024 art.33(5) waives only SI for 14 or more unpaid working days, and neither the HI Law as amended by Law 51/2024 nor Decree 188/2025 arts.6–8 (signed scan pp.6–12, read 2026-10-08) waives HI for unpaid days — HI moves to the fund only for 14 or more sickness or maternity days (HI Law art.12(2)(b)), so those reductions cover all three.",
+			"file": "\"D02-LT-\" + runs[0].period.substring(0, 7) + \".csv\"",
+			"applies_when": "generated_at >= \"2026-05-01\"",
+			"when": "size(slips) > 0 && \"SI\" in slips[size(slips) - 1].statutory && !((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.receiving_pension) && t.facts.receiving_pension == true)) && !((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.employment_type) && t.employment_type == \"DOMESTIC\")) && !((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).exists(t, has(t.facts) && has(t.facts.agreed_term_months) && int(double(t.facts.agreed_term_months)) < 1))",
+			"columns": [
+				{
+					"header": "STT",
+					"value": "\"\""
+				},
+				{
+					"header": "Họ và tên",
+					"value": "\"\""
+				},
+				{
+					"header": "Mã số BHXH",
+					"value": "\"\""
+				},
+				{
+					"header": "Ngày/ tháng/ năm sinh",
+					"value": "\"\""
+				},
+				{
+					"header": "Chức vụ, chức danh nghề, nghề nghiệp, nơi làm việc",
+					"value": "\"\""
+				},
+				{
+					"header": "Hệ số lương/ Tiền lương",
+					"value": "\"\""
+				},
+				{
+					"header": "Hệ số chênh lệch bảo lưu",
+					"value": "\"\""
+				},
+				{
+					"header": "Phụ cấp chức vụ",
+					"value": "\"\""
+				},
+				{
+					"header": "Phụ cấp thâm niên VK (%)",
+					"value": "\"\""
+				},
+				{
+					"header": "Phụ cấp thâm niên nghề (%)",
+					"value": "\"\""
+				},
+				{
+					"header": "Các khoản phụ cấp lương và thu nhập bổ sung",
+					"value": "\"\""
+				},
+				{
+					"header": "Loại HĐLĐ: Không xác định thời hạn",
+					"value": "\"\""
+				},
+				{
+					"header": "Loại HĐLĐ: Xác định thời hạn",
+					"value": "\"\""
+				},
+				{
+					"header": "Loại HĐLĐ: HĐ, thỏa thuận khác",
+					"value": "\"\""
+				},
+				{
+					"header": "Ngày Quyết định, HĐLĐ, HĐLV có hiệu lực",
+					"value": "\"\""
+				},
+				{
+					"header": "Từ tháng/ năm",
+					"value": "\"\""
+				},
+				{
+					"header": "Đến tháng/ năm",
+					"value": "\"\""
+				},
+				{
+					"header": "Nơi đăng ký KCB ban đầu",
+					"value": "\"\""
+				},
+				{
+					"header": "Hình thức nhận kết quả",
+					"value": "\"\""
+				},
+				{
+					"header": "Loại tăng, giảm, điều chỉnh",
+					"value": "\"\""
+				},
+				{
+					"header": "Ghi chú",
+					"value": "\"\""
+				}
+			],
+			"records": [
+				{
+					"each": "((has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\") != \"\" && (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\").substring(0, 7) == runs[0].period.substring(0, 7) && size((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.effective_range) && string(t.effective_range.from).substring(0, 10) <= (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\") && (!has(t.effective_range.to) || t.effective_range.to == null || string(t.effective_range.to).substring(0, 10) >= (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\")))) > 0 ? [{\"kind\": \"Tăng lao động\", \"date\": (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\"), \"from\": (size(slips) > 0 && \"SI\" in slips[size(slips) - 1].statutory && slips[size(slips) - 1].statutory.SI.employee > 0.0) ? runs[0].period.substring(0, 7) : add_months(runs[0].period.substring(0, 7) + \"-01\", 1).substring(0, 7), \"term\": (has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.effective_range) && string(t.effective_range.from).substring(0, 10) <= (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\") && (!has(t.effective_range.to) || t.effective_range.to == null || string(t.effective_range.to).substring(0, 10) >= (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\")))[0], \"note\": \"\"}] : []) + (has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.effective_range) && string(t.effective_range.from).substring(0, 7) == runs[0].period.substring(0, 7) && string(t.effective_range.from).substring(0, 10) != (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\")).map(t, {\"kind\": \"Điều chỉnh tiền lương\", \"date\": string(t.effective_range.from).substring(0, 10), \"from\": runs[0].period.substring(0, 7), \"term\": t, \"note\": \"\"}) + ((has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\") != \"\" && (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\").substring(0, 7) == runs[0].period.substring(0, 7) && size((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.effective_range) && string(t.effective_range.from).substring(0, 10) <= (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\") && (!has(t.effective_range.to) || t.effective_range.to == null || string(t.effective_range.to).substring(0, 10) >= (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\")))) > 0 ? [{\"kind\": \"Giảm lao động do nghỉ việc\", \"date\": \"\", \"from\": (size(slips) > 0 && \"SI\" in slips[size(slips) - 1].statutory && slips[size(slips) - 1].statutory.SI.employee > 0.0) ? add_months(runs[0].period.substring(0, 7) + \"-01\", 1).substring(0, 7) : runs[0].period.substring(0, 7), \"term\": (has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.effective_range) && string(t.effective_range.from).substring(0, 10) <= (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\") && (!has(t.effective_range.to) || t.effective_range.to == null || string(t.effective_range.to).substring(0, 10) >= (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\")))[0], \"note\": \"Ngày chấm dứt HĐLĐ: \" + (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\").substring(8, 10) + \"/\" + (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\").substring(5, 7) + \"/\" + (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\").substring(0, 4)}] : []) + (size(slips) > 0 && \"SI\" in slips[size(slips) - 1].statutory && slips[size(slips) - 1].statutory.SI.employee == 0.0 && slips[size(slips) - 1].statutory.SI.base > 0.0 && size((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"])) > 0 && !((has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\") != \"\" && (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.from) && contract.effective_range.from != null ? string(contract.effective_range.from).substring(0, 10) : \"\").substring(0, 7) == runs[0].period.substring(0, 7)) && !((has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\") != \"\" && (has(contract.effective_range) && contract.effective_range != null && has(contract.effective_range.to) && contract.effective_range.to != null ? string(contract.effective_range.to).substring(0, 10) : \"\").substring(0, 7) == runs[0].period.substring(0, 7)) && size((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.effective_range) && string(t.effective_range.from).substring(0, 10) <= month_end(runs[0].period.substring(0, 7) + \"-01\") && (!has(t.effective_range.to) || t.effective_range.to == null || string(t.effective_range.to).substring(0, 10) >= runs[0].period.substring(0, 7) + \"-01\"))) > 0 ? [{\"kind\": (double(sum((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).filter(l, l.code in [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).map(l, double(l.days)))) > 0.0 && double(sum((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).filter(l, l.code in [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).map(l, double(l.days)))) >= double(sum((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).filter(l, l.code in [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"]).map(l, double(l.days)))) && double(sum((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).filter(l, l.code in [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).map(l, double(l.days)))) >= double(sum((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"]).map(l, double(l.days)))) ? \"Giảm do nghỉ thai sản\" : (double(sum((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).filter(l, l.code in [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"]).map(l, double(l.days)))) > 0.0 && double(sum((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).filter(l, l.code in [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"]).map(l, double(l.days)))) >= double(sum((\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"]).map(l, double(l.days)))) ? \"Giảm do nghỉ ốm đau\" : \"Giảm do nghỉ không hưởng lương\")), \"date\": \"\", \"from\": runs[0].period.substring(0, 7), \"to\": runs[0].period.substring(0, 7), \"term\": (has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.effective_range) && string(t.effective_range.from).substring(0, 10) <= month_end(runs[0].period.substring(0, 7) + \"-01\") && (!has(t.effective_range.to) || t.effective_range.to == null || string(t.effective_range.to).substring(0, 10) >= runs[0].period.substring(0, 7) + \"-01\"))[size((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) ? contract.facts.contract_terms : []).filter(t, has(t.effective_range) && string(t.effective_range.from).substring(0, 10) <= month_end(runs[0].period.substring(0, 7) + \"-01\") && (!has(t.effective_range.to) || t.effective_range.to == null || string(t.effective_range.to).substring(0, 10) >= runs[0].period.substring(0, 7) + \"-01\"))) - 1], \"note\": (\"leave\" in slips[size(slips) - 1] ? slips[size(slips) - 1].leave : []).filter(l, l.code in [\"UNPAID_LEAVE\", \"BEREAVEMENT_LEAVE_UNPAID\", \"STOPPAGE_WORKER_FAULT\"] + [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] + [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"]).map(l, \"Nghỉ \" + (l.code in [\"MATERNITY_LEAVE\", \"MISCARRIAGE_LEAVE\", \"PRENATAL_CHECKUP\", \"CONTRACEPTION_LEAVE\", \"PATERNITY_LEAVE\"] ? \"thai sản\" : (l.code in [\"SICK_LEAVE\", \"CHILD_SICK_CARE\", \"CONVALESCENCE_LEAVE\"] ? \"ốm đau\" : \"không hưởng lương\")) + \" từ \" + (l.from == null ? \"\" : string(l.from).substring(0, 10).substring(8, 10) + \"/\" + string(l.from).substring(0, 10).substring(5, 7) + \"/\" + string(l.from).substring(0, 10).substring(0, 4)) + \" đến \" + (l.to == null ? \"\" : string(l.to).substring(0, 10).substring(8, 10) + \"/\" + string(l.to).substring(0, 10).substring(5, 7) + \"/\" + string(l.to).substring(0, 10).substring(0, 4))).join(\"; \")}] : [])",
+					"fields": [
+						{
+							"header": "STT",
+							"value": "string(index)"
+						},
+						{
+							"header": "Họ và tên",
+							"value": "employee.name"
+						},
+						{
+							"header": "Mã số BHXH",
+							"value": "(has(employee.facts) && employee.facts != null && has(employee.facts.si_number) ? employee.facts.si_number : \"\")"
+						},
+						{
+							"header": "Ngày/ tháng/ năm sinh",
+							"value": "(has(employee.date_of_birth) && employee.date_of_birth != null ? string(employee.date_of_birth).substring(8, 10) + \"/\" + string(employee.date_of_birth).substring(5, 7) + \"/\" + string(employee.date_of_birth).substring(0, 4) : \"\")"
+						},
+						{
+							"header": "Chức vụ, chức danh nghề, nghề nghiệp, nơi làm việc",
+							"value": "(has(item.term.job_title) ? item.term.job_title : \"\")"
+						},
+						{
+							"header": "Hệ số lương/ Tiền lương",
+							"value": "(has(item.term.base_salary) && has(item.term.base_salary.value) ? double(item.term.base_salary.value) : 0.0)"
+						},
+						{
+							"header": "Hệ số chênh lệch bảo lưu",
+							"value": "\"\""
+						},
+						{
+							"header": "Phụ cấp chức vụ",
+							"value": "\"\""
+						},
+						{
+							"header": "Phụ cấp thâm niên VK (%)",
+							"value": "\"\""
+						},
+						{
+							"header": "Phụ cấp thâm niên nghề (%)",
+							"value": "\"\""
+						},
+						{
+							"header": "Các khoản phụ cấp lương và thu nhập bổ sung",
+							"value": "(has(item.term.allowances) ? double(sum(item.term.allowances.filter(a, !(a.code in [\"MEAL_ALLOWANCE\", \"HOUSING\", \"INSURANCE_EQUIVALENT\"])).map(a, has(a.amount) && has(a.amount.value) ? double(a.amount.value) : 0.0))) : 0.0)"
+						},
+						{
+							"header": "Loại HĐLĐ: Không xác định thời hạn",
+							"value": "(has(item.term.facts) && has(item.term.facts.contract_type) ? item.term.facts.contract_type : (has(item.term.employment_type) && item.term.employment_type == \"PERMANENT\" ? \"INDEFINITE\" : (has(item.term.employment_type) && item.term.employment_type == \"CONTRACT\" ? \"FIXED\" : \"OTHER\"))) == \"INDEFINITE\" ? \"x\" : \"\""
+						},
+						{
+							"header": "Loại HĐLĐ: Xác định thời hạn",
+							"value": "(has(item.term.facts) && has(item.term.facts.contract_type) ? item.term.facts.contract_type : (has(item.term.employment_type) && item.term.employment_type == \"PERMANENT\" ? \"INDEFINITE\" : (has(item.term.employment_type) && item.term.employment_type == \"CONTRACT\" ? \"FIXED\" : \"OTHER\"))) == \"FIXED\" ? \"x\" : \"\""
+						},
+						{
+							"header": "Loại HĐLĐ: HĐ, thỏa thuận khác",
+							"value": "(has(item.term.facts) && has(item.term.facts.contract_type) ? item.term.facts.contract_type : (has(item.term.employment_type) && item.term.employment_type == \"PERMANENT\" ? \"INDEFINITE\" : (has(item.term.employment_type) && item.term.employment_type == \"CONTRACT\" ? \"FIXED\" : \"OTHER\"))) == \"OTHER\" ? \"x\" : \"\""
+						},
+						{
+							"header": "Ngày Quyết định, HĐLĐ, HĐLV có hiệu lực",
+							"value": "item.date == \"\" ? \"\" : item.date.substring(8, 10) + \"/\" + item.date.substring(5, 7) + \"/\" + item.date.substring(0, 4)"
+						},
+						{
+							"header": "Từ tháng/ năm",
+							"value": "item.from.substring(5, 7) + \"/\" + item.from.substring(0, 4)"
+						},
+						{
+							"header": "Đến tháng/ năm",
+							"value": "has(item.to) ? item.to.substring(5, 7) + \"/\" + item.to.substring(0, 4) : \"\""
+						},
+						{
+							"header": "Nơi đăng ký KCB ban đầu",
+							"value": "item.kind == \"Tăng lao động\" ? (has(employee.facts) && employee.facts != null && has(employee.facts.hi_registered_facility) ? employee.facts.hi_registered_facility : \"\") : \"\""
+						},
+						{
+							"header": "Hình thức nhận kết quả",
+							"value": "(has(company.facts) && company.facts != null && has(company.facts.vss_result_delivery) ? company.facts.vss_result_delivery : \"\") == \"PAPER\" ? \"Bản giấy\" : ((has(company.facts) && company.facts != null && has(company.facts.vss_result_delivery) ? company.facts.vss_result_delivery : \"\") == \"ELECTRONIC\" ? \"Bản điện tử\" : \"\")"
+						},
+						{
+							"header": "Loại tăng, giảm, điều chỉnh",
+							"value": "item.kind"
+						},
+						{
+							"header": "Ghi chú",
+							"value": "item.note + (item.kind == \"Giảm do nghỉ không hưởng lương\" ? \"; BHYT tiếp tục đóng\" : \"\")"
+						}
+					]
+				}
+			]
+		}
+	},
+	{
+		"id": "3cb44b93-98cd-5daf-9309-7f2c31f2fc63",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "PARAMETERS",
+		"code": "salary_report",
+		"name": "Salary report grouping and company payments",
+		"rules": {
+			"group_order": [
+				"Basic pay",
+				"Allowances",
+				"Overtime and other work",
+				"Back pay and other earnings",
+				"Leave pay",
+				"Pre-gross deductions",
+				"Gross pay",
+				"Claims and other pay",
+				"Loans and other deductions",
+				"Employee statutory",
+				"Total deductions",
+				"Net pay",
+				"Employer statutory",
+				"Tax and benefit information",
+				"Company bank charges",
+				"Total company payment"
+			],
+			"items": [
+				{
+					"family": "ADHOC",
+					"code": "EMPLOYEE_UNLAWFUL_TERMINATION",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "EMPLOYER_PENSION_CONTRIBUTION",
+					"payment": "OUTSIDE_NET"
+				},
+				{
+					"family": "ADHOC",
+					"code": "NON_ACCUMULATING_INSURANCE",
+					"payment": "OUTSIDE_NET"
+				},
+				{
+					"family": "ADHOC",
+					"code": "PROPERTY_DAMAGE_COMPENSATION",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "TRAINING_COST_REFUND",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "TRAINING_SUPPORT",
+					"payment": "OUTSIDE_NET"
+				},
+				{
+					"family": "ALLOWANCE",
+					"code": "HOUSING",
+					"payment": "OUTSIDE_NET"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "SALARY_ADVANCE",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "WORK",
+					"code": "BASIC",
+					"group": "Basic pay"
+				},
+				{
+					"family": "WORK",
+					"code": "ENCASHMENT",
+					"group": "Leave pay"
+				},
+				{
+					"family": "WORK",
+					"code": "OVERTIME_TAXABLE_PART",
+					"payment": "INFORMATION"
+				}
+			]
+		}
+	},
+	{
+		"id": "c82c497a-04cd-56c9-be61-61b54213dd5f",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_PATTERN_CYCLE",
+		"name": "Roster keeps its pattern cycle",
+		"rules": {
+			"site": "cycle",
+			"kind": "refuse",
+			"when": "cycle.planned.WORK != cycle.expected.WORK\n||cycle.planned.REST != cycle.expected.REST\n||cycle.planned.OFF != cycle.expected.OFF",
+			"message": "Swap days inside the cycle instead.",
+			"description": "A roster swap moves a day inside its shift pattern cycle; it never adds a work day or drops a rest or off day. Severity follows entity.validation_severity."
+		}
+	},
+	{
+		"id": "cb331ed0-1f32-52ab-a6bc-678ad7d71da5",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "VALIDATIONS",
+		"code": "PAYROLL_RUN_KINDS",
+		"name": "PAYROLL_RUN_KINDS",
+		"rules": {
+			"site": "payroll_run",
+			"kind": "allow",
+			"when": "run.kind in [\"REGULAR\", \"OFF_CYCLE\"]",
+			"message": "The jurisdiction admits regular and off-cycle payroll runs."
+		}
+	}
+]

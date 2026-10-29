@@ -12,13 +12,12 @@ import {
 	PlainDate
 } from '@norbital-ai/std/date';
 import { evaluateConfigured, failureMessage } from '../expressions.js';
-import { isMasked, type Id, type Masked, type Row } from '@norbital-ai/bolt';
+import type { Id, Row } from '@norbital-ai/bolt';
 import {
 	type DynObject,
 	type Json,
 	type JsonObject,
 	completedMonths,
-	fieldValue,
 	Reads,
 	type Read,
 	numberOf,
@@ -84,9 +83,9 @@ export const zoneOf = (
 	version: Pick<SettingsRow, 'payroll'> | undefined
 ) =>
 	Result.gen(function* () {
-		const zone = yield* fieldValue(entity.time_zone, 'entity.time_zone');
+		const zone = entity.time_zone;
 		if (zone != null) return zone;
-		const payroll = yield* fieldValue(version?.payroll, 'jurisdiction_settings.payroll');
+		const payroll = version?.payroll;
 		if (payroll?.timezone == null || payroll.timezone === '')
 			return yield* Result.fail(
 				new Refusal({
@@ -111,31 +110,20 @@ export const LONG_HISTORY_MONTHS = 24;
 export const payrollMonths = (
 	version: Pick<SettingsRow, 'code' | 'payroll'> | undefined,
 	key: 'history_months' | 'rolling_hours_months'
-) =>
-	Result.gen(function* () {
-		const payroll = yield* fieldValue(version?.payroll, 'jurisdiction_settings.payroll');
-		return payroll?.[key] ?? PAYROLL_DEFAULTS[key];
-	});
+) => Result.succeed(version?.payroll?.[key] ?? PAYROLL_DEFAULTS[key]);
 export const dayInRange = (day: string, range: CalendarRange): boolean =>
 	(range.from == null || day >= range.from) && (range.to == null || day <= range.to);
 
-/** Active employee contracts on a day, preserving failures for masked fields. */
+/** Active employee contracts on a day. */
 export const inForce = (
 	contracts: readonly Pick<ContractRow, 'effective_range' | 'engagement'>[],
 	day: string
 ) =>
-	Result.gen(function* () {
-		let count = 0;
-		for (const contract of contracts) {
-			const engagement = yield* fieldValue(contract.engagement, 'employment_contract.engagement');
-			const range = yield* fieldValue(
-				contract.effective_range,
-				'employment_contract.effective_range'
-			);
-			if (engagement !== 'PAYEE' && dayInRange(day, range)) count++;
-		}
-		return count;
-	});
+	Result.succeed(
+		contracts.filter(
+			(contract) => contract.engagement !== 'PAYEE' && dayInRange(day, contract.effective_range)
+		).length
+	);
 type PayrollRunKind = 'REGULAR' | 'OFF_CYCLE';
 /** Salary runs pay the contract; settlement runs pay only their selected entries. */
 export const SALARY_RUNS: readonly PayrollRunKind[] = ['REGULAR'];
@@ -309,9 +297,7 @@ export interface CatalogRow {
 	/** An allowance class priced on every salary slip without a contract line (`allowance_catalog.automatic`). */
 	readonly automatic?: boolean;
 }
-export type ContractTerm = NonNullable<
-	Exclude<ContractRow['facts'], Masked>['contract_terms']
->[number];
+export type ContractTerm = NonNullable<NonNullable<ContractRow['facts']>['contract_terms']>[number];
 export type ContractRow = Pick<
 	Row<'employment_contract'>,
 	| 'id'
@@ -571,11 +557,9 @@ export const suspendedDay = (kind: SuspensionKind | undefined, context: DynObjec
 	});
 /** The worksite of a day: the roster's, else the terms in force's `facts.worksite`. */
 export const worksiteOn = (row: RosterInput | undefined, term: ContractTerm | undefined) =>
-	Result.gen(function* () {
-		const worksite = yield* fieldValue(row?.worksite, 'roster_entry.worksite');
-		const fact = term?.facts?.['worksite'];
-		return worksite ?? (Predicate.isString(fact) ? fact : '');
-	});
+	Result.succeed(
+		row?.worksite ?? (Predicate.isString(term?.facts?.['worksite']) ? term.facts['worksite'] : '')
+	);
 export interface ShiftDefinitionRow {
 	readonly id: string;
 	readonly code?: string;
@@ -657,9 +641,9 @@ export const governedFrom = <V extends { readonly id: string }>(
 	settings_id: Id<'jurisdiction_settings'>
 ): V | undefined => versions.find((row) => row.id === settings_id);
 /** The distinct ids a column of one wave holds: the next wave's literal `{ in: [...] }`. */
-export const idsOf = <T extends string>(
-	values: readonly (T | Masked | null | undefined)[]
-): T[] => [...new Set(values.filter((value): value is T => value != null && !isMasked(value)))];
+export const idsOf = <T extends string>(values: readonly (T | null | undefined)[]): T[] => [
+	...new Set(values.filter((value): value is T => value != null))
+];
 type EntryFamily = (typeof FAMILIES)[number];
 export type EntryCollection = EntryFamily['collection'];
 export type CatalogName<C extends EntryCollection> = Extract<
@@ -685,15 +669,14 @@ export const isLeaveAdmitted = (
 	}
 ): admitted is LeaveAdmitted => collection === 'leave_catalog_entry';
 export const termFor = (contract: Partial<Pick<ContractRow, 'facts'>>, day: string) =>
-	Result.gen(function* () {
-		const facts = yield* fieldValue(contract.facts, 'employment_contract.facts');
-		return (facts?.contract_terms ?? [])
+	Result.succeed(
+		(contract.facts?.contract_terms ?? [])
 			.filter((term) => term.effective_range != null && dayInRange(day, term.effective_range))
 			.sort((left, right) =>
 				String(left.effective_range?.from).localeCompare(String(right.effective_range?.from))
 			)
-			.at(-1);
-	});
+			.at(-1)
+	);
 export const moneyValue = (value: unknown): number => numberOf(value) ?? 0;
 /** How many settlement periods a pay frequency cuts a calendar month into. */
 export const evaluate = (
@@ -968,50 +951,35 @@ export const subjectContext = (input: {
 		const { term, day } = input;
 		const contract = {
 			...input.contract,
-			effective_range: yield* fieldValue(
-				input.contract.effective_range,
-				'employment_contract.effective_range'
-			),
-			prior_service_months: yield* fieldValue(
-				input.contract.prior_service_months,
-				'employment_contract.prior_service_months'
-			),
-			engagement: yield* fieldValue(input.contract.engagement, 'employment_contract.engagement'),
-			exit_ground: yield* fieldValue(input.contract.exit_ground, 'employment_contract.exit_ground'),
-			exit_facts: yield* fieldValue(input.contract.exit_facts, 'employment_contract.exit_facts')
+			effective_range: input.contract.effective_range,
+			prior_service_months: input.contract.prior_service_months,
+			engagement: input.contract.engagement,
+			exit_ground: input.contract.exit_ground,
+			exit_facts: input.contract.exit_facts
 		};
 		const employee =
 			input.employee === undefined
 				? undefined
 				: {
 						...input.employee,
-						date_of_birth: yield* fieldValue(
-							input.employee.date_of_birth,
-							'employment_profile.date_of_birth'
-						),
-						gender: yield* fieldValue(input.employee.gender, 'employment_profile.gender'),
-						marital_status: yield* fieldValue(
-							input.employee.marital_status,
-							'employment_profile.marital_status'
-						),
-						nationality: yield* fieldValue(
-							input.employee.nationality,
-							'employment_profile.nationality'
-						),
-						children: yield* fieldValue(input.employee.children, 'employment_profile.children'),
-						facts: yield* fieldValue(input.employee.facts, 'employment_profile.facts')
+						date_of_birth: input.employee.date_of_birth,
+						gender: input.employee.gender,
+						marital_status: input.employee.marital_status,
+						nationality: input.employee.nationality,
+						children: input.employee.children,
+						facts: input.employee.facts
 					};
 		const entity =
 			input.entity === undefined
 				? undefined
 				: {
 						...input.entity,
-						region: yield* fieldValue(input.entity.region, 'entity.region'),
-						risk_class: yield* fieldValue(input.entity.risk_class, 'entity.risk_class'),
-						pay_frequency: yield* fieldValue(input.entity.pay_frequency, 'entity.pay_frequency'),
-						facts: yield* fieldValue(input.entity.facts, 'entity.facts')
+						region: input.entity.region,
+						risk_class: input.entity.risk_class,
+						pay_frequency: input.entity.pay_frequency,
+						facts: input.entity.facts
 					};
-		const payroll = yield* fieldValue(input.version?.payroll, 'jurisdiction_settings.payroll');
+		const payroll = input.version?.payroll;
 		const from = contract.effective_range?.from;
 		const employment = {
 			classification: term?.work_classification ?? '',
@@ -1285,10 +1253,7 @@ export const dayPlanner = (input: {
 			const term = yield* termFor(input.contract, date);
 			const patternId = (term ?? input.fallback)?.shift_pattern_id;
 			const pattern = patternId == null ? undefined : input.patterns.get(patternId);
-			const rostered = yield* fieldValue(
-				input.roster.get(date)?.shift_definition_id,
-				'roster_entry.shift_definition_id'
-			);
+			const rostered = input.roster.get(date)?.shift_definition_id;
 			const id = plannedShiftId({
 				date,
 				rostered: rostered ?? null,
@@ -1373,13 +1338,11 @@ const splitSpans = (
 };
 
 /** How the governing version credits attendance (`payroll.attendance`). */
-export type AttendancePolicy = NonNullable<
-	NonNullable<Exclude<SettingsRow['payroll'], Masked>>['attendance']
->;
+export type AttendancePolicy = NonNullable<NonNullable<SettingsRow['payroll']>['attendance']>;
 /** The governing version's attendance terms, else the engine default; refuses a nonpositive step. */
 export const attendancePolicy = (version: Pick<SettingsRow, 'code' | 'payroll'> | undefined) =>
 	Result.gen(function* () {
-		const payroll = yield* fieldValue(version?.payroll, 'jurisdiction_settings.payroll');
+		const payroll = version?.payroll;
 		const policy = payroll?.attendance ?? PAYROLL_DEFAULTS.attendance;
 		if (!(policy.step_hours > 0))
 			return yield* Result.fail(
@@ -1674,26 +1637,14 @@ export const workDay = (input: {
 }) =>
 	Result.gen(function* () {
 		const { row, policy } = input;
-		const recorded = yield* fieldValue(row?.worked_intervals, 'roster_entry.worked_intervals');
-		const banked = yield* fieldValue(
-			row?.banked_overtime_hours,
-			'roster_entry.banked_overtime_hours'
-		);
-		const plannedOvertime = yield* fieldValue(
-			row?.planned_overtime_hours,
-			'roster_entry.planned_overtime_hours'
-		);
-		const approvedOvertime = yield* fieldValue(
-			row?.approved_overtime_intervals,
-			'roster_entry.approved_overtime_intervals'
-		);
-		const band = yield* fieldValue(row?.banked_overtime_band, 'roster_entry.banked_overtime_band');
-		const consent = yield* fieldValue(
-			row?.overtime_consented_at,
-			'roster_entry.overtime_consented_at'
-		);
-		const worksite = yield* fieldValue(row?.worksite, 'roster_entry.worksite');
-		const facts = yield* fieldValue(row?.facts, 'roster_entry.facts');
+		const recorded = row?.worked_intervals;
+		const banked = row?.banked_overtime_hours;
+		const plannedOvertime = row?.planned_overtime_hours;
+		const approvedOvertime = row?.approved_overtime_intervals;
+		const band = row?.banked_overtime_band;
+		const consent = row?.overtime_consented_at;
+		const worksite = row?.worksite;
+		const facts = row?.facts;
 		const credit = creditAttendance({
 			date: input.date,
 			intervals: recorded ?? null,
@@ -2092,15 +2043,8 @@ export const attendanceDays = (
 				scheduled: work && effect.scheduled,
 				worked: work && effect.scheduled && (day.worked === true || effect.counts_as_attended),
 				holiday: holidays.has(date),
-				banked_hours: num(
-					yield* Effect.fromResult(
-						fieldValue(row?.banked_overtime_hours, 'roster_entry.banked_overtime_hours')
-					)
-				),
-				banked_band:
-					(yield* Effect.fromResult(
-						fieldValue(row?.banked_overtime_band, 'roster_entry.banked_overtime_band')
-					)) ?? '',
+				banked_hours: num(row?.banked_overtime_hours),
+				banked_band: row?.banked_overtime_band ?? '',
 				...(suspension == null
 					? {}
 					: {
@@ -2152,9 +2096,7 @@ export const leaveSubject = (
 				: yield* governingVersion(entity, asOf).pipe(
 						Effect.catchTag('Refusal', () => Effect.succeed(undefined))
 					));
-		const payroll = yield* Effect.fromResult(
-			fieldValue(found?.payroll, 'jurisdiction_settings.payroll')
-		);
+		const payroll = found?.payroll;
 		const term = yield* Effect.fromResult(termFor(contract, asOf));
 		const context: DynObject = {
 			...(yield* Effect.fromResult(
@@ -2285,9 +2227,7 @@ export const leaveState = (
 			serviceMonths: serviceMonthsAt(
 				contract.effective_range.from,
 				asOf,
-				yield* Effect.fromResult(
-					fieldValue(contract.prior_service_months, 'employment_contract.prior_service_months')
-				)
+				contract.prior_service_months
 			)
 		};
 	});

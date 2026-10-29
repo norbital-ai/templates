@@ -202,7 +202,7 @@
 
 <RecordShell of="payslip" {...record == null ? {} : { id: record.id }} mode={view.mode}>
 	{#if record}
-		<Stack gap="lg" shrink={false}>
+		<Stack gap="lg">
 			<Grid
 				as="dl"
 				gap="sm"
@@ -270,12 +270,7 @@
 				</tbody>
 			</table>
 			{#if record.status !== 'PAID'}
-				<Stack
-					as="section"
-					gap="sm"
-					shrink={false}
-					aria-label={bolt.t('app.payroll.payslip_payment')}
-				>
+				<Stack as="section" gap="sm" aria-label={bolt.t('app.payroll.payslip_payment')}>
 					<h2 class="text-heading">{bolt.t('app.payroll.payslip_payment')}</h2>
 					<p class="text-sm text-muted-foreground">{bolt.t('app.payroll.payslip_payment_help')}</p>
 					<Form

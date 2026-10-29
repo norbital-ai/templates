@@ -352,7 +352,6 @@ export const TRIGGER = {
 		'phone',
 		'address',
 		'location',
-		'anonymised_at',
 		'facts',
 		'before',
 		'invitation_id',

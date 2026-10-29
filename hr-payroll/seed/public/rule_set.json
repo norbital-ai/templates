@@ -1,0 +1,2754 @@
+[
+	{
+		"id": "208f924e-dbf5-5512-83be-af284a890fca",
+		"settings_id": "c787b60f-e506-4b4b-83cf-44e46ffb77c9",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Law art.41: extended working hours at most 3 hours a day and 36 hours a month under the standard working-hour system."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_DAILY_LIMIT",
+					"from": "day.date",
+					"limit": "3.0",
+					"applies": "terms.work_classification in [\"STANDARD\", \"\"]\n&& (!((day.day_type in [\"REST\", \"OFF\"]\n||day.holiday_kind == \"SUBSTITUTE\")\n&&day.holiday_kind != \"PUBLIC_HOLIDAY\"\n&&day.holiday_kind != \"MAKEUP_WORKDAY\")\n&&day.holiday_kind != \"PUBLIC_HOLIDAY\")",
+					"hours": "(!((day.day_type in [\"REST\", \"OFF\"] || day.holiday_kind == \"SUBSTITUTE\")\n&&day.holiday_kind != \"PUBLIC_HOLIDAY\"\n&&day.holiday_kind != \"MAKEUP_WORKDAY\")\n&&day.holiday_kind != \"PUBLIC_HOLIDAY\")\n  ?day.approved_overtime_hours\n  :0.0"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "36.0",
+					"applies": "terms.work_classification in [\"STANDARD\", \"\"]",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "ef97a094-b3d9-5ed5-81bf-4652166df3a4",
+		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Law art.41: extended working hours at most 3 hours a day and 36 hours a month under the standard working-hour system."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_DAILY_LIMIT",
+					"from": "day.date",
+					"limit": "3.0",
+					"applies": "terms.work_classification in [\"STANDARD\", \"\"]\n&& (!((day.day_type in [\"REST\", \"OFF\"]\n||day.holiday_kind == \"SUBSTITUTE\")\n&&day.holiday_kind != \"PUBLIC_HOLIDAY\"\n&&day.holiday_kind != \"MAKEUP_WORKDAY\")\n&&day.holiday_kind != \"PUBLIC_HOLIDAY\")",
+					"hours": "(!((day.day_type in [\"REST\", \"OFF\"] || day.holiday_kind == \"SUBSTITUTE\")\n&&day.holiday_kind != \"PUBLIC_HOLIDAY\"\n&&day.holiday_kind != \"MAKEUP_WORKDAY\")\n&&day.holiday_kind != \"PUBLIC_HOLIDAY\")\n  ?day.approved_overtime_hours\n  :0.0"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "36.0",
+					"applies": "terms.work_classification in [\"STANDARD\", \"\"]",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "7ef09167-2547-5bac-856d-76a2d4cef5d6",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Law art.41: extended working hours at most 3 hours a day and 36 hours a month under the standard working-hour system."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_DAILY_LIMIT",
+					"from": "day.date",
+					"limit": "3.0",
+					"applies": "terms.work_classification in [\"STANDARD\", \"\"]\n&& (!((day.day_type in [\"REST\", \"OFF\"]\n||day.holiday_kind == \"SUBSTITUTE\")\n&&day.holiday_kind != \"PUBLIC_HOLIDAY\"\n&&day.holiday_kind != \"MAKEUP_WORKDAY\")\n&&day.holiday_kind != \"PUBLIC_HOLIDAY\")",
+					"hours": "(!((day.day_type in [\"REST\", \"OFF\"] || day.holiday_kind == \"SUBSTITUTE\")\n&&day.holiday_kind != \"PUBLIC_HOLIDAY\"\n&&day.holiday_kind != \"MAKEUP_WORKDAY\")\n&&day.holiday_kind != \"PUBLIC_HOLIDAY\")\n  ?day.approved_overtime_hours\n  :0.0"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "36.0",
+					"applies": "terms.work_classification in [\"STANDARD\", \"\"]",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "e450f47c-48cf-548f-80a8-80d29cc7d8d9",
+		"settings_id": "0170588b-dc38-4886-b070-731908688e7e",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Law art.41: extended working hours at most 3 hours a day and 36 hours a month under the standard working-hour system."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_DAILY_LIMIT",
+					"from": "day.date",
+					"limit": "3.0",
+					"applies": "terms.work_classification in [\"STANDARD\", \"\"]\n&& (!((day.day_type in [\"REST\", \"OFF\"]\n||day.holiday_kind == \"SUBSTITUTE\")\n&&day.holiday_kind != \"PUBLIC_HOLIDAY\"\n&&day.holiday_kind != \"MAKEUP_WORKDAY\")\n&&day.holiday_kind != \"PUBLIC_HOLIDAY\")",
+					"hours": "(!((day.day_type in [\"REST\", \"OFF\"] || day.holiday_kind == \"SUBSTITUTE\")\n&&day.holiday_kind != \"PUBLIC_HOLIDAY\"\n&&day.holiday_kind != \"MAKEUP_WORKDAY\")\n&&day.holiday_kind != \"PUBLIC_HOLIDAY\")\n  ?day.approved_overtime_hours\n  :0.0"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "36.0",
+					"applies": "terms.work_classification in [\"STANDARD\", \"\"]",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "4bf683a7-b213-5aac-871e-e072e0254361",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "PP 35/2021 art.26(1)(b): ordinary-day overtime at most 4 hours a day and 18 hours a week; rest days and public holidays fall outside these limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_DAILY_CAP",
+					"from": "day.date",
+					"limit": "4.0",
+					"applies": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"",
+					"hours": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"\n  ?day.approved_overtime_hours\n  :0.0"
+				},
+				{
+					"code": "OVERTIME_WEEKLY_CAP",
+					"from": "add_days(day.date, -6)",
+					"limit": "18.0",
+					"applies": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"",
+					"hours": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"\n  ?day.approved_overtime_hours\n  :0.0"
+				}
+			]
+		}
+	},
+	{
+		"id": "342ae9e5-048d-5b72-8f4e-12763d16c77e",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "PP 35/2021 art.26(1)(b): ordinary-day overtime at most 4 hours a day and 18 hours a week; rest days and public holidays fall outside these limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_DAILY_CAP",
+					"from": "day.date",
+					"limit": "4.0",
+					"applies": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"",
+					"hours": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"\n  ?day.approved_overtime_hours\n  :0.0"
+				},
+				{
+					"code": "OVERTIME_WEEKLY_CAP",
+					"from": "add_days(day.date, -6)",
+					"limit": "18.0",
+					"applies": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"",
+					"hours": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"\n  ?day.approved_overtime_hours\n  :0.0"
+				}
+			]
+		}
+	},
+	{
+		"id": "1ea8a99a-ba73-5d86-82fe-56dd34f66713",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "PP 35/2021 art.26(1)(b): ordinary-day overtime at most 4 hours a day and 18 hours a week; rest days and public holidays fall outside these limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_DAILY_CAP",
+					"from": "day.date",
+					"limit": "4.0",
+					"applies": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"",
+					"hours": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"\n  ?day.approved_overtime_hours\n  :0.0"
+				},
+				{
+					"code": "OVERTIME_WEEKLY_CAP",
+					"from": "add_days(day.date, -6)",
+					"limit": "18.0",
+					"applies": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"",
+					"hours": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"\n  ?day.approved_overtime_hours\n  :0.0"
+				}
+			]
+		}
+	},
+	{
+		"id": "22d43b59-168e-5169-8bcc-c9e0c0d4510e",
+		"settings_id": "e75ae958-a6d9-5cff-8217-5854edebc5b8",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "PP 35/2021 art.26(1)(b): ordinary-day overtime at most 4 hours a day and 18 hours a week; rest days and public holidays fall outside these limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_DAILY_CAP",
+					"from": "day.date",
+					"limit": "4.0",
+					"applies": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"",
+					"hours": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"\n  ?day.approved_overtime_hours\n  :0.0"
+				},
+				{
+					"code": "OVERTIME_WEEKLY_CAP",
+					"from": "add_days(day.date, -6)",
+					"limit": "18.0",
+					"applies": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"",
+					"hours": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"\n  ?day.approved_overtime_hours\n  :0.0"
+				}
+			]
+		}
+	},
+	{
+		"id": "b13bb8a3-2601-546d-8997-a3b146b5c580",
+		"settings_id": "e04cd5e8-6919-5f38-be10-9c23142e98b0",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Standards Act art.36(4)–(6) and the Child Care and Family Care Leave Act art.17: the 45-hour month, the 100-hour and 80-hour averages, the 360/720-hour years and requested care limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_MONTHLY_45H",
+					"from": "month_start(day.date)",
+					"limit": "45.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&day.day_type != \"REST\"",
+					"hours": "day.day_type != \"REST\" ? day.approved_overtime_hours : 0.0"
+				},
+				{
+					"code": "OVERTIME_REST_DAY_100H",
+					"from": "month_start(day.date)",
+					"limit": "100.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_360H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "360.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_720H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "(has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"DRIVER\", \"DOCTOR_A\"]\n  ?960.0\n  : (has(company.facts.overtime_sector)\n    ?company.facts.overtime_sector\n    :\"GENERAL\")\n  ==\"DOCTOR_BC\"\n    ?1860.0\n    :720.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_2_MONTHS",
+					"from": "month_start(add_months(day.date, -1))",
+					"limit": "160.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_3_MONTHS",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "240.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_4_MONTHS",
+					"from": "month_start(add_months(day.date, -3))",
+					"limit": "320.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_5_MONTHS",
+					"from": "month_start(add_months(day.date, -4))",
+					"limit": "400.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_6_MONTHS",
+					"from": "month_start(add_months(day.date, -5))",
+					"limit": "480.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "24.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_ANNUAL_LIMIT",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "150.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "ROSTER_HAZARDOUS_OVERTIME",
+					"from": "day.date",
+					"limit": "max(0.0, 10.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.hazardous_work) && terms.facts.hazardous_work == true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "55a6d025-a6cd-5dfe-8519-1fd8ed122cc7",
+		"settings_id": "594da0e0-dba6-55ea-b507-b51b34fd3ba8",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Standards Act art.36(4)–(6) and the Child Care and Family Care Leave Act art.17: the 45-hour month, the 100-hour and 80-hour averages, the 360/720-hour years and requested care limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_MONTHLY_45H",
+					"from": "month_start(day.date)",
+					"limit": "45.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&day.day_type != \"REST\"",
+					"hours": "day.day_type != \"REST\" ? day.approved_overtime_hours : 0.0"
+				},
+				{
+					"code": "OVERTIME_REST_DAY_100H",
+					"from": "month_start(day.date)",
+					"limit": "100.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_360H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "360.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_720H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "(has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"DRIVER\", \"DOCTOR_A\"]\n  ?960.0\n  : (has(company.facts.overtime_sector)\n    ?company.facts.overtime_sector\n    :\"GENERAL\")\n  ==\"DOCTOR_BC\"\n    ?1860.0\n    :720.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_2_MONTHS",
+					"from": "month_start(add_months(day.date, -1))",
+					"limit": "160.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_3_MONTHS",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "240.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_4_MONTHS",
+					"from": "month_start(add_months(day.date, -3))",
+					"limit": "320.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_5_MONTHS",
+					"from": "month_start(add_months(day.date, -4))",
+					"limit": "400.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_6_MONTHS",
+					"from": "month_start(add_months(day.date, -5))",
+					"limit": "480.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "24.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_ANNUAL_LIMIT",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "150.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "ROSTER_HAZARDOUS_OVERTIME",
+					"from": "day.date",
+					"limit": "max(0.0, 10.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.hazardous_work) && terms.facts.hazardous_work == true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "af1da502-95bf-521b-8702-feef1a5585b6",
+		"settings_id": "ce303fc8-28fe-5251-ba73-13d84cb60f4a",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Standards Act art.36(4)–(6) and the Child Care and Family Care Leave Act art.17: the 45-hour month, the 100-hour and 80-hour averages, the 360/720-hour years and requested care limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_MONTHLY_45H",
+					"from": "month_start(day.date)",
+					"limit": "45.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&day.day_type != \"REST\"",
+					"hours": "day.day_type != \"REST\" ? day.approved_overtime_hours : 0.0"
+				},
+				{
+					"code": "OVERTIME_REST_DAY_100H",
+					"from": "month_start(day.date)",
+					"limit": "100.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_360H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "360.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_720H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "(has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"DRIVER\", \"DOCTOR_A\"]\n  ?960.0\n  : (has(company.facts.overtime_sector)\n    ?company.facts.overtime_sector\n    :\"GENERAL\")\n  ==\"DOCTOR_BC\"\n    ?1860.0\n    :720.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_2_MONTHS",
+					"from": "month_start(add_months(day.date, -1))",
+					"limit": "160.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_3_MONTHS",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "240.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_4_MONTHS",
+					"from": "month_start(add_months(day.date, -3))",
+					"limit": "320.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_5_MONTHS",
+					"from": "month_start(add_months(day.date, -4))",
+					"limit": "400.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_6_MONTHS",
+					"from": "month_start(add_months(day.date, -5))",
+					"limit": "480.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "24.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_ANNUAL_LIMIT",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "150.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "ROSTER_HAZARDOUS_OVERTIME",
+					"from": "day.date",
+					"limit": "max(0.0, 10.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.hazardous_work) && terms.facts.hazardous_work == true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "b3d30cb1-a5c6-58d2-8a2f-34c3e76835b1",
+		"settings_id": "81433da5-520f-572c-ae96-91a6ad18ca40",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Standards Act art.36(4)–(6) and the Child Care and Family Care Leave Act art.17: the 45-hour month, the 100-hour and 80-hour averages, the 360/720-hour years and requested care limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_MONTHLY_45H",
+					"from": "month_start(day.date)",
+					"limit": "45.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&day.day_type != \"REST\"",
+					"hours": "day.day_type != \"REST\" ? day.approved_overtime_hours : 0.0"
+				},
+				{
+					"code": "OVERTIME_REST_DAY_100H",
+					"from": "month_start(day.date)",
+					"limit": "100.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_360H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "360.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_720H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "(has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"DRIVER\", \"DOCTOR_A\"]\n  ?960.0\n  : (has(company.facts.overtime_sector)\n    ?company.facts.overtime_sector\n    :\"GENERAL\")\n  ==\"DOCTOR_BC\"\n    ?1860.0\n    :720.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_2_MONTHS",
+					"from": "month_start(add_months(day.date, -1))",
+					"limit": "160.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_3_MONTHS",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "240.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_4_MONTHS",
+					"from": "month_start(add_months(day.date, -3))",
+					"limit": "320.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_5_MONTHS",
+					"from": "month_start(add_months(day.date, -4))",
+					"limit": "400.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_6_MONTHS",
+					"from": "month_start(add_months(day.date, -5))",
+					"limit": "480.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "24.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_ANNUAL_LIMIT",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "150.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "ROSTER_HAZARDOUS_OVERTIME",
+					"from": "day.date",
+					"limit": "max(0.0, 10.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.hazardous_work) && terms.facts.hazardous_work == true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "934e6594-e331-553b-824a-5a4c93d9ee4c",
+		"settings_id": "7a51fef5-55fe-5c47-82ec-8f57d07ad101",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Standards Act art.36(4)–(6) and the Child Care and Family Care Leave Act art.17: the 45-hour month, the 100-hour and 80-hour averages, the 360/720-hour years and requested care limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_MONTHLY_45H",
+					"from": "month_start(day.date)",
+					"limit": "45.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&day.day_type != \"REST\"",
+					"hours": "day.day_type != \"REST\" ? day.approved_overtime_hours : 0.0"
+				},
+				{
+					"code": "OVERTIME_REST_DAY_100H",
+					"from": "month_start(day.date)",
+					"limit": "100.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_360H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "360.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_720H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "(has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"DRIVER\", \"DOCTOR_A\"]\n  ?960.0\n  : (has(company.facts.overtime_sector)\n    ?company.facts.overtime_sector\n    :\"GENERAL\")\n  ==\"DOCTOR_BC\"\n    ?1860.0\n    :720.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_2_MONTHS",
+					"from": "month_start(add_months(day.date, -1))",
+					"limit": "160.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_3_MONTHS",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "240.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_4_MONTHS",
+					"from": "month_start(add_months(day.date, -3))",
+					"limit": "320.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_5_MONTHS",
+					"from": "month_start(add_months(day.date, -4))",
+					"limit": "400.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_6_MONTHS",
+					"from": "month_start(add_months(day.date, -5))",
+					"limit": "480.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "24.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_ANNUAL_LIMIT",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "150.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "ROSTER_HAZARDOUS_OVERTIME",
+					"from": "day.date",
+					"limit": "max(0.0, 10.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.hazardous_work) && terms.facts.hazardous_work == true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "cd37f133-80ce-5c7f-8cd2-bd7d13ce7b92",
+		"settings_id": "decfddda-4eb2-50b1-82a2-60964c3d71cd",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Standards Act art.36(4)–(6) and the Child Care and Family Care Leave Act art.17: the 45-hour month, the 100-hour and 80-hour averages, the 360/720-hour years and requested care limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_MONTHLY_45H",
+					"from": "month_start(day.date)",
+					"limit": "45.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&day.day_type != \"REST\"",
+					"hours": "day.day_type != \"REST\" ? day.approved_overtime_hours : 0.0"
+				},
+				{
+					"code": "OVERTIME_REST_DAY_100H",
+					"from": "month_start(day.date)",
+					"limit": "100.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_360H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "360.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_720H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "(has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"DRIVER\", \"DOCTOR_A\"]\n  ?960.0\n  : (has(company.facts.overtime_sector)\n    ?company.facts.overtime_sector\n    :\"GENERAL\")\n  ==\"DOCTOR_BC\"\n    ?1860.0\n    :720.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_2_MONTHS",
+					"from": "month_start(add_months(day.date, -1))",
+					"limit": "160.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_3_MONTHS",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "240.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_4_MONTHS",
+					"from": "month_start(add_months(day.date, -3))",
+					"limit": "320.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_5_MONTHS",
+					"from": "month_start(add_months(day.date, -4))",
+					"limit": "400.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_6_MONTHS",
+					"from": "month_start(add_months(day.date, -5))",
+					"limit": "480.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "24.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_ANNUAL_LIMIT",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "150.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "ROSTER_HAZARDOUS_OVERTIME",
+					"from": "day.date",
+					"limit": "max(0.0, 10.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.hazardous_work) && terms.facts.hazardous_work == true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "c8fc6f5a-2bc6-546a-80d2-ed58289a0d76",
+		"settings_id": "f99fd119-889e-51b9-8e4f-8844000dace2",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Standards Act art.36(4)–(6) and the Child Care and Family Care Leave Act art.17: the 45-hour month, the 100-hour and 80-hour averages, the 360/720-hour years and requested care limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_MONTHLY_45H",
+					"from": "month_start(day.date)",
+					"limit": "45.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&day.day_type != \"REST\"",
+					"hours": "day.day_type != \"REST\" ? day.approved_overtime_hours : 0.0"
+				},
+				{
+					"code": "OVERTIME_REST_DAY_100H",
+					"from": "month_start(day.date)",
+					"limit": "100.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_360H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "360.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_720H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "(has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"DRIVER\", \"DOCTOR_A\"]\n  ?960.0\n  : (has(company.facts.overtime_sector)\n    ?company.facts.overtime_sector\n    :\"GENERAL\")\n  ==\"DOCTOR_BC\"\n    ?1860.0\n    :720.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_2_MONTHS",
+					"from": "month_start(add_months(day.date, -1))",
+					"limit": "160.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_3_MONTHS",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "240.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_4_MONTHS",
+					"from": "month_start(add_months(day.date, -3))",
+					"limit": "320.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_5_MONTHS",
+					"from": "month_start(add_months(day.date, -4))",
+					"limit": "400.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_6_MONTHS",
+					"from": "month_start(add_months(day.date, -5))",
+					"limit": "480.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "24.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_ANNUAL_LIMIT",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "150.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "ROSTER_HAZARDOUS_OVERTIME",
+					"from": "day.date",
+					"limit": "max(0.0, 10.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.hazardous_work) && terms.facts.hazardous_work == true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "27b48ded-47b4-5075-8c87-12d3ccfab708",
+		"settings_id": "ae41bb50-a37e-51cd-8201-db0fe8e7000d",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Standards Act art.36(4)–(6) and the Child Care and Family Care Leave Act art.17: the 45-hour month, the 100-hour and 80-hour averages, the 360/720-hour years and requested care limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_MONTHLY_45H",
+					"from": "month_start(day.date)",
+					"limit": "45.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&day.day_type != \"REST\"",
+					"hours": "day.day_type != \"REST\" ? day.approved_overtime_hours : 0.0"
+				},
+				{
+					"code": "OVERTIME_REST_DAY_100H",
+					"from": "month_start(day.date)",
+					"limit": "100.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_360H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "360.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_720H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "(has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"DRIVER\", \"DOCTOR_A\"]\n  ?960.0\n  : (has(company.facts.overtime_sector)\n    ?company.facts.overtime_sector\n    :\"GENERAL\")\n  ==\"DOCTOR_BC\"\n    ?1860.0\n    :720.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_2_MONTHS",
+					"from": "month_start(add_months(day.date, -1))",
+					"limit": "160.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_3_MONTHS",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "240.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_4_MONTHS",
+					"from": "month_start(add_months(day.date, -3))",
+					"limit": "320.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_5_MONTHS",
+					"from": "month_start(add_months(day.date, -4))",
+					"limit": "400.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_6_MONTHS",
+					"from": "month_start(add_months(day.date, -5))",
+					"limit": "480.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "24.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_ANNUAL_LIMIT",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "150.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "ROSTER_HAZARDOUS_OVERTIME",
+					"from": "day.date",
+					"limit": "max(0.0, 10.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.hazardous_work) && terms.facts.hazardous_work == true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "df877c33-68a8-544c-8359-01b76a3cbf58",
+		"settings_id": "301b75a8-f537-5517-9d56-7d6ec0daf4ab",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Standards Act art.36(4)–(6) and the Child Care and Family Care Leave Act art.17: the 45-hour month, the 100-hour and 80-hour averages, the 360/720-hour years and requested care limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_MONTHLY_45H",
+					"from": "month_start(day.date)",
+					"limit": "45.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&day.day_type != \"REST\"",
+					"hours": "day.day_type != \"REST\" ? day.approved_overtime_hours : 0.0"
+				},
+				{
+					"code": "OVERTIME_REST_DAY_100H",
+					"from": "month_start(day.date)",
+					"limit": "100.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_360H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "360.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_720H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "(has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"DRIVER\", \"DOCTOR_A\"]\n  ?960.0\n  : (has(company.facts.overtime_sector)\n    ?company.facts.overtime_sector\n    :\"GENERAL\")\n  ==\"DOCTOR_BC\"\n    ?1860.0\n    :720.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_2_MONTHS",
+					"from": "month_start(add_months(day.date, -1))",
+					"limit": "160.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_3_MONTHS",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "240.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_4_MONTHS",
+					"from": "month_start(add_months(day.date, -3))",
+					"limit": "320.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_5_MONTHS",
+					"from": "month_start(add_months(day.date, -4))",
+					"limit": "400.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_6_MONTHS",
+					"from": "month_start(add_months(day.date, -5))",
+					"limit": "480.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "24.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_ANNUAL_LIMIT",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "150.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "ROSTER_HAZARDOUS_OVERTIME",
+					"from": "day.date",
+					"limit": "max(0.0, 10.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.hazardous_work) && terms.facts.hazardous_work == true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "7c67c7e9-62a8-5ac9-8a50-2eb03d5368cc",
+		"settings_id": "11b39753-edd2-5d9a-a459-1349fe2cf940",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Standards Act art.36(4)–(6) and the Child Care and Family Care Leave Act art.17: the 45-hour month, the 100-hour and 80-hour averages, the 360/720-hour years and requested care limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_MONTHLY_45H",
+					"from": "month_start(day.date)",
+					"limit": "45.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&day.day_type != \"REST\"",
+					"hours": "day.day_type != \"REST\" ? day.approved_overtime_hours : 0.0"
+				},
+				{
+					"code": "OVERTIME_REST_DAY_100H",
+					"from": "month_start(day.date)",
+					"limit": "100.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_360H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "360.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_720H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "(has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"DRIVER\", \"DOCTOR_A\"]\n  ?960.0\n  : (has(company.facts.overtime_sector)\n    ?company.facts.overtime_sector\n    :\"GENERAL\")\n  ==\"DOCTOR_BC\"\n    ?1860.0\n    :720.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_2_MONTHS",
+					"from": "month_start(add_months(day.date, -1))",
+					"limit": "160.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_3_MONTHS",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "240.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_4_MONTHS",
+					"from": "month_start(add_months(day.date, -3))",
+					"limit": "320.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_5_MONTHS",
+					"from": "month_start(add_months(day.date, -4))",
+					"limit": "400.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_6_MONTHS",
+					"from": "month_start(add_months(day.date, -5))",
+					"limit": "480.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "24.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_ANNUAL_LIMIT",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "150.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "ROSTER_HAZARDOUS_OVERTIME",
+					"from": "day.date",
+					"limit": "max(0.0, 10.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.hazardous_work) && terms.facts.hazardous_work == true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "752ef96c-970e-5c5c-8d6b-35fbf3a01773",
+		"settings_id": "40fec9eb-edbf-5bd8-8cfa-53e3e8303ecb",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Standards Act art.36(4)–(6) and the Child Care and Family Care Leave Act art.17: the 45-hour month, the 100-hour and 80-hour averages, the 360/720-hour years and requested care limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_MONTHLY_45H",
+					"from": "month_start(day.date)",
+					"limit": "45.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&day.day_type != \"REST\"",
+					"hours": "day.day_type != \"REST\" ? day.approved_overtime_hours : 0.0"
+				},
+				{
+					"code": "OVERTIME_REST_DAY_100H",
+					"from": "month_start(day.date)",
+					"limit": "100.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_360H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "360.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_720H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "(has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"DRIVER\", \"DOCTOR_A\"]\n  ?960.0\n  : (has(company.facts.overtime_sector)\n    ?company.facts.overtime_sector\n    :\"GENERAL\")\n  ==\"DOCTOR_BC\"\n    ?1860.0\n    :720.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_2_MONTHS",
+					"from": "month_start(add_months(day.date, -1))",
+					"limit": "160.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_3_MONTHS",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "240.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_4_MONTHS",
+					"from": "month_start(add_months(day.date, -3))",
+					"limit": "320.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_5_MONTHS",
+					"from": "month_start(add_months(day.date, -4))",
+					"limit": "400.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_6_MONTHS",
+					"from": "month_start(add_months(day.date, -5))",
+					"limit": "480.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "24.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_ANNUAL_LIMIT",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "150.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "ROSTER_HAZARDOUS_OVERTIME",
+					"from": "day.date",
+					"limit": "max(0.0, 10.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.hazardous_work) && terms.facts.hazardous_work == true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "81a51fb9-b46b-5612-8934-02003c33cf75",
+		"settings_id": "b1ad6cae-7a90-51d8-a838-f90516a1b6d7",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Standards Act art.36(4)–(6) and the Child Care and Family Care Leave Act art.17: the 45-hour month, the 100-hour and 80-hour averages, the 360/720-hour years and requested care limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_MONTHLY_45H",
+					"from": "month_start(day.date)",
+					"limit": "45.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&day.day_type != \"REST\"",
+					"hours": "day.day_type != \"REST\" ? day.approved_overtime_hours : 0.0"
+				},
+				{
+					"code": "OVERTIME_REST_DAY_100H",
+					"from": "month_start(day.date)",
+					"limit": "100.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_360H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "360.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_720H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "(has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"DRIVER\", \"DOCTOR_A\"]\n  ?960.0\n  : (has(company.facts.overtime_sector)\n    ?company.facts.overtime_sector\n    :\"GENERAL\")\n  ==\"DOCTOR_BC\"\n    ?1860.0\n    :720.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_2_MONTHS",
+					"from": "month_start(add_months(day.date, -1))",
+					"limit": "160.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_3_MONTHS",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "240.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_4_MONTHS",
+					"from": "month_start(add_months(day.date, -3))",
+					"limit": "320.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_5_MONTHS",
+					"from": "month_start(add_months(day.date, -4))",
+					"limit": "400.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_6_MONTHS",
+					"from": "month_start(add_months(day.date, -5))",
+					"limit": "480.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "24.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_ANNUAL_LIMIT",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "150.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "ROSTER_HAZARDOUS_OVERTIME",
+					"from": "day.date",
+					"limit": "max(0.0, 10.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.hazardous_work) && terms.facts.hazardous_work == true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "548188aa-9fb2-54e2-83bf-22531b609292",
+		"settings_id": "2e4c513f-4efe-5d93-b269-16ac112c14f9",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Standards Act art.36(4)–(6) and the Child Care and Family Care Leave Act art.17: the 45-hour month, the 100-hour and 80-hour averages, the 360/720-hour years and requested care limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_MONTHLY_45H",
+					"from": "month_start(day.date)",
+					"limit": "45.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&day.day_type != \"REST\"",
+					"hours": "day.day_type != \"REST\" ? day.approved_overtime_hours : 0.0"
+				},
+				{
+					"code": "OVERTIME_REST_DAY_100H",
+					"from": "month_start(day.date)",
+					"limit": "100.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_360H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "360.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_720H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "(has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"DRIVER\", \"DOCTOR_A\"]\n  ?960.0\n  : (has(company.facts.overtime_sector)\n    ?company.facts.overtime_sector\n    :\"GENERAL\")\n  ==\"DOCTOR_BC\"\n    ?1860.0\n    :720.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_2_MONTHS",
+					"from": "month_start(add_months(day.date, -1))",
+					"limit": "160.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_3_MONTHS",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "240.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_4_MONTHS",
+					"from": "month_start(add_months(day.date, -3))",
+					"limit": "320.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_5_MONTHS",
+					"from": "month_start(add_months(day.date, -4))",
+					"limit": "400.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_6_MONTHS",
+					"from": "month_start(add_months(day.date, -5))",
+					"limit": "480.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "24.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_ANNUAL_LIMIT",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "150.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "ROSTER_HAZARDOUS_OVERTIME",
+					"from": "day.date",
+					"limit": "max(0.0, 10.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.hazardous_work) && terms.facts.hazardous_work == true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "103026b9-d9dd-58af-8fee-3115eed849d6",
+		"settings_id": "8e93f426-235d-52ee-be90-5da2a9f0c5f3",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Standards Act art.36(4)–(6) and the Child Care and Family Care Leave Act art.17: the 45-hour month, the 100-hour and 80-hour averages, the 360/720-hour years and requested care limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_MONTHLY_45H",
+					"from": "month_start(day.date)",
+					"limit": "45.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&day.day_type != \"REST\"",
+					"hours": "day.day_type != \"REST\" ? day.approved_overtime_hours : 0.0"
+				},
+				{
+					"code": "OVERTIME_REST_DAY_100H",
+					"from": "month_start(day.date)",
+					"limit": "100.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_360H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "360.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_720H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "(has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"DRIVER\", \"DOCTOR_A\"]\n  ?960.0\n  : (has(company.facts.overtime_sector)\n    ?company.facts.overtime_sector\n    :\"GENERAL\")\n  ==\"DOCTOR_BC\"\n    ?1860.0\n    :720.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_2_MONTHS",
+					"from": "month_start(add_months(day.date, -1))",
+					"limit": "160.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_3_MONTHS",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "240.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_4_MONTHS",
+					"from": "month_start(add_months(day.date, -3))",
+					"limit": "320.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_5_MONTHS",
+					"from": "month_start(add_months(day.date, -4))",
+					"limit": "400.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_6_MONTHS",
+					"from": "month_start(add_months(day.date, -5))",
+					"limit": "480.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "24.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_ANNUAL_LIMIT",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "150.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "ROSTER_HAZARDOUS_OVERTIME",
+					"from": "day.date",
+					"limit": "max(0.0, 10.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.hazardous_work) && terms.facts.hazardous_work == true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "d207837b-228c-5357-882e-0125abbdf380",
+		"settings_id": "465e38ef-e404-5f65-ada7-bc18e03e594b",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Standards Act art.36(4)–(6) and the Child Care and Family Care Leave Act art.17: the 45-hour month, the 100-hour and 80-hour averages, the 360/720-hour years and requested care limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_MONTHLY_45H",
+					"from": "month_start(day.date)",
+					"limit": "45.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&day.day_type != \"REST\"",
+					"hours": "day.day_type != \"REST\" ? day.approved_overtime_hours : 0.0"
+				},
+				{
+					"code": "OVERTIME_REST_DAY_100H",
+					"from": "month_start(day.date)",
+					"limit": "100.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_360H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "360.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_720H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "(has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"DRIVER\", \"DOCTOR_A\"]\n  ?960.0\n  : (has(company.facts.overtime_sector)\n    ?company.facts.overtime_sector\n    :\"GENERAL\")\n  ==\"DOCTOR_BC\"\n    ?1860.0\n    :720.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_2_MONTHS",
+					"from": "month_start(add_months(day.date, -1))",
+					"limit": "160.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_3_MONTHS",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "240.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_4_MONTHS",
+					"from": "month_start(add_months(day.date, -3))",
+					"limit": "320.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_5_MONTHS",
+					"from": "month_start(add_months(day.date, -4))",
+					"limit": "400.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_6_MONTHS",
+					"from": "month_start(add_months(day.date, -5))",
+					"limit": "480.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "24.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_ANNUAL_LIMIT",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "150.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "ROSTER_HAZARDOUS_OVERTIME",
+					"from": "day.date",
+					"limit": "max(0.0, 10.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.hazardous_work) && terms.facts.hazardous_work == true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "9421c183-bb20-5d53-8d81-0356ebed3c80",
+		"settings_id": "95fd1f75-7031-5388-8c60-559f0c301b52",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Standards Act art.36(4)–(6) and the Child Care and Family Care Leave Act art.17: the 45-hour month, the 100-hour and 80-hour averages, the 360/720-hour years and requested care limits."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_MONTHLY_45H",
+					"from": "month_start(day.date)",
+					"limit": "45.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&&day.day_type != \"REST\"",
+					"hours": "day.day_type != \"REST\" ? day.approved_overtime_hours : 0.0"
+				},
+				{
+					"code": "OVERTIME_REST_DAY_100H",
+					"from": "month_start(day.date)",
+					"limit": "100.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_360H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "360.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_YEAR_720H",
+					"from": "(has(company.facts.overtime_agreement_from)\n  ? (day.date.substring(5, 7)\n  >=company.facts.overtime_agreement_from.substring(5, 7)\n    ?day.date.substring(0, 4)\n    :string(int(day.date.substring(0, 4)) - 1))\n  +\"-\"\n  +company.facts.overtime_agreement_from.substring(5, 7)\n  +\"-01\"\n  :day.date.substring(0, 4) + \"-01-01\")",
+					"limit": "(has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"DRIVER\", \"DOCTOR_A\"]\n  ?960.0\n  : (has(company.facts.overtime_sector)\n    ?company.facts.overtime_sector\n    :\"GENERAL\")\n  ==\"DOCTOR_BC\"\n    ?1860.0\n    :720.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\n!=\"NEW_TECH_RD\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_2_MONTHS",
+					"from": "month_start(add_months(day.date, -1))",
+					"limit": "160.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_3_MONTHS",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "240.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_4_MONTHS",
+					"from": "month_start(add_months(day.date, -3))",
+					"limit": "320.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_5_MONTHS",
+					"from": "month_start(add_months(day.date, -4))",
+					"limit": "400.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_AVERAGE_80H_6_MONTHS",
+					"from": "month_start(add_months(day.date, -5))",
+					"limit": "480.0",
+					"applies": "!(terms.work_classification in [\"MANAGERIAL\", \"OFFICER\"])\n&& (has(company.facts.overtime_sector)\n  ?company.facts.overtime_sector\n  :\"GENERAL\")\nin [\"GENERAL\", \"CONSTRUCTION\"]\n&&!(has(company.facts.disaster_recovery_work)\n&&company.facts.disaster_recovery_work == true)",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_MONTHLY_LIMIT",
+					"from": "month_start(day.date)",
+					"limit": "24.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "CHILDCARE_CARE_ANNUAL_LIMIT",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "150.0",
+					"applies": "has(terms.facts.childcare_overtime_limit_requested)\n&&terms.facts.childcare_overtime_limit_requested == true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "ROSTER_HAZARDOUS_OVERTIME",
+					"from": "day.date",
+					"limit": "max(0.0, 10.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.hazardous_work) && terms.facts.hazardous_work == true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "2feee140-57aa-5a70-8777-30c6e922076c",
+		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Employment Act 1955 s.60A(1) and (3) and the Employment (Limitation of Overtime Work) Regulations 1980: at most 104 overtime hours a month and 12 hours a day."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "DAILY_HOURS_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "104.0",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "eb87c7d4-b67e-53a5-88ef-4f4232eff448",
+		"settings_id": "2dac83fd-c110-4155-a70a-57fed5b61173",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Employment Act 1955 s.60A(1) and (3) and the Employment (Limitation of Overtime Work) Regulations 1980: at most 104 overtime hours a month and 12 hours a day."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "DAILY_HOURS_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "104.0",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "d6cc2406-b35f-576a-84c9-7f8195034446",
+		"settings_id": "b72d7b9b-405c-5e14-aecb-1608c1f2c792",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Employment Act 1955 s.60A(1) and (3) and the Employment (Limitation of Overtime Work) Regulations 1980: at most 104 overtime hours a month and 12 hours a day."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "DAILY_HOURS_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "104.0",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "c1d1ea54-b1cd-5208-868f-dc0e62d50d33",
+		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Employment Act 1955 s.60A(1) and (3) and the Employment (Limitation of Overtime Work) Regulations 1980: at most 104 overtime hours a month and 12 hours a day."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "DAILY_HOURS_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "104.0",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "07185e93-5721-5b2e-8a10-458c0f667c99",
+		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Employment Act 1955 s.60A(1) and (3) and the Employment (Limitation of Overtime Work) Regulations 1980: at most 104 overtime hours a month and 12 hours a day."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "DAILY_HOURS_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "104.0",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "f8ba3d0d-dca7-5489-82ca-329f231fd9f1",
+		"settings_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Employment Act 1955 s.60A(1) and (3) and the Employment (Limitation of Overtime Work) Regulations 1980: at most 104 overtime hours a month and 12 hours a day."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "DAILY_HOURS_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "104.0",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "ae3b935d-ac7b-5cc4-854d-5be1d21415ef",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Employment Act 1955 s.60A(1) and (3) and the Employment (Limitation of Overtime Work) Regulations 1980: at most 104 overtime hours a month and 12 hours a day."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "DAILY_HOURS_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "104.0",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "3daeeacf-8ac8-50ab-84cc-d31403175b65",
+		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Employment Act 1955 s.60A(1) and (3) and the Employment (Limitation of Overtime Work) Regulations 1980: at most 104 overtime hours a month and 12 hours a day."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "DAILY_HOURS_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "104.0",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "cf83f6ad-bd90-5881-8b6e-e007f77608b9",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labor Code (PD 442) arts.83, 87 and 89 set no numeric ceiling on adult overtime and no DOLE issuance adds one, so no hours are classified as incentive."
+			}
+		],
+		"rules": {
+			"limits": []
+		}
+	},
+	{
+		"id": "8368195a-71b5-54ee-8659-127997959980",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labor Code (PD 442) arts.83, 87 and 89 set no numeric ceiling on adult overtime and no DOLE issuance adds one, so no hours are classified as incentive."
+			}
+		],
+		"rules": {
+			"limits": []
+		}
+	},
+	{
+		"id": "15ca9d5d-c5fd-569e-866e-aa7fb27c4a1e",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.38(5) and the Employment (Overtime) Regulations: a Part 4 employee works at most 72 overtime hours a calendar month and 12 hours a day."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "DAILY_HOURS_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "((terms.statutory_work_category != \"NON_MANUAL\"\n&&terms.base_salary <= 4500.0)\n|| (terms.statutory_work_category == \"NON_MANUAL\"\n&&terms.base_salary <= 2600.0))",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "72.0",
+					"applies": "((terms.statutory_work_category != \"NON_MANUAL\"\n&&terms.base_salary <= 4500.0)\n|| (terms.statutory_work_category == \"NON_MANUAL\"\n&&terms.base_salary <= 2600.0))",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "fdc48d5c-b53c-524b-8429-b61e05f834a3",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.38(5) and the Employment (Overtime) Regulations: a Part 4 employee works at most 72 overtime hours a calendar month and 12 hours a day."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "DAILY_HOURS_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "((terms.statutory_work_category != \"NON_MANUAL\"\n&&terms.base_salary <= 4500.0)\n|| (terms.statutory_work_category == \"NON_MANUAL\"\n&&terms.base_salary <= 2600.0))",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "72.0",
+					"applies": "((terms.statutory_work_category != \"NON_MANUAL\"\n&&terms.base_salary <= 4500.0)\n|| (terms.statutory_work_category == \"NON_MANUAL\"\n&&terms.base_salary <= 2600.0))",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "27a56dda-0a96-5c68-845a-1fb6a66886b4",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.38(5) and the Employment (Overtime) Regulations: a Part 4 employee works at most 72 overtime hours a calendar month and 12 hours a day."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "DAILY_HOURS_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "((terms.statutory_work_category != \"NON_MANUAL\"\n&&terms.base_salary <= 4500.0)\n|| (terms.statutory_work_category == \"NON_MANUAL\"\n&&terms.base_salary <= 2600.0))",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "72.0",
+					"applies": "((terms.statutory_work_category != \"NON_MANUAL\"\n&&terms.base_salary <= 4500.0)\n|| (terms.statutory_work_category == \"NON_MANUAL\"\n&&terms.base_salary <= 2600.0))",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "7bf172a6-ab2a-5748-8d6c-4fc6a0ad32c2",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.38(5) and the Employment (Overtime) Regulations: a Part 4 employee works at most 72 overtime hours a calendar month and 12 hours a day."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "DAILY_HOURS_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "((terms.statutory_work_category != \"NON_MANUAL\"\n&&terms.base_salary <= 4500.0)\n|| (terms.statutory_work_category == \"NON_MANUAL\"\n&&terms.base_salary <= 2600.0))",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "72.0",
+					"applies": "((terms.statutory_work_category != \"NON_MANUAL\"\n&&terms.base_salary <= 4500.0)\n|| (terms.statutory_work_category == \"NON_MANUAL\"\n&&terms.base_salary <= 2600.0))",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "ebb464c9-330b-52d9-8e64-54cecb919298",
+		"settings_id": "e37e7502-f011-5605-8b41-7afd8b5123b3",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Protection Act s.26 and Ministerial Regulation No. 3 (B.E. 2541) cl.3: overtime and holiday overtime at most 36 hours a Monday-to-Sunday week."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_WEEKLY_CAP",
+					"from": "add_days(\n  day.date,\n  0 - ((int(calendar_distance_days(\"2024-01-01\", day.date)) % 7 + 7) % 7\n) )",
+					"limit": "36.0",
+					"applies": "!(has(terms.facts.continuous_work)\n&&terms.facts.continuous_work == true)",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "38d1f7ea-a1ca-551a-8515-d7e7775e6dc7",
+		"settings_id": "dcb28ca9-e36d-5b3e-a013-31e227c412b1",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Protection Act s.26 and Ministerial Regulation No. 3 (B.E. 2541) cl.3: overtime and holiday overtime at most 36 hours a Monday-to-Sunday week."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_WEEKLY_CAP",
+					"from": "add_days(\n  day.date,\n  0 - ((int(calendar_distance_days(\"2024-01-01\", day.date)) % 7 + 7) % 7\n) )",
+					"limit": "36.0",
+					"applies": "!(has(terms.facts.continuous_work)\n&&terms.facts.continuous_work == true)",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "62a89a47-7bf4-5a3a-8e72-504df91d5907",
+		"settings_id": "8e548e69-bf35-5d4f-8e6e-3e2de580f71e",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Protection Act s.26 and Ministerial Regulation No. 3 (B.E. 2541) cl.3: overtime and holiday overtime at most 36 hours a Monday-to-Sunday week."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_WEEKLY_CAP",
+					"from": "add_days(\n  day.date,\n  0 - ((int(calendar_distance_days(\"2024-01-01\", day.date)) % 7 + 7) % 7\n) )",
+					"limit": "36.0",
+					"applies": "!(has(terms.facts.continuous_work)\n&&terms.facts.continuous_work == true)",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "e8e03301-45da-558b-8e90-22d925727848",
+		"settings_id": "8faaa7d5-b949-5d9d-b938-d113418e47c1",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Protection Act s.26 and Ministerial Regulation No. 3 (B.E. 2541) cl.3: overtime and holiday overtime at most 36 hours a Monday-to-Sunday week."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_WEEKLY_CAP",
+					"from": "add_days(\n  day.date,\n  0 - ((int(calendar_distance_days(\"2024-01-01\", day.date)) % 7 + 7) % 7\n) )",
+					"limit": "36.0",
+					"applies": "!(has(terms.facts.continuous_work)\n&&terms.facts.continuous_work == true)",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "b18ae692-ecf1-5494-825b-c3db84d02877",
+		"settings_id": "c7b8b330-0e29-567d-be9a-5689702b3e7f",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Protection Act s.26 and Ministerial Regulation No. 3 (B.E. 2541) cl.3: overtime and holiday overtime at most 36 hours a Monday-to-Sunday week."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_WEEKLY_CAP",
+					"from": "add_days(\n  day.date,\n  0 - ((int(calendar_distance_days(\"2024-01-01\", day.date)) % 7 + 7) % 7\n) )",
+					"limit": "36.0",
+					"applies": "!(has(terms.facts.continuous_work)\n&&terms.facts.continuous_work == true)",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "c3241ac0-4288-54f3-8a2e-ed9117afd2f6",
+		"settings_id": "fc4a2bdc-a8bf-56c4-ada0-2eaad013b28c",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Protection Act s.26 and Ministerial Regulation No. 3 (B.E. 2541) cl.3: overtime and holiday overtime at most 36 hours a Monday-to-Sunday week."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_WEEKLY_CAP",
+					"from": "add_days(\n  day.date,\n  0 - ((int(calendar_distance_days(\"2024-01-01\", day.date)) % 7 + 7) % 7\n) )",
+					"limit": "36.0",
+					"applies": "!(has(terms.facts.continuous_work)\n&&terms.facts.continuous_work == true)",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "d3df0024-85f5-5b7c-8a5c-e2bc4852192f",
+		"settings_id": "af475178-3e6d-5e7a-9cd7-35c08c83cfb8",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Protection Act s.26 and Ministerial Regulation No. 3 (B.E. 2541) cl.3: overtime and holiday overtime at most 36 hours a Monday-to-Sunday week."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_WEEKLY_CAP",
+					"from": "add_days(\n  day.date,\n  0 - ((int(calendar_distance_days(\"2024-01-01\", day.date)) % 7 + 7) % 7\n) )",
+					"limit": "36.0",
+					"applies": "!(has(terms.facts.continuous_work)\n&&terms.facts.continuous_work == true)",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "bf365ccf-41e3-537f-8e6c-c3eed3fbe97c",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labor Standards Act art.32(2): total hours at most 12 a day and overtime at most 46 a month, or 54 a month and 138 in three months under a recorded extension."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_DAILY_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "!(has(company.facts.responsibility_system)\n&&company.facts.responsibility_system == true\n&&has(terms.facts)\n&&has(terms.facts.responsibility_system_agreement)\n&&terms.facts.responsibility_system_agreement != \"\")",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "(has(company.facts.overtime_extension_approval_on)\n&&company.facts.overtime_extension_approval_on != \"\"\n&&company.facts.overtime_extension_approval_on <= day.date\n&&has(company.facts.overtime_extension_approved_by)\n&&company.facts.overtime_extension_approved_by\nin [\"UNION\", \"LABOUR_MANAGEMENT_CONFERENCE\"])\n  ?54.0\n  :46.0",
+					"applies": "!(has(company.facts.responsibility_system)\n&&company.facts.responsibility_system == true\n&&has(terms.facts)\n&&has(terms.facts.responsibility_system_agreement)\n&&terms.facts.responsibility_system_agreement != \"\")\n&& (day.day_type != \"REST\"\n|| (day.holiday_kind\nin [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"]\n|| (day.holiday_kind == \"SPECIAL_HOLIDAY\"\n&& (has(employee.facts.voting_right)\n  ?employee.facts.voting_right == true\n  : (employee.nationality == \"TW\" && has(employee.date_of_birth)\n  &&employee.date_of_birth != null\n  &&employee.date_of_birth != \"\"\n  &&age_on(employee.date_of_birth, day.date) >= 20)))))",
+					"hours": "(day.day_type != \"REST\"\n|| (day.holiday_kind\nin [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"]\n|| (day.holiday_kind == \"SPECIAL_HOLIDAY\"\n&& (has(employee.facts.voting_right)\n  ?employee.facts.voting_right == true\n  : (employee.nationality == \"TW\" && has(employee.date_of_birth)\n  &&employee.date_of_birth != null\n  &&employee.date_of_birth != \"\"\n  &&age_on(employee.date_of_birth, day.date) >= 20)))))\n  ?day.approved_overtime_hours\n  :0.0"
+				},
+				{
+					"code": "OVERTIME_QUARTER_CAP",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "138.0",
+					"applies": "!(has(company.facts.responsibility_system)\n&&company.facts.responsibility_system == true\n&&has(terms.facts)\n&&has(terms.facts.responsibility_system_agreement)\n&&terms.facts.responsibility_system_agreement != \"\")\n&& (has(company.facts.overtime_extension_approval_on)\n&&company.facts.overtime_extension_approval_on != \"\"\n&&company.facts.overtime_extension_approval_on <= day.date\n&&has(company.facts.overtime_extension_approved_by)\n&&company.facts.overtime_extension_approved_by\nin [\"UNION\", \"LABOUR_MANAGEMENT_CONFERENCE\"])",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "52608b0d-14c8-5e7c-8836-161b788b9da8",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labor Standards Act art.32(2): total hours at most 12 a day and overtime at most 46 a month, or 54 a month and 138 in three months under a recorded extension."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_DAILY_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "!(has(company.facts.responsibility_system)\n&&company.facts.responsibility_system == true\n&&has(terms.facts)\n&&has(terms.facts.responsibility_system_agreement)\n&&terms.facts.responsibility_system_agreement != \"\")",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "(has(company.facts.overtime_extension_approval_on)\n&&company.facts.overtime_extension_approval_on != \"\"\n&&company.facts.overtime_extension_approval_on <= day.date\n&&has(company.facts.overtime_extension_approved_by)\n&&company.facts.overtime_extension_approved_by\nin [\"UNION\", \"LABOUR_MANAGEMENT_CONFERENCE\"])\n  ?54.0\n  :46.0",
+					"applies": "!(has(company.facts.responsibility_system)\n&&company.facts.responsibility_system == true\n&&has(terms.facts)\n&&has(terms.facts.responsibility_system_agreement)\n&&terms.facts.responsibility_system_agreement != \"\")\n&& (day.day_type != \"REST\"\n|| (day.holiday_kind\nin [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"]\n|| (day.holiday_kind == \"SPECIAL_HOLIDAY\"\n&& (has(employee.facts.voting_right)\n  ?employee.facts.voting_right == true\n  : (employee.nationality == \"TW\" && has(employee.date_of_birth)\n  &&employee.date_of_birth != null\n  &&employee.date_of_birth != \"\"\n  &&age_on(employee.date_of_birth, day.date) >= 20)))))",
+					"hours": "(day.day_type != \"REST\"\n|| (day.holiday_kind\nin [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"]\n|| (day.holiday_kind == \"SPECIAL_HOLIDAY\"\n&& (has(employee.facts.voting_right)\n  ?employee.facts.voting_right == true\n  : (employee.nationality == \"TW\" && has(employee.date_of_birth)\n  &&employee.date_of_birth != null\n  &&employee.date_of_birth != \"\"\n  &&age_on(employee.date_of_birth, day.date) >= 20)))))\n  ?day.approved_overtime_hours\n  :0.0"
+				},
+				{
+					"code": "OVERTIME_QUARTER_CAP",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "138.0",
+					"applies": "!(has(company.facts.responsibility_system)\n&&company.facts.responsibility_system == true\n&&has(terms.facts)\n&&has(terms.facts.responsibility_system_agreement)\n&&terms.facts.responsibility_system_agreement != \"\")\n&& (has(company.facts.overtime_extension_approval_on)\n&&company.facts.overtime_extension_approval_on != \"\"\n&&company.facts.overtime_extension_approval_on <= day.date\n&&has(company.facts.overtime_extension_approved_by)\n&&company.facts.overtime_extension_approved_by\nin [\"UNION\", \"LABOUR_MANAGEMENT_CONFERENCE\"])",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "b5598acb-8456-51ef-8d40-b51098f3706e",
+		"settings_id": "c1d67b18-d4fc-508d-ad50-786b6dbc8048",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labor Standards Act art.32(2): total hours at most 12 a day and overtime at most 46 a month, or 54 a month and 138 in three months under a recorded extension."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_DAILY_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "!(has(company.facts.responsibility_system)\n&&company.facts.responsibility_system == true\n&&has(terms.facts)\n&&has(terms.facts.responsibility_system_agreement)\n&&terms.facts.responsibility_system_agreement != \"\")",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "(has(company.facts.overtime_extension_approval_on)\n&&company.facts.overtime_extension_approval_on != \"\"\n&&company.facts.overtime_extension_approval_on <= day.date\n&&has(company.facts.overtime_extension_approved_by)\n&&company.facts.overtime_extension_approved_by\nin [\"UNION\", \"LABOUR_MANAGEMENT_CONFERENCE\"])\n  ?54.0\n  :46.0",
+					"applies": "!(has(company.facts.responsibility_system)\n&&company.facts.responsibility_system == true\n&&has(terms.facts)\n&&has(terms.facts.responsibility_system_agreement)\n&&terms.facts.responsibility_system_agreement != \"\")\n&& (day.day_type != \"REST\"\n|| (day.holiday_kind\nin [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"]\n|| (day.holiday_kind == \"SPECIAL_HOLIDAY\"\n&& (has(employee.facts.voting_right)\n  ?employee.facts.voting_right == true\n  : (employee.nationality == \"TW\" && has(employee.date_of_birth)\n  &&employee.date_of_birth != null\n  &&employee.date_of_birth != \"\"\n  &&age_on(employee.date_of_birth, day.date) >= 20)))))",
+					"hours": "(day.day_type != \"REST\"\n|| (day.holiday_kind\nin [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"]\n|| (day.holiday_kind == \"SPECIAL_HOLIDAY\"\n&& (has(employee.facts.voting_right)\n  ?employee.facts.voting_right == true\n  : (employee.nationality == \"TW\" && has(employee.date_of_birth)\n  &&employee.date_of_birth != null\n  &&employee.date_of_birth != \"\"\n  &&age_on(employee.date_of_birth, day.date) >= 20)))))\n  ?day.approved_overtime_hours\n  :0.0"
+				},
+				{
+					"code": "OVERTIME_QUARTER_CAP",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "138.0",
+					"applies": "!(has(company.facts.responsibility_system)\n&&company.facts.responsibility_system == true\n&&has(terms.facts)\n&&has(terms.facts.responsibility_system_agreement)\n&&terms.facts.responsibility_system_agreement != \"\")\n&& (has(company.facts.overtime_extension_approval_on)\n&&company.facts.overtime_extension_approval_on != \"\"\n&&company.facts.overtime_extension_approval_on <= day.date\n&&has(company.facts.overtime_extension_approved_by)\n&&company.facts.overtime_extension_approved_by\nin [\"UNION\", \"LABOUR_MANAGEMENT_CONFERENCE\"])",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "68c94edf-ae2c-5ba3-8056-5d1ef0e852cf",
+		"settings_id": "303f10bf-0560-51f3-93a6-68b30acd47f5",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labor Standards Act art.32(2): total hours at most 12 a day and overtime at most 46 a month, or 54 a month and 138 in three months under a recorded extension."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_DAILY_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "!(has(company.facts.responsibility_system)\n&&company.facts.responsibility_system == true\n&&has(terms.facts)\n&&has(terms.facts.responsibility_system_agreement)\n&&terms.facts.responsibility_system_agreement != \"\")",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "(has(company.facts.overtime_extension_approval_on)\n&&company.facts.overtime_extension_approval_on != \"\"\n&&company.facts.overtime_extension_approval_on <= day.date\n&&has(company.facts.overtime_extension_approved_by)\n&&company.facts.overtime_extension_approved_by\nin [\"UNION\", \"LABOUR_MANAGEMENT_CONFERENCE\"])\n  ?54.0\n  :46.0",
+					"applies": "!(has(company.facts.responsibility_system)\n&&company.facts.responsibility_system == true\n&&has(terms.facts)\n&&has(terms.facts.responsibility_system_agreement)\n&&terms.facts.responsibility_system_agreement != \"\")\n&& (day.day_type != \"REST\"\n|| (day.holiday_kind\nin [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"]\n|| (day.holiday_kind == \"SPECIAL_HOLIDAY\"\n&& (has(employee.facts.voting_right)\n  ?employee.facts.voting_right == true\n  : (employee.nationality == \"TW\" && has(employee.date_of_birth)\n  &&employee.date_of_birth != null\n  &&employee.date_of_birth != \"\"\n  &&age_on(employee.date_of_birth, day.date) >= 20)))))",
+					"hours": "(day.day_type != \"REST\"\n|| (day.holiday_kind\nin [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"]\n|| (day.holiday_kind == \"SPECIAL_HOLIDAY\"\n&& (has(employee.facts.voting_right)\n  ?employee.facts.voting_right == true\n  : (employee.nationality == \"TW\" && has(employee.date_of_birth)\n  &&employee.date_of_birth != null\n  &&employee.date_of_birth != \"\"\n  &&age_on(employee.date_of_birth, day.date) >= 20)))))\n  ?day.approved_overtime_hours\n  :0.0"
+				},
+				{
+					"code": "OVERTIME_QUARTER_CAP",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "138.0",
+					"applies": "!(has(company.facts.responsibility_system)\n&&company.facts.responsibility_system == true\n&&has(terms.facts)\n&&has(terms.facts.responsibility_system_agreement)\n&&terms.facts.responsibility_system_agreement != \"\")\n&& (has(company.facts.overtime_extension_approval_on)\n&&company.facts.overtime_extension_approval_on != \"\"\n&&company.facts.overtime_extension_approval_on <= day.date\n&&has(company.facts.overtime_extension_approved_by)\n&&company.facts.overtime_extension_approved_by\nin [\"UNION\", \"LABOUR_MANAGEMENT_CONFERENCE\"])",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "8249d321-de1e-58cd-85c6-e1b0fed0815b",
+		"settings_id": "588fe93f-45d4-522c-abdd-98dd1a8927a7",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labor Standards Act art.32(2): total hours at most 12 a day and overtime at most 46 a month, or 54 a month and 138 in three months under a recorded extension."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_DAILY_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "!(has(company.facts.responsibility_system)\n&&company.facts.responsibility_system == true\n&&has(terms.facts)\n&&has(terms.facts.responsibility_system_agreement)\n&&terms.facts.responsibility_system_agreement != \"\")",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "(has(company.facts.overtime_extension_approval_on)\n&&company.facts.overtime_extension_approval_on != \"\"\n&&company.facts.overtime_extension_approval_on <= day.date\n&&has(company.facts.overtime_extension_approved_by)\n&&company.facts.overtime_extension_approved_by\nin [\"UNION\", \"LABOUR_MANAGEMENT_CONFERENCE\"])\n  ?54.0\n  :46.0",
+					"applies": "!(has(company.facts.responsibility_system)\n&&company.facts.responsibility_system == true\n&&has(terms.facts)\n&&has(terms.facts.responsibility_system_agreement)\n&&terms.facts.responsibility_system_agreement != \"\")\n&& (day.day_type != \"REST\"\n|| (day.holiday_kind\nin [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"]\n|| (day.holiday_kind == \"SPECIAL_HOLIDAY\"\n&& (has(employee.facts.voting_right)\n  ?employee.facts.voting_right == true\n  : (employee.nationality == \"TW\" && has(employee.date_of_birth)\n  &&employee.date_of_birth != null\n  &&employee.date_of_birth != \"\"\n  &&age_on(employee.date_of_birth, day.date) >= 20)))))",
+					"hours": "(day.day_type != \"REST\"\n|| (day.holiday_kind\nin [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\", \"DOUBLE_SPECIAL\"]\n|| (day.holiday_kind == \"SPECIAL_HOLIDAY\"\n&& (has(employee.facts.voting_right)\n  ?employee.facts.voting_right == true\n  : (employee.nationality == \"TW\" && has(employee.date_of_birth)\n  &&employee.date_of_birth != null\n  &&employee.date_of_birth != \"\"\n  &&age_on(employee.date_of_birth, day.date) >= 20)))))\n  ?day.approved_overtime_hours\n  :0.0"
+				},
+				{
+					"code": "OVERTIME_QUARTER_CAP",
+					"from": "month_start(add_months(day.date, -2))",
+					"limit": "138.0",
+					"applies": "!(has(company.facts.responsibility_system)\n&&company.facts.responsibility_system == true\n&&has(terms.facts)\n&&has(terms.facts.responsibility_system_agreement)\n&&terms.facts.responsibility_system_agreement != \"\")\n&& (has(company.facts.overtime_extension_approval_on)\n&&company.facts.overtime_extension_approval_on != \"\"\n&&company.facts.overtime_extension_approval_on <= day.date\n&&has(company.facts.overtime_extension_approved_by)\n&&company.facts.overtime_extension_approved_by\nin [\"UNION\", \"LABOUR_MANAGEMENT_CONFERENCE\"])",
+					"hours": "day.approved_overtime_hours"
+				}
+			]
+		}
+	},
+	{
+		"id": "ec3c935b-02c8-5af1-8246-d9be6fb55ce8",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Code 2019 art.107(2) and Decree 145/2020 art.60: overtime at most 50% of the normal day (12 hours under a weekly arrangement), 40 hours a month and 200 or 300 hours a year."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_DAILY_CAP",
+					"from": "day.date",
+					"limit": "0.5 * day.scheduled_hours",
+					"applies": "!(has(terms.facts.normal_hours_arrangement)\n&&terms.facts.normal_hours_arrangement == \"WEEKLY\")\n&&day.scheduled_hours > 0.0",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_DAILY_WEEKLY_ARRANGEMENT_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.normal_hours_arrangement)\n&&terms.facts.normal_hours_arrangement == \"WEEKLY\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "40.0",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_ANNUAL_CAP",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "(has(company.facts.overtime_300h_sector)\n&&company.facts.overtime_300h_sector == true)\n  ?300.0\n  :200.0",
+					"applies": "day.day_type in [\"WORK\", \"REST\", \"OFF\"]\n||day.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]",
+					"hours": "(day.day_type in [\"WORK\", \"REST\", \"OFF\"]\n||day.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"])\n  ?day.approved_overtime_hours\n  :0.0"
+				}
+			]
+		}
+	},
+	{
+		"id": "bf49d70b-3fd7-594e-8d62-b0986b0b4d3d",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Code 2019 art.107(2) and Decree 145/2020 art.60: overtime at most 50% of the normal day (12 hours under a weekly arrangement), 40 hours a month and 200 or 300 hours a year."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_DAILY_CAP",
+					"from": "day.date",
+					"limit": "0.5 * day.scheduled_hours",
+					"applies": "!(has(terms.facts.normal_hours_arrangement)\n&&terms.facts.normal_hours_arrangement == \"WEEKLY\")\n&&day.scheduled_hours > 0.0",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_DAILY_WEEKLY_ARRANGEMENT_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.normal_hours_arrangement)\n&&terms.facts.normal_hours_arrangement == \"WEEKLY\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "40.0",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_ANNUAL_CAP",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "(has(company.facts.overtime_300h_sector)\n&&company.facts.overtime_300h_sector == true)\n  ?300.0\n  :200.0",
+					"applies": "day.day_type in [\"WORK\", \"REST\", \"OFF\"]\n||day.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]",
+					"hours": "(day.day_type in [\"WORK\", \"REST\", \"OFF\"]\n||day.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"])\n  ?day.approved_overtime_hours\n  :0.0"
+				}
+			]
+		}
+	},
+	{
+		"id": "0a88768c-bf32-54e7-85b8-e46e16f2d58d",
+		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Code 2019 art.107(2) and Decree 145/2020 art.60: overtime at most 50% of the normal day (12 hours under a weekly arrangement), 40 hours a month and 200 or 300 hours a year."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_DAILY_CAP",
+					"from": "day.date",
+					"limit": "0.5 * day.scheduled_hours",
+					"applies": "!(has(terms.facts.normal_hours_arrangement)\n&&terms.facts.normal_hours_arrangement == \"WEEKLY\")\n&&day.scheduled_hours > 0.0",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_DAILY_WEEKLY_ARRANGEMENT_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.normal_hours_arrangement)\n&&terms.facts.normal_hours_arrangement == \"WEEKLY\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "40.0",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_ANNUAL_CAP",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "(has(company.facts.overtime_300h_sector)\n&&company.facts.overtime_300h_sector == true)\n  ?300.0\n  :200.0",
+					"applies": "day.day_type in [\"WORK\", \"REST\", \"OFF\"]\n||day.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]",
+					"hours": "(day.day_type in [\"WORK\", \"REST\", \"OFF\"]\n||day.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"])\n  ?day.approved_overtime_hours\n  :0.0"
+				}
+			]
+		}
+	},
+	{
+		"id": "cbaef557-a026-5ac0-8f6f-7137ccf0d927",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"family": "PARAMETERS",
+		"code": "overtime_classification",
+		"name": "Overtime classification",
+		"references": [
+			{
+				"title": "Labour Code 2019 art.107(2) and Decree 145/2020 art.60: overtime at most 50% of the normal day (12 hours under a weekly arrangement), 40 hours a month and 200 or 300 hours a year."
+			}
+		],
+		"rules": {
+			"limits": [
+				{
+					"code": "OVERTIME_DAILY_CAP",
+					"from": "day.date",
+					"limit": "0.5 * day.scheduled_hours",
+					"applies": "!(has(terms.facts.normal_hours_arrangement)\n&&terms.facts.normal_hours_arrangement == \"WEEKLY\")\n&&day.scheduled_hours > 0.0",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_DAILY_WEEKLY_ARRANGEMENT_CAP",
+					"from": "day.date",
+					"limit": "max(0.0, 12.0 - day.scheduled_hours)",
+					"applies": "has(terms.facts.normal_hours_arrangement)\n&&terms.facts.normal_hours_arrangement == \"WEEKLY\"",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_MONTHLY_CAP",
+					"from": "month_start(day.date)",
+					"limit": "40.0",
+					"applies": "true",
+					"hours": "day.approved_overtime_hours"
+				},
+				{
+					"code": "OVERTIME_ANNUAL_CAP",
+					"from": "day.date.substring(0, 4) + \"-01-01\"",
+					"limit": "(has(company.facts.overtime_300h_sector)\n&&company.facts.overtime_300h_sector == true)\n  ?300.0\n  :200.0",
+					"applies": "day.day_type in [\"WORK\", \"REST\", \"OFF\"]\n||day.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]",
+					"hours": "(day.day_type in [\"WORK\", \"REST\", \"OFF\"]\n||day.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"])\n  ?day.approved_overtime_hours\n  :0.0"
+				}
+			]
+		}
+	}
+]

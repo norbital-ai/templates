@@ -3,14 +3,14 @@ import { Effect } from 'effect';
  * The reads and writes around the matching rules, shared by the booking and recovery automations and the dispatch runs: loading the
  * pool a match runs over, and handing visits to another helper.
  */
-import type {
-	ActInput,
-	AutomationCtx,
-	ModelName,
-	CreateRow,
-	Id,
-	Masked,
-	Where
+import {
+	type ActInput,
+	type AutomationCtx,
+	type EffectCtx,
+	type ModelName,
+	type CreateRow,
+	type Id,
+	type Where
 } from '@norbital-ai/bolt';
 import { addDays, Instant } from '@norbital-ai/std/date';
 import { localOf, utcOf } from '@norbital-ai/std/zone';
@@ -282,7 +282,7 @@ type Visit = {
 	readonly skill: string;
 	readonly booking: {
 		readonly id: Id<'bookings'>;
-		readonly preference: string | Masked;
+		readonly preference: string;
 		readonly customer: Id<'customers'>;
 	} | null;
 };
@@ -427,7 +427,7 @@ export const recommend = Effect.fnUntraced(function* (
  * Keeps the committed schedule at a local optimum: every visit of the next two weeks that may still move (outside the
  * free-change window, its customer named no cleaner, nothing pending on it) is relocated between cleaners while a single
  * move lowers the matching objective (load balance, then added drive) by more than the continuity bonus. Hard
- * requirements hold for every move, on visits whose shift is still held (`HELD_SHIFT`). The desk is told what changed; each cleaner is told by `helper_alerts`. A moved visit written since it was read fails
+ * requirements hold for every move, on visits whose shift is still held (`HELD_SHIFT`). The desk is told what changed; each cleaner is told by the visits effect. A moved visit written since it was read fails
  * the moves with `ActConflict`.
  */
 export const optimise = Effect.fnUntraced(function* (ctx: Writes) {
@@ -478,4 +478,52 @@ export const optimise = Effect.fnUntraced(function* (ctx: Writes) {
 		description: `Planned driving over the next two weeks is ${result.after} minutes, down from ${result.before}. Workload is spread more evenly; every move kept skills, hours, leave and travel buffers.`,
 		once: `optimise-${ctx.now}`
 	});
+});
+/**
+ * Tells each helper when visits are given to them — booked, reassigned, or accepted from a proposal — in the app and one
+ * WhatsApp message per helper listing their new visits, so a change of plan reaches their phone and not only the app.
+ */
+export const alertHelpers = Effect.fnUntraced(function* (
+	ids: readonly Id<'visits'>[],
+	ctx: EffectCtx
+) {
+	if (ids.length === 0) return;
+	const { rows } = (yield* ctx.query({
+		visits: {
+			where: {
+				id: { in: ids },
+				status: { eq: 'scheduled' },
+				helper: { isNull: false },
+				slot: { overlaps: { start: ctx.now, end: null } }
+			},
+			fields: ['number', 'slot', 'address', 'helper']
+		},
+		'visits.helper': { fields: ['phone', 'user'] }
+	})).visits;
+	yield* ctx.notify(
+		rows.flatMap((v) =>
+			v.helper!.user === null
+				? []
+				: [
+						{
+							title: 'Your route has a new assignment',
+							description: `${v.number}: ${when(v.slot.start, ctx.tz)}, ${v.address}. Open My Day to review your route.`,
+							to: [{ user: v.helper!.user }],
+							link: { model: 'visits', id: v.id }
+						}
+					]
+		)
+	);
+	const byHelper = new Map<Id<'helpers'>, { phone: string; lines: string[] }>();
+	for (const v of [...rows].sort((a, b) => a.slot.start.localeCompare(b.slot.start))) {
+		const h = v.helper!;
+		const entry = byHelper.get(h.id) ?? { phone: h.phone, lines: [] };
+		entry.lines.push(`• ${v.number}: ${when(v.slot.start, ctx.tz)}, ${v.address}`);
+		byHelper.set(h.id, entry);
+	}
+	for (const [, { phone, lines }] of byHelper)
+		yield* ctx.send('whatsapp', {
+			to: whatsapp(phone),
+			text: `New visit${lines.length === 1 ? '' : 's'} for you:\n${lines.join('\n')}`
+		});
 });

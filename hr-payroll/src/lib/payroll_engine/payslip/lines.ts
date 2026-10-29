@@ -6,7 +6,6 @@ import {
 	type Json,
 	type JsonObject,
 	completedMonths,
-	fieldValue,
 	isJsonObject,
 	PAYROLL_DEFAULTS,
 	Refusal,
@@ -74,9 +73,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 			{ period, window, salaryRun, money } = options.payroll;
 		const allowanceCodes = new Map(options.jurisdiction.capturedAllowanceCodes);
 		for (const row of options.jurisdiction.allowanceRows) allowanceCodes.set(row.id, row.code);
-		const payroll = yield* Effect.fromResult(
-			fieldValue(options.jurisdiction.version.payroll, 'jurisdiction_settings.payroll')
-		);
+		const payroll = options.jurisdiction.version.payroll;
 		const who = employee?.name ?? contract.id;
 		// Month-to-date (earned, statutory) is per calendar month; the settlement period may be a part of it.
 		const calendar = monthOf(window.salary_from);
@@ -758,12 +755,8 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 		function* monthToDate() {
 			const from = String(calendar.from);
 			const to = window.salary_to;
-			const frequency = yield* Effect.fromResult(
-				fieldValue(options.subject.entity.pay_frequency, 'entity.pay_frequency')
-			);
-			const cutoffDay = yield* Effect.fromResult(
-				fieldValue(options.subject.entity.pay_cutoff_day, 'entity.pay_cutoff_day')
-			);
+			const frequency = options.subject.entity.pay_frequency;
+			const cutoffDay = options.subject.entity.pay_cutoff_day;
 			const cutoff = CYCLES.includes(frequency ?? '') ? 1 : (cutoffDay ?? 1);
 			const attendFrom = payrollWindow(
 				{ from, to: String(calendar.to), part: 1, parts: 1 },
@@ -1175,9 +1168,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 				pay: subjectAt(options.payroll.payDate)
 			})
 		);
-		const employeeFacts = yield* Effect.fromResult(
-			fieldValue(employee?.facts, 'employment_profile.facts')
-		);
+		const employeeFacts = employee?.facts;
 		const { lines: statutory, warnings } = yield* assessStatutory({
 			who,
 			subject: statutorySubjects.start,

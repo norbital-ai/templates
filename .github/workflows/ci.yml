@@ -56,14 +56,6 @@ jobs:
         template: ${{ fromJson(needs.static.outputs.templates) }}
     steps:
       - uses: actions/checkout@v7
-      # the private sample packs read the seed bank at build time; it never leaves this job except inside the seed
-      - name: Checkout the seed bank
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        uses: actions/checkout@v7
-        with:
-          repository: norbital-ai/seed-bank
-          token: ${{ secrets.SEED_BANK_TOKEN }}
-          path: .seed-bank
       - uses: oven-sh/setup-bun@v2
       - uses: actions/setup-node@v7
         with:
@@ -76,10 +68,10 @@ jobs:
       - name: bolt check
         working-directory: ${{ matrix.template }}
         run: bun x bolt check .
-      # the one build: its bundle and seed packs are what the tests read and what the release uploads
+      # the one build: its bundle and public seed pack are what the tests read and what the release uploads
       - name: bolt build
         working-directory: ${{ matrix.template }}
-        run: bun x bolt build . $([ -d ../.seed-bank ] && echo "--bank=../.seed-bank")
+        run: bun x bolt build .
       - name: bolt test
         working-directory: ${{ matrix.template }}
         run: bun x bolt test .

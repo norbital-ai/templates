@@ -50,20 +50,20 @@ The paths below are relative to the workspace. For example, a hosted workspace p
 `?record=<model>/<id>` to the current page; `new` opens a creation form. Closing the record
 returns to the surrounding board or table.
 
-| Flow                      | Who operates it                  | Entry and outcome                                                                                              |
-| ------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Prepare people            | Administrator                    | **Settings → People**: admit active members and choose their source team; save a mobile number for WhatsApp.   |
-| File a site and job       | Controller                       | **Sites → New** or **Dispatched jobs → New**: locate the site, then create the dated assignment.               |
-| Dispatch and progress     | Controller, then contractor      | **Dispatch schedule** and the job's **Progress** section: assign the contractor, report work, and complete it. |
-| Import dispatch work      | Controller                       | **Dispatch schedule → Import**: validate a CSV/XLSX and file each new work order once.                         |
-| File and inspect evidence | Contractor, Envoy and controller | Photo record or WhatsApp report, then the job's **Conversation** and **Suspicion logs** tabs.                  |
-| Review and resolve        | Controller                       | **Suspicion review**, then **Resolve**: inspect the evidence basis and record the controller's conclusion.     |
-| Hand over sites           | Controller                       | **Sites → Site handover**: download the selected sites' JSON and CSV outputs from the automation run.          |
-| Configure the Envoy       | Administrator                    | **System → Integrations**: connect WhatsApp, select the deployed Envoy, and inspect its messages.              |
+| Flow                      | Who operates it                  | Entry and outcome                                                                                                  |
+| ------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Prepare people            | Administrator                    | **Command center → People**: admit active members and choose their source team; save a mobile number for WhatsApp. |
+| File a site and job       | Controller                       | **Sites → New** or **Dispatched jobs → New**: locate the site, then create the dated assignment.                   |
+| Dispatch and progress     | Controller, then contractor      | **Dispatch schedule** and the job's **Progress** section: assign the contractor, report work, and complete it.     |
+| Import dispatch work      | Controller                       | **Dispatch schedule → Import**: validate a CSV/XLSX and file each new work order once.                             |
+| File and inspect evidence | Contractor, Envoy and controller | Photo record or WhatsApp report, then the job's **Conversation** and **Suspicion logs** tabs.                      |
+| Review and resolve        | Controller                       | **Suspicion review**, then **Resolve**: inspect the evidence basis and record the controller's conclusion.         |
+| Hand over sites           | Controller                       | **Sites → Site handover**: download the selected sites' JSON and CSV outputs from the automation run.              |
+| Configure the Envoy       | Administrator                    | **System → Integrations**: connect WhatsApp, select the deployed Envoy, and inspect its messages.                  |
 
 ### 1. Prepare the people who dispatch and carry out work
 
-An administrator opens **Settings → People** (`/settings/people`), invites the member by email or
+An administrator opens **Command center → People** (`/command-center/people`), invites the member by email or
 international mobile number, and selects an existing team. Use **Field Operations Controllers**
 for dispatchers, **Contractor** for field staff who should see only their
 own work, or **Contractor (Controller)** when the person also dispatches the workspace. Keep the
@@ -184,7 +184,7 @@ system, so there is no required Source field for the person to fill.
 
 ![A Contractor's filed photo: the assignment and file only, summarised as Workspace upload](docs/screenshots/09-photo-filed.jpg)
 
-Filing starts `inspect_photo_evidence` automatically. A controller reopening the photo sees its
+Filing schedules `inspect_photo_evidence` from the photo's effect. A controller reopening the photo sees its
 integrity facts: a photo without EXIF GPS shows **Missing geolocation**, and **Matched evidence
 ids** stays empty when nothing duplicates it.
 
@@ -204,7 +204,7 @@ facts.
 
 The controller chooses **Suspicion review** on **Dispatch schedule**. The automation inspects
 pending photos and reviews unchecked assignments, including completed work. Open
-**Settings → Automations** (`/settings/automations`) to inspect progress, output counts and any
+**Command center → Automations** (`/command-center/automations`) to inspect progress, output counts and any
 failure. The host needs the workspace's `default` AI model and `scene`/`default` embedding
 mappings for the corresponding AI features.
 
@@ -230,7 +230,7 @@ Any other open judgement still requires its own resolution.
 
 In **Sites**, select one or more rows and choose **Actions → Site handover**. On success the page
 reports **Site handover succeeded** with download links; the same output stays on the automation
-run under **Settings → Automations**. Each selected site produces three files: a JSON bundle, a job-assignment CSV and a photo-evidence CSV. The JSON
+run under **Command center → Automations**. Each selected site produces three files: a JSON bundle, a job-assignment CSV and a photo-evidence CSV. The JSON
 contains the site details and those related records and their photos. File references and integrity facts travel with the evidence; this action exports the
 records rather than changing their workflow state.
 
@@ -370,8 +370,8 @@ site → job assignment → user (the assignee)
 
 | Automation                        | Trigger                                                          | What it does                                                                                                                 |
 | --------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `inspect_photo_evidence`          | photo filed                                                      | Fills each pending photo's SHA-256, PDQ and scene embeddings, integrity flags and near-duplicate matches                     |
-| `review_job_assignment_suspicion` | assignment filed or its check cleared; manual by `assignment_id` | Inspects photos still pending, then reviews every unchecked assignment with AI; logs a suspicion only when judged suspicious |
+| `inspect_photo_evidence`          | scheduled by `photo_evidence.effect.created`                     | Fills each pending photo's SHA-256, PDQ and scene embeddings, integrity flags and near-duplicate matches                     |
+| `review_job_assignment_suspicion` | scheduled by `job_assignments.effect`; manual by `assignment_id` | Inspects photos still pending, then reviews every unchecked assignment with AI; logs a suspicion only when judged suspicious |
 | `site_handover`                   | manual, selected sites                                           | One JSON file per site (site, jobs, photo evidence) plus a CSV per table, for another system                                 |
 
 ### Photo integrity
@@ -421,7 +421,7 @@ a log. The review calls no tools and reads no web page: its inputs are tenant ro
 workspace account. Its source role is `src/agent/envoy/+field_ops_whatsapp.envoy.ts`, deployed
 on the named WhatsApp instance in `src/+workspace.ts`. Pairing and pause belong to that runtime
 instance. An administrator records the contractor's WhatsApp number on that account
-(Settings → People); an unknown number is told it is not recognised and gets no model run.
+(Command center → People); an unknown number is told it is not recognised and gets no model run.
 
 The envoy's whole job is to bring a contractor's **existing** assignments up to date from what
 they send. One report is one update on the assignment it is about, carrying:
@@ -477,7 +477,7 @@ src/
 ├── app/                            field_ops_controller (dispatch, sites) and field_ops_contractor (jobs)
 ├── i18n/                           +messages.ts, +zh.messages.ts
 └── lib/                            site keys, photo rules, the review, the sheet import, csv/xlsx readers
-seed/                               base pack JSON; seed.ts reads the bank tree `field-operations` for the sample pack
+seed/                               +seeder.ts reads the private bank tree `field-operations`
 ```
 
 Apps are deliberately thin because the work happens inside a record: opening an assignment brings up
@@ -499,15 +499,11 @@ every client, function, and agent — not only the UI:
 
 ## Seed
 
-- **base** — `seed/*.json`: sites, job assignments and communication logs.
-- **sample** (private) — `seed/seed.ts` reads the seed bank tree `field-operations` with
-  `bolt build --bank=<checkout>`. The bank is read without rewriting it, so `seed.ts` converts its
-  shapes (a `geolocation()` value to a point and address, a day instant to a date, derived `site_key`
-  and photo `summary`). Optional member `phone` and `active` values are preserved; absent active
-  state defaults to true, and absent numbers stay empty. Photos come from the bank's `simulation.json` with their JPEGs as assets;
-  `NORBITAL_SEED_PHOTOS` (`all` or a per-assignment count) samples them evenly across assignments.
-  The bank treats transcript job reports and their textual photo references as authoritative; it never
-  reparents a simulated wrong-site photo, since those contradictions are what this template detects.
+No public rows: a new workspace starts empty. `seed/+seeder.ts` names the seed bank's private tree
+`field-operations`, whose rows `bolt seed --bank=<checkout>` loads into a demo environment as they
+are, every photo with its JPEG as an asset, and starts `review_job_assignment_suspicion`. The
+bank treats transcript job reports and their textual photo references as authoritative; it never
+reparents a simulated wrong-site photo, since those contradictions are what this template detects.
 
 The job-assignment import CSV template and its column reference live in `assets/`
 ([job-assignments-import.README.md](./assets/job-assignments-import.README.md)).

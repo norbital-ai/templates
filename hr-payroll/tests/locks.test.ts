@@ -5,7 +5,7 @@
  */
 import assert from 'node:assert/strict';
 import { layer } from '@effect/vitest';
-import { TestWorkspace } from '@norbital-ai/bolt/test';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { datePeriod, Instant, PlainDate } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect } from 'effect';

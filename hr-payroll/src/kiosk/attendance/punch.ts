@@ -32,6 +32,7 @@ export const punchWork = Effect.fnUntraced(function* (
 	const day = todayKey(new Date(yield* Clock.currentTimeMillis));
 	const { roster_entry } = yield* bolt.query({
 		roster_entry: {
+			output: 'kiosk',
 			where: { employment_id: { eq: employment_id }, work_date: { eq: day } },
 			fields: ['worked_intervals'],
 			limit: 1

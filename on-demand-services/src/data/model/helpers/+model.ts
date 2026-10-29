@@ -1,4 +1,4 @@
-import { model, type Instant, type StoredRow } from '@norbital-ai/bolt';
+import { model, type Instant, type Row, type StoredRow } from '@norbital-ai/bolt';
 import { AREAS, DAYS, SKILLS, type Point } from '../../../lib/matching.js';
 const columns = [
 	'name',
@@ -61,6 +61,25 @@ export default model('helpers', {
 	check: { hours: { day_end: { gt: { field: 'day_start' } } } },
 	search: { text: ['name'] },
 	read: 'all',
+	outputs: {
+		customer: { helpers: { fields: ['name', 'skills'] } },
+		helper: {
+			helpers: {
+				fields: [
+					'user',
+					'name',
+					'phone',
+					'skills',
+					'work_days',
+					'day_start',
+					'day_end',
+					'status',
+					'last_location',
+					'last_location_at'
+				]
+			}
+		}
+	},
 	create: {
 		columns: { helpers: columns },
 		transform: function* (rows, ctx) {
@@ -71,6 +90,18 @@ export default model('helpers', {
 		columns: { helpers: columns },
 		transform: function* (changes, ctx) {
 			return changes.map(({ before, set }) => located(set, before, ctx.now));
+		}
+	},
+	effect: {
+		updated: function* (changes, ctx) {
+			const moved = (fields: readonly (keyof Row<'helpers'>)[]) =>
+				changes.some(({ before, after }) =>
+					fields.some((f) => JSON.stringify(before[f]) !== JSON.stringify(after[f]))
+				);
+			if (moved(['status', 'skills', 'work_days', 'day_start', 'day_end']))
+				yield* ctx.schedule('publish_openings', {}, { key: 'publish_openings' });
+			if (moved(['home_location']))
+				yield* ctx.schedule('check_drives', {}, { key: 'check_drives' });
 		}
 	}
 });

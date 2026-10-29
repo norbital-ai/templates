@@ -73,7 +73,7 @@ export default automation('statutory_drift', {
 			failed: { kind: 'list', of: { kind: 'text' } }
 		}
 	},
-	runAs: ['statutory_drift_automation'],
+	policies: ['statutory_drift_automation'],
 	concurrency: { max: 1 },
 	run: function* (input, ctx) {
 		// the in-force lineages, light; each research reads its own snapshot

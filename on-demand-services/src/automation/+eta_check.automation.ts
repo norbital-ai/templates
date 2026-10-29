@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { automation, isMasked } from '@norbital-ai/bolt';
+import { automation } from '@norbital-ai/bolt';
 import { googleMinutes, settingsOf } from '../lib/dispatch.js';
 import { driveMinutes } from '../lib/matching.js';
 
@@ -9,7 +9,7 @@ const FRESH_MINUTES = 15;
 export default automation('eta_check', {
 	description: 'Checks one visit’s live ETA without sharing another visit’s read dependencies.',
 	input: { visit: { kind: 'id', of: 'visits' } },
-	runAs: ['dispatch_automation'],
+	policies: ['dispatch_automation'],
 	concurrency: { max: 4 },
 	run: function* ({ visit }, ctx) {
 		const now = Date.parse(ctx.now);
@@ -37,9 +37,8 @@ export default automation('eta_check', {
 		)
 			return;
 		const helper = v.helper;
-		// a position the run may not read is no position
-		const from = isMasked(helper.last_location) ? null : helper.last_location;
-		const at = isMasked(helper.last_location_at) ? null : helper.last_location_at;
+		const from = helper.last_location;
+		const at = helper.last_location_at;
 		const fresh = from !== null && at !== null && now - Date.parse(at) <= FRESH_MINUTES * MINUTE;
 		let eta = fresh ? driveMinutes(from, v.location) : null;
 		if (

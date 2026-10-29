@@ -14,7 +14,7 @@ export default automation('helpers_offboard', {
 		last_day: { kind: 'date' }
 	},
 	output: { kind: 'object', fields: { proposed: { kind: 'int' }, open: { kind: 'int' } } },
-	runAs: 'trigger',
+	policies: ['operations'],
 	run: function* ({ last_day, targets }, ctx) {
 		const { rows: targetsOf } = (yield* ctx.query({ helpers: { where: { id: { in: targets } } } }))
 			.helpers;

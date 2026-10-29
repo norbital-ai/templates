@@ -6,7 +6,7 @@ export default automation('defect_closeout_digest', {
 	description:
 		'Counts the defect register every morning at 6am and publishes the first 25 open defects as a JSON extract for the closeout meeting.',
 	on: DAILY_0600,
-	runAs: ['construction_read'],
+	policies: ['construction_read'],
 	output: digestOutput(fields),
 	run: function* (_, ctx) {
 		const {

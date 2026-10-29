@@ -12,7 +12,7 @@ export default automation('visits_rebook', {
 		start: { kind: 'instant' },
 		helper: { kind: 'id', of: 'helpers', optional: true }
 	},
-	runAs: 'trigger',
+	policies: ['operations'],
 	run: function* ({ start, helper, targets }, ctx) {
 		const { rows: targetsOf } = (yield* ctx.query({ visits: { where: { id: { in: targets } } } }))
 			.visits;

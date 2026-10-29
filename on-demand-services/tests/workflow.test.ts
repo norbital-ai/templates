@@ -5,9 +5,9 @@
  */
 import { expect, layer } from '@effect/vitest';
 import type { ActInput, Committed, Id, PendingApproval } from '@norbital-ai/bolt';
-import { TestWorkspace, type Kit } from '@norbital-ai/bolt/test';
+import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Instant } from '@norbital-ai/std/date';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { finished } from './automation-runtime.js';
 import { fixtureId, present } from './test-runtime.js';
 
@@ -25,6 +25,11 @@ const QUOTE = id('availability_requests', 8);
 const WEDNESDAY_10 = Instant('2026-09-30T02:00:00.000Z');
 const phone = '+6580000001';
 const address = '1 Example Avenue, Singapore 400001';
+const Runs = Schema.Struct({
+	automation: Schema.String,
+	cause: Schema.String,
+	state: Schema.String
+});
 const desk = (t: Kit) => t.as(t.member(['operations']));
 function committed<O, N extends string>(outcome: Committed<O, N> | PendingApproval<N>) {
 	if (outcome.kind !== 'committed') throw new Error(JSON.stringify(outcome));
@@ -38,7 +43,10 @@ const visitRow = Effect.fnUntraced(function* (t: Kit, target: Id<'visits'>) {
 });
 
 layer(
-	TestWorkspace.layer({ root: `${process.cwd()}/`, now: '2026-09-29T00:00:00.000Z' }),
+	TestWorkspace.layer({
+		root: `${process.cwd()}/`,
+		now: '2026-09-29T00:00:00.000Z'
+	}),
 	{ excludeTestServices: true }
 )('dispatch', (it) => {
 	it.effect('the ETA check flags a helper whose drive exceeds the limit', () =>
@@ -75,6 +83,32 @@ layer(
 		})
 	);
 
+	it.effect('a helper answers the shift check only for their own visits', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const helper = (row: Id<'helpers'>) =>
+				Effect.gen(function* () {
+					const member = t.member(['helper']);
+					const user = fixtureId('sys_user', member.id);
+					committed(yield* t.as(t.admin).act('helpers.update', [{ target: row, set: { user } }]));
+					return t.as(member);
+				});
+			// the run holds `helper`, scoped to its starter: Alpha cannot confirm Charlie's day (which now holds
+			// Alpha's reassigned visit)
+			const alpha = yield* helper(ALPHA);
+			expect(
+				yield* Effect.flip(finished(t, alpha.start('visits_confirm_shift', { targets: [DRIVEN] })))
+			).toMatchObject({ _tag: 'ActRefused' });
+			expect(yield* visitRow(t, CHECKED)).toMatchObject({
+				helper: CHARLIE,
+				shift_check: 'not_due'
+			});
+			const charlie = yield* helper(CHARLIE);
+			yield* finished(t, charlie.start('visits_confirm_shift', { targets: [DRIVEN] }));
+			expect(yield* visitRow(t, CHECKED)).toMatchObject({ shift_check: 'confirmed' });
+		})
+	);
+
 	it.effect('a quote binds to its exact inputs, and expires', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -98,6 +132,28 @@ layer(
 				)
 			).toMatchObject({ _tag: 'ActRefused' });
 			committed(yield* customer.act('booking_requests.create', [request()]));
+			// the request's effect, as the customer, schedules `portal_intake`, which books it as dispatch
+			yield* t.runDue();
+			expect(
+				yield* t.db.rows(Runs, {
+					text: `SELECT automation, cause, state FROM sys_run WHERE automation IN ('booking_requests.effect.created', 'portal_intake') ORDER BY automation`,
+					params: []
+				})
+			).toEqual([
+				{ automation: 'booking_requests.effect.created', cause: 'effect', state: 'succeeded' },
+				{ automation: 'portal_intake', cause: expect.any(String), state: 'succeeded' }
+			]);
+			// no run the effects so far scheduled (the desk's, the dispatch runs', the customer's) failed
+			expect(
+				yield* t.db.rows(Runs, {
+					text: `SELECT automation, cause, state FROM sys_run WHERE state = 'failed'`,
+					params: []
+				})
+			).toEqual([]);
+			expect(
+				(yield* t.as(t.admin).query({ booking_requests: { where: { phone: { eq: phone } } } }))
+					.booking_requests.rows
+			).toMatchObject([{ status: 'booked' }]);
 			t.clock.advance('16min');
 			expect(
 				yield* Effect.flip(customer.act('booking_requests.create', [request()]))

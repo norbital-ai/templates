@@ -10,7 +10,7 @@ export default automation('visits_reassign', {
 		targets: { kind: 'list', of: { kind: 'id', of: 'visits' }, min: 1 },
 		helper: { kind: 'id', of: 'helpers', optional: true }
 	},
-	runAs: 'trigger',
+	policies: ['operations'],
 	run: function* ({ helper, targets }, ctx) {
 		const { rows: targetsOf } = (yield* ctx.query({ visits: { where: { id: { in: targets } } } }))
 			.visits;

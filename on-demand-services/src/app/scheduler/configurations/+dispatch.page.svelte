@@ -15,7 +15,7 @@
 	description={t('app.configurations.dispatch_description')}
 	variant="full"
 >
-	<Scroll name="dispatch-settings" inset>
+	<Scroll name="dispatch-settings" size="fill" inset>
 		{#if settings.current === undefined}
 			<p class="text-caption">{t('component.loading')}</p>
 		{:else}

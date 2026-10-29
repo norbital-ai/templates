@@ -6,7 +6,7 @@
 import { expect, it } from '@effect/vitest';
 import { Effect, Schema } from 'effect';
 import { Authorities } from '@norbital-ai/bolt/engine';
-import { TestWorkspace } from '@norbital-ai/bolt/test';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import type { InstanceId } from '@norbital-ai/bolt';
 import { inputSchema } from '@norbital-ai/std/kind';
 import { moneyNumber } from '../../src/lib/payroll_engine/foundation.ts';
@@ -151,7 +151,9 @@ it.effect("a member's hotline reads their own payslips of the number's entity on
 				dm: true
 			});
 			if (authority === null) throw new Error('The hotline does not serve this member');
-			const { rows } = (yield* t.as(authority).query({ payslip: { fields: ['net'] } })).payslip;
+			const { rows } = (yield* t
+				.as(authority)
+				.query({ payslip: { output: 'hotline', fields: ['net'] } })).payslip;
 			return rows.map((row) => moneyNumber(row.net)).sort();
 		});
 		expect(yield* nets(HOTLINE_A, CAL)).toEqual([1000]);

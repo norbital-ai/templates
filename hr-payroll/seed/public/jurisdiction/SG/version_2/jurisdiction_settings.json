@@ -1,0 +1,837 @@
+[
+	{
+		"id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"code": "SG",
+		"name": "Singapore — 1 January 2026",
+		"sealed_at": "2026-09-26T12:52:34.636Z",
+		"voided_at": null,
+		"void_reason": null,
+		"cloned_from_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-06-30"
+		},
+		"change_summary": "1 January 2026: the CPF Board contribution tables raise senior workers above 55–60 to 34% and above 60–65 to 25% with the SGD 8,000 Ordinary Wage ceiling (CPF Act 1953 First Schedule), and the security-sector PWM floors take their 2026 step. Shared Parental Leave is keyed to the child’s birth or Formal Intent to Adopt date, so its 10 weeks for children from 1 April 2026 need no version of their own.",
+		"payroll": {
+			"currency": "SGD",
+			"timezone": "Asia/Singapore",
+			"week_start": 0,
+			"roster_week": "ROLLING",
+			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))"
+		},
+		"time_pay": {
+			"BASIC": [
+				{
+					"code": "BASIC",
+					"name": "Basic salary",
+					"references": [
+						{
+							"title": "Employment Act 1968 s.20A: salary for an incomplete month is the monthly gross rate × the working days served ÷ the working days in the month (its planned WORK days; calendar days when no schedule is planned). EA s.20A(1)–(2): an incomplete month pays the monthly gross rate × days actually worked ÷ days required to work; a day required to work 5 hours or less counts as half in the days worked. EA s.20A (MOM, Monthly and daily salary: definitions and calculation, https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary, updated 8 Dec 2025, read 2026-10-08: incomplete month = monthly gross ÷ the month’s working days, public holidays included, × days worked). A complete month pays the monthly amount ÷ period.parts in each part (a semi-monthly half pays exactly half). An incomplete month (start after the 1st, exit before the last day, or a part not wholly employed) pays the monthly amount × days worked ÷ (period.month_working_days + period.month_holiday_work_days); the last part of a month the employment started before settles the month: the s.20A total (the earlier parts’ working days, this part’s worked) less what the month’s earlier slips paid for the code (earned.month), so a leaver recorded after the first half was paid is exact. A ≤ 5-hour required day counts as half in an incomplete month. No-pay and unauthorised days deduct through their own lines at the same divisor. With nothing planned, paid days ÷ the month’s calendar days.",
+							"url": "https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary"
+						}
+					],
+					"eligibility": "true",
+					"quantity": "!(period.covered_working_days < period.working_days\n||employment.start_date > period.month_from\n|| (employment.exit_date != \"\" && employment.exit_date < period.month_to))\n  ?1.0 / double(period.parts)\n  :double(period.month_working_days + period.month_holiday_work_days)\n  >0.0\n    ? ((double(period.parts) > 1.0 && period.part == period.parts\n    &&employment.start_date <= period.month_from)\n      ? (double(\n        period.month_working_days + period.month_holiday_work_days\n      )\n      -double(period.working_days)\n      + (double(period.covered_working_days)\n      -0.5\n      *double(\n        size(\n          work.days.filter(\n            d,\n            d.day_type == \"WORK\" && d.scheduled_hours > 0.0\n            &&d.scheduled_hours <= 5.0\n            &&d.date >= period.from\n            &&d.date <= period.to\n          )\n        )\n      )))\n      /double(\n        period.month_working_days + period.month_holiday_work_days\n      )\n      - (has(earned.month.BASIC) ? earned.month.BASIC : 0.0)\n      /terms.base_salary\n      : (double(period.covered_working_days)\n      -0.5\n      *double(\n        size(\n          work.days.filter(\n            d,\n            d.day_type == \"WORK\" && d.scheduled_hours > 0.0\n            &&d.scheduled_hours <= 5.0\n            &&d.date >= period.from\n            &&d.date <= period.to\n          )\n        )\n      ))\n      /double(\n        period.month_working_days + period.month_holiday_work_days\n      ))\n    :double(period.paid_days) / double(period.month_days)",
+					"rate": "terms.base_salary",
+					"prorated": true,
+					"denominator": "double(period.days)",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"]
+				}
+			],
+			"OVERTIME": [
+				{
+					"code": "OVERTIME",
+					"name": "Overtime (1.5×)",
+					"references": [
+						{
+							"title": "Employment Act 1968 s.38(4): overtime at not less than 1.5 times the hourly basic rate; s.38(5) and the Fourth Schedule hourly basic rate = 12 × monthly basic ÷ (52 × 44). For a non-workman earning above SGD 2,250 the overtime rate is computed on SGD 2,250 (MOM, Hours of work and overtime). Part 4 (EA s.35, s.2): statutory overtime applies to a workman earning ≤ $4,500 and any other employee earning ≤ $2,600 basic; outside Part 4 overtime is contractual and not priced here. A rest day (s.37(2)(c)/(3)(c)) or public holiday planned with no ordinary hours counts as overtime only its paid hours beyond the normal daily hours (employee.facts.normal_daily_hours, else the planned working shift), less any banked; the day itself is paid by REST_DAY_WORK or HOLIDAY_WORK."
+						}
+					],
+					"eligibility": "((terms.statutory_work_category != \"NON_MANUAL\"\n&&terms.base_salary <= 4500.0)\n|| (terms.statutory_work_category == \"NON_MANUAL\"\n&&terms.base_salary <= 2600.0))\n&&terms.employment_type != \"PART_TIME\"\n&&work.overtime_hours > 0.0",
+					"quantity": "sum(\n  work.days.map(\n    d,\n    max(\n      0.0,\n      ((d.scheduled_hours > 0.0\n      || (d.day_type != \"REST\"\n      &&!(d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"])))\n        ?d.overtime_hours\n        :max(\n          0.0,\n          d.worked_hours\n          - (has(employee.facts.normal_daily_hours)\n            ?double(employee.facts.normal_daily_hours)\n            :size(\n              work.days.filter(\n                w,\n                w.day_type == \"WORK\" && w.scheduled_hours > 0.0\n              )\n            )\n            >0\n              ?double(\n                first(\n                  work.days.filter(\n                    w,\n                    w.day_type == \"WORK\" && w.scheduled_hours > 0.0\n                  ).map(\n                    w,\n                    w.scheduled_hours\n                  )\n                )\n              )\n              :0.0)\n          -d.banked_hours\n        ))\n      -d.payable_incentive_hours\n    )\n  )\n)",
+					"rate": "1.5\n* (terms.statutory_work_category == \"NON_MANUAL\"\n  ?min(terms.base_salary, 2250.0)\n  :terms.base_salary)\n*12.0\n/2288.0",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"]
+				},
+				{
+					"code": "PART_TIME_OVERTIME",
+					"name": "Part-time hours beyond full-time normal hours",
+					"references": [
+						{
+							"title": "MOM, Overtime for part-time employees, read 2026-10-07, on the Employment (Part-Time Employees) Regulations: hours beyond the contracted daily hours but within a comparable full-time employee’s normal hours are paid at the hourly basic rate; hours beyond the full-time normal hours at 1.5 × it (MOM example: 4 contracted hours, 8 full-time, 9 worked = 4 × rate + 1 × 1.5 × rate). Hourly basic rate = 12 × monthly basic ÷ (52 × contracted weekly hours). Read on each scheduled working day from approved overtime; customer input: employee.facts.part_time_weekly_hours, full_time_daily_hours (default 8, EA s.38(1)(b)).",
+							"url": "https://www.mom.gov.sg/employment-practices/part-time-employment/overtime"
+						}
+					],
+					"eligibility": "terms.employment_type == \"PART_TIME\"\n&&has(employee.facts.part_time_weekly_hours)",
+					"quantity": "sum(\n  work.days.filter(\n    d,\n    d.day_type == \"WORK\" && d.scheduled_hours > 0.0\n    &&d.overtime_hours > 0.0\n  ).map(\n    d,\n    max(\n      0.0,\n      d.overtime_hours\n      -max(\n        0.0,\n        (has(employee.facts.full_time_daily_hours)\n          ?double(employee.facts.full_time_daily_hours)\n          :8.0)\n        -d.scheduled_hours\n      )\n    )\n  )\n)",
+					"rate": "1.5 * 12.0 * terms.base_salary\n/ (52.0 * double(employee.facts.part_time_weekly_hours))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"]
+				},
+				{
+					"code": "PART_TIME_EXTRA_HOURS",
+					"name": "Part-time extra hours within full-time normal hours",
+					"references": [
+						{
+							"title": "MOM, Overtime for part-time employees, read 2026-10-07, on the Employment (Part-Time Employees) Regulations: hours beyond the contracted daily hours but within a comparable full-time employee’s normal hours are paid at the hourly basic rate; hours beyond the full-time normal hours at 1.5 × it (MOM example: 4 contracted hours, 8 full-time, 9 worked = 4 × rate + 1 × 1.5 × rate). Hourly basic rate = 12 × monthly basic ÷ (52 × contracted weekly hours). Read on each scheduled working day from approved overtime; customer input: employee.facts.part_time_weekly_hours, full_time_daily_hours (default 8, EA s.38(1)(b)).",
+							"url": "https://www.mom.gov.sg/employment-practices/part-time-employment/overtime"
+						}
+					],
+					"eligibility": "terms.employment_type == \"PART_TIME\"\n&&has(employee.facts.part_time_weekly_hours)",
+					"quantity": "sum(\n  work.days.filter(\n    d,\n    d.day_type == \"WORK\" && d.scheduled_hours > 0.0\n    &&d.overtime_hours > 0.0\n  ).map(\n    d,\n    min(\n      d.overtime_hours,\n      max(\n        0.0,\n        (has(employee.facts.full_time_daily_hours)\n          ?double(employee.facts.full_time_daily_hours)\n          :8.0)\n        -d.scheduled_hours\n      )\n    )\n  )\n)",
+					"rate": "12.0 * terms.base_salary\n/ (52.0 * double(employee.facts.part_time_weekly_hours))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"]
+				}
+			],
+			"REST_DAY_WORK": [
+				{
+					"code": "REST_DAY_WORK",
+					"name": "Rest-day work (EA s.37)",
+					"references": [
+						{
+							"title": "Employment Act 1968 s.37(2)–(3) (AGC, read 2026-10-07): a Part 4 employee who works on a rest day at his or her own request is paid half a day’s basic rate for up to half the normal hours, one day’s for more; at the employer’s request one day’s for up to half the normal hours, two days’ for more. Hours beyond the normal hours are overtime (s.37(2)(c)/(3)(c)) and priced by OVERTIME: the rest day’s paid hours beyond the normal hours. Daily basic rate per MOM: 12 × monthly basic ÷ (52 × days worked a week). Customer input: employee.facts.rest_day_work_requester (EMPLOYER | EMPLOYEE), required by s.37: without it the slip is held (REST_DAY_WORK_REQUESTER_MISSING); normal_daily_hours, else the planned hours of the employee’s working shift, else the slip is held (REST_DAY_NORMAL_HOURS_MISSING). Daily basic rate: 12 × monthly basic ÷ (52 × employee.facts.working_days_per_week); where the days a week are not recorded, the monthly basic ÷ the month’s EA s.20A working days (period.month_working_days + period.month_holiday_work_days, public holidays included; else the month’s calendar days), so the statutory day is never left unpaid."
+						}
+					],
+					"eligibility": "employment.classification != \"NON_EA\"\n&& ((terms.statutory_work_category != \"NON_MANUAL\"\n&&terms.base_salary <= 4500.0)\n|| (terms.statutory_work_category == \"NON_MANUAL\"\n&&terms.base_salary <= 2600.0))\n&&has(employee.facts.rest_day_work_requester)\n&& (has(employee.facts.normal_daily_hours)\n  ?double(employee.facts.normal_daily_hours)\n  :size(\n    work.days.filter(w, w.day_type == \"WORK\" && w.scheduled_hours > 0.0)\n  )\n  >0\n    ?double(\n      first(\n        work.days.filter(\n          w,\n          w.day_type == \"WORK\" && w.scheduled_hours > 0.0\n        ).map(\n          w,\n          w.scheduled_hours\n        )\n      )\n    )\n    :0.0)\n>0.0\n&&size(\n  work.days.filter(d, d.day_type == \"REST\" && d.worked_hours > 0.0)\n)\n>0",
+					"quantity": "sum(\n  work.days.filter(d, d.day_type == \"REST\" && d.worked_hours > 0.0).map(\n    d,\n    employee.facts.rest_day_work_requester == \"EMPLOYEE\"\n      ? (d.worked_hours\n      <= (has(employee.facts.normal_daily_hours)\n        ?double(employee.facts.normal_daily_hours)\n        :size(\n          work.days.filter(\n            w,\n            w.day_type == \"WORK\" && w.scheduled_hours > 0.0\n          )\n        )\n        >0\n          ?double(\n            first(\n              work.days.filter(\n                w,\n                w.day_type == \"WORK\" && w.scheduled_hours > 0.0\n              ).map(\n                w,\n                w.scheduled_hours\n              )\n            )\n          )\n          :0.0)\n      /2.0\n        ?0.5\n        :1.0)\n      : (d.worked_hours\n      <= (has(employee.facts.normal_daily_hours)\n        ?double(employee.facts.normal_daily_hours)\n        :size(\n          work.days.filter(\n            w,\n            w.day_type == \"WORK\" && w.scheduled_hours > 0.0\n          )\n        )\n        >0\n          ?double(\n            first(\n              work.days.filter(\n                w,\n                w.day_type == \"WORK\" && w.scheduled_hours > 0.0\n              ).map(\n                w,\n                w.scheduled_hours\n              )\n            )\n          )\n          :0.0)\n      /2.0\n        ?1.0\n        :2.0\n  ) )\n)",
+					"rate": "(has(employee.facts.working_days_per_week)\n  ?12.0 * terms.base_salary\n  / (52.0 * double(employee.facts.working_days_per_week))\n  :terms.base_salary\n  / (double(period.month_working_days + period.month_holiday_work_days)\n  >0.0\n    ?double(period.month_working_days + period.month_holiday_work_days)\n    :double(period.month_days)))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"]
+				}
+			],
+			"HOLIDAY_WORK": [
+				{
+					"code": "HOLIDAY_WORK",
+					"name": "Public holiday work (extra day’s basic pay)",
+					"references": [
+						{
+							"title": "Employment Act 1968 s.88(4)–(4A): an employee who works on a public holiday at the employer’s request is paid, besides the gross rate for the day, an extra day’s salary at the basic rate of pay (MOM, Public holidays: entitlement and pay, https://www.mom.gov.sg/employment-practices/public-holidays-entitlement-and-pay). MOM, Monthly and daily salary (https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary): the daily basic rate is 12 × monthly basic ÷ (52 × the average days the employee is required to work a week). A roster day on a published public or substitute holiday is the work; time off in lieu by agreement is not priced. Part-time employees are paid under the Part-Time Regulations and are not priced here. s.88(4A): an employee outside Part 4 (not a s.35 workman or s.35(b) employee) may instead be given a day off, or part of one, in lieu of the extra day’s salary; record such time off and void the line rather than paying both. Daily basic rate: 12 × monthly basic ÷ (52 × employee.facts.working_days_per_week); where the days a week are not recorded, the monthly basic ÷ the month’s EA s.20A working days (period.month_working_days + period.month_holiday_work_days, public holidays included; else the month’s calendar days), so the statutory day is never left unpaid."
+						}
+					],
+					"eligibility": "employment.classification != \"NON_EA\"\n&&terms.employment_type != \"PART_TIME\"\n&&size(\n  work.holidays.filter(\n    h,\n    h.worked && h.kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n    && (h.given_to != \"ONLY_IF_OFF_ON_REPLACED_DATE\"\n    || (h.replaces != \"\" && !(h.replaces in work.dates\n  ) )))\n)\n>0",
+					"quantity": "double(\n  size(\n    work.holidays.filter(\n      h,\n      h.worked && h.kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n      && (h.given_to != \"ONLY_IF_OFF_ON_REPLACED_DATE\"\n      || (h.replaces != \"\" && !(h.replaces in work.dates\n    ) )))\n  )\n)",
+					"rate": "(has(employee.facts.working_days_per_week)\n  ?12.0 * terms.base_salary\n  / (52.0 * double(employee.facts.working_days_per_week))\n  :terms.base_salary\n  / (double(period.month_working_days + period.month_holiday_work_days)\n  >0.0\n    ?double(period.month_working_days + period.month_holiday_work_days)\n    :double(period.month_days)))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"]
+				},
+				{
+					"code": "PART_TIME_HOLIDAY_WORK",
+					"name": "Part-time public holiday work",
+					"references": [
+						{
+							"title": "Employment (Part-Time Employees) Regulations; MOM, Public holidays for part-time employees (https://www.mom.gov.sg/employment-practices/part-time-employment/public-holidays, read 2026-10-07): a part-timer required to work on a public holiday is paid, besides the holiday entitlement, the basic rate of pay for one day’s work — the day’s hours at the hourly basic rate 12 × monthly basic ÷ (52 × contracted weekly hours). Customer input: employee.facts.part_time_weekly_hours.",
+							"url": "https://www.mom.gov.sg/employment-practices/part-time-employment/public-holidays"
+						}
+					],
+					"eligibility": "terms.employment_type == \"PART_TIME\"\n&&has(employee.facts.part_time_weekly_hours)\n&&size(\n  work.days.filter(\n    d,\n    has(d.holiday_kind)\n    &&d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n    &&d.worked_hours > 0.0\n  )\n)\n>0",
+					"quantity": "sum(\n  work.days.filter(\n    d,\n    has(d.holiday_kind)\n    &&d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n    &&d.worked_hours > 0.0\n  ).map(\n    d,\n    d.scheduled_hours > 0.0 ? d.scheduled_hours : d.worked_hours\n  )\n)",
+					"rate": "12.0 * terms.base_salary\n/ (52.0 * double(employee.facts.part_time_weekly_hours))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"]
+				}
+			],
+			"INCENTIVE": [
+				{
+					"code": "INCENTIVE",
+					"name": "Incentive hours (1.5×)",
+					"references": [
+						{
+							"title": "Employment Act 1968 s.38(4): overtime at not less than 1.5 times the hourly basic rate; s.38(5) and the Fourth Schedule hourly basic rate = 12 × monthly basic ÷ (52 × 44). For a non-workman earning above SGD 2,250 the overtime rate is computed on SGD 2,250 (MOM, Hours of work and overtime). Part 4 (EA s.35, s.2): statutory overtime applies to a workman earning ≤ $4,500 and any other employee earning ≤ $2,600 basic; outside Part 4 overtime is contractual and not priced here."
+						}
+					],
+					"eligibility": "((terms.statutory_work_category != \"NON_MANUAL\"\n&&terms.base_salary <= 4500.0)\n|| (terms.statutory_work_category == \"NON_MANUAL\"\n&&terms.base_salary <= 2600.0))\n&&terms.employment_type != \"PART_TIME\"\n&&work.days.exists(\n  d,\n  min(\n    d.payable_incentive_hours,\n    ((d.scheduled_hours > 0.0\n    || (d.day_type != \"REST\"\n    &&!(d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"])))\n      ?d.overtime_hours\n      :max(\n        0.0,\n        d.worked_hours\n        - (has(employee.facts.normal_daily_hours)\n          ?double(employee.facts.normal_daily_hours)\n          :size(\n            work.days.filter(\n              w,\n              w.day_type == \"WORK\" && w.scheduled_hours > 0.0\n            )\n          )\n          >0\n            ?double(\n              first(\n                work.days.filter(\n                  w,\n                  w.day_type == \"WORK\" && w.scheduled_hours > 0.0\n                ).map(\n                  w,\n                  w.scheduled_hours\n                )\n              )\n            )\n            :0.0)\n        -d.banked_hours\n      )\n  ) )\n  >0.0\n)",
+					"quantity": "sum(\n  work.days.map(\n    d,\n    min(\n      d.payable_incentive_hours,\n      ((d.scheduled_hours > 0.0\n      || (d.day_type != \"REST\"\n      &&!(d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"])))\n        ?d.overtime_hours\n        :max(\n          0.0,\n          d.worked_hours\n          - (has(employee.facts.normal_daily_hours)\n            ?double(employee.facts.normal_daily_hours)\n            :size(\n              work.days.filter(\n                w,\n                w.day_type == \"WORK\" && w.scheduled_hours > 0.0\n              )\n            )\n            >0\n              ?double(\n                first(\n                  work.days.filter(\n                    w,\n                    w.day_type == \"WORK\" && w.scheduled_hours > 0.0\n                  ).map(\n                    w,\n                    w.scheduled_hours\n                  )\n                )\n              )\n              :0.0)\n          -d.banked_hours\n        )\n    ) )\n  )\n)",
+					"rate": "1.5\n* (terms.statutory_work_category == \"NON_MANUAL\"\n  ?min(terms.base_salary, 2250.0)\n  :terms.base_salary)\n*12.0\n/2288.0",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"]
+				}
+			],
+			"PAID_HOLIDAY": [
+				{
+					"code": "HOLIDAY_ON_OFF_DAY",
+					"name": "Public holiday on a non-working day",
+					"references": [
+						{
+							"title": "Employment Act 1968 s.88(1)(c) (AGC, read 2026-10-07): if a public holiday falls on a day the employee is not required to work, the employer either pays the holiday at the gross rate of pay or gives a day off in substitution. Priced at the gross daily rate unless employee.facts.ph_off_day_compensation is DAY_OFF (customer input: then credit PUBLIC_HOLIDAY_IN_LIEU). A holiday on the rest day moves to the next working day (s.88(1)(b)); the gazetted Sunday substitutes are in the public_holidays calendar. https://sso.agc.gov.sg/Act/EmA1968 EA s.20A divisor (MOM, Monthly and daily salary: definitions and calculation (https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary, updated 8 Dec 2025, read 2026-10-08): incomplete month = monthly gross ÷ the month’s working days × days worked, the working days excluding rest and non-working days but including public holidays): period.month_working_days + period.month_holiday_work_days, the whole calendar month’s, the same in every part; with nothing planned, the month’s calendar days."
+						}
+					],
+					"eligibility": "employment.classification != \"NON_EA\"\n&&!(has(employee.facts.ph_off_day_compensation)\n&&employee.facts.ph_off_day_compensation == \"DAY_OFF\")\n&&work.days.exists(\n  d,\n  has(d.holiday_kind)\n  &&d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n  &&d.day_type == \"OFF\"\n  &&!d.worked\n)",
+					"quantity": "double(\n  size(\n    work.days.filter(\n      d,\n      has(d.holiday_kind)\n      &&d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n      &&d.day_type == \"OFF\"\n      &&!d.worked\n    )\n  )\n)",
+					"rate": "(has(employee.facts.working_days_per_week)\n  ?12.0 * terms.monthly_wage\n  / (52.0 * double(employee.facts.working_days_per_week))\n  :terms.monthly_wage\n  / (double(period.month_working_days + period.month_holiday_work_days)\n  >0.0\n    ?double(period.month_working_days + period.month_holiday_work_days)\n    :double(period.month_days)))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"]
+				},
+				{
+					"code": "HOLIDAY_ADJACENT_ABSENCE",
+					"name": "Holiday pay forfeited for an adjacent unauthorised absence",
+					"references": [
+						{
+							"title": "Employment Act 1968 s.88(3): an employee absent without the employer's prior consent or reasonable excuse on the working day immediately before or after a public holiday is not entitled to holiday pay for it. Customer input: the roster day's facts.unauthorised_absence. Deducted at the gross daily rate per holiday. https://sso.agc.gov.sg/Act/EmA1968 EA s.20A divisor (MOM, Monthly and daily salary: definitions and calculation (https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary, updated 8 Dec 2025, read 2026-10-08): incomplete month = monthly gross ÷ the month’s working days × days worked, the working days excluding rest and non-working days but including public holidays): period.month_working_days + period.month_holiday_work_days, the whole calendar month’s, the same in every part; with nothing planned, the month’s calendar days."
+						}
+					],
+					"eligibility": "employment.classification != \"NON_EA\"\n&&work.days.exists(\n  a,\n  has(a.facts.unauthorised_absence)\n  &&a.facts.unauthorised_absence == true\n)",
+					"quantity": "double(\n  size(\n    work.days.filter(\n      h,\n      has(h.holiday_kind)\n      &&h.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n      &&!h.worked\n      &&work.days.exists(\n        a,\n        a.day_type == \"WORK\" && !has(a.holiday_kind)\n        &&has(a.facts.unauthorised_absence)\n        &&a.facts.unauthorised_absence == true\n        && ((a.date < h.date\n        &&!work.days.exists(\n          b,\n          b.day_type == \"WORK\" && !has(b.holiday_kind)\n          &&b.date > a.date\n          &&b.date < h.date\n        ))\n        || (a.date > h.date\n        &&!work.days.exists(\n          b,\n          b.day_type == \"WORK\" && !has(b.holiday_kind)\n          &&b.date < a.date\n          &&b.date > h.date\n        )\n      ) ))\n    )\n  )\n)",
+					"rate": "(has(employee.facts.working_days_per_week)\n  ?12.0 * terms.monthly_wage\n  / (52.0 * double(employee.facts.working_days_per_week))\n  :terms.monthly_wage\n  / (double(period.month_working_days + period.month_holiday_work_days)\n  >0.0\n    ?double(period.month_working_days + period.month_holiday_work_days)\n    :double(period.month_days)))",
+					"destination": "PAY",
+					"direction": "SUBTRACT",
+					"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"]
+				}
+			]
+		},
+		"sources": {
+			"entries": [
+				{
+					"agent": "catalog",
+					"url": "https://www.mom.gov.sg/",
+					"instructions": "Ministry of Manpower, Employment Act 1968 pay and leave items. Under Employment practices > Leave: annual, sick and hospitalisation leave (service bands, eligibility and approval conditions such as medical certification) and Employment Act maternity and childcare leave for a non-citizen child. Under Employment practices > Salary and Hours of work, rest day and public holidays: the pay for overtime, rest-day work and public-holiday work and the gross / basic rate definitions the work items are built from, plus AWS and bonus pages. Under Termination: retrenchment benefit, salary in lieu of notice and other termination payments; the Retirement and Re-employment Act Employment Assistance Payment (Tripartite Guidelines PDF linked from Employment practices > Re-employment); suspension pending a misconduct inquiry (Termination of employment pages; site search \"misconduct\"); kinds of permitted deductions (loans, advances, recoveries) in the Salary topic's deductions page; pro-rated leave and pay for part-timers under the Employment (Part-Time Employees) Regulations page."
+				},
+				{
+					"agent": "catalog",
+					"url": "https://www.profamilyleave.msf.gov.sg/",
+					"instructions": "Government-Paid Leave portal (Ministry of Social and Family Development), Child Development Co-Savings Act schemes for a citizen child. Open Schemes for each scheme page: Government-Paid Maternity, Paternity, Shared Parental, Adoption and Childcare Leave, Extended Childcare Leave and Unpaid Infant Care Leave — eligibility, weeks or days by the child's birth date, splitting between parents and which leave the employer pays and the government reimburses (reimbursement caps)."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.cpf.gov.sg/",
+					"instructions": "Open the Employer section, then Central Provident Fund Board employer pages for CPF contributions: rate tables by age band and citizen / SPR year (the yearly contribution-rate PDF under Employer obligations > How much CPF contributions to pay), the Ordinary and Additional Wage ceilings, wage bands and rounding, and which payments attract CPF (including NS make-up pay and termination payments). Also the Skills Development Levy (rate, minimum and maximum) and the self-help-group fund schedules and opt-out rules (CDAC, ECF, MBMF, SINDA) under Employer obligations > Contributions to self-help groups. Check the effective date on each table; senior-worker rate steps appear in the service FAQ articles before the PDF is published."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.iras.gov.sg/",
+					"instructions": "Inland Revenue Authority of Singapore, employment income tax as it touches payroll. Under Taxes > Individual income tax > Employers: taxable versus exempt allowances and benefits (the tax base). Under Taxes > Withholding tax: withholding on payments to non-resident directors and public entertainers (Section 45) — rates and base. Resident employees have no monthly withholding."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.mom.gov.sg/",
+					"instructions": "Ministry of Manpower, Passes and permits: the foreign worker levy for Work Permit and S Pass holders — tiers, quota-linked rates and how the levy is charged per month."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.muis.gov.sg/",
+					"instructions": "Islamic Religious Council of Singapore: the Mosque Building and Mendaki Fund (MBMF) contribution schedule by wage band, coverage and opt-out rules; cross-check against the CPF self-help-group page."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.cdac.org.sg/",
+					"instructions": "Chinese Development Assistance Council: the CDAC Fund contribution schedule by wage band, coverage and opt-out rules; cross-check against the CPF self-help-group page."
+				},
+				{
+					"agent": "rules",
+					"url": "https://www.mom.gov.sg/",
+					"instructions": "Ministry of Manpower, limits under the Employment Act 1968 and related law. Contract coverage: Part 4 salary thresholds, workman / non-workman, managers and executives (Employment Act coverage pages). Employment practices > Salary: salary period and payment deadlines, deduction ceilings. Hours of work, rest day and overtime: daily and weekly hours, the monthly overtime cap, rest-day frequency. The Employment (Part-Time Employees) Regulations hour threshold, young persons and children limits, Retirement and Re-employment Act minimum retirement and re-employment ages, the Progressive Wage Model sector and occupational wage floors and the Local Qualifying Salary (Employment practices > Progressive Wage Model), and how long employment records must be kept."
+				},
+				{
+					"agent": "rules",
+					"url": "https://www.iras.gov.sg/",
+					"instructions": "Inland Revenue Authority of Singapore: how long employers must keep payroll and tax records (site search \"record keeping\" from Taxes > Individual income tax > Employers)."
+				},
+				{
+					"agent": "rules",
+					"url": "https://www.pdpc.gov.sg/",
+					"instructions": "Personal Data Protection Commission: the Personal Data Protection Act 2012 retention limitation obligation as it applies to employee data. Use Overview of PDPA > The legislation and the advisory guidelines chapter on employment under Guidelines and consultation."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.mom.gov.sg/",
+					"instructions": "Ministry of Manpower, event rules under the Employment Act 1968. Employment practices > Public holidays: what follows when a public holiday falls on a rest day or non-working day, or the employee works it. Leave pages: what happens to leave and pay when an exit occurs mid-year (encashment or offset of unused annual leave). Termination: notice and salary in lieu, payment of salary on dismissal, resignation, retrenchment or death and its deadlines."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.iras.gov.sg/",
+					"instructions": "Inland Revenue Authority of Singapore, Taxes > Individual income tax > Employers > Tax clearance for foreign & SPR employees (IR21): what an exit of a non-citizen employee must cause on payroll — withholding all monies due from the notice date until clearance."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.profamilyleave.msf.gov.sg/",
+					"instructions": "Government-Paid Leave portal: under Schemes, what an employer must still pay or keep when employment ends, the employee is dismissed or a leave block spans an exit or a new child's birth date."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.mom.gov.sg/",
+					"instructions": "Ministry of Manpower, employer duties with deadlines: key employment terms in writing, itemised payslips and employment records (Employment practices > Salary > Itemised payslips and Employment records), mandatory retrenchment notification, flexible work arrangement request handling and fair employment / Workplace Fairness legislation duties, work pass security bond and medical insurance (Passes and permits), and work injury compensation insurance and workplace incident reporting (Workplace safety and health). Newsroom > Press releases dates a change; the topic page states the operative duty."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.cpf.gov.sg/",
+					"instructions": "Open the Employer section, then Central Provident Fund Board employer obligations: CPF, SDL and self-help-group payment due date, the submission (e-Submit / CPF EZPay) process, late-payment interest and penalties, and new-employer registration for a CPF Submission Number."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.iras.gov.sg/",
+					"instructions": "Inland Revenue Authority of Singapore, Taxes > Individual income tax > Employers: the Auto-Inclusion Scheme and Form IR8A filing deadline, Appendix 8A (benefits in kind) and 8B (share gains), Form IR21 filing deadlines for departing non-citizen employees, and Taxes > Withholding tax: Section 45 filing and payment deadlines."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.pdpc.gov.sg/",
+					"instructions": "Personal Data Protection Commission, Personal Data Protection Act 2012 duties over employee data: purpose notification and the employment exceptions to consent, appointing a data protection officer, access and correction request time limits, and data breach assessment and notification to PDPC and affected employees. Use Overview of PDPA > The legislation and the employment chapter of the advisory guidelines under Guidelines and consultation."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.profamilyleave.msf.gov.sg/",
+					"instructions": "Government-Paid Leave portal: under Schemes and the employer claim pages, how and by when an employer claims government reimbursement and the records it must keep."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.mom.gov.sg/",
+					"instructions": "Ministry of Manpower, Employment practices > Salary: the monthly-wage basis (the incomplete-month formula and the hourly and daily basic rate formulas), the salary period and pay date the version's settings use, and how a shortfall or final settlement may be carried (negative net, exit handling). Passes and permits: the work pass types an employee record must hold."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.cpf.gov.sg/",
+					"instructions": "Open the Employer section, then Central Provident Fund Board employer pages: the employer and employee facts CPF and self-help-group computation needs — CPF Submission Number, citizenship or SPR status and year, date of birth for age bands, and the race / religion that selects the fund."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.iras.gov.sg/",
+					"instructions": "Inland Revenue Authority of Singapore: the currency and the Year of Assessment basis for employment income (calendar-year income), the employer tax reference number, the employee identification numbers IR8A requires and the tax-residency test (Taxes > Individual income tax; Employers > Filing employee earnings for the IR8A fields)."
+				}
+			],
+			"agents": {
+				"catalog": "Compare the pay and leave catalogues and suspension kinds against operative law; keep leave entitlements, government-paid leave and reimbursements distinct, and keep Employment Act leave for a non-citizen child (MOM) apart from the citizen-child schemes (Government-Paid Leave portal). Singapore Statutes Online (sso.agc.gov.sg) and the MINDEF / NS portals refuse the research browser and are not sources: take section numbers and operative figures from the administering agency's pages. Open each public portal directly and follow its own menus, site search and document links; record the exact document URL, issuer, instrument, publication and effective dates and the quoted clause or table; read annexes and amendments, OCR and visually verify a scanned PDF; never treat an announcement or proposal as operative law, never sign in or upload customer records, and report unresolved evidence instead of guessing.",
+				"contribution": "Compare contribution, levy and withholding schemes against operative law: coverage by citizen / SPR / foreign class, age bands, base, rates, ceilings, rounding and opt-outs; keep CPF, self-help-group funds, SDL and the foreign worker levy distinct; check the effective date on every table. Singapore Statutes Online (sso.agc.gov.sg) and the MINDEF / NS portals refuse the research browser and are not sources: take section numbers and operative figures from the administering agency's pages. Open each public portal directly and follow its own menus, site search and document links; record the exact document URL, issuer, instrument, publication and effective dates and the quoted clause or table; read annexes and amendments, OCR and visually verify a scanned PDF; never treat an announcement or proposal as operative law, never sign in or upload customer records, and report unresolved evidence instead of guessing.",
+				"rules": "Compare the statutory limits against operative law; a press release or factsheet dates a change, the topic page states the operative figure. Singapore Statutes Online (sso.agc.gov.sg) and the MINDEF / NS portals refuse the research browser and are not sources: take section numbers and operative figures from the administering agency's pages. Open each public portal directly and follow its own menus, site search and document links; record the exact document URL, issuer, instrument, publication and effective dates and the quoted clause or table; read annexes and amendments, OCR and visually verify a scanned PDF; never treat an announcement or proposal as operative law, never sign in or upload customer records, and report unresolved evidence instead of guessing.",
+				"behaviour": "Compare the event rules against what the law requires when the event occurs; quote the provision that fixes the outcome. Singapore Statutes Online (sso.agc.gov.sg) and the MINDEF / NS portals refuse the research browser and are not sources: take section numbers and operative figures from the administering agency's pages. Open each public portal directly and follow its own menus, site search and document links; record the exact document URL, issuer, instrument, publication and effective dates and the quoted clause or table; read annexes and amendments, OCR and visually verify a scanned PDF; never treat an announcement or proposal as operative law, never sign in or upload customer records, and report unresolved evidence instead of guessing.",
+				"obligations": "Compare employer duties against operative law, each with its deadline, form and recipient. Singapore Statutes Online (sso.agc.gov.sg) and the MINDEF / NS portals refuse the research browser and are not sources: take section numbers and operative figures from the administering agency's pages. Open each public portal directly and follow its own menus, site search and document links; record the exact document URL, issuer, instrument, publication and effective dates and the quoted clause or table; read annexes and amendments, OCR and visually verify a scanned PDF; never treat an announcement or proposal as operative law, never sign in or upload customer records, and report unresolved evidence instead of guessing.",
+				"settings": "Compare the version's payroll settings and the statutory facts and employer numbers it holds against operative law. Singapore Statutes Online (sso.agc.gov.sg) and the MINDEF / NS portals refuse the research browser and are not sources: take section numbers and operative figures from the administering agency's pages. Open each public portal directly and follow its own menus, site search and document links; record the exact document URL, issuer, instrument, publication and effective dates and the quoted clause or table; read annexes and amendments, OCR and visually verify a scanned PDF; never treat an announcement or proposal as operative law, never sign in or upload customer records, and report unresolved evidence instead of guessing."
+			}
+		},
+		"entity_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "SG entity inputs",
+			"additionalProperties": false,
+			"properties": {
+				"uen": {
+					"type": "string",
+					"title": "Unique Entity Number",
+					"description": "ACRA UEN: the employer’s IRAS tax reference for AIS (Form IR8A) and IR21 filing, and its MOM employer identity for work passes and the foreign worker levy."
+				},
+				"cpf_submission_number": {
+					"type": "string",
+					"title": "CPF Submission Number (CSN)",
+					"description": "CPF Board CSN: the UEN (9–10 characters), payment type and serial number, written UEN-TYPE-SERIAL (e.g. 201912345A-PTE-01): the account the month’s CPF, SDL and self-help-group contributions are submitted under, and every record of the CPF EZPay (FTP) file (EXPORTS CPF_EZPAY_FTP).",
+					"pattern": "^[0-9A-Z]{9,10}-[A-Z]{3}-[0-9]{2}$"
+				},
+				"foreign_worker_levy_payer": {
+					"type": "boolean",
+					"title": "Pays the foreign worker levy",
+					"description": "True while the entity employs any S Pass or Work Permit holder; false stops the monthly FOREIGN_WORKER_LEVY obligation. Unrecorded raises it."
+				},
+				"ns_direct_scheme": {
+					"type": "boolean",
+					"description": "Registered for MINDEF/MHA DIRECT (Direct Reimbursement to Employers of Claims for NS Training): the employer keeps paying wages during NS training and is reimbursed (NS_LEAVE pay_fraction 1); otherwise NS days are an incomplete month under EA s.20A(1)(d) (pay_fraction 0). Customer input."
+				},
+				"industrial_undertaking": {
+					"type": "boolean",
+					"description": "The entity is an industrial undertaking (EA s.2) for the young-person notification. Customer input."
+				},
+				"dpo_contact": {
+					"type": "string",
+					"description": "Business contact of the designated data protection officer (PDPA s.11(5)). Customer input."
+				},
+				"full_time_weekly_hours": {
+					"type": "number",
+					"exclusiveMinimum": 0,
+					"maximum": 168,
+					"description": "The entity’s normal full-time week in hours: the comparable full-time hours a part-timer’s leave is prorated against when the employee records none (Part-Time Regulations reg.7). Customer input."
+				}
+			}
+		},
+		"employee_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "SG employee inputs",
+			"additionalProperties": false,
+			"properties": {
+				"contract_terms": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"summary": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"base_salary": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"currency": {
+										"type": "string",
+										"const": "SGD"
+									},
+									"value": {
+										"type": "number",
+										"minimum": 0
+									}
+								},
+								"description": "Monthly basic salary (CEL terms.base_salary)."
+							},
+							"currency": {
+								"type": "string",
+								"const": "SGD"
+							},
+							"allowances": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"catalogue_id": {
+											"type": "string"
+										},
+										"amount": {
+											"type": "object",
+											"additionalProperties": false,
+											"properties": {
+												"currency": {
+													"type": "string",
+													"const": "SGD"
+												},
+												"value": {
+													"type": "number",
+													"minimum": 0
+												}
+											}
+										}
+									}
+								}
+							},
+							"employment_type": {
+								"type": "string",
+								"enum": ["PERMANENT", "CONTRACT", "PART_TIME", "INTERN"],
+								"description": "PART_TIME is an employee contracted to work under 35 hours a week (Employment Act 1968 s.66A; Employment (Part-Time Employees) Regulations reg.2): the PT_ANNUAL_HOURLY_* allowances and the EAP part-time pro-ration read it; HOLIDAY_WORK does not price it."
+							},
+							"work_classification": {
+								"type": "string",
+								"enum": ["EA_COVERED", "MANAGERIAL", "NON_EA"],
+								"description": "NON_EA is outside the Employment Act 1968 (s.2: seafarers, domestic workers, statutory-board and civil servants): statutory leave, holiday work and the EA deductions are not offered. MANAGERIAL is a manager or executive, covered by the Act but not by Part 4."
+							},
+							"statutory_work_category": {
+								"type": "string",
+								"enum": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
+								"description": "Employment Act 1968 s.2 workman (manual labour or its supervision) or not: OVERTIME computes a non-workman’s rate on at most SGD 2,250 (s.38(8), Fourth Schedule)."
+							},
+							"residency_status": {
+								"type": "string",
+								"enum": ["CITIZEN", "PERMANENT_RESIDENT", "FOREIGNER"],
+								"description": "CPF and the self-help-group funds charge only a Singapore Citizen or SPR (CPF Act 1953 s.7); a FOREIGNER pays SDL only. NS leave and EAP read it."
+							},
+							"residency_since": {
+								"type": "string",
+								"format": "date",
+								"description": "SPR status grant date: the CPF graduated first- and second-year rates run from it (First Schedule Tables 2–3)."
+							},
+							"pay_frequency": {
+								"type": "string"
+							},
+							"job_title": {
+								"type": "string"
+							},
+							"department": {
+								"type": "string"
+							},
+							"shift_pattern_id": {
+								"type": "string"
+							},
+							"facts": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"mom_declared_monthly_salary": {
+										"type": "number",
+										"minimum": 0,
+										"description": "The fixed monthly salary declared to MOM for the employee’s Employment Pass or S Pass (MOM_DECLARED_SALARY). Customer input."
+									},
+									"pwm_role": {
+										"type": "string",
+										"enum": [
+											"ADMIN_ASSISTANT",
+											"ADMIN_EXECUTIVE",
+											"ADMIN_SUPERVISOR",
+											"CLEAN_CONSERVANCY_GENERAL",
+											"CLEAN_CONSERVANCY_MULTI_SKILLED",
+											"CLEAN_CONSERVANCY_SUPERVISOR",
+											"CLEAN_CONSERVANCY_TRUCK_DRIVER",
+											"CLEAN_FNB_DISHWASHER",
+											"CLEAN_FNB_GENERAL",
+											"CLEAN_FNB_MULTI_SKILLED",
+											"CLEAN_FNB_SUPERVISOR",
+											"CLEAN_FNB_TABLE_TOP",
+											"CLEAN_OFFICE_GENERAL",
+											"CLEAN_OFFICE_MULTI_SKILLED",
+											"CLEAN_OFFICE_OUTDOOR",
+											"CLEAN_OFFICE_SUPERVISOR",
+											"DRIVER_GENERAL",
+											"DRIVER_SPECIALISED",
+											"FOOD_FS_COOK",
+											"FOOD_FS_KITCHEN_ASSISTANT",
+											"FOOD_FS_WAITER",
+											"FOOD_FS_WAITER_SUPERVISOR",
+											"FOOD_QS_COOK",
+											"FOOD_QS_KITCHEN_ASSISTANT",
+											"FOOD_QS_STALL_ASSISTANT",
+											"LANDSCAPE_ASSISTANT_SUPERVISOR",
+											"LANDSCAPE_SUPERVISOR",
+											"LANDSCAPE_TECHNICIAN",
+											"LANDSCAPE_WORKER",
+											"LIFT_ASSISTANT_SPECIALIST",
+											"LIFT_PRINCIPAL_SPECIALIST",
+											"LIFT_SENIOR_SPECIALIST",
+											"LIFT_SPECIALIST",
+											"LIFT_SUPERVISOR",
+											"RETAIL_ASSISTANT",
+											"RETAIL_ASSISTANT_SUPERVISOR",
+											"RETAIL_SENIOR_ASSISTANT",
+											"SECURITY_INHOUSE_OFFICER",
+											"SECURITY_INHOUSE_SENIOR_OFFICER",
+											"SECURITY_INHOUSE_SUPERVISOR",
+											"SECURITY_OUTSOURCED_OFFICER",
+											"SECURITY_OUTSOURCED_SENIOR_OFFICER",
+											"SECURITY_OUTSOURCED_SENIOR_SUPERVISOR",
+											"SECURITY_OUTSOURCED_SUPERVISOR",
+											"WASTE_COLLECTION_CREW",
+											"WASTE_COLLECTION_DRIVER",
+											"WASTE_COLLECTION_HOOKLIFT_DRIVER",
+											"WASTE_COLLECTION_SENIOR_CREW",
+											"WASTE_COLLECTION_SENIOR_DRIVER",
+											"WASTE_COLLECTION_SUPERVISOR",
+											"WASTE_COLLECTION_TEAM_LEAD",
+											"WASTE_MRF_PLANT_SUPERVISOR",
+											"WASTE_MRF_SENIOR_SORTER",
+											"WASTE_MRF_SORTER",
+											"WASTE_MRF_TEAM_LEAD"
+										],
+										"description": "The employee’s Progressive Wage Model role and job level (PWM_WAGE_FLOOR reads PAYROLL pwm_wages). Customer input."
+									},
+									"notice_period_days": {
+										"type": "integer",
+										"minimum": 1,
+										"description": "The written contractual notice period in days, the same for both parties (EA s.10(2)); when absent, salary in lieu of notice is at least the s.10(3) period. Customer input."
+									},
+									"race": {
+										"type": "string",
+										"description": "The employee’s race as CPF records it (for example CHINESE, MALAY, INDIAN, EURASIAN): the CDAC, ECF and SINDA self-help-group funds read it (CPF Act 1953 s.77(1)(p))."
+									},
+									"religion": {
+										"type": "string",
+										"description": "The employee’s religion (ISLAM for a Muslim employee): the Mosque Building and Mendaki Fund (MBMF) reads it."
+									},
+									"solo_parent": {
+										"type": "boolean",
+										"description": "A sole parent: the shared parental leave pool defaults to the whole pool on an individual arrangement (Child Development Co-Savings Act 2001 ss.12DA–12DD)."
+									},
+									"fixed_term": {
+										"type": "boolean",
+										"description": "A fixed-term contract: while true the employment is not permanent (`permanent_when`)."
+									}
+								}
+							}
+						},
+						"required": [
+							"employment_type",
+							"work_classification",
+							"statutory_work_category",
+							"residency_status"
+						],
+						"allOf": [
+							{
+								"if": {
+									"properties": {
+										"residency_status": {
+											"const": "PERMANENT_RESIDENT"
+										}
+									},
+									"required": ["residency_status"]
+								},
+								"then": {
+									"required": ["residency_since"]
+								}
+							}
+						]
+					}
+				},
+				"exit_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored on employment_contract.exit_facts when the contract closes (CEL employment.exit_facts).",
+					"properties": {
+						"dismissed_for_misconduct": {
+							"type": "boolean",
+							"default": false,
+							"title": "Dismissed for misconduct after due inquiry",
+							"description": "Employment Act 1968 s.14(1) (due inquiry) with s.88A: untaken annual leave is paid on every exit except a DISMISSAL for misconduct; the encash-leave-on-exit rule withholds it when this is true on a DISMISSAL."
+						},
+						"notice_served": {
+							"type": "boolean",
+							"title": "Resignation notice served in full",
+							"description": "Employment Act 1968 s.23: served, salary is due on the last day; not served, within 7 days."
+						},
+						"final_pay_not_possible": {
+							"type": "boolean",
+							"title": "Pay on the dismissal day not possible",
+							"description": "Employment Act 1968 s.22: then within 3 days, excluding rest days and public holidays."
+						},
+						"eap_decision": {
+							"type": "string",
+							"enum": ["AWARD", "NOT_AWARDED"],
+							"description": "Retirement and Re-employment Act 1993 s.7C: AWARD when an eligible employee could not be re-employed and no alternate-employer offer was accepted; EMPLOYMENT_ASSISTANCE_PAYMENT is offered only then."
+						},
+						"eap_contract_retirement_months": {
+							"type": "integer",
+							"minimum": 0,
+							"description": "A contractual retirement age above the statutory one, in months of age."
+						},
+						"eap_contract_reemployment_months": {
+							"type": "integer",
+							"minimum": 0,
+							"description": "A contractual re-employment age above the statutory one, in months of age."
+						},
+						"eap_gross_monthly": {
+							"type": "number",
+							"minimum": 0,
+							"description": "Last drawn monthly gross pay (Tripartite Guidelines)."
+						},
+						"eap_previous_gross_monthly": {
+							"type": "number",
+							"minimum": 0,
+							"description": "Gross before a transfer to a lower-paid job within 3 months of the exit."
+						},
+						"eap_transfer_started_on": {
+							"type": "string",
+							"format": "date",
+							"description": "Start of that transfer."
+						},
+						"eap_prorate_bounds": {
+							"type": "boolean",
+							"description": "Pro-rate the EAP minimum and maximum for a part-time employee."
+						},
+						"eap_weekly_hours": {
+							"type": "number",
+							"minimum": 0
+						},
+						"eap_fulltime_weekly_hours": {
+							"type": "number",
+							"exclusiveMinimum": 0
+						},
+						"retrenchment_notified_on": {
+							"type": "string",
+							"format": "date",
+							"title": "Employees notified of the retrenchment on",
+							"description": "MOM mandatory retrenchment notification: due within 5 working days after this day (RETRENCHMENT_NOTIFICATION)."
+						},
+						"ir21_clearance_on": {
+							"type": "string",
+							"format": "date",
+							"title": "IRAS tax clearance received on",
+							"description": "Income Tax Act 1947 s.68(7) / EA s.24: the day the Comptroller’s clearance (or permission to pay) arrived; until it is recorded the final pay of a non-Citizen is held (IR21_FINAL_PAY_HOLD)."
+						},
+						"ir21_exemption": {
+							"type": "string",
+							"enum": ["SPR_UNDERTAKING", "SHORT_STINT_60_DAYS", "BELOW_21000"],
+							"description": "IRAS, Tax clearance for employees: no IR21 for an SPR not leaving Singapore permanently who gives a letter of undertaking, for an employment of 60 days or less (not a director), or for income below $21,000 a year under the IRAS conditions. Recorded, the IR21 task is not raised and the final pay is released. Customer input."
+						},
+						"ir21_additional_clearance_on": {
+							"type": "string",
+							"format": "date",
+							"title": "IRAS clearance of the Additional/Amended IR21 received on",
+							"description": "Income Tax Act 1947 s.68(7); IRAS, Tax clearance for employees: a payment after the IR21 clearance waits for clearance of an Additional/Amended Form IR21; until this is recorded such a payment is held (IR21_ADDITIONAL_PAYMENT_HOLD)."
+						}
+					}
+				},
+				"employment_statutory_facts": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"statutory_contribution_id": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"status": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"kind": {
+										"type": "string"
+									},
+									"elections": {
+										"type": "object",
+										"properties": {
+											"sdl_household_role": {
+												"type": "string",
+												"enum": ["NONE", "DOMESTIC_SERVANT", "GARDENER", "CHAUFFEUR"],
+												"description": "SDL Act 1979 s.2: a domestic servant, gardener or chauffeur wholly and exclusively employed by an individual otherwise than in connection with a trade, business, profession or vocation is not an “employee” (with sdl_wholly_exclusive and sdl_nonbusiness true)."
+											},
+											"sdl_nonbusiness": {
+												"type": "boolean",
+												"description": "Employed otherwise than in connection with the employer’s trade, business, profession or vocation (SDL Act s.2)."
+											},
+											"sdl_service_scope": {
+												"type": "string",
+												"enum": ["SINGAPORE_SERVICE", "OUTSIDE_SINGAPORE"],
+												"description": "SDL Act 1979 s.2 “employee”: one rendering services wholly or partly in Singapore in the month (or on leave attributable to such services). OUTSIDE_SINGAPORE: none in the month — no levy."
+											},
+											"sdl_student_class": {
+												"type": "string",
+												"description": "Recorded only; no SDL exemption for students was found in the SDL Act (read 2026-10-07), so no rule reads it."
+											},
+											"sdl_wholly_exclusive": {
+												"type": "boolean",
+												"description": "Wholly and exclusively employed by the individual employer (SDL Act s.2)."
+											},
+											"spr_full_rates": {
+												"type": "boolean",
+												"default": false,
+												"title": "SPR full rates jointly elected (CPF)",
+												"description": "CPF Board: an SPR in the first or second year of status and the employer may jointly apply to contribute at the full (Table 1) rates; record it on the CPF standing from the month the Board approves. The employer-only full / employee graduated (F/G) election is not applied."
+											},
+											"spr_employer_full_rates": {
+												"type": "boolean",
+												"default": false,
+												"title": "SPR employer full rate elected (CPF, F/G)",
+												"description": "CPF Board Tables 4–5: the employer of an SPR in the first or second year of status may apply to contribute at the full employer rate while the employee stays on the graduated rate; record it on the CPF standing from the month the Board approves. spr_full_rates (both full) takes precedence."
+											},
+											"shg_opted_out": {
+												"type": "boolean",
+												"default": false,
+												"description": "CPF Board, Contributions to self-help groups: an employee who opts out of a fund in writing (the fund’s form) stops its deduction from the effective date recorded as the standing’s effective_range.from. Set on that fund’s standing (CDAC, ECF, MBMF or SINDA)."
+											},
+											"shg_monthly_amount": {
+												"type": "number",
+												"minimum": 0,
+												"description": "A changed monthly contribution the employee instructed through the fund, in place of the schedule amount, on that fund’s standing."
+											}
+										},
+										"additionalProperties": false
+									}
+								}
+							}
+						}
+					}
+				},
+				"facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Person facts stored beside employment_statutory_facts on employment_profile.facts (CEL employee.facts.*).",
+					"properties": {
+						"working_days_per_week": {
+							"type": "number",
+							"exclusiveMinimum": 0,
+							"maximum": 7,
+							"title": "Average days required to work a week",
+							"description": "MOM, Monthly and daily salary: a monthly-rated employee’s daily basic rate is 12 × monthly basic ÷ (52 × the average number of days the employee is required to work a week). HOLIDAY_WORK prices only when it is recorded (CEL employee.facts.working_days_per_week)."
+						},
+						"immigration_status": {
+							"type": "string",
+							"enum": [
+								"CITIZEN",
+								"PERMANENT_RESIDENT",
+								"EMPLOYMENT_PASS",
+								"PERSONALISED_EMPLOYMENT_PASS",
+								"ONE_PASS",
+								"S_PASS",
+								"WORK_PERMIT",
+								"OTHER_PASS"
+							],
+							"title": "Singapore immigration status",
+							"description": "MOM work pass types (https://www.mom.gov.sg/passes-and-permits). The hire and exit obligation rules read it (IR21 for every non-Citizen; work pass in force and cancellation for a pass holder); keep it consistent with the contract terms’ residency_status, which those rules cannot see."
+						},
+						"rest_day_work_requester": {
+							"type": "string",
+							"enum": ["EMPLOYER", "EMPLOYEE"],
+							"description": "EA s.37(2)–(3): who asks the employee to work on rest days, which sets the rest-day pay (REST_DAY_WORK). Customer input."
+						},
+						"normal_daily_hours": {
+							"type": "number",
+							"exclusiveMinimum": 0,
+							"maximum": 24,
+							"description": "The employee’s normal hours of work for one day (EA s.37: half of them is the rest-day pay threshold). Customer input."
+						},
+						"part_time_weekly_hours": {
+							"type": "number",
+							"exclusiveMinimum": 0,
+							"maximum": 35,
+							"description": "Contracted weekly hours of a part-time employee (under 35, EA s.66A): the hourly basic rate divisor for PART_TIME_HOLIDAY_WORK. Customer input."
+						},
+						"tax_resident": {
+							"type": "boolean",
+							"description": "Income Tax Act 1947 s.2: Singapore tax resident. A non-resident director’s fees are withheld at 24% (WHT_NR_DIRECTOR). Customer input."
+						},
+						"leaves_singapore_from": {
+							"type": "string",
+							"format": "date",
+							"description": "Day a non-Citizen employee is posted overseas or leaves Singapore for more than 3 months while employed (IR21_LEAVING_SINGAPORE). Customer input."
+						},
+						"ph_off_day_compensation": {
+							"type": "string",
+							"enum": ["PAY", "DAY_OFF"],
+							"default": "PAY",
+							"description": "EA s.88(1)(c): a public holiday on a non-working day is paid at the gross rate (PAY) or given as a day off in substitution (DAY_OFF). Customer input."
+						},
+						"full_time_daily_hours": {
+							"type": "number",
+							"exclusiveMinimum": 0,
+							"maximum": 24,
+							"description": "Normal daily hours of a comparable full-time employee (default 8, EA s.38(1)(b)): a part-timer’s hours beyond them are paid at 1.5 × the hourly basic rate, those between the contracted and these hours at the plain rate (PART_TIME_EXTRA_HOURS, PART_TIME_OVERTIME). Customer input."
+						},
+						"full_time_weekly_hours": {
+							"type": "number",
+							"exclusiveMinimum": 0,
+							"maximum": 168,
+							"description": "Weekly hours of a similar full-time employee, against which a part-timer’s leave is prorated (Employment (Part-Time Employees) Regulations reg.7); else the entity’s full_time_weekly_hours, else 44 (reg.2(2), no similar full-time employee). Customer input."
+						}
+					}
+				}
+			}
+		}
+	}
+]

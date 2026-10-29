@@ -1,9 +1,8 @@
 import { Predicate } from 'effect';
-import { Effect, Option, Result, Schema } from 'effect';
+import { Effect, Result, Schema } from 'effect';
 import { inputSchema } from '@norbital-ai/std/kind';
 import { addDays, addMonths, contains, monthOf, overlaps, PlainDate } from '@norbital-ai/std/date';
 import {
-	isMasked,
 	type Id,
 	type Row,
 	type WriteCtx,
@@ -16,7 +15,6 @@ import {
 	type JsonObject,
 	type Read,
 	Reads,
-	fieldValue,
 	isJsonObject,
 	moneyNumber,
 	eachBatched,
@@ -26,7 +24,6 @@ import {
 	frequencySpans,
 	periodsIn,
 	PAYROLL_DEFAULTS,
-	PAYROLL_SLOTS,
 	celValues,
 	getErrorMessage,
 	payrollRulesOf,
@@ -75,7 +72,6 @@ import {
 	isLeaveAdmitted,
 	termFor,
 	moneyValue,
-	evaluate,
 	evaluateBoolean,
 	versionOn,
 	type Employment,
@@ -117,18 +113,16 @@ type EntryWriteInput<C extends EntryCollection> = Omit<UpdateSet<C>, 'id'> & {
 const MONTHS_OF_YEAR = 12;
 /** A run's settlement ledger as read: each pin names its entry or roster day and the employment that settled it. */
 type RunPins = { readonly id: string; readonly pins: Row<'payroll_run'>['pins'] };
-export const reservedPinsFrom = (runs: readonly RunPins[], except?: string) =>
-	Result.gen(function* () {
-		const reserved = new Set<string>();
-		for (const run of runs) {
-			if (run.id === except) continue;
-			for (const pin of (yield* fieldValue(run.pins, 'payroll_run.pins')) ?? [])
-				reserved.add(`${pin.collection}:${pin.id}`);
-		}
-		return reserved;
-	});
+export const reservedPinsFrom = (runs: readonly RunPins[], except?: string) => {
+	const reserved = new Set<string>();
+	for (const run of runs) {
+		if (run.id === except) continue;
+		for (const pin of run.pins ?? []) reserved.add(`${pin.collection}:${pin.id}`);
+	}
+	return reserved;
+};
 /** Each candidate a run pins, with the payslips of that run and the pin's employment it may attach to. */
-const settlementLocksFrom = Effect.fnUntraced(function* (
+const settlementLocksFrom = (
 	collection: EntryCollection,
 	candidates: ReadonlySet<string>,
 	runs: readonly RunPins[],
@@ -137,11 +131,10 @@ const settlementLocksFrom = Effect.fnUntraced(function* (
 		readonly payroll_run_id: string;
 		readonly employment_id: string;
 	}[]
-) {
+) => {
 	const locked = new Map<string, Set<string>>();
 	for (const run of runs) {
-		const pins = yield* Effect.fromResult(fieldValue(run.pins, 'payroll_run.pins'));
-		for (const pin of pins ?? []) {
+		for (const pin of run.pins ?? []) {
 			if (pin.collection !== collection || !candidates.has(pin.id)) continue;
 			const allowed = locked.get(pin.id) ?? new Set<string>();
 			for (const slip of slips)
@@ -151,7 +144,7 @@ const settlementLocksFrom = Effect.fnUntraced(function* (
 		}
 	}
 	return locked;
-});
+};
 type EntryLockCandidate = { readonly id: string };
 type LockRun = RunPins;
 type LockSlip = {
@@ -193,7 +186,7 @@ export const entrySettlementLocks = Effect.fnUntraced(function* (
 		payroll_run.rows.length === 0
 			? { payslip: { rows: [] } }
 			: yield* read({ payslip: lockedSlips(payroll_run.rows) });
-	return yield* entryLocksFrom(collection, candidates, payroll_run.rows, payslip.rows);
+	return entryLocksFrom(collection, candidates, payroll_run.rows, payslip.rows);
 });
 /**
  * One shared admission/deletion read for every payroll run in a write batch, as three reads: the entities, their runs
@@ -243,7 +236,6 @@ export const loadPayrollAdmission = Effect.fnUntraced(function* (
 		return version.sealed_at != null &&
 			version.voided_at == null &&
 			range != null &&
-			!isMasked(range) &&
 			months.some((month) => overlaps(range, month))
 			? [version.id]
 			: [];
@@ -311,20 +303,14 @@ export const admitPayrollRun = (request: PayrollRunRequest, prefetched?: Payroll
 			return yield* new Refusal({ message: 'This needs an actual approved legal entity.' });
 		const entity = {
 			...selectedEntity,
-			pay_frequency: yield* Effect.fromResult(
-				fieldValue(selectedEntity.pay_frequency, 'entity.pay_frequency')
-			),
-			pay_frequency_changes: yield* Effect.fromResult(
-				fieldValue(selectedEntity.pay_frequency_changes, 'entity.pay_frequency_changes')
-			),
-			pay_cutoff_day: yield* Effect.fromResult(
-				fieldValue(selectedEntity.pay_cutoff_day, 'entity.pay_cutoff_day')
-			),
-			region: yield* Effect.fromResult(fieldValue(selectedEntity.region, 'entity.region')),
-			facts: yield* Effect.fromResult(fieldValue(selectedEntity.facts, 'entity.facts'))
+			pay_frequency: selectedEntity.pay_frequency,
+			pay_frequency_changes: selectedEntity.pay_frequency_changes,
+			pay_cutoff_day: selectedEntity.pay_cutoff_day,
+			region: selectedEntity.region,
+			facts: selectedEntity.facts
 		};
 		const runs = got.runs.rows.filter((row) => row.company_id === request.company_id);
-		const reservedPins = yield* Effect.fromResult(reservedPinsFrom(runs, request.run_id));
+		const reservedPins = reservedPinsFrom(runs, request.run_id);
 		// The whole write's lineage data was admitted with the batch: every version's scheme rows, and the
 		// allowances of the versions pricing a period.
 		const lineage = got.lineage.rows
@@ -341,9 +327,7 @@ export const admitPayrollRun = (request: PayrollRunRequest, prefetched?: Payroll
 		const opening = yield* Effect.fromResult(
 			versionOn(lineage, entity.settings_code, `${month}-01`)
 		);
-		const openingPayroll = yield* Effect.fromResult(
-			fieldValue(opening.payroll, 'jurisdiction_settings.payroll')
-		);
+		const openingPayroll = opening.payroll;
 		const calendar = {
 			...(openingPayroll?.week_start == null ? {} : { week_start: openingPayroll.week_start }),
 			...(openingPayroll?.semi_monthly_split == null
@@ -385,9 +369,7 @@ export const admitPayrollRun = (request: PayrollRunRequest, prefetched?: Payroll
 		const version = contains(opening.effective_range, settlement.from)
 			? opening
 			: yield* Effect.fromResult(versionOn(lineage, entity.settings_code, settlement.from));
-		const payroll = yield* Effect.fromResult(
-			fieldValue(version.payroll, 'jurisdiction_settings.payroll')
-		);
+		const payroll = version.payroll;
 		// The governing version's `payroll_run` validations admit the run: which kinds a jurisdiction pays is a record,
 		// not a branch here. None that allows it refuses it.
 		const held = governedFrom(got.governed, version.id);
@@ -553,7 +535,7 @@ export const staffingFrom = (
 			);
 		const contracts: (typeof all)[number][] = [];
 		for (const contract of all) {
-			const engagement = yield* fieldValue(contract.engagement, 'employment_contract.engagement');
+			const engagement = contract.engagement;
 			if (engagement !== 'PAYEE') contracts.push(contract);
 		}
 		const from = addDays(day, -SEPARATION_DAYS);
@@ -566,10 +548,7 @@ export const staffingFrom = (
 		} = {};
 		const permanent: (typeof all)[number][] = [];
 		for (const contract of contracts) {
-			const range = yield* fieldValue(
-				contract.effective_range,
-				'employment_contract.effective_range'
-			);
+			const range = contract.effective_range;
 			const term = yield* termFor(contract, day);
 			const isPermanent = yield* permanentOn(term);
 			if (isPermanent) permanent.push(contract);
@@ -583,21 +562,12 @@ export const staffingFrom = (
 		const separations = yield* Result.all(
 			contracts.map((contract) =>
 				Result.gen(function* () {
-					const range = yield* fieldValue(
-						contract.effective_range,
-						'employment_contract.effective_range'
-					);
+					const range = contract.effective_range;
 					const exit = range.to;
 					if (exit == null || exit < from || exit > to) return [];
 					const term = yield* termFor(contract, exit);
-					const exit_ground = yield* fieldValue(
-						contract.exit_ground,
-						'employment_contract.exit_ground'
-					);
-					const exit_facts = yield* fieldValue(
-						contract.exit_facts,
-						'employment_contract.exit_facts'
-					);
+					const exit_ground = contract.exit_ground;
+					const exit_facts = contract.exit_facts;
 					return [
 						{
 							employment_id: contract.id,
@@ -647,9 +617,6 @@ export const staffingFrom = (
 				.toSorted((left, right) => left.exit_date.localeCompare(right.exit_date))
 		};
 	});
-const RECORD_RETENTION: keyof typeof PAYROLL_SLOTS = 'record_retention';
-/** The PARAMETERS `record_retention` slot: the `until` CEL on the subject at the exit. */
-const RecordRetention = Schema.Struct({ until: Schema.String });
 /**
  * A version's `VALIDATIONS` rule-set rows: each `rules` names its `site` (`contract`: a contract's terms as written;
  * `payslip`: each slip of a build; `roster`: a roster day; `cycle`: a pattern cycle a roster write changes, `cycle`
@@ -782,8 +749,8 @@ export const admitContractTerms = (input: {
 			return yield* new Refusal({ message: 'This contract needs its entity, person and terms.' });
 		const company_id = contract.company_id;
 		const employee_id = contract.employee_id;
-		const before = yield* Effect.fromResult(fieldValue(input.before, 'employment_contract.facts'));
-		const facts = yield* Effect.fromResult(fieldValue(contract.facts, 'employment_contract.facts'));
+		const before = input.before;
+		const facts = contract.facts;
 		const held = new Set((before?.contract_terms ?? []).map((term) => stableJson(term)));
 		const changed = (facts?.contract_terms ?? []).filter(
 			(term) => !held.has(stableJson(term)) && term.effective_range?.from != null
@@ -815,10 +782,7 @@ export const admitContractTerms = (input: {
 			);
 			for (const row of got.allowances.rows) {
 				if (!allowanceIds.includes(row.id) || !lineageVersions.has(row.settings_id)) continue;
-				allowanceCodes.set(
-					row.id,
-					yield* Effect.fromResult(fieldValue(row.code, 'allowance_catalog.code'))
-				);
+				allowanceCodes.set(row.id, row.code);
 			}
 			if (allowanceCodes.size !== allowanceIds.length)
 				return yield* new Refusal({
@@ -889,47 +853,37 @@ export const admitContractTerms = (input: {
 							},
 							person: {
 								...subject.person,
-								contracts: (yield* Effect.fromResult(
-									Result.all(
-										earlier.map((row) =>
-											Result.gen(function* () {
-												const rowFacts = yield* fieldValue(row.facts, 'employment_contract.facts');
-												const range = yield* fieldValue(
-													row.effective_range,
-													'employment_contract.effective_range'
-												);
-												const ground = yield* fieldValue(
-													row.exit_ground,
-													'employment_contract.exit_ground'
-												);
-												const last = (rowFacts?.contract_terms ?? [])
-													.toSorted((a, b) =>
-														String(a.effective_range?.from).localeCompare(
-															String(b.effective_range?.from)
-														)
-													)
-													.at(-1);
-												return {
-													id: row.id,
-													start: range?.from ?? '',
-													end: range?.to ?? '',
-													exit_ground: ground ?? '',
-													contract_type: last?.employment_type ?? '',
-													facts: last?.facts ?? {},
-													// Every term, oldest first: a first-term probation is seen too.
-													terms: (rowFacts?.contract_terms ?? [])
-														.map((held) => ({
-															from: held.effective_range?.from ?? '',
-															to: held.effective_range?.to ?? '',
-															contract_type: held.employment_type ?? '',
-															facts: held.facts ?? {}
-														}))
-														.toSorted((a, b) => String(a.from).localeCompare(String(b.from)))
-												};
-											})
-										)
-									)
-								)).toSorted((a, b) => a.start.localeCompare(b.start))
+								contracts: earlier
+									.map((row) => {
+										const rowFacts = row.facts;
+										const range = row.effective_range;
+										const ground = row.exit_ground;
+										const last = (rowFacts?.contract_terms ?? [])
+											.toSorted((a, b) =>
+												String(a.effective_range?.from).localeCompare(
+													String(b.effective_range?.from)
+												)
+											)
+											.at(-1);
+										return {
+											id: row.id,
+											start: range?.from ?? '',
+											end: range?.to ?? '',
+											exit_ground: ground ?? '',
+											contract_type: last?.employment_type ?? '',
+											facts: last?.facts ?? {},
+											// Every term, oldest first: a first-term probation is seen too.
+											terms: (rowFacts?.contract_terms ?? [])
+												.map((held) => ({
+													from: held.effective_range?.from ?? '',
+													to: held.effective_range?.to ?? '',
+													contract_type: held.employment_type ?? '',
+													facts: held.facts ?? {}
+												}))
+												.toSorted((a, b) => String(a.from).localeCompare(String(b.from)))
+										};
+									})
+									.toSorted((a, b) => a.start.localeCompare(b.start))
 							}
 						};
 			const context: DynObject = {
@@ -1162,10 +1116,7 @@ export const rosterFindingsFrom = (
 									day_type: planned?.day_type ?? '',
 									holiday_kind: holidays.get(date)?.kind ?? ''
 								};
-					const intervals = yield* fieldValue(
-						row?.worked_intervals,
-						'roster_entry.worked_intervals'
-					);
+					const intervals = row?.worked_intervals;
 					const actual = recordedWork(intervals ?? [], date, planned?.break, zone);
 					return {
 						...day,
@@ -1222,9 +1173,7 @@ export const rosterFindingsFrom = (
 				};
 				// The week: the 7 days ending on the day, or (`payroll.roster_week: CALENDAR`) the calendar week from
 				// `payroll.week_start` through the day.
-				const payroll = yield* Effect.fromResult(
-					fieldValue(held.version.payroll, 'jurisdiction_settings.payroll')
-				);
+				const payroll = held.version.payroll;
 				const calendarWeek = payroll?.roster_week === 'CALENDAR';
 				const span = calendarWeek
 					? ((new Date(`${draft.work_date}T00:00:00Z`).getUTCDay() -
@@ -1635,130 +1584,6 @@ export const rosterOvertime = (ids: readonly Id<'roster_entry'>[]) =>
 			}
 		}
 		return out;
-	});
-/** The values that replace a former employee's personal fields: identity, contact, family, biometrics and facts. The
- * payslips, runs and obligations keep their amounts for the books. */
-export const anonymousProfile = () => ({
-	name: 'Former employee',
-	date_of_birth: null,
-	gender: null,
-	marital_status: null,
-	children: [],
-	nationality: null,
-	identity_number: null,
-	email: null,
-	phone: null,
-	address: null,
-	location: null,
-	face_embedding: null,
-	face_photo: null,
-	face_enrollment_status: 'NONE' as const,
-	face_consent_at: null,
-	face_enrolled_at: null,
-	face_last_match_at: null,
-	face_match_count: 0,
-	facts: {},
-	user_id: null,
-	before: {}
-});
-/**
- * Whether a person's records may be anonymised on `today`: every employment has ended, and the version governing each
- * exit day names a PARAMETERS `record_retention` rule whose `until` CEL (on the subject at the exit: `employment.exit_date`,
- * `employment.exit_ground`, `terms`, …) returns a day on or before today. Answers the latest such day.
- */
-/** Retention for every profile in a write, prefetched in three reads (contracts, their entities, the lineages). */
-export const admitAnonymiseBatch = (
-	employeeIds: readonly Id<'employment_profile'>[],
-	today: string
-) =>
-	Effect.gen(function* () {
-		const { read } = yield* Reads;
-		const one = yield* read({
-			employment_contract: { where: { employee_id: { in: employeeIds } }, fields: CONTRACT },
-			employment_profile: { where: { id: { in: employeeIds } }, fields: PROFILE }
-		});
-		const { entity } = yield* read({
-			entity: {
-				where: { id: { in: idsOf(one.employment_contract.rows.map((row) => row.company_id)) } },
-				fields: ENTITY
-			}
-		});
-		const { jurisdiction_settings } = yield* read({
-			jurisdiction_settings: {
-				where: { code: { in: idsOf(entity.rows.map((row) => row.settings_code)) } },
-				fields: SETTINGS
-			},
-			'jurisdiction_settings.rule_set': {
-				where: { family: { eq: 'PARAMETERS' } },
-				fields: [...RULES, 'family', 'settings_id']
-			}
-		});
-		const got = {
-			contracts: one.employment_contract,
-			employees: one.employment_profile,
-			entities: entity,
-			versions: jurisdiction_settings,
-			rules: { rows: jurisdiction_settings.rows.flatMap((version) => version.rule_set) }
-		};
-		const untilByEmployee = new Map<Id<'employment_profile'>, string>();
-		for (const employeeId of employeeIds) {
-			const contracts = got.contracts.rows.filter((row) => row.employee_id === employeeId);
-			const employee = got.employees.rows.find((row) => row.id === employeeId);
-			if (
-				contracts.length === 0 ||
-				contracts.some((row) => (row.effective_range?.to ?? today) >= today)
-			)
-				return yield* new Refusal({
-					message: 'Only a former employee, every employment ended, is anonymised.'
-				});
-			let latest = '';
-			for (const contract of contracts) {
-				const exit = String(contract.effective_range?.to);
-				const entity = got.entities.rows.find((row) => row.id === contract.company_id);
-				if (entity === undefined)
-					return yield* new Refusal({ message: 'This employment needs its actual entity.' });
-				const version = yield* Effect.fromResult(
-					versionOn(got.versions.rows, entity.settings_code, exit)
-				);
-				const rules = yield* Effect.fromResult(
-					payrollRulesOf(got.rules.rows.filter((row) => row.settings_id === version.id))
-				);
-				const rule = Schema.decodeUnknownOption(RecordRetention)(rules[RECORD_RETENTION]);
-				if (Option.isNone(rule))
-					return yield* new Refusal({
-						message: `${version.code} names no record retention for ${exit}.`
-					});
-				const until = yield* evaluate(
-					rule.value.until,
-					{
-						...(yield* Effect.fromResult(
-							subjectContext({
-								contract,
-								employee,
-								entity,
-								term: yield* Effect.fromResult(termFor(contract, exit)),
-								day: exit,
-								headcount: 0,
-								version
-							})
-						)),
-						rules
-					},
-					`rule_set ${RECORD_RETENTION} of ${version.code}`
-				);
-				if (!Predicate.isString(until) || until.length < 10)
-					return yield* new Refusal({
-						message: `${version.code} record retention must return a date.`
-					});
-				if (until.slice(0, 10) > latest) latest = until.slice(0, 10);
-			}
-			if (today < latest)
-				return yield* new Refusal({
-					message: `The records are kept until ${latest}; anonymise on or after that day.`
-				});
-			untilByEmployee.set(employeeId, latest);
-		}
-		return untilByEmployee;
 	});
 /** A kind the version governing `day` lists in its PARAMETERS `<rule>` row (`rules.kinds[] = { code, name }`). */
 /** The company, employment and governing definitions for every workplace row in one callback: three reads. */
@@ -2316,11 +2141,10 @@ export const transformEntries = Effect.fnUntraced(function* <
 				(yield* loadEntry(ctx.db.query, collection, admissible, catalogueIds, candidates).pipe(
 					Effect.catchTag('Refusal', (failure) => ctx.refuse(failure.message))
 				)));
-	const locked = yield* (
+	const locked =
 		prefetched === undefined
-			? entrySettlementLocks(ctx.db.query, collection, candidates)
-			: entryLocksFrom(collection, candidates, prefetched.lockRuns, prefetched.lockSlips)
-	).pipe(Effect.catchTag('Refusal', (failure) => ctx.refuse(failure.message)));
+			? yield* entrySettlementLocks(ctx.db.query, collection, candidates)
+			: entryLocksFrom(collection, candidates, prefetched.lockRuns, prefetched.lockSlips);
 	// Charge ranges and attendance-backed entitlements use the same second statement for the complete batch.
 	const on = admissible
 		.flatMap((input) =>

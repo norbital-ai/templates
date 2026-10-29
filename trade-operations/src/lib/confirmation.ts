@@ -1,6 +1,6 @@
 import { Result } from 'effect';
 import { sum } from '@norbital-ai/std/decimal';
-import { isMasked, type Id, type ReadAnswer } from '@norbital-ai/bolt';
+import { type Id, type ReadAnswer } from '@norbital-ai/bolt';
 import { confirmationBasis } from './agreements.js';
 import { creditWarning, currentFloors, hash, price, snapshot } from './commercial.js';
 import { averageLotCost } from './lot-cost.js';
@@ -29,7 +29,6 @@ function draftOf(answer: QuotationAnswer, revision: number | null | undefined) {
 	const doc = answer.orders.rows[0];
 	const config = answer.commercial_settings.rows[0];
 	const template = publishedTemplate(answer.document_templates.rows, 'contract');
-	if (doc && isMasked(doc.currency)) return Result.fail('errors.commercial_access' as const);
 	if (!doc || !doc.party || !config || !template)
 		return Result.fail('errors.configuration_missing' as const);
 	if (revision != null && revision !== doc.revision)

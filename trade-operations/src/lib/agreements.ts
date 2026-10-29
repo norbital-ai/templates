@@ -1,5 +1,5 @@
 import type { snapshot } from './commercial.js';
-import { isMasked, type Row, type StoredRow } from '@norbital-ai/bolt';
+import { type Row, type StoredRow } from '@norbital-ai/bolt';
 import { currency, Decimal } from '@norbital-ai/std/decimal';
 /** The order fields every agreement helper reads (a read request's `fields`). */
 export const agreementFields = [
@@ -34,16 +34,11 @@ export type AgreementOrder = Pick<
 export type ContractVersion = NonNullable<StoredRow<'orders'>['contract_versions']>[number];
 /** Approved versions only; a pending replacement never becomes an approved source basis. */
 export function agreements(order: AgreementOrder): ContractVersion[] {
-	const versions =
-		order.contract_versions && !isMasked(order.contract_versions)
-			? [...order.contract_versions]
-			: [];
+	const versions = order.contract_versions ? [...order.contract_versions] : [];
 	if (
 		order.seal_hash &&
 		order.sealed_snapshot &&
-		!isMasked(order.sealed_snapshot) &&
 		order.sealed_contract &&
-		!isMasked(order.sealed_contract) &&
 		order.sealed_at &&
 		order.sealed_by &&
 		order.status === 'confirmed' &&
@@ -59,9 +54,7 @@ export function agreements(order: AgreementOrder): ContractVersion[] {
 			approved_by: order.sealed_by,
 			ordered_on: order.ordered_on,
 			freight_treatment: order.freight_treatment,
-			...(order.supporting_documents && !isMasked(order.supporting_documents)
-				? { supporting_documents: order.supporting_documents }
-				: {}),
+			...(order.supporting_documents ? { supporting_documents: order.supporting_documents } : {}),
 			origin: 'local' as const,
 			lifecycle: 'current' as const
 		});

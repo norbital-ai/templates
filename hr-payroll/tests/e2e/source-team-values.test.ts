@@ -1,6 +1,6 @@
 import { expect, it } from '@effect/vitest';
 import { Effect } from 'effect';
-import { TestWorkspace } from '@norbital-ai/bolt/test';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import type { ActInput, Id } from '@norbital-ai/bolt';
 import { workspace } from '../kit.ts';
 
@@ -14,12 +14,6 @@ const draft = {
 	effective_range: { from: '2026-01-01', to: null },
 	// the PARAMETERS slots a version is sealed with
 	rule_set: [
-		{
-			family: 'PARAMETERS',
-			code: 'record_retention',
-			name: 'Record retention',
-			rules: { until: 'exit_on' }
-		},
 		{ family: 'PARAMETERS', code: 'exit_grounds', name: 'Exit grounds', rules: { kinds: [] } },
 		{ family: 'PARAMETERS', code: 'holiday_kinds', name: 'Holiday kinds', rules: { kinds: [] } },
 		{ family: 'PARAMETERS', code: 'salary_report', name: 'Salary report', rules: {} }

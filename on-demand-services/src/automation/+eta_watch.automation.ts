@@ -11,7 +11,7 @@ export default automation('eta_watch', {
 	description:
 		'Until each visit starts, re-estimates the helper’s drive from their last GPS position every five minutes, flagging the visit for dispatch while it exceeds the ETA limit or the position is missing or stale.',
 	on: { cron: '*/5 * * * *' },
-	runAs: ['dispatch_automation'],
+	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
 		const now = Date.parse(ctx.now);

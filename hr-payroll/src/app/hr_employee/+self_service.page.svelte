@@ -118,7 +118,7 @@
 {/snippet}
 
 {#snippet home()}
-	<Scroll name={bolt.t('app.hr_employee.tab_home')} inset>
+	<Scroll name={bolt.t('app.hr_employee.tab_home')} size="fill" inset>
 		<Stack gap="md">
 			{@render gate()}
 			{#if employee?.loading}
@@ -224,7 +224,7 @@
 {/snippet}
 
 {#snippet schedule()}
-	<Cover gap="md" top={needsGate ? gate : undefined}>
+	<Cover gap="md" size="fill" top={needsGate ? gate : undefined}>
 		{#if employmentId != null}
 			<Table
 				of="roster_entry"
@@ -239,7 +239,7 @@
 {/snippet}
 
 {#snippet leave()}
-	<Cover gap="md" top={needsGate ? gate : undefined}>
+	<Cover gap="md" size="fill" top={needsGate ? gate : undefined}>
 		{#if requesting && employmentId != null && contract?.company_id != null}
 			<LeaveRequest
 				{employmentId}
@@ -267,7 +267,7 @@
 	</Cover>
 {/snippet}
 {#snippet claims()}
-	<Cover gap="md" top={needsGate ? gate : undefined}>
+	<Cover gap="md" size="fill" top={needsGate ? gate : undefined}>
 		<Table
 			of="claim_catalog_entry"
 			key="my-claims"
@@ -283,7 +283,7 @@
 	</Cover>
 {/snippet}
 {#snippet loans()}
-	<Cover gap="md" top={needsGate ? gate : undefined}>
+	<Cover gap="md" size="fill" top={needsGate ? gate : undefined}>
 		<Table
 			of="loan_catalog_entry"
 			key="my-loans"
@@ -310,7 +310,7 @@
 	/>
 {/snippet}
 {#snippet payslips()}
-	<Cover gap="md" top={needsGate ? gate : undefined}>
+	<Cover gap="md" size="fill" top={needsGate ? gate : undefined}>
 		<Table
 			of="payslip"
 			key="my-payslips"

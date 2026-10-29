@@ -1,17 +1,19 @@
 import { automation } from '@norbital-ai/bolt';
 import { type ActInput } from '@norbital-ai/bolt';
 import { Refusal } from '@norbital-ai/bolt/errors';
-import { sameDay } from '../lib/visit-recovery.js';
+import { ownVisits, sameDay } from '../lib/visit-recovery.js';
 
 export default automation('visits_confirm_shift', {
 	description: 'The helper confirms they will work their visits that day.',
 	input: {
 		targets: { kind: 'list', of: { kind: 'id', of: 'visits' }, min: 1 }
 	},
-	runAs: 'trigger',
+	policies: ['helper_shift'],
 	run: function* ({ targets }, ctx) {
-		const { rows: targetsOf } = (yield* ctx.query({ visits: { where: { id: { in: targets } } } }))
-			.visits;
+		yield* ownVisits(ctx, targets);
+		const { rows: targetsOf } = (yield* ctx.query({
+			visits: { output: 'helper', where: { id: { in: targets } } }
+		})).visits;
 		if (targetsOf.length !== targets.length)
 			return yield* new Refusal({
 				message: 'The selected record does not exist or is not readable.',

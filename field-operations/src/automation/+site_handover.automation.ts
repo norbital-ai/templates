@@ -40,7 +40,7 @@ const csv = (
 /**
  * The handover bundle for the selected sites: per site, one JSON file with the site, its dispatched jobs and photo
  * evidence, and a CSV per table, left on its run. It
- * reads as its starter (`runAs: 'trigger'`). `location` keeps the downstream contract's `{ geometry, formatted_address }`
+ * reads with dispatch's authority (`field_ops_controller`). `location` keeps the downstream contract's `{ geometry, formatted_address }`
  * shape.
  */
 export default automation('site_handover', {
@@ -51,7 +51,7 @@ export default automation('site_handover', {
 		kind: 'object',
 		fields: { files: { kind: 'file', accept: ['*/*'], max: '20MiB', multiple: true } }
 	},
-	runAs: 'trigger',
+	policies: ['field_ops_controller'],
 	run: function* ({ ids }, ctx) {
 		const put = (text: string, name: string, mime: string) =>
 			ctx.files.put(new TextEncoder().encode(text), { name, mime, for: 'site_handover' });

@@ -41,8 +41,6 @@ export default messages({
 	'app.payroll.export_salary_listing': 'Export salary listing',
 	'app.payroll.export_salary_listing_help':
 		'Download an Excel salary listing for the selected runs, with a separate sheet for each run and currency.',
-	'app.payroll.bank_file': 'Bank file',
-	'app.payroll.salary_listing': 'Salary listing',
 	'app.payroll.no_bank_payments': 'There are no employees to pay in this run.',
 	'app.payroll.paid_progress': '{paid}/{total} paid · {percent}%',
 	'app.payroll.period': 'Period',
@@ -199,16 +197,6 @@ export default messages({
 	'person.tab_general': 'General',
 	'person.tab_contracts': 'Employment contracts',
 	'person.tab_face': 'Face enrolment',
-	'person.anonymise_title': 'Anonymise former employee',
-	'person.anonymise_help':
-		'Replaces the personal fields with neutral values once the record retention period has passed. Payslips, runs and obligations are kept.',
-	'person.anonymise': 'Anonymise',
-	'person.anonymised': 'Anonymised {date}',
-	'statutory.configuration.assessment': 'Assessment',
-	'statutory.configuration.limitation': 'Limitation',
-	'statutory.configuration.assessable': 'Assessable wage parts',
-	'statutory.configuration.person': 'Person facts',
-	'statutory.configuration.refuse_when': 'Refuse when',
 	'entity_facts.shifts': 'Shifts',
 	'entity.tab_holidays': 'Holidays',
 	'entity.hotline': 'Payroll hotline',
@@ -227,8 +215,6 @@ export default messages({
 	'entity.hotline_deploy': 'Answer payroll questions on this number',
 	'entity.hotline_deployed': 'The payroll hotline now answers on this number.',
 	'entity_facts.attendance': 'Attendance',
-	'entity_facts.new_pattern': 'New pattern',
-	'entity_facts.new_definition': 'New definition',
 	'shift_pattern.cycle': 'Cycle',
 	'shift_pattern.day': 'Day',
 	'shift_pattern.cycle_length': '{days} days in this cycle.',
@@ -250,8 +236,6 @@ export default messages({
 	'sources.agent.behaviour': 'Pay behaviour',
 	'sources.agent.obligations': 'Filing and payment deadlines',
 	'sources.agent.settings': 'General settings',
-	'section.sources_and_reference': 'Sources and reference data',
-	'statutory.configuration.rules': 'Rules',
 	'component.diff_unchanged': '{count} unchanged',
 	'component.diff_folded': '{count} unchanged lines',
 	'component.diff_section_unchanged': 'Nothing changed in this section.',
@@ -271,13 +255,9 @@ export default messages({
 	'contract.confirm_departure': 'End employment',
 	'contract.still_employed': 'Still employed',
 	'contract.changed': 'What changed',
-	'section.input_schemas': 'Input schemas',
 	'section.behaviours': 'Behaviours',
-	'section.reference_data': 'Reference data',
 	'section.payroll': 'Payroll',
-	'section.references': 'References',
 	'section.rules': 'Rules',
-	'section.configuration': 'Configuration',
 	'section.settlement': 'Settlement',
 	'section.entitlement': 'Entitlement',
 	'section.cash': 'Cash conversion',
@@ -498,10 +478,8 @@ export default messages({
 	'offboarding.save_terms': 'Save new terms',
 	'offboarding.terms_pending': 'Submitted for approval.',
 	'offboarding.terms_submitted': 'Terms changed.',
-	'roster.absent': 'AWOL',
 	'roster.before_employment': 'Outside employment',
 	'roster.board_scroll_name': 'Roster board',
-	'roster.day_sheet_approved_overtime': 'Overtime past the shift (hours)',
 	'roster.planned_overtime': 'Planned overtime (hours)',
 	'roster.actual_overtime': 'Actual overtime',
 	'roster.actual_progress': 'Completion of planned work',
@@ -519,9 +497,6 @@ export default messages({
 	'roster.day_sheet_problem_invalid_clock': 'Enter a valid clock date and time.',
 	'roster.day_sheet_problem_clock_order': 'Clock out must be after clock in, including its date.',
 	'roster.day_sheet_problem_clock_overlap': 'Recorded work intervals cannot overlap.',
-	'roster.progress_unknown':
-		'No completion percentage until attendance and a work plan are available.',
-	'roster.day_sheet_intervals': 'Worked intervals',
 	'roster.day_sheet_mark_absent': 'Mark absent',
 	'roster.day_sheet_problem_missing_start': 'Every worked interval needs a clock-in time.',
 	'roster.day_sheet_problem_open_not_last': 'Only the final worked interval may still be open.',
@@ -539,9 +514,6 @@ export default messages({
 	'roster.planned_overtime_hours': 'Overtime {hours}',
 	'roster.public_holiday': 'Public holiday',
 	'roster.public_holiday_mark': 'PH',
-	'roster.rest_day': 'Rest day',
-	'roster.shift_code': 'Shift {code}',
-	'roster.unrostered': 'No shift assigned',
 	'component.is_npl': 'Unpaid (NPL)',
 	'component.revision_from': 'from {start}',
 	'component.revision_between': '{start} – {end}',
@@ -562,10 +534,6 @@ export default messages({
 	'component.allowances': 'Allowances',
 	'component.allowances_hint':
 		'Monthly allowances and deductions, prorated with salary. Amend the employment terms to change or end an item.',
-	'component.hire': 'New employment contract',
-	'component.hire_title': 'Hire {name}',
-	'component.hire_description':
-		'Record the employee number, legal entity, payment account and start date. Add salary and schedule details under employment terms.',
 	'settings_version.new': 'New version',
 	'settings_version.new_title': 'New version from {name}',
 	'settings_version.new_description':
@@ -611,6 +579,8 @@ export default messages({
 	'app.work.title': 'Work',
 	'app.work.description':
 		'Plan the monthly roster, publish it against the rules, and manage shifts and patterns.',
+	'app.work.sheet_help':
+		'The work-day sheet (⚡ → Download template, Import…) has one row per person-day. Shift must be a shift code in effect for that person and day, REST or OFF; any other value, PH included (public holidays come from the jurisdiction calendar, the Holiday column), refuses the file. The sheet has no leave: record leave in the leave app, and clock times on a day of full-day leave are refused. A Leave column in an older file is ignored. An import with errors writes nothing; otherwise it imports and lists its warnings.',
 	'app.adhoc.description':
 		'One-off payments and deductions, with the payroll capture that settled each.',
 	'app.claims.description':
@@ -752,7 +722,6 @@ export default messages({
 	'compliance.duty': 'Remittance',
 	'person.no_statutory_facts':
 		'The payroll rules in force declare no statutory facts for this person.',
-	'person.contract_actions': 'Actions',
 	'entity.disbursement_account': 'Salary payment account',
 	'entity.statutory_registrations': 'Statutory registrations',
 	'entity.no_registrations':
@@ -849,8 +818,6 @@ export default messages({
 		'Adjust repayment dates and amounts, then save the schedule. The total must equal the principal. Recalculate redistributes the balance across unprocessed repayments.',
 	'loan.schedule_history':
 		'Repayment schedules show current records. Return to the current loan to view or edit them.',
-	'loan.locked_terms':
-		'Repayments included in payroll are locked. You can adjust unprocessed repayments within the repayment period while keeping the total equal to the principal.',
 	'models.leave_catalog_entry.label': 'Leave entries',
 	'models.leave_catalog_entry.singular': 'Leave entry',
 	'models.claim_catalog_entry.label': 'Claims',

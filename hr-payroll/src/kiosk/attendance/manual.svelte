@@ -38,7 +38,12 @@
 		companyId == null || term.trim().length < 2
 			? null
 			: bolt.query({
-					employment_profile: { search: term.trim(), fields: ['name', 'email'], limit: 20 }
+					employment_profile: {
+						output: 'kiosk',
+						search: term.trim(),
+						fields: ['name', 'email'],
+						limit: 20
+					}
 				})
 	);
 	const people = $derived(peopleQuery?.current?.employment_profile.rows ?? []);
@@ -49,6 +54,7 @@
 			? null
 			: bolt.query({
 					employment_contract: {
+						output: 'kiosk',
 						where: {
 							employee_id: { eq: chosen.id },
 							company_id: { eq: companyId }
@@ -66,7 +72,9 @@
 	const employmentsSettled = $derived(
 		chosen !== null && companyId != null && !employmentsQuery?.loading
 	);
-	const companies = $derived.by(() => bolt.query({ entity: { fields: ['name'], limit: 200 } }));
+	const companies = $derived.by(() =>
+		bolt.query({ entity: { output: 'kiosk', fields: ['name'], limit: 200 } })
+	);
 	const companyById = $derived(
 		new Map((companies?.current?.entity.rows ?? []).map((company) => [company.id, company.name]))
 	);
@@ -134,7 +142,7 @@
 	<Center measure="full" class="max-w-3xl py-6">
 		<Stack as="section" gap="lg" class="rounded-xl border bg-card p-5 sm:p-7">
 			<Inline as="header" align="start" gap="md" class="border-b pb-5">
-				<Frame ratio="square" shrink={false} class="size-11 rounded-lg bg-muted">
+				<Frame ratio="square" class="size-11 rounded-lg bg-muted">
 					<Icon icon="lucide:keyboard" class="size-5" />
 				</Frame>
 				<div>
@@ -189,12 +197,7 @@
 									}}
 								>
 									<Inline as="span" gap="sm">
-										<Frame
-											as="span"
-											ratio="square"
-											shrink={false}
-											class="size-9 rounded-full bg-background"
-										>
+										<Frame as="span" ratio="square" class="size-9 rounded-full bg-background">
 											<Icon icon="lucide:user-round" class="size-4" />
 										</Frame>
 										<span class="min-w-0 flex-1">

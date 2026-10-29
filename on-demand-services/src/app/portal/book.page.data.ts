@@ -5,13 +5,14 @@ import { Schema } from 'effect';
 import { SKILLS } from '../../lib/matching.js';
 
 export const bookReads = {
-	customers: { fields: ['name', 'address', 'location'], limit: 1 },
+	customers: { output: 'customer', fields: ['name', 'address', 'location'], limit: 1 },
 	services: {
+		output: 'customer',
 		fields: ['name', 'duration_minutes', 'description', 'skill'],
 		orderBy: { name: 'asc' },
 		limit: 20
 	},
-	helpers: { fields: ['name', 'skills'] }
+	helpers: { output: 'customer', fields: ['name', 'skills'] }
 } as const;
 
 const id = <C extends string>() =>

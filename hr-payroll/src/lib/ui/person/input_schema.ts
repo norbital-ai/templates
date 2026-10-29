@@ -33,7 +33,7 @@ export type JsonSchemaNode = {
 	readonly allOf?: readonly JsonSchemaNode[];
 	readonly if?: JsonSchemaNode;
 	readonly then?: JsonSchemaNode;
-	readonly [keyword: string]: unknown;
+	readonly [keyword: string]: Schema.Json | JsonSchemaNode | readonly JsonSchemaNode[] | undefined;
 };
 
 const JsonSchemaNode: Schema.Codec<JsonSchemaNode> = Schema.suspend(() =>
@@ -68,7 +68,7 @@ const JsonSchemaNode: Schema.Codec<JsonSchemaNode> = Schema.suspend(() =>
 );
 
 const decodeJsonSchema = Schema.decodeUnknownOption(JsonSchemaNode);
-/** A stored input schema as its typed tree, every keyword kept; null when it is absent, masked or not one. */
+/** A stored input schema as its typed tree, every keyword kept; null when it is absent or not one. */
 export const jsonSchemaOf = (
 	value: Row<'jurisdiction_settings'>['employee_input_schema'] | undefined
 ): JsonSchemaNode | null => Option.getOrNull(decodeJsonSchema(value));

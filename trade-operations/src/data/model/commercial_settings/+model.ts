@@ -27,6 +27,9 @@ export default model('commercial_settings', {
 	},
 	key: ['code'],
 	read: 'all',
+	outputs: {
+		logistics: { commercial_settings: { fields: ['code', 'stock_fresh_minutes'] } }
+	},
 	update: {
 		columns: {
 			commercial_settings: [

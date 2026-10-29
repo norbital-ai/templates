@@ -598,7 +598,12 @@
 	);
 </script>
 
-<Bound size="standard" clip class="relative rounded-lg border border-border/80 bg-muted/20">
+<Bound
+	size="fill"
+	minHeight="28rem"
+	clip
+	class="relative rounded-lg border border-border/80 bg-muted/20"
+>
 	<Imposter placement="fill">
 		<div
 			class={cn(
@@ -619,13 +624,13 @@
 
 	{#if loadBanner === 'loading'}
 		<Imposter placement="fill" class="pointer-events-auto bg-background/80 p-4">
-			<Inline align="center" justify="center" fill>
+			<Inline align="center" justify="center" size="fill">
 				<p class="text-sm text-muted-foreground">{t('component.loading_ifc_model')}</p>
 			</Inline>
 		</Imposter>
 	{:else if typeof loadBanner === 'object'}
 		<Imposter placement="fill" class="pointer-events-auto bg-background/85 p-4">
-			<Inline align="center" justify="center" fill>
+			<Inline align="center" justify="center" size="fill">
 				<p class="max-w-sm text-center text-sm text-destructive">
 					{loadBanner.error}
 				</p>
@@ -633,7 +638,7 @@
 		</Imposter>
 	{:else if !trimmedSrc}
 		<Imposter placement="fill" class="p-4">
-			<Inline align="center" justify="center" fill>
+			<Inline align="center" justify="center" size="fill">
 				<p class="text-sm text-muted-foreground">{t('component.no_ifc_model')}</p>
 			</Inline>
 		</Imposter>

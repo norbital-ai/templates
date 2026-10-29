@@ -2,7 +2,7 @@
 // (`src/lib`) answered under the caller's authority, then the same pure helper the page and the file sync call.
 import { Effect, Result } from 'effect';
 import type { Id } from '@norbital-ai/bolt';
-import type { Caller } from '@norbital-ai/bolt/test';
+import type { Caller } from '@norbital-ai/bolt-cli/test';
 import { Refusal } from '@norbital-ai/bolt/errors';
 import { PlainDate } from '@norbital-ai/std/date';
 import { previewRead, commissionPreview } from '../src/lib/commission-expressions.js';

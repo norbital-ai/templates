@@ -1,11 +1,14 @@
 /**
- * `planRosterImport` over in-memory sheet rows against one seeded fixture: what each row maps to, the leave it
- * records once, structural refusals, settled days, approved OT windows, OT consent and a configured `roster` rule.
+ * `planRosterImport` over in-memory sheet rows against one seeded fixture: what each row maps to, structural refusals
+ * (an unknown shift code among them), settled days, approved OT windows, OT consent and a configured `roster` rule.
  */
 import assert from 'node:assert/strict';
 import { layer, it } from '@effect/vitest';
-import { TestWorkspace } from '@norbital-ai/bolt/test';
-import { Effect } from 'effect';
+import { vi } from 'vitest';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
+import { Effect, Schema } from 'effect';
+import { csvRows } from '@norbital-ai/std/csv';
+import { PlainDate } from '@norbital-ai/std/date';
 import { PAYROLL, world } from './jurisdiction_kit.ts';
 import { fixtureId, nativeId } from './fixture_values.ts';
 import { planRosterImport } from '../src/lib/payroll_engine/roster_import.ts';
@@ -113,7 +116,10 @@ const tables = new Map<string, Row[]>([
 			entry('e2', '2026-03-03'),
 			entry('e3', '2026-03-04', { overtime_consented_at: '2026-03-02T09:00:00.000Z' }),
 			entry('e4', '2026-03-06', { payslip_id: nativeId('payslip', fixtureId('p1')) }),
-			{ ...entry('e5', '2026-03-05'), employment_id: nativeId('employment_contract', fixtureId('k2')) },
+			{
+				...entry('e5', '2026-03-05'),
+				employment_id: nativeId('employment_contract', fixtureId('k2'))
+			},
 			entry('e6', '2026-03-08')
 		]
 	],
@@ -126,6 +132,13 @@ const tables = new Map<string, Row[]>([
 				code: 'AL',
 				name: 'Annual leave',
 				can_encash: true
+			},
+			{
+				id: nativeId('leave_catalog', fixtureId('UL1')),
+				settings_id: VERSION,
+				code: 'UL',
+				name: 'Unpaid leave',
+				can_encash: false
 			}
 		]
 	],
@@ -142,6 +155,31 @@ const tables = new Map<string, Row[]>([
 				days: 1,
 				from: '2026-03-08',
 				to: '2026-03-08'
+			},
+			// two half days on one day: annual leave in the morning, unpaid leave in the afternoon
+			{
+				id: fixtureId('sheet-leave-am'),
+				company_id: COMPANY,
+				employment_id: K1,
+				catalog_id: nativeId('leave_catalog', fixtureId('AL1')),
+				activity: 'TIME_OFF',
+				occurred_on: '2026-03-31',
+				days: 0.5,
+				from: '2026-03-31',
+				to: '2026-03-31',
+				half_day_end: true
+			},
+			{
+				id: fixtureId('sheet-leave-pm'),
+				company_id: COMPANY,
+				employment_id: K1,
+				catalog_id: nativeId('leave_catalog', fixtureId('UL1')),
+				activity: 'TIME_OFF',
+				occurred_on: '2026-03-31',
+				days: 0.5,
+				from: '2026-03-31',
+				to: '2026-03-31',
+				half_day_start: true
 			}
 		]
 	],
@@ -212,11 +250,11 @@ const FILLED = [
 	['E1', '2026-03-04', 'D', '08:00', '20:00'],
 	['E1', '2026-03-05', 'D', '22:00', '06:00'],
 	['E1', '2026-03-06', 'D'],
-	['E1', '2026-03-07', '', '', '', '', '', 'AL'],
+	['E1', '2026-03-07'],
 	['E1', '2026-03-09'],
 	['E2', '2026-03-05'],
 	['E2', '2026-03-11'],
-	['E1', '2026-03-08', 'D', '', '', '', '', 'AL']
+	['E1', '2026-03-08', 'D']
 ] as const;
 const replace = (date: string, cells: readonly (string | number)[]) =>
 	FILLED.map((row) => (row[1] === date ? cells : row));
@@ -226,7 +264,9 @@ const plan = Effect.fnUntraced(function* (rows: readonly Cells[]) {
 	return yield* planRosterImport({ company_id: COMPANY, rows }, t.as(t.admin).query);
 });
 const at = (result: Effect.Success<ReturnType<typeof plan>>, date: string) =>
-	result.rows.find((row) => row != null && String(row.work_date) === date && row.employment_id === K1);
+	result.rows.find(
+		(row) => row != null && String(row.work_date) === date && row.employment_id === K1
+	);
 
 it('a day under leave a payslip consumed is locked', () => {
 	const consumed = {
@@ -248,7 +288,7 @@ it('a day under leave a payslip consumed is locked', () => {
 
 layer(world(tables).layer)('work-day sheet import', (it) => {
 	it.effect(
-		'maps each row onto its day; blanks, holidays and a leaver map to nothing; leave is recorded once; a roster rule warns',
+		'maps each row onto its day; blanks, holidays and a leaver map to nothing; a roster rule warns',
 		Effect.fnUntraced(function* () {
 			const result = yield* plan(sheet(FILLED));
 			assert.deepEqual(result.errors, []);
@@ -267,8 +307,34 @@ layer(world(tables).layer)('work-day sheet import', (it) => {
 			assert.equal(at(result, '2026-03-07'), undefined);
 			assert.ok(result.rows.every((row) => row == null || row.employment_id === K1));
 			assert.deepEqual(result.warnings.map((finding) => finding.row).toSorted(), [3, 8]);
-			assert.equal(result.leave.length, 1);
-			assert.equal(String(result.leave[0]!.from), '2026-03-07');
+		})
+	);
+
+	it.effect(
+		'parses each clock cell once per upload: zone conversions grow by a small constant per clocked row',
+		Effect.fnUntraced(function* () {
+			const days = Array.from(
+				{ length: 20 },
+				(_, i) => `2026-03-${String(i + 10).padStart(2, '0')}`
+			);
+			const conversions = Effect.fnUntraced(function* (rows: number, start: string, end: string) {
+				const spy = vi.spyOn(Intl.DateTimeFormat.prototype, 'formatToParts');
+				const result = yield* plan(
+					sheet(days.slice(0, rows).map((day) => ['E1', day, 'D', start, end]))
+				);
+				const calls = spy.mock.calls.length;
+				spy.mockRestore();
+				assert.deepEqual(result.errors, []);
+				return calls;
+			});
+			// fresh clock values per plan: nothing parsed by the first is reused by the second
+			const ten = yield* conversions(10, '09:00', '18:00'),
+				twenty = yield* conversions(20, '08:00', '17:00');
+			// mapping, validation and the day's roster checks each read a row's clock; parsed once, a row adds a handful (24 when every read reparsed it)
+			assert.ok(
+				(twenty - ten) / 10 <= 10,
+				`${(twenty - ten) / 10} zone conversions per clocked row`
+			);
 		})
 	);
 
@@ -301,16 +367,20 @@ layer(world(tables).layer)('work-day sheet import', (it) => {
 	it.effect(
 		'refuses a change to a settled day and a clock on a day of recorded leave, naming the row',
 		Effect.fnUntraced(function* () {
-			const pinned = yield* plan(sheet(replace('2026-03-06', ['E1', '2026-03-06', 'D', '09:00', '17:00'])));
+			const pinned = yield* plan(
+				sheet(replace('2026-03-06', ['E1', '2026-03-06', 'D', '09:00', '17:00']))
+			);
 			assert.deepEqual(
 				pinned.errors.map((finding) => finding.row),
 				[5]
 			);
 			assert.match(pinned.errors[0]!.message, /settled on a payslip/);
-			const onLeave = yield* plan(sheet(replace('2026-03-08', ['E1', '2026-03-08', 'D', '09:00', '18:00'])));
+			const onLeave = yield* plan(
+				sheet(replace('2026-03-08', ['E1', '2026-03-08', 'D', '09:00', '18:00']))
+			);
 			assert.deepEqual(
 				onLeave.errors.map((finding) => [finding.row, finding.column]),
-				[[10, SHEET_COLUMNS.leave_code]]
+				[[10, SHEET_COLUMNS.clock_in]]
 			);
 		})
 	);
@@ -344,7 +414,12 @@ layer(world(tables).layer)('work-day sheet import', (it) => {
 				{ ...row, approved_ot_1_start: start },
 				{ ...row, approved_ot_1_start: end, approved_ot_1_end: start },
 				{ ...row, approved_ot_1_start: 'CLEAR', approved_ot_1_end: end },
-				{ ...row, approved_ot_1_start: start, approved_ot_1_end: end, approved_ot_1_break_minutes: 120 }
+				{
+					...row,
+					approved_ot_1_start: start,
+					approved_ot_1_end: end,
+					approved_ot_1_break_minutes: 120
+				}
 			])
 				assert.equal((yield* plan([invalid])).errors.length, 1);
 		})
@@ -367,8 +442,177 @@ layer(world(tables).layer)('work-day sheet import', (it) => {
 				]),
 				[[3, SHEET_COLUMNS.overtime_consent]]
 			);
-			const marked = yield* plan(sheet(replace('2026-03-06', ['E1', '2026-03-06', 'D', '', '', 'Y'])));
+			const marked = yield* plan(
+				sheet(replace('2026-03-06', ['E1', '2026-03-06', 'D', '', '', 'Y']))
+			);
 			assert.match(marked.errors[0]!.message, /settled on a payslip/);
+		})
+	);
+
+	it.effect(
+		'PH is no shift code: the row is refused, pointing at the jurisdiction calendar',
+		Effect.fnUntraced(function* () {
+			const result = yield* plan(sheet(replace('2026-03-06', ['E1', '2026-03-06', 'ph'])));
+			assert.deepEqual(
+				result.errors.map((finding) => [finding.row, finding.column]),
+				[[5, SHEET_COLUMNS.shift_code]]
+			);
+			assert.match(result.errors[0]!.message, /jurisdiction calendar/);
+		})
+	);
+
+	it.effect(
+		'a Shift value that is no shift in effect for the person and day refuses the file, naming the row and value',
+		Effect.fnUntraced(function* () {
+			for (const code of ['X', 'AL', 'd ']) {
+				const result = yield* plan(sheet(replace('2026-03-02', ['E1', '2026-03-02', code])));
+				assert.deepEqual(
+					result.errors.map((finding) => [finding.row, finding.column]),
+					[[2, SHEET_COLUMNS.shift_code]],
+					code
+				);
+				assert.match(result.errors[0]!.message, new RegExp(`Row 2: "${code.trim()}"`));
+			}
+			assert.deepEqual(
+				(yield* plan(sheet(replace('2026-03-02', ['E1', '2026-03-02', 'R'])))).errors,
+				[]
+			);
+		})
+	);
+
+	// the real file sync, last: its imports write to the shared workspace
+	it.effect(
+		'the work sheet round trip: download → unchanged upload is a no-op; an error writes nothing; warnings come with the import',
+		Effect.fnUntraced(function* () {
+			const t = yield* TestWorkspace;
+			const admin = t.as(t.admin);
+			const context = {
+				company_id: COMPANY,
+				from: PlainDate('2026-03-01'),
+				to: PlainDate('2026-03-31')
+			};
+			const Output = Schema.Struct({
+				state: Schema.String,
+				output: Schema.NullOr(Schema.Json),
+				error: Schema.NullOr(Schema.Json)
+			});
+			const finished = Effect.fnUntraced(function* (id: string) {
+				yield* t.runDue();
+				const [run] = yield* t.db.rows(Output, {
+					text: 'SELECT state, output, error FROM sys_run WHERE id = $1',
+					params: [id]
+				});
+				assert.equal(run?.state, 'succeeded', JSON.stringify(run?.error));
+				return run.output;
+			});
+			const started = yield* admin.start('roster_entry.sync.work_sheet', {
+				mode: 'template',
+				format: 'csv',
+				context
+			});
+			assert.equal(started.kind, 'committed');
+			if (started.kind !== 'committed') return;
+			const { file } = Schema.decodeUnknownSync(
+				Schema.Struct({ file: Schema.Struct({ id: Schema.String }) })
+			)(yield* finished(started.output.id));
+			const [stored] = yield* t.db.rows(Schema.Struct({ key: Schema.String }), {
+				text: 'SELECT key FROM sys_file WHERE id = $1',
+				params: [file.id]
+			});
+			const downloaded = new TextDecoder().decode(t.fakes.files.blobs.get(stored!.key));
+			const [header = [], ...lines] = csvRows(downloaded.replace(/^\uFEFF/, ''));
+			const column = (field: SheetField) => header.indexOf(SHEET_COLUMNS[field]);
+			assert.ok(!header.includes('Leave'), 'the sheet has no Leave column');
+
+			const Imported = Schema.Struct({
+				applied: Schema.Boolean,
+				created: Schema.optionalKey(Schema.Number),
+				updated: Schema.optionalKey(Schema.Number),
+				deleted: Schema.optionalKey(Schema.Number),
+				findings: Schema.Array(
+					Schema.Struct({ at: Schema.Number, message: Schema.String, severity: Schema.String })
+				)
+			});
+			const state = () =>
+				t.db.rows(Schema.Struct({ rows: Schema.String }), {
+					text: `SELECT (SELECT json_agg(r ORDER BY r.id)::text FROM roster_entry r)
+						|| (SELECT count(*)::text FROM leave_catalog_entry) AS rows`,
+					params: []
+				});
+			const upload = Effect.fnUntraced(function* (
+				rows: readonly (readonly (string | number | null)[])[],
+				head: readonly string[] = header
+			) {
+				const text = [head, ...rows]
+					.map((row) =>
+						row.map((cell) => `"${String(cell ?? '').replaceAll('"', '""')}"`).join(',')
+					)
+					.join('\n');
+				const ref = yield* admin.upload('roster_entry.$import.work_sheet', {
+					name: 'work.csv',
+					mime: 'text/csv',
+					bytes: new TextEncoder().encode(text)
+				});
+				assert.equal(ref.kind, 'committed');
+				if (ref.kind !== 'committed') return assert.fail('upload refused');
+				const run = yield* admin.start('roster_entry.sync.work_sheet', {
+					mode: 'import',
+					file: ref.output.id,
+					context
+				});
+				if (run.kind !== 'committed') return assert.fail('import refused');
+				return Schema.decodeUnknownSync(Imported)(yield* finished(run.output.id));
+			});
+
+			const before = yield* state();
+			const unchanged = yield* upload(lines);
+			assert.deepEqual(
+				unchanged.findings.filter((finding) => finding.severity === 'refuse'),
+				[]
+			);
+			assert.equal(unchanged.applied, true);
+			assert.deepEqual(yield* state(), before, 'an unchanged sheet writes nothing');
+
+			// an older file's Leave column, garbage included: ignored, no finding, nothing written
+			const ignored = yield* upload(
+				lines.map((line, i) => [...line, ['', 'AL', 'UL (PM) + ??'][i % 3] ?? '']),
+				[...header, 'Leave']
+			);
+			assert.equal(ignored.applied, true);
+			assert.deepEqual(ignored.findings, unchanged.findings);
+			assert.deepEqual(yield* state(), before, 'the Leave column writes nothing');
+
+			// one error refuses the whole file: the valid change beside it is not written
+			const edit = (date: string, cells: { [F in SheetField]?: string }) =>
+				lines.map((line) =>
+					line[column('employee_number')] === 'E1' && line[column('work_date')] === date
+						? line.map((cell, i) => {
+								const field = Object.entries(SHEET_COLUMNS).find(
+									([, label]) => label === header[i]
+								)?.[0];
+								return field !== undefined && isField(field) && field in cells
+									? cells[field]!
+									: cell;
+							})
+						: line
+				);
+			const OVERTIME = { shift_code: 'D', clock_in: '08:00', clock_out: '20:00' };
+			const refused = yield* upload(
+				edit('2026-03-02', OVERTIME).map((line, i) =>
+					line[column('work_date')] === '2026-03-06' && line[column('employee_number')] === 'E1'
+						? edit('2026-03-06', { shift_code: 'PH' })[i]!
+						: line
+				)
+			);
+			assert.equal(refused.applied, false);
+			assert.ok(refused.findings.some((finding) => /PH is not a shift code/.test(finding.message)));
+			assert.deepEqual(yield* state(), before, 'a refused file writes nothing');
+
+			// warnings alone: imported in one step, the warnings reported with the counts
+			const warned = yield* upload(edit('2026-03-02', OVERTIME));
+			assert.equal(warned.applied, true);
+			assert.ok(warned.findings.length > 0 && warned.findings.every((f) => f.severity === 'warn'));
+			assert.notDeepEqual(yield* state(), before);
 		})
 	);
 });

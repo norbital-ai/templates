@@ -1,4 +1,4 @@
-import { Effect, Result, Schema } from 'effect';
+import { Effect, Record as EffectRecord, Result, Schema } from 'effect';
 import type { FacilityFailure, Unavailable } from '@norbital-ai/bolt/errors';
 import { sha256Hex, type DigestUnavailable } from '../../lib/commercial.js';
 import type { Health, Id } from '@norbital-ai/bolt';
@@ -8,7 +8,7 @@ import { inputSchema } from '@norbital-ai/std/kind';
 import { Instant, PlainDate } from '@norbital-ai/std/date';
 import type { SourceProjection as Projection } from './sql.js';
 import { sourceIdentity, sourceMetadata, sourceClock, sourcePage, sourceMarkers } from './sql.js';
-import { bindings, normalizeSourceRow, type SourceBindingName } from './source-bindings.js';
+import { bindings, normalizeSourceRow } from './source-bindings.js';
 export class SourceRowInvalid extends Schema.TaggedError<SourceRowInvalid>()('SourceRowInvalid', {
 	column: Schema.String,
 	reason: Schema.String
@@ -331,9 +331,7 @@ export const readSource = Effect.fnUntraced(function* <R extends object, M exten
 		position.after,
 		position.mode === 'changes' ? { from: state.bookmark, to: position.upper } : undefined
 	);
-	const binding = (Object.keys(bindings) as SourceBindingName[]).find(
-		(name) => bindings[name] === projection
-	);
+	const binding = EffectRecord.keys(bindings).find((name) => bindings[name] === projection);
 	if (result.length > PAGE + 1)
 		return yield* new SourceRowInvalid({
 			column: '$result',

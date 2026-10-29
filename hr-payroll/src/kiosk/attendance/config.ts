@@ -2,13 +2,13 @@
  * Kiosk constants. Validate model thresholds on the installed camera and its lighting.
  */
 
-/**
- * Where the face models live: the workspace `assets/models/human/` (the pinned Human's required pairs, copied from
- * `@vladmandic/human@3.3.6/models`), which the artifact serves under its workspace base. Not `?url` imports: Human
- * loads each `.bin` by the relative name written inside the `.json` weights manifest, which hashed names would break.
- */
+/** The workspace's own kiosk assets (narration clips, the anti-spoof export), under its workspace base. */
 export const KIOSK_ASSET_BASE = `${typeof document === 'undefined' ? '' : (document.querySelector('meta[name="bolt-base"]')?.getAttribute('content') ?? '')}/assets`;
-export const KIOSK_MODEL_BASE = `${KIOSK_ASSET_BASE}/models/human/`;
+/**
+ * The face models, fetched by the browser from the CDN at the pinned `@vladmandic/human` version (package.json): large
+ * models never ship in the release. Human loads each `.bin` by the relative name inside its `.json` weights manifest.
+ */
+export const KIOSK_MODEL_BASE = 'https://cdn.jsdelivr.net/npm/@vladmandic/human@3.3.6/models/';
 
 /** The narration clips: `assets/kiosk-voice/<language>/<key>.mp3`; kiosk-voice.test.ts is the gate. */
 export const KIOSK_VOICE_BASE = `${KIOSK_ASSET_BASE}/kiosk-voice/`;

@@ -2,6 +2,7 @@ import { model, type Id, type WriteCtx } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
 import { runEngine } from '../../../lib/payroll_engine/foundation.js';
 import { admitSuspension, loadWorkplaceAdmission } from '../../../lib/payroll_engine/admit.js';
+import { moved, tap } from '../../../lib/payroll_engine/taps.js';
 
 const update_columns = [
 	'kind',
@@ -97,6 +98,23 @@ export default model('work_suspension', {
 				ctx
 			);
 			return changes.map(({ set }) => set);
+		}
+	},
+	// The jurisdiction behaviour rules for this model's writes (`behaviour_taps`), started as the writer.
+	effect: {
+		created: function* (rows, ctx) {
+			yield* tap(ctx, 'created', { model: 'work_suspension', ids: rows.map((row) => row.id) });
+		},
+		updated: function* (changes, ctx) {
+			const ids = moved(changes, [
+				'kind',
+				'starts_on',
+				'ends_on',
+				'worksite',
+				'employment_ids',
+				'facts'
+			]);
+			yield* tap(ctx, 'updated', { model: 'work_suspension', ids });
 		}
 	}
 });

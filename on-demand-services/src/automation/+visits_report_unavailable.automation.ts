@@ -8,6 +8,6 @@ export default automation('visits_report_unavailable', {
 		targets: { kind: 'list', of: { kind: 'id', of: 'visits' }, min: 1 },
 		mc: { kind: 'bool' }
 	},
-	runAs: 'trigger',
+	policies: ['operations'],
 	run: declineShift
 });

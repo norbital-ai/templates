@@ -1,4 +1,5 @@
 import { model } from '@norbital-ai/bolt';
+import { moved, tap } from '../../../lib/payroll_engine/taps.js';
 
 export default model('regulatory_task', {
 	description:
@@ -111,6 +112,14 @@ export default model('regulatory_task', {
 				'evidence_file',
 				'facts'
 			]
+		}
+	},
+	// The jurisdiction behaviour rules for this model's writes (`behaviour_taps`), started as the writer.
+	effect: {
+		updated: function* (changes, ctx) {
+			// a task closed (a late annual contribution's surcharge reads `done_on` against `due_on`)
+			const ids = moved(changes, ['state']);
+			yield* tap(ctx, 'updated', { model: 'regulatory_task', ids });
 		}
 	}
 });

@@ -1,5 +1,11 @@
 import { Decimal } from '@norbital-ai/std/decimal';
 import {
+	logisticsDocument,
+	logisticsLine,
+	logisticsOrder,
+	logisticsReceipt
+} from '../../../lib/logistics.js';
+import {
 	agreements,
 	currentAgreement,
 	agreedTotal,
@@ -585,6 +591,15 @@ export default model('orders', {
 		'orders.transactions': { fields: 'all' },
 		'orders.ext_sales_orders': { fields: 'all' }
 	},
+	outputs: {
+		logistics: {
+			orders: { fields: logisticsOrder },
+			'orders.party': { fields: 'all' },
+			'orders.lines': { fields: logisticsLine },
+			'orders.transactions': { fields: logisticsDocument },
+			'orders.ext_sales_orders': { fields: logisticsReceipt }
+		}
+	},
 	create: {
 		// each line prices itself in its own `create.transform`, after this one
 		columns: {
@@ -1081,7 +1096,7 @@ export default model('orders', {
 				locale: { kind: 'enum', values: ['en', 'zh'], default: 'en' }
 			},
 			write: function* ({ context }, ctx) {
-				// a file sync reads as the member who started the export: their grants scope and mask the order
+				// a file sync reads as the member who started the export: their default-output grants scope the order
 				const document = yield* orderDocument(
 					yield* ctx.db.query(documentRead(context.order, context.locale)),
 					context

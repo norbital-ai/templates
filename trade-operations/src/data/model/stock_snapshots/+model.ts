@@ -1,4 +1,5 @@
 import { model } from '@norbital-ai/bolt';
+import { logisticsProduct } from '../../../lib/logistics.js';
 import { columns, readSource, SourceRowInvalid } from '../../../integration/kingdee/polling.js';
 import { projections } from '../../../integration/kingdee/projections.js';
 export default model('stock_snapshots', {
@@ -42,6 +43,13 @@ export default model('stock_snapshots', {
 		stock_snapshots: { fields: 'all' },
 		'stock_snapshots.product': { fields: 'all' },
 		'stock_snapshots.warehouse': { fields: 'all' }
+	},
+	outputs: {
+		logistics: {
+			stock_snapshots: { fields: 'all' },
+			'stock_snapshots.product': { fields: logisticsProduct },
+			'stock_snapshots.warehouse': { fields: 'all' }
+		}
 	},
 	syncs: {
 		kingdee: {

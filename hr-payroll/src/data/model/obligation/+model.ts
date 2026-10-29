@@ -1,5 +1,6 @@
 import { model } from '@norbital-ai/bolt';
 import { currency } from '@norbital-ai/std/decimal';
+import { moved, tap } from '../../../lib/payroll_engine/taps.js';
 
 export default model('obligation', {
 	description:
@@ -148,7 +149,7 @@ export default model('obligation', {
 		}
 	},
 	delete: {
-		// an open obligation is withdrawn when the run that raised it is deleted (`payroll_run_bookkeeping`); a settled or
+		// an open obligation is withdrawn when the run that raised it is deleted (`payroll_run`'s `effect`); a settled or
 		// waived one stays
 		check: function* (rows, ctx) {
 			const row = rows.findIndex((held) => held.state !== 'OPEN');
@@ -157,6 +158,13 @@ export default model('obligation', {
 					'Only an open obligation is withdrawn; a settled or waived one stays.',
 					{ row }
 				);
+		}
+	},
+	// The jurisdiction behaviour rules for this model's writes (`behaviour_taps`), started as the writer.
+	effect: {
+		updated: function* (changes, ctx) {
+			const ids = moved(changes, ['state']);
+			yield* tap(ctx, 'updated', { model: 'obligation', ids });
 		}
 	}
 });

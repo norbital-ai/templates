@@ -14,7 +14,7 @@
 	description={bolt.t('app.trade_configuration.description')}
 	variant="full"
 >
-	<Scroll name="commercial-settings" inset>
+	<Scroll name="commercial-settings" size="fill" inset>
 		{#if settings.current === undefined}
 			<p role="status" class="text-sm text-muted-foreground">
 				{settings.error ? settings.error.message : bolt.t('component.settings_loading')}

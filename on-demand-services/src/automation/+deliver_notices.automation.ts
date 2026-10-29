@@ -1,4 +1,4 @@
-import { automation, isMasked } from '@norbital-ai/bolt';
+import { automation } from '@norbital-ai/bolt';
 import { whatsapp } from '../lib/dispatch.js';
 import { deliverNoticeRows } from '../lib/notice-delivery.js';
 /**
@@ -8,8 +8,8 @@ import { deliverNoticeRows } from '../lib/notice-delivery.js';
 export default automation('deliver_notices', {
 	description:
 		'Sends each customer notice on WhatsApp to the customer’s number and records whether it went.',
-	on: { created: 'customer_notices' },
-	runAs: ['dispatch_automation'],
+	input: { ids: { kind: 'list', of: { kind: 'id', of: 'customer_notices' }, min: 1 } },
+	policies: ['dispatch_automation'],
 	run: function* ({ ids }, ctx) {
 		const { rows } = (yield* ctx.query({
 			customer_notices: {
@@ -19,12 +19,8 @@ export default automation('deliver_notices', {
 			'customer_notices.customer': { fields: ['phone'] }
 		})).customer_notices;
 		yield* deliverNoticeRows(
-			// a notice without a readable number has nowhere to go
-			rows.flatMap(({ customer, ...n }) =>
-				customer === null || isMasked(customer.phone)
-					? []
-					: [{ ...n, customer: { ...customer, phone: customer.phone } }]
-			),
+			// a notice without a customer has nowhere to go
+			rows.flatMap(({ customer, ...n }) => (customer === null ? [] : [{ ...n, customer }])),
 			(n) =>
 				ctx.send('whatsapp', {
 					to: whatsapp(n.customer.phone),

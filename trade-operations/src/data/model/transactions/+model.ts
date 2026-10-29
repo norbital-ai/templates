@@ -1,4 +1,5 @@
 import { Effect } from 'effect';
+import { logisticsDocument, logisticsOrder } from '../../../lib/logistics.js';
 import { readTransactions } from '../../../integration/kingdee/order-source.js';
 import { model, type CreateRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { Decimal } from '@norbital-ai/std/decimal';
@@ -183,6 +184,12 @@ export default model('transactions', {
 	// aging names each invoice's order
 	search: { text: ['reference', 'kind'] },
 	read: { transactions: { fields: 'all' }, 'transactions.order': { fields: 'all' } },
+	outputs: {
+		logistics: {
+			transactions: { fields: logisticsDocument },
+			'transactions.order': { fields: logisticsOrder }
+		}
+	},
 	// the sync alone writes transactions (no local columns); its rows pass through these checks
 	create: {
 		columns: { transactions: [] },

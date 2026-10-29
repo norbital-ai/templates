@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { it } from '@effect/vitest';
-import { TestWorkspace } from '@norbital-ai/bolt/test';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { nativeId } from './fixture_values.ts';
 import { employer, world } from './jurisdiction_kit.ts';

@@ -64,13 +64,14 @@ const infer = (session: InferenceSession, input: Record<string, Tensor>) =>
 export const loadAntiSpoof = Effect.fnUntraced(function* () {
 	const model = yield* Effect.try({
 		try: () => {
-			const base = new URL(`${KIOSK_ASSET_BASE}/models/`, location.origin);
+			// onnxruntime's wasm from the CDN at the installed package's own version; the export is the workspace's own
+			const runtime = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${env.versions.web}/dist/`;
 			env.wasm.numThreads = 1;
 			env.wasm.wasmPaths = {
-				wasm: new URL('ort-wasm-simd-threaded.wasm', base).href,
-				mjs: new URL('ort-wasm-simd-threaded.mjs', base).href
+				wasm: `${runtime}ort-wasm-simd-threaded.wasm`,
+				mjs: `${runtime}ort-wasm-simd-threaded.mjs`
 			};
-			return new URL('minifasnet.onnx', base).href;
+			return new URL(`${KIOSK_ASSET_BASE}/models/minifasnet.onnx`, location.origin).href;
 		},
 		catch: failed
 	});

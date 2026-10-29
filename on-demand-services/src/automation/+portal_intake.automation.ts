@@ -11,8 +11,8 @@ import { bookService } from '../lib/booking.js';
 export default automation('portal_intake', {
 	description:
 		'Books each portal request when a helper is free at the time asked; otherwise hands it to the desk and tells the customer a time will be proposed.',
-	on: { created: 'booking_requests' },
-	runAs: ['dispatch_automation'],
+	input: { ids: { kind: 'list', of: { kind: 'id', of: 'booking_requests' }, min: 1 } },
+	policies: ['dispatch_automation'],
 	run: function* ({ ids }, ctx) {
 		const { rows } = (yield* ctx.query({
 			booking_requests: { where: { id: { in: ids }, status: { eq: 'received' } } }

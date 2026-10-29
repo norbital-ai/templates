@@ -1,0 +1,71 @@
+[
+	{
+		"id": "76958d65-dc6b-5df0-a014-d31356aebce6",
+		"settings_id": "af475178-3e6d-5e7a-9cd7-35c08c83cfb8",
+		"code": "TEMPORARY_CESSATION",
+		"name": "Temporary cessation of all or part of the business for a cause other than force majeure — at least 75% of the working-day wage for the whole period",
+		"counts_as_attended": "false",
+		"scheduled": "true",
+		"eligibility": "true",
+		"quantity": "1.0",
+		"rate": "(has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\")\n  ? (day.day_type == \"WORK\" ? 0.75 * terms.base_salary : 0.0)\n  :0.75 * (terms.monthly_wage / 30.0)",
+		"pay": [
+			{
+				"code": "SUSPENSION_PAY_ADJUSTMENT",
+				"name": "Work suspension: unpaid share (monthly-paid)",
+				"references": [
+					{
+						"title": "LPA s.75 and s.68: a monthly-paid employee keeps the monthly wage (a day is the month ÷ 30) less what each suspended day does not pay under its kind — 25% of a day during a s.75 cessation, a whole working day under force majeure.",
+						"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+					}
+				],
+				"eligibility": "!(has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\")\n&&!(has(terms.facts.pay_basis) && terms.facts.pay_basis == \"PIECE\")\n&&work.days.exists(d, has(d.suspended) && d.suspended != null)",
+				"quantity": "1.0",
+				"rate": "sum(\n  work.days.filter(d, has(d.suspended) && d.suspended != null).map(\n    d,\n    max(0.0, (terms.monthly_wage / 30.0) - d.suspended.pay)\n  )\n)",
+				"destination": "PAY",
+				"direction": "SUBTRACT",
+				"counts_toward": ["SSO", "WCF", "PND1", "PVD", "EWF"]
+			},
+			{
+				"code": "SUSPENSION_PAY",
+				"name": "Work suspension pay (daily-paid)",
+				"references": [
+					{
+						"title": "LPA s.75: a daily-paid employee, paid only for days worked (BASIC_DAILY), is paid at least 75% of the day rate for each working day of a s.75 cessation.",
+						"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+					}
+				],
+				"eligibility": "(has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\")\n&&work.days.exists(d, has(d.suspended) && d.suspended != null)",
+				"quantity": "1.0",
+				"rate": "sum(\n  work.days.filter(d, has(d.suspended) && d.suspended != null).map(\n    d,\n    d.suspended.pay\n  )\n)",
+				"destination": "PAY",
+				"direction": "ADD",
+				"counts_toward": ["SSO", "WCF", "PND1", "PVD", "EWF"]
+			}
+		],
+		"references": [
+			{
+				"title": "LPA s.75 — Labour Protection Act B.E. 2541, Office of the Council of State English translation",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		]
+	},
+	{
+		"id": "48844ec0-c6aa-5eb8-9b33-f232f11c7ac9",
+		"settings_id": "af475178-3e6d-5e7a-9cd7-35c08c83cfb8",
+		"code": "FORCE_MAJEURE",
+		"name": "Force majeure — outside s.75: no wage for a working day not worked",
+		"counts_as_attended": "false",
+		"scheduled": "true",
+		"eligibility": "true",
+		"quantity": "1.0",
+		"rate": "(has(terms.facts.pay_basis) && terms.facts.pay_basis == \"DAILY\")\n  ?0.0\n  : (day.day_type == \"WORK\" ? 0.0 : (terms.monthly_wage / 30.0))",
+		"pay": [],
+		"references": [
+			{
+				"title": "LPA s.75 para 1 — Labour Protection Act B.E. 2541, Office of the Council of State English translation",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		]
+	}
+]

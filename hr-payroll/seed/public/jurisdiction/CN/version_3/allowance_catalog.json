@@ -1,0 +1,187 @@
+[
+	{
+		"id": "468791d6-7aba-4f74-a3c7-2bf8d9a540f1",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "FIXED_ALLOWANCE",
+		"name": "Fixed allowance (固定津贴补贴)",
+		"eligibility": "",
+		"amount": "allowance.amount / double(period.parts) * double(period.covered_days)\n/double(period.days)",
+		"references": [
+			{
+				"title": "国家统计局《关于工资总额组成的规定》第四条、第八条; 个人所得税法实施条例 第六条第一项. Part of the monthly wage (`terms.monthly_wage`) for the minimum-wage test. Prorated like the basic salary."
+			}
+		],
+		"counts_toward": [
+			"PENSION",
+			"MEDICAL",
+			"MAJOR_MEDICAL",
+			"UNEMPLOYMENT",
+			"WORK_INJURY",
+			"HPF",
+			"HPF_SUPPLEMENTARY",
+			"UNION_FUND",
+			"IIT"
+		],
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "72a99271-f252-4811-b8fa-1854823fc02d",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "ONLY_CHILD_ALLOWANCE",
+		"name": "Only-child allowance (独生子女补贴)",
+		"eligibility": "",
+		"amount": "allowance.amount / double(period.parts) * double(period.covered_days)\n/double(period.days)",
+		"references": [
+			{
+				"title": "国税发〔1994〕89号 第二条: 独生子女补贴不属于工资、薪金性质的补贴, 不征税; 国家统计局《关于工资总额组成的规定》第十一条 (not part of total wages)."
+			}
+		],
+		"counts_toward": [],
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "3e891e7d-353d-4126-a0c1-9f1ed9d766bc",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "CHILDCARE_SUBSIDY",
+		"name": "Childcare subsidy (托儿补助费)",
+		"eligibility": "",
+		"amount": "allowance.amount / double(period.parts) * double(period.covered_days)\n/double(period.days)",
+		"references": [
+			{
+				"title": "国税发〔1994〕89号 第二条: 托儿补助费不征税; not part of total wages (工资总额组成的规定 第十一条)."
+			}
+		],
+		"counts_toward": [],
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "09f36a52-d2e0-48df-a7cd-5eb4e4605232",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "TRAVEL_ALLOWANCE",
+		"name": "Business-travel allowance (差旅费津贴)",
+		"eligibility": "",
+		"amount": "allowance.amount / double(period.parts) * double(period.covered_days)\n/double(period.days)",
+		"references": [
+			{
+				"title": "国税发〔1994〕89号 第二条: 差旅费津贴不征税; not part of total wages. Only the per-diem paid for actual business trips at the employer's standard is untaxed; a fixed monthly payment under this name is wages (国税发〔1994〕89号 第二条: 其他各种补贴、津贴均应计入工资、薪金所得项目征税): pay it as FIXED_ALLOWANCE, not on this row."
+			}
+		],
+		"counts_toward": [],
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "caa022cb-611a-4646-8e4f-61c25d5cb265",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "MEAL_SUBSIDY_OUT",
+		"name": "Missed-meal subsidy (误餐补助)",
+		"eligibility": "",
+		"amount": "allowance.amount / double(period.parts) * double(period.covered_days)\n/double(period.days)",
+		"references": [
+			{
+				"title": "国税发〔1994〕89号 第二条: 误餐补助不征税 (财税字〔1995〕82号: 因公在城区、郊区工作不能在工作单位或返回就餐的实际误餐补助). Only the actual missed-meal money at the standard rate is untaxed; 财税字〔1995〕82号 continues: 单位以误餐补助名义发给职工的补贴、津贴, 应当并入当月工资、薪金所得计征个人所得税. A fixed monthly meal allowance is wages: pay it as FIXED_ALLOWANCE, not on this row."
+			}
+		],
+		"counts_toward": [],
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "66c78a86-8d06-4159-8446-e370bcb2e2fd",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "FOREIGN_HOUSING_ALLOWANCE",
+		"name": "Expatriate housing allowance (外籍个人住房补贴)",
+		"eligibility": "",
+		"amount": "allowance.amount / double(period.parts) * double(period.covered_days)\n/double(period.days)",
+		"references": [
+			{
+				"title": "财政部 税务总局公告2023年第29号: 外籍个人符合居民个人条件的, 可选择享受住房补贴、语言训练费、子女教育费等津补贴免税优惠政策, 也可选择享受专项附加扣除, 但不得同时享受; 至2027年12月31日. Exempt while the IIT standing elects `foreign_allowance_exemption` (and for a non-resident); otherwise taxed with wages. Part of total wages for the contribution base and the union fund: 国家统计局《关于工资总额组成的规定》第四条、第八条 (津贴和补贴; not among the 第十一条 exclusions)."
+			}
+		],
+		"counts_toward": [
+			"PENSION",
+			"MEDICAL",
+			"MAJOR_MEDICAL",
+			"UNEMPLOYMENT",
+			"WORK_INJURY",
+			"HPF",
+			"HPF_SUPPLEMENTARY",
+			"UNION_FUND",
+			"IIT.FOREIGN_ALLOWANCE"
+		],
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "8bcea252-f33e-4508-9502-ebb27c1d952c",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "FOREIGN_LANGUAGE_ALLOWANCE",
+		"name": "Expatriate language-training allowance (外籍个人语言训练费)",
+		"eligibility": "",
+		"amount": "allowance.amount / double(period.parts) * double(period.covered_days)\n/double(period.days)",
+		"references": [
+			{
+				"title": "财政部 税务总局公告2023年第29号 (as FOREIGN_HOUSING_ALLOWANCE). Part of total wages for the contribution base and the union fund: 国家统计局《关于工资总额组成的规定》第四条、第八条 (津贴和补贴; not among the 第十一条 exclusions)."
+			}
+		],
+		"counts_toward": [
+			"PENSION",
+			"MEDICAL",
+			"MAJOR_MEDICAL",
+			"UNEMPLOYMENT",
+			"WORK_INJURY",
+			"HPF",
+			"HPF_SUPPLEMENTARY",
+			"UNION_FUND",
+			"IIT.FOREIGN_ALLOWANCE"
+		],
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "670167e7-c1ea-4729-93cc-3e7cdfacbf52",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "FOREIGN_CHILD_EDUCATION_ALLOWANCE",
+		"name": "Expatriate children-education allowance (外籍个人子女教育费)",
+		"eligibility": "",
+		"amount": "allowance.amount / double(period.parts) * double(period.covered_days)\n/double(period.days)",
+		"references": [
+			{
+				"title": "财政部 税务总局公告2023年第29号 (as FOREIGN_HOUSING_ALLOWANCE). Part of total wages for the contribution base and the union fund: 国家统计局《关于工资总额组成的规定》第四条、第八条 (津贴和补贴; not among the 第十一条 exclusions)."
+			}
+		],
+		"counts_toward": [
+			"PENSION",
+			"MEDICAL",
+			"MAJOR_MEDICAL",
+			"UNEMPLOYMENT",
+			"WORK_INJURY",
+			"HPF",
+			"HPF_SUPPLEMENTARY",
+			"UNION_FUND",
+			"IIT.FOREIGN_ALLOWANCE"
+		],
+		"destination": "PAY",
+		"direction": "ADD"
+	},
+	{
+		"id": "7b8d9cab-3c7c-5d25-9414-bb81ceb6c680",
+		"settings_id": "e8049cef-7801-43f6-8dc5-642220d1b6a8",
+		"code": "HIGH_TEMPERATURE_ALLOWANCE",
+		"name": "High-temperature allowance (高温津贴)",
+		"references": [
+			{
+				"title": "防暑降温措施管理办法 (安监总安健〔2012〕89号) 第十七条. SH: 沪人社规〔2019〕19号 (有效期延长至2028年12月31日, 沪人社规〔2023〕29号) — 每年6月至9月安排劳动者露天工作以及不能采取有效措施将工作场所温度降低到33℃以下的, 300元/月, 纳入工资总额, 不作为最低工资的组成部分 (`terms.facts.high_temperature_exposed`) https://rsj.sh.gov.cn/tgzfl_17732/20231214/t0035_1420075.html. KM: 云南省人力资源和社会保障厅《关于发布企业高温津贴标准的通知》(云人社发〔2013〕98号) — 日最高气温35℃及以上从事室外露天工作或工作场所不能降至33℃以下的, 每人每工作日10元 (roster day fact `high_temperature`) https://hrss.yn.gov.cn/NewsView.aspx?NewsID=5893&ClassID=558. Shanghai's monthly 300 is split across the settlement parts of the month."
+			}
+		],
+		"automatic": true,
+		"eligibility": "(company.region in rules.regions.by_region)\n&& ((\"monthly\"\nin rules.regions.by_region[company.region].high_temperature\n  ? ((has(terms.facts.high_temperature_exposed)\n  &&terms.facts.high_temperature_exposed == true\n  &&months_through(period.from.substring(0, 4) + \"-01-01\", period.from)\n  in rules.regions.by_region[company.region].high_temperature.months.map(\n    m,\n    double(m)\n  ))\n    ?1.0\n    :0.0)\n  :double(\n    size(\n      work.days.filter(\n        d,\n        d.worked && has(d.facts) && has(d.facts.high_temperature)\n        &&d.facts.high_temperature == true\n      )\n    )\n  ))\n>0.0)",
+		"amount": "((company.region in rules.regions.by_region)\n  ? ((\"monthly\"\n  in rules.regions.by_region[company.region].high_temperature\n    ? ((has(terms.facts.high_temperature_exposed)\n    &&terms.facts.high_temperature_exposed == true\n    &&months_through(\n      period.from.substring(0, 4) + \"-01-01\",\n      period.from\n    )\n    in rules.regions.by_region[company.region].high_temperature.months.map(\n      m,\n      double(m)\n    ))\n      ?1.0\n      :0.0)\n    :double(\n      size(\n        work.days.filter(\n          d,\n          d.worked && has(d.facts) && has(d.facts.high_temperature)\n          &&d.facts.high_temperature == true\n        )\n      )\n    )))\n  :0.0)\n* ((company.region in rules.regions.by_region)\n  ? (\"monthly\"\n  in rules.regions.by_region[company.region].high_temperature\n    ?double(\n      rules.regions.by_region[company.region].high_temperature.monthly\n    )\n    /double(period.parts)\n    :double(\n      rules.regions.by_region[company.region].high_temperature.daily\n    ))\n  :0.0)",
+		"destination": "PAY",
+		"direction": "ADD",
+		"counts_toward": ["UNION_FUND", "IIT"]
+	}
+]

@@ -3,7 +3,7 @@
 	import { Effect, Schema, Stream } from 'effect';
 	/**
 	 * The payroll runs of one legal entity; a run opens on its own payslips. Creating a run is the whole tap: the
-	 * transform assembles its payslips from the records in force and the `payroll_run_bookkeeping` automation pins every
+	 * transform assembles its payslips from the records in force and the run's `effect` pins every
 	 * consumed catalogue entry to its slip. Selected runs have separate bank-file and salary-listing export actions:
 	 * each starts the `payroll_run.sync.export` file export, follows its run, then fetches the run's JSON file and
 	 * saves its files (bank files zipped, salary reports laid out as one workbook).

@@ -371,12 +371,8 @@ const PAYSLIP_BUILD_FIELDS = [
 
 /** Every app of the HR controller group. */
 export const HR_APPS = ['hr_controller', 'hr_employee'] as const;
-/** What HR ranks start: drift research, anonymisation and the payroll export (bank files, salary listing). */
-export const HR_AUTOMATIONS = [
-	'statutory_drift',
-	'employment_profile_anonymise',
-	'payroll_run.sync.export'
-] as const;
+/** What HR ranks start by hand: drift research and the payroll export (bank files, salary listing). */
+export const HR_AUTOMATIONS = ['statutory_drift', 'payroll_run.sync.export'] as const;
 
 /** Today's per-member budget: 600 model calls a minute, 100 agent turns an hour. */
 export const MEMBER_LIMITS = { act: '600/min', read: '600/min', agent: '100/h' } as const;
@@ -498,21 +494,22 @@ export const SELF = {
 	...JURISDICTION_READ
 } as const;
 
-/** The stored files a staff rank may open: evidence on obligations and tasks, and enrolment photos. */
+/** The stored files a staff rank may list (name, type): obligation and task evidence, enrolment photos. */
 const STAFF_FILES = {
 	sys_file: {
-		read: {
-			sys_file: {
-				where: {
-					field: {
-						in: [
-							'obligation.evidence_file',
-							'regulatory_task.evidence_file',
-							'employment_profile.face_photo'
-						]
+		outputs: {
+			meta: {
+				sys_file: {
+					where: {
+						field: {
+							in: [
+								'obligation.evidence_file',
+								'regulatory_task.evidence_file',
+								'employment_profile.face_photo'
+							]
+						}
 					}
-				},
-				fields: ['field', 'size', 'sha256', 'created_at']
+				}
 			}
 		}
 	}

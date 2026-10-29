@@ -37,7 +37,7 @@ const Range = Schema.Struct({
 	from: Schema.String,
 	to: Schema.optional(Schema.NullOr(Schema.String))
 });
-/** The models whose row events the taps answer (the `on` arms below), by their models. */
+/** The models whose effects start the taps (`input.event` below), by their models. */
 const MODELS = {
 	payroll_run,
 	payslip,
@@ -54,18 +54,6 @@ const MODELS = {
 	workplace_case,
 	work_suspension
 };
-/** An update arm over every field a model declares, less its refs, `before` (the transform's own record) and `skip`. */
-const dutyFields = <F extends { readonly [field: string]: { readonly kind: string } }>(
-	{ spec: { fields } }: { readonly spec: { readonly fields: F } },
-	skip: (field: string) => boolean = () => false
-) =>
-	Object.keys(fields).filter(
-		(field): field is Extract<keyof F, string> =>
-			Object.hasOwn(fields, field) &&
-			fields[field]?.kind !== 'ref' &&
-			field !== 'before' &&
-			!skip(field)
-	);
 /**
  * Each row's subjects. A row carries its entity (`company_id`) or is the entity; a row of an employment reaches the
  * entity through its contract; a person is a subject once per contract. `contracts` is the `subjects` member's rows.
@@ -137,73 +125,51 @@ const dayOf = (collection: string, action: string, held: Row, today: string): st
 	);
 };
 /**
- * The record-driven behaviour taps. The write runs in the model's own transform; this tap applies its rule
- * set: for every fired row and each of its subjects it resolves the entity's governing jurisdiction version, plans
+ * The record-driven behaviour taps. The write runs in the model's own transform; its committed `effect` starts this
+ * tap with the rows it wrote (code schedules it; no policy lists it as a manual start),
+ * which applies the rule set: for every fired row and each of its subjects it resolves the entity's governing jurisdiction version, plans
  * the rules whose trigger is this model and event, evaluates each rule's `when`, loads its declared reads and
  * applies the writes its `effect` returns, in order. Nothing here knows what any behaviour means.
  */
 export default automation('behaviour_taps', {
 	description:
 		'Applies the jurisdiction behaviour rules for a row event: each rule reads its declared rows and its effect returns the model writes to make.',
-	on: [
-		{ created: 'payroll_run' },
-		{ updated: 'payslip', fields: ['status'] },
-		{ created: 'employment_contract' },
-		// Every declared field: a term written for any day raises its duty on the write (`row.terms_written`), a duty
-		// keyed to any other change guards on `row.before`.
-		{ updated: 'employment_contract', fields: dutyFields(employment_contract) },
-		{ created: 'employment_profile' },
-		// Biometric bookkeeping (a kiosk match on every punch) is no duty's change.
-		{
-			updated: 'employment_profile',
-			fields: dutyFields(employment_profile, (field) => field.startsWith('face_'))
-		},
-		{ created: 'entity' },
-		{ updated: 'entity', fields: dutyFields(entity) },
-		{ created: 'leave_catalog_entry' },
-		{ updated: 'leave_catalog_entry', fields: ['activity', 'days', 'from', 'to', 'facts'] },
-		{ created: 'claim_catalog_entry' },
-		{ updated: 'claim_catalog_entry', fields: ['amount', 'facts'] },
-		{ created: 'adhoc_catalog_entry' },
-		{ updated: 'adhoc_catalog_entry', fields: ['amount', 'facts'] },
-		{ created: 'loan_catalog_entry' },
-		{
-			updated: 'loan_catalog_entry',
-			fields: [
-				'principal_amount',
-				'repayment_period',
-				'repayment_frequency',
-				'advance_made_on',
-				'facts'
-			]
-		},
-		// Overtime is the recorded time past the planned shift's hours; pins alone move thousands of rows a month.
-		{
-			updated: 'roster_entry',
-			fields: [
-				'worked_intervals',
-				'shift_definition_id',
-				'planned_overtime_hours',
-				'approved_overtime_intervals',
-				'overtime_consented_at'
-			]
-		},
-		{ updated: 'obligation', fields: ['state'] },
-		// A task closed (a late annual contribution's surcharge reads `done_on` against `due_on`).
-		{ updated: 'regulatory_task', fields: ['state'] },
-		{ created: 'workplace_case' },
-		{ updated: 'workplace_case', fields: ['kind', 'opened_on', 'closed_on', 'facts'] },
-		{ created: 'work_suspension' },
-		{
-			updated: 'work_suspension',
-			fields: ['kind', 'starts_on', 'ends_on', 'worksite', 'employment_ids', 'facts']
+	// Started by the models' effects (`tap` in `lib/payroll_engine/taps.ts`): which rows were written, and how.
+	input: {
+		action: { kind: 'enum', values: ['created', 'updated'] },
+		event: {
+			kind: 'union',
+			by: 'model',
+			arms: {
+				payroll_run: { ids: { kind: 'list', of: { kind: 'id', of: 'payroll_run' } } },
+				payslip: { ids: { kind: 'list', of: { kind: 'id', of: 'payslip' } } },
+				employment_contract: {
+					ids: { kind: 'list', of: { kind: 'id', of: 'employment_contract' } }
+				},
+				employment_profile: { ids: { kind: 'list', of: { kind: 'id', of: 'employment_profile' } } },
+				entity: { ids: { kind: 'list', of: { kind: 'id', of: 'entity' } } },
+				leave_catalog_entry: {
+					ids: { kind: 'list', of: { kind: 'id', of: 'leave_catalog_entry' } }
+				},
+				claim_catalog_entry: {
+					ids: { kind: 'list', of: { kind: 'id', of: 'claim_catalog_entry' } }
+				},
+				adhoc_catalog_entry: {
+					ids: { kind: 'list', of: { kind: 'id', of: 'adhoc_catalog_entry' } }
+				},
+				loan_catalog_entry: { ids: { kind: 'list', of: { kind: 'id', of: 'loan_catalog_entry' } } },
+				roster_entry: { ids: { kind: 'list', of: { kind: 'id', of: 'roster_entry' } } },
+				obligation: { ids: { kind: 'list', of: { kind: 'id', of: 'obligation' } } },
+				regulatory_task: { ids: { kind: 'list', of: { kind: 'id', of: 'regulatory_task' } } },
+				workplace_case: { ids: { kind: 'list', of: { kind: 'id', of: 'workplace_case' } } },
+				work_suspension: { ids: { kind: 'list', of: { kind: 'id', of: 'work_suspension' } } }
+			}
 		}
-	],
-	runAs: ['hr_controller', 'payslip_hold_automation'],
+	},
+	policies: ['hr_controller', 'payslip_hold_automation'],
 	concurrency: { max: 1 },
-	run: function* (input, ctx) {
+	run: function* ({ action, event: input }, ctx) {
 		const { model: collection } = input;
-		const action = String(ctx.cause);
 		const today = String(ctx.today).slice(0, 10);
 		const read = ctx.query;
 		const versionFor = yield* versionLookup(read);

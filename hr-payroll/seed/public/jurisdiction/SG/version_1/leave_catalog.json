@@ -1,0 +1,676 @@
+[
+	{
+		"id": "bfee4b76-ccd7-57c4-85f6-252a969871ab",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.88A(1) — 7 days in the first 12 months of continuous service, one more for every subsequent 12 months, to 14; after 3 months' service. s.88A(2)–(3): under 12 months, in proportion to completed months, a fraction under half a day disregarded and half or more counted as a day. EA s.88A(3): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). EA s.88A(8) pays untaken annual leave to an employee dismissed on any ground other than misconduct; the behaviour encash-leave-on-exit withholds the exit pay-out on a DISMISSAL with exit_facts.dismissed_for_misconduct, and pays the days carried into the leaving year with ANNUAL_LEAVE_ON_EXIT. Employment (Part-Time Employees) Regulations regs.2, 7 and 8: annual and sick leave entitlements are calculated in hours using the similar full-time employee’s hours and applicable leave entitlement. Eight hours a day and 44 a week are the reg.2(2) defaults only where there is no similar full-time employee. Reg.7(4) excludes the full-time whole-day rounding in EA s.88A(3). The hourly leave path uses the declared similar full-time employee’s daily and weekly hours, or the statutory 8/44 fallback where no similar employee exists; a mixed full-time and part-time leave year needs separately evidenced treatment. MOM annual-leave eligibility guidance: each year of service begins on the date the employee started work; the statutory annual window follows the hire anniversary. carry_forward: EA s.88A(6) — a Part 4 employee (workman earning ≤ $4,500 or other ≤ $2,600 basic, s.35) takes each year’s leave within the next 12 months, then loses it, so up to the year’s 14 days carry once; outside Part 4 carry is contractual (none here). Verified 2026-10-08 against the AGC text of s.88A(6) and MOM, Annual leave in special situations, “Treatment of unused annual leave entitlement” (https://www.mom.gov.sg/employment-practices/leave/annual-leave/special-situations, last updated 24 July 2025): only a Part 4 employee must be allowed to carry unused leave to the next 12 months; for anyone else the contract decides whether it is encashed, carried or forfeited.",
+				"url": "https://www.mom.gov.sg/employment-practices/leave/annual-leave/special-situations"
+			}
+		],
+		"eligibility": "terms.employment_type != \"PART_TIME\"\n&&employment.classification != \"NON_EA\"\n&& (employment.service_months >= 3)",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": true,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"pay_fraction": "",
+		"pay": [
+			{
+				"code": "ENCASHMENT",
+				"name": "Leave encashment",
+				"references": [
+					{
+						"title": "Employment Act 1968 s.88A(8): an employee dismissed other than for misconduct is paid for untaken annual leave; Employment Act s.20A: a day's pay is the monthly rate divided by the working days in the month (calendar days when no schedule is planned). The tap records the days; this line pays them. EA s.20A divisor (MOM, Monthly and daily salary: definitions and calculation (https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary, updated 8 Dec 2025, read 2026-10-08): incomplete month = monthly gross ÷ the month’s working days × days worked, the working days excluding rest and non-working days but including public holidays): period.month_working_days + period.month_holiday_work_days, the whole calendar month’s, the same in every part; with nothing planned, the month’s calendar days.",
+						"url": "https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary"
+					}
+				],
+				"eligibility": "leave.rows.exists(\n  r,\n  r.can_encash && r.activity == \"ENCASHMENT\" && r.days > 0.0\n)",
+				"quantity": "sum(\n  leave.rows.filter(r, r.can_encash && r.activity == \"ENCASHMENT\").map(\n    r,\n    r.days\n  )\n)",
+				"rate": "has(employee.facts.working_days_per_week)\n  ?12.0 * terms.monthly_wage\n  / (52.0 * double(employee.facts.working_days_per_week))\n  :terms.monthly_wage\n  / (double(period.month_working_days + period.month_holiday_work_days)\n  >0.0\n    ?double(period.month_working_days + period.month_holiday_work_days)\n    :double(period.month_days))",
+				"destination": "PAY",
+				"direction": "ADD",
+				"counts_toward": ["CDAC", "CPF.ADDITIONAL", "ECF", "MBMF", "SDL", "SINDA"]
+			}
+		],
+		"entitlement": {
+			"unit": "DAY",
+			"bands": [
+				{
+					"service_months": 84,
+					"days": 14
+				},
+				{
+					"service_months": 72,
+					"days": 13
+				},
+				{
+					"service_months": 60,
+					"days": 12
+				},
+				{
+					"service_months": 48,
+					"days": 11
+				},
+				{
+					"service_months": 36,
+					"days": 10
+				},
+				{
+					"service_months": 24,
+					"days": 9
+				},
+				{
+					"service_months": 12,
+					"days": 8
+				}
+			],
+			"days": "size(bands.filter(b, service_months >= b.service_months).map(b, b.days))\n>0\n  ?first(\n    bands.filter(b, service_months >= b.service_months).map(b, b.days)\n  )\n  :round(7.0 * min(service_months, 12.0) / 12.0, 1.0, \"HALF_UP\")",
+			"overdraw": "0",
+			"window": "SERVICE_YEAR",
+			"carry_forward": "(has(terms.statutory_work_category) && has(terms.base_salary)\n&& ((terms.statutory_work_category != \"NON_MANUAL\"\n&&terms.base_salary <= 4500.0)\n|| (terms.statutory_work_category == \"NON_MANUAL\"\n&&terms.base_salary <= 2600.0)))\n  ?14.0\n  :0.0",
+			"carry_depth": 1
+		}
+	},
+	{
+		"id": "c7a6523e-acae-5875-9282-5c037f91e905",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "SICK_LEAVE",
+		"name": "Outpatient sick leave",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)). s.89(1): the outpatient days are inside the hospitalisation days — a day of outpatient sick leave draws from both pools (`consumes_code`), so 60 is the whole and 14 the outpatient part of it. Employment (Part-Time Employees) Regulations regs.2, 7 and 8: annual and sick leave entitlements are calculated in hours using the similar full-time employee’s hours and applicable leave entitlement. Eight hours a day and 44 a week are the reg.2(2) defaults only where there is no similar full-time employee. Reg.7(4) excludes the full-time whole-day rounding in EA s.88A(3). The hourly leave path uses the declared similar full-time employee’s daily and weekly hours, or the statutory 8/44 fallback where no similar employee exists; a mixed full-time and part-time leave year needs separately evidenced treatment. Statutory sick/hospitalisation leave is paid leave, not an entitlement to exchange its balance for cash (EA s.89; reg.8; MOM part-time leave guidance). Any additional contractual cash benefit must preserve the statutory leave entitlement. MOM, Medical reimbursements and salary during sick leave: outpatient gross pay excludes shift allowance.",
+				"url": "https://www.mom.gov.sg/employment-practices/leave/sick-leave/medical-reimbursements-and-salary"
+			}
+		],
+		"eligibility": "terms.employment_type != \"PART_TIME\"\n&&employment.classification != \"NON_EA\"\n&& (employment.service_months >= 3)",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"entitlement": {
+			"unit": "DAY",
+			"bands": [
+				{
+					"service_months": 6,
+					"days": 14
+				},
+				{
+					"service_months": 5,
+					"days": 11
+				},
+				{
+					"service_months": 4,
+					"days": 8
+				},
+				{
+					"service_months": 3,
+					"days": 5
+				}
+			],
+			"days": "size(bands.filter(b, service_months >= b.service_months).map(b, b.days))\n>0\n  ?first(\n    bands.filter(b, service_months >= b.service_months).map(b, b.days)\n  )\n  :0.0",
+			"overdraw": "0",
+			"window": "SERVICE_YEAR"
+		},
+		"is_npl": false,
+		"pay_fraction": "",
+		"pay": [],
+		"consumes_code": "HOSPITALIZATION_LEAVE"
+	},
+	{
+		"id": "e96391d4-c13c-5f7a-b0fa-e3d0a643df3e",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "HOSPITALIZATION_LEAVE",
+		"name": "Hospitalization leave",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. Employment (Part-Time Employees) Regulations regs.2, 7 and 8: annual and sick leave entitlements are calculated in hours using the similar full-time employee’s hours and applicable leave entitlement. Eight hours a day and 44 a week are the reg.2(2) defaults only where there is no similar full-time employee. Reg.7(4) excludes the full-time whole-day rounding in EA s.88A(3). The hourly leave path uses the declared similar full-time employee’s daily and weekly hours, or the statutory 8/44 fallback where no similar employee exists; a mixed full-time and part-time leave year needs separately evidenced treatment. Statutory sick/hospitalisation leave is paid leave, not an entitlement to exchange its balance for cash (EA s.89; reg.8; MOM part-time leave guidance). Any additional contractual cash benefit must preserve the statutory leave entitlement."
+			}
+		],
+		"eligibility": "terms.employment_type != \"PART_TIME\"\n&&employment.classification != \"NON_EA\"\n&& (employment.service_months >= 3)",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"entitlement": {
+			"unit": "DAY",
+			"bands": [
+				{
+					"service_months": 6,
+					"days": 60
+				},
+				{
+					"service_months": 5,
+					"days": 45
+				},
+				{
+					"service_months": 4,
+					"days": 30
+				},
+				{
+					"service_months": 3,
+					"days": 15
+				}
+			],
+			"days": "size(bands.filter(b, service_months >= b.service_months).map(b, b.days))\n>0\n  ?first(\n    bands.filter(b, service_months >= b.service_months).map(b, b.days)\n  )\n  :0.0",
+			"overdraw": "0",
+			"window": "SERVICE_YEAR"
+		},
+		"is_npl": false,
+		"pay_fraction": "",
+		"pay": []
+	},
+	{
+		"id": "e8b46947-09dd-505f-9e65-b4bc4963f37a",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 s.9 governs qualifying citizen-child maternity leave. Employment Act 1968 s.76(4) excludes EA maternity pay only where at confinement the mother has at least two living natural children born during more than one previous confinement, subject to any contrary collective agreement or award. The first eight EA weeks are otherwise paid and the last four EA weeks unpaid; service, notice, flexible leave and CDCA transitions require separate qualification. Record the entry day (occurred_on) as the birth, stillbirth or adoption-eligibility day and the event in entry.facts: event_kind (BIRTH, STILLBIRTH, ADOPTION), child_citizenship and the cdca_* evidence facts; the leave period is from/to. pay_fraction reads the leave row (`leave`) on the payslip: the statutory origin, notice and EA s.76 facts are entry.facts (cdca_original_statutory_origin, cdca_notice_lead_days, maternity_delivery_notified_promptly, maternity_notice_sufficient_cause, ea_maternity_prior_living_children, ea_maternity_prior_confinements_with_living_children, cdca_citizenship_on, cdca_original_absence_from). An unrecorded origin or notice fact pays in full: the employer must record the ground for a reduction. The EA s.76 first-eight-weeks test reads the row’s first day against cdca_original_absence_from. NO_PAY_LEAVE deducts days × (1 − pay_fraction). Entitlement: 16 weeks under the CDCA for a citizen child (or one who becomes a citizen within 12 months); EA s.76: 12 weeks otherwise (entry.facts.cdca_child_citizen_at_birth false), the last 4 unpaid (pay_fraction). MOM, Maternity leave eligibility and entitlement, read 2026-10-07."
+			}
+		],
+		"eligibility": "employee.gender == \"FEMALE\"\n&& (entry.facts.event_kind in [\"BIRTH\", \"STILLBIRTH\"]\n&&entry.facts.cdca_birth_on == entry.occurred_on\n&&has(entry.facts.cdca_child_citizen_at_birth)\n  ? ((entry.facts.event_kind == \"STILLBIRTH\"\n  &&entry.facts.cdca_stillborn_would_have_been_citizen\n  && (entry.occurred_on >= \"2021-11-01\"\n  || (has(entry.facts.cdca_certified_estimated_delivery_on)\n  &&entry.facts.cdca_certified_estimated_delivery_on >= \"2021-11-01\"))\n  &&employment.service_months >= 3)\n  || (entry.facts.event_kind == \"BIRTH\"\n  && (entry.occurred_on >= \"2017-01-01\"\n  || (has(entry.facts.cdca_certified_estimated_delivery_on)\n  &&entry.facts.cdca_certified_estimated_delivery_on >= \"2017-01-01\"))\n  &&has(entry.facts.cdca_citizenship_on)\n  &&entry.facts.cdca_child_citizen_at_birth == true\n  &&entry.facts.cdca_citizenship_on <= entry.occurred_on\n  &&employment.service_months >= 3)\n    ? (entry.facts.cdca_maternity_arrangement == \"A\"\n      ?\"S9_1_A\"\n      :entry.facts.cdca_maternity_arrangement == \"B\"\n        ?\"S9_1_B\"\n        :entry.facts.cdca_maternity_arrangement == \"C\"\n          ? (entry.facts.cdca_original_taking_mode == \"CONTINUOUS\"\n            ?\"S9_1_C_I\"\n            :\"S9_1_C_II\")\n          :\"\")\n    : (entry.facts.event_kind == \"BIRTH\"\n    && (entry.occurred_on >= \"2017-01-01\"\n    || (has(entry.facts.cdca_certified_estimated_delivery_on)\n    &&entry.facts.cdca_certified_estimated_delivery_on >= \"2017-01-01\"))\n    &&has(entry.facts.cdca_citizenship_on)\n    &&employment.service_months >= 3\n    &&!entry.facts.cdca_child_citizen_at_birth\n    &&entry.facts.cdca_citizenship_on > entry.occurred_on\n    &&entry.facts.cdca_citizenship_on\n    <add_months(entry.occurred_on, 12))\n      ? (entry.facts.cdca_original_ea76_arrangement == \"A\"\n      &&entry.facts.cdca_specified_event_order <= 2\n      &&entry.facts.cdca_original_spell_from\n      <=entry.facts.cdca_original_ea76_through\n        ? (\"EA76_A\")\n        : (entry.facts.cdca_original_ea76_arrangement == \"A\"\n        &&entry.facts.cdca_specified_event_order <= 2\n        &&entry.facts.cdca_original_spell_from\n        >entry.facts.cdca_original_ea76_through\n        &&entry.facts.cdca_citizenship_on\n        <=add_days(entry.facts.cdca_original_ea76_through, 28)\n          ? (\"S9_1A_I_\"\n          + (entry.facts.cdca_citizenship_on\n          <=add_days(entry.facts.cdca_original_ea76_through, -28)\n            ?\"A_AB\"\n            :entry.facts.cdca_citizenship_on\n            <=entry.facts.cdca_original_ea76_through\n              ?\"B_BB\"\n              :\"C\")\n          + (entry.facts.cdca_original_taking_mode == \"FLEXIBLE\"\n            ?\"_FLEXIBLE\"\n            :\"\"))\n          : (entry.facts.cdca_original_ea76_arrangement == \"A\"\n          &&entry.facts.cdca_specified_event_order >= 3\n          &&entry.facts.cdca_original_spell_from\n          <=entry.facts.cdca_original_ea76_through\n            ? (\"EA76_A\")\n            : (entry.facts.cdca_original_ea76_arrangement == \"A\"\n            &&entry.facts.cdca_specified_event_order >= 3\n            &&entry.facts.cdca_original_spell_from\n            >entry.facts.cdca_original_ea76_through\n            &&entry.facts.cdca_citizenship_on\n            <=add_days(entry.facts.cdca_original_ea76_through, 28)\n              ? (\"S9_1A_II_\"\n              + (entry.facts.cdca_citizenship_on\n              <=entry.facts.cdca_original_ea76_through\n                ?\"A_AB\"\n                :\"B\")\n              + (entry.facts.cdca_original_taking_mode == \"FLEXIBLE\"\n                ?\"_FLEXIBLE\"\n                :\"\"))\n              : (entry.facts.cdca_original_ea76_arrangement == \"B\"\n              &&entry.facts.cdca_specified_event_order <= 2\n              &&entry.facts.cdca_original_spell_from\n              <=entry.facts.cdca_original_ea76_through\n                ? (\"EA76_B\")\n                : (entry.facts.cdca_original_ea76_arrangement == \"B\"\n                &&entry.facts.cdca_specified_event_order <= 2\n                &&entry.facts.cdca_original_spell_from\n                >entry.facts.cdca_original_ea76_through\n                &&entry.facts.cdca_citizenship_on\n                <=add_days(entry.facts.cdca_original_ea76_through, 28)\n                  ? (\"S9_1A_III_\"\n                  + (entry.facts.cdca_citizenship_on\n                  <=add_days(\n                    entry.facts.cdca_original_ea76_through,\n                    -28\n                  )\n                    ?\"A_AB\"\n                    :entry.facts.cdca_citizenship_on\n                    <=entry.facts.cdca_original_ea76_through\n                      ?\"B_BB\"\n                      :\"C\")\n                  + (entry.facts.cdca_original_taking_mode == \"FLEXIBLE\"\n                    ?\"_FLEXIBLE\"\n                    :\"\"))\n                  : (entry.facts.cdca_original_ea76_arrangement == \"B\"\n                  &&entry.facts.cdca_specified_event_order >= 3\n                  &&entry.facts.cdca_original_spell_from\n                  <=entry.facts.cdca_original_ea76_through\n                    ? (\"EA76_B\")\n                    : (entry.facts.cdca_original_ea76_arrangement == \"B\"\n                    &&entry.facts.cdca_specified_event_order >= 3\n                    &&entry.facts.cdca_original_spell_from\n                    >entry.facts.cdca_original_ea76_through\n                    &&entry.facts.cdca_citizenship_on\n                    <=add_days(\n                      entry.facts.cdca_original_ea76_through,\n                      28\n                    )\n                      ? (\"S9_1A_IV_\"\n                      + (entry.facts.cdca_citizenship_on\n                      <=entry.facts.cdca_original_ea76_through\n                        ?\"A_AB\"\n                        :\"B\")\n                      + (entry.facts.cdca_original_taking_mode\n                      ==\"FLEXIBLE\"\n                        ?\"_FLEXIBLE\"\n                        :\"\"))\n                      : (entry.facts.cdca_original_ea76_arrangement\n                      in [\"A\", \"B\"]\n                      &&entry.facts.cdca_citizenship_on\n                      >add_days(\n                        entry.facts.cdca_original_ea76_through,\n                        28\n                      )\n                      &&entry.facts.cdca_citizenship_on\n                      <add_months(entry.occurred_on, 12)\n                        ? (\"S9_1A_IVA_A\"\n                        + (entry.facts.cdca_original_taking_mode\n                        ==\"FLEXIBLE\"\n                          ?\"_FLEXIBLE\"\n                          :\"\"))\n                        : (entry.facts.cdca_original_ea76_arrangement\n                        ==\"C\"\n                        &&entry.facts.cdca_specified_event_order <= 2\n                        &&entry.facts.cdca_original_spell_from\n                        <=add_days(\n                          entry.facts.cdca_original_absence_from,\n                          55\n                        )\n                          ? (\"\")\n                          : (entry.facts.cdca_original_ea76_arrangement\n                          ==\"C\"\n                          &&entry.facts.cdca_specified_event_order <= 2\n                          &&entry.facts.cdca_original_period_role\n                          ==\"EA76_LATER\"\n                            ? (\"EA76_C_II\")\n                            : (entry.facts.cdca_original_ea76_arrangement\n                            ==\"C\"\n                            &&entry.facts.cdca_specified_event_order\n                            <=2\n                            &&entry.facts.cdca_original_period_role\n                            ==\"ADDITIONAL\"\n                              ? (\"S9_1A_V_\"\n                              + (entry.facts.cdca_citizenship_on\n                              <=add_days(\n                                entry.facts.cdca_original_absence_from,\n                                55\n                              )\n                                ?\"A_AB\"\n                                :\"B_BB\"))\n                              : (entry.facts.cdca_original_ea76_arrangement\n                              ==\"C\"\n                              &&entry.facts.cdca_specified_event_order\n                              >=3\n                              &&entry.facts.cdca_original_spell_from\n                              <=add_days(\n                                entry.facts.cdca_original_absence_from,\n                                55\n                              )\n                                ? (\"EA76_C_I\")\n                                : (entry.facts.cdca_original_ea76_arrangement\n                                ==\"C\"\n                                &&entry.facts.cdca_specified_event_order\n                                >=3\n                                &&entry.facts.cdca_original_period_role\n                                ==\"EA76_LATER\"\n                                  ? (\"EA76_C_II\")\n                                  : (entry.facts.cdca_original_ea76_arrangement\n                                  ==\"C\"\n                                  &&entry.facts.cdca_specified_event_order\n                                  >=3\n                                  &&entry.facts.cdca_original_period_role\n                                  ==\"ADDITIONAL\"\n                                    ? (\"S9_1A_VI_\"\n                                    + (entry.facts.cdca_citizenship_on\n                                    <=add_days(\n                                      entry.facts.cdca_original_absence_from,\n                                      55\n                                    )\n                                      ?\"A_AB\"\n                                      :\"B_BB\"))\n                                    : (employment.classification\n                                    ==\"NON_EA\"\n                                    &&entry.facts.cdca_original_ea76_arrangement\n                                    ==\"NONE\"\n                                    &&entry.facts.cdca_original_taking_mode\n                                    ==\"CONTINUOUS\"\n                                      ? (\"S9_1B_I\")\n                                      : (employment.classification\n                                      ==\"NON_EA\"\n                                      &&entry.facts.cdca_original_ea76_arrangement\n                                      ==\"NONE\"\n                                      &&entry.facts.cdca_original_taking_mode\n                                      ==\"FLEXIBLE\"\n                                      &&entry.facts.cdca_citizenship_on\n                                      <=add_days(entry.occurred_on, 55)\n                                        ? (entry.facts.cdca_original_period_role\n                                        ==\"INITIAL\"\n                                          ?\"S9_1B_II_A\"\n                                          :\"S9_1B_II_B\")\n                                        : (employment.classification\n                                        ==\"NON_EA\"\n                                        &&entry.facts.cdca_original_ea76_arrangement\n                                        ==\"NONE\"\n                                        &&entry.facts.cdca_original_taking_mode\n                                        ==\"FLEXIBLE\"\n                                        &&entry.facts.cdca_citizenship_on\n                                        >add_days(entry.occurred_on, 55)\n                                          ? (\"S9_1B_III\")\n                                          : (\"\")))))))))))))))))))\n      : (employment.classification != \"NON_EA\"\n        ? (entry.facts.cdca_original_ea76_arrangement == \"A\"\n          ?\"EA76_A\"\n          :entry.facts.cdca_original_ea76_arrangement == \"B\"\n            ?\"EA76_B\"\n            :entry.facts.cdca_original_ea76_arrangement == \"C\"\n              ? (entry.facts.cdca_original_taking_mode == \"CONTINUOUS\"\n                ?\"EA76_C_I\"\n                :\"EA76_C_II\")\n              :\"\")\n        :\"\"))\n  :\"\")\n!=\"\"",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"pay_fraction": "((has(leave.facts.cdca_original_statutory_origin)\n  ?leave.facts.cdca_original_statutory_origin\n  :\"\")\n==\"\"\n|| (has(leave.facts.cdca_original_statutory_origin)\n  ?leave.facts.cdca_original_statutory_origin\n  :\"\")\nin [\n  \"S9_1A_III_A_AB\",\n  \"S9_1A_III_A_AB_FLEXIBLE\",\n  \"S9_1A_III_B_BB\",\n  \"S9_1A_III_B_BB_FLEXIBLE\",\n  \"S9_1A_III_C\",\n  \"S9_1A_III_C_FLEXIBLE\",\n  \"S9_1A_II_A_AB\",\n  \"S9_1A_II_A_AB_FLEXIBLE\",\n  \"S9_1A_II_B\",\n  \"S9_1A_II_B_FLEXIBLE\",\n  \"S9_1A_IVA_A\",\n  \"S9_1A_IVA_A_FLEXIBLE\",\n  \"S9_1A_IV_A_AB\",\n  \"S9_1A_IV_A_AB_FLEXIBLE\",\n  \"S9_1A_IV_B\",\n  \"S9_1A_IV_B_FLEXIBLE\",\n  \"S9_1A_I_A_AB\",\n  \"S9_1A_I_A_AB_FLEXIBLE\",\n  \"S9_1A_I_B_BB\",\n  \"S9_1A_I_B_BB_FLEXIBLE\",\n  \"S9_1A_I_C\",\n  \"S9_1A_I_C_FLEXIBLE\",\n  \"S9_1A_VI_A_AB\",\n  \"S9_1A_VI_B_BB\",\n  \"S9_1A_V_A_AB\",\n  \"S9_1A_V_B_BB\",\n  \"S9_1B_I\",\n  \"S9_1B_III\",\n  \"S9_1B_II_A\",\n  \"S9_1B_II_B\",\n  \"S9_1_A\",\n  \"S9_1_B\",\n  \"S9_1_C_I\",\n  \"S9_1_C_II\"\n]\n  ?1.0\n  : ((has(leave.facts.cdca_original_statutory_origin)\n    ?leave.facts.cdca_original_statutory_origin\n    :\"\")\n  in [\"EA76_A\", \"EA76_B\"]\n    ? ((((has(leave.facts.ea_maternity_prior_living_children)\n    &&leave.facts.ea_maternity_prior_living_children < 2)\n    || (has(\n      leave.facts.ea_maternity_prior_confinements_with_living_children\n    )\n    &&leave.facts.ea_maternity_prior_confinements_with_living_children\n    <=1))\n    && (has(leave.facts.cdca_original_absence_from)\n    &&calendar_distance_days(\n      leave.facts.cdca_original_absence_from,\n      leave.from\n    )\n    <56))\n    || (has(leave.facts.cdca_citizenship_on)\n    &&leave.from >= leave.facts.cdca_citizenship_on)\n      ?1.0\n      :0.0)\n    : ((has(leave.facts.cdca_original_statutory_origin)\n      ?leave.facts.cdca_original_statutory_origin\n      :\"\")\n    ==\"EA76_C_I\"\n      ? (((has(leave.facts.ea_maternity_prior_living_children)\n      &&leave.facts.ea_maternity_prior_living_children < 2)\n      || (has(\n        leave.facts.ea_maternity_prior_confinements_with_living_children\n      )\n      &&leave.facts.ea_maternity_prior_confinements_with_living_children\n      <=1))\n      || (has(leave.facts.cdca_citizenship_on)\n      &&leave.from >= leave.facts.cdca_citizenship_on)\n        ?1.0\n        :0.0)\n      : ((has(leave.facts.cdca_original_statutory_origin)\n        ?leave.facts.cdca_original_statutory_origin\n        :\"\")\n      ==\"EA76_C_II\"\n        ? ((has(leave.facts.cdca_citizenship_on)\n        && ((has(leave.facts.cdca_original_absence_from)\n        &&leave.facts.cdca_citizenship_on\n        <=add_days(leave.facts.cdca_original_absence_from, 55))\n        ||leave.from >= leave.facts.cdca_citizenship_on))\n          ?1.0\n          :0.0)\n        :0.0))))\n* (((has(leave.facts.cdca_notice_lead_days)\n&&leave.facts.cdca_notice_lead_days\n< (leave.from >= \"2025-04-01\"\n&&!((has(leave.facts.cdca_original_statutory_origin)\n  ?leave.facts.cdca_original_statutory_origin\n  :\"\")\nin [\"EA76_A\", \"EA76_B\", \"EA76_C_I\", \"EA76_C_II\"])\n  ? ((has(leave.facts.cdca_shorter_notice_agreed)\n  &&leave.facts.cdca_shorter_notice_agreed == true\n  &&has(leave.facts.cdca_agreed_notice_days))\n    ?leave.facts.cdca_agreed_notice_days\n    :28)\n  :7)\n&&!(leave.from >= \"2025-04-01\"\n&& (has(leave.facts.cdca_original_statutory_origin)\n  ?leave.facts.cdca_original_statutory_origin\n  :\"\")\nin [\n  \"S9_1_C_II\",\n  \"S9_1B_II_B\",\n  \"S9_1B_III\",\n  \"S9_1A_III_A_AB_FLEXIBLE\",\n  \"S9_1A_III_B_BB_FLEXIBLE\",\n  \"S9_1A_III_C_FLEXIBLE\",\n  \"S9_1A_II_A_AB_FLEXIBLE\",\n  \"S9_1A_II_B_FLEXIBLE\",\n  \"S9_1A_IVA_A_FLEXIBLE\",\n  \"S9_1A_IV_A_AB_FLEXIBLE\",\n  \"S9_1A_IV_B_FLEXIBLE\",\n  \"S9_1A_I_A_AB_FLEXIBLE\",\n  \"S9_1A_I_B_BB_FLEXIBLE\",\n  \"S9_1A_I_C_FLEXIBLE\"\n]))\n|| (has(leave.facts.maternity_delivery_notified_promptly)\n&&leave.facts.maternity_delivery_notified_promptly == false))\n&&!(has(leave.facts.maternity_notice_sufficient_cause)\n&&leave.facts.maternity_notice_sufficient_cause == true)\n  ?0.5\n  :1.0)",
+		"pay": [],
+		"entitlement": {
+			"unit": "DAY",
+			"window": "EVENT",
+			"days": "((has(entry.facts.cdca_child_citizen_at_birth)\n&&entry.facts.cdca_child_citizen_at_birth == false\n&&!(has(entry.facts.cdca_citizenship_on) && has(entry.occurred_on)\n&&entry.occurred_on != null\n&&entry.facts.cdca_citizenship_on < add_months(entry.occurred_on, 12)))\n  ?12.0\n  :16.0)\n* (has(employee.facts.working_days_per_week)\n  ?double(employee.facts.working_days_per_week)\n  :7.0)",
+			"overdraw": "0",
+			"window_key": "has(entry.facts.event_id) && entry.facts.event_id != null\n  ?string(entry.facts.event_id)\n  :\"\""
+		}
+	},
+	{
+		"id": "e9758606-6d31-5cb4-b418-4ce5f8f83453",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 ss.12H-12J: paternity leave for a qualifying natural or adoptive father. Section 12I(2) does not impose a general marriage requirement on an adoptive father. Section 12I(1)(c) separately sets the natural father's historical marriage conditions. Section 12H distinguishes four weeks for an April 2025 Scheme child from two weeks for other qualifying children, including the stillbirth modifications in s.12H(12); continuous and agreed flexible taking have different periods and units. Eligibility and payment remain subject to the applicable statutory conditions and limits. Original qualification and source clause are derived from original birth/EDD, marriage/citizenship and adoption application or dependant-pass evidence; current marital or child citizenship status alone cannot establish historical eligibility. Statutory source: https://sso.agc.gov.sg/Act/CDCSA2001?ProvIds=pr12H- ; declaration source: https://file.go.gov.sg/gppl1form.pdf ; current scheme https://www.profamilyleave.msf.gov.sg/schemes/paternity-leave. Record the entry day (occurred_on) as the birth, stillbirth or adoption-eligibility day and the event in entry.facts: event_kind (BIRTH, STILLBIRTH, ADOPTION), child_citizenship and the cdca_* evidence facts; the leave period is from/to. Entitlement (CDCA s.12H): four weeks for an April 2025 Scheme child (born on or after 1 April 2025), two weeks for a child born before it (any further weeks are voluntary); an undated next birth reads the balance day (as_of)."
+			}
+		],
+		"eligibility": "employee.gender == \"MALE\"\n&& ((entry.facts.event_kind in [\"BIRTH\", \"STILLBIRTH\"]\n&&entry.facts.cdca_birth_on == entry.occurred_on\n&&employment.service_months >= 3\n&&entry.facts.cdca_is_natural_father\n&& (entry.facts.cdca_married_at_conception\n|| (has(entry.facts.cdca_marriage_to_mother_on)\n&& (entry.facts.cdca_marriage_to_mother_on >= entry.occurred_on\n|| (has(entry.facts.cdca_conception_on)\n&&entry.facts.cdca_marriage_to_mother_on\n>=entry.facts.cdca_conception_on))\n&&entry.facts.cdca_marriage_to_mother_on\n<add_months(entry.occurred_on, 12)\n&&entry.facts.cdca_marriage_to_mother_on\n<=entry.facts.cdca_original_spell_from))\n&& (entry.facts.event_kind == \"BIRTH\"\n  ? (entry.occurred_on >= \"2017-01-01\"\n  || (has(entry.facts.cdca_certified_estimated_delivery_on)\n  &&entry.facts.cdca_certified_estimated_delivery_on >= \"2017-01-01\"))\n  &&has(entry.facts.cdca_citizenship_on)\n  &&entry.facts.cdca_citizenship_on < add_months(entry.occurred_on, 12)\n  &&entry.facts.cdca_citizenship_on\n  <=entry.facts.cdca_original_spell_from\n  :entry.occurred_on >= \"2021-11-01\"\n  &&entry.facts.cdca_stillborn_would_have_been_citizen)\n|| (entry.facts.event_kind == \"ADOPTION\"\n&&entry.facts.cdca_adoption_eligibility_on == entry.occurred_on\n&&entry.facts.cdca_adoption_eligibility_on >= \"2017-01-01\"\n&&employment.service_months >= 3\n&&entry.facts.cdca_adoption_eligibility_on >= entry.facts.cdca_birth_on\n&&entry.facts.cdca_adoption_eligibility_on\n<add_months(entry.facts.cdca_birth_on, 12)\n&&!entry.facts.cdca_is_natural_father\n&& (entry.facts.cdca_child_status_at_application == \"SC\"\n  ?entry.facts.cdca_adoption_eligibility_on\n  ==entry.facts.cdca_adoption_application_on\n  :entry.facts.cdca_child_status_at_application == \"PR\"\n    ? (entry.facts.cdca_adoption_application_on >= \"2025-04-01\"\n      ? (entry.facts.cdca_adoption_eligibility_on\n      ==entry.facts.cdca_adoption_application_on\n      && (entry.facts.cdca_adoptive_father_citizen_at_application\n      || (entry.facts.cdca_adoption_joint_application\n      &&entry.facts.cdca_wife_citizen_at_application)))\n      : (entry.facts.cdca_adoption_eligibility_on\n      ==entry.facts.cdca_adoption_dependant_pass_on\n      && (entry.facts.cdca_adoptive_father_citizen_at_dependant_pass\n      || (entry.facts.cdca_adoption_joint_application\n      &&entry.facts.cdca_wife_citizen_at_dependant_pass))))\n    :entry.facts.cdca_child_status_at_application == \"OTHER\"\n      ? (entry.facts.cdca_adoption_eligibility_on\n      ==entry.facts.cdca_adoption_dependant_pass_on\n      && (entry.facts.cdca_adoptive_father_citizen_at_dependant_pass\n      || (entry.facts.cdca_adoption_joint_application\n      &&entry.facts.cdca_wife_citizen_at_dependant_pass)))\n      :false)))\n  ? (entry.facts.cdca_original_taking_mode == \"CONTINUOUS\"\n    ? (entry.facts.event_kind != \"STILLBIRTH\"\n    && (entry.facts.event_kind == \"ADOPTION\"\n      ?entry.facts.cdca_adoption_eligibility_on >= \"2025-04-01\"\n      : (entry.occurred_on >= \"2025-04-01\"\n      || (has(entry.facts.cdca_certified_estimated_delivery_on)\n      &&entry.facts.cdca_certified_estimated_delivery_on >= \"2025-04-01\")))\n      ?\"S12H_1_A_I\"\n      :\"S12H_1_A_II\")\n    :entry.facts.cdca_original_taking_mode == \"FLEXIBLE\"\n    &&entry.facts.cdca_paternity_taking_employer_agreed\n      ? (entry.facts.event_kind != \"STILLBIRTH\"\n      && (entry.facts.event_kind == \"ADOPTION\"\n        ?entry.facts.cdca_adoption_eligibility_on >= \"2025-04-01\"\n        : (entry.occurred_on >= \"2025-04-01\"\n        || (has(entry.facts.cdca_certified_estimated_delivery_on)\n        &&entry.facts.cdca_certified_estimated_delivery_on\n        >=\"2025-04-01\")))\n        ?\"S12H_1_B_II_A\"\n        :\"S12H_1_B_II_B\")\n      :\"\")\n  :\"\")\n!=\"\"",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"pay_fraction": "",
+		"pay": [],
+		"entitlement": {
+			"unit": "DAY",
+			"window": "EVENT",
+			"days": "((has(entry.occurred_on) && entry.occurred_on != null\n  ?entry.occurred_on\n  : (as_of != null ? as_of : \"\"))\n>=\"2025-04-01\"\n  ?4.0\n  :2.0)\n* (has(employee.facts.working_days_per_week)\n  ?double(employee.facts.working_days_per_week)\n  :7.0)",
+			"overdraw": "0",
+			"window_key": "has(entry.facts.event_id) && entry.facts.event_id != null\n  ?string(entry.facts.event_id)\n  :\"\""
+		}
+	},
+	{
+		"id": "80acce38-abdb-57ee-aa1d-b92f6695da6a",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "CHILDCARE_LEAVE",
+		"name": "Childcare leave",
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 s.12B (Government-Paid Childcare Leave, 6 days a year where the child is a Singapore citizen under 7) with Employment Act 1968 s.87A (2 days a year where the child under 7 is not), in both cases after 3 months' continuous service. the child, not the parent, is the citizen (`children.citizens`). GPCL caps the leave at 42 days for each Singapore-citizen child and s.87A at 14 days for each other child over the parent’s working life; counted across leave years and across the person’s employee_profiles here (`lifetime_days`). CDCA s.12B: the six days need a child under seven who is a citizen (`children.citizens_under(7)`); EA s.87A gives two for any child under seven. the 42 and 14 days a child count every employer — MSF ProFamily “Childcare leave” (https://www.profamilyleave.msf.gov.sg/schemes/childcare-leave): “up to a total of 42 days per child”; the days the employee declares as taken with earlier employers (`employee_children[].prior_childcare_days`, summed as `children.prior_childcare_days`) come off the lifetime room. The year’s six (or two) are not reduced by leave taken with a previous employer: “Employees are entitled to take (prorated) GPCL with the new employer, regardless of the GPCL taken with the previous employer” — only the Government reimbursement of days 4–6 is once a calendar year. CDCA s.12B as in force (https://sso.agc.gov.sg/Act/CDCSA2001?ProvIds=pr12B- , read 2026-09-28; last amended by Act 19 of 2021, so the same text in every sealed interval): (1) an employee who “has served an employer for a period of not less than 3 months” and “has any child who is below 7 years of age and who is, or who becomes, a qualifying child, at any time during any relevant period” is entitled for that relevant period to “(i) 2 days, if the employee serves the employer for a period of less than 5 months during that relevant period; (ii) 3 days … not less than 5 months but less than 7 months; (iii) 4 days … 7 … 9; (iv) 5 days … 9 … 11; and (v) 6 days … not less than 11 months” — the completed months served in the leave year, six in twelve rounded half up, never under two (`proration: COMPLETED_MONTHS`, `rounding: WHOLE_DAY`, `minimum_days: 2`; MOM “Pro-rated childcare leave” tabulates the same: 3–4 months 2, 5–6 3, 7–8 4, 9–10 5, 11–12 6, and a leaver’s 0–2 months in the year of leaving 2). The child’s age is the year’s, not the day’s (`qualifies_window`): a child who turns 7 in the year still carries it; the three months’ service still bars the days before they are served. (1A) extended childcare leave: 2 days for a child “of or above 7 years of age but below 13 years of age” at any time in the period, not prorated (MOM “Extended childcare leave”: “Extended childcare leave are not pro-rated”); (2)(a) “(i) more than 42 days of childcare leave in respect of any qualifying child; (ii) more than 12 days of extended childcare leave in respect of any qualifying child; and (iii) more than a combined total of 6 days of childcare leave and extended childcare leave during any relevant period”; (3) while entitled under s.12B the employee has no EA s.87A childcare leave. So childcare, extended childcare and EA s.87A leave are one row and one annual pool (six days at most, two where no citizen child is under 7), and the lifetime room is 42 for each citizen child, 12 more for each citizen child of 7 or over, and 14 for each other child, less the days declared as taken with earlier employers for the children (`prior_childcare_days`, childcare and extended childcare alike — MSF: “covering all types of childcare leave (GPCL, ECL and leave under the Employment Act)”). EA s.87A’s 2 days are not prorated (MOM: “the 2 days of childcare leave cannot be pro-rated”) — the floor of 2 keeps them whole. the caps are each child’s, not a sum over the children (`child_lifetime`): every day is placed on one child’s cap for which the child qualifies in that leave year — 42 for a citizen child below 7 (s.12B(2)(a)(i)), 12 for a citizen child of 7 to 12 (s.12B(2)(a)(ii)), 14 for any other child below 7 (EA s.87A) — less that child’s own days declared with earlier employers (`prior_childcare_days`; extended childcare separately as `prior_extended_childcare_days`). The year’s days are earned once the three months are served by the close of any day of it (MOM table: 3 completed months → 2 days), though they can be taken only from the day after. Metering: one balance view per child (entry.facts.child_id, with child_birthdate and child_citizenship): the child’s lifetime cap (42 GPCL, 12 ECL, 14 EA s.87A) beside the employee’s yearly 6 (or 2) across all children; the class view shows the year’s remainder. The ECL 12 and GPCL 42 of one citizen child are one pool keyed by the child’s age on the day read."
+			}
+		],
+		"eligibility": "((employment.classification != \"NON_EA\"\n&&employee.children.exists(\n  c,\n  (!has(c.child_deathdate) || c.child_deathdate == \"\"\n  ||c.child_deathdate > entry.occurred_on)\n  &&c.child_birthdate <= entry.occurred_on\n  &&age_on(c.child_birthdate, entry.occurred_on) < 7\n))\n||employee.children.exists(\n  c,\n  (!has(c.child_deathdate) || c.child_deathdate == \"\"\n  ||c.child_deathdate > entry.occurred_on)\n  &&c.child_birthdate <= entry.occurred_on\n  &&has(c.citizenship)\n  &&c.citizenship == \"CITIZEN\"\n  &&age_on(c.child_birthdate, entry.occurred_on) < 13\n))\n&&employment.service_months >= 3",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"pay_fraction": "",
+		"pay": [],
+		"entitlement": {
+			"unit": "DAY",
+			"window": "EVENT",
+			"days": "as_of == null\n  ?0.0\n  : (has(entry.facts.child_id) && has(entry.facts.child_birthdate)\n    ?min(((\n      has(entry.facts.child_citizenship)\n      &&entry.facts.child_citizenship == \"CITIZEN\")\n        ? (age_on(entry.facts.child_birthdate, as_of) < 7 ? 42.0 : 12.0)\n        :14.0),\n      taken.event\n      +max(\n        0.0,\n        min(\n          6.0,\n          (employee.children.exists(\n            c,\n            (!has(c.child_deathdate) || c.child_deathdate == \"\"\n            ||c.child_deathdate > as_of)\n            &&c.child_birthdate <= as_of\n            &&has(c.citizenship)\n            &&c.citizenship == \"CITIZEN\"\n            &&age_on(c.child_birthdate, as_of) < 7\n          )\n            ?6.0\n            : ((employment.classification != \"NON_EA\"\n            &&employee.children.exists(\n              c,\n              (!has(c.child_deathdate) || c.child_deathdate == \"\"\n              ||c.child_deathdate > as_of)\n              &&c.child_birthdate <= as_of\n              &&age_on(c.child_birthdate, as_of) < 7\n            ))\n              ?2.0\n              :0.0))\n          + (employee.children.exists(\n            c,\n            (!has(c.child_deathdate) || c.child_deathdate == \"\"\n            ||c.child_deathdate > as_of)\n            &&c.child_birthdate <= as_of\n            &&has(c.citizenship)\n            &&c.citizenship == \"CITIZEN\"\n            &&age_on(c.child_birthdate, as_of) >= 7\n            &&age_on(c.child_birthdate, as_of) < 13\n          )\n            ?2.0\n            :0.0\n        ) )\n        -taken.calendar_year\n      )\n    )\n    :max(\n      0.0,\n      min(\n        6.0,\n        (employee.children.exists(\n          c,\n          (!has(c.child_deathdate) || c.child_deathdate == \"\"\n          ||c.child_deathdate > as_of)\n          &&c.child_birthdate <= as_of\n          &&has(c.citizenship)\n          &&c.citizenship == \"CITIZEN\"\n          &&age_on(c.child_birthdate, as_of) < 7\n        )\n          ?6.0\n          : ((employment.classification != \"NON_EA\"\n          &&employee.children.exists(\n            c,\n            (!has(c.child_deathdate) || c.child_deathdate == \"\"\n            ||c.child_deathdate > as_of)\n            &&c.child_birthdate <= as_of\n            &&age_on(c.child_birthdate, as_of) < 7\n          ))\n            ?2.0\n            :0.0))\n        + (employee.children.exists(\n          c,\n          (!has(c.child_deathdate) || c.child_deathdate == \"\"\n          ||c.child_deathdate > as_of)\n          &&c.child_birthdate <= as_of\n          &&has(c.citizenship)\n          &&c.citizenship == \"CITIZEN\"\n          &&age_on(c.child_birthdate, as_of) >= 7\n          &&age_on(c.child_birthdate, as_of) < 13\n        )\n          ?2.0\n          :0.0\n      ) )\n      -taken.calendar_year\n    ))",
+			"overdraw": "0",
+			"window_key": "has(entry.facts.child_id) ? string(entry.facts.child_id) : \"\""
+		}
+	},
+	{
+		"id": "929707d2-40c1-5f94-9997-8d9bca42504d",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "UNPAID_INFANT_CARE_LEAVE",
+		"name": "Unpaid infant care leave",
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 s.12D — 12 days of unpaid infant care leave a year per parent of a Singapore-citizen child under 2, after 3 months' continuous service. CDCA s.12D: the child must be a citizen under two (`children.citizens_under(2)`). CDCA s.12D(1) (Act 32 of 2023 wef 01/01/2024): a child “below 2 years of age … at any time during any relevant period” gives “unpaid infant care leave of 12 days for that relevant period” — the whole period, not prorated (`qualifies_window`); s.12D(2)(a): “not entitled to more than 24 days of unpaid infant care leave in respect of any qualifying child” (`lifetime_days`, summed over the citizen children). the 24 days are each citizen child’s (`child_lifetime`), less that child’s days declared with earlier employers (`prior_infant_care_days`). MSF ProFamily Leave, Unpaid infant care leave (read 2026-10-07): biological parents must be married to each other — entry.facts.married_to_other_parent, else the profile marital status. Metering: one balance view per child (entry.facts.child_id, child_birthdate): 24 days a child (s.12D(2)(a)) beside 12 a year."
+			}
+		],
+		"eligibility": "(has(entry.facts.married_to_other_parent)\n  ?entry.facts.married_to_other_parent == true\n  :employee.marital_status == \"MARRIED\")\n&&employee.children.exists(\n  c,\n  (!has(c.child_deathdate) || c.child_deathdate == \"\"\n  ||c.child_deathdate > entry.occurred_on)\n  &&c.child_birthdate <= entry.occurred_on\n  &&has(c.citizenship)\n  &&c.citizenship == \"CITIZEN\"\n  &&age_on(c.child_birthdate, entry.occurred_on) < 2\n)\n&&employment.service_months >= 3",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"is_npl": true,
+		"pay_fraction": "",
+		"pay": [],
+		"entitlement": {
+			"unit": "DAY",
+			"window": "EVENT",
+			"days": "as_of == null\n  ?0.0\n  : (has(entry.facts.child_id) && has(entry.facts.child_birthdate)\n    ?min(\n      24.0,\n      taken.event\n      +max(\n        0.0,\n        (employee.children.exists(\n          c,\n          (!has(c.child_deathdate) || c.child_deathdate == \"\"\n          ||c.child_deathdate > as_of)\n          &&c.child_birthdate <= as_of\n          &&has(c.citizenship)\n          &&c.citizenship == \"CITIZEN\"\n          &&age_on(c.child_birthdate, as_of) < 2\n        )\n          ?12.0\n          :0.0)\n        -taken.calendar_year\n      )\n    )\n    :max(\n      0.0,\n      (employee.children.exists(\n        c,\n        (!has(c.child_deathdate) || c.child_deathdate == \"\"\n        ||c.child_deathdate > as_of)\n        &&c.child_birthdate <= as_of\n        &&has(c.citizenship)\n        &&c.citizenship == \"CITIZEN\"\n        &&age_on(c.child_birthdate, as_of) < 2\n      )\n        ?12.0\n        :0.0)\n      -taken.calendar_year\n    ))",
+			"overdraw": "0",
+			"window_key": "has(entry.facts.child_id) ? string(entry.facts.child_id) : \"\""
+		}
+	},
+	{
+		"id": "371e6852-7130-5508-969d-29e45fd6064e",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "ADOPTION_LEAVE",
+		"name": "Adoption leave",
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 s.12AA — Government-Paid Adoption Leave of 12 weeks (84 calendar days) for an adoptive mother, after 3 months' continuous service. a grant per adoption of a child under twelve months who is a Singapore citizen (`event.child_age`, `event.child_citizenship`). Historical pre-1-April-2025 non-citizen qualification uses the actual dependant-pass eligibility date and parent citizenship at that date; the PR application-date branch applies from1April2025. CDCSA2018 revised text definition eligibility date ands12AC; Act46of2024 amendment. https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/59371/SGP59371.pdf Record the entry day (occurred_on) as the birth, stillbirth or adoption-eligibility day and the event in entry.facts: event_kind (BIRTH, STILLBIRTH, ADOPTION), child_citizenship and the cdca_* evidence facts; the leave period is from/to.",
+				"url": "https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/59371/SGP59371.pdf"
+			}
+		],
+		"eligibility": "employee.gender == \"FEMALE\"\n&& (entry.facts.event_kind == \"ADOPTION\"\n&&entry.facts.cdca_adoption_eligibility_on == entry.occurred_on\n&&entry.facts.cdca_adoption_eligibility_on >= \"2017-01-01\"\n&&employment.service_months >= 3\n&&entry.facts.cdca_adoption_eligibility_on >= entry.facts.cdca_birth_on\n&&entry.facts.cdca_adoption_eligibility_on\n<add_months(entry.facts.cdca_birth_on, 12)\n&&!entry.facts.cdca_is_natural_mother\n&& (entry.facts.cdca_child_status_at_application == \"SC\"\n  ?entry.facts.cdca_adoption_eligibility_on\n  ==entry.facts.cdca_adoption_application_on\n  :entry.facts.cdca_child_status_at_application == \"PR\"\n    ? (entry.facts.cdca_adoption_application_on >= \"2025-04-01\"\n      ? (entry.facts.cdca_adoption_eligibility_on\n      ==entry.facts.cdca_adoption_application_on\n      && (entry.facts.cdca_adoptive_mother_citizen_at_application\n      || (entry.facts.cdca_adoption_joint_application\n      &&entry.facts.cdca_husband_citizen_at_application)))\n      : (entry.facts.cdca_adoption_eligibility_on\n      ==entry.facts.cdca_adoption_dependant_pass_on\n      && (entry.facts.cdca_adoptive_mother_citizen_at_dependant_pass\n      || (entry.facts.cdca_adoption_joint_application\n      &&entry.facts.cdca_husband_citizen_at_dependant_pass))))\n    :entry.facts.cdca_child_status_at_application == \"OTHER\"\n      ? (entry.facts.cdca_adoption_eligibility_on\n      ==entry.facts.cdca_adoption_dependant_pass_on\n      && (entry.facts.cdca_adoptive_mother_citizen_at_dependant_pass\n      || (entry.facts.cdca_adoption_joint_application\n      &&entry.facts.cdca_husband_citizen_at_dependant_pass)))\n      :false)\n  ? (entry.facts.cdca_adoption_arrangement == \"A\"\n    ?\"S12AA_1_A\"\n    :entry.facts.cdca_adoption_arrangement == \"B\"\n      ?\"S12AA_1_B\"\n      :entry.facts.cdca_adoption_arrangement == \"C\"\n        ? (entry.facts.cdca_original_taking_mode == \"CONTINUOUS\"\n          ?\"S12AA_1_C_I\"\n          :entry.facts.cdca_original_taking_mode == \"FLEXIBLE\"\n            ?\"S12AA_1_C_II\"\n            :\"\")\n        :\"\")\n  :\"\")\n!=\"\"",
+		"unit": "CALENDAR_DAY",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"pay_fraction": "",
+		"pay": [],
+		"entitlement": {
+			"unit": "DAY",
+			"window": "EVENT",
+			"days": "12.0\n* (has(employee.facts.working_days_per_week)\n  ?double(employee.facts.working_days_per_week)\n  :7.0)",
+			"overdraw": "0"
+		}
+	},
+	{
+		"id": "64f24292-b20a-58f3-9952-7be61df16d7d",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "SHARED_PARENTAL_LEAVE",
+		"name": "Shared parental leave",
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 ss.12DA-12DD and Second Schedule: shared parental leave under the April 2025 scheme. The statutory pool is six or ten whole weeks according to birth/estimated-delivery or adoption-eligibility dates. A sharing arrangement defaults to half for each parent; a sole parent's individual arrangement defaults to the full pool. Recorded zero is a zero allocation. Continuous leave and agreed flexible leave have different units and taking windows under s.12DA(2); the calendar-day allocation expression does not establish the flexible-day entitlement. The former maternal-election scheme is in ss.12E-12G. Source: https://sso.agc.gov.sg/Act/CDCSA2001. Allocation, eligibility and pay branches remain subject to the full statutory conditions. Record the entry day (occurred_on) as the birth, stillbirth or adoption-eligibility day and the event in entry.facts: event_kind (BIRTH, STILLBIRTH, ADOPTION), child_citizenship and the cdca_* evidence facts; the leave period is from/to. Metering: per birth or adoption (event_id), the parent’s allocation entry.facts.spl_weeks_allocated (customer input) within the 6-week (before 1 Apr 2026) or 10-week pool; unrecorded, half the pool for a sharing parent and the whole pool for a solo parent; weeks at the working days a week. MSF ProFamily Leave, Shared Parental Leave (https://www.profamilyleave.msf.gov.sg/schemes/shared-parental-leave), read 2026-10-07: 10 weeks for a child born or with a Formal Intent to Adopt date from 1 April 2026, 6 weeks from 1 April 2025 to 31 March 2026. A balance for an undated next birth reads the day of the balance (as_of). Eligibility: only a child born (or adopted, by the date of formal intent) on or after 1 April 2025 (MSF, Shared Parental Leave, read 2026-10-22)."
+			}
+		],
+		"eligibility": "(entry.facts.event_kind == \"ADOPTION\"\n  ?employment.service_months >= 3\n  :employment.service_months >= 3)\n&&entry.facts.event_kind in [\"BIRTH\", \"ADOPTION\"]\n&&entry.facts.child_citizenship == \"CITIZEN\"\n&& (employee.gender == \"FEMALE\" || employee.marital_status == \"MARRIED\")\n&& (!has(entry.occurred_on) || entry.occurred_on == null\n||entry.occurred_on >= \"2025-04-01\")",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"pay_fraction": "",
+		"pay": [],
+		"entitlement": {
+			"unit": "DAY",
+			"window": "EVENT",
+			"days": "(has(entry.facts.spl_weeks_allocated)\n  ?min(((\n    has(entry.occurred_on) && entry.occurred_on != null\n      ?entry.occurred_on\n      : (as_of != null ? as_of : \"\"))\n    >=\"2026-04-01\"\n      ?10.0\n      :6.0),\n    double(entry.facts.spl_weeks_allocated)\n  )\n  : ((has(terms.facts.solo_parent) && terms.facts.solo_parent == true)\n    ? ((has(entry.occurred_on) && entry.occurred_on != null\n      ?entry.occurred_on\n      : (as_of != null ? as_of : \"\"))\n    >=\"2026-04-01\"\n      ?10.0\n      :6.0)\n    : ((has(entry.occurred_on) && entry.occurred_on != null\n      ?entry.occurred_on\n      : (as_of != null ? as_of : \"\"))\n    >=\"2026-04-01\"\n      ?10.0\n      :6.0)\n    /2.0))\n* (has(employee.facts.working_days_per_week)\n  ?double(employee.facts.working_days_per_week)\n  :7.0)",
+			"overdraw": "0",
+			"window_key": "has(entry.facts.event_id) && entry.facts.event_id != null\n  ?string(entry.facts.event_id)\n  :\"\""
+		}
+	},
+	{
+		"id": "f7810c6b-7e3c-5099-b1d1-9fb21c2e27ed",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "NS_LEAVE",
+		"name": "National service leave",
+		"references": [
+			{
+				"title": "Enlistment Act 1970 ss.13, 31 (release for NS); EA s.20A(1)(d): NS days are an incomplete month unless the employer keeps paying wages under the MINDEF/MHA DIRECT scheme (company.facts.ns_direct_scheme), when it is reimbursed; CPF on the make-up pay is NS_MAKEUP_PAY. Not encashable."
+			}
+		],
+		"eligibility": "employee.gender == \"MALE\"\n&&terms.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"]",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"pay_fraction": "company.facts != null && has(company.facts.ns_direct_scheme)\n&&company.facts.ns_direct_scheme == true\n  ?1.0\n  :0.0",
+		"pay": []
+	},
+	{
+		"id": "73ffedd3-c8b0-57af-8d4c-449cd558e261",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.88(1)(a), (1)(c), (4A): a day off in substitution for a public holiday by agreement, for a holiday on a non-working day, or in lieu of the extra day’s pay for an employee outside Part 4 who worked it. Credited by an ADJUSTMENT (negative days) and taken as TIME_OFF."
+			}
+		],
+		"eligibility": "",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": true,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"pay_fraction": "",
+		"pay": []
+	},
+	{
+		"id": "a52d6eb9-f633-5547-ab8a-d1833b78ae17",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"references": [
+			{
+				"title": "No-pay leave at the employee's request. Employment Act 1968 s.20A(1)(c): a day of leave of absence without pay is one day of the month's working days off the monthly gross rate; MOM, Salary for an incomplete month of work. A fixed allowance is not reduced (payroll.allowance_npl_prorates = false)."
+			}
+		],
+		"eligibility": "",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"is_npl": true,
+		"pay_fraction": "",
+		"pay": [
+			{
+				"code": "NO_PAY_LEAVE",
+				"name": "No-pay leave",
+				"references": [
+					{
+						"title": "Employment Act 1968 s.20A: a day of no-pay leave reduces the month’s salary by the monthly rate ÷ the working days in the month (calendar days when no schedule is planned). EA s.20A divisor (MOM, Monthly and daily salary: definitions and calculation (https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary, updated 8 Dec 2025, read 2026-10-08): incomplete month = monthly gross ÷ the month’s working days × days worked, the working days excluding rest and non-working days but including public holidays): period.month_working_days + period.month_holiday_work_days, the whole calendar month’s, the same in every part; with nothing planned, the month’s calendar days.",
+						"url": "https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary"
+					}
+				],
+				"eligibility": "leave.rows.exists(\n  r,\n  r.activity == \"TIME_OFF\" && r.days > 0.0\n  && (r.is_npl || r.pay_fraction < 1.0\n) )",
+				"quantity": "sum(\n  leave.rows.filter(r, r.activity == \"TIME_OFF\").map(\n    r,\n    r.is_npl ? r.days : r.days * (1.0 - r.pay_fraction\n  ) )\n)",
+				"rate": "terms.monthly_wage\n/ (double(period.month_working_days + period.month_holiday_work_days)\n>0.0\n  ?double(period.month_working_days + period.month_holiday_work_days)\n  :double(period.month_days))",
+				"destination": "PAY",
+				"direction": "SUBTRACT",
+				"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"]
+			},
+			{
+				"code": "HOLIDAY_IN_NO_PAY_LEAVE",
+				"name": "Public holiday inside no-pay leave",
+				"references": [
+					{
+						"title": "Employment Act 1968 s.88(2): no holiday pay for a public holiday falling while the employee is on no-pay leave granted at the employee's request. Deducted at the gross daily rate for each unworked holiday a no-pay leave row covers (the leave's own days skip the holiday). https://sso.agc.gov.sg/Act/EmA1968 EA s.20A divisor (MOM, Monthly and daily salary: definitions and calculation (https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary, updated 8 Dec 2025, read 2026-10-08): incomplete month = monthly gross ÷ the month’s working days × days worked, the working days excluding rest and non-working days but including public holidays): period.month_working_days + period.month_holiday_work_days, the whole calendar month’s, the same in every part; with nothing planned, the month’s calendar days."
+					}
+				],
+				"eligibility": "employment.classification != \"NON_EA\"\n&&work.days.exists(\n  d,\n  has(d.holiday_kind)\n  &&d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n  &&!d.worked\n  &&leave.rows.exists(\n    r,\n    r.is_npl && r.activity == \"TIME_OFF\" && r.from <= d.date\n    &&d.date <= r.to\n  )\n)",
+				"quantity": "double(\n  size(\n    work.days.filter(\n      d,\n      has(d.holiday_kind)\n      &&d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\"]\n      &&!d.worked\n      &&leave.rows.exists(\n        r,\n        r.is_npl && r.activity == \"TIME_OFF\" && r.from <= d.date\n        &&d.date <= r.to\n      )\n    )\n  )\n)",
+				"rate": "(has(employee.facts.working_days_per_week)\n  ?12.0 * terms.monthly_wage\n  / (52.0 * double(employee.facts.working_days_per_week))\n  :terms.monthly_wage\n  / (double(period.month_working_days + period.month_holiday_work_days)\n  >0.0\n    ?double(period.month_working_days + period.month_holiday_work_days)\n    :double(period.month_days)))",
+				"destination": "PAY",
+				"direction": "SUBTRACT",
+				"counts_toward": ["CDAC", "CPF.ORDINARY", "ECF", "MBMF", "SDL", "SINDA"]
+			}
+		]
+	},
+	{
+		"id": "0c90ede3-f6b8-5f87-8844-3182c7e2b0e8",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "ANNUAL_LEAVE_PART_TIME",
+		"name": "Annual leave (part-time)",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.88A(1) — 7 days in the first 12 months of continuous service, one more for every subsequent 12 months, to 14; after 3 months' service. s.88A(2)–(3): under 12 months, in proportion to completed months, a fraction under half a day disregarded and half or more counted as a day. EA s.88A(3): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). EA s.88A(8) pays untaken annual leave to an employee dismissed on any ground other than misconduct; the behaviour encash-leave-on-exit withholds the exit pay-out on a DISMISSAL with exit_facts.dismissed_for_misconduct, and pays the days carried into the leaving year with ANNUAL_LEAVE_ON_EXIT. Employment (Part-Time Employees) Regulations regs.2, 7 and 8: annual and sick leave entitlements are calculated in hours using the similar full-time employee’s hours and applicable leave entitlement. Eight hours a day and 44 a week are the reg.2(2) defaults only where there is no similar full-time employee. Reg.7(4) excludes the full-time whole-day rounding in EA s.88A(3). The hourly leave path uses the declared similar full-time employee’s daily and weekly hours, or the statutory 8/44 fallback where no similar employee exists; a mixed full-time and part-time leave year needs separately evidenced treatment. MOM annual-leave eligibility guidance: each year of service begins on the date the employee started work; the statutory annual window follows the hire anniversary. carry_forward: EA s.88A(6) — a Part 4 employee (workman earning ≤ $4,500 or other ≤ $2,600 basic, s.35) takes each year’s leave within the next 12 months, then loses it, so up to the year’s 14 days carry once; outside Part 4 carry is contractual (none here). Verified 2026-10-08 against the AGC text of s.88A(6) and MOM, Annual leave in special situations, “Treatment of unused annual leave entitlement” (https://www.mom.gov.sg/employment-practices/leave/annual-leave/special-situations, last updated 24 July 2025): only a Part 4 employee must be allowed to carry unused leave to the next 12 months; for anyone else the contract decides whether it is encashed, carried or forfeited. Employment (Part-Time Employees) Regulations reg.7 (MOM, Part-time employment: leave): a part-timer’s annual and sick leave are the full-time entitlement in proportion to the contracted hours, here contracted weekly hours ÷ 44 (customer input: employee.facts.part_time_weekly_hours); the full-time half-day rounding does not apply. Comparable full-time hours (Employment (Part-Time Employees) Regulations reg.7, against a similar full-time employee): employee.facts.full_time_weekly_hours, else the entity’s normal full-time week (entity.facts.full_time_weekly_hours), else the reg.2(2) default of 44 hours where there is no similar full-time employee.",
+				"url": "https://www.mom.gov.sg/employment-practices/leave/annual-leave/special-situations"
+			}
+		],
+		"eligibility": "terms.employment_type == \"PART_TIME\"\n&&has(employee.facts.part_time_weekly_hours)\n&&employment.classification != \"NON_EA\"\n&& (employment.service_months >= 3)",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": true,
+		"encash_on_exit": false,
+		"is_npl": false,
+		"pay_fraction": "",
+		"pay": [],
+		"entitlement": {
+			"unit": "DAY",
+			"bands": [
+				{
+					"service_months": 84,
+					"days": 14
+				},
+				{
+					"service_months": 72,
+					"days": 13
+				},
+				{
+					"service_months": 60,
+					"days": 12
+				},
+				{
+					"service_months": 48,
+					"days": 11
+				},
+				{
+					"service_months": 36,
+					"days": 10
+				},
+				{
+					"service_months": 24,
+					"days": 9
+				},
+				{
+					"service_months": 12,
+					"days": 8
+				}
+			],
+			"days": "(terms.employment_type == \"PART_TIME\"\n&&has(employee.facts.part_time_weekly_hours)\n  ?double(employee.facts.part_time_weekly_hours)\n  / (has(employee.facts.full_time_weekly_hours)\n    ?double(employee.facts.full_time_weekly_hours)\n    :has(company.facts) && company.facts != null\n    &&has(company.facts.full_time_weekly_hours)\n      ?double(company.facts.full_time_weekly_hours)\n      :44.0)\n  :1.0)\n* (size(\n  bands.filter(b, service_months >= b.service_months).map(b, b.days)\n)\n>0\n  ?first(\n    bands.filter(b, service_months >= b.service_months).map(b, b.days)\n  )\n  :round(7.0 * min(service_months, 12.0) / 12.0, 1.0, \"HALF_UP\"))",
+			"overdraw": "0",
+			"window": "SERVICE_YEAR",
+			"carry_forward": "(has(terms.statutory_work_category) && has(terms.base_salary)\n&& ((terms.statutory_work_category != \"NON_MANUAL\"\n&&terms.base_salary <= 4500.0)\n|| (terms.statutory_work_category == \"NON_MANUAL\"\n&&terms.base_salary <= 2600.0)))\n  ?14.0\n  :0.0",
+			"carry_depth": 1
+		}
+	},
+	{
+		"id": "baf71246-e3e8-5778-8861-5140612aff55",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "SICK_LEAVE_PART_TIME",
+		"name": "Outpatient sick leave (part-time)",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.89(1)(a) and s.89(2) — paid outpatient sick leave on the service ladder: 5 days at 3 completed months of service, 8 at 4 months, 11 at 5 months and 14 at 6 months and above; nothing below 3 months. Certification by a registered medical or dental practitioner and notification within 48 hours are required (s.89(4)). s.89(1): the outpatient days are inside the hospitalisation days — a day of outpatient sick leave draws from both pools (`consumes_code`), so 60 is the whole and 14 the outpatient part of it. Employment (Part-Time Employees) Regulations regs.2, 7 and 8: annual and sick leave entitlements are calculated in hours using the similar full-time employee’s hours and applicable leave entitlement. Eight hours a day and 44 a week are the reg.2(2) defaults only where there is no similar full-time employee. Reg.7(4) excludes the full-time whole-day rounding in EA s.88A(3). The hourly leave path uses the declared similar full-time employee’s daily and weekly hours, or the statutory 8/44 fallback where no similar employee exists; a mixed full-time and part-time leave year needs separately evidenced treatment. Statutory sick/hospitalisation leave is paid leave, not an entitlement to exchange its balance for cash (EA s.89; reg.8; MOM part-time leave guidance). Any additional contractual cash benefit must preserve the statutory leave entitlement. MOM, Medical reimbursements and salary during sick leave: outpatient gross pay excludes shift allowance. Employment (Part-Time Employees) Regulations reg.7 (MOM, Part-time employment: leave): a part-timer’s annual and sick leave are the full-time entitlement in proportion to the contracted hours, here contracted weekly hours ÷ 44 (customer input: employee.facts.part_time_weekly_hours); the full-time half-day rounding does not apply. Comparable full-time hours (Employment (Part-Time Employees) Regulations reg.7, against a similar full-time employee): employee.facts.full_time_weekly_hours, else the entity’s normal full-time week (entity.facts.full_time_weekly_hours), else the reg.2(2) default of 44 hours where there is no similar full-time employee.",
+				"url": "https://www.mom.gov.sg/employment-practices/leave/sick-leave/medical-reimbursements-and-salary"
+			}
+		],
+		"eligibility": "terms.employment_type == \"PART_TIME\"\n&&has(employee.facts.part_time_weekly_hours)\n&&employment.classification != \"NON_EA\"\n&& (employment.service_months >= 3)",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"entitlement": {
+			"unit": "DAY",
+			"bands": [
+				{
+					"service_months": 6,
+					"days": 14
+				},
+				{
+					"service_months": 5,
+					"days": 11
+				},
+				{
+					"service_months": 4,
+					"days": 8
+				},
+				{
+					"service_months": 3,
+					"days": 5
+				}
+			],
+			"days": "(terms.employment_type == \"PART_TIME\"\n&&has(employee.facts.part_time_weekly_hours)\n  ?double(employee.facts.part_time_weekly_hours)\n  / (has(employee.facts.full_time_weekly_hours)\n    ?double(employee.facts.full_time_weekly_hours)\n    :has(company.facts) && company.facts != null\n    &&has(company.facts.full_time_weekly_hours)\n      ?double(company.facts.full_time_weekly_hours)\n      :44.0)\n  :1.0)\n* (size(\n  bands.filter(b, service_months >= b.service_months).map(b, b.days)\n)\n>0\n  ?first(\n    bands.filter(b, service_months >= b.service_months).map(b, b.days)\n  )\n  :0.0)",
+			"overdraw": "0",
+			"window": "SERVICE_YEAR"
+		},
+		"is_npl": false,
+		"pay_fraction": "",
+		"pay": [],
+		"consumes_code": "HOSPITALIZATION_LEAVE_PART_TIME"
+	},
+	{
+		"id": "cb8be5f3-c725-5d18-bab7-aa63fa70e8ca",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "HOSPITALIZATION_LEAVE_PART_TIME",
+		"name": "Hospitalization leave (part-time)",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.89(1)(b) and s.89(2) — paid hospitalisation leave on the service ladder: 15 days at 3 completed months of service, 30 at 4 months, 45 at 5 months and 60 at 6 months and above; nothing below 3 months. Employment (Part-Time Employees) Regulations regs.2, 7 and 8: annual and sick leave entitlements are calculated in hours using the similar full-time employee’s hours and applicable leave entitlement. Eight hours a day and 44 a week are the reg.2(2) defaults only where there is no similar full-time employee. Reg.7(4) excludes the full-time whole-day rounding in EA s.88A(3). The hourly leave path uses the declared similar full-time employee’s daily and weekly hours, or the statutory 8/44 fallback where no similar employee exists; a mixed full-time and part-time leave year needs separately evidenced treatment. Statutory sick/hospitalisation leave is paid leave, not an entitlement to exchange its balance for cash (EA s.89; reg.8; MOM part-time leave guidance). Any additional contractual cash benefit must preserve the statutory leave entitlement. Employment (Part-Time Employees) Regulations reg.7 (MOM, Part-time employment: leave): a part-timer’s annual and sick leave are the full-time entitlement in proportion to the contracted hours, here contracted weekly hours ÷ 44 (customer input: employee.facts.part_time_weekly_hours); the full-time half-day rounding does not apply. Comparable full-time hours (Employment (Part-Time Employees) Regulations reg.7, against a similar full-time employee): employee.facts.full_time_weekly_hours, else the entity’s normal full-time week (entity.facts.full_time_weekly_hours), else the reg.2(2) default of 44 hours where there is no similar full-time employee."
+			}
+		],
+		"eligibility": "terms.employment_type == \"PART_TIME\"\n&&has(employee.facts.part_time_weekly_hours)\n&&employment.classification != \"NON_EA\"\n&& (employment.service_months >= 3)",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"entitlement": {
+			"unit": "DAY",
+			"bands": [
+				{
+					"service_months": 6,
+					"days": 60
+				},
+				{
+					"service_months": 5,
+					"days": 45
+				},
+				{
+					"service_months": 4,
+					"days": 30
+				},
+				{
+					"service_months": 3,
+					"days": 15
+				}
+			],
+			"days": "(terms.employment_type == \"PART_TIME\"\n&&has(employee.facts.part_time_weekly_hours)\n  ?double(employee.facts.part_time_weekly_hours)\n  / (has(employee.facts.full_time_weekly_hours)\n    ?double(employee.facts.full_time_weekly_hours)\n    :has(company.facts) && company.facts != null\n    &&has(company.facts.full_time_weekly_hours)\n      ?double(company.facts.full_time_weekly_hours)\n      :44.0)\n  :1.0)\n* (size(\n  bands.filter(b, service_months >= b.service_months).map(b, b.days)\n)\n>0\n  ?first(\n    bands.filter(b, service_months >= b.service_months).map(b, b.days)\n  )\n  :0.0)",
+			"overdraw": "0",
+			"window": "SERVICE_YEAR"
+		},
+		"is_npl": false,
+		"pay_fraction": "",
+		"pay": []
+	},
+	{
+		"id": "8715e6f8-b54e-5c54-8468-8612f2c229d7",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "WORK_INJURY_MEDICAL_LEAVE",
+		"name": "Work injury outpatient medical leave (WICA)",
+		"references": [
+			{
+				"title": "Work Injury Compensation Act 2019 First Schedule para.4(1) (https://sso.agc.gov.sg/Act/WICA2019?ProvIds=Sc1-, read 2026-10-07): for each day of medical leave within a year of the accident, the employee’s average monthly earnings (AME) for the first 14 days, two-thirds of it after; hospitalisation leave is its own class (60 days). MOM, Types of compensation (https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/types-of-compensation) and the Medical Leave Wage Calculator, read 2026-10-07: medical leave wages are compensation, not wages — no CPF — paid by the next pay day; rest days, public holidays and EA/CDCA paid leave are not WICA days (para.4(5)(d)). pay_fraction 0: NO_PAY_LEAVE removes the day’s salary and WICA_MEDICAL_LEAVE_WAGES pays the compensation on AME. Not drawn from the EA s.89 sick-leave pool. Customer input: entry.facts.event_id (the accident), so the 14 days count across the accident’s rows (taken_before)."
+			}
+		],
+		"eligibility": "true",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"entitlement": {
+			"unit": "DAY",
+			"window": "EVENT",
+			"days": "365.0",
+			"overdraw": "0"
+		},
+		"is_npl": false,
+		"pay_fraction": "0.0",
+		"pay": [
+			{
+				"code": "WICA_MEDICAL_LEAVE_WAGES",
+				"name": "WICA medical leave wages",
+				"references": [
+					{
+						"title": "Work Injury Compensation Act 2019 First Schedule para.4(1) (https://sso.agc.gov.sg/Act/WICA2019?ProvIds=Sc1-, read 2026-10-07); MOM, Types of compensation (https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/types-of-compensation) and the Medical Leave Wage Calculator, read 2026-10-07. Days at full AME (outpatient: the first 14, hospitalisation: the first 60, of the same accident across its rows and periods — taken_before) plus the later days at two-thirds, × the average earnings per day = AME × 12 ÷ (52 × working days a week) (MOM calculator); working days a week from employee.facts.working_days_per_week, else the period’s planned working days, else 7 (calendar days, as leave days are then counted). AME = the average monthly gross of the 12 months before (earned.average; the current monthly wage when there is no history). Compensation, not wages: no CPF, SDL or fund base. Ceiling: AME is read on the payslip month, not the accident month, and includes fixed allowances the AME excludes (transport)."
+					}
+				],
+				"eligibility": "leave.rows.exists(\n  r,\n  r.code\n  in [\"WORK_INJURY_MEDICAL_LEAVE\", \"WORK_INJURY_HOSPITALISATION_LEAVE\"]\n  &&r.activity == \"TIME_OFF\"\n  &&r.days > 0.0\n)",
+				"quantity": "sum(\n  leave.rows.filter(\n    r,\n    r.code == \"WORK_INJURY_MEDICAL_LEAVE\" && r.activity == \"TIME_OFF\"\n  ).map(\n    r,\n    min(\n      r.days,\n      max(\n        0.0,\n        14.0 - (has(r.taken_before) ? double(r.taken_before) : 0.0\n      ) )\n    )\n    + (r.days\n    -min(\n      r.days,\n      max(\n        0.0,\n        14.0 - (has(r.taken_before) ? double(r.taken_before) : 0.0\n      ) )\n    ))\n    *2.0\n    /3.0\n  )\n)\n+sum(\n  leave.rows.filter(\n    r,\n    r.code == \"WORK_INJURY_HOSPITALISATION_LEAVE\"\n    &&r.activity == \"TIME_OFF\"\n  ).map(\n    r,\n    min(\n      r.days,\n      max(\n        0.0,\n        60.0 - (has(r.taken_before) ? double(r.taken_before) : 0.0\n      ) )\n    )\n    + (r.days\n    -min(\n      r.days,\n      max(\n        0.0,\n        60.0 - (has(r.taken_before) ? double(r.taken_before) : 0.0\n      ) )\n    ))\n    *2.0\n    /3.0\n  )\n)",
+				"rate": "(has(earned.average) && has(earned.average.months)\n&&earned.average.months > 0\n  ?earned.average.gross\n  :terms.monthly_wage)\n*12.0\n/ (52.0\n* (has(employee.facts.working_days_per_week)\n  ?double(employee.facts.working_days_per_week)\n  : (period.working_days > 0 && period.days > 0\n    ?double(period.working_days) * 7.0 / double(period.days)\n    :7.0)))",
+				"destination": "PAY",
+				"direction": "ADD",
+				"counts_toward": []
+			}
+		]
+	},
+	{
+		"id": "6061b73a-5789-50c7-9fc9-a4bc63f419c7",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "WORK_INJURY_HOSPITALISATION_LEAVE",
+		"name": "Work injury hospitalisation leave (WICA)",
+		"references": [
+			{
+				"title": "Work Injury Compensation Act 2019 First Schedule para.4(1) (https://sso.agc.gov.sg/Act/WICA2019?ProvIds=Sc1-, read 2026-10-07): for each day of medical leave within a year of the accident, the employee’s average monthly earnings (AME) for the first 60 days of hospitalisation leave, two-thirds of it after; outpatient leave is its own class (14 days). MOM, Types of compensation (https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/types-of-compensation) and the Medical Leave Wage Calculator, read 2026-10-07: medical leave wages are compensation, not wages — no CPF — paid by the next pay day; rest days, public holidays and EA/CDCA paid leave are not WICA days (para.4(5)(d)). pay_fraction 0: NO_PAY_LEAVE removes the day’s salary and WICA_MEDICAL_LEAVE_WAGES pays the compensation on AME. Not drawn from the EA s.89 sick-leave pool. Customer input: entry.facts.event_id (the accident), so the 60 days count across the accident’s rows (taken_before). para.4(4): certified as needing hospitalisation but not hospitalised counts as hospitalised."
+			}
+		],
+		"eligibility": "true",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": false,
+		"encash_on_exit": false,
+		"entitlement": {
+			"unit": "DAY",
+			"window": "EVENT",
+			"days": "365.0",
+			"overdraw": "0"
+		},
+		"is_npl": false,
+		"pay_fraction": "0.0",
+		"pay": []
+	},
+	{
+		"id": "409e9496-d5ba-5974-861b-4002dc6d3a03",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"code": "ANNUAL_LEAVE_ON_EXIT",
+		"name": "Annual leave on leaving (pro-rated)",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.88A(2)–(3), (8) (AGC, read 2026-10-07): in the year of leaving the employee is entitled to annual leave in proportion to the completed months of service in that year, a half day or more counting as a day, and untaken days are paid at the gross rate (except a dismissal for misconduct). The leaving year’s pro-rated entitlement less the year’s ANNUAL_LEAVE taken (taken_by_class), unclamped, so days taken beyond it come out of the carried days; it is zero while the employment continues. The exit encashment (behaviour encash-leave-on-exit) pays this value plus the ANNUAL_LEAVE days carried into the leaving year under EA s.88A(6): s.88A(8) pays “every day of that leave not taken” (AGC text read 2026-10-22). Comparable full-time hours (Employment (Part-Time Employees) Regulations reg.7, against a similar full-time employee): employee.facts.full_time_weekly_hours, else the entity’s normal full-time week (entity.facts.full_time_weekly_hours), else the reg.2(2) default of 44 hours where there is no similar full-time employee."
+			}
+		],
+		"eligibility": "employment.exit_ground != \"\" && terms.employment_type != \"PART_TIME\"\n&&employment.classification != \"NON_EA\"\n&& (employment.service_months >= 3)",
+		"unit": "DAY",
+		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
+		"can_encash": true,
+		"encash_on_exit": true,
+		"is_npl": false,
+		"pay_fraction": "",
+		"pay": [],
+		"entitlement": {
+			"unit": "DAY",
+			"window": "SERVICE_YEAR",
+			"bands": [
+				{
+					"service_months": 84,
+					"days": 14
+				},
+				{
+					"service_months": 72,
+					"days": 13
+				},
+				{
+					"service_months": 60,
+					"days": 12
+				},
+				{
+					"service_months": 48,
+					"days": 11
+				},
+				{
+					"service_months": 36,
+					"days": 10
+				},
+				{
+					"service_months": 24,
+					"days": 9
+				},
+				{
+					"service_months": 12,
+					"days": 8
+				}
+			],
+			"days": "employment.exit_date != \"\" && as_of != null\n&&as_of >= employment.exit_date\n  ?round((\n    has(terms.employment_type) && terms.employment_type == \"PART_TIME\"\n    &&has(employee.facts)\n    &&has(employee.facts.part_time_weekly_hours)\n      ?double(employee.facts.part_time_weekly_hours)\n      / (has(employee.facts.full_time_weekly_hours)\n        ?double(employee.facts.full_time_weekly_hours)\n        :has(company.facts) && company.facts != null\n        &&has(company.facts.full_time_weekly_hours)\n          ?double(company.facts.full_time_weekly_hours)\n          :44.0)\n      :1.0)\n    * (size(bands.filter(b, service_months >= b.service_months)) > 0\n      ?double(\n        first(\n          bands.filter(b, service_months >= b.service_months).map(\n            b,\n            b.days\n          )\n        )\n      )\n      :7.0)\n    * (double(\n      calendar_completed_months(\n        employment.start_date,\n        add_days(employment.exit_date, 1)\n      )\n    )\n    -12.0\n    *round(\n      double(\n        calendar_completed_months(\n          employment.start_date,\n          add_days(employment.exit_date, 1)\n        )\n      )\n      /12.0,\n      1.0,\n      \"DOWN\"\n    ))\n    /12.0,\n    1.0,\n    \"HALF_UP\"\n  )\n  - ((has(taken_by_class.ANNUAL_LEAVE)\n    ?taken_by_class.ANNUAL_LEAVE.service_year\n    :0.0)\n  + (has(taken_by_class.ANNUAL_LEAVE_PART_TIME)\n    ?taken_by_class.ANNUAL_LEAVE_PART_TIME.service_year\n    :0.0))\n  :0.0",
+			"overdraw": "0"
+		}
+	}
+]

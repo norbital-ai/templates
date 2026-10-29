@@ -71,6 +71,17 @@ export default model('customer_notices', {
 		'customer_notices.visit.booking.customer': { fields: ['name', 'phone', 'email', 'address'] },
 		'customer_notices.visit.booking.service': { fields: ['name'] }
 	},
+	outputs: {
+		customer: {
+			customer_notices: { fields: ['customer', 'visit', 'subject', 'body'] },
+			'customer_notices.customer': { fields: ['name'] },
+			'customer_notices.visit': { fields: ['number', 'address'] },
+			'customer_notices.visit.helper': { fields: ['name'] },
+			'customer_notices.visit.booking': { fields: ['number'] },
+			'customer_notices.visit.booking.customer': { fields: ['name', 'phone', 'email', 'address'] },
+			'customer_notices.visit.booking.service': { fields: ['name'] }
+		}
+	},
 	create: {
 		columns: { customer_notices: ['customer', 'visit', 'subject', 'body'] },
 		transform: function* (rows, ctx) {
@@ -164,6 +175,12 @@ export default model('customer_notices', {
 				}
 				return { rows: [...mails.values()] };
 			}
+		}
+	},
+	// the desk cannot record delivery: `deliver_notices` sends and records it, as dispatch
+	effect: {
+		created: function* (rows, ctx) {
+			yield* ctx.schedule('deliver_notices', { ids: rows.map((r) => r.id) });
 		}
 	}
 });

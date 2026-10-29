@@ -7,7 +7,6 @@ import { policy } from '@norbital-ai/bolt';
 export default policy({
 	description:
 		'The dispatch runs: re-dispatch visits, file warnings and their letters, notify customers, and book portal requests.',
-	automations: ['bookings_book'],
 	grants: {
 		dispatch_settings: { read: true },
 		services: { read: true },

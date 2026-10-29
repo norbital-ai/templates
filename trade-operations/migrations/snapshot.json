@@ -3004,6 +3004,10 @@
 				"state": {
 					"default": "queued",
 					"kind": "text"
+				},
+				"trigger": {
+					"kind": "json",
+					"optional": true
 				}
 			},
 			"indexes": [
@@ -3056,7 +3060,8 @@
 						"code",
 						"invitation",
 						"signup",
-						"host"
+						"host",
+						"anonymous"
 					]
 				}
 			},
@@ -3261,7 +3266,8 @@
 					"kind": "enum",
 					"values": [
 						"staff",
-						"external"
+						"external",
+						"anonymous"
 					]
 				},
 				"name": {

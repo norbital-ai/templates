@@ -7,7 +7,14 @@
 	const actor = bolt.actor;
 	const me = $derived(
 		actor?.kind === 'member'
-			? bolt.query({ helpers: { where: { user: { eq: actor.id } }, fields: ['name'], limit: 1 } })
+			? bolt.query({
+					helpers: {
+						output: 'helper',
+						where: { user: { eq: actor.id } },
+						fields: ['name'],
+						limit: 1
+					}
+				})
 			: null
 	);
 	// keyed by the id: the helper's own row changes with every position it reports

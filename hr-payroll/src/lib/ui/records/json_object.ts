@@ -1,10 +1,9 @@
 import { Schema } from 'effect';
-import { isMasked } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/ui';
 
 /** A JSON object value, or null when the field holds anything else. */
 export const asObject = (entry: unknown): Record<string, Json> | null =>
-	!isMasked(entry) && Schema.is(Schema.Record(Schema.String, Schema.Json))(entry) ? entry : null;
+	Schema.is(Schema.Record(Schema.String, Schema.Json))(entry) ? entry : null;
 
 /** A JSON list (`Array.isArray` narrows no readonly list). */
 export const isJsonList = (value: Json | undefined): value is readonly Json[] =>

@@ -58,6 +58,14 @@ export default model('jurisdiction_settings', {
 		'jurisdiction_settings.behaviour': { fields: 'all' },
 		'jurisdiction_settings.payroll_run': { fields: ['id'] }
 	},
+	outputs: {
+		// the attendance kiosk: the version and its payroll terms, none of its catalogues
+		kiosk: {
+			jurisdiction_settings: {
+				fields: ['code', 'name', 'sealed_at', 'voided_at', 'effective_range', 'payroll']
+			}
+		}
+	},
 	create: {
 		columns: {
 			jurisdiction_settings: columns,

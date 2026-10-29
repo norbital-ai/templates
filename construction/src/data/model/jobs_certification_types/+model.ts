@@ -26,7 +26,7 @@ export default model('jobs_certification_types', {
 	description: 'Join table linking jobs to required certification types.',
 	label: 'name',
 	fields: {
-		/** `<job> · <certification>`, derived on every write (and by `seed/seed.ts`): a label is never a foreign key. */
+		/** `<job> · <certification>`, derived on every write (and by `seed/+seeder.ts`): a label is never a foreign key. */
 		name: { kind: 'text', optional: true },
 		job_id: { kind: 'ref', to: 'jobs', inverse: 'jobs_certification_types' },
 		certification_type_id: {

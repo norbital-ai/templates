@@ -1,7 +1,7 @@
 import type { Committed, PendingApproval, Id, Row, ModelName } from '@norbital-ai/bolt';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { PlainDate, Instant } from '@norbital-ai/std/date';
-import { type TestOptions, type TestPorts } from '@norbital-ai/bolt/test';
+import { type TestOptions, type TestPorts } from '@norbital-ai/bolt-cli/test';
 import { workspace as acquireWorkspace, fixtureId } from './test-runtime.js';
 import { Context, Effect, Layer, Schema } from 'effect';
 import { DatabaseRequest, type DatabaseResult, type BoltError } from '@norbital-ai/bolt/engine';
@@ -72,8 +72,9 @@ export const workspace = Effect.fnUntraced(function* <P extends TestPorts = neve
 export type T = Effect.Success<ReturnType<typeof workspace>>;
 /** The workspace a file's tests share: `layer(shared(...), { excludeTestServices: true })`, then `yield* Trade`. */
 export class Trade extends Context.Service<Trade, T>()('trade-operations/Trade') {}
-export const shared = <P extends TestPorts = never>(options: Parameters<typeof workspace<P>>[0] = {}) =>
-	Layer.effect(Trade, workspace(options));
+export const shared = <P extends TestPorts = never>(
+	options: Parameters<typeof workspace<P>>[0] = {}
+) => Layer.effect(Trade, workspace(options));
 export const draft = Effect.fnUntraced(function* (
 	t: T,
 	direction: Row<'orders'>['direction'] = 'sales',

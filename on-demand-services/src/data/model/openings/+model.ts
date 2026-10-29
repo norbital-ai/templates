@@ -15,6 +15,7 @@ export default model('openings', {
 	},
 	unique: [{ fields: ['service', 'day'] }],
 	read: 'all',
+	outputs: { portal: { openings: { fields: ['service', 'day', 'starts'] } } },
 	create: { columns: { openings: ['service', 'day', 'starts'] } },
 	update: { columns: { openings: ['starts'] } },
 	delete: {}

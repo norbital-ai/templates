@@ -11,17 +11,22 @@ const reasons: Readonly<Record<string, string>> = {
 	windowLag: 'An accounting source window is taking longer than the configured limit.'
 };
 /**
- * Tells configuration holders, in the app, when an accounting ledger's syncs need attention (a long-running source window or a failing read), once per status change; the instance's status shows when it is healthy again.
+ * Tells configuration holders, in the app, when an accounting ledger's syncs need attention (a long-running source window or a failing read), once per instance revision, within 5 minutes; the instance's status shows when it is healthy again.
  */
 export default automation('source_health', {
 	description:
 		'Notifies configuration holders when an accounting ledger connection needs attention.',
-	on: { updated: 'sys_integration', fields: ['status'], where: { integration: { eq: 'kingdee' } } },
-	runAs: ['configuration'],
-	run: function* ({ ids }, ctx) {
-		if (ids === undefined || ids.length === 0) return;
+	// ponytail: a system model hosts no effect, so this sweeps every kingdee instance each 5 minutes and `once` per
+	// revision dedupes; a notice lags a status change by up to 5 minutes, and any other edit of an instance still in
+	// attention notifies again
+	on: { cron: '*/5 * * * *' },
+	policies: ['configuration'],
+	run: function* (_input, ctx) {
 		const { rows } = (yield* ctx.query({
-			sys_integration: { where: { id: { in: ids } }, fields: ['name', 'status', 'revision'] }
+			sys_integration: {
+				where: { integration: { eq: 'kingdee' } },
+				fields: ['name', 'status', 'revision']
+			}
 		})).sys_integration;
 		yield* ctx.notify(
 			rows.flatMap((row) => {

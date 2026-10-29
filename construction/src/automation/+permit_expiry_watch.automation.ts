@@ -6,7 +6,7 @@ export default automation('permit_expiry_watch', {
 	description:
 		'Sweeps the active and expiring permits to work every morning at 6am and publishes the first 25 as a JSON extract so permits nearing the end of their validity range are caught before crews are stood down.',
 	on: DAILY_0600,
-	runAs: ['construction_read'],
+	policies: ['construction_read'],
 	output: digestOutput(fields),
 	run: function* (_, ctx) {
 		const {

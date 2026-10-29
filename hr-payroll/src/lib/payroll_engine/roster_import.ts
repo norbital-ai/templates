@@ -1,14 +1,14 @@
 /**
- * The work-day sheet behind the `roster_entry` file sync: one row per person-day — the shift, the clock, overtime
- * and the leave taken. `sheetKnown` resolves what a sheet names (employee numbers, shift codes, the
- * entity's time zone, recorded leave, the stored intervals a row keeps); `sheetRow` and `sheetLeave` map one row onto
- * its roster day and its one-day time off; `sheetFindings` judges the file before it is written: structural problems,
+ * The work-day sheet behind the `roster_entry` file sync: one row per person-day — the shift, the clock and overtime;
+ * leave is recorded in the leave app and has no column. `sheetKnown` resolves what a
+ * sheet names (employee numbers, shift codes, the entity's time zone, recorded leave, the stored intervals a row keeps);
+ * `sheetRow` maps one row onto its roster day; `sheetFindings` judges the file before it is written: structural problems,
  * changes to settled days (pinned, inside a regular run's attendance window, awaiting approval) and the version's
  * `roster` validations; `rosterSheet` is the template, the stored state of a window.
  */
 import { Effect, Result, Schema } from 'effect';
 import { fromAbsolute, parseDateTime, toCalendarDateTime, toZoned } from '@internationalized/date';
-import type { Id, Insert, Row } from '@norbital-ai/bolt';
+import type { Id, Row } from '@norbital-ai/bolt';
 import { addDays, Instant, parseInstant, PlainDate } from '@norbital-ai/std/date';
 import { numberOf, Refusal, type Read } from './foundation.js';
 import {
@@ -26,11 +26,12 @@ import {
 	type SheetKnown,
 	type SheetRecord,
 	type ApprovedInterval,
+	type LeavePart,
 	type StoredInterval
 } from './roster_sheet.js';
 import { rosterFindingsFrom, type RosterDraft } from './admit.js';
 import { CONTRACT, ENTITY, PROFILE, ROSTER, SETTINGS, RULES, HOLIDAY } from './rows.js';
-import { versionOn, zoneOn, datesFrom } from './payslip/context.js';
+import { zoneOn, datesFrom } from './payslip/context.js';
 import { refuseApprovedOvertimeIntervals } from './roster_entry.js';
 
 type Range = { readonly from?: string | null; readonly to?: string | null };
@@ -105,9 +106,24 @@ type ClockCell = {
 const numericCell = Schema.decodeUnknownResult(
 	Schema.NumberFromString.pipe(Schema.decodeTo(Schema.Finite))
 );
-/** Native ISO/local date-time parsing, plus the existing time-only and Excel serial cells. */
+const parsedClocks = new Map<string, ClockCell | null>();
+/**
+ * A clock cell, parsed once per upload: mapping and validation each read it, and every parse is several
+ * time-zone conversions.
+ */
 const clockCell = (value: string | undefined, day: string, zone: string): ClockCell | null => {
 	if (value == null) return null;
+	const key = `${zone}|${day}|${value}`;
+	const known = parsedClocks.get(key);
+	if (known !== undefined) return known;
+	// ponytail: a session-wide memo, emptied past 50k cells; one upload is a few thousand
+	if (parsedClocks.size > 50_000) parsedClocks.clear();
+	const parsed = parseClockCell(value, day, zone);
+	parsedClocks.set(key, parsed);
+	return parsed;
+};
+/** Native ISO/local date-time parsing, plus the existing time-only and Excel serial cells. */
+const parseClockCell = (value: string, day: string, zone: string): ClockCell | null => {
 	const text = value.trim();
 	const cell = (
 		instant: Instant,
@@ -149,7 +165,7 @@ const clockCell = (value: string | undefined, day: string, zone: string): ClockC
 	return parsed == null ? null : cell(parsed, true, 'exact');
 };
 /** Equal midnight markers mean recorded no work; dated boundaries are never silently rolled over. */
-const intervalOf = (
+const intervalFrom = (
 	clock: { in: ClockCell; out: ClockCell },
 	zone: string
 ): StoredInterval[] | null => {
@@ -309,8 +325,7 @@ const loadSheetScope = Effect.fnUntraced(function* (
 		rule_set: {
 			where: { settings_id: { in: settingsIds }, family: { in: ['VALIDATIONS', 'PARAMETERS'] } },
 			fields: [...RULES, 'family', 'settings_id']
-		},
-		leave_catalog: { where: { settings_id: { in: settingsIds } }, fields: ['code', 'settings_id'] }
+		}
 	});
 	const cited = yield* read({
 		leave_catalog: {
@@ -335,7 +350,6 @@ const loadSheetScope = Effect.fnUntraced(function* (
 		holidays: scoped.holiday,
 		versions: scoped.jurisdiction_settings,
 		rules: held.rule_set,
-		classes: held.leave_catalog,
 		leave: held.leave_catalog_entry,
 		catalogues: cited.leave_catalog,
 		slips: held.payslip,
@@ -378,14 +392,14 @@ const scopeFrom = (got: SheetScopeRead, from: string, to: string) =>
 		};
 	});
 
-/** `employment:date` → the leave class code of the approved time off covering it, over `from`–`to`. */
+/** `employment:date` → every approved time off covering it, over `from`–`to`: a half day's first day is its PM, its last its AM. */
 const leaveDays = (
 	got: Pick<SheetScopeRead, 'leave' | 'catalogues'>,
 	from: string,
 	to: string
-): { [key: string]: string } => {
+): { [key: string]: LeavePart[] } => {
 	const codes = new Map(got.catalogues.rows.map((row) => [row.id, row.code]));
-	const out: { [key: string]: string } = {};
+	const out: { [key: string]: LeavePart[] } = {};
 	for (const row of got.leave.rows) {
 		if (row.employment_id === null) continue;
 		const range = coverageRange(row.from, row.to, numberOf(row.days) ?? 1, row.occurred_on);
@@ -394,10 +408,25 @@ const leaveDays = (
 			range.from < from ? from : range.from,
 			range.to > to ? to : range.to
 		))
-			out[keyOf(row.employment_id, day)] = codes.get(row.catalog_id) ?? '';
+			(out[keyOf(row.employment_id, day)] ??= []).push({
+				code: codes.get(row.catalog_id) ?? '',
+				half:
+					day === range.from && row.half_day_start === true
+						? 'PM'
+						: day === range.to && row.half_day_end === true
+							? 'AM'
+							: null
+			});
 	}
 	return out;
 };
+const HALVES = { AM: 0, null: 1, PM: 2 } as const;
+/** A day's recorded leave as findings and the roster checks name it: `AL`, or halves joined, `AL (AM) + UL (PM)`. */
+const leaveCell = (parts: readonly LeavePart[]): string =>
+	parts
+		.toSorted((a, b) => HALVES[`${a.half}`] - HALVES[`${b.half}`])
+		.map((part) => (part.half == null ? part.code : `${part.code} (${part.half})`))
+		.join(' + ');
 
 /** The contract a row names: its employee number, employed on its day; null when none or more than one is. */
 const contractOf = (record: SheetRecord, known: SheetKnown) => {
@@ -413,10 +442,18 @@ const shiftOf = (known: SheetKnown, company_id: string, code: string, day: strin
 	known.shifts.find(
 		(row) => row.company_id === company_id && row.code === code && inRange(day, row)
 	);
+const pairIntervals = new WeakMap<ClockCell, Map<ClockCell, StoredInterval[] | null>>();
 const clocks = (record: SheetRecord, zone: string) => {
 	const clockIn = clockCell(record.clock_in, dayOf(record.work_date), zone),
 		clockOut = clockCell(record.clock_out, dayOf(record.work_date), zone);
 	return clockIn != null && clockOut != null ? { in: clockIn, out: clockOut } : null;
+};
+/** A pair's interval, once per parsed pair (an overnight pair converts its zone again). */
+const intervalOf = (clock: { in: ClockCell; out: ClockCell }, zone: string) => {
+	const outs = pairIntervals.get(clock.in) ?? new Map<ClockCell, StoredInterval[] | null>();
+	pairIntervals.set(clock.in, outs);
+	if (!outs.has(clock.out)) outs.set(clock.out, intervalFrom(clock, zone));
+	return outs.get(clock.out) ?? null;
 };
 const APPROVAL_FIELDS = [
 	'approved_ot_1_start',
@@ -495,7 +532,7 @@ export const mappedOf = (row: SheetDay | null): Mapped | null =>
 				overtime_consented_at: row.overtime_consented_at
 			};
 
-/** Once per upload: what the sheet's employee numbers, shift codes and leave codes name, and the intervals it keeps. */
+/** Once per upload: what the sheet's employee numbers and shift codes name, the day's recorded leave, and the intervals it keeps. */
 export const sheetKnown = (records: readonly SheetRecord[], context: SheetContext, read: Read) =>
 	Effect.gen(function* () {
 		if (records.length === 0)
@@ -504,7 +541,6 @@ export const sheetKnown = (records: readonly SheetRecord[], context: SheetContex
 				contracts: [],
 				shifts: [],
 				leave: {},
-				classes: {},
 				kept: {},
 				consented: {}
 			} satisfies SheetKnown;
@@ -539,17 +575,13 @@ export const sheetKnown = (records: readonly SheetRecord[], context: SheetContex
 				to: row.effective_range?.to ?? null
 			})),
 			leave: leaveDays(scope.got, scope.from, scope.to),
-			classes: {},
 			kept: {},
 			consented: {}
 		};
-		const classes: { [key: string]: { [code: string]: Id<'leave_catalog'> } } = {};
 		const kept: { [key: string]: readonly StoredInterval[] } = {};
 		const consented: { [key: string]: Instant } = {};
 		const plannedOvertime: { [key: string]: number } = {};
 		const approvedOvertime: { [key: string]: readonly ApprovedInterval[] } = {};
-		const lineage = scope.got.versions.rows;
-		const leaveClasses = scope.got.classes.rows;
 		for (const record of records) {
 			const contract = contractOf(record, known);
 			if (contract == null) continue;
@@ -583,24 +615,9 @@ export const sheetKnown = (records: readonly SheetRecord[], context: SheetContex
 						!sameIntervals(stored, incoming))
 			)
 				kept[key] = stored;
-			if (record.leave_code == null || known.leave[key] != null) continue;
-			const entity = scope.entities.find((row) => row.id === contract.company_id);
-			if (entity === undefined) continue;
-			const version = versionOn(
-				lineage.filter((row) => row.code === entity.settings_code),
-				entity.settings_code,
-				day
-			);
-			if (Result.isFailure(version)) continue;
-			classes[`${contract.company_id}:${day}`] = Object.fromEntries(
-				leaveClasses
-					.filter((row) => row.settings_id === version.success.id)
-					.map((row) => [row.code, row.id])
-			);
 		}
 		return {
 			...known,
-			classes,
 			kept,
 			consented,
 			plannedOvertime,
@@ -649,30 +666,6 @@ export const sheetRow = (record: SheetRecord, known: SheetKnown): SheetDay | nul
 		banked_overtime_hours: record.banked_overtime_hours ?? null,
 		overtime_consented_at: consent == null ? null : Instant(consent)
 	};
-};
-
-/** A leave code the records lack on the day: that day's time off of the governing version's class, charged as the
- * leave write counts it (`leave_days`). Recorded leave is never written twice, so a re-import adds nothing. */
-export const sheetLeave = (
-	record: SheetRecord,
-	known: SheetKnown
-): Insert<'leave_catalog_entry'>[] => {
-	const contract = contractOf(record, known);
-	if (record.leave_code == null || contract == null) return [];
-	const day = dayOf(record.work_date);
-	if (known.leave[keyOf(contract.id, day)] != null) return [];
-	const catalog_id = known.classes[`${contract.company_id}:${day}`]?.[record.leave_code];
-	if (catalog_id == null) return [];
-	return [
-		{
-			catalog_id,
-			employment_id: contract.id,
-			occurred_on: PlainDate(day),
-			activity: 'TIME_OFF',
-			from: PlainDate(day),
-			to: PlainDate(day)
-		}
-	];
 };
 
 /** Each employment's regular runs' attendance windows, matched by the actual run foreign key. */
@@ -851,7 +844,7 @@ export const sheetFindings = (
 			const who = `${record.employee_number} ${day}`;
 			const all = known.contracts.filter((contract) => contract.number === record.employee_number);
 			const contract = contractOf(record, known);
-			const values = record.shift_code != null || worksHours(record) || record.leave_code != null;
+			const values = record.shift_code != null || worksHours(record);
 			if (all.length === 0)
 				return finding(
 					record.row,
@@ -909,11 +902,17 @@ export const sheetFindings = (
 					'overtime_consent',
 					`"${record.overtime_consent}" is not a consent: Y, yes, true, 1 or a date.`
 				);
+			if (record.shift_code?.toUpperCase() === 'PH')
+				return finding(
+					record.row,
+					'shift_code',
+					'PH is not a shift code: public holidays come from the jurisdiction calendar (the Holiday column). Enter the planned shift, REST, OFF, or leave Shift blank.'
+				);
 			if (record.shift_code != null && row == null)
 				return finding(
 					record.row,
 					'shift_code',
-					`${record.shift_code} is not a shift of this entity.`
+					`Row ${record.row}: "${record.shift_code}" is not a shift code in effect for ${who}; use one of the entity's shifts, REST or OFF.`
 				);
 			if (
 				record.planned_overtime_hours != null &&
@@ -979,24 +978,10 @@ export const sheetFindings = (
 				const invalid = refuseApprovedOvertimeIntervals(approvedIntervals(record));
 				if (invalid != null) return finding(record.row, 'approved_ot_1_start', invalid);
 			}
-			const recorded = known.leave[key];
-			const leave = record.leave_code ?? recorded ?? '';
-			if (record.leave_code != null && recorded != null && recorded !== record.leave_code)
-				return finding(
-					record.row,
-					'leave_code',
-					`${who} already has ${recorded} leave; change it on the leave page.`
-				);
+			// the sheet carries no leave: the day's recorded leave, from the leave app
+			const leave = leaveCell(known.leave[key] ?? []);
 			const stored = scope.entries.get(key);
 			const lock = lockOf(stored, windows.get(contract.id), scope.got, contract.id, day);
-			const newLeave = record.leave_code != null && recorded == null;
-			if (newLeave && known.classes[`${contract.company_id}:${day}`]?.[record.leave_code!] == null)
-				return finding(
-					record.row,
-					'leave_code',
-					`${record.leave_code} is not a leave class of the version in force on ${day}.`
-				);
-			if (newLeave && lock != null) return finding(record.row, 'leave_code', `${who} is ${lock}.`);
 			const changes = row == null ? [] : stored == null ? ['created'] : changedFields(row, stored);
 			// Leave needs its planned shift; full-day absence excludes actual work, not the plan or a no-work marker.
 			const actualWork =
@@ -1007,12 +992,16 @@ export const sheetFindings = (
 				leave !== '' &&
 				changes.length > 0 &&
 				actualWork &&
-				(newLeave || refuseCoveredWorkDay(day, contract.id, movements) != null)
+				refuseCoveredWorkDay(day, contract.id, movements) != null
 			)
 				return finding(
 					record.row,
-					'leave_code',
-					`${who} is on full-day ${leave} leave: it cannot record actual work, banked overtime or overtime consent.`
+					(row?.worked_intervals?.length ?? 0) > 0
+						? 'clock_in'
+						: (row?.banked_overtime_hours ?? 0) > 0
+							? 'banked_overtime_hours'
+							: 'overtime_consent',
+					`${who} is on full-day ${leave} leave: it cannot record actual work, banked overtime or overtime consent. Change the leave in the leave app.`
 				);
 			if (lock != null && changes.length > 0)
 				return out.push({
@@ -1034,7 +1023,6 @@ export const sheetFindings = (
 					finding(record.row, '', `${who} is ${lock}; a blank row would delete it.`);
 			}
 			if (
-				newLeave ||
 				changes.length > 0 ||
 				(row == null &&
 					stored != null &&
@@ -1140,7 +1128,7 @@ export const sheetFindings = (
 					worked_intervals: stored.worked_intervals,
 					banked_overtime_hours: numberOf(stored.banked_overtime_hours),
 					overtime_consented_at: stored.overtime_consented_at,
-					leave_code: known.leave[key] ?? ''
+					leave_code: leaveCell(known.leave[key] ?? [])
 				};
 				judged.set(key, draft);
 				neighbors.set(draft.ref, draft);
@@ -1184,7 +1172,7 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 		const month = today.slice(0, 7);
 		const from = context.from ?? `${month}-01`;
 		const to = context.to ?? dayOf(addDays(`${addDays(`${month}-28`, 4).slice(0, 7)}-01`, -1));
-		// three waves: the entities; their employments, codes, holidays and versions; the days, people and leave
+		// three waves: the entities; their employments, codes, holidays and versions; the days and people
 		const { entity } = yield* read({
 			entity: {
 				where: context.company_id == null ? {} : { id: { eq: context.company_id } },
@@ -1230,32 +1218,6 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 					work_date: { gte: PlainDate(from), lte: PlainDate(to) }
 				},
 				fields: ROSTER
-			},
-			leave_catalog_entry: {
-				where: {
-					employment_id: { in: contractIds },
-					activity: { eq: 'TIME_OFF' },
-					occurred_on: { lte: PlainDate(to) }
-				},
-				fields: [
-					'employment_id',
-					'catalog_id',
-					'occurred_on',
-					'days',
-					'from',
-					'to',
-					'half_day_start',
-					'half_day_end',
-					'payslip_id'
-				]
-			}
-		});
-		const { leave_catalog } = yield* read({
-			leave_catalog: {
-				where: {
-					id: { in: [...new Set(held.leave_catalog_entry.rows.map((row) => row.catalog_id))] }
-				},
-				fields: ['code']
 			}
 		});
 		const got = {
@@ -1265,8 +1227,6 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 			entries: held.roster_entry,
 			definitions: scoped.shift_definition,
 			holidays: scoped.holiday,
-			leave: held.leave_catalog_entry,
-			catalogues: leave_catalog,
 			versions: scoped.jurisdiction_settings
 		};
 		const entries = new Map(
@@ -1282,7 +1242,6 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 		const holidays = new Map(
 			got.holidays.rows.map((row) => [`${row.company_id}:${dayOf(row.date)}`, row.name ?? ''])
 		);
-		const leave = leaveDays(got, from, to);
 		const zones = new Map(
 			yield* Effect.fromResult(
 				Result.all(
@@ -1330,7 +1289,6 @@ export const rosterSheet = (context: SheetContext, today: string, read: Read) =>
 								entry?.approved_overtime_intervals?.[0]?.break_minutes ?? null,
 							approved_ot_2_break_minutes:
 								entry?.approved_overtime_intervals?.[1]?.break_minutes ?? null,
-							leave_code: leave[key] || null,
 							name: names.get(contract.employee_id) ?? '',
 							holiday: holidays.get(`${contract.company_id}:${day}`) ?? null
 						}
@@ -1365,14 +1323,12 @@ const sheetRecord = (cells: SheetCells): SheetRecord => {
 		...optional('approved_ot_2_start'),
 		...optional('approved_ot_2_end'),
 		...amount('approved_ot_1_break_minutes'),
-		...amount('approved_ot_2_break_minutes'),
-		...optional('leave_code')
+		...amount('approved_ot_2_break_minutes')
 	};
 };
 
 /**
- * The file sync's lookup, mapping and validation in one call: the rows it would write, the leave
- * it would record, and its findings split into `errors` (refuse) and `warnings` (warn). Nothing is written.
+ * The file sync's lookup, mapping and validation in one call: the rows it would write and its findings split into `errors` (refuse) and `warnings` (warn). Nothing is written.
  */
 export const planRosterImport = (
 	input: {
@@ -1399,7 +1355,6 @@ export const planRosterImport = (
 		const strip = ({ severity: _, ...finding }: SheetFinding) => finding;
 		return {
 			rows,
-			leave: records.flatMap((record) => sheetLeave(record, known)),
 			errors: findings.filter((row) => row.severity === 'refuse').map(strip),
 			warnings: findings.filter((row) => row.severity === 'warn').map(strip)
 		};

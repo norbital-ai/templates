@@ -26,7 +26,6 @@
 	import FaceEnrollFlow from '../../../lib/ui/person/face_enroll_flow.svelte';
 	import { governingVersion } from '../../../lib/ui/person/governing_version.svelte.js';
 	import { profileFactsSchema } from '../../../lib/ui/person/form_schema.js';
-	import Hire from '../../../lib/ui/person/hire.svelte';
 
 	let { view }: { view: RecordView<'employment_profile'> } = $props();
 	const record = $derived(view.mode !== 'create' ? view.record : null);
@@ -187,23 +186,6 @@
 			/>
 		{/if}
 	</Section>
-	{#if record && ordered.length > 0 && ordered.every((contract) => contract.to != null && contract.to < today)}
-		<Section name="anonymise" title={t('person.anonymise_title')} defaultOpen={false}>
-			{#if record.anonymised_at != null}
-				<p class="text-meta">
-					{t('person.anonymised', { date: String(record.anonymised_at).slice(0, 10) })}
-				</p>
-			{:else}
-				<p class="text-meta">{t('person.anonymise_help')}</p>
-				<Form
-					of={{ automation: 'employment_profile_anonymise' }}
-					values={{ employee: record.id }}
-					fields={[]}
-					submit={t('person.anonymise')}
-				/>
-			{/if}
-		</Section>
-	{/if}
 {/snippet}
 
 {#snippet faceTab()}
@@ -243,16 +225,9 @@
 	{/if}
 {/snippet}
 
-{#snippet actions()}
-	{#if record}
-		<Hire employeeId={record.id} name={String(record.name)} />
-	{/if}
-{/snippet}
-
 <RecordShell
 	of="employment_profile"
 	mode={view.mode}
-	{actions}
 	{...record == null
 		? { values: view.mode === 'create' ? view.values : {} }
 		: { id: record.id, subtitle: ['email'] }}

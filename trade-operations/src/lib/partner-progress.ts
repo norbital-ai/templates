@@ -8,7 +8,7 @@ import {
 } from './agreements.js';
 
 import { PlainDate } from '@norbital-ai/std/date';
-import { isMasked, type Id, type ReadAnswer, type Row } from '@norbital-ai/bolt';
+import { type Id, type ReadAnswer, type Row } from '@norbital-ai/bolt';
 /** A party's progress read: its orders with their documents, and the sales facts of those orders. */
 export const progressRead = (party: Id<'parties'>) =>
 	({
@@ -78,7 +78,7 @@ export function partnerProgress(
 		return current.snapshot.lines.map((line) => {
 			const deliveries = issued.filter((doc) => doc.kind === 'delivery');
 			const quantities = deliveries.flatMap((doc) =>
-				doc.items && !isMasked(doc.items)
+				doc.items
 					? doc.items
 							.filter(
 								(item) =>
@@ -109,7 +109,7 @@ export function partnerProgress(
 				!physical && deliveries.length
 					? [
 							...deliveries.flatMap((doc) =>
-								doc.items && !isMasked(doc.items)
+								doc.items
 									? [
 											{
 												on: doc.issued_on,
@@ -168,7 +168,7 @@ export function partnerProgress(
 			const invoiceItems = issued
 				.filter((doc) => doc.kind === 'invoice')
 				.flatMap((doc) =>
-					doc.items && !isMasked(doc.items)
+					doc.items
 						? doc.items.filter(
 								(item) =>
 									lines.get(`${doc.seal_hash}:${item.order_line_id}`)?.product === line.product &&

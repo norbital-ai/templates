@@ -1,6 +1,5 @@
 import { expect, it } from '@effect/vitest';
 import { Effect } from 'effect';
-import { isMasked } from '@norbital-ai/bolt';
 import { workspace } from './kit.js';
 import { fixtureId } from './test-runtime.js';
 import { kingdeeFixture, kingdeeSale } from './kingdee-fixture.js';
@@ -12,14 +11,14 @@ const source = kingdeeFixture();
 const clock = { at: '2026-10-26T00:00:00.000Z' };
 const acquire = () =>
 	workspace({
-	source: (operation) =>
-		source.request(operation).pipe(
-			Effect.map((answer) => ({
-				rows: answer.rows.map((row) =>
-					'observed_at' in row ? { ...row, observed_at: clock.at } : row
-				)
-			}))
-		),
+		source: (operation) =>
+			source.request(operation).pipe(
+				Effect.map((answer) => ({
+					rows: answer.rows.map((row) =>
+						'observed_at' in row ? { ...row, observed_at: clock.at } : row
+					)
+				}))
+			),
 		now: '2026-10-26T00:00:00Z'
 	});
 /** A sealed sale the writer submitted, its source mirror pulled before the SO approval. */
@@ -154,11 +153,8 @@ it.live(
 				seal_hash: sealed.seal_hash,
 				due_on: '2026-11-25'
 			});
-			expect(invoice.total != null && !isMasked(invoice.total) && invoice.total.eq('22.60')).toBe(
-				true
-			);
-			if (!invoice.items || isMasked(invoice.items))
-				throw new Error('Visible invoice items required');
+			expect(invoice.total?.eq('22.60')).toBe(true);
+			if (!invoice.items) throw new Error('Visible invoice items required');
 			expect(invoice.items).toHaveLength(1);
 			const item = invoice.items[0];
 			if (!item) throw new Error('Grouped invoice item required');
@@ -174,12 +170,8 @@ it.live(
 						row.order_line === line &&
 						row.seal_hash === sealed.seal_hash &&
 						row.quantity.eq(5) &&
-						row.net_amount != null &&
-						!isMasked(row.net_amount) &&
-						row.net_amount.eq(10) &&
-						row.tax_amount != null &&
-						!isMasked(row.tax_amount) &&
-						row.tax_amount.eq('1.30')
+						row.net_amount?.eq(10) === true &&
+						row.tax_amount?.eq('1.30') === true
 				)
 			).toBe(true);
 			expect(

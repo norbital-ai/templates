@@ -1,7 +1,7 @@
 import { Decimal } from '@norbital-ai/std/decimal';
 import { inputSchema } from '@norbital-ai/std/kind';
 import { Schema } from 'effect';
-import type { Masked, Row } from '@norbital-ai/bolt';
+import type { Row } from '@norbital-ai/bolt';
 import { PAYROLL_DEFAULTS } from './payroll_engine/foundation.js';
 import { currencyScale } from './payroll_engine/payslip/context.js';
 
@@ -19,7 +19,7 @@ export const loanAmount = (value: Decimal | number | `${number}`): Decimal =>
 export const loanRuleFacts = (loan: {
 	readonly principal_amount?: Decimal | null;
 	readonly advance_made_on?: string | null;
-	readonly facts?: Exclude<Row<'loan_catalog_entry'>['facts'], Masked>;
+	readonly facts?: Row<'loan_catalog_entry'>['facts'];
 }) => ({
 	...(loan.facts ?? {}),
 	...(loan.principal_amount == null ? {} : { principal: loan.principal_amount.toNumber() }),

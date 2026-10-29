@@ -1,0 +1,1118 @@
+[
+	{
+		"id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "MY",
+		"name": "Malaysia — 2028-06-01",
+		"sealed_at": "2026-09-26T07:19:34.024Z",
+		"voided_at": "2026-10-20T00:00:00.000Z",
+		"effective_range": {
+			"from": "2028-06-01",
+			"to": "2031-05-31"
+		},
+		"payroll": {
+			"currency": "MYR",
+			"timezone": "Asia/Kuala_Lumpur",
+			"week_start": 0,
+			"roster_week": "ROLLING",
+			"monthly_wage": "terms.base_salary + sum(terms.allowances.map(a, a.amount))"
+		},
+		"time_pay": {
+			"BASIC": [
+				{
+					"code": "BASIC",
+					"name": "Basic salary",
+					"references": [
+						{
+							"title": "Basic salary for the days employed in the month. EA s.18A: \"Notwithstanding section 60i\", an employee on a monthly rate who joins or leaves in the month, takes unpaid leave or national-service leave is paid monthly wages ÷ the days of the wage period × the days eligible — calendar days (owner ruling 2026-10-07). Encoded 2026-10-07 (round 7): a monthly-rated term is paid the days employed ÷ the month's days (s.18A); a weekly rate × 52 ÷ 12 the same way; a daily rate × the WORK days worked; an hourly rate × the normal hours worked (worked less overtime) on WORK days; a piece rate through PIECE_PAY. EA s.60I: the ordinary rate of pay is monthly ÷ 26 (s.60I(1A)), weekly ÷ 6 (s.60I(1B)), and for a daily, hourly or piece rate the preceding wage period's wages ÷ the days worked (s.60I(1C), the days of a piece or hourly worker read from the period's WORK-day hours ÷ the normal hours); the hourly rate is it ÷ the contract's normal hours a day (s.60I(1)(b), s.60A(3)(c); terms.facts.normal_hours_per_day, else company.facts.normal_daily_hours, else 8). Pay basis: terms.facts.pay_basis. Sub-monthly settlement (2026-10-08, practitioner confirmation B1): EA s.18A prorates a monthly rate over the month's calendar days, not each half's. A whole month pays the monthly rate ÷ the parts, a part month the part's employed days ÷ period.month_days; the month's last part settles the month to the s.18A figure (the month's employed days ÷ its calendar days, or the whole rate) less what its earlier parts paid (earned.month), so every split equals the monthly run — RM3,100 in October joined on the 10th is 3,100 × 22 ÷ 31 = RM2,200, on the 20th RM1,200.",
+							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+						}
+					],
+					"eligibility": "true",
+					"quantity": "((has(terms.facts) && has(terms.facts.pay_basis))\n  ?terms.facts.pay_basis\n  :\"MONTHLY\")\n==\"DAILY\"\n  ?double(\n    size(\n      work.days.filter(\n        d,\n        d.worked && d.scheduled_hours > 0.0 && d.day_type != \"REST\"\n        &&!(d.holiday_kind\n        in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"]\n      ) )\n    )\n  )\n  : ((has(terms.facts) && has(terms.facts.pay_basis))\n    ?terms.facts.pay_basis\n    :\"MONTHLY\")\n  ==\"HOURLY\"\n    ?sum(\n      work.days.filter(\n        d,\n        d.day_type != \"REST\"\n        &&!(d.holiday_kind\n        in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"]\n      ) ).map(\n        d,\n        d.worked ? d.scheduled_hours : 0.0\n      )\n    )\n    : ((has(terms.facts) && has(terms.facts.pay_basis))\n      ?terms.facts.pay_basis\n      :\"MONTHLY\")\n    ==\"PIECE\"\n      ?0.0\n      : (period.part == period.parts\n        ? ((employment.start_date <= period.month_from\n        && (employment.exit_date == \"\"\n        ||employment.exit_date >= period.month_to))\n          ?1.0\n          :double(\n            calendar_distance_days(\n              employment.start_date > period.month_from\n                ?employment.start_date\n                :period.month_from,\n              (employment.exit_date != \"\"\n              &&employment.exit_date < period.month_to)\n                ?employment.exit_date\n                :period.month_to\n            )\n            +1.0\n          )\n          /double(period.month_days))\n        - ((((has(terms.facts) && has(terms.facts.pay_basis))\n          ?terms.facts.pay_basis\n          :\"MONTHLY\")\n        ==\"WEEKLY\"\n          ?terms.base_salary * 52.0 / 12.0\n          :terms.base_salary)\n        >0.0\n          ? (has(earned.month.BASIC) ? earned.month.BASIC : 0.0)\n          / ((((has(terms.facts) && has(terms.facts.pay_basis))\n            ?terms.facts.pay_basis\n            :\"MONTHLY\")\n          ==\"WEEKLY\"\n            ?terms.base_salary * 52.0 / 12.0\n            :terms.base_salary))\n          :0.0)\n        : ((employment.start_date <= period.month_from\n        && (employment.exit_date == \"\"\n        ||employment.exit_date >= period.month_to))\n          ?1.0 / double(period.parts)\n          :double(period.paid_days) / double(period.month_days)))",
+					"rate": "((has(terms.facts) && has(terms.facts.pay_basis))\n  ?terms.facts.pay_basis\n  :\"MONTHLY\")\nin [\"DAILY\", \"HOURLY\"]\n  ?terms.base_salary\n  : (((has(terms.facts) && has(terms.facts.pay_basis))\n    ?terms.facts.pay_basis\n    :\"MONTHLY\")\n  ==\"WEEKLY\"\n    ?terms.base_salary * 52.0 / 12.0\n    :terms.base_salary)",
+					"prorated": true,
+					"denominator": "double(period.days)",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": [
+						"EPF",
+						"EPF_PR",
+						"EPF_NON_CITIZEN",
+						"SOCSO",
+						"SKBBK",
+						"EIS",
+						"PCB",
+						"HRDF"
+					]
+				}
+			],
+			"OVERTIME": [
+				{
+					"code": "OVERTIME",
+					"name": "Overtime",
+					"references": [
+						{
+							"title": "Overtime on a normal working day at not less than 1.5 × the hourly rate (EA s.60A(3)(a)); at most 104 hours in a month (Employment (Limitation of Overtime Work) Regulations 1980 reg.2). Rest-day and public-holiday overtime are their own lines. EA s.60I(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay of a monthly-rated employee is the monthly rate ÷ 26; the hourly rate is that ÷ the normal hours of work (s.60I(1)(b), company.facts.normal_daily_hours, 8 unrecorded). Encoded 2026-10-07 (round 7): EA First Schedule paras 1A–2 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.facts.overtime_by_contract applies them by contract. EA s.60I (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay is monthly ÷ 26 (s.60I(1A)), weekly ÷ 6 (s.60I(1B)), and for a daily, hourly or piece rate the preceding wage period's wages ÷ the days worked (s.60I(1C), the days of a piece or hourly worker read from the period's WORK-day hours ÷ the normal hours); the hourly rate is it ÷ the contract's normal hours a day (s.60I(1)(b), s.60A(3)(c); terms.facts.normal_hours_per_day, else company.facts.normal_daily_hours, else 8). Pay basis: terms.facts.pay_basis. Part-time terms (Part-Time Employees Regulations 2010 regs 2, 4, 5, 6(6), 9(3), https://jtksm.mohr.gov.my/sites/default/files/2023-03/10.%20Employment%20-%20Part-time%20Employees%20-%20Regulations%202010%20%20%281%29.pdf): the hours beyond the part-timer's normal hours up to a full-timer's day (company.facts.normal_daily_hours, 8 by reg.4(1)) at 1.0× and beyond it at 1.5× the hourly rate."
+						}
+					],
+					"eligibility": "(terms.employment_type != \"DOMESTIC\"\n&& (terms.monthly_wage <= 4000.0\n||terms.statutory_work_category\nin [\n  \"MANUAL_LABOUR\",\n  \"MANUAL_LABOUR_SUPERVISOR\",\n  \"VEHICLE_OPERATOR\",\n  \"VESSEL_CREW\"\n]\n|| ((has(terms.facts) && has(terms.facts.overtime_by_contract))\n&&terms.facts.overtime_by_contract == true)))\n&& ((has(terms.facts) && has(terms.facts.pay_basis))\n  ?terms.facts.pay_basis\n  :\"MONTHLY\")\n!=\"PIECE\"\n&&sum(\n  work.days.filter(\n    d,\n    d.day_type != \"REST\"\n    &&!(d.holiday_kind\n    in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"]\n  ) ).map(\n    d,\n    d.overtime_hours\n  )\n)\n>0.0",
+					"quantity": "terms.employment_type == \"PART_TIME\"\n  ?1.0\n  :sum(\n    work.days.filter(\n      d,\n      d.day_type != \"REST\"\n      &&!(d.holiday_kind\n      in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"]\n    ) ).map(\n      d,\n      d.overtime_hours - d.payable_incentive_hours\n    )\n  )",
+					"rate": "terms.employment_type == \"PART_TIME\"\n  ?sum(\n    work.days.filter(\n      d,\n      d.day_type != \"REST\"\n      &&!(d.holiday_kind\n      in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"]\n    ) ).map(\n      d,\n      min(\n        d.overtime_hours,\n        max(\n          0.0,\n          (has(company.facts.normal_daily_hours)\n            ?double(company.facts.normal_daily_hours)\n            :8.0)\n          - ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0\n        ) ))\n      )\n      *1.0\n      +max(\n        0.0,\n        d.overtime_hours\n        -max(\n          0.0,\n          (has(company.facts.normal_daily_hours)\n            ?double(company.facts.normal_daily_hours)\n            :8.0)\n          - ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0\n        ) ))\n      )\n      *1.5\n    )\n  )\n  * ((((has(terms.facts) && has(terms.facts.pay_basis))\n    ?terms.facts.pay_basis\n    :\"MONTHLY\")\n  ==\"MONTHLY\"\n    ?terms.base_salary / 26.0\n    : ((has(terms.facts) && has(terms.facts.pay_basis))\n      ?terms.facts.pay_basis\n      :\"MONTHLY\")\n    ==\"WEEKLY\"\n      ?terms.base_salary / 6.0\n      : ((has(terms.facts) && has(terms.facts.pay_basis))\n        ?terms.facts.pay_basis\n        :\"MONTHLY\")\n      ==\"DAILY\"\n        ? ((has(earned.previous_month)\n        &&has(earned.previous_month.gross)\n        &&earned.previous_month.gross > 0.0)\n        && (has(earned.previous_month.BASIC)\n        &&has(earned.previous_month.base_salary)\n        &&earned.previous_month.base_salary > 0.0\n          ?earned.previous_month.BASIC\n          /earned.previous_month.base_salary\n          :0.0)\n        >0.0\n          ?max(\n            terms.base_salary,\n            (earned.previous_month.gross\n            - (has(earned.previous_month.REST_DAY_WORK)\n              ?earned.previous_month.REST_DAY_WORK\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_WORK)\n              ?earned.previous_month.HOLIDAY_WORK\n              :0.0)\n            - (has(earned.previous_month.REST_DAY_OVERTIME)\n              ?earned.previous_month.REST_DAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_OVERTIME)\n              ?earned.previous_month.HOLIDAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.INCENTIVE)\n              ?earned.previous_month.INCENTIVE\n              :0.0))\n            / (has(earned.previous_month.BASIC)\n            &&has(earned.previous_month.base_salary)\n            &&earned.previous_month.base_salary > 0.0\n              ?earned.previous_month.BASIC\n              /earned.previous_month.base_salary\n              :0.0\n          ) )\n          :terms.base_salary)\n        : ((has(terms.facts) && has(terms.facts.pay_basis))\n          ?terms.facts.pay_basis\n          :\"MONTHLY\")\n        ==\"HOURLY\"\n          ? ((has(earned.previous_month)\n          &&has(earned.previous_month.gross)\n          &&earned.previous_month.gross > 0.0)\n          && (has(hours.previous_month.day_type)\n          &&has(hours.previous_month.day_type.WORK)\n            ?hours.previous_month.day_type.WORK.worked_hours\n            / ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            :0.0)\n          >0.0\n            ?max(\n              terms.base_salary\n              * ((has(terms.facts)\n              &&has(terms.facts.normal_hours_per_day))\n                ?double(terms.facts.normal_hours_per_day)\n                :terms.employment_type == \"PART_TIME\"\n                  ?0.7\n                  * (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)\n                  : (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)),\n              (earned.previous_month.gross\n              - (has(earned.previous_month.REST_DAY_WORK)\n                ?earned.previous_month.REST_DAY_WORK\n                :0.0)\n              - (has(earned.previous_month.HOLIDAY_WORK)\n                ?earned.previous_month.HOLIDAY_WORK\n                :0.0)\n              - (has(earned.previous_month.REST_DAY_OVERTIME)\n                ?earned.previous_month.REST_DAY_OVERTIME\n                :0.0)\n              - (has(earned.previous_month.HOLIDAY_OVERTIME)\n                ?earned.previous_month.HOLIDAY_OVERTIME\n                :0.0)\n              - (has(earned.previous_month.INCENTIVE)\n                ?earned.previous_month.INCENTIVE\n                :0.0))\n              / (has(hours.previous_month.day_type)\n              &&has(hours.previous_month.day_type.WORK)\n                ?hours.previous_month.day_type.WORK.worked_hours\n                / ((has(terms.facts)\n                &&has(terms.facts.normal_hours_per_day))\n                  ?double(terms.facts.normal_hours_per_day)\n                  :terms.employment_type == \"PART_TIME\"\n                    ?0.7\n                    * (has(company.facts.normal_daily_hours)\n                      ?double(company.facts.normal_daily_hours)\n                      :8.0)\n                    : (has(company.facts.normal_daily_hours)\n                      ?double(company.facts.normal_daily_hours)\n                      :8.0))\n                :0.0\n            ) )\n            :terms.base_salary\n            * ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)))\n          : ((has(earned.previous_month)\n          &&has(earned.previous_month.gross)\n          &&earned.previous_month.gross > 0.0)\n          && (has(hours.previous_month.day_type)\n          &&has(hours.previous_month.day_type.WORK)\n            ?hours.previous_month.day_type.WORK.worked_hours\n            / ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            :0.0)\n          >0.0\n            ? (earned.previous_month.gross\n            - (has(earned.previous_month.REST_DAY_WORK)\n              ?earned.previous_month.REST_DAY_WORK\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_WORK)\n              ?earned.previous_month.HOLIDAY_WORK\n              :0.0)\n            - (has(earned.previous_month.REST_DAY_OVERTIME)\n              ?earned.previous_month.REST_DAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_OVERTIME)\n              ?earned.previous_month.HOLIDAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.INCENTIVE)\n              ?earned.previous_month.INCENTIVE\n              :0.0))\n            / (has(hours.previous_month.day_type)\n            &&has(hours.previous_month.day_type.WORK)\n              ?hours.previous_month.day_type.WORK.worked_hours\n              / ((has(terms.facts)\n              &&has(terms.facts.normal_hours_per_day))\n                ?double(terms.facts.normal_hours_per_day)\n                :terms.employment_type == \"PART_TIME\"\n                  ?0.7\n                  * (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)\n                  : (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0))\n              :0.0)\n            :double(rules.minimum_wage.daily_six_day_week)))\n  / ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n    ?double(terms.facts.normal_hours_per_day)\n    :terms.employment_type == \"PART_TIME\"\n      ?0.7\n      * (has(company.facts.normal_daily_hours)\n        ?double(company.facts.normal_daily_hours)\n        :8.0)\n      : (has(company.facts.normal_daily_hours)\n        ?double(company.facts.normal_daily_hours)\n        :8.0)))\n  :1.5\n  * ((((has(terms.facts) && has(terms.facts.pay_basis))\n    ?terms.facts.pay_basis\n    :\"MONTHLY\")\n  ==\"MONTHLY\"\n    ?terms.base_salary / 26.0\n    : ((has(terms.facts) && has(terms.facts.pay_basis))\n      ?terms.facts.pay_basis\n      :\"MONTHLY\")\n    ==\"WEEKLY\"\n      ?terms.base_salary / 6.0\n      : ((has(terms.facts) && has(terms.facts.pay_basis))\n        ?terms.facts.pay_basis\n        :\"MONTHLY\")\n      ==\"DAILY\"\n        ? ((has(earned.previous_month)\n        &&has(earned.previous_month.gross)\n        &&earned.previous_month.gross > 0.0)\n        && (has(earned.previous_month.BASIC)\n        &&has(earned.previous_month.base_salary)\n        &&earned.previous_month.base_salary > 0.0\n          ?earned.previous_month.BASIC\n          /earned.previous_month.base_salary\n          :0.0)\n        >0.0\n          ?max(\n            terms.base_salary,\n            (earned.previous_month.gross\n            - (has(earned.previous_month.REST_DAY_WORK)\n              ?earned.previous_month.REST_DAY_WORK\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_WORK)\n              ?earned.previous_month.HOLIDAY_WORK\n              :0.0)\n            - (has(earned.previous_month.REST_DAY_OVERTIME)\n              ?earned.previous_month.REST_DAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_OVERTIME)\n              ?earned.previous_month.HOLIDAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.INCENTIVE)\n              ?earned.previous_month.INCENTIVE\n              :0.0))\n            / (has(earned.previous_month.BASIC)\n            &&has(earned.previous_month.base_salary)\n            &&earned.previous_month.base_salary > 0.0\n              ?earned.previous_month.BASIC\n              /earned.previous_month.base_salary\n              :0.0\n          ) )\n          :terms.base_salary)\n        : ((has(terms.facts) && has(terms.facts.pay_basis))\n          ?terms.facts.pay_basis\n          :\"MONTHLY\")\n        ==\"HOURLY\"\n          ? ((has(earned.previous_month)\n          &&has(earned.previous_month.gross)\n          &&earned.previous_month.gross > 0.0)\n          && (has(hours.previous_month.day_type)\n          &&has(hours.previous_month.day_type.WORK)\n            ?hours.previous_month.day_type.WORK.worked_hours\n            / ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            :0.0)\n          >0.0\n            ?max(\n              terms.base_salary\n              * ((has(terms.facts)\n              &&has(terms.facts.normal_hours_per_day))\n                ?double(terms.facts.normal_hours_per_day)\n                :terms.employment_type == \"PART_TIME\"\n                  ?0.7\n                  * (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)\n                  : (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)),\n              (earned.previous_month.gross\n              - (has(earned.previous_month.REST_DAY_WORK)\n                ?earned.previous_month.REST_DAY_WORK\n                :0.0)\n              - (has(earned.previous_month.HOLIDAY_WORK)\n                ?earned.previous_month.HOLIDAY_WORK\n                :0.0)\n              - (has(earned.previous_month.REST_DAY_OVERTIME)\n                ?earned.previous_month.REST_DAY_OVERTIME\n                :0.0)\n              - (has(earned.previous_month.HOLIDAY_OVERTIME)\n                ?earned.previous_month.HOLIDAY_OVERTIME\n                :0.0)\n              - (has(earned.previous_month.INCENTIVE)\n                ?earned.previous_month.INCENTIVE\n                :0.0))\n              / (has(hours.previous_month.day_type)\n              &&has(hours.previous_month.day_type.WORK)\n                ?hours.previous_month.day_type.WORK.worked_hours\n                / ((has(terms.facts)\n                &&has(terms.facts.normal_hours_per_day))\n                  ?double(terms.facts.normal_hours_per_day)\n                  :terms.employment_type == \"PART_TIME\"\n                    ?0.7\n                    * (has(company.facts.normal_daily_hours)\n                      ?double(company.facts.normal_daily_hours)\n                      :8.0)\n                    : (has(company.facts.normal_daily_hours)\n                      ?double(company.facts.normal_daily_hours)\n                      :8.0))\n                :0.0\n            ) )\n            :terms.base_salary\n            * ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)))\n          : ((has(earned.previous_month)\n          &&has(earned.previous_month.gross)\n          &&earned.previous_month.gross > 0.0)\n          && (has(hours.previous_month.day_type)\n          &&has(hours.previous_month.day_type.WORK)\n            ?hours.previous_month.day_type.WORK.worked_hours\n            / ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            :0.0)\n          >0.0\n            ? (earned.previous_month.gross\n            - (has(earned.previous_month.REST_DAY_WORK)\n              ?earned.previous_month.REST_DAY_WORK\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_WORK)\n              ?earned.previous_month.HOLIDAY_WORK\n              :0.0)\n            - (has(earned.previous_month.REST_DAY_OVERTIME)\n              ?earned.previous_month.REST_DAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_OVERTIME)\n              ?earned.previous_month.HOLIDAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.INCENTIVE)\n              ?earned.previous_month.INCENTIVE\n              :0.0))\n            / (has(hours.previous_month.day_type)\n            &&has(hours.previous_month.day_type.WORK)\n              ?hours.previous_month.day_type.WORK.worked_hours\n              / ((has(terms.facts)\n              &&has(terms.facts.normal_hours_per_day))\n                ?double(terms.facts.normal_hours_per_day)\n                :terms.employment_type == \"PART_TIME\"\n                  ?0.7\n                  * (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)\n                  : (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0))\n              :0.0)\n            :double(rules.minimum_wage.daily_six_day_week)))\n  / ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n    ?double(terms.facts.normal_hours_per_day)\n    :terms.employment_type == \"PART_TIME\"\n      ?0.7\n      * (has(company.facts.normal_daily_hours)\n        ?double(company.facts.normal_daily_hours)\n        :8.0)\n      : (has(company.facts.normal_daily_hours)\n        ?double(company.facts.normal_daily_hours)\n        :8.0)))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SOCSO", "SKBBK", "EIS", "PCB.NON_EPF"]
+				}
+			],
+			"REST_DAY_WORK": [
+				{
+					"code": "REST_DAY_WORK",
+					"name": "Rest-day work",
+					"references": [
+						{
+							"title": "Work on a rest day by a monthly-rated employee within the normal hours: half a day's wages for up to half the normal hours, one day's wages for more (EA s.60(3)(a)–(b), https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf). EA s.60I(1A): the ordinary rate of pay of a monthly-rated employee is the monthly rate ÷ 26; the hourly rate is that ÷ the normal hours of work (s.60I(1)(b), company.facts.normal_daily_hours, 8 unrecorded). Encoded 2026-10-07 (round 7): a daily, hourly or similar rate is paid one day's wages for up to half the normal hours and two days' for more (s.60(3)(a)); a monthly or weekly rate half a day's and a day's (s.60(3)(b)). EA First Schedule paras 1A–2: these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.facts.overtime_by_contract applies them by contract.",
+							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+						}
+					],
+					"eligibility": "(terms.employment_type != \"DOMESTIC\"\n&& (terms.monthly_wage <= 4000.0\n||terms.statutory_work_category\nin [\n  \"MANUAL_LABOUR\",\n  \"MANUAL_LABOUR_SUPERVISOR\",\n  \"VEHICLE_OPERATOR\",\n  \"VESSEL_CREW\"\n]\n|| ((has(terms.facts) && has(terms.facts.overtime_by_contract))\n&&terms.facts.overtime_by_contract == true)))\n&& ((has(terms.facts) && has(terms.facts.pay_basis))\n  ?terms.facts.pay_basis\n  :\"MONTHLY\")\n!=\"PIECE\"\n&&work.days.exists(\n  d,\n  d.day_type == \"REST\"\n  &&!(d.holiday_kind\n  in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"])\n  &&d.worked_hours > 0.0\n)",
+					"quantity": "sum(\n  work.days.filter(\n    d,\n    d.day_type == \"REST\"\n    &&!(d.holiday_kind\n    in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"])\n    &&d.worked_hours > 0.0\n  ).map(\n    d,\n    terms.employment_type == \"PART_TIME\"\n      ?2.0\n      :d.worked_hours\n      <= ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n        ?double(terms.facts.normal_hours_per_day)\n        :terms.employment_type == \"PART_TIME\"\n          ?0.7\n          * (has(company.facts.normal_daily_hours)\n            ?double(company.facts.normal_daily_hours)\n            :8.0)\n          : (has(company.facts.normal_daily_hours)\n            ?double(company.facts.normal_daily_hours)\n            :8.0))\n      /2.0\n        ? (((has(terms.facts) && has(terms.facts.pay_basis))\n          ?terms.facts.pay_basis\n          :\"MONTHLY\")\n        in [\"MONTHLY\", \"WEEKLY\"]\n          ?0.5\n          :1.0)\n        : (((has(terms.facts) && has(terms.facts.pay_basis))\n          ?terms.facts.pay_basis\n          :\"MONTHLY\")\n        in [\"MONTHLY\", \"WEEKLY\"]\n          ?1.0\n          :2.0\n  ) )\n)",
+					"rate": "(((has(terms.facts) && has(terms.facts.pay_basis))\n  ?terms.facts.pay_basis\n  :\"MONTHLY\")\n==\"MONTHLY\"\n  ?terms.base_salary / 26.0\n  : ((has(terms.facts) && has(terms.facts.pay_basis))\n    ?terms.facts.pay_basis\n    :\"MONTHLY\")\n  ==\"WEEKLY\"\n    ?terms.base_salary / 6.0\n    : ((has(terms.facts) && has(terms.facts.pay_basis))\n      ?terms.facts.pay_basis\n      :\"MONTHLY\")\n    ==\"DAILY\"\n      ? ((has(earned.previous_month) && has(earned.previous_month.gross)\n      &&earned.previous_month.gross > 0.0)\n      && (has(earned.previous_month.BASIC)\n      &&has(earned.previous_month.base_salary)\n      &&earned.previous_month.base_salary > 0.0\n        ?earned.previous_month.BASIC / earned.previous_month.base_salary\n        :0.0)\n      >0.0\n        ?max(\n          terms.base_salary,\n          (earned.previous_month.gross\n          - (has(earned.previous_month.REST_DAY_WORK)\n            ?earned.previous_month.REST_DAY_WORK\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_WORK)\n            ?earned.previous_month.HOLIDAY_WORK\n            :0.0)\n          - (has(earned.previous_month.REST_DAY_OVERTIME)\n            ?earned.previous_month.REST_DAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_OVERTIME)\n            ?earned.previous_month.HOLIDAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.INCENTIVE)\n            ?earned.previous_month.INCENTIVE\n            :0.0))\n          / (has(earned.previous_month.BASIC)\n          &&has(earned.previous_month.base_salary)\n          &&earned.previous_month.base_salary > 0.0\n            ?earned.previous_month.BASIC\n            /earned.previous_month.base_salary\n            :0.0\n        ) )\n        :terms.base_salary)\n      : ((has(terms.facts) && has(terms.facts.pay_basis))\n        ?terms.facts.pay_basis\n        :\"MONTHLY\")\n      ==\"HOURLY\"\n        ? ((has(earned.previous_month)\n        &&has(earned.previous_month.gross)\n        &&earned.previous_month.gross > 0.0)\n        && (has(hours.previous_month.day_type)\n        &&has(hours.previous_month.day_type.WORK)\n          ?hours.previous_month.day_type.WORK.worked_hours\n          / ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0))\n          :0.0)\n        >0.0\n          ?max(\n            terms.base_salary\n            * ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)),\n            (earned.previous_month.gross\n            - (has(earned.previous_month.REST_DAY_WORK)\n              ?earned.previous_month.REST_DAY_WORK\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_WORK)\n              ?earned.previous_month.HOLIDAY_WORK\n              :0.0)\n            - (has(earned.previous_month.REST_DAY_OVERTIME)\n              ?earned.previous_month.REST_DAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_OVERTIME)\n              ?earned.previous_month.HOLIDAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.INCENTIVE)\n              ?earned.previous_month.INCENTIVE\n              :0.0))\n            / (has(hours.previous_month.day_type)\n            &&has(hours.previous_month.day_type.WORK)\n              ?hours.previous_month.day_type.WORK.worked_hours\n              / ((has(terms.facts)\n              &&has(terms.facts.normal_hours_per_day))\n                ?double(terms.facts.normal_hours_per_day)\n                :terms.employment_type == \"PART_TIME\"\n                  ?0.7\n                  * (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)\n                  : (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0))\n              :0.0\n          ) )\n          :terms.base_salary\n          * ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)))\n        : ((has(earned.previous_month)\n        &&has(earned.previous_month.gross)\n        &&earned.previous_month.gross > 0.0)\n        && (has(hours.previous_month.day_type)\n        &&has(hours.previous_month.day_type.WORK)\n          ?hours.previous_month.day_type.WORK.worked_hours\n          / ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0))\n          :0.0)\n        >0.0\n          ? (earned.previous_month.gross\n          - (has(earned.previous_month.REST_DAY_WORK)\n            ?earned.previous_month.REST_DAY_WORK\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_WORK)\n            ?earned.previous_month.HOLIDAY_WORK\n            :0.0)\n          - (has(earned.previous_month.REST_DAY_OVERTIME)\n            ?earned.previous_month.REST_DAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_OVERTIME)\n            ?earned.previous_month.HOLIDAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.INCENTIVE)\n            ?earned.previous_month.INCENTIVE\n            :0.0))\n          / (has(hours.previous_month.day_type)\n          &&has(hours.previous_month.day_type.WORK)\n            ?hours.previous_month.day_type.WORK.worked_hours\n            / ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            :0.0)\n          :double(rules.minimum_wage.daily_six_day_week)))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": [
+						"EPF",
+						"EPF_PR",
+						"EPF_NON_CITIZEN",
+						"SOCSO",
+						"SKBBK",
+						"EIS",
+						"PCB",
+						"HRDF"
+					]
+				}
+			],
+			"REST_DAY_OVERTIME": [
+				{
+					"code": "REST_DAY_OVERTIME",
+					"name": "Rest-day overtime",
+					"references": [
+						{
+							"title": "Work on a rest day beyond the normal hours at not less than 2 × the hourly rate (EA s.60(3)(c), https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the rest day’s paid hours beyond the normal hours a day, less any banked, the hours within them being REST_DAY_WORK’s; overtime payment is not EPF or HRD wages. EA s.60I(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay of a monthly-rated employee is the monthly rate ÷ 26; the hourly rate is that ÷ the normal hours of work (s.60I(1)(b), company.facts.normal_daily_hours, 8 unrecorded). Encoded 2026-10-07 (round 7): EA First Schedule paras 1A–2 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.facts.overtime_by_contract applies them by contract. EA s.60I (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay is monthly ÷ 26 (s.60I(1A)), weekly ÷ 6 (s.60I(1B)), and for a daily, hourly or piece rate the preceding wage period's wages ÷ the days worked (s.60I(1C), the days of a piece or hourly worker read from the period's WORK-day hours ÷ the normal hours); the hourly rate is it ÷ the contract's normal hours a day (s.60I(1)(b), s.60A(3)(c); terms.facts.normal_hours_per_day, else company.facts.normal_daily_hours, else 8). Pay basis: terms.facts.pay_basis. Part-time terms (Part-Time Employees Regulations 2010 regs 2, 4, 5, 6(6), 9(3), https://jtksm.mohr.gov.my/sites/default/files/2023-03/10.%20Employment%20-%20Part-time%20Employees%20-%20Regulations%202010%20%20%281%29.pdf): the hours beyond the part-timer's normal hours up to a full-timer's day (company.facts.normal_daily_hours, 8 by reg.4(1)) at 1.5× and beyond it at 2.0× the hourly rate."
+						}
+					],
+					"eligibility": "(terms.employment_type != \"DOMESTIC\"\n&& (terms.monthly_wage <= 4000.0\n||terms.statutory_work_category\nin [\n  \"MANUAL_LABOUR\",\n  \"MANUAL_LABOUR_SUPERVISOR\",\n  \"VEHICLE_OPERATOR\",\n  \"VESSEL_CREW\"\n]\n|| ((has(terms.facts) && has(terms.facts.overtime_by_contract))\n&&terms.facts.overtime_by_contract == true)))\n&& ((has(terms.facts) && has(terms.facts.pay_basis))\n  ?terms.facts.pay_basis\n  :\"MONTHLY\")\n!=\"PIECE\"\n&&work.days.exists(\n  d,\n  d.day_type == \"REST\"\n  &&!(d.holiday_kind\n  in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"])\n  &&max(\n    0.0,\n    d.worked_hours\n    - ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n      ?double(terms.facts.normal_hours_per_day)\n      :terms.employment_type == \"PART_TIME\"\n        ?0.7\n        * (has(company.facts.normal_daily_hours)\n          ?double(company.facts.normal_daily_hours)\n          :8.0)\n        : (has(company.facts.normal_daily_hours)\n          ?double(company.facts.normal_daily_hours)\n          :8.0))\n    -d.banked_hours\n  )\n  >0.0\n)",
+					"quantity": "terms.employment_type == \"PART_TIME\"\n  ?1.0\n  :sum(\n    work.days.filter(\n      d,\n      d.day_type == \"REST\"\n      &&!(d.holiday_kind\n      in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"]\n    ) ).map(\n      d,\n      max(\n        0.0,\n        d.worked_hours\n        - ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n          ?double(terms.facts.normal_hours_per_day)\n          :terms.employment_type == \"PART_TIME\"\n            ?0.7\n            * (has(company.facts.normal_daily_hours)\n              ?double(company.facts.normal_daily_hours)\n              :8.0)\n            : (has(company.facts.normal_daily_hours)\n              ?double(company.facts.normal_daily_hours)\n              :8.0))\n        -d.banked_hours\n      )\n    )\n  )",
+					"rate": "terms.employment_type == \"PART_TIME\"\n  ?sum(\n    work.days.filter(\n      d,\n      d.day_type == \"REST\"\n      &&!(d.holiday_kind\n      in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"]\n    ) ).map(\n      d,\n      min(\n        max(\n          0.0,\n          d.worked_hours\n          - ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0))\n          -d.banked_hours\n        ),\n        max(\n          0.0,\n          (has(company.facts.normal_daily_hours)\n            ?double(company.facts.normal_daily_hours)\n            :8.0)\n          - ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0\n        ) ))\n      )\n      *1.5\n      +max(\n        0.0,\n        max(\n          0.0,\n          d.worked_hours\n          - ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0))\n          -d.banked_hours\n        )\n        -max(\n          0.0,\n          (has(company.facts.normal_daily_hours)\n            ?double(company.facts.normal_daily_hours)\n            :8.0)\n          - ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0\n        ) ))\n      )\n      *2.0\n    )\n  )\n  * ((((has(terms.facts) && has(terms.facts.pay_basis))\n    ?terms.facts.pay_basis\n    :\"MONTHLY\")\n  ==\"MONTHLY\"\n    ?terms.base_salary / 26.0\n    : ((has(terms.facts) && has(terms.facts.pay_basis))\n      ?terms.facts.pay_basis\n      :\"MONTHLY\")\n    ==\"WEEKLY\"\n      ?terms.base_salary / 6.0\n      : ((has(terms.facts) && has(terms.facts.pay_basis))\n        ?terms.facts.pay_basis\n        :\"MONTHLY\")\n      ==\"DAILY\"\n        ? ((has(earned.previous_month)\n        &&has(earned.previous_month.gross)\n        &&earned.previous_month.gross > 0.0)\n        && (has(earned.previous_month.BASIC)\n        &&has(earned.previous_month.base_salary)\n        &&earned.previous_month.base_salary > 0.0\n          ?earned.previous_month.BASIC\n          /earned.previous_month.base_salary\n          :0.0)\n        >0.0\n          ?max(\n            terms.base_salary,\n            (earned.previous_month.gross\n            - (has(earned.previous_month.REST_DAY_WORK)\n              ?earned.previous_month.REST_DAY_WORK\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_WORK)\n              ?earned.previous_month.HOLIDAY_WORK\n              :0.0)\n            - (has(earned.previous_month.REST_DAY_OVERTIME)\n              ?earned.previous_month.REST_DAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_OVERTIME)\n              ?earned.previous_month.HOLIDAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.INCENTIVE)\n              ?earned.previous_month.INCENTIVE\n              :0.0))\n            / (has(earned.previous_month.BASIC)\n            &&has(earned.previous_month.base_salary)\n            &&earned.previous_month.base_salary > 0.0\n              ?earned.previous_month.BASIC\n              /earned.previous_month.base_salary\n              :0.0\n          ) )\n          :terms.base_salary)\n        : ((has(terms.facts) && has(terms.facts.pay_basis))\n          ?terms.facts.pay_basis\n          :\"MONTHLY\")\n        ==\"HOURLY\"\n          ? ((has(earned.previous_month)\n          &&has(earned.previous_month.gross)\n          &&earned.previous_month.gross > 0.0)\n          && (has(hours.previous_month.day_type)\n          &&has(hours.previous_month.day_type.WORK)\n            ?hours.previous_month.day_type.WORK.worked_hours\n            / ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            :0.0)\n          >0.0\n            ?max(\n              terms.base_salary\n              * ((has(terms.facts)\n              &&has(terms.facts.normal_hours_per_day))\n                ?double(terms.facts.normal_hours_per_day)\n                :terms.employment_type == \"PART_TIME\"\n                  ?0.7\n                  * (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)\n                  : (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)),\n              (earned.previous_month.gross\n              - (has(earned.previous_month.REST_DAY_WORK)\n                ?earned.previous_month.REST_DAY_WORK\n                :0.0)\n              - (has(earned.previous_month.HOLIDAY_WORK)\n                ?earned.previous_month.HOLIDAY_WORK\n                :0.0)\n              - (has(earned.previous_month.REST_DAY_OVERTIME)\n                ?earned.previous_month.REST_DAY_OVERTIME\n                :0.0)\n              - (has(earned.previous_month.HOLIDAY_OVERTIME)\n                ?earned.previous_month.HOLIDAY_OVERTIME\n                :0.0)\n              - (has(earned.previous_month.INCENTIVE)\n                ?earned.previous_month.INCENTIVE\n                :0.0))\n              / (has(hours.previous_month.day_type)\n              &&has(hours.previous_month.day_type.WORK)\n                ?hours.previous_month.day_type.WORK.worked_hours\n                / ((has(terms.facts)\n                &&has(terms.facts.normal_hours_per_day))\n                  ?double(terms.facts.normal_hours_per_day)\n                  :terms.employment_type == \"PART_TIME\"\n                    ?0.7\n                    * (has(company.facts.normal_daily_hours)\n                      ?double(company.facts.normal_daily_hours)\n                      :8.0)\n                    : (has(company.facts.normal_daily_hours)\n                      ?double(company.facts.normal_daily_hours)\n                      :8.0))\n                :0.0\n            ) )\n            :terms.base_salary\n            * ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)))\n          : ((has(earned.previous_month)\n          &&has(earned.previous_month.gross)\n          &&earned.previous_month.gross > 0.0)\n          && (has(hours.previous_month.day_type)\n          &&has(hours.previous_month.day_type.WORK)\n            ?hours.previous_month.day_type.WORK.worked_hours\n            / ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            :0.0)\n          >0.0\n            ? (earned.previous_month.gross\n            - (has(earned.previous_month.REST_DAY_WORK)\n              ?earned.previous_month.REST_DAY_WORK\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_WORK)\n              ?earned.previous_month.HOLIDAY_WORK\n              :0.0)\n            - (has(earned.previous_month.REST_DAY_OVERTIME)\n              ?earned.previous_month.REST_DAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_OVERTIME)\n              ?earned.previous_month.HOLIDAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.INCENTIVE)\n              ?earned.previous_month.INCENTIVE\n              :0.0))\n            / (has(hours.previous_month.day_type)\n            &&has(hours.previous_month.day_type.WORK)\n              ?hours.previous_month.day_type.WORK.worked_hours\n              / ((has(terms.facts)\n              &&has(terms.facts.normal_hours_per_day))\n                ?double(terms.facts.normal_hours_per_day)\n                :terms.employment_type == \"PART_TIME\"\n                  ?0.7\n                  * (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)\n                  : (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0))\n              :0.0)\n            :double(rules.minimum_wage.daily_six_day_week)))\n  / ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n    ?double(terms.facts.normal_hours_per_day)\n    :terms.employment_type == \"PART_TIME\"\n      ?0.7\n      * (has(company.facts.normal_daily_hours)\n        ?double(company.facts.normal_daily_hours)\n        :8.0)\n      : (has(company.facts.normal_daily_hours)\n        ?double(company.facts.normal_daily_hours)\n        :8.0)))\n  :2.0\n  * ((((has(terms.facts) && has(terms.facts.pay_basis))\n    ?terms.facts.pay_basis\n    :\"MONTHLY\")\n  ==\"MONTHLY\"\n    ?terms.base_salary / 26.0\n    : ((has(terms.facts) && has(terms.facts.pay_basis))\n      ?terms.facts.pay_basis\n      :\"MONTHLY\")\n    ==\"WEEKLY\"\n      ?terms.base_salary / 6.0\n      : ((has(terms.facts) && has(terms.facts.pay_basis))\n        ?terms.facts.pay_basis\n        :\"MONTHLY\")\n      ==\"DAILY\"\n        ? ((has(earned.previous_month)\n        &&has(earned.previous_month.gross)\n        &&earned.previous_month.gross > 0.0)\n        && (has(earned.previous_month.BASIC)\n        &&has(earned.previous_month.base_salary)\n        &&earned.previous_month.base_salary > 0.0\n          ?earned.previous_month.BASIC\n          /earned.previous_month.base_salary\n          :0.0)\n        >0.0\n          ?max(\n            terms.base_salary,\n            (earned.previous_month.gross\n            - (has(earned.previous_month.REST_DAY_WORK)\n              ?earned.previous_month.REST_DAY_WORK\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_WORK)\n              ?earned.previous_month.HOLIDAY_WORK\n              :0.0)\n            - (has(earned.previous_month.REST_DAY_OVERTIME)\n              ?earned.previous_month.REST_DAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_OVERTIME)\n              ?earned.previous_month.HOLIDAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.INCENTIVE)\n              ?earned.previous_month.INCENTIVE\n              :0.0))\n            / (has(earned.previous_month.BASIC)\n            &&has(earned.previous_month.base_salary)\n            &&earned.previous_month.base_salary > 0.0\n              ?earned.previous_month.BASIC\n              /earned.previous_month.base_salary\n              :0.0\n          ) )\n          :terms.base_salary)\n        : ((has(terms.facts) && has(terms.facts.pay_basis))\n          ?terms.facts.pay_basis\n          :\"MONTHLY\")\n        ==\"HOURLY\"\n          ? ((has(earned.previous_month)\n          &&has(earned.previous_month.gross)\n          &&earned.previous_month.gross > 0.0)\n          && (has(hours.previous_month.day_type)\n          &&has(hours.previous_month.day_type.WORK)\n            ?hours.previous_month.day_type.WORK.worked_hours\n            / ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            :0.0)\n          >0.0\n            ?max(\n              terms.base_salary\n              * ((has(terms.facts)\n              &&has(terms.facts.normal_hours_per_day))\n                ?double(terms.facts.normal_hours_per_day)\n                :terms.employment_type == \"PART_TIME\"\n                  ?0.7\n                  * (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)\n                  : (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)),\n              (earned.previous_month.gross\n              - (has(earned.previous_month.REST_DAY_WORK)\n                ?earned.previous_month.REST_DAY_WORK\n                :0.0)\n              - (has(earned.previous_month.HOLIDAY_WORK)\n                ?earned.previous_month.HOLIDAY_WORK\n                :0.0)\n              - (has(earned.previous_month.REST_DAY_OVERTIME)\n                ?earned.previous_month.REST_DAY_OVERTIME\n                :0.0)\n              - (has(earned.previous_month.HOLIDAY_OVERTIME)\n                ?earned.previous_month.HOLIDAY_OVERTIME\n                :0.0)\n              - (has(earned.previous_month.INCENTIVE)\n                ?earned.previous_month.INCENTIVE\n                :0.0))\n              / (has(hours.previous_month.day_type)\n              &&has(hours.previous_month.day_type.WORK)\n                ?hours.previous_month.day_type.WORK.worked_hours\n                / ((has(terms.facts)\n                &&has(terms.facts.normal_hours_per_day))\n                  ?double(terms.facts.normal_hours_per_day)\n                  :terms.employment_type == \"PART_TIME\"\n                    ?0.7\n                    * (has(company.facts.normal_daily_hours)\n                      ?double(company.facts.normal_daily_hours)\n                      :8.0)\n                    : (has(company.facts.normal_daily_hours)\n                      ?double(company.facts.normal_daily_hours)\n                      :8.0))\n                :0.0\n            ) )\n            :terms.base_salary\n            * ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)))\n          : ((has(earned.previous_month)\n          &&has(earned.previous_month.gross)\n          &&earned.previous_month.gross > 0.0)\n          && (has(hours.previous_month.day_type)\n          &&has(hours.previous_month.day_type.WORK)\n            ?hours.previous_month.day_type.WORK.worked_hours\n            / ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            :0.0)\n          >0.0\n            ? (earned.previous_month.gross\n            - (has(earned.previous_month.REST_DAY_WORK)\n              ?earned.previous_month.REST_DAY_WORK\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_WORK)\n              ?earned.previous_month.HOLIDAY_WORK\n              :0.0)\n            - (has(earned.previous_month.REST_DAY_OVERTIME)\n              ?earned.previous_month.REST_DAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_OVERTIME)\n              ?earned.previous_month.HOLIDAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.INCENTIVE)\n              ?earned.previous_month.INCENTIVE\n              :0.0))\n            / (has(hours.previous_month.day_type)\n            &&has(hours.previous_month.day_type.WORK)\n              ?hours.previous_month.day_type.WORK.worked_hours\n              / ((has(terms.facts)\n              &&has(terms.facts.normal_hours_per_day))\n                ?double(terms.facts.normal_hours_per_day)\n                :terms.employment_type == \"PART_TIME\"\n                  ?0.7\n                  * (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)\n                  : (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0))\n              :0.0)\n            :double(rules.minimum_wage.daily_six_day_week)))\n  / ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n    ?double(terms.facts.normal_hours_per_day)\n    :terms.employment_type == \"PART_TIME\"\n      ?0.7\n      * (has(company.facts.normal_daily_hours)\n        ?double(company.facts.normal_daily_hours)\n        :8.0)\n      : (has(company.facts.normal_daily_hours)\n        ?double(company.facts.normal_daily_hours)\n        :8.0)))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SOCSO", "SKBBK", "EIS", "PCB.NON_EPF"]
+				}
+			],
+			"HOLIDAY_WORK": [
+				{
+					"code": "HOLIDAY_WORK",
+					"name": "Public-holiday work",
+					"references": [
+						{
+							"title": "Work on a paid public holiday within the normal hours: two days' wages at the ordinary rate of pay in addition to the holiday pay (EA s.60D(3)(a)(i)). EA s.60I(1A): the ordinary rate of pay of a monthly-rated employee is the monthly rate ÷ 26; the hourly rate is that ÷ the normal hours of work (s.60I(1)(b), company.facts.normal_daily_hours, 8 unrecorded). Encoded 2026-10-07 (round 7): only a holiday actually worked (work.holidays[].worked) earns the two days' wages, in addition to the holiday pay (s.60D(3)(a)(i)). EA First Schedule paras 1A–2: these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.facts.overtime_by_contract applies them by contract.",
+							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+						}
+					],
+					"eligibility": "(terms.employment_type != \"DOMESTIC\"\n&& (terms.monthly_wage <= 4000.0\n||terms.statutory_work_category\nin [\n  \"MANUAL_LABOUR\",\n  \"MANUAL_LABOUR_SUPERVISOR\",\n  \"VEHICLE_OPERATOR\",\n  \"VESSEL_CREW\"\n]\n|| ((has(terms.facts) && has(terms.facts.overtime_by_contract))\n&&terms.facts.overtime_by_contract == true)))\n&& ((has(terms.facts) && has(terms.facts.pay_basis))\n  ?terms.facts.pay_basis\n  :\"MONTHLY\")\n!=\"PIECE\"\n&&double(\n  size(\n    work.holidays.filter(\n      h,\n      h.worked\n      &&h.kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"]\n      && (h.given_to != \"ONLY_IF_OFF_ON_REPLACED_DATE\"\n      || (h.replaces != \"\" && !(h.replaces in work.dates\n    ) )))\n  )\n)\n>0.0",
+					"quantity": "double(\n  size(\n    work.holidays.filter(\n      h,\n      h.worked\n      &&h.kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"]\n      && (h.given_to != \"ONLY_IF_OFF_ON_REPLACED_DATE\"\n      || (h.replaces != \"\" && !(h.replaces in work.dates\n    ) )))\n  )\n)",
+					"rate": "2.0\n* (((has(terms.facts) && has(terms.facts.pay_basis))\n  ?terms.facts.pay_basis\n  :\"MONTHLY\")\n==\"MONTHLY\"\n  ?terms.base_salary / 26.0\n  : ((has(terms.facts) && has(terms.facts.pay_basis))\n    ?terms.facts.pay_basis\n    :\"MONTHLY\")\n  ==\"WEEKLY\"\n    ?terms.base_salary / 6.0\n    : ((has(terms.facts) && has(terms.facts.pay_basis))\n      ?terms.facts.pay_basis\n      :\"MONTHLY\")\n    ==\"DAILY\"\n      ? ((has(earned.previous_month) && has(earned.previous_month.gross)\n      &&earned.previous_month.gross > 0.0)\n      && (has(earned.previous_month.BASIC)\n      &&has(earned.previous_month.base_salary)\n      &&earned.previous_month.base_salary > 0.0\n        ?earned.previous_month.BASIC / earned.previous_month.base_salary\n        :0.0)\n      >0.0\n        ?max(\n          terms.base_salary,\n          (earned.previous_month.gross\n          - (has(earned.previous_month.REST_DAY_WORK)\n            ?earned.previous_month.REST_DAY_WORK\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_WORK)\n            ?earned.previous_month.HOLIDAY_WORK\n            :0.0)\n          - (has(earned.previous_month.REST_DAY_OVERTIME)\n            ?earned.previous_month.REST_DAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_OVERTIME)\n            ?earned.previous_month.HOLIDAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.INCENTIVE)\n            ?earned.previous_month.INCENTIVE\n            :0.0))\n          / (has(earned.previous_month.BASIC)\n          &&has(earned.previous_month.base_salary)\n          &&earned.previous_month.base_salary > 0.0\n            ?earned.previous_month.BASIC\n            /earned.previous_month.base_salary\n            :0.0\n        ) )\n        :terms.base_salary)\n      : ((has(terms.facts) && has(terms.facts.pay_basis))\n        ?terms.facts.pay_basis\n        :\"MONTHLY\")\n      ==\"HOURLY\"\n        ? ((has(earned.previous_month)\n        &&has(earned.previous_month.gross)\n        &&earned.previous_month.gross > 0.0)\n        && (has(hours.previous_month.day_type)\n        &&has(hours.previous_month.day_type.WORK)\n          ?hours.previous_month.day_type.WORK.worked_hours\n          / ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0))\n          :0.0)\n        >0.0\n          ?max(\n            terms.base_salary\n            * ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)),\n            (earned.previous_month.gross\n            - (has(earned.previous_month.REST_DAY_WORK)\n              ?earned.previous_month.REST_DAY_WORK\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_WORK)\n              ?earned.previous_month.HOLIDAY_WORK\n              :0.0)\n            - (has(earned.previous_month.REST_DAY_OVERTIME)\n              ?earned.previous_month.REST_DAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_OVERTIME)\n              ?earned.previous_month.HOLIDAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.INCENTIVE)\n              ?earned.previous_month.INCENTIVE\n              :0.0))\n            / (has(hours.previous_month.day_type)\n            &&has(hours.previous_month.day_type.WORK)\n              ?hours.previous_month.day_type.WORK.worked_hours\n              / ((has(terms.facts)\n              &&has(terms.facts.normal_hours_per_day))\n                ?double(terms.facts.normal_hours_per_day)\n                :terms.employment_type == \"PART_TIME\"\n                  ?0.7\n                  * (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)\n                  : (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0))\n              :0.0\n          ) )\n          :terms.base_salary\n          * ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)))\n        : ((has(earned.previous_month)\n        &&has(earned.previous_month.gross)\n        &&earned.previous_month.gross > 0.0)\n        && (has(hours.previous_month.day_type)\n        &&has(hours.previous_month.day_type.WORK)\n          ?hours.previous_month.day_type.WORK.worked_hours\n          / ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0))\n          :0.0)\n        >0.0\n          ? (earned.previous_month.gross\n          - (has(earned.previous_month.REST_DAY_WORK)\n            ?earned.previous_month.REST_DAY_WORK\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_WORK)\n            ?earned.previous_month.HOLIDAY_WORK\n            :0.0)\n          - (has(earned.previous_month.REST_DAY_OVERTIME)\n            ?earned.previous_month.REST_DAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_OVERTIME)\n            ?earned.previous_month.HOLIDAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.INCENTIVE)\n            ?earned.previous_month.INCENTIVE\n            :0.0))\n          / (has(hours.previous_month.day_type)\n          &&has(hours.previous_month.day_type.WORK)\n            ?hours.previous_month.day_type.WORK.worked_hours\n            / ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            :0.0)\n          :double(rules.minimum_wage.daily_six_day_week)))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": [
+						"EPF",
+						"EPF_PR",
+						"EPF_NON_CITIZEN",
+						"SOCSO",
+						"SKBBK",
+						"EIS",
+						"PCB",
+						"HRDF"
+					]
+				}
+			],
+			"HOLIDAY_OVERTIME": [
+				{
+					"code": "HOLIDAY_OVERTIME",
+					"name": "Public-holiday overtime",
+					"references": [
+						{
+							"title": "Overtime on a paid public holiday beyond the normal hours at not less than 3 × the hourly rate (EA s.60D(3)(a)(ii), https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): a holiday with planned hours counts its overtime past them, one planned with none its paid hours beyond the normal hours a day, less any banked, the hours within them being HOLIDAY_WORK’s; overtime payment is not EPF or HRD wages. EA s.60I(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay of a monthly-rated employee is the monthly rate ÷ 26; the hourly rate is that ÷ the normal hours of work (s.60I(1)(b), company.facts.normal_daily_hours, 8 unrecorded). Encoded 2026-10-07 (round 7): EA First Schedule paras 1A–2 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.facts.overtime_by_contract applies them by contract. EA s.60I (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay is monthly ÷ 26 (s.60I(1A)), weekly ÷ 6 (s.60I(1B)), and for a daily, hourly or piece rate the preceding wage period's wages ÷ the days worked (s.60I(1C), the days of a piece or hourly worker read from the period's WORK-day hours ÷ the normal hours); the hourly rate is it ÷ the contract's normal hours a day (s.60I(1)(b), s.60A(3)(c); terms.facts.normal_hours_per_day, else company.facts.normal_daily_hours, else 8). Pay basis: terms.facts.pay_basis. Part-time terms (Part-Time Employees Regulations 2010 regs 2, 4, 5, 6(6), 9(3), https://jtksm.mohr.gov.my/sites/default/files/2023-03/10.%20Employment%20-%20Part-time%20Employees%20-%20Regulations%202010%20%20%281%29.pdf): the hours beyond the part-timer's normal hours up to a full-timer's day (company.facts.normal_daily_hours, 8 by reg.4(1)) at 2.0× and beyond it at 3.0× the hourly rate."
+						}
+					],
+					"eligibility": "(terms.employment_type != \"DOMESTIC\"\n&& (terms.monthly_wage <= 4000.0\n||terms.statutory_work_category\nin [\n  \"MANUAL_LABOUR\",\n  \"MANUAL_LABOUR_SUPERVISOR\",\n  \"VEHICLE_OPERATOR\",\n  \"VESSEL_CREW\"\n]\n|| ((has(terms.facts) && has(terms.facts.overtime_by_contract))\n&&terms.facts.overtime_by_contract == true)))\n&& ((has(terms.facts) && has(terms.facts.pay_basis))\n  ?terms.facts.pay_basis\n  :\"MONTHLY\")\n!=\"PIECE\"\n&&work.days.exists(\n  d,\n  d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"]\n  && (d.scheduled_hours > 0.0\n    ?d.overtime_hours\n    :max(\n      0.0,\n      d.worked_hours\n      - ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n        ?double(terms.facts.normal_hours_per_day)\n        :terms.employment_type == \"PART_TIME\"\n          ?0.7\n          * (has(company.facts.normal_daily_hours)\n            ?double(company.facts.normal_daily_hours)\n            :8.0)\n          : (has(company.facts.normal_daily_hours)\n            ?double(company.facts.normal_daily_hours)\n            :8.0))\n      -d.banked_hours\n    ))\n  >0.0\n)",
+					"quantity": "terms.employment_type == \"PART_TIME\"\n  ?1.0\n  :sum(\n    work.days.filter(\n      d,\n      d.holiday_kind\n      in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"]\n    ).map(\n      d,\n      (d.scheduled_hours > 0.0\n        ?d.overtime_hours\n        :max(\n          0.0,\n          d.worked_hours\n          - ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0))\n          -d.banked_hours\n        )\n    ) )\n  )",
+					"rate": "terms.employment_type == \"PART_TIME\"\n  ?sum(\n    work.days.filter(\n      d,\n      d.holiday_kind\n      in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"]\n    ).map(\n      d,\n      min((\n        d.scheduled_hours > 0.0\n          ?d.overtime_hours\n          :max(\n            0.0,\n            d.worked_hours\n            - ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            -d.banked_hours\n          )),\n        max(\n          0.0,\n          (has(company.facts.normal_daily_hours)\n            ?double(company.facts.normal_daily_hours)\n            :8.0)\n          - ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0\n        ) ))\n      )\n      *2.0\n      +max(\n        0.0,\n        (d.scheduled_hours > 0.0\n          ?d.overtime_hours\n          :max(\n            0.0,\n            d.worked_hours\n            - ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            -d.banked_hours\n          ))\n        -max(\n          0.0,\n          (has(company.facts.normal_daily_hours)\n            ?double(company.facts.normal_daily_hours)\n            :8.0)\n          - ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0\n        ) ))\n      )\n      *3.0\n    )\n  )\n  * ((((has(terms.facts) && has(terms.facts.pay_basis))\n    ?terms.facts.pay_basis\n    :\"MONTHLY\")\n  ==\"MONTHLY\"\n    ?terms.base_salary / 26.0\n    : ((has(terms.facts) && has(terms.facts.pay_basis))\n      ?terms.facts.pay_basis\n      :\"MONTHLY\")\n    ==\"WEEKLY\"\n      ?terms.base_salary / 6.0\n      : ((has(terms.facts) && has(terms.facts.pay_basis))\n        ?terms.facts.pay_basis\n        :\"MONTHLY\")\n      ==\"DAILY\"\n        ? ((has(earned.previous_month)\n        &&has(earned.previous_month.gross)\n        &&earned.previous_month.gross > 0.0)\n        && (has(earned.previous_month.BASIC)\n        &&has(earned.previous_month.base_salary)\n        &&earned.previous_month.base_salary > 0.0\n          ?earned.previous_month.BASIC\n          /earned.previous_month.base_salary\n          :0.0)\n        >0.0\n          ?max(\n            terms.base_salary,\n            (earned.previous_month.gross\n            - (has(earned.previous_month.REST_DAY_WORK)\n              ?earned.previous_month.REST_DAY_WORK\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_WORK)\n              ?earned.previous_month.HOLIDAY_WORK\n              :0.0)\n            - (has(earned.previous_month.REST_DAY_OVERTIME)\n              ?earned.previous_month.REST_DAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_OVERTIME)\n              ?earned.previous_month.HOLIDAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.INCENTIVE)\n              ?earned.previous_month.INCENTIVE\n              :0.0))\n            / (has(earned.previous_month.BASIC)\n            &&has(earned.previous_month.base_salary)\n            &&earned.previous_month.base_salary > 0.0\n              ?earned.previous_month.BASIC\n              /earned.previous_month.base_salary\n              :0.0\n          ) )\n          :terms.base_salary)\n        : ((has(terms.facts) && has(terms.facts.pay_basis))\n          ?terms.facts.pay_basis\n          :\"MONTHLY\")\n        ==\"HOURLY\"\n          ? ((has(earned.previous_month)\n          &&has(earned.previous_month.gross)\n          &&earned.previous_month.gross > 0.0)\n          && (has(hours.previous_month.day_type)\n          &&has(hours.previous_month.day_type.WORK)\n            ?hours.previous_month.day_type.WORK.worked_hours\n            / ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            :0.0)\n          >0.0\n            ?max(\n              terms.base_salary\n              * ((has(terms.facts)\n              &&has(terms.facts.normal_hours_per_day))\n                ?double(terms.facts.normal_hours_per_day)\n                :terms.employment_type == \"PART_TIME\"\n                  ?0.7\n                  * (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)\n                  : (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)),\n              (earned.previous_month.gross\n              - (has(earned.previous_month.REST_DAY_WORK)\n                ?earned.previous_month.REST_DAY_WORK\n                :0.0)\n              - (has(earned.previous_month.HOLIDAY_WORK)\n                ?earned.previous_month.HOLIDAY_WORK\n                :0.0)\n              - (has(earned.previous_month.REST_DAY_OVERTIME)\n                ?earned.previous_month.REST_DAY_OVERTIME\n                :0.0)\n              - (has(earned.previous_month.HOLIDAY_OVERTIME)\n                ?earned.previous_month.HOLIDAY_OVERTIME\n                :0.0)\n              - (has(earned.previous_month.INCENTIVE)\n                ?earned.previous_month.INCENTIVE\n                :0.0))\n              / (has(hours.previous_month.day_type)\n              &&has(hours.previous_month.day_type.WORK)\n                ?hours.previous_month.day_type.WORK.worked_hours\n                / ((has(terms.facts)\n                &&has(terms.facts.normal_hours_per_day))\n                  ?double(terms.facts.normal_hours_per_day)\n                  :terms.employment_type == \"PART_TIME\"\n                    ?0.7\n                    * (has(company.facts.normal_daily_hours)\n                      ?double(company.facts.normal_daily_hours)\n                      :8.0)\n                    : (has(company.facts.normal_daily_hours)\n                      ?double(company.facts.normal_daily_hours)\n                      :8.0))\n                :0.0\n            ) )\n            :terms.base_salary\n            * ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)))\n          : ((has(earned.previous_month)\n          &&has(earned.previous_month.gross)\n          &&earned.previous_month.gross > 0.0)\n          && (has(hours.previous_month.day_type)\n          &&has(hours.previous_month.day_type.WORK)\n            ?hours.previous_month.day_type.WORK.worked_hours\n            / ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            :0.0)\n          >0.0\n            ? (earned.previous_month.gross\n            - (has(earned.previous_month.REST_DAY_WORK)\n              ?earned.previous_month.REST_DAY_WORK\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_WORK)\n              ?earned.previous_month.HOLIDAY_WORK\n              :0.0)\n            - (has(earned.previous_month.REST_DAY_OVERTIME)\n              ?earned.previous_month.REST_DAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_OVERTIME)\n              ?earned.previous_month.HOLIDAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.INCENTIVE)\n              ?earned.previous_month.INCENTIVE\n              :0.0))\n            / (has(hours.previous_month.day_type)\n            &&has(hours.previous_month.day_type.WORK)\n              ?hours.previous_month.day_type.WORK.worked_hours\n              / ((has(terms.facts)\n              &&has(terms.facts.normal_hours_per_day))\n                ?double(terms.facts.normal_hours_per_day)\n                :terms.employment_type == \"PART_TIME\"\n                  ?0.7\n                  * (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)\n                  : (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0))\n              :0.0)\n            :double(rules.minimum_wage.daily_six_day_week)))\n  / ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n    ?double(terms.facts.normal_hours_per_day)\n    :terms.employment_type == \"PART_TIME\"\n      ?0.7\n      * (has(company.facts.normal_daily_hours)\n        ?double(company.facts.normal_daily_hours)\n        :8.0)\n      : (has(company.facts.normal_daily_hours)\n        ?double(company.facts.normal_daily_hours)\n        :8.0)))\n  :3.0\n  * ((((has(terms.facts) && has(terms.facts.pay_basis))\n    ?terms.facts.pay_basis\n    :\"MONTHLY\")\n  ==\"MONTHLY\"\n    ?terms.base_salary / 26.0\n    : ((has(terms.facts) && has(terms.facts.pay_basis))\n      ?terms.facts.pay_basis\n      :\"MONTHLY\")\n    ==\"WEEKLY\"\n      ?terms.base_salary / 6.0\n      : ((has(terms.facts) && has(terms.facts.pay_basis))\n        ?terms.facts.pay_basis\n        :\"MONTHLY\")\n      ==\"DAILY\"\n        ? ((has(earned.previous_month)\n        &&has(earned.previous_month.gross)\n        &&earned.previous_month.gross > 0.0)\n        && (has(earned.previous_month.BASIC)\n        &&has(earned.previous_month.base_salary)\n        &&earned.previous_month.base_salary > 0.0\n          ?earned.previous_month.BASIC\n          /earned.previous_month.base_salary\n          :0.0)\n        >0.0\n          ?max(\n            terms.base_salary,\n            (earned.previous_month.gross\n            - (has(earned.previous_month.REST_DAY_WORK)\n              ?earned.previous_month.REST_DAY_WORK\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_WORK)\n              ?earned.previous_month.HOLIDAY_WORK\n              :0.0)\n            - (has(earned.previous_month.REST_DAY_OVERTIME)\n              ?earned.previous_month.REST_DAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_OVERTIME)\n              ?earned.previous_month.HOLIDAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.INCENTIVE)\n              ?earned.previous_month.INCENTIVE\n              :0.0))\n            / (has(earned.previous_month.BASIC)\n            &&has(earned.previous_month.base_salary)\n            &&earned.previous_month.base_salary > 0.0\n              ?earned.previous_month.BASIC\n              /earned.previous_month.base_salary\n              :0.0\n          ) )\n          :terms.base_salary)\n        : ((has(terms.facts) && has(terms.facts.pay_basis))\n          ?terms.facts.pay_basis\n          :\"MONTHLY\")\n        ==\"HOURLY\"\n          ? ((has(earned.previous_month)\n          &&has(earned.previous_month.gross)\n          &&earned.previous_month.gross > 0.0)\n          && (has(hours.previous_month.day_type)\n          &&has(hours.previous_month.day_type.WORK)\n            ?hours.previous_month.day_type.WORK.worked_hours\n            / ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            :0.0)\n          >0.0\n            ?max(\n              terms.base_salary\n              * ((has(terms.facts)\n              &&has(terms.facts.normal_hours_per_day))\n                ?double(terms.facts.normal_hours_per_day)\n                :terms.employment_type == \"PART_TIME\"\n                  ?0.7\n                  * (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)\n                  : (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)),\n              (earned.previous_month.gross\n              - (has(earned.previous_month.REST_DAY_WORK)\n                ?earned.previous_month.REST_DAY_WORK\n                :0.0)\n              - (has(earned.previous_month.HOLIDAY_WORK)\n                ?earned.previous_month.HOLIDAY_WORK\n                :0.0)\n              - (has(earned.previous_month.REST_DAY_OVERTIME)\n                ?earned.previous_month.REST_DAY_OVERTIME\n                :0.0)\n              - (has(earned.previous_month.HOLIDAY_OVERTIME)\n                ?earned.previous_month.HOLIDAY_OVERTIME\n                :0.0)\n              - (has(earned.previous_month.INCENTIVE)\n                ?earned.previous_month.INCENTIVE\n                :0.0))\n              / (has(hours.previous_month.day_type)\n              &&has(hours.previous_month.day_type.WORK)\n                ?hours.previous_month.day_type.WORK.worked_hours\n                / ((has(terms.facts)\n                &&has(terms.facts.normal_hours_per_day))\n                  ?double(terms.facts.normal_hours_per_day)\n                  :terms.employment_type == \"PART_TIME\"\n                    ?0.7\n                    * (has(company.facts.normal_daily_hours)\n                      ?double(company.facts.normal_daily_hours)\n                      :8.0)\n                    : (has(company.facts.normal_daily_hours)\n                      ?double(company.facts.normal_daily_hours)\n                      :8.0))\n                :0.0\n            ) )\n            :terms.base_salary\n            * ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)))\n          : ((has(earned.previous_month)\n          &&has(earned.previous_month.gross)\n          &&earned.previous_month.gross > 0.0)\n          && (has(hours.previous_month.day_type)\n          &&has(hours.previous_month.day_type.WORK)\n            ?hours.previous_month.day_type.WORK.worked_hours\n            / ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            :0.0)\n          >0.0\n            ? (earned.previous_month.gross\n            - (has(earned.previous_month.REST_DAY_WORK)\n              ?earned.previous_month.REST_DAY_WORK\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_WORK)\n              ?earned.previous_month.HOLIDAY_WORK\n              :0.0)\n            - (has(earned.previous_month.REST_DAY_OVERTIME)\n              ?earned.previous_month.REST_DAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_OVERTIME)\n              ?earned.previous_month.HOLIDAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.INCENTIVE)\n              ?earned.previous_month.INCENTIVE\n              :0.0))\n            / (has(hours.previous_month.day_type)\n            &&has(hours.previous_month.day_type.WORK)\n              ?hours.previous_month.day_type.WORK.worked_hours\n              / ((has(terms.facts)\n              &&has(terms.facts.normal_hours_per_day))\n                ?double(terms.facts.normal_hours_per_day)\n                :terms.employment_type == \"PART_TIME\"\n                  ?0.7\n                  * (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)\n                  : (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0))\n              :0.0)\n            :double(rules.minimum_wage.daily_six_day_week)))\n  / ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n    ?double(terms.facts.normal_hours_per_day)\n    :terms.employment_type == \"PART_TIME\"\n      ?0.7\n      * (has(company.facts.normal_daily_hours)\n        ?double(company.facts.normal_daily_hours)\n        :8.0)\n      : (has(company.facts.normal_daily_hours)\n        ?double(company.facts.normal_daily_hours)\n        :8.0)))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SOCSO", "SKBBK", "EIS", "PCB.NON_EPF"]
+				}
+			],
+			"INCENTIVE": [
+				{
+					"code": "INCENTIVE",
+					"name": "Overtime beyond 104 hours",
+					"references": [
+						{
+							"title": "Employment (Limitation of Overtime Work) Regulations 1980 reg. 2: 104 overtime hours in any one month. Hours beyond the cap are derived as incentive from approved overtime, not refused. Encoded 2026-10-07 (round 7): EA First Schedule paras 1A–2: these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.facts.overtime_by_contract applies them by contract. EA s.60I: the ordinary rate of pay is monthly ÷ 26 (s.60I(1A)), weekly ÷ 6 (s.60I(1B)), and for a daily, hourly or piece rate the preceding wage period's wages ÷ the days worked (s.60I(1C), the days of a piece or hourly worker read from the period's WORK-day hours ÷ the normal hours); the hourly rate is it ÷ the contract's normal hours a day (s.60I(1)(b), s.60A(3)(c); terms.facts.normal_hours_per_day, else company.facts.normal_daily_hours, else 8). Pay basis: terms.facts.pay_basis.",
+							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+						}
+					],
+					"eligibility": "(terms.employment_type != \"DOMESTIC\"\n&& (terms.monthly_wage <= 4000.0\n||terms.statutory_work_category\nin [\n  \"MANUAL_LABOUR\",\n  \"MANUAL_LABOUR_SUPERVISOR\",\n  \"VEHICLE_OPERATOR\",\n  \"VESSEL_CREW\"\n]\n|| ((has(terms.facts) && has(terms.facts.overtime_by_contract))\n&&terms.facts.overtime_by_contract == true)))\n&& ((has(terms.facts) && has(terms.facts.pay_basis))\n  ?terms.facts.pay_basis\n  :\"MONTHLY\")\n!=\"PIECE\"\n&&terms.employment_type != \"PART_TIME\"\n&&work.days.exists(\n  d,\n  d.day_type != \"REST\"\n  &&!(d.holiday_kind\n  in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"])\n  &&d.payable_incentive_hours > 0.0\n)",
+					"quantity": "sum(\n  work.days.filter(\n    d,\n    d.day_type != \"REST\"\n    &&!(d.holiday_kind\n    in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"]\n  ) ).map(\n    d,\n    d.payable_incentive_hours\n  )\n)",
+					"rate": "1.5\n* ((((has(terms.facts) && has(terms.facts.pay_basis))\n  ?terms.facts.pay_basis\n  :\"MONTHLY\")\n==\"MONTHLY\"\n  ?terms.base_salary / 26.0\n  : ((has(terms.facts) && has(terms.facts.pay_basis))\n    ?terms.facts.pay_basis\n    :\"MONTHLY\")\n  ==\"WEEKLY\"\n    ?terms.base_salary / 6.0\n    : ((has(terms.facts) && has(terms.facts.pay_basis))\n      ?terms.facts.pay_basis\n      :\"MONTHLY\")\n    ==\"DAILY\"\n      ? ((has(earned.previous_month) && has(earned.previous_month.gross)\n      &&earned.previous_month.gross > 0.0)\n      && (has(earned.previous_month.BASIC)\n      &&has(earned.previous_month.base_salary)\n      &&earned.previous_month.base_salary > 0.0\n        ?earned.previous_month.BASIC / earned.previous_month.base_salary\n        :0.0)\n      >0.0\n        ?max(\n          terms.base_salary,\n          (earned.previous_month.gross\n          - (has(earned.previous_month.REST_DAY_WORK)\n            ?earned.previous_month.REST_DAY_WORK\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_WORK)\n            ?earned.previous_month.HOLIDAY_WORK\n            :0.0)\n          - (has(earned.previous_month.REST_DAY_OVERTIME)\n            ?earned.previous_month.REST_DAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_OVERTIME)\n            ?earned.previous_month.HOLIDAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.INCENTIVE)\n            ?earned.previous_month.INCENTIVE\n            :0.0))\n          / (has(earned.previous_month.BASIC)\n          &&has(earned.previous_month.base_salary)\n          &&earned.previous_month.base_salary > 0.0\n            ?earned.previous_month.BASIC\n            /earned.previous_month.base_salary\n            :0.0\n        ) )\n        :terms.base_salary)\n      : ((has(terms.facts) && has(terms.facts.pay_basis))\n        ?terms.facts.pay_basis\n        :\"MONTHLY\")\n      ==\"HOURLY\"\n        ? ((has(earned.previous_month)\n        &&has(earned.previous_month.gross)\n        &&earned.previous_month.gross > 0.0)\n        && (has(hours.previous_month.day_type)\n        &&has(hours.previous_month.day_type.WORK)\n          ?hours.previous_month.day_type.WORK.worked_hours\n          / ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0))\n          :0.0)\n        >0.0\n          ?max(\n            terms.base_salary\n            * ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)),\n            (earned.previous_month.gross\n            - (has(earned.previous_month.REST_DAY_WORK)\n              ?earned.previous_month.REST_DAY_WORK\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_WORK)\n              ?earned.previous_month.HOLIDAY_WORK\n              :0.0)\n            - (has(earned.previous_month.REST_DAY_OVERTIME)\n              ?earned.previous_month.REST_DAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_OVERTIME)\n              ?earned.previous_month.HOLIDAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.INCENTIVE)\n              ?earned.previous_month.INCENTIVE\n              :0.0))\n            / (has(hours.previous_month.day_type)\n            &&has(hours.previous_month.day_type.WORK)\n              ?hours.previous_month.day_type.WORK.worked_hours\n              / ((has(terms.facts)\n              &&has(terms.facts.normal_hours_per_day))\n                ?double(terms.facts.normal_hours_per_day)\n                :terms.employment_type == \"PART_TIME\"\n                  ?0.7\n                  * (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)\n                  : (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0))\n              :0.0\n          ) )\n          :terms.base_salary\n          * ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)))\n        : ((has(earned.previous_month)\n        &&has(earned.previous_month.gross)\n        &&earned.previous_month.gross > 0.0)\n        && (has(hours.previous_month.day_type)\n        &&has(hours.previous_month.day_type.WORK)\n          ?hours.previous_month.day_type.WORK.worked_hours\n          / ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0))\n          :0.0)\n        >0.0\n          ? (earned.previous_month.gross\n          - (has(earned.previous_month.REST_DAY_WORK)\n            ?earned.previous_month.REST_DAY_WORK\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_WORK)\n            ?earned.previous_month.HOLIDAY_WORK\n            :0.0)\n          - (has(earned.previous_month.REST_DAY_OVERTIME)\n            ?earned.previous_month.REST_DAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_OVERTIME)\n            ?earned.previous_month.HOLIDAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.INCENTIVE)\n            ?earned.previous_month.INCENTIVE\n            :0.0))\n          / (has(hours.previous_month.day_type)\n          &&has(hours.previous_month.day_type.WORK)\n            ?hours.previous_month.day_type.WORK.worked_hours\n            / ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            :0.0)\n          :double(rules.minimum_wage.daily_six_day_week)))\n/ ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n  ?double(terms.facts.normal_hours_per_day)\n  :terms.employment_type == \"PART_TIME\"\n    ?0.7\n    * (has(company.facts.normal_daily_hours)\n      ?double(company.facts.normal_daily_hours)\n      :8.0)\n    : (has(company.facts.normal_daily_hours)\n      ?double(company.facts.normal_daily_hours)\n      :8.0)))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": ["SOCSO", "SKBBK", "EIS", "PCB.NON_EPF"]
+				}
+			],
+			"PAID_HOLIDAY": [
+				{
+					"code": "HOLIDAY_PAY",
+					"name": "Paid public holidays (non-monthly rate)",
+					"references": [
+						{
+							"title": "EA s.60D(1): a paid holiday at the ordinary rate of pay on the eleven gazetted holidays; a monthly or weekly rate is deemed paid by its unabated wages (s.60D(2A)); a holiday after or before an unauthorised absence is not paid (s.60D(2)). EA s.60I: the ordinary rate of pay is monthly ÷ 26 (s.60I(1A)), weekly ÷ 6 (s.60I(1B)), and for a daily, hourly or piece rate the preceding wage period's wages ÷ the days worked (s.60I(1C), the days of a piece or hourly worker read from the period's WORK-day hours ÷ the normal hours); the hourly rate is it ÷ the contract's normal hours a day (s.60I(1)(b), s.60A(3)(c); terms.facts.normal_hours_per_day, else company.facts.normal_daily_hours, else 8). Pay basis: terms.facts.pay_basis. Worked or not (2026-10-08, confirmation B2): EA s.60D(3)(a) pays the holiday work premium \"in addition to the holiday pay he is entitled to for that day\", so a daily-, hourly- or piece-rated employee who works the holiday is paid the holiday at the ordinary rate here and HOLIDAY_WORK (or PIECE_PAY at 2× a piece) on top — RM100 a day → 100 + 2 × 100 = RM300; a monthly rate has the holiday pay inside the salary.",
+							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+						}
+					],
+					"eligibility": "terms.employment_type != \"DOMESTIC\"\n&& ((has(terms.facts) && has(terms.facts.pay_basis))\n  ?terms.facts.pay_basis\n  :\"MONTHLY\")\nin [\"DAILY\", \"HOURLY\", \"PIECE\"]",
+					"quantity": "double(\n  size(\n    work.days.filter(\n      d,\n      d.holiday_kind\n      in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"]\n      &&d.day_type != \"REST\"\n      &&!leave.rows.exists(\n        r,\n        r.code == \"ABSENCE\" && r.activity == \"TIME_OFF\"\n        && ((r.from <= add_days(d.date, -1)\n        &&add_days(d.date, -1) <= r.to)\n        || (r.from <= add_days(d.date, 1) && add_days(d.date, 1) <= r.to\n      ) ))\n    )\n  )\n)",
+					"rate": "(((has(terms.facts) && has(terms.facts.pay_basis))\n  ?terms.facts.pay_basis\n  :\"MONTHLY\")\n==\"MONTHLY\"\n  ?terms.base_salary / 26.0\n  : ((has(terms.facts) && has(terms.facts.pay_basis))\n    ?terms.facts.pay_basis\n    :\"MONTHLY\")\n  ==\"WEEKLY\"\n    ?terms.base_salary / 6.0\n    : ((has(terms.facts) && has(terms.facts.pay_basis))\n      ?terms.facts.pay_basis\n      :\"MONTHLY\")\n    ==\"DAILY\"\n      ? ((has(earned.previous_month) && has(earned.previous_month.gross)\n      &&earned.previous_month.gross > 0.0)\n      && (has(earned.previous_month.BASIC)\n      &&has(earned.previous_month.base_salary)\n      &&earned.previous_month.base_salary > 0.0\n        ?earned.previous_month.BASIC / earned.previous_month.base_salary\n        :0.0)\n      >0.0\n        ?max(\n          terms.base_salary,\n          (earned.previous_month.gross\n          - (has(earned.previous_month.REST_DAY_WORK)\n            ?earned.previous_month.REST_DAY_WORK\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_WORK)\n            ?earned.previous_month.HOLIDAY_WORK\n            :0.0)\n          - (has(earned.previous_month.REST_DAY_OVERTIME)\n            ?earned.previous_month.REST_DAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_OVERTIME)\n            ?earned.previous_month.HOLIDAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.INCENTIVE)\n            ?earned.previous_month.INCENTIVE\n            :0.0))\n          / (has(earned.previous_month.BASIC)\n          &&has(earned.previous_month.base_salary)\n          &&earned.previous_month.base_salary > 0.0\n            ?earned.previous_month.BASIC\n            /earned.previous_month.base_salary\n            :0.0\n        ) )\n        :terms.base_salary)\n      : ((has(terms.facts) && has(terms.facts.pay_basis))\n        ?terms.facts.pay_basis\n        :\"MONTHLY\")\n      ==\"HOURLY\"\n        ? ((has(earned.previous_month)\n        &&has(earned.previous_month.gross)\n        &&earned.previous_month.gross > 0.0)\n        && (has(hours.previous_month.day_type)\n        &&has(hours.previous_month.day_type.WORK)\n          ?hours.previous_month.day_type.WORK.worked_hours\n          / ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0))\n          :0.0)\n        >0.0\n          ?max(\n            terms.base_salary\n            * ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)),\n            (earned.previous_month.gross\n            - (has(earned.previous_month.REST_DAY_WORK)\n              ?earned.previous_month.REST_DAY_WORK\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_WORK)\n              ?earned.previous_month.HOLIDAY_WORK\n              :0.0)\n            - (has(earned.previous_month.REST_DAY_OVERTIME)\n              ?earned.previous_month.REST_DAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_OVERTIME)\n              ?earned.previous_month.HOLIDAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.INCENTIVE)\n              ?earned.previous_month.INCENTIVE\n              :0.0))\n            / (has(hours.previous_month.day_type)\n            &&has(hours.previous_month.day_type.WORK)\n              ?hours.previous_month.day_type.WORK.worked_hours\n              / ((has(terms.facts)\n              &&has(terms.facts.normal_hours_per_day))\n                ?double(terms.facts.normal_hours_per_day)\n                :terms.employment_type == \"PART_TIME\"\n                  ?0.7\n                  * (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)\n                  : (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0))\n              :0.0\n          ) )\n          :terms.base_salary\n          * ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)))\n        : ((has(earned.previous_month)\n        &&has(earned.previous_month.gross)\n        &&earned.previous_month.gross > 0.0)\n        && (has(hours.previous_month.day_type)\n        &&has(hours.previous_month.day_type.WORK)\n          ?hours.previous_month.day_type.WORK.worked_hours\n          / ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0))\n          :0.0)\n        >0.0\n          ? (earned.previous_month.gross\n          - (has(earned.previous_month.REST_DAY_WORK)\n            ?earned.previous_month.REST_DAY_WORK\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_WORK)\n            ?earned.previous_month.HOLIDAY_WORK\n            :0.0)\n          - (has(earned.previous_month.REST_DAY_OVERTIME)\n            ?earned.previous_month.REST_DAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_OVERTIME)\n            ?earned.previous_month.HOLIDAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.INCENTIVE)\n            ?earned.previous_month.INCENTIVE\n            :0.0))\n          / (has(hours.previous_month.day_type)\n          &&has(hours.previous_month.day_type.WORK)\n            ?hours.previous_month.day_type.WORK.worked_hours\n            / ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            :0.0)\n          :double(rules.minimum_wage.daily_six_day_week)))",
+					"destination": "PAY",
+					"direction": "ADD",
+					"counts_toward": [
+						"EPF",
+						"EPF_PR",
+						"EPF_NON_CITIZEN",
+						"SOCSO",
+						"SKBBK",
+						"EIS",
+						"PCB",
+						"HRDF"
+					]
+				},
+				{
+					"code": "HOLIDAY_ADJACENT_ABSENCE",
+					"name": "Holiday pay forfeited (s.60D(2))",
+					"references": [
+						{
+							"title": "EA s.60D(2) and (2A): an employee absent without the employer's prior consent on the working day immediately before or after a public holiday is not entitled to holiday pay for it unless he has a reasonable excuse; the monthly wages are abated by that day at the ordinary rate. The excuse is the class: only unauthorised ABSENCE rows forfeit.",
+							"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+						}
+					],
+					"eligibility": "terms.employment_type != \"DOMESTIC\"\n&& ((has(terms.facts) && has(terms.facts.pay_basis))\n  ?terms.facts.pay_basis\n  :\"MONTHLY\")\nin [\"MONTHLY\", \"WEEKLY\"]\n&&work.days.exists(\n  d,\n  d.holiday_kind in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"]\n)",
+					"quantity": "double(\n  size(\n    work.days.filter(\n      d,\n      d.holiday_kind\n      in [\"PUBLIC_HOLIDAY\", \"SUBSTITUTE\", \"DOUBLE_HOLIDAY\"]\n      &&leave.rows.exists(\n        r,\n        r.code == \"ABSENCE\" && r.activity == \"TIME_OFF\"\n        && ((r.from <= add_days(d.date, -1)\n        &&add_days(d.date, -1) <= r.to)\n        || (r.from <= add_days(d.date, 1) && add_days(d.date, 1) <= r.to\n      ) ))\n    )\n  )\n)",
+					"rate": "(((has(terms.facts) && has(terms.facts.pay_basis))\n  ?terms.facts.pay_basis\n  :\"MONTHLY\")\n==\"MONTHLY\"\n  ?terms.base_salary / 26.0\n  : ((has(terms.facts) && has(terms.facts.pay_basis))\n    ?terms.facts.pay_basis\n    :\"MONTHLY\")\n  ==\"WEEKLY\"\n    ?terms.base_salary / 6.0\n    : ((has(terms.facts) && has(terms.facts.pay_basis))\n      ?terms.facts.pay_basis\n      :\"MONTHLY\")\n    ==\"DAILY\"\n      ? ((has(earned.previous_month) && has(earned.previous_month.gross)\n      &&earned.previous_month.gross > 0.0)\n      && (has(earned.previous_month.BASIC)\n      &&has(earned.previous_month.base_salary)\n      &&earned.previous_month.base_salary > 0.0\n        ?earned.previous_month.BASIC / earned.previous_month.base_salary\n        :0.0)\n      >0.0\n        ?max(\n          terms.base_salary,\n          (earned.previous_month.gross\n          - (has(earned.previous_month.REST_DAY_WORK)\n            ?earned.previous_month.REST_DAY_WORK\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_WORK)\n            ?earned.previous_month.HOLIDAY_WORK\n            :0.0)\n          - (has(earned.previous_month.REST_DAY_OVERTIME)\n            ?earned.previous_month.REST_DAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_OVERTIME)\n            ?earned.previous_month.HOLIDAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.INCENTIVE)\n            ?earned.previous_month.INCENTIVE\n            :0.0))\n          / (has(earned.previous_month.BASIC)\n          &&has(earned.previous_month.base_salary)\n          &&earned.previous_month.base_salary > 0.0\n            ?earned.previous_month.BASIC\n            /earned.previous_month.base_salary\n            :0.0\n        ) )\n        :terms.base_salary)\n      : ((has(terms.facts) && has(terms.facts.pay_basis))\n        ?terms.facts.pay_basis\n        :\"MONTHLY\")\n      ==\"HOURLY\"\n        ? ((has(earned.previous_month)\n        &&has(earned.previous_month.gross)\n        &&earned.previous_month.gross > 0.0)\n        && (has(hours.previous_month.day_type)\n        &&has(hours.previous_month.day_type.WORK)\n          ?hours.previous_month.day_type.WORK.worked_hours\n          / ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0))\n          :0.0)\n        >0.0\n          ?max(\n            terms.base_salary\n            * ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)),\n            (earned.previous_month.gross\n            - (has(earned.previous_month.REST_DAY_WORK)\n              ?earned.previous_month.REST_DAY_WORK\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_WORK)\n              ?earned.previous_month.HOLIDAY_WORK\n              :0.0)\n            - (has(earned.previous_month.REST_DAY_OVERTIME)\n              ?earned.previous_month.REST_DAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.HOLIDAY_OVERTIME)\n              ?earned.previous_month.HOLIDAY_OVERTIME\n              :0.0)\n            - (has(earned.previous_month.INCENTIVE)\n              ?earned.previous_month.INCENTIVE\n              :0.0))\n            / (has(hours.previous_month.day_type)\n            &&has(hours.previous_month.day_type.WORK)\n              ?hours.previous_month.day_type.WORK.worked_hours\n              / ((has(terms.facts)\n              &&has(terms.facts.normal_hours_per_day))\n                ?double(terms.facts.normal_hours_per_day)\n                :terms.employment_type == \"PART_TIME\"\n                  ?0.7\n                  * (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0)\n                  : (has(company.facts.normal_daily_hours)\n                    ?double(company.facts.normal_daily_hours)\n                    :8.0))\n              :0.0\n          ) )\n          :terms.base_salary\n          * ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)))\n        : ((has(earned.previous_month)\n        &&has(earned.previous_month.gross)\n        &&earned.previous_month.gross > 0.0)\n        && (has(hours.previous_month.day_type)\n        &&has(hours.previous_month.day_type.WORK)\n          ?hours.previous_month.day_type.WORK.worked_hours\n          / ((has(terms.facts) && has(terms.facts.normal_hours_per_day))\n            ?double(terms.facts.normal_hours_per_day)\n            :terms.employment_type == \"PART_TIME\"\n              ?0.7\n              * (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0)\n              : (has(company.facts.normal_daily_hours)\n                ?double(company.facts.normal_daily_hours)\n                :8.0))\n          :0.0)\n        >0.0\n          ? (earned.previous_month.gross\n          - (has(earned.previous_month.REST_DAY_WORK)\n            ?earned.previous_month.REST_DAY_WORK\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_WORK)\n            ?earned.previous_month.HOLIDAY_WORK\n            :0.0)\n          - (has(earned.previous_month.REST_DAY_OVERTIME)\n            ?earned.previous_month.REST_DAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.HOLIDAY_OVERTIME)\n            ?earned.previous_month.HOLIDAY_OVERTIME\n            :0.0)\n          - (has(earned.previous_month.INCENTIVE)\n            ?earned.previous_month.INCENTIVE\n            :0.0))\n          / (has(hours.previous_month.day_type)\n          &&has(hours.previous_month.day_type.WORK)\n            ?hours.previous_month.day_type.WORK.worked_hours\n            / ((has(terms.facts)\n            &&has(terms.facts.normal_hours_per_day))\n              ?double(terms.facts.normal_hours_per_day)\n              :terms.employment_type == \"PART_TIME\"\n                ?0.7\n                * (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0)\n                : (has(company.facts.normal_daily_hours)\n                  ?double(company.facts.normal_daily_hours)\n                  :8.0))\n            :0.0)\n          :double(rules.minimum_wage.daily_six_day_week)))",
+					"destination": "PAY",
+					"direction": "SUBTRACT",
+					"counts_toward": [
+						"EPF",
+						"EPF_PR",
+						"EPF_NON_CITIZEN",
+						"SOCSO",
+						"SKBBK",
+						"EIS",
+						"PCB",
+						"HRDF"
+					]
+				}
+			]
+		},
+		"sources": {
+			"entries": [
+				{
+					"agent": "catalog",
+					"url": "https://lom.agc.gov.my/",
+					"instructions": "Laws of Malaysia (Attorney General's Chambers federal legislation and e-Federal Gazette). Read for the pay and leave catalogues in the Employment Act 1955 (Act 265), as amended by the Employment (Amendment) Act 2022 (Act A1651): the leave classes and entitlements (annual leave s.60E, sick and hospitalisation leave s.60F, maternity leave and allowance s.37, paternity leave s.60FA) and the pay they carry; the rates of pay for overtime, rest-day work and holiday work (ss.60A(3), 60, 60D) and piece-rate pay (s.60I); the s.2 definition of wages (which payments and allowances are wages and which are excluded); advances to employees (s.22) and the recoveries s.24 permits; indemnity in lieu of notice (s.13); suspension during an inquiry (s.14); termination and lay-off benefits under the Employment (Termination and Lay-Off Benefits) Regulations 1980; and the pro-rated entitlements of the Employment (Part-Time Employees) Regulations 2010. Where: Act reprints and updated texts under Principal Acts (principal.php?type=reprint / updated, one act-detail page per Act number); amending Acts under Amendment Acts; subsidiary legislation under P.U. (A) (subsid.php?type=pua) and gazette notifications under P.U. (B) (subsid.php?type=pub), each list searchable by title or number, with the gazette date and commencement in the row and the PDF under Muat Turun."
+				},
+				{
+					"agent": "catalog",
+					"url": "https://jtksm.gov.my/en/frequently-asked-questions/employment-act-1955-amendment-2022",
+					"instructions": "Jabatan Tenaga Kerja Semenanjung Malaysia (JTKSM), the Peninsular labour department. Read its Employment Act 1955 amendment 2022 FAQ, legislation pages and circulars for the leave entitlements as amended by Act A1651: paternity leave s.60FA, sick and hospitalisation leave s.60F and maternity leave s.37. The pages are HTML, often in Malay; quote the official wording as published. Prefer the operative section of the Act (on lom.agc.gov.my) as evidence; an FAQ alone is evidence only where it states the provision in terms. Pages from jtksm.mohr.gov.my redirect here."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://lom.agc.gov.my/",
+					"instructions": "Laws of Malaysia. Read for the contribution and levy schemes set by statute: the Employees Provident Fund Act 1991 (Act 452) — the Third Schedule rates by wage band, member age and citizenship or residence class, the Act's definition of wages, and every order amending the Third Schedule (KWSP rate notices have no other accessible host); the HRD levy under the Pembangunan Sumber Manusia Berhad Act 2001 (Act 612: First Schedule employer classes and levy rate) and each Exemption of Levy Order (e.g. P.U. (A) 13/2026); and the foreign-worker levy orders under the Fees Act 1951. Where: Act reprints and updated texts under Principal Acts (principal.php?type=reprint / updated, one act-detail page per Act number); amending Acts under Amendment Acts; subsidiary legislation under P.U. (A) (subsid.php?type=pua) and gazette notifications under P.U. (B) (subsid.php?type=pub), each list searchable by title or number, with the gazette date and commencement in the row and the PDF under Muat Turun."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.hasil.gov.my/",
+					"instructions": "Lembaga Hasil Dalam Negeri (LHDN). Read for income-tax withholding from remuneration: the yearly Monthly Tax Deduction (PCB/MTD) computerised calculation specification (Spesifikasi Kaedah Pengiraan Berkomputer PCB: rate table, reliefs and rebates, normal and additional remuneration, the non-resident rate, rounding), the Income Tax (Deduction from Remuneration) Rules 1994 and the PCB schedule; the Income Tax Act 1967 (Act 53) on employment income (s.13, Schedule 6 exemptions) and withholding (s.107); and the public rulings on tax-exempt allowances and perquisites (e.g. PR 5/2019) that settle the withholding base. Where: Employer (Majikan) section for PCB; the specification PDF under the PCB pages (wp-content/uploads); Legislation (Perundangan) for the Act, rules and public rulings. Read the Malay original where an English page lags."
+				},
+				{
+					"agent": "contribution",
+					"url": "https://www.perkeso.gov.my/",
+					"instructions": "Pertubuhan Keselamatan Sosial (PERKESO). Read for the social security schemes: SOCSO under the Employees' Social Security Act 1969 (Act 4: First and Third Schedules, employment-injury and invalidity categories, foreign workers), the Employment Insurance System (Act 800: Second Schedule, coverage exclusions) and the 24-hour non-employment injury scheme SKBBK / LINDUNG 24 Jam (Act A1788 Third Schedule Parts I–VI and its P.U. (B) commencement orders); the wage ceiling and the contribution tables. Where: Akta (images/akta/ACT 4, ACT 800) for the Acts, amending Acts and gazette notifications; Caruman / Contribution Rate pages and employer FAQs for the tables and the ceiling; Pekeliling for circulars."
+				},
+				{
+					"agent": "rules",
+					"url": "https://lom.agc.gov.my/",
+					"instructions": "Laws of Malaysia. Read for the limits the law sets: minimum wages (National Wages Consultative Council Act 2011, Act 732, and each Minimum Wages Order with its rates, areas and employer classes, e.g. P.U. (A) 376/2024); in the Employment Act 1955 (Act 265), the First Schedule coverage and the wage threshold for overtime and related protections, wage periods (s.18), time of payment including final wages (s.19), payment methods (s.25), the deduction ceiling (s.24), rest days (s.59), hours of work and overtime (s.60A) with the Employment (Limitation of Overtime Work) Regulations 1980, flexible working arrangements (s.60P), termination notice periods (s.12), the part-time hours threshold of the Employment (Part-Time Employees) Regulations 2010, and record retention (s.61 and the Employment Regulations 1957); the Children and Young Persons (Employment) Act 1966 (Act 350); the Minimum Retirement Age Act 2012 (Act 753); the Industrial Relations Act 1967 (Act 177) where it limits terms of employment; and any limit on accommodation charges deducted from wages under the Workers' Minimum Standards of Housing, Accommodations and Amenities Act 1990 (Act 446) and its regulations (P.U. (A) 249/2020 as amended by P.U. (A) 49/2026). Where: Act reprints and updated texts under Principal Acts (principal.php?type=reprint / updated, one act-detail page per Act number); amending Acts under Amendment Acts; subsidiary legislation under P.U. (A) (subsid.php?type=pua) and gazette notifications under P.U. (B) (subsid.php?type=pub), each list searchable by title or number, with the gazette date and commencement in the row and the PDF under Muat Turun."
+				},
+				{
+					"agent": "rules",
+					"url": "https://www.hasil.gov.my/",
+					"instructions": "Lembaga Hasil Dalam Negeri (LHDN). Read the Income Tax Act 1967 (Act 53) s.82 for the records an employer must keep and how long it must keep them. Where: Legislation (Perundangan) for the Act. Read the Malay original where an English page lags."
+				},
+				{
+					"agent": "rules",
+					"url": "https://jtksm.gov.my/en/frequently-asked-questions/employment-act-1955-amendment-2022",
+					"instructions": "Jabatan Tenaga Kerja Semenanjung Malaysia (JTKSM). Read its Employment Act 1955 amendment 2022 FAQ and circulars for hours of work (s.60A) and flexible working arrangements (s.60P) as amended by Act A1651. The pages are HTML, often in Malay; quote the official wording as published. Prefer the operative section of the Act (on lom.agc.gov.my) as evidence; an FAQ alone is evidence only where it states the provision in terms. Pages from jtksm.mohr.gov.my redirect here."
+				},
+				{
+					"agent": "rules",
+					"url": "https://gajiminimum.mohr.gov.my/",
+					"instructions": "Sekretariat Majlis Perundingan Gaji Negara (National Wages Consultative Council secretariat). Read its publications and circulars for each Minimum Wages Order: rates by area and employer class, monthly, daily and hourly forms, and commencement. Confirm every figure against the gazetted P.U. (A) on lom.agc.gov.my."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://lom.agc.gov.my/",
+					"instructions": "Laws of Malaysia. Read the Employment Act 1955 (Act 265) for the consequences the law attaches to events, not for the rates or entitlements themselves: a public holiday falling on a rest day (the s.60D(1) substitution), work on a rest day or a holiday (ss.60, 60D), a rest day or holiday falling inside a leave period (Part XII), termination, lay-off and the death of an employee (ss.12–14, final wages s.19, the Employment (Termination and Lay-Off Benefits) Regulations 1980) and termination during maternity leave (s.37). Where: Act reprints and updated texts under Principal Acts (principal.php?type=reprint / updated, one act-detail page per Act number); amending Acts under Amendment Acts; subsidiary legislation under P.U. (A) (subsid.php?type=pua) and gazette notifications under P.U. (B) (subsid.php?type=pub), each list searchable by title or number, with the gazette date and commencement in the row and the PDF under Muat Turun."
+				},
+				{
+					"agent": "behaviour",
+					"url": "https://www.hasil.gov.my/",
+					"instructions": "Lembaga Hasil Dalam Negeri (LHDN). Read the Income Tax Act 1967 (Act 53) s.83 and the employer guidance behind forms CP22A, CP22B and CP21 for what an employee's cessation or departure from Malaysia must cause in payroll (withholding monies due until tax clearance). Where: Employer (Majikan) section for the forms' guidance; Legislation (Perundangan) for the Act. Read the Malay original where an English page lags."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://lom.agc.gov.my/",
+					"instructions": "Laws of Malaysia. Read for employer duties with deadlines: in the Employment Act 1955 (Act 265), the notice to the Director General on employing a foreign employee (Part XIIB), registers and wage particulars (s.61 and the Employment Regulations 1957), returns to the Director General (s.63) including the retrenchment notice (Borang PK), and the sexual harassment inquiry and notice duties (Part XVA); registration and monthly payment due dates under the EPF Act 1991 (Act 452) and the Pembangunan Sumber Manusia Berhad Act 2001 (Act 612); the employer's certificate and notice duties for workers' accommodation under Act 446; and permit and notification duties for non-citizen workers under the Immigration Act 1959/63 (Act 155) and the Employment (Restriction) Act 1968. Where: Act reprints and updated texts under Principal Acts (principal.php?type=reprint / updated, one act-detail page per Act number); amending Acts under Amendment Acts; subsidiary legislation under P.U. (A) (subsid.php?type=pua) and gazette notifications under P.U. (B) (subsid.php?type=pub), each list searchable by title or number, with the gazette date and commencement in the row and the PDF under Muat Turun."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.hasil.gov.my/",
+					"instructions": "Lembaga Hasil Dalam Negeri (LHDN). Read for employer tax duties and their deadlines: monthly PCB remittance, Form E with CP8D, EA forms to employees, CP22 (new employee), CP22A / CP22B (cessation), CP21 (leaving Malaysia), CP38 directions and CP58. Where: Employer (Majikan) section for the forms, due dates and e-filing guidance; Legislation (Perundangan) for the rules behind them. Read the Malay original where an English page lags."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.perkeso.gov.my/",
+					"instructions": "Pertubuhan Keselamatan Sosial (PERKESO). Read for employer duties under Act 4 and Act 800: employer and employee registration, the monthly contribution payment due date, accident reporting (Borang 34) and cessation notices. Where: employer registration and contribution pages and employer FAQs; Pekeliling for circulars; Akta for the Acts."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.pdp.gov.my/",
+					"instructions": "Jabatan Perlindungan Data Peribadi (JPDP). Read for employer duties over employee personal data: the Personal Data Protection Act 2010 (Act 709) as amended by Act A1727 (data protection officer s.12A, data breach notification s.12B, data portability), its regulations and the Commissioner's guidelines and circulars (DPO appointment thresholds and timing, breach notification to the Commissioner within 72 hours and to data subjects, cross-border transfer). Where: Perundangan / Legislation for the Act, regulations and orders; Garis Panduan and Pekeliling for guidelines and circulars."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.imi.gov.my/",
+					"instructions": "Jabatan Imigresen Malaysia. Read its employer pages for foreign-worker duties: the temporary employment pass (PLKS) application and renewal, levy payment at renewal, and the employer's notification on a worker's termination or departure; cite the Immigration Act 1959/63 (Act 155) and its regulations on lom.agc.gov.my as the operative text."
+				},
+				{
+					"agent": "obligations",
+					"url": "https://www.malaysia.gov.my/",
+					"instructions": "Portal Rasmi Kerajaan Malaysia (MyGov). Use its service directory only to locate the employer registration and filing services of the EPF, PERKESO, LHDN, HRD Corp and the labour department; cite the agency's or lom.agc.gov.my's operative text, not the directory summary."
+				},
+				{
+					"agent": "settings",
+					"url": "https://lom.agc.gov.my/",
+					"instructions": "Laws of Malaysia. Read for the version's payroll settings and the statutory facts payroll must hold: the Employment Act 1955 (Act 265) s.60I basis for a monthly-rated employee's daily and hourly rate (the monthly-wage basis), and ss.18–19 only to place the default wage period and pay date within the law's limits; the EPF Act 1991 (Act 452) Third Schedule member classes (age, citizenship or permanent residence, election) an employee record must carry; and the employer and member numbers the EPF Act and the HRD levy Act (Act 612) require. Where: Act reprints and updated texts under Principal Acts (principal.php?type=reprint / updated, one act-detail page per Act number); amending Acts under Amendment Acts; subsidiary legislation under P.U. (A) (subsid.php?type=pua) and gazette notifications under P.U. (B) (subsid.php?type=pub), each list searchable by title or number, with the gazette date and commencement in the row and the PDF under Muat Turun."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.hasil.gov.my/",
+					"instructions": "Lembaga Hasil Dalam Negeri (LHDN). Read for the tax year (the basis year of assessment under the Income Tax Act 1967) and the tax facts payroll holds: the employee inputs the PCB specification requires (residence status, family and relief declarations such as TP1 / TP3, prior-employer remuneration), the employer's E number and the employee's tax identification number. Where: Employer (Majikan) section for the specification PDF (wp-content/uploads) and forms TP1 / TP3; Legislation (Perundangan) for the Act. Read the Malay original where an English page lags."
+				},
+				{
+					"agent": "settings",
+					"url": "https://www.perkeso.gov.my/",
+					"instructions": "Pertubuhan Keselamatan Sosial (PERKESO). Read for the registration facts payroll holds: the employer code, the employee registration particulars and the contribution category (by age, and foreign-worker coverage) an employee record must carry. Where: employer registration pages and FAQs; Akta for Act 4 and Act 800."
+				}
+			],
+			"agents": {
+				"catalog": "Read each leave, pay and benefit provision as amended for this version's period; the Act's operative section outranks an FAQ. This lineage is Peninsular Malaysia and Labuan; the Sabah and Sarawak Labour Ordinances (amended by Acts A1753 / A1754) govern other worksites and are a scope check only. Never sign in or upload records; cite the exact document URL, issuer, instrument number (Act, P.U. (A) / P.U. (B)), gazette and effective dates and the quoted clause or table, read amendments and schedules (scanned PDFs visually), treat budget speeches, Cabinet announcements, drafts and press summaries as not law, and report unresolved evidence instead of guessing.",
+				"contribution": "Compare Malaysian, permanent-resident and non-Malaysian worker classes, wage bands, ceilings, rates, shares and rounding in each scheme's own schedule or table; the PCB specification is published per year. This lineage is Peninsular Malaysia and Labuan; the Sabah and Sarawak Labour Ordinances (amended by Acts A1753 / A1754) govern other worksites and are a scope check only. Never sign in or upload records; cite the exact document URL, issuer, instrument number (Act, P.U. (A) / P.U. (B)), gazette and effective dates and the quoted clause or table, read amendments and schedules (scanned PDFs visually), treat budget speeches, Cabinet announcements, drafts and press summaries as not law, and report unresolved evidence instead of guessing.",
+				"rules": "Read each limit as in force for this version's period, with the coverage threshold it applies to. This lineage is Peninsular Malaysia and Labuan; the Sabah and Sarawak Labour Ordinances (amended by Acts A1753 / A1754) govern other worksites and are a scope check only. Never sign in or upload records; cite the exact document URL, issuer, instrument number (Act, P.U. (A) / P.U. (B)), gazette and effective dates and the quoted clause or table, read amendments and schedules (scanned PDFs visually), treat budget speeches, Cabinet announcements, drafts and press summaries as not law, and report unresolved evidence instead of guessing.",
+				"behaviour": "Read for what an event must cause, not for the rates, entitlements, limits or deadlines the other agents read; holiday calendars are out of scope. This lineage is Peninsular Malaysia and Labuan; the Sabah and Sarawak Labour Ordinances (amended by Acts A1753 / A1754) govern other worksites and are a scope check only. Never sign in or upload records; cite the exact document URL, issuer, instrument number (Act, P.U. (A) / P.U. (B)), gazette and effective dates and the quoted clause or table, read amendments and schedules (scanned PDFs visually), treat budget speeches, Cabinet announcements, drafts and press summaries as not law, and report unresolved evidence instead of guessing.",
+				"obligations": "Record each duty's trigger, deadline and form as the issuing agency publishes it, with the provision that imposes it. This lineage is Peninsular Malaysia and Labuan; the Sabah and Sarawak Labour Ordinances (amended by Acts A1753 / A1754) govern other worksites and are a scope check only. Never sign in or upload records; cite the exact document URL, issuer, instrument number (Act, P.U. (A) / P.U. (B)), gazette and effective dates and the quoted clause or table, read amendments and schedules (scanned PDFs visually), treat budget speeches, Cabinet announcements, drafts and press summaries as not law, and report unresolved evidence instead of guessing.",
+				"settings": "Settings are this version's defaults within the law's limits; hold only the statutory facts and employer numbers the law requires a payroll to keep. This lineage is Peninsular Malaysia and Labuan; the Sabah and Sarawak Labour Ordinances (amended by Acts A1753 / A1754) govern other worksites and are a scope check only. Never sign in or upload records; cite the exact document URL, issuer, instrument number (Act, P.U. (A) / P.U. (B)), gazette and effective dates and the quoted clause or table, read amendments and schedules (scanned PDFs visually), treat budget speeches, Cabinet announcements, drafts and press summaries as not law, and report unresolved evidence instead of guessing."
+			}
+		},
+		"cloned_from_id": "6cbae554-f12e-51e6-b029-6212b52d1b62",
+		"change_summary": "SKBBK (LINDUNG 24 Jam) Second Phase from 1 June 2028 (P.U. (B) 196/2026 para (c)): the employee share follows Act A1788 Third Schedule Part II (first category) and Part V (second category), about 1.00% of the band wage.",
+		"employee_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "MY employee inputs",
+			"additionalProperties": false,
+			"properties": {
+				"contract_terms": {
+					"type": "array",
+					"description": "Stored on employment_contract.facts.contract_terms; the term in force is the CEL root `terms`.",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"id": {
+								"type": "string"
+							},
+							"employment_id": {
+								"type": "string"
+							},
+							"summary": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"base_salary": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"currency": {
+										"type": "string",
+										"const": "MYR"
+									},
+									"value": {
+										"type": "number",
+										"minimum": 0
+									}
+								}
+							},
+							"currency": {
+								"type": "string",
+								"const": "MYR"
+							},
+							"allowances": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"catalogue_id": {
+											"type": "string"
+										},
+										"amount": {
+											"type": "object",
+											"additionalProperties": false,
+											"properties": {
+												"currency": {
+													"type": "string",
+													"const": "MYR"
+												},
+												"value": {
+													"type": "number",
+													"minimum": 0
+												}
+											}
+										}
+									}
+								}
+							},
+							"employment_type": {
+								"type": "string",
+								"enum": ["PERMANENT", "CONTRACT", "PROBATION", "PART_TIME", "INTERN", "DOMESTIC"],
+								"description": "Employment Act 1955: DOMESTIC is a domestic employee (First Schedule para.2(5) excludes Part IX maternity, Part XII annual/sick leave and s.60FA); PART_TIME is under the Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010)."
+							},
+							"work_classification": {
+								"type": "string",
+								"enum": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+								"description": "Employment Act 1955 First Schedule (as amended by Act A1651, 1 January 2023): EA_COVERED is an employee the Act covers in full; MANAGERIAL and NON_EA earn above RM4,000 a month outside the First Schedule categories and are outside ss.60A(3), 60D(3), 60(3) and 60I overtime and holiday-pay rules."
+							},
+							"statutory_work_category": {
+								"type": "string",
+								"enum": [
+									"MANUAL_LABOUR",
+									"MANUAL_LABOUR_SUPERVISOR",
+									"NON_MANUAL",
+									"TASK_BASIS",
+									"VEHICLE_OPERATOR",
+									"VESSEL_CREW"
+								],
+								"description": "Employment Act 1955 First Schedule para.1: manual labour and its supervision are covered irrespective of wages; TASK_BASIS is paid by task, trip or commission (no base salary), priced through the adhoc task classes. Round 7: VEHICLE_OPERATOR operates or maintains a commercial vehicle and VESSEL_CREW works on a Malaysian-registered vessel (First Schedule para 2(2), (4)) — covered by the premia whatever the pay."
+							},
+							"residency_status": {
+								"type": "string",
+								"enum": ["CITIZEN", "PERMANENT_RESIDENT", "FOREIGNER"],
+								"description": "Selects the EPF Third Schedule Part (A/E citizen, A/C permanent resident, F non-citizen), SOCSO/EIS coverage (EIS excludes foreign employees, Act 800 First Schedule para.10), the HRD levy (Malaysian citizens only, Act 612 s.2) and the default MTD residence (a FOREIGNER is non-resident unless employee.facts.tax_residency says RESIDENT)."
+							},
+							"residency_since": {
+								"type": "string",
+								"format": "date"
+							},
+							"pay_frequency": {
+								"type": "string"
+							},
+							"job_title": {
+								"type": "string"
+							},
+							"department": {
+								"type": "string"
+							},
+							"shift_pattern_id": {
+								"type": "string"
+							},
+							"facts": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"worksite_state": {
+										"type": "string",
+										"enum": [
+											"JOHOR",
+											"KEDAH",
+											"KELANTAN",
+											"MELAKA",
+											"NEGERI_SEMBILAN",
+											"PAHANG",
+											"PERAK",
+											"PERLIS",
+											"PULAU_PINANG",
+											"SELANGOR",
+											"TERENGGANU",
+											"KUALA_LUMPUR",
+											"PUTRAJAYA",
+											"LABUAN",
+											"SABAH",
+											"SARAWAK"
+										],
+										"title": "Worksite state or federal territory",
+										"description": "The dated Malaysian state or federal territory of the worksite. Employment Act 1955 governs Peninsular Malaysia and Labuan; Sabah and Sarawak need their Labour Ordinance profile."
+									},
+									"annual_leave_carry_max_days": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Annual leave carried forward (most days)",
+										"description": "Company policy (owner rule 2026-10-01): at most 5 unused annual-leave days carry into the next leave year unless the employee’s terms state otherwise. Record a number here only where the terms agree a different carry; unrecorded is the company’s 5 days."
+									},
+									"contract_hours_per_week": {
+										"type": "number",
+										"minimum": 1,
+										"default": 45,
+										"title": "Contract hours a week",
+										"description": "Employment Act 1955 s.2 “normal hours of work”: the weekly hours the contract of service states and prices its hourly rate over (basic × 12 ÷ (52 × these hours)); at most 45 for an employee within s.60A(1). Unrecorded is the s.60A(1)(d) 45 hours."
+									},
+									"work_pass_valid_until": {
+										"type": "string",
+										"format": "date",
+										"title": "Work pass valid until",
+										"description": "A FOREIGNER’s work pass or permit expiry. From the first wage month after it, the worker is outside EPF Part F (KWSP: “with a valid work pass”) and outside the SOCSO invalidity scheme (Act 4 First Schedule para 12A)."
+									},
+									"pay_basis": {
+										"type": "string",
+										"enum": ["MONTHLY", "WEEKLY", "DAILY", "HOURLY", "PIECE"],
+										"default": "MONTHLY",
+										"title": "Pay basis",
+										"description": "EA s.60I(1A)–(1C): the rate base_salary states — a month, a week, a day, an hour or a piece (rate per piece; roster day facts piece_units / overtime_units)."
+									},
+									"normal_hours_per_day": {
+										"type": "number",
+										"exclusiveMinimum": 0,
+										"maximum": 9,
+										"title": "Normal hours of work a day",
+										"description": "EA s.60A(3)(c): the usual hours a day agreed in the contract (part-time terms state theirs); the hourly rate is the ordinary rate ÷ these (s.60I(1)(b))."
+									},
+									"days_per_week": {
+										"type": "integer",
+										"minimum": 1,
+										"maximum": 7,
+										"title": "Working days a week",
+										"description": "Minimum Wages Order 2024: the daily minimum for a six-, five- or four-day week."
+									},
+									"contract_notice_weeks": {
+										"type": "number",
+										"minimum": 0,
+										"title": "Notice in the written contract (weeks)",
+										"description": "EA s.12(2): the written contract’s notice for both parties; without it, 4 / 6 / 8 weeks by service."
+									},
+									"overtime_by_contract": {
+										"type": "boolean",
+										"default": false,
+										"title": "Statutory premia by contract",
+										"description": "First Schedule para 1A takes ss.60(3), 60A(3), 60D(3) from a non-manual employee above RM4,000; true where the contract grants them anyway."
+									},
+									"shift_work": {
+										"type": "boolean",
+										"default": false,
+										"title": "Shift work",
+										"description": "EA s.60C: normal hours averaged over three weeks."
+									},
+									"wage_payment_method": {
+										"type": "string",
+										"enum": ["BANK", "CASH", "CHEQUE"],
+										"default": "BANK",
+										"title": "Wage payment method",
+										"description": "EA s.25: into the employee's account; s.25A: cash or cheque only on written request with the Director General's approval."
+									},
+									"wage_payment_written_request": {
+										"type": "boolean",
+										"default": false,
+										"title": "Employee asked in writing for cash or cheque (s.25A(1))"
+									},
+									"wage_payment_dg_approval": {
+										"type": "string",
+										"title": "Director General's approval reference (s.25A(2))"
+									},
+									"flexible_working_applied_on": {
+										"type": "string",
+										"format": "date",
+										"title": "Flexible working application received on (s.60Q)"
+									},
+									"employer_provided_accommodation": {
+										"type": "boolean",
+										"default": false,
+										"title": "Housed by the employer (Act 446)"
+									},
+									"industrial_training_student": {
+										"type": "boolean",
+										"default": false,
+										"title": "Industrial-training student without a contract of service",
+										"description": "EPF Act 1991 s.2, Employees’ Social Security Act 1969 s.2(5) and Employment Insurance System Act 2017 s.2: a person not employed under a contract of service or apprenticeship is not an employee — no EPF, SOCSO, SKBBK or EIS. Reported as status 5 (Pelatih Industri) in the C.P.8D."
+									},
+									"contractual_epf_employer_rate": {
+										"type": "number",
+										"minimum": 0,
+										"maximum": 1,
+										"title": "Contractual employer EPF rate (above the Third Schedule)"
+									},
+									"payee_role": {
+										"type": "string",
+										"enum": ["AGENT", "DEALER", "DISTRIBUTOR", "OTHER"],
+										"title": "Payee role",
+										"description": "On a PAYEE engagement: AGENT, DEALER or DISTRIBUTOR authorised by the company (ITA s.83A(4)) raises the yearly CP58 statement; OTHER does not."
+									},
+									"minor_employment_kind": {
+										"type": "string",
+										"title": "Employment category for a child",
+										"enum": [
+											"LIGHT_FAMILY",
+											"LICENSED_ENTERTAINMENT",
+											"SCHOOL_APPROVED",
+											"APPROVED_APPRENTICESHIP",
+											"OTHER"
+										],
+										"description": "Act 350 s.2(2): light work in a family undertaking; public entertainment licensed by the Director General; work approved by the government for a school or training institution; apprenticeship approved by the Director General. Declare OTHER for work outside these permitted categories."
+									},
+									"hazardous_work": {
+										"type": "boolean",
+										"title": "Fourth Schedule hazardous work",
+										"description": "Whether the work falls within Act 350 Fourth Schedule machinery, hazardous environment, construction, timber, offshore or near-water work."
+									},
+									"hazardous_work_personal_supervision": {
+										"type": "boolean",
+										"title": "Personal supervision for hazardous training",
+										"description": "A young person is personally supervised during hazardous work under s.2(1B)."
+									},
+									"hazardous_work_training": {
+										"type": "boolean",
+										"title": "Hazardous work under apprenticeship or vocational training",
+										"description": "A young person is performing hazardous work under an apprenticeship contract or undergoing vocational training (s.2(1B))."
+									},
+									"prohibited_minor_employment": {
+										"type": "boolean",
+										"title": "Fifth Schedule prohibited employment",
+										"description": "Whether work involves prostitution, social escorts/hostesses, alcoholic-beverage production or trade, gambling/lotteries, massage/reflexology, pornography, or prohibited drugs/substances (Act 350 Fifth Schedule)."
+									},
+									"spouse_status": {
+										"type": "string",
+										"enum": ["NONE", "WITHOUT_INCOME", "WITH_INCOME"],
+										"description": "The spouse’s income: WITHOUT_INCOME with marital_status MARRIED gives the RM4,000 spouse relief and the RM400 rebate in PCB (category 2) and in the C.P.8D file."
+									},
+									"receiving_pension": {
+										"type": "boolean",
+										"description": "A certified invalid receiving an invalidity pension: SOCSO charges the employment injury scheme only (Act 4 First Schedule para 12)."
+									},
+									"disabled": {
+										"type": "boolean",
+										"description": "A disabled individual registered with JKM: the RM7,000 disabled-individual relief in PCB (Income Tax Act 1967 s.46(1)(e))."
+									},
+									"fixed_term": {
+										"type": "boolean",
+										"description": "A fixed-term contract: while true the employment is not permanent (`permanent_when`)."
+									}
+								}
+							}
+						},
+						"required": [
+							"employment_type",
+							"work_classification",
+							"statutory_work_category",
+							"residency_status"
+						]
+					}
+				},
+				"exit_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored on employment_contract.exit_facts when the contract closes; the CEL root `employment.exit_facts`.",
+					"properties": {
+						"terminated_without_notice": {
+							"type": "boolean",
+							"title": "Left without notice",
+							"description": "The employee ended the contract without notice under Employment Act 1955 s.13(1)-(2) or s.14(3); the final wages are then due by the third day after (s.21(2))."
+						},
+						"leaving_malaysia": {
+							"type": "boolean",
+							"title": "Leaving Malaysia for more than three months",
+							"description": "Income Tax Act 1967 s.83(4): the employer gives CP21 notice and withholds money payable under s.83(5)."
+						},
+						"wages_12m": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Wages of the last twelve months",
+							"description": "Termination and Lay-Off Benefits Regulations 1980 reg.6(2): the s.2 wages earned in the twelve completed months before termination, stated where earlier payslips in this workspace do not hold them (an employee brought over with history). Absent, the termination benefit reads the payslips."
+						},
+						"misconduct_dismissal": {
+							"type": "boolean",
+							"title": "Dismissed for misconduct",
+							"description": "Dismissed for misconduct after due inquiry. Statutory consequences apply only where the relevant provision covers the worker; domestic service is excluded from s.14; s.57 and Part XVA have distinct grounds. For covered workers s.60E(3A) also governs untaken annual leave."
+						},
+						"notice_given": {
+							"type": "boolean",
+							"title": "Written termination notice given",
+							"description": "Whether written notice was given before departure. Its giving day counts in the notice period (Employment Act s.12(4)). Without notice, the whole prospective period is unserved."
+						},
+						"notice_given_on": {
+							"type": "string",
+							"format": "date",
+							"title": "Written notice date",
+							"description": "Actual date notice was given, within this employment and no later than the final service day. Service thresholds are assessed on this date."
+						},
+						"notice_waived_days": {
+							"type": "integer",
+							"minimum": 0,
+							"title": "Final unserved notice days waived",
+							"description": "Calendar days at the END of the remaining notice period expressly waived by the party entitled to notice. Enter 0 where no waiver exists. Record the agreement; a waiver cannot exceed the unserved period."
+						},
+						"notice_termination_party": {
+							"type": "string",
+							"enum": ["EMPLOYER", "EMPLOYEE", "NEITHER"],
+							"title": "Party ending employment on the final service day",
+							"description": "The party electing to end employment on this date, including cutting short an earlier notice. EMPLOYER owes the employee; EMPLOYEE may owe the employer. NEITHER is natural expiry, death or an agreed end with no unilateral termination. The original resignation/dismissal label alone does not decide this."
+						},
+						"notice_approved_apprenticeship": {
+							"type": "boolean",
+							"title": "Approved and filed apprenticeship contract",
+							"description": "True only for an apprenticeship contract in a form approved by the Director General AND a copy filed with the Director General (EA s.17A). A trainee/intern label is insufficient. Sections 10–16 then do not apply; separate contractual rights still require assessment."
+						},
+						"notice_exception": {
+							"type": "string",
+							"enum": [
+								"NONE",
+								"OTHER_PARTY_WILFUL_BREACH",
+								"IMMEDIATE_DANGER",
+								"DOMESTIC_INCONSISTENT_CONDUCT",
+								"HARASSMENT_DISMISSAL"
+							],
+							"title": "Ground permitting termination without notice indemnity",
+							"description": "NONE for ordinary notice. OTHER_PARTY_WILFUL_BREACH: s.13(2). IMMEDIATE_DANGER: employee/dependants immediately threatened by violence/disease not undertaken under the contract, s.14(3), outside domestic service. DOMESTIC_INCONSISTENT_CONDUCT: the other party's conduct contrary to the domestic-service contract, s.57. Due-inquiry misconduct is recorded separately. HARASSMENT_DISMISSAL: employer dismissal after its inquiry proves sexual harassment, s.81C(a)(i); Part XVA also applies to domestic employees and approved apprentices. This is not a complainant departure under s.81E."
+						},
+						"notice_structural_ground": {
+							"type": "string",
+							"enum": [
+								"NONE",
+								"BUSINESS_CLOSURE",
+								"WORKPLACE_CLOSURE",
+								"REDUCED_WORK",
+								"REDUCED_LOCAL_WORK",
+								"TRANSFER_REFUSAL_NOT_REQUIRED",
+								"OWNERSHIP_CHANGE"
+							],
+							"title": "Section 12(3) termination ground",
+							"description": "The specified closure/reduction/ownership grounds and refusal of a transfer the contract does not require preserve the 4/6/8-week floor even where the written contract is shorter. Redundancy/retrenchment labels also retain that floor."
+						},
+						"notice_exception_reference": {
+							"type": "string",
+							"title": "Notice exception or approval evidence reference",
+							"description": "Reference to the breach/danger/inquiry or proven sexual-harassment dismissal record, domestic contract conduct, apprenticeship approval and filed copy, or the section 12(3) cause. Preserve the underlying evidence."
+						},
+						"pregnant_or_pregnancy_illness": {
+							"type": "boolean",
+							"default": false,
+							"title": "Pregnant or ill from the pregnancy at notice (EA s.41A)"
+						},
+						"death_informed_on": {
+							"type": "string",
+							"format": "date",
+							"title": "Employer informed of the death on (ITA s.83(3))"
+						},
+						"annual_leave_on_exit": {
+							"type": "string",
+							"enum": ["ENCASH", "DO_NOT_ENCASH"],
+							"title": "Untaken annual leave at exit",
+							"description": "Overrides the exit ground's default (exit_grounds encash_annual_leave): ENCASH pays the untaken annual leave in the final pay, DO_NOT_ENCASH does not. Leave it empty to follow the ground. Employment Act 1955 s.60E(3A) entitles a covered employee to it on every termination except dismissal for misconduct under s.14(1)(a)."
+						}
+					}
+				},
+				"employment_statutory_facts": {
+					"type": "array",
+					"description": "Stored on employment_profile.facts.employment_statutory_facts: one standing per scheme per day; the standing in force on the period’s first day is the CEL root `scheme` (`scheme.standing`, `scheme.elections`).",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"statutory_contribution_id": {
+								"type": "string"
+							},
+							"effective_range": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"from": {
+										"type": "string",
+										"format": "date"
+									},
+									"to": {
+										"type": ["string", "null"],
+										"format": "date"
+									}
+								}
+							},
+							"status": {
+								"type": "object",
+								"additionalProperties": false,
+								"properties": {
+									"kind": {
+										"type": "string",
+										"enum": ["REGISTERED", "RELEASED"],
+										"description": "REGISTERED for an ordinary standing. RELEASED on SKBBK only (Cabinet decision 8 July 2026; PERKESO LINDUNG 24 Jam FAQ Q9, Q11, Q25, Q28): a release filed in the opt-out window (13 July – 31 August 2026) takes effect from the July 2026 wage month — record effective_range.from 2026-07-01; June 2026 is always charged; after the window only a new employee’s Notice of Release of Liability before the first contribution is accepted (\"Once In, Always In\"). End the standing from the salary month an opt-in is submitted. Ignored for a FOREIGNER (mandatory)."
+									},
+									"reference_number": {
+										"type": "string"
+									},
+									"since": {
+										"type": "string",
+										"format": "date"
+									},
+									"elections": {
+										"type": "object",
+										"additionalProperties": false,
+										"description": "Standing elections by scheme (the CEL roots scheme.elections and elections.<CODE>): PCB declarations and MTD residence; EPF, SOCSO and EIS liability history.",
+										"properties": {
+											"tax_residency": {
+												"type": "string",
+												"enum": ["RESIDENT", "NON_RESIDENT"],
+												"title": "MTD tax residence",
+												"description": "Income Tax Act 1967 s.7: residence for the basis year. Unrecorded, a citizen or permanent resident is charged as resident and a FOREIGNER as non-resident at 30% (s.107(2); MTD Specification 2026 D(a))."
+											},
+											"zakat_monthly": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "Monthly payroll zakat",
+												"description": "Income Tax Act 1967 s.6A(3): the zakat deducted through payroll each month while the standing is in force, rebated from MTD; earlier months of the year are taken at the same amount. Nothing is deducted without the employee’s instruction, so the default is 0."
+											},
+											"spouse_disabled": {
+												"type": "boolean",
+												"default": false,
+												"title": "Disabled spouse (certified)",
+												"description": "Income Tax Act 1967 s.47(1)(b)/(2): the further RM6,000 is for a disabled spouse living together, certified by the Department of Social Welfare. Without a declared certification there is no deduction, so the default is false."
+											},
+											"children_under_18_or_studying": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "RM2,000: under 18, or 18 and over in full-time A-level/matriculation study",
+												"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+											},
+											"children_under_18_or_studying_half": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "RM2,000: under 18, or 18 and over in full-time A-level/matriculation study — half share",
+												"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+											},
+											"children_tertiary_or_disabled": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "RM8,000: 18 and over in diploma or degree study, or a disabled child",
+												"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+											},
+											"children_tertiary_or_disabled_half": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "RM8,000: 18 and over in diploma or degree study, or a disabled child — half share",
+												"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+											},
+											"children_disabled_tertiary": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "RM16,000: a disabled child in diploma or degree study",
+												"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+											},
+											"children_disabled_tertiary_half": {
+												"type": "integer",
+												"minimum": 0,
+												"default": 0,
+												"title": "RM16,000: a disabled child in diploma or degree study — half share",
+												"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+											},
+											"elected_before_1998": {
+												"type": "boolean",
+												"default": false,
+												"title": "EPF: elected to contribute before 1 August 1998",
+												"description": "EPF standing only. ACT 452 Third Schedule Part A para 1(c) and Part C para 1(c): a non-citizen who elected to contribute before 1 August 1998 contributes at the Part A rates below 60 and Part C from 60, not Part F."
+											},
+											"first_insured_at_55_or_more": {
+												"type": "boolean",
+												"default": false,
+												"title": "SOCSO: first insured at 55 or more",
+												"description": "SOCSO standing only. Act 4 First Schedule para 12(i): no contribution was payable for the employee before 55, so the employee is in the Second Category (employment injury only)."
+											},
+											"first_insured_at_57_or_more": {
+												"type": "boolean",
+												"default": false,
+												"title": "EIS: first insured at 57 or more",
+												"description": "EIS standing only. Act 800 First Schedule para 9: no contribution was payable for the employee before 57, so from 57 the employee is outside EIS."
+											},
+											"domestic_servant_notice_given": {
+												"type": "boolean",
+												"default": false,
+												"title": "EPF: domestic servant gave notice to be a member",
+												"description": "EPF standing only. ACT 452 First Schedule paras (2)–(3): a domestic servant is a member only after one month’s notice in the prescribed form to the Board and the employer."
+											},
+											"board_approved_other_scheme": {
+												"type": "boolean",
+												"default": false,
+												"title": "EPF: Board approved another provident scheme",
+												"description": "EPF_NON_CITIZEN standing only. ACT 452 First Schedule para (8): a person domiciled outside Malaysia with the Board’s prior written approval to participate in another scheme is not an employee."
+											},
+											"designated_employer": {
+												"type": "boolean",
+												"default": true,
+												"title": "SKBBK: the employer the employee designated",
+												"description": "SKBBK standing only. PERKESO LINDUNG 24 Jam FAQ Q21: contributions are deducted through one employer only, the one the employee chose; false at every other employer."
+											},
+											"tp1_monthly_deductions": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PCB: TP1 deductions for the month (LP1)",
+												"description": "Form TP1 2026 deductions the employee declared for the month (MTD Specification 2026 D, LP1), other than the SOCSO/EIS contributions claimed through socso_eis_relief."
+											},
+											"socso_eis_relief": {
+												"type": "boolean",
+												"default": false,
+												"title": "PCB: claim SOCSO and EIS contributions as TP1 relief",
+												"description": "Form TP1 2026 item C14 (Income Tax Act 1967 s.46(1)(n); MTD Specification 2026 D.2(ii) item k): the employee claims the SOCSO, EIS and LINDUNG 24 Jam (SKBBK) employee contributions deducted this year as LP1, up to RM350 a year; the relief follows the contributions this payroll actually charged. Payroll never relieves them unclaimed, so the default is false; do not also include them in tp1_monthly_deductions."
+											},
+											"tp3_prior_remuneration": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PCB: TP3 earlier remuneration this year",
+												"description": "Form TP3: remuneration paid by previous employers in the current year (part of Σ(Y − K))."
+											},
+											"tp3_prior_epf": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PCB: TP3 earlier EPF this year",
+												"description": "Form TP3: EPF contributions on that remuneration (part of K)."
+											},
+											"tp3_prior_mtd": {
+												"type": "number",
+												"minimum": 0,
+												"default": 0,
+												"title": "PCB: TP3 earlier MTD this year",
+												"description": "Form TP3: MTD deducted by previous employers in the current year (part of X)."
+											},
+											"pcb_tax_profile": {
+												"type": "string",
+												"enum": ["STANDARD", "REP", "KNOWLEDGE_WORKER", "C_SUITE"],
+												"default": "STANDARD",
+												"title": "PCB: approved tax profile",
+												"description": "MTD Specification 2026 sections 3–5: REP (Returning Expert Programme) and KNOWLEDGE_WORKER (specified region) at 15% with the RM400 rebates; C_SUITE (non-citizen in an approved company) at 15%."
+											},
+											"pcb_approval_first_year": {
+												"type": "integer",
+												"minimum": 1900,
+												"maximum": 2100,
+												"title": "PCB: first approved year of assessment"
+											},
+											"pcb_approval_last_year": {
+												"type": "integer",
+												"minimum": 1900,
+												"maximum": 2100,
+												"title": "PCB: last approved year of assessment"
+											},
+											"mykas_resident": {
+												"type": "boolean",
+												"default": false,
+												"title": "EIS: resident non-citizen with MyKAS or similar card",
+												"description": "EIS standing only. Act 800 First Schedule para 10(a)–(c): a foreign employee with a permanent-resident, MyKAS or similar identity card under the National Registration Regulations 1990 is covered."
+											},
+											"employee_rate": {
+												"type": "number",
+												"minimum": 0,
+												"maximum": 1,
+												"title": "EPF: elected employee rate (Form KWSP 17A (Khas))",
+												"description": "EPF standing only. A share above the Third Schedule the employee elected; never below it."
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored as the other keys of employment_profile.facts; the CEL root `employee.facts`. Profile columns (gender, marital_status, spouse_status, disabled, children, nationality, date_of_birth) are model fields, not inputs here.",
+					"properties": {
+						"income_tax_number": {
+							"type": "string",
+							"title": "LHDN income tax number (TIN)"
+						},
+						"epf_member_number": {
+							"type": "string",
+							"title": "KWSP member number"
+						},
+						"socso_number": {
+							"type": "string",
+							"title": "PERKESO insured person number"
+						},
+						"controls_employer": {
+							"type": "boolean",
+							"default": false,
+							"title": "Controls the employer (no perquisite exemptions)",
+							"description": "LHDN PR 5/2019 para 7.5 and MTD Specification 2026 E(9): the exempt allowances and awards do not apply to an employee with control over the employer."
+						},
+						"organisation_management": {
+							"type": "boolean",
+							"default": false,
+							"title": "Organisation management (C.P.8D status 1)",
+							"description": "LHDN C.P.8D field 5 status 1: a company director, cooperative board member, principal officer of a society, LLP partner, or manager, principal officer, resident director, partner or officer of a Labuan entity."
+						},
+						"tax_borne_by_employer": {
+							"type": "boolean",
+							"default": false,
+							"title": "Tax borne by the employer (C.P.8D field 7)",
+							"description": "LHDN C.P.8D field 7: the employee received tax borne by the employer (a tax allowance) in the remuneration year. The PCB does not gross up for it."
+						}
+					}
+				},
+				"loan_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored on loan_catalog_entry.facts; the CEL root `entry.facts` of the loan class's rules.",
+					"properties": {
+						"advance_purpose": {
+							"type": "string",
+							"title": "Permitted advance purpose",
+							"enum": [
+								"HOUSE",
+								"LAND",
+								"VEHICLE",
+								"EMPLOYER_SHARES",
+								"COMPUTER",
+								"MEDICAL_TREATMENT",
+								"SOCSO_DISABLEMENT",
+								"EDUCATION",
+								"DG_APPROVED"
+							],
+							"description": "Employment Act 1955 s.24(4)/(5): for an advance above one month's wages, the permitted purpose."
+						}
+					}
+				}
+			}
+		},
+		"entity_input_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "MY entity inputs",
+			"additionalProperties": false,
+			"description": "Stored on entity.facts; the CEL root `company.facts`.",
+			"properties": {
+				"hrd_scope": {
+					"type": "string",
+					"enum": ["PART_I", "PART_II_NGO", "OUT_OF_SCOPE"],
+					"title": "HRD employer scope",
+					"description": "Part I industry, listed Part II NGO activity, or excluded employer under the effective First Schedule."
+				},
+				"hrd_registration_class": {
+					"type": "string",
+					"enum": ["COMPULSORY", "OPTIONAL", "NOT_REGISTERED", "DEREGISTERED"],
+					"title": "HRD employer registration class",
+					"description": "Employer-level HRD Corp standing, retained after a headcount fall until approved deregistration."
+				},
+				"hrd_form2_count": {
+					"type": "integer",
+					"minimum": 0,
+					"title": "HRD Form 2 Malaysian employee count",
+					"description": "The Malaysian employee count declared to HRD Corp for this levy month; exclude persons outside Act 612 s.2. Date changes in company facts."
+				},
+				"hrd_optional_last_high_year": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 9999,
+					"title": "Last optional HRD high-rate year",
+					"description": "Calendar year in which an optional registrant most recently exceeded its Part II class maximum; 0 if never."
+				},
+				"hrd_education_schedule_code": {
+					"type": "string",
+					"enum": [
+						"NONE",
+						"85102",
+						"85104",
+						"85212",
+						"85222",
+						"85302",
+						"8541",
+						"8542",
+						"8549",
+						"85500"
+					],
+					"default": "NONE",
+					"title": "2026 HRD education exemption schedule code",
+					"description": "P.U. (A) 13/2026 Schedule MSIC code or listed 8541/8542/8549 group; NONE when the registered education industry is not scheduled. Verify against the employer's HRD registration."
+				},
+				"normal_daily_hours": {
+					"type": "number",
+					"exclusiveMinimum": 0,
+					"maximum": 9,
+					"default": 8,
+					"title": "Normal hours of work a day",
+					"description": "Employment Act 1955 s.60I(1)(b): the hourly rate of pay is the ordinary rate of pay (monthly ÷ 26, s.60I(1A)) divided by the normal hours of work; s.60A(1) allows at most 8 a day (9 under its proviso). Unrecorded is 8."
+				},
+				"epf_employer_number": {
+					"type": "string",
+					"title": "KWSP employer number"
+				},
+				"socso_employer_code": {
+					"type": "string",
+					"title": "PERKESO employer code (SOCSO, EIS and SKBBK)"
+				},
+				"lhdn_employer_number": {
+					"type": "string",
+					"title": "LHDN employer number (E number)"
+				},
+				"hrd_employer_code": {
+					"type": "string",
+					"title": "HRD Corp employer code (MyCoID)"
+				},
+				"pdpa_dpo_required": {
+					"type": "boolean",
+					"default": false,
+					"title": "Data protection officer required (PDPA s.12A)",
+					"description": "True where the entity processes personal data of more than 20,000 data subjects, sensitive personal data including financial information of more than 10,000, or carries on regular and systematic monitoring (Commissioner's DPO Guideline para 4.2, under Personal Data Protection Act 2010 s.12A)."
+				}
+			}
+		},
+		"void_reason": "Replaced before effectivity by the corrected sealed lineage published 20 October 2026; original catalogues and rules retained unchanged."
+	}
+]

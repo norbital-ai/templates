@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import type { ActFailure } from '@norbital-ai/bolt/errors';
-import { TestWorkspace } from '@norbital-ai/bolt/test';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { layer } from '@effect/vitest';
 import { Effect } from 'effect';
 import { bankConfigurationRefusal } from '../src/lib/bank_template.ts';

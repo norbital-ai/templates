@@ -26,7 +26,7 @@ export default model('jobs_site_locations', {
 	description: 'Join table linking jobs to site locations.',
 	label: 'name',
 	fields: {
-		/** `<job> · <site location>`, derived on every write (and by `seed/seed.ts`): a label is never a foreign key. */
+		/** `<job> · <site location>`, derived on every write (and by `seed/+seeder.ts`): a label is never a foreign key. */
 		name: { kind: 'text', optional: true },
 		job_id: { kind: 'ref', to: 'jobs', inverse: 'jobs_site_locations' },
 		site_location_id: { kind: 'ref', to: 'site_locations', inverse: 'jobs_site_locations' }

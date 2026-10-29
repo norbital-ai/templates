@@ -1,5 +1,5 @@
 import { team } from '@norbital-ai/bolt';
-/** Source access roles: stable handles are membership and approval identities (`seed/seed.ts` maps the bank's ids). */
+/** Source access roles: stable handles are membership and approval identities (`seed/+seeder.ts` maps the bank's ids). */
 export default team({
 	field_ops_controllers: {
 		name: 'Field Operations Controllers',

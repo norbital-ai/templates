@@ -32,7 +32,14 @@
 	const actor = bolt.actor;
 	const me = $derived(
 		actor?.kind === 'member'
-			? bolt.query({ helpers: { where: { user: { eq: actor.id } }, fields: ['name'], limit: 1 } })
+			? bolt.query({
+					helpers: {
+						output: 'helper',
+						where: { user: { eq: actor.id } },
+						fields: ['name'],
+						limit: 1
+					}
+				})
 			: null
 	);
 	const helper = $derived(me?.current?.helpers.rows[0]);
@@ -53,6 +60,7 @@
 	) =>
 		bolt.query({
 			visits: {
+				output: 'helper',
 				where: { helper: { eq: helperId }, status: { in: status }, slot: { overlaps: span } },
 				fields: [
 					'number',
@@ -296,7 +304,7 @@
 			/>
 		</div>
 	{/snippet}
-	<Scroll name="today" inset>
+	<Scroll name="today" size="fill" inset>
 		<Center measure="reading">
 			<Stack gap="lg" class="py-6">
 				{#if actor?.kind === 'member' && me?.current !== undefined && helper === undefined}<EmptyState

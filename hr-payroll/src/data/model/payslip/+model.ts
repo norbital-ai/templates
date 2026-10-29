@@ -1,4 +1,5 @@
 import { model } from '@norbital-ai/bolt';
+import { moved, tap } from '../../../lib/payroll_engine/taps.js';
 
 const create_columns = [
 	'terms_through',
@@ -211,6 +212,24 @@ export default model('payslip', {
 		}
 	},
 	read: { payslip: { fields: 'all' }, 'payslip.payroll_run_id': { fields: 'all' } },
+	outputs: {
+		// the payroll hotline: a slip's totals and its run's period
+		hotline: {
+			payslip: {
+				fields: [
+					'salary_from',
+					'salary_to',
+					'status',
+					'currency',
+					'gross',
+					'total_deductions',
+					'net',
+					'paid_at'
+				]
+			},
+			'payslip.payroll_run_id': { fields: ['period', 'pay_date'] }
+		}
+	},
 	// a paid settlement is sealed; deleting its run remains the only way to replace it, and that refuses once paid
 	locked: { status: { eq: 'PAID' } },
 	create: {
@@ -218,5 +237,12 @@ export default model('payslip', {
 	},
 	update: {
 		columns: { payslip: update_columns }
+	},
+	// The jurisdiction behaviour rules for this model's writes (`behaviour_taps`), started as the writer.
+	effect: {
+		updated: function* (changes, ctx) {
+			const ids = moved(changes, ['status']);
+			yield* tap(ctx, 'updated', { model: 'payslip', ids });
+		}
 	}
 });

@@ -15,17 +15,9 @@ import {
 const REVIEWS_AT_ONCE = 6;
 export default automation('review_job_assignment_suspicion', {
 	description:
-		"When an assignment is filed or changes: inspects photos awaiting facts (fills each one's sha256, perceptual embedding and integrity flags), then reviews every unchecked assignment with AI and creates an idempotent suspicion log only when the model judges the combined evidence suspicious. A review that fails stamps nothing and is retried at the next two-hour slot.",
-	on: [
-		{ created: 'job_assignments' },
-		{
-			updated: 'job_assignments',
-			fields: ['suspicion_checked_at'],
-			where: { suspicion_checked_at: { isNull: true } }
-		}
-	],
+		"Started when an assignment is filed or changes (`job_assignments.effect`): inspects photos awaiting facts (fills each one's sha256, perceptual embedding and integrity flags), then reviews every unchecked assignment with AI and creates an idempotent suspicion log only when the model judges the combined evidence suspicious. A review that fails stamps nothing and is retried at the next two-hour slot.",
 	input: {
-		/** Event runs: the assignments that fired. */
+		/** Runs an inspection starts: the assignments that waited on its photos. */
 		ids: { kind: 'list', of: { kind: 'id', of: 'job_assignments' }, optional: true },
 		/** Manual runs may target one unchecked assignment. */
 		assignment_id: { kind: 'id', of: 'job_assignments', optional: true }
@@ -39,7 +31,7 @@ export default automation('review_job_assignment_suspicion', {
 			counts: { kind: 'record', of: { kind: 'int' } }
 		}
 	},
-	runAs: ['suspicion_review_automation'],
+	policies: ['suspicion_review_automation'],
 	concurrency: { max: 1 },
 	run: function* (input, ctx) {
 		yield* ctx.progress({ ratio: 0.02, text: 'Inspecting filed photos' });

@@ -1,12 +1,12 @@
 /**
- * Each automation the template declares, fired through the kit and judged by what it did: `payroll_run_bookkeeping`
- * pins a run's entries and withdraws a deleted run's duties, `behaviour_taps` holds, `calendar_tick` writes the version's holidays once, `late_arrival_notice` reminds for a shift
+ * Each automation the template declares, fired through the kit and judged by what it did: `payroll_run`'s effect
+ * pins a run's entries and withdraws a deleted run's duties, `behaviour_taps` (started by it) holds, `calendar_tick` writes the version's holidays once, `late_arrival_notice` reminds for a shift
  * nobody clocked into. `invitation_profile` is `e2e/invitation-profile.test.ts`; `statutory_drift` is
  * `statutory-research.test.ts`.
  */
 import assert from 'node:assert/strict';
 import { layer } from '@effect/vitest';
-import { TestWorkspace, type Kit } from '@norbital-ai/bolt/test';
+import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Instant, PlainDate } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect, Schema } from 'effect';
@@ -71,7 +71,7 @@ rows.set('roster_entry', [
 
 layer(world(rows).layer)('automations', (it) => {
 	it.effect(
-		'payroll_run_bookkeeping pins what a run settled onto its payslip and behaviour_taps holds what a validation held',
+		'a created run’s effect pins what it settled onto its payslip and the behaviour_taps it starts hold what a validation held',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -106,16 +106,25 @@ layer(world(rows).layer)('automations', (it) => {
 				const status = (id: string) => after.payslip.rows.find((row) => row.id === id)?.status;
 				assert.equal(status(run.slip('b').id), 'ON_HOLD');
 				assert.equal(status(run.slip('a').id), 'DRAFT');
-				const failed = yield* t.db.rows(Schema.Struct({ error: Schema.NullOr(Schema.Json) }), {
-					text: "SELECT error FROM sys_run WHERE automation = 'behaviour_taps' AND state = 'failed'",
-					params: []
-				});
-				assert.deepEqual(failed, []);
+				const runs = yield* t.db.rows(
+					Schema.Struct({ automation: Schema.String, state: Schema.String }),
+					{
+						text: "SELECT automation, state FROM sys_run WHERE automation IN ('payroll_run.effect.created', 'behaviour_taps') ORDER BY automation",
+						params: []
+					}
+				);
+				// the run's effect, as its writer, started the taps; neither failed
+				assert.ok(runs.some((run) => run.automation === 'payroll_run.effect.created'));
+				assert.ok(runs.some((run) => run.automation === 'behaviour_taps'));
+				assert.deepEqual(
+					runs.filter((run) => run.state !== 'succeeded'),
+					[]
+				);
 			})
 	);
 
 	it.effect(
-		'payroll_run_bookkeeping withdraws what a deleted run raised: unsettled obligations go, open tasks are dismissed',
+		'a deleted run’s effect withdraws what it raised: unsettled obligations go, open tasks are dismissed',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* TestWorkspace;

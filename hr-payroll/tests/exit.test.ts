@@ -7,10 +7,10 @@
 import assert from 'node:assert/strict';
 import type { Id } from '@norbital-ai/bolt';
 import { it } from '@effect/vitest';
-import { TestWorkspace, type Caller } from '@norbital-ai/bolt/test';
+import { TestWorkspace, type Caller } from '@norbital-ai/bolt-cli/test';
 import { datePeriod, Instant } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
-import { fieldValue, moneyNumber } from '../src/lib/payroll_engine/foundation.ts';
+import { moneyNumber } from '../src/lib/payroll_engine/foundation.ts';
 import { fixtureId, nativeId } from './fixture_values.ts';
 import {
 	CATALOG,
@@ -253,7 +253,7 @@ const adjustmentsOf = Effect.fnUntraced(function* (hr: Caller, slip: Id<'payslip
 		payslip: { where: { id: { eq: slip } }, fields: ['adjustments'] }
 	})).payslip.rows;
 	assert.ok(row);
-	return (yield* Effect.fromResult(fieldValue(row.adjustments, 'payslip.adjustments'))) ?? [];
+	return row.adjustments ?? [];
 });
 const source = (on: string, ground: string) => `exit:${A}:SEVERANCE:${on}/${ground}`;
 
@@ -293,57 +293,52 @@ it.effect(
 		)
 );
 
-it.effect(
-	'moving the exit replaces its unpaid exit pay, and withdrawing it deletes it',
-	() =>
-		exits([{ key: 'a', salary: 3000 }]).withRead(() =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				const hr = t.as(t.member(['hr_manager']));
-				const sources = () =>
-					exitPay(hr, A).pipe(Effect.map((rows) => rows.map((row) => row.facts)));
-				yield* depart(hr, A, { on: '2026-03-20', ground: 'RESIGNATION' });
-				assert.deepEqual(yield* sources(), [{ source: source('2026-03-20', 'RESIGNATION') }]);
-				yield* depart(hr, A, { on: '2026-03-25', ground: 'RESIGNATION' });
-				assert.deepEqual(yield* sources(), [{ source: source('2026-03-25', 'RESIGNATION') }]);
-				yield* depart(hr, A, null);
-				assert.deepEqual(yield* sources(), []);
-			})
-		)
+it.effect('moving the exit replaces its unpaid exit pay, and withdrawing it deletes it', () =>
+	exits([{ key: 'a', salary: 3000 }]).withRead(() =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const hr = t.as(t.member(['hr_manager']));
+			const sources = () => exitPay(hr, A).pipe(Effect.map((rows) => rows.map((row) => row.facts)));
+			yield* depart(hr, A, { on: '2026-03-20', ground: 'RESIGNATION' });
+			assert.deepEqual(yield* sources(), [{ source: source('2026-03-20', 'RESIGNATION') }]);
+			yield* depart(hr, A, { on: '2026-03-25', ground: 'RESIGNATION' });
+			assert.deepEqual(yield* sources(), [{ source: source('2026-03-25', 'RESIGNATION') }]);
+			yield* depart(hr, A, null);
+			assert.deepEqual(yield* sources(), []);
+		})
+	)
 );
 
-it.effect(
-	'a misconduct dismissal skips the exit encashment a resignation gets',
-	() =>
-		exits(
-			[
-				{ key: 'a', salary: 3000 },
-				{ key: 'b', salary: 3000 }
-			],
-			{ annual: { encash_on_exit: true } }
-		).withRead(() =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				const hr = t.as(t.member(['hr_manager']));
-				yield* depart(hr, A, { on: '2026-03-20', ground: 'RESIGNATION' });
-				yield* depart(hr, B, {
-					on: '2026-03-20',
-					ground: 'DISMISSAL',
-					facts: { misconduct_dismissal: true }
-				});
-				const encashed = (yield* hr.query({
-					leave_catalog_entry: {
-						where: { activity: { eq: 'ENCASHMENT' } },
-						fields: ['employment_id', 'reference', 'days']
-					}
-				})).leave_catalog_entry.rows;
-				assert.deepEqual(
-					encashed.map((row) => [row.employment_id, row.reference]),
-					[[A, `exit:${A}:ANNUAL:2026-03-20/RESIGNATION`]]
-				);
-				assert.ok((moneyNumber(encashed[0]?.days) ?? 0) > 0);
-			})
-		)
+it.effect('a misconduct dismissal skips the exit encashment a resignation gets', () =>
+	exits(
+		[
+			{ key: 'a', salary: 3000 },
+			{ key: 'b', salary: 3000 }
+		],
+		{ annual: { encash_on_exit: true } }
+	).withRead(() =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const hr = t.as(t.member(['hr_manager']));
+			yield* depart(hr, A, { on: '2026-03-20', ground: 'RESIGNATION' });
+			yield* depart(hr, B, {
+				on: '2026-03-20',
+				ground: 'DISMISSAL',
+				facts: { misconduct_dismissal: true }
+			});
+			const encashed = (yield* hr.query({
+				leave_catalog_entry: {
+					where: { activity: { eq: 'ENCASHMENT' } },
+					fields: ['employment_id', 'reference', 'days']
+				}
+			})).leave_catalog_entry.rows;
+			assert.deepEqual(
+				encashed.map((row) => [row.employment_id, row.reference]),
+				[[A, `exit:${A}:ANNUAL:2026-03-20/RESIGNATION`]]
+			);
+			assert.ok((moneyNumber(encashed[0]?.days) ?? 0) > 0);
+		})
+	)
 );
 
 it.effect(

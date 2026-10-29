@@ -6,7 +6,7 @@ export default automation('payment_claim_readiness_watch', {
 	description:
 		'Counts the draft and submitted payment claims every morning at 6am and publishes the 25 most recently changed as a JSON extract so the commercial team can check progress-claim readiness.',
 	on: DAILY_0600,
-	runAs: ['construction_read'],
+	policies: ['construction_read'],
 	output: digestOutput(fields),
 	run: function* (_, ctx) {
 		const {

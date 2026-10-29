@@ -1,4 +1,5 @@
 import { Effect } from 'effect';
+import { logisticsReceipt } from '../../../lib/logistics.js';
 import { readSalesOrders } from '../../../integration/kingdee/order-source.js';
 import { model, type CreateRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { agreement, agreementFields } from '../../../lib/agreements.js';
@@ -70,6 +71,7 @@ export default model('ext_sales_orders', {
 	},
 	key: ['source', 'external_id'],
 	read: 'all',
+	outputs: { logistics: { ext_sales_orders: { fields: logisticsReceipt } } },
 	// the sync alone writes confirmations (no local columns); its rows pass through these checks
 	create: {
 		columns: { ext_sales_orders: [] },

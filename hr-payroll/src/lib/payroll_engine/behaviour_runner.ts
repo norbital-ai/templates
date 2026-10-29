@@ -22,7 +22,6 @@ import {
 	type JsonRead,
 	type Read,
 	type ReadError,
-	fieldValue,
 	isJsonObject,
 	type Json,
 	type JsonObject,
@@ -450,7 +449,7 @@ export const staffingLookup = Effect.fnUntraced(function* (from: VersionFor) {
 						Result.gen(function* () {
 							// Permanent headcount is the governing version's `payroll.permanent_when`.
 							const version = yield* versionOn(versions, settings_code, day);
-							const payroll = yield* fieldValue(version.payroll, 'jurisdiction_settings.payroll');
+							const payroll = version.payroll;
 							return yield* staffingFrom(
 								contracts,
 								day,

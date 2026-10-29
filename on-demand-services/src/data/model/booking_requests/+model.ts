@@ -40,6 +40,13 @@ export default model('booking_requests', {
 	index: ['status'],
 	search: { text: ['phone', 'address'] },
 	read: 'all',
+	outputs: {
+		customer: {
+			booking_requests: {
+				fields: ['number', 'phone', 'service', 'start', 'repeat', 'address', 'status', 'booking']
+			}
+		}
+	},
 	create: {
 		columns: {
 			booking_requests: [
@@ -87,5 +94,11 @@ export default model('booking_requests', {
 			return rows;
 		}
 	},
-	update: { columns: { booking_requests: ['status', 'booking', 'outcome'] } }
+	update: { columns: { booking_requests: ['status', 'booking', 'outcome'] } },
+	// the writer (a customer) cannot book: `portal_intake` books as dispatch
+	effect: {
+		created: function* (rows, ctx) {
+			yield* ctx.schedule('portal_intake', { ids: rows.map((r) => r.id) });
+		}
+	}
 });

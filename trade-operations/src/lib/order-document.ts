@@ -1,5 +1,5 @@
 import { Effect, Result, Schema } from 'effect';
-import { isMasked, type Id, type ReadAnswer, type Row } from '@norbital-ai/bolt';
+import { type Id, type ReadAnswer, type Row } from '@norbital-ai/bolt';
 import { contract, snapshot } from './commercial.js';
 import { agreements, currentAgreement, agreementFields } from './agreements.js';
 const variables = ['reference', 'title', 'agreement', 'version'];
@@ -61,10 +61,9 @@ export function agreementText(
 	validateDocumentTemplate(template.body);
 	return template.body.replace(/\{([^{}]+)\}/g, (_, key: string) => values[key] ?? '');
 }
-class DocumentUnavailable extends Schema.TaggedError<DocumentUnavailable>()(
-	'DocumentUnavailable',
-	{ message: Schema.String }
-) {}
+class DocumentUnavailable extends Schema.TaggedError<DocumentUnavailable>()('DocumentUnavailable', {
+	message: Schema.String
+}) {}
 /** One order's document read: its terms and seals, party, lines, and the published templates in `locale`. */
 export const documentRead = (order: Id<'orders'>, locale: 'en' | 'zh' = 'en') =>
 	({
@@ -99,8 +98,7 @@ export const orderDocument = Effect.fnUntraced(function* (
 	input: { locale?: 'en' | 'zh'; version?: number | null } = {}
 ) {
 	const order = answer.orders.rows[0];
-	if (!order || isMasked(order.currency))
-		return yield* new DocumentUnavailable({ message: 'Commercial document unavailable' });
+	if (!order) return yield* new DocumentUnavailable({ message: 'Commercial document unavailable' });
 	const kind = input.version == null && order.status === 'draft' ? 'quotation' : 'contract';
 	const template = publishedTemplate(answer.document_templates.rows, kind, input.locale ?? 'en');
 	if (!template)
@@ -135,7 +133,7 @@ export const orderDocument = Effect.fnUntraced(function* (
 		templateVersion = selected.snapshot.contract_version;
 		version = String(selected.version);
 	}
-	if (!agreement || isMasked(agreement))
+	if (!agreement)
 		return yield* new DocumentUnavailable({ message: 'Commercial document unavailable' });
 	return {
 		title: documentTitle,
@@ -163,7 +161,7 @@ type AgreementAnswer = ReadAnswer<ReturnType<typeof agreementRead>>;
 /** The approved contract versions available to preview or export. */
 export function documentVersions(answer: AgreementAnswer) {
 	const row = answer.orders.rows[0];
-	if (!row || isMasked(row.currency)) return Result.fail('errors.agreement_access' as const);
+	if (!row) return Result.fail('errors.agreement_access' as const);
 	return Result.succeed(
 		agreements(row).map((v) => ({ version: v.version, approved_at: v.approved_at }))
 	);
@@ -172,12 +170,6 @@ export function documentVersions(answer: AgreementAnswer) {
 export function sealedExport(answer: AgreementAnswer) {
 	const doc = answer.orders.rows[0];
 	if (!doc) return Result.fail('errors.order_not_confirmed' as const);
-	if (
-		isMasked(doc.contract_versions) ||
-		isMasked(doc.sealed_contract) ||
-		isMasked(doc.sealed_snapshot)
-	)
-		return Result.fail('errors.agreement_access' as const);
 	const current = currentAgreement(doc);
 	if (!current) return Result.fail('errors.order_not_confirmed' as const);
 	return Result.succeed({

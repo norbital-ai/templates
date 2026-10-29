@@ -44,10 +44,6 @@ export default policy({
 		commission_rules: {
 			read: true
 		},
-		sys_user: {
-			read: true,
-			fields: ['id', 'name']
-		},
 		contacts: {
 			read: true,
 			create: true,

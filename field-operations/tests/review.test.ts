@@ -16,7 +16,7 @@ import {
 	type Json
 } from '@norbital-ai/bolt/engine';
 import { Unavailable } from '@norbital-ai/bolt/errors';
-import { TestWorkspace } from '@norbital-ai/bolt/test';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import type { Id } from '@norbital-ai/bolt';
 import { committed, CONTROLLER, rows, shared, siteWithJob, type T } from './kit.ts';
 import { fixtureId } from './test-runtime.js';

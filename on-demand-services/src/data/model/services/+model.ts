@@ -16,6 +16,13 @@ export default model('services', {
 	},
 	search: { text: ['name'] },
 	read: 'all',
+	outputs: {
+		customer: {
+			services: { fields: ['name', 'duration_minutes', 'price', 'description', 'skill'] }
+		},
+		portal: { services: { fields: ['name', 'duration_minutes', 'price', 'description'] } },
+		helper: { services: { fields: ['name', 'duration_minutes', 'description'] } }
+	},
 	create: { columns: { services: columns } },
 	update: { columns: { services: columns } },
 	delete: {}

@@ -1,11 +1,11 @@
 import {
-	isMasked,
 	model,
 	type Id,
 	type CreateRow,
 	type UpdateSet,
 	type StoredRow,
-	type WriteCtx
+	type WriteCtx,
+	type EffectCtx
 } from '@norbital-ai/bolt';
 import { Decimal, currency } from '@norbital-ai/std/decimal';
 import { inputSchema } from '@norbital-ai/std/kind';
@@ -44,6 +44,7 @@ import {
 import { salaryReport, type SalaryReport } from '../../../lib/payroll_engine/salary_report.js';
 import { bankExportDocuments } from '../../../lib/payroll_engine/bank_export.js';
 import { ExportRules } from '../../../lib/bank_template.js';
+import { tap } from '../../../lib/payroll_engine/taps.js';
 
 const SALARY_REPORT: keyof typeof PAYROLL_SLOTS = 'salary_report';
 
@@ -71,7 +72,6 @@ type LedgerPin = {
 	readonly collection: PinnedCollection;
 	readonly id: string;
 };
-
 
 const leaveId = inputSchema({ kind: 'id', of: 'leave_catalog_entry' });
 
@@ -224,14 +224,12 @@ const exportReads = Effect.fnUntraced(function* (
 					destination: line.destination ?? 'EMPLOYER'
 				});
 				return [
-					...(isMasked(version.time_pay)
-						? []
-						: Object.values(version.time_pay).flatMap((lines) => (lines ?? []).map(own))),
+					...Object.values(version.time_pay ?? {}).flatMap((lines) => (lines ?? []).map(own)),
 					...[...version.leave_catalog, ...version.suspension_catalog].flatMap((row) =>
-						isMasked(row.pay) ? [] : (row.pay ?? []).map(own)
+						(row.pay ?? []).map(own)
 					),
 					...version.statutory_contribution_catalog.flatMap((row) =>
-						isMasked(row.configuration) ? [] : (row.configuration?.wage_adjustments ?? []).map(own)
+						(row.configuration?.wage_adjustments ?? []).map(own)
 					)
 				];
 			})
@@ -478,6 +476,105 @@ const transformRows = Effect.fnUntraced(function* (
 		});
 	}
 	return out;
+});
+
+/** The models a run pins (`payroll_run.pins[].collection`), each with the verb that writes its `payslip_id`. */
+const PIN_UPDATE = {
+	adhoc_catalog_entry: 'adhoc_catalog_entry.update',
+	claim_catalog_entry: 'claim_catalog_entry.update',
+	leave_catalog_entry: 'leave_catalog_entry.update',
+	loan_repayment_entry: 'loan_repayment_entry.update',
+	roster_entry: 'roster_entry.update'
+} as const;
+const isPinned = (collection: string): collection is keyof typeof PIN_UPDATE =>
+	Object.hasOwn(PIN_UPDATE, collection);
+/** A created run pins each entry it settled to its employment's slip of the run (`payslip_id`), as its writer. */
+const pinSettled = Effect.fnUntraced(function* (
+	runs: readonly StoredRow<'payroll_run'>[],
+	ctx: EffectCtx
+) {
+	const { payslip } = yield* ctx.query({
+		payslip: {
+			where: { payroll_run_id: { in: runs.map((run) => run.id) } },
+			fields: ['payroll_run_id', 'employment_id']
+		}
+	});
+	const pins = new Map<
+		keyof typeof PIN_UPDATE,
+		{ readonly target: string; readonly set: { readonly payslip_id: string } }[]
+	>();
+	for (const run of runs)
+		for (const pin of run.pins ?? []) {
+			const slip = payslip.rows.find(
+				(row) => row.payroll_run_id === run.id && row.employment_id === pin.employment_id
+			);
+			if (slip === undefined || !isPinned(pin.collection)) continue;
+			const held = pins.get(pin.collection) ?? [];
+			held.push({ target: pin.id, set: { payslip_id: slip.id } });
+			pins.set(pin.collection, held);
+		}
+	if (pins.size > 0)
+		yield* ctx.act.checked(
+			[...pins].map(([collection, rows]) => ({ callable: PIN_UPDATE[collection], input: rows }))
+		);
+});
+/**
+ * A deleted run withdraws the duties it raised: its open, unsettled obligations are deleted, and its open tasks
+ * dismissed with their occurrence key moved, so the duty is raised anew. The withdrawal's day is the run's settlement
+ * start, as the behaviour taps date a run.
+ */
+const withdrawRaised = Effect.fnUntraced(function* (
+	runs: readonly StoredRow<'payroll_run'>[],
+	ctx: EffectCtx
+) {
+	const days = new Map<string, string>(
+		runs.map((run) => [
+			run.id,
+			run.salary_from == null
+				? `${String(run.period).slice(0, 7)}-01`
+				: String(run.salary_from).slice(0, 10)
+		])
+	);
+	const ids = runs.map((run) => run.id);
+	const { obligation, regulatory_task } = yield* ctx.query({
+		obligation: {
+			where: { trigger_ref: { in: ids }, state: { eq: 'OPEN' }, amount_settled: { isNull: true } },
+			fields: ['trigger_ref']
+		},
+		regulatory_task: {
+			where: { subject_id: { in: ids }, state: { eq: 'OPEN' } },
+			fields: ['subject_id', 'occurrence_key']
+		}
+	});
+	const acts = [
+		...(obligation.rows.length === 0
+			? []
+			: [
+					{
+						callable: 'obligation.delete' as const,
+						input: obligation.rows.map((row) => ({ target: row.id }))
+					}
+				]),
+		...(regulatory_task.rows.length === 0
+			? []
+			: [
+					{
+						callable: 'regulatory_task.update' as const,
+						input: regulatory_task.rows.map((row) => {
+							const day = days.get(row.subject_id) ?? '';
+							return {
+								target: row.id,
+								set: {
+									state: 'DISMISSED',
+									dismiss_reason: `The payroll run that raised it was deleted on ${day}.`,
+									occurrence_key: `${row.occurrence_key}:withdrawn:${day}`
+								}
+							};
+						})
+					}
+				])
+	];
+	if (acts.length > 0) yield* ctx.act.checked(acts);
 });
 
 export default model('payroll_run', {
@@ -902,6 +999,16 @@ export default model('payroll_run', {
 				rows,
 				ctx
 			);
+		}
+	},
+	// The run's bookkeeping, the same under every jurisdiction, as its writer (a payroll rank holds every write it makes).
+	effect: {
+		created: function* (rows, ctx) {
+			yield* pinSettled(rows, ctx);
+			yield* tap(ctx, 'created', { model: 'payroll_run', ids: rows.map((row) => row.id) });
+		},
+		deleted: function* (rows, ctx) {
+			yield* withdrawRaised(rows, ctx);
 		}
 	}
 });

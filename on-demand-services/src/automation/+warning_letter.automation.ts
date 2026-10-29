@@ -9,8 +9,8 @@ const REASON = {
 export default automation('warning_letter', {
 	description:
 		'Renders a PDF warning letter for each warning filed and attaches it to the warning.',
-	on: { created: 'helper_warnings' },
-	runAs: ['dispatch_automation'],
+	input: { ids: { kind: 'list', of: { kind: 'id', of: 'helper_warnings' }, min: 1 } },
+	policies: ['dispatch_automation'],
 	run: function* ({ ids }, ctx) {
 		const { rows } = (yield* ctx.query({
 			helper_warnings: {

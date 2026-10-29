@@ -1,6 +1,7 @@
 import { policy, type Actor } from '@norbital-ai/bolt';
 const SELF = { user: { eq: { var: 'requestor.id' } } } as const;
 const OWN = { helper: { is: SELF } } as const;
+/** The member writing. */
 const memberOf = (actor: Actor) => (actor.kind === 'member' ? actor.id : null);
 /**
  * A helper: their own visits and the customer details needed to reach them, their own record, and the position their
@@ -12,24 +13,7 @@ export default policy({
 	automations: ['visits_confirm_shift', 'visits_decline_shift'],
 	grants: {
 		helpers: {
-			read: {
-				helpers: {
-					where: SELF,
-					fields: [
-						'id',
-						'user',
-						'name',
-						'phone',
-						'skills',
-						'work_days',
-						'day_start',
-						'day_end',
-						'status',
-						'last_location',
-						'last_location_at'
-					]
-				}
-			},
+			outputs: { helper: { helpers: { where: SELF } } },
 			update: {
 				columns: { helpers: ['last_location'] },
 				check: function* (changes, ctx) {
@@ -41,35 +25,15 @@ export default policy({
 		},
 		helper_time_off: { read: { helper_time_off: { where: OWN } } },
 		services: {
-			read: { services: { fields: ['id', 'name', 'duration_minutes', 'description'] } }
+			outputs: { helper: true }
 		},
 		visits: {
-			read: {
-				visits: {
-					where: OWN,
-					fields: [
-						'id',
-						'number',
-						'booking',
-						'helper',
-						'slot',
-						'address',
-						'location',
-						'skill',
-						'status',
-						'shift_check',
-						'mc',
-						'started_at',
-						'completed_at',
-						'completion_notes'
-					]
-				},
-				'visits.helper': { fields: ['name', 'phone'] },
-				// only themselves: another helper's absence is the desk's
-				'visits.unavailable_helper': { where: SELF, fields: ['name'] },
-				'visits.booking': { fields: ['number', 'service', 'customer', 'notes'] },
-				'visits.booking.customer': { fields: ['name', 'email', 'phone', 'address'] },
-				'visits.booking.service': { fields: ['name', 'duration_minutes', 'description'] }
+			outputs: {
+				helper: {
+					visits: { where: OWN },
+					// only themselves: another helper's absence is the desk's
+					'visits.unavailable_helper': { where: SELF }
+				}
 			},
 			update: {
 				columns: { visits: ['status', 'shift_check', 'mc', 'completion_notes'] },
@@ -92,19 +56,11 @@ export default policy({
 			moves: { status: ['scheduled->in_progress', 'in_progress->done'] }
 		},
 		bookings: {
-			read: {
-				bookings: {
-					where: { visits: { some: OWN } },
-					fields: ['id', 'number', 'service', 'customer', 'notes']
-				}
-			}
+			outputs: { helper: { bookings: { where: { visits: { some: OWN } } } } }
 		},
 		customers: {
-			read: {
-				customers: {
-					where: { bookings: { some: { visits: { some: OWN } } } },
-					fields: ['id', 'name', 'email', 'phone', 'address']
-				}
+			outputs: {
+				helper: { customers: { where: { bookings: { some: { visits: { some: OWN } } } } } }
 			}
 		}
 	},

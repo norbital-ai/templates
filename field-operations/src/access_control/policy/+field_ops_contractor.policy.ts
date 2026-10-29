@@ -5,7 +5,7 @@ const OWN_JOB = { job_assignment_id: { is: OWN } } as const;
 const memberOf = (actor: Actor) => (actor.kind === 'member' ? actor.id : null);
 /**
  * The contractor: the jobs they were assigned and nothing else. Everything is scoped through the assignment's
- * `assignee_user_id`; read masks are part of the boundary (processing and provenance fields stay private).
+ * `assignee_user_id`; they read each model's `contractor` output (processing and provenance fields stay private).
  */
 export default policy({
 	description:
@@ -13,47 +13,16 @@ export default policy({
 	capabilities: { apps: ['field_ops_contractor'] },
 	grants: {
 		sites: {
-			read: {
-				sites: {
-					where: { job_assignments: { some: OWN } },
-					fields: [
-						'id',
-						'site_code',
-						'name',
-						'location',
-						'address',
-						'unit_number',
-						'client_name',
-						'house_type',
-						'floor_area_sqm'
-					]
-				},
-				// a site's other jobs are not theirs
-				'sites.job_assignments': { where: OWN }
+			outputs: {
+				contractor: {
+					sites: { where: { job_assignments: { some: OWN } } },
+					// a site's other jobs are not theirs
+					'sites.job_assignments': { where: OWN }
+				}
 			}
 		},
 		job_assignments: {
-			read: {
-				job_assignments: {
-					where: OWN,
-					fields: [
-						'id',
-						'site_id',
-						'title',
-						'nature',
-						'scheduled_for',
-						'description',
-						'assignee_user_id',
-						'dispatched_at',
-						'status',
-						'completed_at',
-						'amount_charged',
-						'location',
-						'location_address',
-						'summary'
-					]
-				}
-			},
+			outputs: { contractor: { job_assignments: { where: OWN } } },
 			update: {
 				columns: {
 					job_assignments: [
@@ -75,23 +44,13 @@ export default policy({
 			}
 		},
 		photo_evidence: {
-			read: {
-				photo_evidence: {
-					where: OWN_JOB,
-					fields: ['id', 'job_assignment_id', 'photo', 'summary']
-				}
-			},
+			outputs: { contractor: { photo_evidence: { where: OWN_JOB } } },
 			create: {
 				columns: { photo_evidence: ['job_assignment_id', 'photo'] }
 			}
 		},
 		communication_logs: {
-			read: {
-				communication_logs: {
-					where: OWN_JOB,
-					fields: ['id', 'job_assignment_id', 'message', 'sent_at', 'sender']
-				}
-			},
+			outputs: { contractor: { communication_logs: { where: OWN_JOB } } },
 			create: true
 		}
 	},

@@ -2,6 +2,7 @@ import { model } from '@norbital-ai/bolt';
 import { beforeOf } from '../../../lib/payroll_engine/foundation.js';
 import { payScheduleRefusal } from '../../../lib/payroll_engine/frequency.js';
 import { SALARY_RUNS } from '../../../lib/payroll_engine/payslip/context.js';
+import { moved, tap } from '../../../lib/payroll_engine/taps.js';
 
 const columns = [
 	'settings_code',
@@ -177,6 +178,31 @@ export default model('entity', {
 		'entity.employment_contract.roster_entry': { fields: 'all' },
 		'entity.employment_contract.leave_catalog_entry': { fields: 'all' }
 	},
+	outputs: {
+		// the attendance kiosk: the entity, its employments, people and days; no leave
+		kiosk: {
+			entity: { fields: ['name', 'settings_code'] },
+			'entity.employment_contract': {
+				fields: ['employee_id', 'company_id', 'employee_number', 'effective_range']
+			},
+			'entity.employment_contract.employee_id': {
+				fields: [
+					'name',
+					'email',
+					'phone',
+					'face_embedding',
+					'face_photo',
+					'face_enrollment_status',
+					'face_enrolled_at',
+					'face_match_count',
+					'face_last_match_at'
+				]
+			},
+			'entity.employment_contract.roster_entry': {
+				fields: ['employment_id', 'work_date', 'worked_intervals']
+			}
+		}
+	},
 	create: {
 		columns: { entity: columns },
 		// For now every validation of a new entity only warns, until HR chooses otherwise.
@@ -222,6 +248,33 @@ export default model('entity', {
 				const { disbursement_account: _account, ...changed } = beforeOf(before, set);
 				return { ...set, before: changed };
 			});
+		}
+	},
+	// The jurisdiction behaviour rules for this model's writes (`behaviour_taps`), started as the writer.
+	effect: {
+		created: function* (rows, ctx) {
+			yield* tap(ctx, 'created', { model: 'entity', ids: rows.map((row) => row.id) });
+		},
+		updated: function* (changes, ctx) {
+			// every declared field but its refs and `before`
+			const ids = moved(changes, [
+				'settings_code',
+				'name',
+				'registration_number',
+				'pay_cutoff_day',
+				'late_arrival_grace_minutes',
+				'pay_frequency',
+				'pay_frequency_changes',
+				'risk_class',
+				'region',
+				'late_arrival_team',
+				'facts',
+				'time_zone',
+				'disbursement_account',
+				'validation_severity',
+				'effective_range'
+			]);
+			yield* tap(ctx, 'updated', { model: 'entity', ids });
 		}
 	}
 });

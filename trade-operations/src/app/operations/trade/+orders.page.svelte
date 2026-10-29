@@ -192,7 +192,7 @@
 			{:catch}<p role="alert">{bolt.t('component.document_unavailable')}</p>{/await}{/if}
 		{#if preview}{#await preview}<p role="status">{bolt.t('component.check_loading')}</p>
 			{:then document}<Stack gap="md"
-					><Bound size="fit"
+					><Bound size="viewport"
 						><iframe
 							title={document.title}
 							srcdoc={document.html}

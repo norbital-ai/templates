@@ -3,7 +3,6 @@
 	import { RecordShell, Show, type RecordView } from '@norbital-ai/ui';
 	import RecordLink from '../../../lib/ui/record-link.svelte';
 	import { Grid } from '@norbital-ai/ui/layout';
-	import { isMasked } from '@norbital-ai/bolt';
 	let {
 		view
 	}: {
@@ -24,7 +23,7 @@
 	{#if shown.mode !== 'create'}<Grid as="dl" gap="md">
 			{#each ['order', 'invoice'] as const as relation}
 				{@const value = shown.record[relation]}
-				{#if value && !isMasked(value)}<div>
+				{#if value}<div>
 						<dt class="text-sm text-muted-foreground">
 							{bolt.t(`models.source_payments.fields.${relation}`)}
 						</dt>

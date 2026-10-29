@@ -3,7 +3,6 @@
 	import { Effect, Result, Schema, Scope } from 'effect';
 	import { Decimal } from '@norbital-ai/std/decimal';
 	import { agreements, currentAgreement } from '../../../lib/agreements.js';
-	import { isMasked } from '@norbital-ai/bolt';
 	import {
 		confirmationCheck,
 		confirmationHash,
@@ -68,6 +67,8 @@
 		view: RecordView<'orders'>;
 	} = $props();
 	const kinds = useKinds();
+	// a narrower output (logistics) carries no commercial terms
+	const commercial = $derived(kinds.catalog?.orders?.output === undefined);
 	const translate = useBolt().t;
 	const statusText = (status: string) =>
 		enumText(status, { t: translate, model: 'ext_sales_orders', field: 'status' });
@@ -78,11 +79,7 @@
 	// credit freshness is judged against the minute, so the check re-answers as the minute turns
 	const clock = bolt.clock('minute');
 	const checkRead = $derived(
-		id &&
-			view.mode !== 'create' &&
-			view.record.status === 'draft' &&
-			!draftSetup &&
-			!isMasked(view.record.currency)
+		id && view.mode !== 'create' && view.record.status === 'draft' && !draftSetup && commercial
 			? bolt.query(confirmationRead(id))
 			: null
 	);
@@ -121,17 +118,19 @@
 			? { agreement_hash: { eq: (selectedContract ?? versions.at(-1))!.seal_hash } }
 			: {})
 	});
-	const receiptRead = $derived(
-		!id
-			? null
-			: confirmationModel === 'ext_purchase_orders'
-				? bolt.query({
-						ext_purchase_orders: { where: confirmationWhere, fields: ['reference', 'status'] }
-					})
-				: bolt.query({
-						ext_sales_orders: { where: confirmationWhere, fields: ['reference', 'status'] }
-					})
-	);
+	// the logistics output names its receipts' reference and status too
+	const receiptRead = $derived.by(() => {
+		if (!id) return null;
+		const where = confirmationWhere;
+		const fields = ['reference', 'status'] as const;
+		if (confirmationModel === 'ext_purchase_orders')
+			return commercial
+				? bolt.query({ ext_purchase_orders: { where, fields } })
+				: bolt.query({ ext_purchase_orders: { output: 'logistics', where, fields } });
+		return commercial
+			? bolt.query({ ext_sales_orders: { where, fields } })
+			: bolt.query({ ext_sales_orders: { output: 'logistics', where, fields } });
+	});
 	const confirmationRows = $derived(
 		receiptRead && {
 			error: receiptRead.error,
@@ -380,13 +379,7 @@
 {/snippet}
 {#snippet documentView(form: FormState)}
 	{@const kind = kinds.catalog?.orders?.fields?.supporting_documents}
-	{#if kind}<Show
-			readonly
-			{kind}
-			value={isMasked(form.get('supporting_documents'))
-				? form.get('supporting_documents')
-				: draftDocuments(form)}
-		/>{/if}
+	{#if kind}<Show readonly {kind} value={draftDocuments(form)} />{/if}
 {/snippet}
 {#snippet confirmation(form: FormState)}
 	{#if checkRead && draftContract}<Stack gap="sm">
@@ -891,7 +884,7 @@
 						view.mode !== 'create' && view.record.direction === 'purchasing'
 							? 'ext_purchase_orders'
 							: 'ext_sales_orders',
-						...(view.mode !== 'create' && !isMasked(view.record.currency)
+						...(view.mode !== 'create' && commercial
 							? ['source_payments', 'source_sales_lines']
 							: [])
 					].map((of) => ({ of, where: { order: { eq: id } } }))

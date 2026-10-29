@@ -7,7 +7,7 @@ import { Refusal } from '@norbital-ai/bolt/errors';
 /** Plan every occurrence before the booking, its children and its notice commit together. */
 export const bookService = Effect.fnUntraced(function* (
 	input: StartInput<'bookings_book'>,
-	ctx: Pick<AutomationCtx<{ runAs: 'trigger' }>, 'query' | 'act' | 'now' | 'tz'>
+	ctx: Pick<AutomationCtx, 'query' | 'act' | 'now' | 'tz'>
 ) {
 	const preferred = input.preference === 'preferred' ? (input.helpers ?? []) : [];
 	if (input.preference === 'preferred' && preferred.length === 0)

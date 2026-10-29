@@ -4,4 +4,4 @@
 # One layout everywhere: every package at its own node_modules root, never a peer linked into another directory's tree.
 linker = "hoisted"
 minimumReleaseAge = 86400
-minimumReleaseAgeExcludes = ["@norbital-ai/app-shell", "@norbital-ai/bolt", "@norbital-ai/bolt-server", "@norbital-ai/doctor", "@norbital-ai/providers", "@norbital-ai/std", "@norbital-ai/store", "@norbital-ai/ui"]
+minimumReleaseAgeExcludes = ["@norbital-ai/app-shell", "@norbital-ai/bolt", "@norbital-ai/bolt-cli", "@norbital-ai/bolt-server", "@norbital-ai/doctor", "@norbital-ai/providers", "@norbital-ai/std", "@norbital-ai/store", "@norbital-ai/ui"]

@@ -36,6 +36,13 @@ it.live(
 					])
 					.pipe(Effect.flip)
 			).toMatchObject({ _tag: 'ActRefused', message: 'errors.contract_setup' });
+			// the run holds `order_revision`; a start names only an order its starter reads (not another seller's)
+			expect(
+				yield* t
+					.as(t.member(['sales', 'logistics']))
+					.start('orders_revise', { target: own.order })
+					.pipe(Effect.flip)
+			).toMatchObject({ _tag: 'ActRefused' });
 			yield* revise(t, own.order);
 			const ready = yield* read();
 			if (!ready) throw new Error('Replacement draft required');
@@ -43,7 +50,9 @@ it.live(
 			expect(currentAgreement(ready)?.snapshot).toEqual(current.snapshot);
 			committed(
 				'order_lines',
-				yield* as.act('order_lines.update', [{ target: own.line, set: { quantity: Decimal.of(12) } }])
+				yield* as.act('order_lines.update', [
+					{ target: own.line, set: { quantity: Decimal.of(12) } }
+				])
 			);
 			yield* confirm(t, own.order);
 			const replacement = yield* read();
@@ -56,9 +65,9 @@ it.live(
 			const versions = agreements(replacement);
 			expect(versions).toHaveLength(2);
 			expect(versions.filter((version) => version.lifecycle === 'current')).toHaveLength(1);
-			expect(
-				versions.find((version) => version.seal_hash === replacement.seal_hash)
-			).toMatchObject({ version: 2, lifecycle: 'pending' });
+			expect(versions.find((version) => version.seal_hash === replacement.seal_hash)).toMatchObject(
+				{ version: 2, lifecycle: 'pending' }
+			);
 			expect(
 				versions.find((version) => version.seal_hash === original.seal_hash)?.snapshot
 			).toEqual(original.sealed_snapshot);

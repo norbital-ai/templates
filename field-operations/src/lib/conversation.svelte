@@ -29,21 +29,57 @@
 		onOpen: (photo: { name: string; url: string }) => void;
 	} = $props();
 	const t = bolt.t;
-	const logs = $derived(
-		bolt.query({
-			communication_logs: {
-				where: { job_assignment_id: { eq: job } },
-				orderBy: 'sent_at',
-				limit: 250
-			}
-		})
-	);
-	/** Who sent each message, by name; a reader without members sees none. */
-	const members = bolt.query({ sys_user: { fields: ['name', 'email', 'phone'], limit: 1000 } });
-	const nameOf = (sender: string) =>
-		senderName(sender, members.current?.sys_user.rows ?? []) ?? '—';
-	/** A contractor's grant masks a photo's provenance: select it only where it is readable. */
 	const kinds = useKinds();
+	/** A contractor reads the `contractor` outputs: messages without their provenance, members by name only. */
+	const contractor = kinds.catalog?.['communication_logs']?.output === 'contractor';
+	const traceable = $derived(
+		contractor
+			? null
+			: bolt.query({
+					communication_logs: {
+						where: { job_assignment_id: { eq: job } },
+						fields: ['message', 'sent_at', 'sender', 'source_message_id'],
+						orderBy: 'sent_at',
+						limit: 250
+					}
+				})
+	);
+	const untraceable = $derived(
+		contractor
+			? bolt.query({
+					communication_logs: {
+						output: 'contractor',
+						where: { job_assignment_id: { eq: job } },
+						fields: ['message', 'sent_at', 'sender'],
+						orderBy: 'sent_at',
+						limit: 250
+					}
+				})
+			: null
+	);
+	const logs = $derived({
+		error: traceable?.error ?? untraceable?.error,
+		rows: [
+			...(traceable?.current?.communication_logs.rows ?? []),
+			...(untraceable?.current?.communication_logs.rows ?? []).map((m) => ({
+				...m,
+				source_message_id: null
+			}))
+		]
+	});
+	/** Who sent each message, by name; a reader without members sees none. */
+	const staff = contractor
+		? null
+		: bolt.query({ sys_user: { fields: ['name', 'email', 'phone'], limit: 1000 } });
+	const directory = contractor
+		? bolt.query({ sys_user: { output: 'directory', fields: ['name'], limit: 1000 } })
+		: null;
+	const members = $derived([
+		...(staff?.current?.sys_user.rows ?? []),
+		...(directory?.current?.sys_user.rows ?? []).map((m) => ({ ...m, email: null, phone: null }))
+	]);
+	const nameOf = (sender: string) => senderName(sender, members) ?? '—';
+	/** A contractor's output omits a photo's provenance: select it only where it is readable. */
 	const locale = kinds.locale ?? bolt.locale;
 	const provenance = kinds.catalog?.['photo_evidence']?.fields['source'] !== undefined;
 	const traced = $derived(
@@ -63,6 +99,7 @@
 			? null
 			: bolt.query({
 					photo_evidence: {
+						output: 'contractor',
 						where: { job_assignment_id: { eq: job } },
 						fields: ['photo', 'created_at'],
 						orderBy: 'created_at',
@@ -114,21 +151,18 @@
 			(p) => p.messageId!
 		);
 		const items: Item[] = [
-			...(logs.current?.communication_logs.rows ?? []).map((m) => ({
-				id: `message:${m.source_message_id}`,
+			...logs.rows.map((m) => ({
+				id: `message:${m.source_message_id ?? m.id}`,
 				sender: nameOf(m.sender),
 				text: m.message,
 				sentAt: String(m.sent_at),
-				photos: byMessage.get(m.source_message_id) ?? [],
+				photos:
+					(m.source_message_id == null ? undefined : byMessage.get(m.source_message_id)) ?? [],
 				system: false
 			})),
 			...photos
 				.filter(
-					(p) =>
-						p.messageId == null ||
-						!(logs.current?.communication_logs.rows ?? []).some(
-							(m) => m.source_message_id === p.messageId
-						)
+					(p) => p.messageId == null || !logs.rows.some((m) => m.source_message_id === p.messageId)
 				)
 				.map((p) => ({
 					id: `photo:${p.id}`,

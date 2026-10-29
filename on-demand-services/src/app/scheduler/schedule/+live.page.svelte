@@ -6,7 +6,6 @@
 	 * watch last estimated. Both refresh as helpers report.
 	 */
 	import { bolt } from '$bolt';
-	import { isMasked } from '@norbital-ai/bolt';
 	import { Instant } from '@norbital-ai/std/date';
 	import { AppShell, Split } from '@norbital-ai/ui/layout';
 	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -59,9 +58,7 @@
 			lat: v.location!.lat,
 			lng: v.location!.lng,
 			text: `${v.helper!.name.split(' ')[0]} → ${v.booking?.customer?.name ?? ''} · ${time(v.slot.start)}`,
-			...(v.helper!.last_location === null || isMasked(v.helper!.last_location)
-				? {}
-				: { from: v.helper!.last_location })
+			...(v.helper!.last_location === null ? {} : { from: v.helper!.last_location })
 		}));
 	});
 </script>
@@ -109,7 +106,7 @@
 >
 	<!-- the visits under way are the work: they take the wide pane, the map rides beside them -->
 	<Split
-		fill
+		size="fill"
 		ratio="wide"
 		start={underWay}
 		end={positions}

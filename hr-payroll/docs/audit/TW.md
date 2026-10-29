@@ -4,7 +4,7 @@
 > owner's mechanism-only test policy; their counts, names and pass lines are historical evidence, not current
 > coverage. The jurisdiction seed catalogues this audit reviewed remain the workspace's runtime data.
 
-Audit date 2026-10-21. Audit only: no repository file was edited. Seed: `templates/hr-payroll/seed/jurisdiction/TW/version_4/`.
+Audit date 2026-10-21. Audit only: no repository file was edited. Seed: `templates/hr-payroll/seed/public/jurisdiction/TW/version_4/`.
 
 ## Summary verdict
 
@@ -202,7 +202,7 @@ Removed: https://www.nhi.gov.tw/ (READER 403 at 5.5 KB, BROWSER security verific
 
 ## Wave 2 (2026-10-22)
 
-Scope: statutory never deferred on off-cycle slips (task 1), month totals identical in every order (task 2), every leave, claim, allowance, ad hoc and loan row checked against the law (task 3), and the 2027 version (task 6). Files: `seed/jurisdiction/TW/version_1`–`version_4` (in place, the same rule in every version), the new `seed/jurisdiction/TW/version_5`, `tests/jurisdiction_tw.test.ts` and `docs/inventory/TW.csv`. No engine code was touched.
+Scope: statutory never deferred on off-cycle slips (task 1), month totals identical in every order (task 2), every leave, claim, allowance, ad hoc and loan row checked against the law (task 3), and the 2027 version (task 6). Files: `seed/public/jurisdiction/TW/version_1`–`version_4` (in place, the same rule in every version), the new `seed/public/jurisdiction/TW/version_5`, `tests/jurisdiction_tw.test.ts` and `docs/inventory/TW.csv`. No engine code was touched.
 
 ### Task 1: schemes changed
 

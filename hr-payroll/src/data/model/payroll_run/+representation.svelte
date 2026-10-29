@@ -142,7 +142,7 @@
 
 <RecordShell of="payroll_run" {...run == null ? {} : { id: run.id }} mode={view.mode}>
 	{#if run}
-		<Cover gap="lg" grow top={runSummary}>
+		<Cover gap="lg" size="fill" top={runSummary}>
 			<Table
 				of="payslip"
 				key={`run-payslips-${run.id}`}

@@ -22,13 +22,17 @@ layer(shared(), { excludeTestServices: true })('access and ledger', (test) => {
 				const as = t.as(sales);
 				const mine = yield* draft(t, 'sales', fixtureId('sys_user', sales.id));
 				const other = yield* draft(t);
-				expect((yield* as.query({ orders: {} })).orders.rows.map((r) => r.id)).toEqual([mine.order]);
+				expect((yield* as.query({ orders: {} })).orders.rows.map((r) => r.id)).toEqual([
+					mine.order
+				]);
 				expect((yield* as.query({ order_lines: {} })).order_lines.rows.map((r) => r.id)).toEqual([
 					mine.line
 				]);
 				expect(
 					yield* Effect.flip(
-						as.act('order_lines.update', [{ target: other.line, set: { unit_price: Decimal.of('1') } }])
+						as.act('order_lines.update', [
+							{ target: other.line, set: { unit_price: Decimal.of('1') } }
+						])
 					)
 				).toMatchObject({ _tag: 'ActRefused' });
 				expect(
@@ -53,7 +57,7 @@ layer(shared(), { excludeTestServices: true })('access and ledger', (test) => {
 			})
 	);
 	test.effect(
-		'logistics reads quantities but not prices; with sales it cannot calculate foreign sealed commission',
+		'logistics reads quantities through its output but not prices; with sales it cannot calculate foreign sealed commission',
 		() =>
 			Effect.gen(function* () {
 				const t = yield* Trade;
@@ -61,10 +65,12 @@ layer(shared(), { excludeTestServices: true })('access and ledger', (test) => {
 				const foreign = yield* draft(t, 'sales', undefined, undefined, WEST);
 				yield* confirm(t, foreign.order);
 				const logistics = t.as(t.member(['logistics']));
-				expect(
-					(yield* logistics.query({ order_lines: { where: { id: { eq: foreign.line } }, limit: 1 } }))
-						.order_lines.rows[0]
-				).toMatchObject({ unit_price: { $masked: true } });
+				const line = (yield* logistics.query({
+					order_lines: { output: 'logistics', where: { id: { eq: foreign.line } }, limit: 1 }
+				})).order_lines.rows[0];
+				expect(line?.quantity.eq(10)).toBe(true);
+				expect(line).not.toHaveProperty('unit_price');
+				yield* rejects(logistics.query({ order_lines: {} }));
 				expect(
 					yield* direct(t, logistics.authority, {
 						model: 'transactions',
@@ -74,14 +80,22 @@ layer(shared(), { excludeTestServices: true })('access and ledger', (test) => {
 				).not.toMatchObject({ kind: 'committed' });
 				const mixed = t.member(['sales', 'logistics']);
 				const actor = t.as(mixed);
+				// sales' default output admits only its own orders; the logistics output carries no terms
 				expect(
-					(yield* actor.query({ orders: { where: { id: { eq: foreign.order } }, limit: 1 } })).orders
-						.rows[0]
-				).toMatchObject({ sealed_snapshot: { $masked: true }, sealed_contract: { $masked: true } });
-				yield* rejects(sealedExportOf(actor, { order: foreign.order }), 'errors.agreement_access');
+					(yield* actor.query({ orders: { where: { id: { eq: foreign.order } } } })).orders.rows
+				).toEqual([]);
+				const shipped = (yield* actor.query({
+					orders: { output: 'logistics', where: { id: { eq: foreign.order } }, limit: 1 }
+				})).orders.rows[0];
+				expect(shipped).toMatchObject({ id: foreign.order, status: 'confirmed' });
+				expect(shipped).not.toHaveProperty('sealed_snapshot');
+				expect(shipped).not.toHaveProperty('sealed_contract');
 				yield* rejects(
-					confirmationOf(actor, { as_of: Instant(t.clock.now()), order: foreign.order }),
-					'errors.commercial_access'
+					sealedExportOf(actor, { order: foreign.order }),
+					'errors.order_not_confirmed'
+				);
+				yield* rejects(
+					confirmationOf(actor, { as_of: Instant(t.clock.now()), order: foreign.order })
 				);
 				const personal = yield* draft(t, 'sales', fixtureId('sys_user', mixed.id), undefined, WEST);
 				yield* confirm(t, personal.order);

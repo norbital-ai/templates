@@ -1,0 +1,1941 @@
+[
+	{
+		"id": "42ae4a62-3770-5cda-b427-03d6cfd7f1d8",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "PARAMETERS",
+		"code": "minimum_wage",
+		"name": "Regional minimum wage (UMP/UMK)",
+		"references": [
+			{
+				"title": "Minimum wages from 1 January 2025 (PP 36/2021 as amended by PP 51/2023; Permenaker 16/2024: 6.5% on 2024). Keys and lookup as in the 2026 versions: every kota and kabupaten is listed at its UMK or at the UMP; the worksite (`terms.facts.worksite_region`), else the company region, by exact key; an absent key or the bare key of a province whose localities are listed refuses. UMPs 2025 as the Kemnaker national list publishes them with their sen (hukumonline, UMP 2025 se-Indonesia): Aceh 3,685,616; Sumatera Utara 2,992,559; Sumatera Barat 2,994,193.47; Riau 3,508,776.22; Jambi 3,234,535; Sumatera Selatan 3,681,571; Bengkulu 2,670,039.39; Lampung 2,893,070; Bangka Belitung 3,876,600; Kepulauan Riau 3,623,654; DKI 5,396,761; DI Yogyakarta 2,264,080.95; Banten 2,905,119.90; Bali 2,996,561; NTB 2,602,931; NTT 2,328,969.69; Kalimantan Barat 2,878,286; Kalimantan Tengah 3,473,621.04; Kalimantan Selatan 3,496,195 (3,282,812.21 × 1.065; one report prints 3,496,150, below that product); Kalimantan Timur 3,579,313.77; Kalimantan Utara 3,580,160; Sulawesi Utara 3,775,425; Sulawesi Tengah 2,915,000; Sulawesi Selatan 3,657,527.37; Sulawesi Tenggara 3,073,551.70; Gorontalo 3,221,731; Sulawesi Barat 3,104,430; Maluku 3,141,700; Maluku Utara 3,408,000; Papua Barat 3,615,000; Papua Barat Daya 3,614,000; Papua, Papua Selatan and Papua Pegunungan 4,285,850; Papua Tengah 4,285,848. UMKs 2025: Jawa Barat 27 (Kep. 561.7/Kep.798-Kesra/2024), Jawa Tengah 35 (Kep. 561/45/2024), Jawa Timur 38 (Kep. 775/2024), Banten eight (Kep. 471/2024), Bali, Lampung, Kepulauan Riau, Riau, DIY as before; and, as each province restated them beside its 2026 decision or in its 2025 decree (secondary: detik, GoodStats, KitaLulus): Aceh — Banda Aceh 3,898,856, Aceh Tamiang 3,717,948; Sumatera Utara 22 UMKs (Kep. 188.44/833/KPTS/2024 for Medan); Jambi four (Kep. 953/Kep.Gub/DISNAKERTRANS-3.3/2024); Sumatera Selatan seven; Bengkulu four (Kep. M.647.DKKTRANS/2024); NTB nine (Lombok Barat at the UMP: the 2,444,067 one report prints is below it); NTT Kota Kupang 2,396,697; Kalimantan Barat eleven (Kep. 908/NAKERTRAN/2024); Kalimantan Tengah 14 (Kep. 188.44/578/2024); Kalimantan Selatan four (Kep. 100.3.3.1/01089/KUM/2024); Kalimantan Timur ten, Mahakam Ulu included; Kalimantan Utara five; Sulawesi Utara Kota Manado 3,824,264 (SK 697/2024); Sulawesi Tengah six; Sulawesi Selatan Makassar 3,880,136; Sulawesi Tenggara three; Sulawesi Barat Mamuju 3,122,680 (SK 1475/2024) and Pasangkayu 3,445,981; Maluku Kota Ambon 3,185,733; Maluku Utara Kota Ternate 3,461,250 (SK 626/KPTS/MU/2024); Papua Tengah Mimika 5,005,678; big-city UMKs Medan 4,014,072, Samarinda 3,724,437.20, Balikpapan 3,701,508, Bontang 3,780,012, Makassar 3,880,136, Palembang 3,916,635. Where two reports disagree the higher figure is seeded (the floor a worker can rely on): Kabupaten Bima 2,662,719, Murung Raya 3,793,932, Kotawaringin Timur 3,559,506.38, Gunung Mas 3,544,506, Tanah Bumbu 3,500,163, Pasangkayu 3,445,981 (one 2025 report lists only Mamuju with a UMK). Kalimantan Selatan UMKs 2025 re-read on Kep. 100.3.3.1/01089/KUM/2024 diktum KEDUA (the Disnakertrans Kalsel scan, 2026-10-08): Tanah Bumbu 3,500,163.21."
+			}
+		],
+		"rules": {
+			"by_region": {
+				"Provinsi Aceh/Kabupaten Aceh Barat": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Barat Daya": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Besar": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Jaya": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Selatan": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Singkil": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Tamiang": 3717948,
+				"Provinsi Aceh/Kabupaten Aceh Tengah": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Tenggara": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Timur": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Utara": 3685616,
+				"Provinsi Aceh/Kabupaten Bener Meriah": 3685616,
+				"Provinsi Aceh/Kabupaten Bireuen": 3685616,
+				"Provinsi Aceh/Kabupaten Gayo Lues": 3685616,
+				"Provinsi Aceh/Kabupaten Nagan Raya": 3685616,
+				"Provinsi Aceh/Kabupaten Pidie": 3685616,
+				"Provinsi Aceh/Kabupaten Pidie Jaya": 3685616,
+				"Provinsi Aceh/Kabupaten Simeulue": 3685616,
+				"Provinsi Aceh/Kota Banda Aceh": 3898856,
+				"Provinsi Aceh/Kota Langsa": 3685616,
+				"Provinsi Aceh/Kota Lhokseumawe": 3685616,
+				"Provinsi Aceh/Kota Sabang": 3685616,
+				"Provinsi Aceh/Kota Subulussalam": 3685616,
+				"Provinsi Bali/Kabupaten Badung": 3534338.88,
+				"Provinsi Bali/Kabupaten Bangli": 2996561,
+				"Provinsi Bali/Kabupaten Buleleng": 2996561,
+				"Provinsi Bali/Kabupaten Gianyar": 3119080,
+				"Provinsi Bali/Kabupaten Jembrana": 2996561,
+				"Provinsi Bali/Kabupaten Karangasem": 2996561,
+				"Provinsi Bali/Kabupaten Klungkung": 2996561,
+				"Provinsi Bali/Kabupaten Tabanan": 3102520.45,
+				"Provinsi Bali/Kota Denpasar": 3298116.5,
+				"Provinsi Banten/Kabupaten Lebak": 3172384.39,
+				"Provinsi Banten/Kabupaten Pandeglang": 3206640.32,
+				"Provinsi Banten/Kabupaten Serang": 4857353.01,
+				"Provinsi Banten/Kabupaten Tangerang": 4901117,
+				"Provinsi Banten/Kota Cilegon": 5128084.48,
+				"Provinsi Banten/Kota Serang": 4418261.13,
+				"Provinsi Banten/Kota Tangerang": 5069708.36,
+				"Provinsi Banten/Kota Tangerang Selatan": 4974392.42,
+				"Provinsi Bengkulu/Kabupaten Bengkulu Selatan": 2670039.39,
+				"Provinsi Bengkulu/Kabupaten Bengkulu Tengah": 2816835.35,
+				"Provinsi Bengkulu/Kabupaten Bengkulu Utara": 2754653.52,
+				"Provinsi Bengkulu/Kabupaten Kaur": 2670039.39,
+				"Provinsi Bengkulu/Kabupaten Kepahiang": 2670039.39,
+				"Provinsi Bengkulu/Kabupaten Lebong": 2670039.39,
+				"Provinsi Bengkulu/Kabupaten Mukomuko": 3052118.99,
+				"Provinsi Bengkulu/Kabupaten Rejang Lebong": 2670039.39,
+				"Provinsi Bengkulu/Kabupaten Seluma": 2670039.39,
+				"Provinsi Bengkulu/Kota Bengkulu": 2930669.44,
+				"Provinsi DI Yogyakarta/Kabupaten Bantul": 2360533,
+				"Provinsi DI Yogyakarta/Kabupaten Gunungkidul": 2330263.67,
+				"Provinsi DI Yogyakarta/Kabupaten Kulon Progo": 2351239.85,
+				"Provinsi DI Yogyakarta/Kabupaten Sleman": 2466514.86,
+				"Provinsi DI Yogyakarta/Kota Yogyakarta": 2655041.81,
+				"Provinsi DKI Jakarta": 5396761,
+				"Provinsi Gorontalo/Kabupaten Boalemo": 3221731,
+				"Provinsi Gorontalo/Kabupaten Bone Bolango": 3221731,
+				"Provinsi Gorontalo/Kabupaten Gorontalo": 3221731,
+				"Provinsi Gorontalo/Kabupaten Gorontalo Utara": 3221731,
+				"Provinsi Gorontalo/Kabupaten Pohuwato": 3221731,
+				"Provinsi Gorontalo/Kota Gorontalo": 3221731,
+				"Provinsi Jambi/Kabupaten Batanghari": 3234535,
+				"Provinsi Jambi/Kabupaten Bungo": 3234535,
+				"Provinsi Jambi/Kabupaten Kerinci": 3234535,
+				"Provinsi Jambi/Kabupaten Merangin": 3234535,
+				"Provinsi Jambi/Kabupaten Muaro Jambi": 3378620,
+				"Provinsi Jambi/Kabupaten Sarolangun": 3322266,
+				"Provinsi Jambi/Kabupaten Tanjung Jabung Barat": 3329595,
+				"Provinsi Jambi/Kabupaten Tanjung Jabung Timur": 3234535,
+				"Provinsi Jambi/Kabupaten Tebo": 3234535,
+				"Provinsi Jambi/Kota Jambi": 3607223,
+				"Provinsi Jambi/Kota Sungai Penuh": 3234535,
+				"Provinsi Jawa Barat/Kabupaten Bandung": 3757284.86,
+				"Provinsi Jawa Barat/Kabupaten Bandung Barat": 3736741,
+				"Provinsi Jawa Barat/Kabupaten Bekasi": 5558515.1,
+				"Provinsi Jawa Barat/Kabupaten Bogor": 4877211.17,
+				"Provinsi Jawa Barat/Kabupaten Ciamis": 2225279.16,
+				"Provinsi Jawa Barat/Kabupaten Cianjur": 3104583.63,
+				"Provinsi Jawa Barat/Kabupaten Cirebon": 2681382.45,
+				"Provinsi Jawa Barat/Kabupaten Garut": 2328555.41,
+				"Provinsi Jawa Barat/Kabupaten Indramayu": 2794237,
+				"Provinsi Jawa Barat/Kabupaten Karawang": 5599593.21,
+				"Provinsi Jawa Barat/Kabupaten Kuningan": 2209519.29,
+				"Provinsi Jawa Barat/Kabupaten Majalengka": 2404632.62,
+				"Provinsi Jawa Barat/Kabupaten Pangandaran": 2221724.19,
+				"Provinsi Jawa Barat/Kabupaten Purwakarta": 4792252.92,
+				"Provinsi Jawa Barat/Kabupaten Subang": 3508626.53,
+				"Provinsi Jawa Barat/Kabupaten Sukabumi": 3604482.92,
+				"Provinsi Jawa Barat/Kabupaten Sumedang": 3732088.02,
+				"Provinsi Jawa Barat/Kabupaten Tasikmalaya": 2699992.26,
+				"Provinsi Jawa Barat/Kota Bandung": 4482914.09,
+				"Provinsi Jawa Barat/Kota Banjar": 2204754.48,
+				"Provinsi Jawa Barat/Kota Bekasi": 5690752.95,
+				"Provinsi Jawa Barat/Kota Bogor": 5126897.22,
+				"Provinsi Jawa Barat/Kota Cimahi": 3863692,
+				"Provinsi Jawa Barat/Kota Cirebon": 2697685.47,
+				"Provinsi Jawa Barat/Kota Depok": 5195721.78,
+				"Provinsi Jawa Barat/Kota Sukabumi": 3018634.94,
+				"Provinsi Jawa Barat/Kota Tasikmalaya": 2801962.82,
+				"Provinsi Jawa Tengah/Kabupaten Banjarnegara": 2170475.32,
+				"Provinsi Jawa Tengah/Kabupaten Banyumas": 2338410,
+				"Provinsi Jawa Tengah/Kabupaten Batang": 2534383,
+				"Provinsi Jawa Tengah/Kabupaten Blora": 2238430.85,
+				"Provinsi Jawa Tengah/Kabupaten Boyolali": 2396598,
+				"Provinsi Jawa Tengah/Kabupaten Brebes": 2239801.5,
+				"Provinsi Jawa Tengah/Kabupaten Cilacap": 2640248,
+				"Provinsi Jawa Tengah/Kabupaten Demak": 2940716,
+				"Provinsi Jawa Tengah/Kabupaten Grobogan": 2254090,
+				"Provinsi Jawa Tengah/Kabupaten Jepara": 2610224,
+				"Provinsi Jawa Tengah/Kabupaten Karanganyar": 2437110,
+				"Provinsi Jawa Tengah/Kabupaten Kebumen": 2259873.55,
+				"Provinsi Jawa Tengah/Kabupaten Kendal": 2783455.25,
+				"Provinsi Jawa Tengah/Kabupaten Klaten": 2389872.78,
+				"Provinsi Jawa Tengah/Kabupaten Kudus": 2680485.72,
+				"Provinsi Jawa Tengah/Kabupaten Magelang": 2467488,
+				"Provinsi Jawa Tengah/Kabupaten Pati": 2332350,
+				"Provinsi Jawa Tengah/Kabupaten Pekalongan": 2486653.59,
+				"Provinsi Jawa Tengah/Kabupaten Pemalang": 2296140,
+				"Provinsi Jawa Tengah/Kabupaten Purbalingga": 2338283.12,
+				"Provinsi Jawa Tengah/Kabupaten Purworejo": 2265937.67,
+				"Provinsi Jawa Tengah/Kabupaten Rembang": 2236168.78,
+				"Provinsi Jawa Tengah/Kabupaten Semarang": 2750136,
+				"Provinsi Jawa Tengah/Kabupaten Sragen": 2182200,
+				"Provinsi Jawa Tengah/Kabupaten Sukoharjo": 2359488,
+				"Provinsi Jawa Tengah/Kabupaten Tegal": 2333586.46,
+				"Provinsi Jawa Tengah/Kabupaten Temanggung": 2246850,
+				"Provinsi Jawa Tengah/Kabupaten Wonogiri": 2180587.5,
+				"Provinsi Jawa Tengah/Kabupaten Wonosobo": 2299521.38,
+				"Provinsi Jawa Tengah/Kota Magelang": 2281230,
+				"Provinsi Jawa Tengah/Kota Pekalongan": 2545138,
+				"Provinsi Jawa Tengah/Kota Salatiga": 2533583,
+				"Provinsi Jawa Tengah/Kota Semarang": 3454827,
+				"Provinsi Jawa Tengah/Kota Surakarta": 2416560,
+				"Provinsi Jawa Tengah/Kota Tegal": 2376683.82,
+				"Provinsi Jawa Timur/Kabupaten Bangkalan": 2397550,
+				"Provinsi Jawa Timur/Kabupaten Banyuwangi": 2810139,
+				"Provinsi Jawa Timur/Kabupaten Blitar": 2413974,
+				"Provinsi Jawa Timur/Kabupaten Bojonegoro": 2525132,
+				"Provinsi Jawa Timur/Kabupaten Bondowoso": 2347359,
+				"Provinsi Jawa Timur/Kabupaten Gresik": 4874133,
+				"Provinsi Jawa Timur/Kabupaten Jember": 2838642,
+				"Provinsi Jawa Timur/Kabupaten Jombang": 3137004,
+				"Provinsi Jawa Timur/Kabupaten Kediri": 2492811,
+				"Provinsi Jawa Timur/Kabupaten Lamongan": 3012164,
+				"Provinsi Jawa Timur/Kabupaten Lumajang": 2429764,
+				"Provinsi Jawa Timur/Kabupaten Madiun": 2400321,
+				"Provinsi Jawa Timur/Kabupaten Magetan": 2406719,
+				"Provinsi Jawa Timur/Kabupaten Malang": 3553530,
+				"Provinsi Jawa Timur/Kabupaten Mojokerto": 4856026,
+				"Provinsi Jawa Timur/Kabupaten Nganjuk": 2405255,
+				"Provinsi Jawa Timur/Kabupaten Ngawi": 2397928,
+				"Provinsi Jawa Timur/Kabupaten Pacitan": 2364287,
+				"Provinsi Jawa Timur/Kabupaten Pamekasan": 2376614,
+				"Provinsi Jawa Timur/Kabupaten Pasuruan": 4866890,
+				"Provinsi Jawa Timur/Kabupaten Ponorogo": 2402959,
+				"Provinsi Jawa Timur/Kabupaten Probolinggo": 2989407,
+				"Provinsi Jawa Timur/Kabupaten Sampang": 2335661,
+				"Provinsi Jawa Timur/Kabupaten Sidoarjo": 4870511,
+				"Provinsi Jawa Timur/Kabupaten Situbondo": 2335209,
+				"Provinsi Jawa Timur/Kabupaten Sumenep": 2406551,
+				"Provinsi Jawa Timur/Kabupaten Trenggalek": 2378784,
+				"Provinsi Jawa Timur/Kabupaten Tuban": 3050400,
+				"Provinsi Jawa Timur/Kabupaten Tulungagung": 2470800,
+				"Provinsi Jawa Timur/Kota Batu": 3360466,
+				"Provinsi Jawa Timur/Kota Blitar": 2481450,
+				"Provinsi Jawa Timur/Kota Kediri": 2572361,
+				"Provinsi Jawa Timur/Kota Madiun": 2422105,
+				"Provinsi Jawa Timur/Kota Malang": 3507693,
+				"Provinsi Jawa Timur/Kota Mojokerto": 3031000,
+				"Provinsi Jawa Timur/Kota Pasuruan": 3358557,
+				"Provinsi Jawa Timur/Kota Probolinggo": 2876657,
+				"Provinsi Jawa Timur/Kota Surabaya": 4961753,
+				"Provinsi Kalimantan Barat/Kabupaten Bengkayang": 3062260,
+				"Provinsi Kalimantan Barat/Kabupaten Kapuas Hulu": 2924501,
+				"Provinsi Kalimantan Barat/Kabupaten Kayong Utara": 3220756,
+				"Provinsi Kalimantan Barat/Kabupaten Ketapang": 3396267.26,
+				"Provinsi Kalimantan Barat/Kabupaten Kubu Raya": 2878286,
+				"Provinsi Kalimantan Barat/Kabupaten Landak": 3054906,
+				"Provinsi Kalimantan Barat/Kabupaten Melawi": 2953711.47,
+				"Provinsi Kalimantan Barat/Kabupaten Mempawah": 2878286,
+				"Provinsi Kalimantan Barat/Kabupaten Sambas": 3015520,
+				"Provinsi Kalimantan Barat/Kabupaten Sanggau": 2970885,
+				"Provinsi Kalimantan Barat/Kabupaten Sekadau": 2878286,
+				"Provinsi Kalimantan Barat/Kabupaten Sintang": 3039805,
+				"Provinsi Kalimantan Barat/Kota Pontianak": 3024820,
+				"Provinsi Kalimantan Barat/Kota Singkawang": 3074566,
+				"Provinsi Kalimantan Selatan/Kabupaten Balangan": 3496195,
+				"Provinsi Kalimantan Selatan/Kabupaten Banjar": 3496195,
+				"Provinsi Kalimantan Selatan/Kabupaten Barito Kuala": 3496195,
+				"Provinsi Kalimantan Selatan/Kabupaten Hulu Sungai Selatan": 3496195,
+				"Provinsi Kalimantan Selatan/Kabupaten Hulu Sungai Tengah": 3496195,
+				"Provinsi Kalimantan Selatan/Kabupaten Hulu Sungai Utara": 3496195,
+				"Provinsi Kalimantan Selatan/Kabupaten Kotabaru": 3643004,
+				"Provinsi Kalimantan Selatan/Kabupaten Tabalong": 3592197.46,
+				"Provinsi Kalimantan Selatan/Kabupaten Tanah Bumbu": 3500163.21,
+				"Provinsi Kalimantan Selatan/Kabupaten Tanah Laut": 3496195,
+				"Provinsi Kalimantan Selatan/Kabupaten Tapin": 3496195,
+				"Provinsi Kalimantan Selatan/Kota Banjarbaru": 3496195,
+				"Provinsi Kalimantan Selatan/Kota Banjarmasin": 3599182.13,
+				"Provinsi Kalimantan Tengah/Kabupaten Barito Selatan": 3829097.81,
+				"Provinsi Kalimantan Tengah/Kabupaten Barito Timur": 3498701,
+				"Provinsi Kalimantan Tengah/Kabupaten Barito Utara": 3900362.43,
+				"Provinsi Kalimantan Tengah/Kabupaten Gunung Mas": 3544506,
+				"Provinsi Kalimantan Tengah/Kabupaten Kapuas": 3473710.5,
+				"Provinsi Kalimantan Tengah/Kabupaten Katingan": 3561258.83,
+				"Provinsi Kalimantan Tengah/Kabupaten Kotawaringin Barat": 3700658.81,
+				"Provinsi Kalimantan Tengah/Kabupaten Kotawaringin Timur": 3559506.38,
+				"Provinsi Kalimantan Tengah/Kabupaten Lamandau": 3781317,
+				"Provinsi Kalimantan Tengah/Kabupaten Murung Raya": 3793932,
+				"Provinsi Kalimantan Tengah/Kabupaten Pulang Pisau": 3481226,
+				"Provinsi Kalimantan Tengah/Kabupaten Seruyan": 3870690.32,
+				"Provinsi Kalimantan Tengah/Kabupaten Sukamara": 3716340,
+				"Provinsi Kalimantan Tengah/Kota Palangka Raya": 3525154.26,
+				"Provinsi Kalimantan Timur/Kabupaten Berau": 4081376.31,
+				"Provinsi Kalimantan Timur/Kabupaten Kutai Barat": 3952233,
+				"Provinsi Kalimantan Timur/Kabupaten Kutai Kartanegara": 3766379,
+				"Provinsi Kalimantan Timur/Kabupaten Kutai Timur": 3743820,
+				"Provinsi Kalimantan Timur/Kabupaten Mahakam Ulu": 3953233,
+				"Provinsi Kalimantan Timur/Kabupaten Paser": 3591565.53,
+				"Provinsi Kalimantan Timur/Kabupaten Penajam Paser Utara": 3957345,
+				"Provinsi Kalimantan Timur/Kota Balikpapan": 3701508,
+				"Provinsi Kalimantan Timur/Kota Bontang": 3780012,
+				"Provinsi Kalimantan Timur/Kota Samarinda": 3724437.2,
+				"Provinsi Kalimantan Utara/Kabupaten Bulungan": 3820000,
+				"Provinsi Kalimantan Utara/Kabupaten Malinau": 3841561,
+				"Provinsi Kalimantan Utara/Kabupaten Nunukan": 3652907,
+				"Provinsi Kalimantan Utara/Kabupaten Tana Tidung": 3824598,
+				"Provinsi Kalimantan Utara/Kota Tarakan": 4460405,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Bangka": 3876600,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Bangka Barat": 3876600,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Bangka Selatan": 3876600,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Bangka Tengah": 3876600,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Belitung": 3876600,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Belitung Timur": 3876600,
+				"Provinsi Kepulauan Bangka Belitung/Kota Pangkalpinang": 3876600,
+				"Provinsi Kepulauan Riau/Kabupaten Bintan": 4207762,
+				"Provinsi Kepulauan Riau/Kabupaten Karimun": 3956475,
+				"Provinsi Kepulauan Riau/Kabupaten Kepulauan Anambas": 4084919,
+				"Provinsi Kepulauan Riau/Kabupaten Lingga": 3623654,
+				"Provinsi Kepulauan Riau/Kabupaten Natuna": 3628002,
+				"Provinsi Kepulauan Riau/Kota Batam": 4989600,
+				"Provinsi Kepulauan Riau/Kota Tanjungpinang": 3623654,
+				"Provinsi Lampung/Kabupaten Lampung Barat": 2893070,
+				"Provinsi Lampung/Kabupaten Lampung Selatan": 3076990,
+				"Provinsi Lampung/Kabupaten Lampung Tengah": 2893070,
+				"Provinsi Lampung/Kabupaten Lampung Timur": 2893070,
+				"Provinsi Lampung/Kabupaten Lampung Utara": 2893070,
+				"Provinsi Lampung/Kabupaten Mesuji": 3092026,
+				"Provinsi Lampung/Kabupaten Pesawaran": 2893070,
+				"Provinsi Lampung/Kabupaten Pesisir Barat": 2893070,
+				"Provinsi Lampung/Kabupaten Pringsewu": 2893070,
+				"Provinsi Lampung/Kabupaten Tanggamus": 2893070,
+				"Provinsi Lampung/Kabupaten Tulang Bawang": 2893070,
+				"Provinsi Lampung/Kabupaten Tulang Bawang Barat": 2893070,
+				"Provinsi Lampung/Kabupaten Way Kanan": 3072655,
+				"Provinsi Lampung/Kota Bandar Lampung": 3305367,
+				"Provinsi Lampung/Kota Metro": 2903301,
+				"Provinsi Maluku Utara/Kabupaten Halmahera Barat": 3408000,
+				"Provinsi Maluku Utara/Kabupaten Halmahera Selatan": 3408000,
+				"Provinsi Maluku Utara/Kabupaten Halmahera Tengah": 3408000,
+				"Provinsi Maluku Utara/Kabupaten Halmahera Timur": 3408000,
+				"Provinsi Maluku Utara/Kabupaten Halmahera Utara": 3408000,
+				"Provinsi Maluku Utara/Kabupaten Kepulauan Sula": 3408000,
+				"Provinsi Maluku Utara/Kabupaten Pulau Morotai": 3408000,
+				"Provinsi Maluku Utara/Kabupaten Pulau Taliabu": 3408000,
+				"Provinsi Maluku Utara/Kota Ternate": 3461250,
+				"Provinsi Maluku Utara/Kota Tidore Kepulauan": 3408000,
+				"Provinsi Maluku/Kabupaten Buru": 3141700,
+				"Provinsi Maluku/Kabupaten Buru Selatan": 3141700,
+				"Provinsi Maluku/Kabupaten Kepulauan Aru": 3141700,
+				"Provinsi Maluku/Kabupaten Kepulauan Tanimbar": 3141700,
+				"Provinsi Maluku/Kabupaten Maluku Barat Daya": 3141700,
+				"Provinsi Maluku/Kabupaten Maluku Tengah": 3141700,
+				"Provinsi Maluku/Kabupaten Maluku Tenggara": 3141700,
+				"Provinsi Maluku/Kabupaten Seram Bagian Barat": 3141700,
+				"Provinsi Maluku/Kabupaten Seram Bagian Timur": 3141700,
+				"Provinsi Maluku/Kota Ambon": 3185733,
+				"Provinsi Maluku/Kota Tual": 3141700,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Bima": 2662719,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Dompu": 2605734,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Lombok Barat": 2602931,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Lombok Tengah": 2610281,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Lombok Timur": 2608714,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Lombok Utara": 2609826,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Sumbawa": 2627607,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Sumbawa Barat": 2823168,
+				"Provinsi Nusa Tenggara Barat/Kota Bima": 2662719,
+				"Provinsi Nusa Tenggara Barat/Kota Mataram": 2859620,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Alor": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Belu": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Ende": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Flores Timur": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Kupang": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Lembata": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Malaka": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Manggarai": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Manggarai Barat": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Manggarai Timur": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Nagekeo": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Ngada": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Rote Ndao": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sabu Raijua": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sikka": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sumba Barat": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sumba Barat Daya": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sumba Tengah": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sumba Timur": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Timor Tengah Selatan": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Timor Tengah Utara": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kota Kupang": 2396697,
+				"Provinsi Papua Barat Daya/Kabupaten Maybrat": 3614000,
+				"Provinsi Papua Barat Daya/Kabupaten Raja Ampat": 3614000,
+				"Provinsi Papua Barat Daya/Kabupaten Sorong": 3614000,
+				"Provinsi Papua Barat Daya/Kabupaten Sorong Selatan": 3614000,
+				"Provinsi Papua Barat Daya/Kabupaten Tambrauw": 3614000,
+				"Provinsi Papua Barat Daya/Kota Sorong": 3614000,
+				"Provinsi Papua Barat/Kabupaten Fakfak": 3615000,
+				"Provinsi Papua Barat/Kabupaten Kaimana": 3615000,
+				"Provinsi Papua Barat/Kabupaten Manokwari": 3615000,
+				"Provinsi Papua Barat/Kabupaten Manokwari Selatan": 3615000,
+				"Provinsi Papua Barat/Kabupaten Pegunungan Arfak": 3615000,
+				"Provinsi Papua Barat/Kabupaten Teluk Bintuni": 3615000,
+				"Provinsi Papua Barat/Kabupaten Teluk Wondama": 3615000,
+				"Provinsi Papua Pegunungan/Kabupaten Jayawijaya": 4285850,
+				"Provinsi Papua Pegunungan/Kabupaten Lanny Jaya": 4285850,
+				"Provinsi Papua Pegunungan/Kabupaten Mamberamo Tengah": 4285850,
+				"Provinsi Papua Pegunungan/Kabupaten Nduga": 4285850,
+				"Provinsi Papua Pegunungan/Kabupaten Pegunungan Bintang": 4285850,
+				"Provinsi Papua Pegunungan/Kabupaten Tolikara": 4285850,
+				"Provinsi Papua Pegunungan/Kabupaten Yahukimo": 4285850,
+				"Provinsi Papua Pegunungan/Kabupaten Yalimo": 4285850,
+				"Provinsi Papua Selatan/Kabupaten Asmat": 4285850,
+				"Provinsi Papua Selatan/Kabupaten Boven Digoel": 4285850,
+				"Provinsi Papua Selatan/Kabupaten Mappi": 4285850,
+				"Provinsi Papua Selatan/Kabupaten Merauke": 4285850,
+				"Provinsi Papua Tengah/Kabupaten Deiyai": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Dogiyai": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Intan Jaya": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Mimika": 5005678,
+				"Provinsi Papua Tengah/Kabupaten Nabire": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Paniai": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Puncak": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Puncak Jaya": 4285848,
+				"Provinsi Papua/Kabupaten Biak Numfor": 4285850,
+				"Provinsi Papua/Kabupaten Jayapura": 4285850,
+				"Provinsi Papua/Kabupaten Keerom": 4285850,
+				"Provinsi Papua/Kabupaten Kepulauan Yapen": 4285850,
+				"Provinsi Papua/Kabupaten Mamberamo Raya": 4285850,
+				"Provinsi Papua/Kabupaten Sarmi": 4285850,
+				"Provinsi Papua/Kabupaten Supiori": 4285850,
+				"Provinsi Papua/Kabupaten Waropen": 4285850,
+				"Provinsi Papua/Kota Jayapura": 4285850,
+				"Provinsi Riau/Kabupaten Bengkalis": 3933620.36,
+				"Provinsi Riau/Kabupaten Indragiri Hilir": 3508776.22,
+				"Provinsi Riau/Kabupaten Indragiri Hulu": 3703206.19,
+				"Provinsi Riau/Kabupaten Kampar": 3634593.72,
+				"Provinsi Riau/Kabupaten Kepulauan Meranti": 3508776.22,
+				"Provinsi Riau/Kabupaten Kuantan Singingi": 3692796.76,
+				"Provinsi Riau/Kabupaten Pelalawan": 3616057.35,
+				"Provinsi Riau/Kabupaten Rokan Hilir": 3548818.47,
+				"Provinsi Riau/Kabupaten Rokan Hulu": 3579380.61,
+				"Provinsi Riau/Kabupaten Siak": 3691216.25,
+				"Provinsi Riau/Kota Dumai": 4118659.61,
+				"Provinsi Riau/Kota Pekanbaru": 3675937.97,
+				"Provinsi Sulawesi Barat/Kabupaten Majene": 3104430,
+				"Provinsi Sulawesi Barat/Kabupaten Mamasa": 3104430,
+				"Provinsi Sulawesi Barat/Kabupaten Mamuju": 3122680,
+				"Provinsi Sulawesi Barat/Kabupaten Mamuju Tengah": 3104430,
+				"Provinsi Sulawesi Barat/Kabupaten Pasangkayu": 3445981,
+				"Provinsi Sulawesi Barat/Kabupaten Polewali Mandar": 3104430,
+				"Provinsi Sulawesi Selatan/Kabupaten Bantaeng": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Barru": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Bone": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Bulukumba": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Enrekang": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Gowa": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Jeneponto": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Kepulauan Selayar": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Luwu": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Luwu Timur": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Luwu Utara": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Maros": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Pangkajene dan Kepulauan": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Pinrang": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Sidenreng Rappang": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Sinjai": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Soppeng": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Takalar": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Tana Toraja": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Toraja Utara": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Wajo": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kota Makassar": 3880136,
+				"Provinsi Sulawesi Selatan/Kota Palopo": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kota Parepare": 3657527.37,
+				"Provinsi Sulawesi Tengah/Kabupaten Banggai": 2947722,
+				"Provinsi Sulawesi Tengah/Kabupaten Banggai Kepulauan": 2915000,
+				"Provinsi Sulawesi Tengah/Kabupaten Banggai Laut": 2915000,
+				"Provinsi Sulawesi Tengah/Kabupaten Buol": 3002130,
+				"Provinsi Sulawesi Tengah/Kabupaten Donggala": 2915000,
+				"Provinsi Sulawesi Tengah/Kabupaten Morowali": 3716125,
+				"Provinsi Sulawesi Tengah/Kabupaten Morowali Utara": 3925456,
+				"Provinsi Sulawesi Tengah/Kabupaten Parigi Moutong": 2915000,
+				"Provinsi Sulawesi Tengah/Kabupaten Poso": 3057161,
+				"Provinsi Sulawesi Tengah/Kabupaten Sigi": 2915000,
+				"Provinsi Sulawesi Tengah/Kabupaten Tojo Una-Una": 2915000,
+				"Provinsi Sulawesi Tengah/Kabupaten Tolitoli": 2915000,
+				"Provinsi Sulawesi Tengah/Kota Palu": 3386588,
+				"Provinsi Sulawesi Tenggara/Kabupaten Bombana": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Buton": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Buton Selatan": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Buton Tengah": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Buton Utara": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Kolaka": 3349714.11,
+				"Provinsi Sulawesi Tenggara/Kabupaten Kolaka Timur": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Kolaka Utara": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Konawe": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Konawe Kepulauan": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Konawe Selatan": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Konawe Utara": 3259583,
+				"Provinsi Sulawesi Tenggara/Kabupaten Muna": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Muna Barat": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Wakatobi": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kota Baubau": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kota Kendari": 3314389.8,
+				"Provinsi Sulawesi Utara/Kabupaten Bolaang Mongondow": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Bolaang Mongondow Selatan": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Bolaang Mongondow Timur": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Bolaang Mongondow Utara": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Kepulauan Sangihe": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Kepulauan Siau Tagulandang Biaro": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Kepulauan Talaud": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Minahasa": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Minahasa Selatan": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Minahasa Tenggara": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Minahasa Utara": 3775425,
+				"Provinsi Sulawesi Utara/Kota Bitung": 3775425,
+				"Provinsi Sulawesi Utara/Kota Kotamobagu": 3775425,
+				"Provinsi Sulawesi Utara/Kota Manado": 3824264,
+				"Provinsi Sulawesi Utara/Kota Tomohon": 3775425,
+				"Provinsi Sumatera Barat/Kabupaten Agam": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Dharmasraya": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Kepulauan Mentawai": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Lima Puluh Kota": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Padang Pariaman": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Pasaman": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Pasaman Barat": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Pesisir Selatan": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Sijunjung": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Solok": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Solok Selatan": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Tanah Datar": 2994193.47,
+				"Provinsi Sumatera Barat/Kota Bukittinggi": 2994193.47,
+				"Provinsi Sumatera Barat/Kota Padang": 2994193.47,
+				"Provinsi Sumatera Barat/Kota Padang Panjang": 2994193.47,
+				"Provinsi Sumatera Barat/Kota Pariaman": 2994193.47,
+				"Provinsi Sumatera Barat/Kota Payakumbuh": 2994193.47,
+				"Provinsi Sumatera Barat/Kota Sawahlunto": 2994193.47,
+				"Provinsi Sumatera Barat/Kota Solok": 2994193.47,
+				"Provinsi Sumatera Selatan/Kabupaten Banyuasin": 3715028,
+				"Provinsi Sumatera Selatan/Kabupaten Empat Lawang": 3681571,
+				"Provinsi Sumatera Selatan/Kabupaten Lahat": 3681571,
+				"Provinsi Sumatera Selatan/Kabupaten Muara Enim": 3863417,
+				"Provinsi Sumatera Selatan/Kabupaten Musi Banyuasin": 3778348,
+				"Provinsi Sumatera Selatan/Kabupaten Musi Rawas": 3796653,
+				"Provinsi Sumatera Selatan/Kabupaten Musi Rawas Utara": 3796654,
+				"Provinsi Sumatera Selatan/Kabupaten Ogan Ilir": 3681571,
+				"Provinsi Sumatera Selatan/Kabupaten Ogan Komering Ilir": 3681571,
+				"Provinsi Sumatera Selatan/Kabupaten Ogan Komering Ulu": 3681571,
+				"Provinsi Sumatera Selatan/Kabupaten Ogan Komering Ulu Selatan": 3681571,
+				"Provinsi Sumatera Selatan/Kabupaten Ogan Komering Ulu Timur": 3749696,
+				"Provinsi Sumatera Selatan/Kabupaten Penukal Abab Lematang Ilir": 3681571,
+				"Provinsi Sumatera Selatan/Kota Lubuklinggau": 3681571,
+				"Provinsi Sumatera Selatan/Kota Pagar Alam": 3681571,
+				"Provinsi Sumatera Selatan/Kota Palembang": 3916635,
+				"Provinsi Sumatera Selatan/Kota Prabumulih": 3681571,
+				"Provinsi Sumatera Utara/Kabupaten Asahan": 3265908,
+				"Provinsi Sumatera Utara/Kabupaten Batu Bara": 3676000,
+				"Provinsi Sumatera Utara/Kabupaten Dairi": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Deli Serdang": 3732906,
+				"Provinsi Sumatera Utara/Kabupaten Humbang Hasundutan": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Karo": 3577282,
+				"Provinsi Sumatera Utara/Kabupaten Labuhanbatu": 3438181,
+				"Provinsi Sumatera Utara/Kabupaten Labuhanbatu Selatan": 3404984,
+				"Provinsi Sumatera Utara/Kabupaten Labuhanbatu Utara": 3327621,
+				"Provinsi Sumatera Utara/Kabupaten Langkat": 3134660,
+				"Provinsi Sumatera Utara/Kabupaten Mandailing Natal": 3100998,
+				"Provinsi Sumatera Utara/Kabupaten Nias": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Nias Barat": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Nias Selatan": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Nias Utara": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Padang Lawas": 3195910,
+				"Provinsi Sumatera Utara/Kabupaten Padang Lawas Utara": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Pakpak Bharat": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Samosir": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Serdang Bedagai": 3313500,
+				"Provinsi Sumatera Utara/Kabupaten Simalungun": 3088851,
+				"Provinsi Sumatera Utara/Kabupaten Tapanuli Selatan": 3307324,
+				"Provinsi Sumatera Utara/Kabupaten Tapanuli Tengah": 3242323,
+				"Provinsi Sumatera Utara/Kabupaten Tapanuli Utara": 3017649,
+				"Provinsi Sumatera Utara/Kabupaten Toba": 3151356,
+				"Provinsi Sumatera Utara/Kota Binjai": 3075365,
+				"Provinsi Sumatera Utara/Kota Gunungsitoli": 2992559,
+				"Provinsi Sumatera Utara/Kota Medan": 4014072,
+				"Provinsi Sumatera Utara/Kota Padangsidimpuan": 3168235,
+				"Provinsi Sumatera Utara/Kota Pematangsiantar": 2992559,
+				"Provinsi Sumatera Utara/Kota Sibolga": 3419748,
+				"Provinsi Sumatera Utara/Kota Tanjungbalai": 3244606,
+				"Provinsi Sumatera Utara/Kota Tebing Tinggi": 3006203
+			},
+			"by_sector": {
+				"Provinsi Papua Tengah/Kabupaten Mimika": [
+					{
+						"kbli": "05",
+						"monthly": 6000000,
+						"condition": ""
+					},
+					{
+						"kbli": "06",
+						"monthly": 6000000,
+						"condition": ""
+					},
+					{
+						"kbli": "07",
+						"monthly": 6000000,
+						"condition": ""
+					},
+					{
+						"kbli": "08",
+						"monthly": 6000000,
+						"condition": ""
+					},
+					{
+						"kbli": "09",
+						"monthly": 6000000,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 5130819,
+						"condition": ""
+					},
+					{
+						"kbli": "42",
+						"monthly": 5130819,
+						"condition": ""
+					},
+					{
+						"kbli": "43",
+						"monthly": 5130819,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 6000000,
+						"condition": "FREEPORT_AREA"
+					},
+					{
+						"kbli": "42",
+						"monthly": 6000000,
+						"condition": "FREEPORT_AREA"
+					},
+					{
+						"kbli": "43",
+						"monthly": 6000000,
+						"condition": "FREEPORT_AREA"
+					}
+				],
+				"Provinsi Kalimantan Selatan/Kota Banjarmasin": [
+					{
+						"kbli": "641",
+						"monthly": 3609682.13,
+						"condition": ""
+					},
+					{
+						"kbli": "5511",
+						"monthly": 3603182.13,
+						"condition": ""
+					},
+					{
+						"kbli": "5512",
+						"monthly": 3603182.13,
+						"condition": ""
+					},
+					{
+						"kbli": "16",
+						"monthly": 3601682.13,
+						"condition": ""
+					}
+				],
+				"Provinsi Kalimantan Selatan/Kabupaten Kotabaru": [
+					{
+						"kbli": "05100",
+						"monthly": 3653000,
+						"condition": ""
+					},
+					{
+						"kbli": "1043",
+						"monthly": 3646004,
+						"condition": ""
+					},
+					{
+						"kbli": "01262",
+						"monthly": 3646004,
+						"condition": ""
+					}
+				]
+			},
+			"sector_authority": "PP 36/2021 art.35D as in force in 2025 and Permenaker 16/2024 art.7: the governor’s sector minimum wages bind workers under one year of service. Version 1 (December 2025) seeds the 2025 decrees read from an official host: Mimika UMSK 2025 (Kep. Gubernur Papua Tengah 258/2024 diktum KESATU, read 2026-10-08 https://jdih.papuatengahprov.go.id/dokumen/view?id=783): mining (divisions 05–09) 6,000,000, construction (41–43) 5,130,819, and a construction company working in the PT Freeport Indonesia area pays the mining rate (company.facts.umsp_freeport_area). The matching rules of the 2026 table apply (a KBLI code or prefix of terms.facts.worksite_kbli; a province key covers its localities; micro and small enterprises excluded). Kalimantan Selatan UMSK 2025 (Kep. Gubernur 100.3.3.1/01089/KUM/2024, 18 Dec 2024, from 1 January 2025, diktum KETIGA; the signed scan “KEPGUB UMK DAN UMSK TAHUN 2025” in the Disnakertrans Kalsel download centre, https://disnakertrans.kalselprov.go.id/unduhan?page=2, read 2026-10-08): Banjarmasin banking 3,609,682.13 (KBLI 641), hotels 3,603,182.13 (5511 and 5512: no star floor in 2025), wood 3,601,682.13 (division 16); Kotabaru coal 3,653,000 (05100), palm-oil and cooking-oil industry 3,646,004 (1043), palm plantation 3,646,004 (01262) — the sectors named without KBLI and read as in the 2026 decree. Any other 2025 worksite area warns (VALIDATIONS SECTOR_MINIMUM_WAGE_UNSEEDED, unseeded_sector.outside_tables).",
+			"unseeded_sector": {
+				"outside_tables": true,
+				"areas": {}
+			}
+		}
+	},
+	{
+		"id": "a1939064-64c9-562a-9b7d-2231512a1f1f",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "PARAMETERS",
+		"code": "public_holidays",
+		"name": "National public holidays (SKB 3 Menteri)",
+		"references": [
+			{
+				"title": "UU 13/2003 art.85(1): workers are not obliged to work on official public holidays. The national holidays are those the joint decree of the Ministers of Religious Affairs, Manpower and Administrative Reform fixes: for 2026 SKB No. 1497 Tahun 2025, No. 2 Tahun 2025, No. 5 Tahun 2025 (19 September 2025), Lampiran A — 17 days, Idul Fitri 1447 H on 21–22 March; for 25 December 2025 SKB No. 1017 Tahun 2024, No. 2 Tahun 2024, No. 2 Tahun 2024. The cuti bersama of Lampiran B (16 Feb, 18, 20, 23, 24 Mar, 15, 28 May, 24 Dec 2026) are not holidays: for a private employer they are annual leave taken together (JOINT_LEAVE), so they are not listed. Written to each entity unpublished; HR publishes them.",
+				"url": "https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf"
+			}
+		],
+		"rules": {
+			"holidays": [
+				{
+					"date": "2025-12-25",
+					"name": "Kelahiran Yesus Kristus",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1017 Tahun 2024, Menteri Ketenagakerjaan No. 2 Tahun 2024, MenPANRB No. 2 Tahun 2024, Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2024-10/SKB%203%20Menteri%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202025.pdf)"
+				},
+				{
+					"date": "2026-01-01",
+					"name": "Tahun Baru 2026 Masehi",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
+				},
+				{
+					"date": "2026-01-16",
+					"name": "Isra Mikraj Nabi Muhammad S.A.W.",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
+				},
+				{
+					"date": "2026-02-17",
+					"name": "Tahun Baru Imlek 2577 Kongzili",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
+				},
+				{
+					"date": "2026-03-19",
+					"name": "Hari Suci Nyepi (Tahun Baru Saka 1948)",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
+				},
+				{
+					"date": "2026-03-21",
+					"name": "Idul Fitri 1447 Hijriah",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
+				},
+				{
+					"date": "2026-03-22",
+					"name": "Idul Fitri 1447 Hijriah",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
+				},
+				{
+					"date": "2026-04-03",
+					"name": "Wafat Yesus Kristus",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
+				},
+				{
+					"date": "2026-04-05",
+					"name": "Kebangkitan Yesus Kristus (Paskah)",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
+				},
+				{
+					"date": "2026-05-01",
+					"name": "Hari Buruh Internasional",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
+				},
+				{
+					"date": "2026-05-14",
+					"name": "Kenaikan Yesus Kristus",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
+				},
+				{
+					"date": "2026-05-27",
+					"name": "Idul Adha 1447 Hijriah",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
+				},
+				{
+					"date": "2026-05-31",
+					"name": "Hari Raya Waisak 2570 BE",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
+				},
+				{
+					"date": "2026-06-01",
+					"name": "Hari Lahir Pancasila",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
+				},
+				{
+					"date": "2026-06-16",
+					"name": "1 Muharam Tahun Baru Islam 1448 Hijriah",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
+				},
+				{
+					"date": "2026-08-17",
+					"name": "Proklamasi Kemerdekaan",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
+				},
+				{
+					"date": "2026-08-25",
+					"name": "Maulid Nabi Muhammad S.A.W.",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
+				},
+				{
+					"date": "2026-12-25",
+					"name": "Kelahiran Yesus Kristus",
+					"kind": "PUBLIC_HOLIDAY",
+					"source": "SKB Menteri Agama No. 1497 Tahun 2025, Menteri Ketenagakerjaan No. 2 Tahun 2025, MenPANRB No. 5 Tahun 2025 (19 September 2025), Lampiran A (https://www.kemenkopmk.go.id/sites/default/files/pengumuman/2025-09/SKB%20Libur%20Nasional%20dan%20Cuti%20Bersama%20Tahun%202026.pdf)"
+				}
+			]
+		}
+	},
+	{
+		"id": "8b24bb14-8769-52bf-a48b-fe644732b60f",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "MINIMUM_WAGE_FLOOR",
+		"name": "Wage at least the workplace minimum wage",
+		"references": [
+			{
+				"title": "UU 13/2003 art.88E(1)–(2) as amended by UU 6/2023; PP 36/2021 arts.23(1)–(3), 24(1), 25 as amended by PP 51/2023 and PP 49/2025 — the UMK of the worksite, else the UMP; art.23(2): where the wage is basic plus non-fixed allowances the basic alone must reach it (`terms.monthly_wage` holds only basic plus fixed allowances). Art.24(1): the minimum binds a worker with less than one year of service; longer service follows the wage structure and scale (art.24(2)). Micro and small enterprises are outside it (art.36). Daily and hourly wages are DAILY_MINIMUM_WAGE and HOURLY_MINIMUM_WAGE.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "term.employment_type in [\"PERMANENT\", \"CONTRACT\"]\n&&!(has(company.facts.enterprise_size_class)\n&&company.facts.enterprise_size_class == \"MICRO_OR_SMALL\")\n&& ((has(terms.facts.worksite_region)\n&&terms.facts.worksite_region != \"\"\n  ?terms.facts.worksite_region\n  :company.region)\nin rules.minimum_wage.by_region)\n&&term.monthly_wage\n<rules.minimum_wage.by_region[(has(terms.facts.worksite_region)\n&&terms.facts.worksite_region != \"\"\n  ?terms.facts.worksite_region\n  :company.region)]\n&&employment.service_months < 12.0",
+			"message": "The monthly wage (basic plus fixed allowances; where the wage is basic plus non-fixed allowances, the basic alone) of a worker with less than one year of service is below the minimum wage of the worksite (terms.facts.worksite_region, else the company region); UU 13/2003 art.88E bars paying less."
+		}
+	},
+	{
+		"id": "197857a6-f05c-5053-9804-4bd8d6531337",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "BASIC_WAGE_SHARE",
+		"name": "Basic wage at least 75% of basic plus fixed allowances",
+		"references": [
+			{
+				"title": "PP 36/2021 art.7(2): where the wage is basic plus fixed allowances, the basic wage is at least 75% of the total of basic wage and fixed allowances.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "term.monthly_wage > 0.0 && term.base_salary < 0.75 * term.monthly_wage",
+			"message": "The basic wage is below 75% of basic wage plus fixed allowances (PP 36/2021 art.7(2))."
+		}
+	},
+	{
+		"id": "62615c8a-ef13-5a37-ba7b-bb24af9d6c0c",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "OVERTIME_DAILY_LIMIT",
+		"name": "Overtime at most 4 hours a day",
+		"references": [
+			{
+				"title": "PP 35/2021 art.26(1)–(2): overtime at most 4 hours a day and 18 hours a week, not counting overtime on the weekly rest day or an official holiday. The hours worked are still paid (art.31), so the run warns rather than refuses.",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "work.days.exists(\n  d,\n  (d.day_type == \"WORK\" || d.day_type == \"\") && d.holiday_kind == \"\"\n  &&d.overtime_hours > 4.0\n)",
+			"message": "Overtime above 4 hours on a working day (PP 35/2021 art.26(1)); the hours are paid, the limit is breached."
+		}
+	},
+	{
+		"id": "2f3acb44-1ada-5f5a-baf2-2ef96c69f4c2",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "OVERTIME_WEEKLY_LIMIT",
+		"name": "Overtime at most 18 hours a week",
+		"references": [
+			{
+				"title": "PP 35/2021 art.26(1)–(2). The week is read as any seven consecutive days of the attendance window, which never misses a calendar week over the limit; rest-day and holiday overtime is outside the limit (art.26(2)).",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "work.days.exists(\n  d,\n  sum(\n    work.days.filter(\n      x,\n      (x.day_type == \"WORK\" || x.day_type == \"\") && x.holiday_kind == \"\"\n      &&calendar_distance_days(x.date, d.date) >= 0.0\n      &&calendar_distance_days(x.date, d.date) <= 6.0\n    ).map(\n      x,\n      x.overtime_hours\n    )\n  )\n  >18.0\n)",
+			"message": "Overtime above 18 hours in seven consecutive days (PP 35/2021 art.26(1)); the hours are paid, the limit is breached."
+		}
+	},
+	{
+		"id": "31aca744-c7ed-5b99-b039-815155514f8f",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "WAGE_DEDUCTION_CEILING",
+		"name": "Wage deductions at most 50% of the wage paid",
+		"references": [
+			{
+				"title": "PP 36/2021 arts.63–65: fines, damages, wage advances, rent, debts and their instalments, and recovered overpaid wages may together take at most 50% of each wage payment (art.65); contributions to the state and social security (BPJS, PPh 21) are outside it (art.64), and so is the pension offset against separation pay. Here: STAFF_LOAN, DEDUCTION and CLAWBACK_OVERTIME against the gross before the clawback. The UU 13/2003 art.62 damages a resigning PKWT worker owes (PKWT_EARLY_TERMINATION_BY_WORKER) are damages within the same 50%.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "payslip.gross\n+ (has(payslip.lines.CLAWBACK_OVERTIME)\n  ?-payslip.lines.CLAWBACK_OVERTIME\n  :0.0)\n>0.0\n&& (has(payslip.lines.STAFF_LOAN) ? -payslip.lines.STAFF_LOAN : 0.0)\n+ (has(payslip.lines.DEDUCTION) ? -payslip.lines.DEDUCTION : 0.0)\n+ (has(payslip.lines.PKWT_EARLY_TERMINATION_BY_WORKER)\n  ?-payslip.lines.PKWT_EARLY_TERMINATION_BY_WORKER\n  :0.0)\n+ (has(payslip.lines.CLAWBACK_OVERTIME)\n  ?-payslip.lines.CLAWBACK_OVERTIME\n  :0.0)\n>0.5\n* (payslip.gross\n+ (has(payslip.lines.CLAWBACK_OVERTIME)\n  ?-payslip.lines.CLAWBACK_OVERTIME\n  :0.0))",
+			"message": "Loan instalments, deductions, art.62 damages and recovered overpayments exceed 50% of this wage payment (PP 36/2021 art.65); the payslip is held."
+		}
+	},
+	{
+		"id": "ef310140-7e12-53f7-bbe9-7bee54cfd7e4",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "SECTOR_MINIMUM_WAGE",
+		"name": "Sector minimum wage at least the governor's UMSP",
+		"references": [
+			{
+				"title": "PP 36/2021 art.35D(1) as amended by PP 49/2025; the decrees and their KBLI as `minimum_wage.sector_authority` states. Row conditions are customer inputs: exporter, assets above Rp1 trillion, Astra group, star hotel (4–5 or 3–5 stars), class-A private hospital, rayon-viscose staple fibre, work in the PT Freeport Indonesia area (company.facts), and the job category for the DKI bus and hospital rows (terms.facts.umsp_job_category); the worksite is terms.facts.worksite_region, else the company region."
+			}
+		],
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "term.employment_type in [\"PERMANENT\", \"CONTRACT\"]\n&&!(has(company.facts.enterprise_size_class)\n&&company.facts.enterprise_size_class == \"MICRO_OR_SMALL\")\n&&employment.service_months < 12.0\n&&has(rules.minimum_wage.by_sector)\n&&has(term.facts.worksite_kbli)\n&&rules.minimum_wage.by_sector.exists(\n  k,\n  ((has(terms.facts.worksite_region)\n  &&terms.facts.worksite_region != \"\"\n    ?terms.facts.worksite_region\n    :company.region)\n  ==k\n  || (has(terms.facts.worksite_region)\n  &&terms.facts.worksite_region != \"\"\n    ?terms.facts.worksite_region\n    :company.region).startsWith(\n    k + \"/\"\n  ))\n  &&rules.minimum_wage.by_sector[k].exists(\n    r,\n    term.facts.worksite_kbli.startsWith(r.kbli)\n    && (r.condition == \"\"\n    || (r.condition == \"RAYON_VISCOSE\"\n    &&has(company.facts.umsp_rayon_viscose)\n    &&company.facts.umsp_rayon_viscose == true)\n    || (r.condition == \"EXPORT\"\n    && (has(company.facts.umsp_export_oriented)\n    &&company.facts.umsp_export_oriented == true))\n    || (r.condition == \"ASSETS_1T\"\n    && (has(company.facts.umsp_assets_over_1_trillion)\n    &&company.facts.umsp_assets_over_1_trillion == true))\n    || (r.condition == \"ASTRA\"\n    && (has(company.facts.umsp_astra_group)\n    &&company.facts.umsp_astra_group == true))\n    || (r.condition == \"HOTEL_4_5\" && has(company.facts.umsp_hotel_star)\n    &&company.facts.umsp_hotel_star >= 4.0)\n    || (r.condition == \"HOTEL_3_5\" && has(company.facts.umsp_hotel_star)\n    &&company.facts.umsp_hotel_star >= 3.0)\n    || (r.condition == \"FREEPORT_AREA\"\n    &&has(company.facts.umsp_freeport_area)\n    &&company.facts.umsp_freeport_area == true)\n    || (r.condition == \"BUS_DRIVER_MECHANIC\"\n    && (has(term.facts.umsp_job_category)\n      ?term.facts.umsp_job_category\n      :\"\")\n    ==\"BUS_DRIVER_MECHANIC\")\n    || (r.condition == \"CLASS_A_HOSPITAL_CARE\"\n    && (has(company.facts.umsp_class_a_private_hospital)\n    &&company.facts.umsp_class_a_private_hospital == true)\n    && (has(term.facts.umsp_job_category)\n      ?term.facts.umsp_job_category\n      :\"\")\n    in [\"NURSING_MIDWIFERY\", \"MEDICAL_SUPPORT\"]))\n    &&term.monthly_wage < r.monthly\n  )\n)",
+			"message": "The monthly wage is below the governor’s sector minimum wage for this worksite’s KBLI (rules.minimum_wage.by_sector: a KBLI code or a group prefix, of the worksite’s province or locality); a worker with less than one year of service may not be paid less."
+		}
+	},
+	{
+		"id": "abf424b2-4ed5-5560-8892-b8efdcb6ae64",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "MINIMUM_WAGE_REGION_UNKNOWN",
+		"name": "Worksite without a seeded minimum wage",
+		"references": [
+			{
+				"title": "UU 13/2003 art.88E(2) as amended by UU 6/2023"
+			},
+			{
+				"title": "PP 36/2021",
+				"locator": "art.25",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			},
+			{
+				"title": "Perpres 82/2018",
+				"locator": "art.32(2)–(3)"
+			}
+		],
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "!(has(company.facts.enterprise_size_class)\n&&company.facts.enterprise_size_class == \"MICRO_OR_SMALL\")\n&& (!((has(terms.facts.worksite_region)\n&&terms.facts.worksite_region != \"\"\n  ?terms.facts.worksite_region\n  :company.region)\nin rules.minimum_wage.by_region)\n|| (!(has(terms.facts.worksite_region)\n&&terms.facts.worksite_region != \"\"\n  ?terms.facts.worksite_region\n  :company.region).contains(\n  \"/\"\n)\n&&rules.minimum_wage.by_region.exists(\n  k,\n  k.startsWith((\n    has(terms.facts.worksite_region)\n    &&terms.facts.worksite_region != \"\"\n      ?terms.facts.worksite_region\n      :company.region)\n    +\"/\"\n  )\n)))",
+			"message": "Record the worksite (terms.facts.worksite_region, else the company region) as a key of the version’s minimum wages: “Provinsi X/Kota|Kabupaten Y” — every locality is listed, at its UMK or at the UMP — or “Provinsi DKI Jakarta”. A province key whose localities are listed, or an unknown key, cannot fall back to the lower UMP."
+		}
+	},
+	{
+		"id": "474b2e1f-be23-5501-86f7-7b17393edf49",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "DAILY_MINIMUM_WAGE",
+		"name": "Daily minimum wage",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "arts.17, 23(3)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			},
+			{
+				"title": "UU 13/2003 art.88E(2) as amended by UU 6/2023"
+			}
+		],
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "term.employment_type == \"DAILY\"\n&&!(has(company.facts.enterprise_size_class)\n&&company.facts.enterprise_size_class == \"MICRO_OR_SMALL\")\n&& ((has(terms.facts.worksite_region)\n&&terms.facts.worksite_region != \"\"\n  ?terms.facts.worksite_region\n  :company.region)\nin rules.minimum_wage.by_region)\n&&employment.service_months < 12.0\n&& (!has(terms.facts.working_days_per_week)\n||!has(terms.facts.daily_wage)\n||terms.facts.daily_wage\n<rules.minimum_wage.by_region[(has(terms.facts.worksite_region)\n&&terms.facts.worksite_region != \"\"\n  ?terms.facts.worksite_region\n  :company.region)]\n/ ((has(terms.facts.working_days_per_week)\n&&terms.facts.working_days_per_week == 6.0)\n  ?25.0\n  :21.0))",
+			"message": "Record the daily wage and the working days a week of a daily worker; the daily wage may not be below the monthly minimum wage ÷ 25 (6-day week) or ÷ 21 (5-day week)."
+		}
+	},
+	{
+		"id": "fd22fb00-8e1c-5d03-b708-e01273da6ddd",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "HOURLY_MINIMUM_WAGE",
+		"name": "Hourly minimum wage (part-time)",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.16(1)–(4)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "term.employment_type == \"PART_TIME\"\n&&!(has(company.facts.enterprise_size_class)\n&&company.facts.enterprise_size_class == \"MICRO_OR_SMALL\")\n&& ((has(terms.facts.worksite_region)\n&&terms.facts.worksite_region != \"\"\n  ?terms.facts.worksite_region\n  :company.region)\nin rules.minimum_wage.by_region)\n&&employment.service_months < 12.0\n&&has(terms.facts.hourly_wage)\n&&terms.facts.hourly_wage\n<rules.minimum_wage.by_region[(has(terms.facts.worksite_region)\n&&terms.facts.worksite_region != \"\"\n  ?terms.facts.worksite_region\n  :company.region)]\n/126.0",
+			"message": "The agreed hourly wage of a part-time worker may not be below the monthly minimum wage ÷ 126."
+		}
+	},
+	{
+		"id": "f239ae0d-f8f4-5d58-a47e-d7ea7c359614",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "PKWT_MAXIMUM_TERM",
+		"name": "PKWT at most 5 years",
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.8(1)–(3)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			},
+			{
+				"title": "UU 13/2003 art.59 as amended by UU 6/2023"
+			}
+		],
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "term.employment_type == \"CONTRACT\" && employment.start_date != \"\"\n&& ((terms.effective_to != \"\"\n&&terms.effective_to > add_days(add_years(employment.start_date, 5), -1))\n|| (employment.exit_date != \"\"\n&&employment.exit_date\n>add_days(add_years(employment.start_date, 5), -1)))",
+			"message": "A time-based PKWT, extensions included, may not run longer than 5 years from the start of the fixed-term employment; beyond that it is a PKWTT."
+		}
+	},
+	{
+		"id": "5c17b94b-4406-5b4e-9268-b9ce6dac61bc",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "PROBATION_RULES",
+		"name": "Probation: none in a PKWT, at most 3 months",
+		"references": [
+			{
+				"title": "UU 13/2003 arts.58(1)–(2), 60(1)–(2), as amended by UU 6/2023",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "has(terms.facts.probation_months) && terms.facts.probation_months > 0.0\n&& (term.employment_type in [\"CONTRACT\", \"DAILY\"]\n||terms.facts.probation_months > 3.0)",
+			"message": "A PKWT may not require a probation period (it is void); a PKWTT probation is at most 3 months, paid at least the minimum wage."
+		}
+	},
+	{
+		"id": "519e8574-fc3a-5782-8c96-f32fdb394852",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "PKWT_WRITTEN_INDONESIAN",
+		"name": "PKWT written in Indonesian",
+		"references": [
+			{
+				"title": "UU 13/2003 art.57(1) as amended by UU 6/2023"
+			},
+			{
+				"title": "PP 35/2021",
+				"locator": "arts.2, 11(1)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "term.employment_type in [\"CONTRACT\", \"DAILY\"]\n&&has(terms.facts.written_in_indonesian)\n&&terms.facts.written_in_indonesian == false",
+			"message": "A PKWT (a daily one included) must be made in writing in Indonesian, in Latin script."
+		}
+	},
+	{
+		"id": "d2400aff-9bcc-58e8-baf4-3cb375e5afd3",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "FOREIGN_WORKER_PERSONNEL_POSITION",
+		"name": "No foreign worker in a personnel position",
+		"references": [
+			{
+				"title": "PP 34/2021",
+				"locator": "art.11(1)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP342021.pdf"
+			}
+		],
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "(employee.nationality != \"\" && employee.nationality != \"ID\")\n&&has(terms.facts.personnel_position)\n&&terms.facts.personnel_position == true",
+			"message": "A foreign worker may not be employed in a position that handles personnel (HR)."
+		}
+	},
+	{
+		"id": "c01c81f1-f3a7-5571-aeab-e2e063280b09",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "MINIMUM_AGE",
+		"name": "Worker under 13",
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "arts.68–70",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
+		"rules": {
+			"site": "contract",
+			"kind": "refuse",
+			"when": "employee.date_of_birth != \"\"\n&&double(age_on(employee.date_of_birth, day)) < 13.0",
+			"message": "A child under 13 may not be employed; from 13 to 15 only light work under art.69, from 14 within education under art.70."
+		}
+	},
+	{
+		"id": "7693105a-102a-50f2-a1a7-f4840774464b",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "FOREIGN_WORKER_PKWT",
+		"name": "Foreign worker on a PKWTT",
+		"references": [
+			{
+				"title": "UU 13/2003 art.42(4) as amended by UU 6/2023",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			},
+			{
+				"title": "PP 34/2021",
+				"locator": "art.2"
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "(employee.nationality != \"\" && employee.nationality != \"ID\")\n&&terms.employment_type != \"CONTRACT\"",
+			"message": "A foreign worker may be employed only for a certain position and a certain time (PKWT); this term is not a PKWT."
+		}
+	},
+	{
+		"id": "0372030f-ece2-5919-a29f-8898218822ad",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "WORKING_TIME_LIMIT",
+		"name": "Ordinary working time 7/8 hours a day, 40 a week",
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.21(2)–(3)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			},
+			{
+				"title": "UU 13/2003 art.77 as amended by UU 6/2023"
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "work.days.exists(\n  d,\n  d.scheduled_hours\n  > ((has(terms.facts.working_days_per_week)\n  &&terms.facts.working_days_per_week == 6.0)\n    ?7.0\n    :8.0\n) )\n||work.days.exists(\n  d,\n  sum(\n    work.days.filter(\n      x,\n      calendar_distance_days(x.date, d.date) >= 0.0\n      &&calendar_distance_days(x.date, d.date) <= 6.0\n    ).map(\n      x,\n      x.scheduled_hours\n    )\n  )\n  >40.0\n)",
+			"message": "Ordinary working time above 7 hours a day (6-day week) or 8 (5-day week), or above 40 hours in seven consecutive days; hours beyond it are overtime."
+		}
+	},
+	{
+		"id": "457386d8-f944-5e65-9e12-dbddb73f41cb",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "WEEKLY_REST",
+		"name": "Weekly rest: 1 day (6-day week), 2 days (5-day week)",
+		"references": [
+			{
+				"title": "PP 35/2021 art.22; UU 13/2003 art.79(2)(b) as amended by UU 6/2023 and read by Putusan MK 168/PUU-XXI/2023",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "work.days.exists(\n  d,\n  double(\n    size(\n      work.days.filter(\n        x,\n        x.worked && calendar_distance_days(x.date, d.date) >= 0.0\n        &&calendar_distance_days(x.date, d.date) <= 6.0\n      )\n    )\n  )\n  > ((has(terms.facts.working_days_per_week)\n  &&terms.facts.working_days_per_week == 6.0)\n    ?6.0\n    :5.0\n) )",
+			"message": "Fewer weekly rest days in seven consecutive days than the working-time system gives (1 for a 6-day week, 2 for a 5-day week); work on a rest day is overtime with a written order and consent."
+		}
+	},
+	{
+		"id": "dd282f55-3121-5819-98e6-ab4f291b037a",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "NIGHT_WORK_FEMALE_UNDER_18",
+		"name": "Night work: female worker under 18",
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "art.76(1)",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "employee.gender == \"FEMALE\" && employee.date_of_birth != \"\"\n&&work.days.exists(\n  d,\n  double(age_on(employee.date_of_birth, d.date)) < 18.0\n  &&hours_between(d.intervals, \"23:00\", \"07:00\") > 0.0\n)",
+			"message": "A female worker under 18 may not work between 23:00 and 07:00; the payslip is held."
+		}
+	},
+	{
+		"id": "9e3e0b0e-37a8-59d7-981b-4d7a9ff28cb0",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "NIGHT_WORK_PREGNANCY",
+		"name": "Night work: pregnancy at risk",
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "art.76(2)",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "employee.gender == \"FEMALE\"\n&&has(employee.facts.night_work_pregnancy_risk)\n&&employee.facts.night_work_pregnancy_risk == true\n&&work.days.exists(\n  d,\n  hours_between(d.intervals, \"23:00\", \"07:00\") > 0.0\n)",
+			"message": "A pregnant worker whom a doctor certifies at risk may not work between 23:00 and 07:00; the payslip is held."
+		}
+	},
+	{
+		"id": "f556aec0-0bd6-5912-879d-7c9cee2cc15b",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "NIGHT_WORK_FEMALE_DUTIES",
+		"name": "Night work by women: food, security and transport",
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "art.76(3)–(4)",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "employee.gender == \"FEMALE\"\n&&work.days.exists(\n  d,\n  hours_between(d.intervals, \"23:00\", \"07:00\") > 0.0\n)",
+			"message": "A female worker worked between 23:00 and 07:00: provide nutritious food and drink and keep decency and security at work; between 23:00 and 05:00 provide transport to and from work."
+		}
+	},
+	{
+		"id": "75b00f8e-c30e-576e-a71d-2c3c7ebe9f34",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "CHILD_WORKER",
+		"name": "Worker under 18",
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "arts.68–71",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "employee.date_of_birth != \"\"\n&&work.days.exists(\n  d,\n  d.worked && double(age_on(employee.date_of_birth, d.date)) < 18.0\n)",
+			"message": "A worker under 18 worked: lawful only as light work (13–15, with parental consent, at most 3 hours, by day, outside school hours), within education (14 and over) or talent work."
+		}
+	},
+	{
+		"id": "8649a6b4-cc69-5865-be15-c817d14166bf",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "CHILD_LIGHT_WORK_HOURS",
+		"name": "Light work above 3 hours or by night (13–15)",
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "art.69(2)",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "employee.date_of_birth != \"\"\n&&work.days.exists(\n  d,\n  double(age_on(employee.date_of_birth, d.date)) < 15.0\n  && (d.worked_hours > 3.0\n  ||hours_between(d.intervals, \"23:00\", \"07:00\") > 0.0\n) )",
+			"message": "A child under 15 may do light work for at most 3 hours a day, by day; the payslip is held."
+		}
+	},
+	{
+		"id": "ccdacbfb-4d5d-5d79-a948-f974a885b095",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "DAILY_CASUAL_21_DAYS",
+		"name": "Daily worker on 21 days or more",
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.10(3)–(4)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "terms.employment_type == \"DAILY\"\n&&double(size(work.days.filter(d, d.worked))) >= 21.0",
+			"message": "A daily worker worked 21 days or more this month; three such months in a row turn the daily agreement into a PKWTT by law (severance and THR follow)."
+		}
+	},
+	{
+		"id": "f1225132-286d-5226-974d-e88e88d8170f",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "GARNISHMENT_CEILING",
+		"name": "Court garnishment at most 20%",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.51",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "has(payslip.lines.COURT_GARNISHMENT)\n&&-payslip.lines.COURT_GARNISHMENT > 0.2 * payslip.gross",
+			"message": "A court-ordered seizure of wages may not exceed 20% of the wage payable; the payslip is held."
+		}
+	},
+	{
+		"id": "c88f2d7a-df90-570e-9cde-e102234c205f",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "BANKRUPTCY_CEILING",
+		"name": "Worker’s bankruptcy estate at most 25%",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.50",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "hold",
+			"when": "has(payslip.lines.BANKRUPTCY_ESTATE)\n&&-payslip.lines.BANKRUPTCY_ESTATE > 0.25 * payslip.gross",
+			"message": "Where the worker is bankrupt, the court may take at most 25% of the wage and other payments of the employment; the payslip is held."
+		}
+	},
+	{
+		"id": "aba840b0-8c80-55be-a227-4f71cc68fb3c",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_NORMAL_HOURS_DAY",
+		"name": "ROSTER_NORMAL_HOURS_DAY",
+		"references": [
+			{
+				"title": "PP 35/2021 art.21(2): 7 hours a day and 40 a week over six days, or 8 hours a day and 40 a week over five (term fact working_days_per_week); UU 13/2003 art.77 as amended by UU 6/2023. PP 35/2021",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "day.worked && (day.day_type == \"WORK\" || day.day_type == \"\")\n&&day.holiday_kind == \"\"\n&&day.worked_hours - day.overtime_hours\n> ((has(terms.facts.working_days_per_week)\n&&terms.facts.working_days_per_week == 6.0)\n  ?7.0\n  :8.0)",
+			"message": "normal hours above 7 in the day on a six-day week (8 on a five-day week) (PP 35/2021 art.21(2)).",
+			"description": "normal hours above 7 in the day on a six-day week (8 on a five-day week) (PP 35/2021 art.21(2))."
+		}
+	},
+	{
+		"id": "b619d424-6a35-54e5-bb08-d7a1a1570b7f",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_NORMAL_HOURS_WEEK",
+		"name": "ROSTER_NORMAL_HOURS_WEEK",
+		"references": [
+			{
+				"title": "PP 35/2021 art.21(2): 40 normal hours a week. PP 35/2021",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "week.worked_hours - week.overtime_hours > 40.0",
+			"message": "normal hours above 40 in the seven days ending on this day (PP 35/2021 art.21(2)).",
+			"description": "normal hours above 40 in the seven days ending on this day (PP 35/2021 art.21(2))."
+		}
+	},
+	{
+		"id": "45080cd5-0197-5048-963f-7c7cc525a29e",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_OVERTIME_DAY",
+		"name": "ROSTER_OVERTIME_DAY",
+		"references": [
+			{
+				"title": "PP 35/2021 art.26(1)–(2): overtime at most 4 hours a day and 18 a week, rest-day and holiday overtime outside the limit; the hours worked are still paid (art.31), so the import warns. PP 35/2021",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_out",
+			"when": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"\n&&day.overtime_hours > 4.0",
+			"message": "more than 4 overtime hours on a working day (PP 35/2021 art.26(1)).",
+			"description": "more than 4 overtime hours on a working day (PP 35/2021 art.26(1))."
+		}
+	},
+	{
+		"id": "fcce10bd-6b59-5eb6-9d8a-60bf0c1292b4",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_OVERTIME_WEEK",
+		"name": "ROSTER_OVERTIME_WEEK",
+		"references": [
+			{
+				"title": "PP 35/2021 art.26(1)–(2): at most 18 overtime hours a week; overtime on the weekly rest day or an official holiday is outside the limit, so only overtime on planned working days that are not holidays counts (week.overtime_hours_by_day_type WORK less HOLIDAY). PP 35/2021",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_out",
+			"when": "(day.day_type == \"WORK\" || day.day_type == \"\") && day.holiday_kind == \"\"\n&&day.overtime_hours > 0.0\n&&max(\n  0.0,\n  week.overtime_hours_by_day_type.WORK\n  -week.overtime_hours_by_day_type.HOLIDAY\n)\n>18.0",
+			"message": "more than 18 overtime hours on working days in the seven days ending on this working day (PP 35/2021 art.26(1)).",
+			"description": "more than 18 overtime hours on working days in the seven days ending on this working day (PP 35/2021 art.26(1))."
+		}
+	},
+	{
+		"id": "0b4cbd71-a6f5-5e2d-b427-c47ed3a7c0e4",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_WEEKLY_REST",
+		"name": "ROSTER_WEEKLY_REST",
+		"references": [
+			{
+				"title": "UU 13/2003 art.79(2)(b) as amended by UU 6/2023: one rest day after six working days a week (Putusan MK 168/PUU-XXI/2023 restores two after five on a five-day week); PP 35/2021 art.22. UU 13/2003",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "work_date",
+			"when": "day.worked\n&&double(week.worked_days)\n> ((has(terms.facts.working_days_per_week)\n&&terms.facts.working_days_per_week == 6.0)\n  ?6.0\n  :5.0)",
+			"message": "no weekly rest day in the seven days ending on this day (UU 13/2003 art.79(2)(b); PP 35/2021 art.22).",
+			"description": "no weekly rest day in the seven days ending on this day (UU 13/2003 art.79(2)(b); PP 35/2021 art.22)."
+		}
+	},
+	{
+		"id": "bdeda3d5-d4f0-5986-93da-d53b178a0ef8",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_NIGHT_FEMALE_UNDER_18",
+		"name": "ROSTER_NIGHT_FEMALE_UNDER_18",
+		"references": [
+			{
+				"title": "UU 13/2003 art.76(1): a female worker under 18 may not be employed between 23:00 and 07:00. UU 13/2003",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "employee.gender == \"FEMALE\" && employee.date_of_birth != null\n&&employee.date_of_birth != \"\"\n&&double(age_on(employee.date_of_birth, day.date)) < 18.0\n&&hours_between(day.intervals, \"23:00\", \"07:00\") > 0.0",
+			"message": "a woman under 18 worked between 23:00 and 07:00 (UU 13/2003 art.76(1)).",
+			"description": "a woman under 18 worked between 23:00 and 07:00 (UU 13/2003 art.76(1))."
+		}
+	},
+	{
+		"id": "21441d4e-10be-54c7-abd8-c910059fcaeb",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_NIGHT_PREGNANCY",
+		"name": "ROSTER_NIGHT_PREGNANCY",
+		"references": [
+			{
+				"title": "UU 13/2003 art.76(2): a pregnant worker whom a doctor certifies at risk to her or her pregnancy may not work between 23:00 and 07:00 (employee.facts.night_work_pregnancy_risk). UU 13/2003",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "employee.gender == \"FEMALE\"\n&&has(employee.facts.night_work_pregnancy_risk)\n&&employee.facts.night_work_pregnancy_risk == true\n&&hours_between(day.intervals, \"23:00\", \"07:00\") > 0.0",
+			"message": "night work (23:00–07:00) by a pregnant worker whom a doctor declared at risk (UU 13/2003 art.76(2)).",
+			"description": "night work (23:00–07:00) by a pregnant worker whom a doctor declared at risk (UU 13/2003 art.76(2))."
+		}
+	},
+	{
+		"id": "330b01f3-d03f-54a5-8fa6-9e13fc3e4cf0",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_CHILD_LIGHT_WORK",
+		"name": "ROSTER_CHILD_LIGHT_WORK",
+		"references": [
+			{
+				"title": "UU 13/2003 art.69(1)–(2): a child of 13 to 15 does light work only, at most 3 hours a day, in the daytime, with the parent’s written permission. UU 13/2003",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "employee.date_of_birth != null && employee.date_of_birth != \"\"\n&&day.worked\n&&double(age_on(employee.date_of_birth, day.date)) >= 13.0\n&&double(age_on(employee.date_of_birth, day.date)) < 15.0\n&& (day.worked_hours > 3.0\n||hours_between(day.intervals, \"23:00\", \"07:00\") > 0.0)",
+			"message": "a child of 13 to 15 above 3 hours of light work in the day, or at night (UU 13/2003 art.69(2)).",
+			"description": "a child of 13 to 15 above 3 hours of light work in the day, or at night (UU 13/2003 art.69(2))."
+		}
+	},
+	{
+		"id": "e45440ad-cf62-55d4-a5bc-29862ed66bc6",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_UNDER_13",
+		"name": "ROSTER_UNDER_13",
+		"references": [
+			{
+				"title": "UU 13/2003 art.68: employers may not employ children; art.69 allows light work from 13 to 15 only. The contract site refuses the same (MINIMUM_AGE). UU 13/2003",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "refuse",
+			"column": "employee_number",
+			"when": "employee.date_of_birth != null && employee.date_of_birth != \"\"\n&&day.worked\n&&double(age_on(employee.date_of_birth, day.date)) < 13.0",
+			"message": "a child under 13 may not be employed (UU 13/2003 arts.68–69): remove the day.",
+			"description": "a child under 13 may not be employed (UU 13/2003 arts.68–69): remove the day."
+		}
+	},
+	{
+		"id": "dd2c1668-748d-5ea9-8d12-bafe9331191b",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "PARAMETERS",
+		"code": "case_kinds",
+		"name": "Workplace case kinds",
+		"rules": {
+			"kinds": [
+				{
+					"code": "PERSONAL_DATA_BREACH",
+					"name": "Personal data protection failure (UU 27/2022 art.46)"
+				},
+				{
+					"code": "PERSONAL_DATA_ACCESS_REQUEST",
+					"name": "Data subject access request (art.32)"
+				},
+				{
+					"code": "PERSONAL_DATA_CORRECTION_REQUEST",
+					"name": "Data subject correction or update request (art.30)"
+				},
+				{
+					"code": "PERSONAL_DATA_CONSENT_WITHDRAWAL",
+					"name": "Withdrawal of consent to processing (art.40)"
+				},
+				{
+					"code": "PERSONAL_DATA_RESTRICTION_REQUEST",
+					"name": "Request to suspend or restrict processing (art.41)"
+				},
+				{
+					"code": "WORKER_HEALTH_EXAMINATION_COMPLETED",
+					"name": "Worker health examination completed (PER.02/MEN/1980 art.6(2)); opening date is examination date"
+				}
+			]
+		}
+	},
+	{
+		"id": "8b98a821-b399-5615-9ce9-6c418834e220",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "PARAMETERS",
+		"code": "exit_grounds",
+		"name": "Exit grounds",
+		"rules": {
+			"description": "Why an employment ends (employment_contract.exit_ground, CEL employment.exit_ground): the grounds HR chooses from when it ends a contract. Every ground a record of this version compares is listed.",
+			"kinds": [
+				{
+					"code": "DEATH",
+					"name": "Death of the employee"
+				},
+				{
+					"code": "DISMISSAL",
+					"name": "Dismissal by the employer"
+				},
+				{
+					"code": "END_OF_CONTRACT",
+					"name": "End of a fixed-term contract"
+				},
+				{
+					"code": "MUTUAL",
+					"name": "Mutual agreement"
+				},
+				{
+					"code": "REDUNDANCY",
+					"name": "Redundancy"
+				},
+				{
+					"code": "RESIGNATION",
+					"name": "Resignation by the employee"
+				},
+				{
+					"code": "RETIREMENT",
+					"name": "Retirement"
+				},
+				{
+					"code": "RETRENCHMENT",
+					"name": "Retrenchment"
+				},
+				{
+					"code": "UNILATERAL",
+					"name": "Unilateral termination by the employer"
+				}
+			]
+		}
+	},
+	{
+		"id": "fa4cf92e-83ca-5e1c-8077-a82a7e075176",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "PARAMETERS",
+		"code": "holiday_kinds",
+		"name": "Holiday kinds",
+		"rules": {
+			"description": "The kinds an entity's holiday row may carry (holiday.kind, CEL work.days[].holiday_kind and holidays[].kind): every kind a record of this version prices or the public_holidays calendar writes.",
+			"kinds": [
+				{
+					"code": "PUBLIC_HOLIDAY",
+					"name": "Public holiday"
+				}
+			]
+		}
+	},
+	{
+		"id": "ed8bf8a1-8bf2-552c-bdae-49418ef8f3cf",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "MINIMUM_WAGE_LONG_SERVICE",
+		"name": "Wage below the minimum after one year of service",
+		"references": [
+			{
+				"title": "UU 13/2003 art.88E(2) as amended by UU 6/2023 (“Pengusaha dilarang membayar Upah lebih rendah dari upah minimum”, a prohibition not limited by service; art.185 sanctions it); PP 36/2021 arts.16, 17, 24(2), 35D. The refusal stays with workers under one year (MINIMUM_WAGE_FLOOR, SECTOR_MINIMUM_WAGE, DAILY_ and HOURLY_MINIMUM_WAGE, art.88E(1)); for longer service the employer’s wage scale governs, so the breach warns rather than refuses.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"rules": {
+			"site": "contract",
+			"kind": "warn",
+			"when": "!(has(company.facts) && company.facts != null\n&&has(company.facts.enterprise_size_class)\n&&company.facts.enterprise_size_class == \"MICRO_OR_SMALL\")\n&&employment.service_months >= 12.0\n&& ((has(terms.facts.worksite_region)\n&&terms.facts.worksite_region != \"\"\n  ?terms.facts.worksite_region\n  :company.region)\nin rules.minimum_wage.by_region)\n&& ((term.employment_type in [\"PERMANENT\", \"CONTRACT\"]\n&& (term.monthly_wage\n<rules.minimum_wage.by_region[(has(terms.facts.worksite_region)\n&&terms.facts.worksite_region != \"\"\n  ?terms.facts.worksite_region\n  :company.region)]\n|| (has(rules.minimum_wage.by_sector) && has(term.facts.worksite_kbli)\n&&rules.minimum_wage.by_sector.exists(\n  k,\n  ((has(terms.facts.worksite_region)\n  &&terms.facts.worksite_region != \"\"\n    ?terms.facts.worksite_region\n    :company.region)\n  ==k\n  || (has(terms.facts.worksite_region)\n  &&terms.facts.worksite_region != \"\"\n    ?terms.facts.worksite_region\n    :company.region).startsWith(\n    k + \"/\"\n  ))\n  &&rules.minimum_wage.by_sector[k].exists(\n    r,\n    term.facts.worksite_kbli.startsWith(r.kbli)\n    && (r.condition == \"\"\n    || (r.condition == \"RAYON_VISCOSE\"\n    &&has(company.facts.umsp_rayon_viscose)\n    &&company.facts.umsp_rayon_viscose == true)\n    || (r.condition == \"EXPORT\"\n    && (has(company.facts.umsp_export_oriented)\n    &&company.facts.umsp_export_oriented == true))\n    || (r.condition == \"ASSETS_1T\"\n    && (has(company.facts.umsp_assets_over_1_trillion)\n    &&company.facts.umsp_assets_over_1_trillion == true))\n    || (r.condition == \"ASTRA\"\n    && (has(company.facts.umsp_astra_group)\n    &&company.facts.umsp_astra_group == true))\n    || (r.condition == \"HOTEL_4_5\" && has(company.facts.umsp_hotel_star)\n    &&company.facts.umsp_hotel_star >= 4.0)\n    || (r.condition == \"HOTEL_3_5\" && has(company.facts.umsp_hotel_star)\n    &&company.facts.umsp_hotel_star >= 3.0)\n    || (r.condition == \"FREEPORT_AREA\"\n    &&has(company.facts.umsp_freeport_area)\n    &&company.facts.umsp_freeport_area == true)\n    || (r.condition == \"BUS_DRIVER_MECHANIC\"\n    && (has(term.facts.umsp_job_category)\n      ?term.facts.umsp_job_category\n      :\"\")\n    ==\"BUS_DRIVER_MECHANIC\")\n    || (r.condition == \"CLASS_A_HOSPITAL_CARE\"\n    && (has(company.facts.umsp_class_a_private_hospital)\n    &&company.facts.umsp_class_a_private_hospital == true)\n    && (has(term.facts.umsp_job_category)\n      ?term.facts.umsp_job_category\n      :\"\")\n    in [\"NURSING_MIDWIFERY\", \"MEDICAL_SUPPORT\"]))\n    &&term.monthly_wage < r.monthly\n  )\n))))\n|| (term.employment_type == \"DAILY\" && has(terms.facts.daily_wage)\n&&terms.facts.daily_wage\n<rules.minimum_wage.by_region[(has(terms.facts.worksite_region)\n&&terms.facts.worksite_region != \"\"\n  ?terms.facts.worksite_region\n  :company.region)]\n/ ((has(terms.facts.working_days_per_week)\n&&terms.facts.working_days_per_week == 6.0)\n  ?25.0\n  :21.0))\n|| (term.employment_type == \"PART_TIME\" && has(terms.facts.hourly_wage)\n&&terms.facts.hourly_wage\n<rules.minimum_wage.by_region[(has(terms.facts.worksite_region)\n&&terms.facts.worksite_region != \"\"\n  ?terms.facts.worksite_region\n  :company.region)]\n/126.0))",
+			"message": "A worker with one year of service or more is paid below the worksite’s minimum wage (the UMK or UMP, its sector minimum, or the daily ÷25/÷21 and hourly ÷126 floors): UU 13/2003 art.88E(2) bars paying less than the minimum wage; the wage of longer service follows the wage structure and scale above it (PP 36/2021 art.24(2))."
+		}
+	},
+	{
+		"id": "1af1b8e7-ce19-5ca9-9a3c-22a424876573",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_REST_BREAK",
+		"name": "ROSTER_REST_BREAK",
+		"references": [
+			{
+				"title": "UU 13/2003 art.79(2)(a) as amended by UU 6/2023: a rest between working hours of at least half an hour after four hours of continuous work, not counted as working time; PP 35/2021 art.22. Read from the roster day’s recorded intervals (`day.intervals`): one interval longer than 4 hours, or two separated by less than 30 minutes (no rest) that together exceed 4 hours. A chain of three or more short-gapped intervals is read pairwise.",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"rules": {
+			"site": "roster",
+			"kind": "warn",
+			"column": "clock_in",
+			"when": "day.worked && has(day.intervals) && day.intervals != null\n&&day.intervals.exists(\n  a,\n  (has(a.start) && has(a.end) && a.start != null && a.end != null\n  &&a.start != \"\"\n  &&a.end != \"\")\n  && ((calendar_distance_days(day.date, a.end.substring(0, 10)) * 1440.0\n  +double(int(a.end.substring(11, 13))) * 60.0\n  +double(int(a.end.substring(14, 16))))\n  - (calendar_distance_days(day.date, a.start.substring(0, 10)) * 1440.0\n  +double(int(a.start.substring(11, 13))) * 60.0\n  +double(int(a.start.substring(14, 16))))\n  >240.0\n  ||day.intervals.exists(\n    b,\n    (has(b.start) && has(b.end) && b.start != null && b.end != null\n    &&b.start != \"\"\n    &&b.end != \"\")\n    &&b.start >= a.end\n    && (calendar_distance_days(day.date, b.start.substring(0, 10))\n    *1440.0\n    +double(int(b.start.substring(11, 13))) * 60.0\n    +double(int(b.start.substring(14, 16))))\n    - (calendar_distance_days(day.date, a.end.substring(0, 10)) * 1440.0\n    +double(int(a.end.substring(11, 13))) * 60.0\n    +double(int(a.end.substring(14, 16))))\n    <30.0\n    && ((calendar_distance_days(day.date, a.end.substring(0, 10))\n    *1440.0\n    +double(int(a.end.substring(11, 13))) * 60.0\n    +double(int(a.end.substring(14, 16))))\n    - (calendar_distance_days(day.date, a.start.substring(0, 10))\n    *1440.0\n    +double(int(a.start.substring(11, 13))) * 60.0\n    +double(int(a.start.substring(14, 16)))))\n    + ((calendar_distance_days(day.date, b.end.substring(0, 10))\n    *1440.0\n    +double(int(b.end.substring(11, 13))) * 60.0\n    +double(int(b.end.substring(14, 16))))\n    - (calendar_distance_days(day.date, b.start.substring(0, 10))\n    *1440.0\n    +double(int(b.start.substring(11, 13))) * 60.0\n    +double(int(b.start.substring(14, 16)))))\n    >240.0\n  )\n) )",
+			"message": "more than 4 hours of continuous work without a break of at least 30 minutes (UU 13/2003 art.79(2)(a); PP 35/2021 art.22).",
+			"description": "more than 4 hours of continuous work without a break of at least 30 minutes (UU 13/2003 art.79(2)(a); PP 35/2021 art.22)."
+		}
+	},
+	{
+		"id": "6eac1488-fd2d-5ba4-876b-3425907815a5",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "WORKING_DAYS_PER_WEEK_REQUIRED",
+		"name": "Working days a week missing for rest-day or holiday overtime",
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.31(2)–(3)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "!has(terms.facts.working_days_per_week)\n&&work.days.exists(\n  d,\n  d.worked_hours - d.banked_hours > 0.0\n  && (d.day_type == \"REST\" || d.day_type == \"OFF\"\n  || (d.holiday_kind != \"\" && d.holiday_kind != \"MAKEUP_WORKDAY\"\n) ))",
+			"message": "Record the working days a week (terms.facts.working_days_per_week, 5 or 6) of a worker with rest-day or holiday overtime: PP 35/2021 art.31(2)–(3) sets different ladders for a six-day and a five-day week, and the overtime is priced on the five-day ladder until it is recorded."
+		}
+	},
+	{
+		"id": "36d1ab8b-1e50-5f0a-9ea4-bc1c3e787e4b",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "EXPORTS",
+		"code": "CORETAX_BPMP_XML",
+		"name": "Coretax BPMP — monthly PPh 21 slips of permanent employees (XML import)",
+		"references": [
+			{
+				"title": "PER-11/PJ/2025 (bukti pemotongan and SPT Masa PPh 21/26 in Coretax); PMK 81/2024; the DJP Coretax XML import template and its Excel-to-XML converter (https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml, read 2026-10-07: bpmp.zip, bpa1.zip, bp21.zip, bp26.zip of 2024-12 and the BPMP v.3, BP21 v.4 converters naming each XML element). Rendered as a FIXED file whose records carry no widths: each record is one XML text line (the declaration and root open in the header, one element per withholding, the root closed in the trailer); text values are escaped (&, <, >). Customer inputs: the entity NPWP (`company.facts.npwp`) and its ID TKU (`company.facts.nitku`, else the NPWP + 000000 of the head office), the employee NIK (`employment_profile.identity_number`), passport (`employee.facts.passport_number`) for a foreign national, the job title on the terms. BPMP (bukti pemotongan bulanan pegawai tetap, PER-11/PJ/2025 Lampiran): one MmPayroll per PERMANENT or CONTRACT employee and month withheld at the TER (PMK 168/2023 art.2), January to November and every month before an exit; Gross is the month’s PPh 21 base, Rate the TER rate applied (tax ÷ base, in percent), TaxObjectCode 21-100-01, TaxCertificate DTP where PPh 21 DTP was borne (PMK 105/2025). The December and exit months are the BPA1.",
+				"url": "https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml"
+			}
+		],
+		"rules": {
+			"file": "\"coretax-bpmp-\" + runs[0].period.substring(0, 7) + \".xml\"",
+			"format": "FIXED",
+			"columns": [],
+			"header": [
+				{
+					"value": "\"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\" standalone=\\\"yes\\\"?>\" + \"<MmPayrollBulk xmlns:xsi=\\\"http://www.w3.org/2001/XMLSchema-instance\\\">\" + \"<TIN>\" + (has(company.facts) && company.facts != null && has(company.facts.npwp) ? company.facts.npwp : \"\") + \"</TIN><ListOfMmPayroll>\""
+				}
+			],
+			"records": [
+				{
+					"each": "(has(contract.engagement) && contract.engagement == \"PAYEE\") || !(((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && size(contract.facts.contract_terms) > 0) ? string(contract.facts.contract_terms[size(contract.facts.contract_terms) - 1].employment_type) : \"\") in [\"PERMANENT\", \"CONTRACT\"]) ? [] : slips.filter(s, has(s.statutory.PPH21) && s.statutory.PPH21.base > 0.0 && !(s.period.substring(5, 7) == \"12\" || s.period.substring(0, 7) == (has(contract.exit_ground) && contract.exit_ground != null && has(contract.effective_range) && has(contract.effective_range.to) && contract.effective_range.to != null ? contract.effective_range.to.substring(0, 7) : \"\")))",
+					"fields": [
+						{
+							"value": "\"<MmPayroll>\" + \"<TaxPeriodMonth>\" + string(int(item.period.substring(5, 7))) + \"</TaxPeriodMonth>\" + \"<TaxPeriodYear>\" + item.period.substring(0, 4) + \"</TaxPeriodYear>\" + \"<CounterpartOpt>\" + ((has(employee.nationality) && employee.nationality != null && employee.nationality != \"\" && employee.nationality != \"ID\") ? \"Foreign\" : \"Resident\") + \"</CounterpartOpt>\" + ((has(employee.nationality) && employee.nationality != null && employee.nationality != \"\" && employee.nationality != \"ID\") && has(employee.facts) && employee.facts != null && has(employee.facts.passport_number) && employee.facts.passport_number != \"\" ? \"<CounterpartPassport>\" + string(employee.facts.passport_number).split(\"&\").join(\"&amp;\").split(\"<\").join(\"&lt;\").split(\">\").join(\"&gt;\") + \"</CounterpartPassport>\" : \"<CounterpartPassport xsi:nil=\\\"true\\\"/>\") + \"<CounterpartTin>\" + (has(employee.identity_number) && employee.identity_number != null ? employee.identity_number : \"\") + \"</CounterpartTin>\" + \"<StatusTaxExemption>\" + ((employee.marital_status == \"MARRIED\" && !(employee.gender == \"FEMALE\" && employee.marital_status == \"MARRIED\" && !(has(employee.facts) && employee.facts != null && has(employee.facts.husband_no_income_certified) && employee.facts.husband_no_income_certified))) ? \"K/\" : \"TK/\") + string(int((employee.gender == \"FEMALE\" && employee.marital_status == \"MARRIED\" && !(has(employee.facts) && employee.facts != null && has(employee.facts.husband_no_income_certified) && employee.facts.husband_no_income_certified)) ? 0.0 : (cel.bind(kf, has(terms.facts) && terms.facts != null ? terms.facts : {}, has(kf.dependents_count) && kf.dependents_count != null ? min(double(kf.dependents_count), 3.0) : 0.0)))) + \"</StatusTaxExemption>\" + \"<Position>\" + ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && size(contract.facts.contract_terms) > 0) && size(contract.facts.contract_terms.filter(t, has(t.job_title) && t.job_title != null && t.job_title != \"\").map(t, string(t.job_title))) > 0 ? string(contract.facts.contract_terms.filter(t, has(t.job_title) && t.job_title != null && t.job_title != \"\").map(t, string(t.job_title))[size(contract.facts.contract_terms.filter(t, has(t.job_title) && t.job_title != null && t.job_title != \"\").map(t, string(t.job_title))) - 1]).split(\"&\").join(\"&amp;\").split(\"<\").join(\"&lt;\").split(\">\").join(\"&gt;\") : \"Pegawai\") + \"</Position>\" + \"<TaxCertificate>\" + (has(item.statutory.PPH21_DTP) && (item.statutory.PPH21_DTP.employee != 0.0 || item.statutory.PPH21_DTP.employer != 0.0) ? \"DTP\" : \"N/A\") + \"</TaxCertificate>\" + \"<TaxObjectCode>\" + \"21-100-01\" + \"</TaxObjectCode>\" + \"<Gross>\" + string(int(round(item.statutory.PPH21.base, 1.0, \"HALF_UP\"))) + \"</Gross>\" + \"<Rate>\" + string(round((item.statutory.PPH21.base) > 0.0 ? item.statutory.PPH21.employee / (item.statutory.PPH21.base) * 100.0 : 0.0, 0.01, \"HALF_UP\")) + \"</Rate>\" + \"<IDPlaceOfBusinessActivity>\" + (has(company.facts) && company.facts != null && has(company.facts.nitku) && company.facts.nitku != \"\" ? company.facts.nitku : (has(company.facts) && company.facts != null && has(company.facts.npwp) ? company.facts.npwp : \"\") + \"000000\") + \"</IDPlaceOfBusinessActivity>\" + \"<WithholdingDate>\" + month_end(item.period.substring(0, 7) + \"-01\") + \"</WithholdingDate>\" + \"</MmPayroll>\""
+						}
+					]
+				}
+			],
+			"trailer": [
+				{
+					"value": "\"</ListOfMmPayroll></MmPayrollBulk>\""
+				}
+			]
+		}
+	},
+	{
+		"id": "e4c34d99-84b5-5ddb-b1b7-2447dcd24638",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "EXPORTS",
+		"code": "CORETAX_BPA1_XML",
+		"name": "Coretax BPA1 — annual PPh 21 slip of permanent employees (XML import)",
+		"references": [
+			{
+				"title": "PER-11/PJ/2025 (bukti pemotongan and SPT Masa PPh 21/26 in Coretax); PMK 81/2024; the DJP Coretax XML import template and its Excel-to-XML converter (https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml, read 2026-10-07: bpmp.zip, bpa1.zip, bp21.zip, bp26.zip of 2024-12 and the BPMP v.3, BP21 v.4 converters naming each XML element). Rendered as a FIXED file whose records carry no widths: each record is one XML text line (the declaration and root open in the header, one element per withholding, the root closed in the trailer); text values are escaped (&, <, >). Customer inputs: the entity NPWP (`company.facts.npwp`) and its ID TKU (`company.facts.nitku`, else the NPWP + 000000 of the head office), the employee NIK (`employment_profile.identity_number`), passport (`employee.facts.passport_number`) for a foreign national, the job title on the terms. BPA1 (bukti pemotongan tahunan / masa pajak terakhir, PMK 168/2023 art.2(2)(b)): one A1 per PERMANENT or CONTRACT employee whose exported slips hold December or the exit month — export the year’s runs. Months start/end are the first and last month withheld; StatusOfWithholding FullYear (January–December), PartialYear, or Annualized where the terms record a tax-subject start or end in the year (`tax_subject_from` / `tax_subject_until`) with NumberOfMonths; Salary = basic, fixed allowances and their adjustments; OtherBenefit = overtime, leave pay, medical and other allowances; InsurancePaidByEmployer = the employer JKK, JKM and Kesehatan premiums; TantiemBonusThr = bonus and THR; Natura; PensionContribution = the employee JHT and JP; Zakat = `employee.facts.zakat_monthly` × months; Article21IncomeTax = the PPh 21 withheld before the final month (the BPMP total). Gross-up and the previous employer’s slip are not used (GrossUpOpt No, PrevWhTaxSlip nil).",
+				"url": "https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml"
+			}
+		],
+		"rules": {
+			"file": "\"coretax-bpa1-\" + runs[0].period.substring(0, 7).substring(0, 4) + \".xml\"",
+			"format": "FIXED",
+			"columns": [],
+			"header": [
+				{
+					"value": "\"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\" standalone=\\\"yes\\\"?>\" + \"<A1Bulk xmlns:xsi=\\\"http://www.w3.org/2001/XMLSchema-instance\\\">\" + \"<TIN>\" + (has(company.facts) && company.facts != null && has(company.facts.npwp) ? company.facts.npwp : \"\") + \"</TIN><ListOfA1>\""
+				}
+			],
+			"records": [
+				{
+					"each": "[{}]",
+					"fields": [
+						{
+							"value": "\"<A1>\" + \"<WorkForSecondEmployer>\" + \"No\" + \"</WorkForSecondEmployer>\" + \"<TaxPeriodMonthStart>\" + string(int((-first(top(slips.filter(s, has(s.statutory.PPH21)).map(s, -double(int(s.period.substring(5, 7)))), 1))))) + \"</TaxPeriodMonthStart>\" + \"<TaxPeriodMonthEnd>\" + string(int(first(top(slips.filter(s, has(s.statutory.PPH21)).map(s, double(int(s.period.substring(5, 7)))), 1)))) + \"</TaxPeriodMonthEnd>\" + \"<TaxPeriodYear>\" + slips.filter(s, has(s.statutory.PPH21) && double(int(s.period.substring(5, 7))) == first(top(slips.filter(s, has(s.statutory.PPH21)).map(s, double(int(s.period.substring(5, 7)))), 1)))[0].period.substring(0, 4) + \"</TaxPeriodYear>\" + \"<CounterpartOpt>\" + ((has(employee.nationality) && employee.nationality != null && employee.nationality != \"\" && employee.nationality != \"ID\") ? \"Foreign\" : \"Resident\") + \"</CounterpartOpt>\" + ((has(employee.nationality) && employee.nationality != null && employee.nationality != \"\" && employee.nationality != \"ID\") && has(employee.facts) && employee.facts != null && has(employee.facts.passport_number) && employee.facts.passport_number != \"\" ? \"<CounterpartPassport>\" + string(employee.facts.passport_number).split(\"&\").join(\"&amp;\").split(\"<\").join(\"&lt;\").split(\">\").join(\"&gt;\") + \"</CounterpartPassport>\" : \"<CounterpartPassport xsi:nil=\\\"true\\\"/>\") + \"<CounterpartTin>\" + (has(employee.identity_number) && employee.identity_number != null ? employee.identity_number : \"\") + \"</CounterpartTin>\" + \"<TaxExemptOpt>\" + ((employee.marital_status == \"MARRIED\" && !(employee.gender == \"FEMALE\" && employee.marital_status == \"MARRIED\" && !(has(employee.facts) && employee.facts != null && has(employee.facts.husband_no_income_certified) && employee.facts.husband_no_income_certified))) ? \"K/\" : \"TK/\") + string(int((employee.gender == \"FEMALE\" && employee.marital_status == \"MARRIED\" && !(has(employee.facts) && employee.facts != null && has(employee.facts.husband_no_income_certified) && employee.facts.husband_no_income_certified)) ? 0.0 : (cel.bind(kf, has(terms.facts) && terms.facts != null ? terms.facts : {}, has(kf.dependents_count) && kf.dependents_count != null ? min(double(kf.dependents_count), 3.0) : 0.0)))) + \"</TaxExemptOpt>\" + \"<StatusOfWithholding>\" + (((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && size(contract.facts.contract_terms) > 0) && contract.facts.contract_terms.exists(t, has(t.facts) && t.facts != null && ((has(t.facts.tax_subject_from) && t.facts.tax_subject_from != \"\" && t.facts.tax_subject_from.substring(0, 4) == slips.filter(s, has(s.statutory.PPH21) && double(int(s.period.substring(5, 7))) == first(top(slips.filter(s, has(s.statutory.PPH21)).map(s, double(int(s.period.substring(5, 7)))), 1)))[0].period.substring(0, 4)) || (has(t.facts.tax_subject_until) && t.facts.tax_subject_until != \"\" && t.facts.tax_subject_until.substring(0, 4) == slips.filter(s, has(s.statutory.PPH21) && double(int(s.period.substring(5, 7))) == first(top(slips.filter(s, has(s.statutory.PPH21)).map(s, double(int(s.period.substring(5, 7)))), 1)))[0].period.substring(0, 4))))) ? \"Annualized\" : ((-first(top(slips.filter(s, has(s.statutory.PPH21)).map(s, -double(int(s.period.substring(5, 7)))), 1))) == 1.0 && first(top(slips.filter(s, has(s.statutory.PPH21)).map(s, double(int(s.period.substring(5, 7)))), 1)) == 12.0 ? \"FullYear\" : \"PartialYear\")) + \"</StatusOfWithholding>\" + \"<CounterpartPosition>\" + ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && size(contract.facts.contract_terms) > 0) && size(contract.facts.contract_terms.filter(t, has(t.job_title) && t.job_title != null && t.job_title != \"\").map(t, string(t.job_title))) > 0 ? string(contract.facts.contract_terms.filter(t, has(t.job_title) && t.job_title != null && t.job_title != \"\").map(t, string(t.job_title))[size(contract.facts.contract_terms.filter(t, has(t.job_title) && t.job_title != null && t.job_title != \"\").map(t, string(t.job_title))) - 1]).split(\"&\").join(\"&amp;\").split(\"<\").join(\"&lt;\").split(\">\").join(\"&gt;\") : \"Pegawai\") + \"</CounterpartPosition>\" + \"<TaxObjectCode>\" + \"21-100-01\" + \"</TaxObjectCode>\" + \"<NumberOfMonths>\" + (((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && size(contract.facts.contract_terms) > 0) && contract.facts.contract_terms.exists(t, has(t.facts) && t.facts != null && ((has(t.facts.tax_subject_from) && t.facts.tax_subject_from != \"\" && t.facts.tax_subject_from.substring(0, 4) == slips.filter(s, has(s.statutory.PPH21) && double(int(s.period.substring(5, 7))) == first(top(slips.filter(s, has(s.statutory.PPH21)).map(s, double(int(s.period.substring(5, 7)))), 1)))[0].period.substring(0, 4)) || (has(t.facts.tax_subject_until) && t.facts.tax_subject_until != \"\" && t.facts.tax_subject_until.substring(0, 4) == slips.filter(s, has(s.statutory.PPH21) && double(int(s.period.substring(5, 7))) == first(top(slips.filter(s, has(s.statutory.PPH21)).map(s, double(int(s.period.substring(5, 7)))), 1)))[0].period.substring(0, 4))))) ? string(int(first(top(slips.filter(s, has(s.statutory.PPH21)).map(s, double(int(s.period.substring(5, 7)))), 1)) - (-first(top(slips.filter(s, has(s.statutory.PPH21)).map(s, -double(int(s.period.substring(5, 7)))), 1))) + 1.0)) : \"0\") + \"</NumberOfMonths>\" + \"<SalaryPensionJhtTht>\" + string(int(round((has(totals.lines.BASIC) ? totals.lines.BASIC : 0.0) + (has(totals.lines.HOUSE_ALLOWANCE) ? totals.lines.HOUSE_ALLOWANCE : 0.0) + (has(totals.lines.CAR_ALLOWANCE) ? totals.lines.CAR_ALLOWANCE : 0.0) + (has(totals.lines.SPECIAL_ALLOWANCE) ? totals.lines.SPECIAL_ALLOWANCE : 0.0) + (has(totals.lines.NO_PAY_LEAVE) ? totals.lines.NO_PAY_LEAVE : 0.0) + (has(totals.lines.PARTIAL_PAY_LEAVE) ? totals.lines.PARTIAL_PAY_LEAVE : 0.0) + (has(totals.lines.SUSPENSION_PAY_ADJUSTMENT) ? totals.lines.SUSPENSION_PAY_ADJUSTMENT : 0.0) + (has(totals.lines.BACK_PAY_SALARY) ? totals.lines.BACK_PAY_SALARY : 0.0) + (has(totals.lines.RETROACTIVE_PAY) ? totals.lines.RETROACTIVE_PAY : 0.0), 1.0, \"HALF_UP\"))) + \"</SalaryPensionJhtTht>\" + \"<GrossUpOpt>\" + \"No\" + \"</GrossUpOpt>\" + \"<IncomeTaxBenefit>\" + \"0\" + \"</IncomeTaxBenefit>\" + \"<OtherBenefit>\" + string(int(round((has(totals.lines.OVERTIME) ? totals.lines.OVERTIME : 0.0) + (has(totals.lines.ENCASHMENT) ? totals.lines.ENCASHMENT : 0.0) + (has(totals.lines.MEDICAL_ALLOWANCE) ? totals.lines.MEDICAL_ALLOWANCE : 0.0) + (has(totals.lines.CLAWBACK_OVERTIME) ? totals.lines.CLAWBACK_OVERTIME : 0.0) + (has(totals.lines.LATE_WAGE_FINE) ? totals.lines.LATE_WAGE_FINE : 0.0) + (has(totals.lines.DETENTION_FAMILY_AID) ? totals.lines.DETENTION_FAMILY_AID : 0.0), 1.0, \"HALF_UP\"))) + \"</OtherBenefit>\" + \"<Honorarium>\" + \"0\" + \"</Honorarium>\" + \"<InsurancePaidByEmployer>\" + string(int(round((has(totals.statutory.JKK) ? totals.statutory.JKK.employer : 0.0) + (has(totals.statutory.JKM) ? totals.statutory.JKM.employer : 0.0) + (has(totals.statutory.KESEHATAN) ? totals.statutory.KESEHATAN.employer : 0.0) + (has(totals.lines.KESEHATAN_TERMINATION_MONTH_EMPLOYER) ? totals.lines.KESEHATAN_TERMINATION_MONTH_EMPLOYER : 0.0), 1.0, \"HALF_UP\"))) + \"</InsurancePaidByEmployer>\" + \"<Natura>\" + string(int(round((has(totals.lines.NATURA) ? totals.lines.NATURA : 0.0), 1.0, \"HALF_UP\"))) + \"</Natura>\" + \"<TantiemBonusThr>\" + string(int(round((has(totals.lines.BONUS_THR) ? totals.lines.BONUS_THR : 0.0) + (has(totals.lines.THR) ? totals.lines.THR : 0.0) + (has(totals.lines.THR_HOLIDAY) ? totals.lines.THR_HOLIDAY : 0.0), 1.0, \"HALF_UP\"))) + \"</TantiemBonusThr>\" + \"<PensionContributionJhtThtFee>\" + string(int(round((has(totals.statutory.JHT) ? totals.statutory.JHT.employee : 0.0) + (has(totals.statutory.JP) ? totals.statutory.JP.employee : 0.0), 1.0, \"HALF_UP\"))) + \"</PensionContributionJhtThtFee>\" + \"<Zakat>\" + string(int(round((has(employee.facts) && employee.facts != null && has(employee.facts.zakat_monthly) ? employee.facts.zakat_monthly * double(size(slips.filter(s, has(s.statutory.PPH21)))) : 0.0), 1.0, \"HALF_UP\"))) + \"</Zakat>\" + \"<PrevWhTaxSlip xsi:nil=\\\"true\\\"/>\" + \"<TaxCertificate>\" + (slips.exists(s, (has(s.statutory.PPH21_DTP) && (s.statutory.PPH21_DTP.employee != 0.0 || s.statutory.PPH21_DTP.employer != 0.0) ? \"DTP\" : \"N/A\") == \"DTP\") ? \"DTP\" : \"N/A\") + \"</TaxCertificate>\" + \"<Article21IncomeTax>\" + string(int(round(sum(slips.filter(s, has(s.statutory.PPH21) && double(int(s.period.substring(5, 7))) != first(top(slips.filter(s, has(s.statutory.PPH21)).map(s, double(int(s.period.substring(5, 7)))), 1))).map(s, s.statutory.PPH21.employee)), 1.0, \"HALF_UP\"))) + \"</Article21IncomeTax>\" + \"<IDPlaceOfBusinessActivity>\" + (has(company.facts) && company.facts != null && has(company.facts.nitku) && company.facts.nitku != \"\" ? company.facts.nitku : (has(company.facts) && company.facts != null && has(company.facts.npwp) ? company.facts.npwp : \"\") + \"000000\") + \"</IDPlaceOfBusinessActivity>\" + \"<WithholdingDate>\" + month_end(slips.filter(s, has(s.statutory.PPH21) && double(int(s.period.substring(5, 7))) == first(top(slips.filter(s, has(s.statutory.PPH21)).map(s, double(int(s.period.substring(5, 7)))), 1)))[0].period.substring(0, 7) + \"-01\") + \"</WithholdingDate>\" + \"</A1>\""
+						}
+					]
+				}
+			],
+			"trailer": [
+				{
+					"value": "\"</ListOfA1></A1Bulk>\""
+				}
+			],
+			"when": "!(has(contract.engagement) && contract.engagement == \"PAYEE\") && (((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && size(contract.facts.contract_terms) > 0) ? string(contract.facts.contract_terms[size(contract.facts.contract_terms) - 1].employment_type) : \"\") in [\"PERMANENT\", \"CONTRACT\"]) && slips.exists(s, has(s.statutory.PPH21) && (s.period.substring(5, 7) == \"12\" || s.period.substring(0, 7) == (has(contract.exit_ground) && contract.exit_ground != null && has(contract.effective_range) && has(contract.effective_range.to) && contract.effective_range.to != null ? contract.effective_range.to.substring(0, 7) : \"\")))"
+		}
+	},
+	{
+		"id": "b096c29c-bac0-5045-9bce-7dacd9305f3d",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "EXPORTS",
+		"code": "CORETAX_BP21_XML",
+		"name": "Coretax BP21 — PPh 21 slips other than permanent employees (XML import)",
+		"references": [
+			{
+				"title": "PER-11/PJ/2025 (bukti pemotongan and SPT Masa PPh 21/26 in Coretax); PMK 81/2024; the DJP Coretax XML import template and its Excel-to-XML converter (https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml, read 2026-10-07: bpmp.zip, bpa1.zip, bp21.zip, bp26.zip of 2024-12 and the BPMP v.3, BP21 v.4 converters naming each XML element). Rendered as a FIXED file whose records carry no widths: each record is one XML text line (the declaration and root open in the header, one element per withholding, the root closed in the trailer); text values are escaped (&, <, >). Customer inputs: the entity NPWP (`company.facts.npwp`) and its ID TKU (`company.facts.nitku`, else the NPWP + 000000 of the head office), the employee NIK (`employment_profile.identity_number`), passport (`employee.facts.passport_number`) for a foreign national, the job title on the terms. BP21 (bukti pemotongan PPh 21 selain pegawai tetap): a bukan pegawai paid through NON_EMPLOYEE_FEE (engagement PAYEE; TaxObjectCode `employee.facts.bp21_tax_object_code`, default 21-100-20 “Imbalan kepada Pemberi Jasa dalam Segala Bidang”, deemed 50%); a non-permanent worker (DAILY: 21-100-24 at the TER harian, or 21-100-30 on 50% above Rp2,500,000 a day; PART_TIME: 21-100-35 at the TER bulanan); final severance (21-401-01) and lump-sum pension (21-401-02). Rate is the tax over the deemed gross, in percent; Document PaymentProof, numbered employee number/period.",
+				"url": "https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml"
+			}
+		],
+		"rules": {
+			"file": "\"coretax-bp21-\" + runs[0].period.substring(0, 7) + \".xml\"",
+			"format": "FIXED",
+			"columns": [],
+			"header": [
+				{
+					"value": "\"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\" standalone=\\\"yes\\\"?>\" + \"<Bp21Bulk xmlns:xsi=\\\"http://www.w3.org/2001/XMLSchema-instance\\\">\" + \"<TIN>\" + (has(company.facts) && company.facts != null && has(company.facts.npwp) ? company.facts.npwp : \"\") + \"</TIN><ListOfBp21>\""
+				}
+			],
+			"records": [
+				{
+					"each": "slips.filter(s, (has(contract.engagement) && contract.engagement == \"PAYEE\") && has(s.statutory.PPH21_BUKAN_PEGAWAI) && s.statutory.PPH21_BUKAN_PEGAWAI.employee > 0.0).map(s, {\"s\": s, \"code\": (has(employee.facts) && employee.facts != null && has(employee.facts.bp21_tax_object_code) && employee.facts.bp21_tax_object_code != \"\" ? employee.facts.bp21_tax_object_code : \"21-100-20\"), \"deemed\": 50.0, \"gross\": s.statutory.PPH21_BUKAN_PEGAWAI.base, \"tax\": s.statutory.PPH21_BUKAN_PEGAWAI.employee}) + slips.filter(s, !(has(contract.engagement) && contract.engagement == \"PAYEE\") && !(((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && size(contract.facts.contract_terms) > 0) ? string(contract.facts.contract_terms[size(contract.facts.contract_terms) - 1].employment_type) : \"\") in [\"PERMANENT\", \"CONTRACT\"]) && has(s.statutory.PPH21) && s.statutory.PPH21.base > 0.0).map(s, {\"s\": s, \"code\": (((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && size(contract.facts.contract_terms) > 0) ? string(contract.facts.contract_terms[size(contract.facts.contract_terms) - 1].employment_type) : \"\") == \"DAILY\" ? (((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && size(contract.facts.contract_terms) > 0) && contract.facts.contract_terms.exists(t, has(t.facts) && t.facts != null && has(t.facts.daily_wage) && t.facts.daily_wage > 2500000.0)) ? \"21-100-30\" : \"21-100-24\") : \"21-100-35\"), \"deemed\": ((((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && size(contract.facts.contract_terms) > 0) ? string(contract.facts.contract_terms[size(contract.facts.contract_terms) - 1].employment_type) : \"\") == \"DAILY\" && ((has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && size(contract.facts.contract_terms) > 0) && contract.facts.contract_terms.exists(t, has(t.facts) && t.facts != null && has(t.facts.daily_wage) && t.facts.daily_wage > 2500000.0))) ? 50.0 : 100.0), \"gross\": s.statutory.PPH21.base, \"tax\": s.statutory.PPH21.employee}) + slips.filter(s, has(s.statutory.PPH21_FINAL_SEVERANCE) && s.statutory.PPH21_FINAL_SEVERANCE.base > 0.0).map(s, {\"s\": s, \"code\": \"21-401-01\", \"deemed\": 100.0, \"gross\": s.statutory.PPH21_FINAL_SEVERANCE.base, \"tax\": s.statutory.PPH21_FINAL_SEVERANCE.employee}) + slips.filter(s, has(s.statutory.PPH21_FINAL_PENSION) && s.statutory.PPH21_FINAL_PENSION.base > 0.0).map(s, {\"s\": s, \"code\": \"21-401-02\", \"deemed\": 100.0, \"gross\": s.statutory.PPH21_FINAL_PENSION.base, \"tax\": s.statutory.PPH21_FINAL_PENSION.employee})",
+					"fields": [
+						{
+							"value": "\"<Bp21>\" + \"<TaxPeriodMonth>\" + string(int(item.s.period.substring(5, 7))) + \"</TaxPeriodMonth>\" + \"<TaxPeriodYear>\" + item.s.period.substring(0, 4) + \"</TaxPeriodYear>\" + \"<CounterpartTin>\" + (has(employee.identity_number) && employee.identity_number != null ? employee.identity_number : \"\") + \"</CounterpartTin>\" + \"<IDPlaceOfBusinessActivityOfIncomeRecipient>\" + (has(employee.identity_number) && employee.identity_number != null ? employee.identity_number : \"\") + \"000000\" + \"</IDPlaceOfBusinessActivityOfIncomeRecipient>\" + \"<StatusTaxExemption>\" + ((employee.marital_status == \"MARRIED\" && !(employee.gender == \"FEMALE\" && employee.marital_status == \"MARRIED\" && !(has(employee.facts) && employee.facts != null && has(employee.facts.husband_no_income_certified) && employee.facts.husband_no_income_certified))) ? \"K/\" : \"TK/\") + string(int((employee.gender == \"FEMALE\" && employee.marital_status == \"MARRIED\" && !(has(employee.facts) && employee.facts != null && has(employee.facts.husband_no_income_certified) && employee.facts.husband_no_income_certified)) ? 0.0 : (cel.bind(kf, has(terms.facts) && terms.facts != null ? terms.facts : {}, has(kf.dependents_count) && kf.dependents_count != null ? min(double(kf.dependents_count), 3.0) : 0.0)))) + \"</StatusTaxExemption>\" + \"<TaxCertificate>\" + (has(item.s.statutory.PPH21_DTP) && (item.s.statutory.PPH21_DTP.employee != 0.0 || item.s.statutory.PPH21_DTP.employer != 0.0) ? \"DTP\" : \"N/A\") + \"</TaxCertificate>\" + \"<TaxObjectCode>\" + item.code + \"</TaxObjectCode>\" + \"<Gross>\" + string(int(round(item.gross, 1.0, \"HALF_UP\"))) + \"</Gross>\" + \"<Deemed>\" + string(int(item.deemed)) + \"</Deemed>\" + \"<Rate>\" + string(round((item.gross * item.deemed / 100.0) > 0.0 ? item.tax / (item.gross * item.deemed / 100.0) * 100.0 : 0.0, 0.01, \"HALF_UP\")) + \"</Rate>\" + \"<Document>\" + \"PaymentProof\" + \"</Document>\" + \"<DocumentNumber>\" + string((has(contract.employee_number) && contract.employee_number != null ? contract.employee_number : \"\") + \"/\" + item.s.period).split(\"&\").join(\"&amp;\").split(\"<\").join(\"&lt;\").split(\">\").join(\"&gt;\") + \"</DocumentNumber>\" + \"<DocumentDate>\" + month_end(item.s.period.substring(0, 7) + \"-01\") + \"</DocumentDate>\" + \"<IDPlaceOfBusinessActivity>\" + (has(company.facts) && company.facts != null && has(company.facts.nitku) && company.facts.nitku != \"\" ? company.facts.nitku : (has(company.facts) && company.facts != null && has(company.facts.npwp) ? company.facts.npwp : \"\") + \"000000\") + \"</IDPlaceOfBusinessActivity>\" + \"<WithholdingDate>\" + month_end(item.s.period.substring(0, 7) + \"-01\") + \"</WithholdingDate>\" + \"</Bp21>\""
+						}
+					]
+				}
+			],
+			"trailer": [
+				{
+					"value": "\"</ListOfBp21></Bp21Bulk>\""
+				}
+			]
+		}
+	},
+	{
+		"id": "d5d4eaa5-e685-57c5-ab2c-31094204765c",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "EXPORTS",
+		"code": "CORETAX_BP26_XML",
+		"name": "Coretax BP26 — PPh 26 slips of non-residents (XML import)",
+		"references": [
+			{
+				"title": "PER-11/PJ/2025 (bukti pemotongan and SPT Masa PPh 21/26 in Coretax); PMK 81/2024; the DJP Coretax XML import template and its Excel-to-XML converter (https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml, read 2026-10-07: bpmp.zip, bpa1.zip, bp21.zip, bp26.zip of 2024-12 and the BPMP v.3, BP21 v.4 converters naming each XML element). Rendered as a FIXED file whose records carry no widths: each record is one XML text line (the declaration and root open in the header, one element per withholding, the root closed in the trailer); text values are escaped (&, <, >). Customer inputs: the entity NPWP (`company.facts.npwp`) and its ID TKU (`company.facts.nitku`, else the NPWP + 000000 of the head office), the employee NIK (`employment_profile.identity_number`), passport (`employee.facts.passport_number`) for a foreign national, the job title on the terms. BP26 (bukti pemotongan PPh 26): one per non-resident and month withheld (UU 36/2008 art.26(1); PMK 168/2023 art.14), TaxObjectCode 27-100-99, deemed 100%, Rate 20 or the treaty rate. Customer inputs: the foreign TIN (`employee.facts.foreign_tin`, else the passport), the ISO 3166-1 alpha-3 country (`employee.facts.bp26_country`), birth city (`employee.facts.birth_city`); name, address and birth date from the profile.",
+				"url": "https://www.pajak.go.id/id/reformdjp/coretax/template-xml-dan-converter-excel-ke-xml"
+			}
+		],
+		"rules": {
+			"file": "\"coretax-bp26-\" + runs[0].period.substring(0, 7) + \".xml\"",
+			"format": "FIXED",
+			"columns": [],
+			"header": [
+				{
+					"value": "\"<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\" standalone=\\\"yes\\\"?>\" + \"<BP26Bulk xmlns:xsi=\\\"http://www.w3.org/2001/XMLSchema-instance\\\">\" + \"<TIN>\" + (has(company.facts) && company.facts != null && has(company.facts.npwp) ? company.facts.npwp : \"\") + \"</TIN><ListOfBP26>\""
+				}
+			],
+			"records": [
+				{
+					"each": "slips.filter(s, has(s.statutory.PPH26) && s.statutory.PPH26.employee > 0.0)",
+					"fields": [
+						{
+							"value": "\"<BP26>\" + \"<TaxPeriodMonth>\" + string(int(item.period.substring(5, 7))) + \"</TaxPeriodMonth>\" + \"<TaxPeriodYear>\" + item.period.substring(0, 4) + \"</TaxPeriodYear>\" + \"<CounterpartTin>\" + (has(employee.facts) && employee.facts != null && has(employee.facts.foreign_tin) && employee.facts.foreign_tin != \"\" ? string(employee.facts.foreign_tin).split(\"&\").join(\"&amp;\").split(\"<\").join(\"&lt;\").split(\">\").join(\"&gt;\") : (has(employee.facts) && employee.facts != null && has(employee.facts.passport_number) && employee.facts.passport_number != \"\" ? string(employee.facts.passport_number).split(\"&\").join(\"&amp;\").split(\"<\").join(\"&lt;\").split(\">\").join(\"&gt;\") : \"\")) + \"</CounterpartTin>\" + \"<CounterpartReceiptNumber>\" + \"-\" + \"</CounterpartReceiptNumber>\" + \"<CounterpartName>\" + string(employee.name).split(\"&\").join(\"&amp;\").split(\"<\").join(\"&lt;\").split(\">\").join(\"&gt;\") + \"</CounterpartName>\" + \"<CounterpartCountry>\" + (has(employee.facts) && employee.facts != null && has(employee.facts.bp26_country) && employee.facts.bp26_country != \"\" ? string(employee.facts.bp26_country).split(\"&\").join(\"&amp;\").split(\"<\").join(\"&lt;\").split(\">\").join(\"&gt;\") : \"\") + \"</CounterpartCountry>\" + \"<CounterpartAddress>\" + (has(employee.address) && employee.address != null ? string(employee.address).split(\"&\").join(\"&amp;\").split(\"<\").join(\"&lt;\").split(\">\").join(\"&gt;\") : \"\") + \"</CounterpartAddress>\" + \"<CounterpartDob>\" + (has(employee.date_of_birth) && employee.date_of_birth != null ? string(employee.date_of_birth).substring(0, 10) : \"\") + \"</CounterpartDob>\" + \"<CounterpartBirthCity>\" + (has(employee.facts) && employee.facts != null && has(employee.facts.birth_city) && employee.facts.birth_city != \"\" ? string(employee.facts.birth_city).split(\"&\").join(\"&amp;\").split(\"<\").join(\"&lt;\").split(\">\").join(\"&gt;\") : \"\") + \"</CounterpartBirthCity>\" + (has(employee.facts) && employee.facts != null && has(employee.facts.passport_number) && employee.facts.passport_number != \"\" ? \"<CounterpartPassport>\" + string(employee.facts.passport_number).split(\"&\").join(\"&amp;\").split(\"<\").join(\"&lt;\").split(\">\").join(\"&gt;\") + \"</CounterpartPassport>\" : \"<CounterpartPassport xsi:nil=\\\"true\\\"/>\") + \"<CounterpartKitas xsi:nil=\\\"true\\\"/>\" + \"<TaxCertificate>\" + \"N/A\" + \"</TaxCertificate>\" + \"<TaxObjectCode>\" + \"27-100-99\" + \"</TaxObjectCode>\" + \"<Gross>\" + string(int(round(item.statutory.PPH26.base, 1.0, \"HALF_UP\"))) + \"</Gross>\" + \"<Deemed>\" + \"100\" + \"</Deemed>\" + \"<Rate>\" + string(round((item.statutory.PPH26.base) > 0.0 ? item.statutory.PPH26.employee / (item.statutory.PPH26.base) * 100.0 : 0.0, 0.01, \"HALF_UP\")) + \"</Rate>\" + \"<Document>\" + \"PaymentProof\" + \"</Document>\" + \"<DocumentNumber>\" + string((has(contract.employee_number) && contract.employee_number != null ? contract.employee_number : \"\") + \"/\" + item.period).split(\"&\").join(\"&amp;\").split(\"<\").join(\"&lt;\").split(\">\").join(\"&gt;\") + \"</DocumentNumber>\" + \"<DocumentDate>\" + month_end(item.period.substring(0, 7) + \"-01\") + \"</DocumentDate>\" + \"<IDPlaceOfBusinessActivity>\" + (has(company.facts) && company.facts != null && has(company.facts.nitku) && company.facts.nitku != \"\" ? company.facts.nitku : (has(company.facts) && company.facts != null && has(company.facts.npwp) ? company.facts.npwp : \"\") + \"000000\") + \"</IDPlaceOfBusinessActivity>\" + \"<WithholdingDate>\" + month_end(item.period.substring(0, 7) + \"-01\") + \"</WithholdingDate>\" + \"</BP26>\""
+						}
+					]
+				}
+			],
+			"trailer": [
+				{
+					"value": "\"</ListOfBP26></BP26Bulk>\""
+				}
+			]
+		}
+	},
+	{
+		"id": "e221254a-feef-54b9-88d4-641a85c6b7fb",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "SECTOR_MINIMUM_WAGE_UNSEEDED",
+		"name": "Sector minimum wage not configured for the worksite",
+		"references": [
+			{
+				"title": "PP 36/2021 art.35D(1) (as amended by PP 49/2025 from 2026; with Permenaker 16/2024 art.7 for 2025); UU 13/2003 arts.88E(2) and 185: a governor’s sector minimum wage binds workers under one year of service in the sectors it names. Where the decree is known but its table was not read on an official copy (tracker ID-SETTINGS-15 lists the hosts tried), the run cannot floor the wage at it, so the payslip warns instead of silently flooring the worker at the UMK. Data: `rules.minimum_wage.unseeded_sector.areas.<code>` — `regions` (a province key covers its localities), `kbli` (prefixes of terms.facts.worksite_kbli; empty = any declared KBLI), `decree`; and `outside_tables` (version 1: every worksite area without a 2025 table in `by_sector`). Seeding an area’s table in `minimum_wage.by_sector` replaces its entry. Micro and small enterprises are outside it, as the sector rows are. It warns at any length of service: under one year the sector minimum binds (art.35D), and from one year the wage of the structure and scale may not fall below it either (UU 13/2003 art.88E(2); the long-service reading of MINIMUM_WAGE_LONG_SERVICE)."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "terms.employment_type in [\"PERMANENT\", \"CONTRACT\"]\n&&!(has(company.facts) && company.facts != null\n&&has(company.facts.enterprise_size_class)\n&&company.facts.enterprise_size_class == \"MICRO_OR_SMALL\")\n&&has(terms.facts.worksite_kbli)\n&&terms.facts.worksite_kbli != \"\"\n&&has(rules.minimum_wage.unseeded_sector)\n&& ((has(rules.minimum_wage.unseeded_sector.areas)\n&&rules.minimum_wage.unseeded_sector.areas.exists(\n  c,\n  rules.minimum_wage.unseeded_sector.areas[c].regions.exists(\n    k,\n    (has(terms.facts.worksite_region)\n    &&terms.facts.worksite_region != \"\"\n      ?terms.facts.worksite_region\n      :company.region)\n    ==k\n    || (has(terms.facts.worksite_region)\n    &&terms.facts.worksite_region != \"\"\n      ?terms.facts.worksite_region\n      :company.region).startsWith(\n      k + \"/\"\n    )\n  )\n  && (rules.minimum_wage.unseeded_sector.areas[c].kbli.size() == 0\n  ||rules.minimum_wage.unseeded_sector.areas[c].kbli.exists(\n    p,\n    terms.facts.worksite_kbli.startsWith(p)\n  )\n) ))\n|| (has(rules.minimum_wage.unseeded_sector.outside_tables)\n&&rules.minimum_wage.unseeded_sector.outside_tables == true\n&&!(has(rules.minimum_wage.by_sector)\n&&rules.minimum_wage.by_sector.exists(\n  k,\n  (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\"\n    ?terms.facts.worksite_region\n    :company.region)\n  ==k\n  || (has(terms.facts.worksite_region)\n  &&terms.facts.worksite_region != \"\"\n    ?terms.facts.worksite_region\n    :company.region).startsWith(\n    k + \"/\"\n  )\n))))",
+			"message": "A 2025 sector minimum wage may apply to this worker (worksite KBLI declared; it binds under one year of service, and a longer-serving wage may not fall below it): the governor’s 2025 UMSP/UMSK for this worksite’s area is not configured in this version (only Mimika and the Kalimantan Selatan UMSK of Banjarmasin and Kotabaru are) — check the decree (Permenaker 16/2024 art.7) and pay at least its rate.",
+			"description": "A 2025 sector minimum wage may apply to this worker (worksite KBLI declared; it binds under one year of service, and a longer-serving wage may not fall below it): the governor’s 2025 UMSP/UMSK for this worksite’s area is not configured in this version (only Mimika and the Kalimantan Selatan UMSK of Banjarmasin and Kotabaru are) — check the decree (Permenaker 16/2024 art.7) and pay at least its rate."
+		}
+	},
+	{
+		"id": "a0af782e-11f1-5778-aee0-bce89c176cba",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "SECTOR_KBLI_MISSING",
+		"name": "Worksite KBLI missing where sector minimum wages are set",
+		"references": [
+			{
+				"title": "PP 36/2021 art.35D(1) as amended by PP 49/2025 (2026; Permenaker 16/2024 art.7 for 2025): a sector minimum wage binds by the KBLI of the business line, so the sector checks (SECTOR_MINIMUM_WAGE, MINIMUM_WAGE_LONG_SERVICE, SECTOR_MINIMUM_WAGE_UNSEEDED) need terms.facts.worksite_kbli. A worksite in an area with a table in minimum_wage.by_sector, or with an unconfigured decree in minimum_wage.unseeded_sector.areas, warns while it is missing. Micro and small enterprises are outside the sector wages."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "terms.employment_type in [\"PERMANENT\", \"CONTRACT\"]\n&&!(has(company.facts) && company.facts != null\n&&has(company.facts.enterprise_size_class)\n&&company.facts.enterprise_size_class == \"MICRO_OR_SMALL\")\n&&!(has(terms.facts.worksite_kbli) && terms.facts.worksite_kbli != null\n&&terms.facts.worksite_kbli != \"\")\n&& ((has(rules.minimum_wage.by_sector)\n&&rules.minimum_wage.by_sector.exists(\n  k,\n  (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\"\n    ?terms.facts.worksite_region\n    :company.region)\n  ==k\n  || (has(terms.facts.worksite_region)\n  &&terms.facts.worksite_region != \"\"\n    ?terms.facts.worksite_region\n    :company.region).startsWith(\n    k + \"/\"\n  )\n))\n|| (has(rules.minimum_wage.unseeded_sector)\n&&has(rules.minimum_wage.unseeded_sector.outside_tables)\n&&rules.minimum_wage.unseeded_sector.outside_tables\n&&!(has(rules.minimum_wage.by_sector)\n&&rules.minimum_wage.by_sector.exists(\n  k,\n  (has(terms.facts.worksite_region) && terms.facts.worksite_region != \"\"\n    ?terms.facts.worksite_region\n    :company.region)\n  ==k\n  || (has(terms.facts.worksite_region)\n  &&terms.facts.worksite_region != \"\"\n    ?terms.facts.worksite_region\n    :company.region).startsWith(\n    k + \"/\"\n  )\n)))\n|| (has(rules.minimum_wage.unseeded_sector)\n&&has(rules.minimum_wage.unseeded_sector.areas)\n&&rules.minimum_wage.unseeded_sector.areas.exists(\n  c,\n  rules.minimum_wage.unseeded_sector.areas[c].regions.exists(\n    k,\n    (has(terms.facts.worksite_region)\n    &&terms.facts.worksite_region != \"\"\n      ?terms.facts.worksite_region\n      :company.region)\n    ==k\n    || (has(terms.facts.worksite_region)\n    &&terms.facts.worksite_region != \"\"\n      ?terms.facts.worksite_region\n      :company.region).startsWith(\n      k + \"/\"\n    )\n  )\n)))",
+			"message": "The worksite’s KBLI (terms.facts.worksite_kbli, the business-line code on the company’s NIB) is not declared, and the governor has set sector minimum wages for this worksite’s area: without it the run cannot tell whether a sector minimum binds — declare it.",
+			"description": "The worksite’s KBLI (terms.facts.worksite_kbli, the business-line code on the company’s NIB) is not declared, and the governor has set sector minimum wages for this worksite’s area: without it the run cannot tell whether a sector minimum binds — declare it."
+		}
+	},
+	{
+		"id": "524efc0c-3a99-4b5b-922c-6c2098ca5065",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "MEDAN_SECTOR_SCOPE_MISSING",
+		"name": "Medan sector wage hotel or bank scope missing",
+		"references": [
+			{
+				"title": "The Medan hotel/bank row scope is specific to Kep. 188.44/909/KPTS/2025, effective 1 January 2026. In this 2025 version the unseeded sector warning applies instead; no 2026 floor or scope is backdated."
+			}
+		],
+		"rules": {
+			"site": "payslip",
+			"kind": "warn",
+			"when": "false",
+			"message": "Medan sector minimum wage scope is incomplete: declare the hotel star class or bank category to identify the annex XI floor."
+		}
+	},
+	{
+		"id": "e6162a03-d554-55a1-96e8-6d776b7805b1",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "PARAMETERS",
+		"code": "salary_report",
+		"name": "Salary report grouping and company payments",
+		"rules": {
+			"group_order": [
+				"Basic pay",
+				"Allowances",
+				"Overtime and other work",
+				"Back pay and other earnings",
+				"Leave pay",
+				"Pre-gross deductions",
+				"Gross pay",
+				"Claims and other pay",
+				"Loans and other deductions",
+				"Employee statutory",
+				"Total deductions",
+				"Net pay",
+				"Employer statutory",
+				"Tax and benefit information",
+				"Company bank charges",
+				"Total company payment"
+			],
+			"items": [
+				{
+					"family": "ADHOC",
+					"code": "BANKRUPTCY_ESTATE",
+					"payment": "EXTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "COURT_GARNISHMENT",
+					"payment": "EXTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "DEDUCTION",
+					"payment": "UNCONFIRMED"
+				},
+				{
+					"family": "ADHOC",
+					"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYEE",
+					"payment": "EXTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYER",
+					"payment": "OUTSIDE_NET"
+				},
+				{
+					"family": "ADHOC",
+					"code": "LATE_THR_FINE",
+					"payment": "OUTSIDE_NET"
+				},
+				{
+					"family": "ADHOC",
+					"code": "PENSION_OFFSET",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "ADHOC",
+					"code": "PKWT_EARLY_TERMINATION_BY_WORKER",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "LOAN_REPAYMENT",
+					"code": "STAFF_LOAN",
+					"payment": "INTERNAL"
+				},
+				{
+					"family": "WORK",
+					"code": "BASIC",
+					"group": "Basic pay"
+				},
+				{
+					"family": "WORK",
+					"code": "ENCASHMENT",
+					"group": "Leave pay"
+				},
+				{
+					"family": "WORK",
+					"code": "EXIT_ENCASHMENT",
+					"group": "Leave pay"
+				}
+			]
+		}
+	},
+	{
+		"id": "30c3e6b7-fe9c-5fee-818e-70f9c843d703",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "ROSTER_PATTERN_CYCLE",
+		"name": "Roster keeps its pattern cycle",
+		"rules": {
+			"site": "cycle",
+			"kind": "refuse",
+			"when": "cycle.planned.WORK != cycle.expected.WORK\n||cycle.planned.REST != cycle.expected.REST\n||cycle.planned.OFF != cycle.expected.OFF",
+			"message": "Swap days inside the cycle instead.",
+			"description": "A roster swap moves a day inside its shift pattern cycle; it never adds a work day or drops a rest or off day. Severity follows entity.validation_severity."
+		}
+	},
+	{
+		"id": "a35a4dd0-7596-5798-91d7-219712e8c427",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"family": "VALIDATIONS",
+		"code": "PAYROLL_RUN_KINDS",
+		"name": "PAYROLL_RUN_KINDS",
+		"rules": {
+			"site": "payroll_run",
+			"kind": "allow",
+			"when": "run.kind in [\"REGULAR\", \"OFF_CYCLE\"]",
+			"message": "The jurisdiction admits regular and off-cycle payroll runs."
+		}
+	}
+]

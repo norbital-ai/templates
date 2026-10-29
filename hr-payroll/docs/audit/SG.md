@@ -5,7 +5,7 @@
 > coverage. The jurisdiction seed catalogues this audit reviewed remain the workspace's runtime data.
 
 Audit date: 2026-10-21. Audit only; no repository file was edited.
-Repository: `templates/hr-payroll`; seed `seed/jurisdiction/SG/version_*`; tracker `docs/inventory/SG.csv`.
+Repository: `templates/hr-payroll`; seed `seed/public/jurisdiction/SG/version_*`; tracker `docs/inventory/SG.csv`.
 
 ## Summary verdict
 
@@ -185,7 +185,7 @@ Every finding was re-checked against the operative text before any change: EA s.
 | C25 note | CONFIRMED (documentation mismatch)                                                                                                                                       | The ANNUAL_LEAVE and ANNUAL_LEAVE_PART_TIME authority texts now name `exit_facts.dismissed_for_misconduct` and the behaviour                                                                                                                                                                                                                                                                                                          | v1–v6 `leave_catalog.json`                                     |
 | Holidays | All 2026 and 2027 dates re-verified against MOM (14 + 12, with the 1 Jun, 10 Aug, 9 Nov 2026 and 8 Feb 2027 substitutes; no substitute for Saturday 1 May / 25 Dec 2027) | Each holiday row now has a `source` (MOM public-holidays page). The test asserts every gazetted day inside each version’s range. 2028 is not gazetted, so it stays out                                                                                                                                                                                                                                                                | v1–v6 `rule_set.json`; test                                    |
 
-The entity wiring was checked. `seed/seed.ts` writes each bank entity’s holiday rows from its lineage’s `public_holidays` for years after the bank’s own rows. Behaviour `write-public-holidays` does the same for new entities (`regions` honoured; SG has no regional holidays). SG’s lists feed both paths unchanged.
+The entity wiring was checked. `seed/+seeder.ts` writes each bank entity’s holiday rows from its lineage’s `public_holidays` for years after the bank’s own rows. Behaviour `write-public-holidays` does the same for new entities (`regions` honoured; SG has no regional holidays). SG’s lists feed both paths unchanged.
 
 ### Sources (v5, v6)
 

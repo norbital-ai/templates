@@ -26,7 +26,7 @@ export default automation('bookings_book', {
 			unassigned: { kind: 'int' }
 		}
 	},
-	runAs: 'trigger',
+	policies: ['operations'],
 	run: function* (input, ctx) {
 		return yield* bookService(input, ctx);
 	}

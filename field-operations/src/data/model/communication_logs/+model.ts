@@ -18,6 +18,12 @@ export default model('communication_logs', {
 	index: ['sent_at'],
 	search: { text: ['message', 'sender'] },
 	read: 'all',
+	outputs: {
+		/** A contractor's view of their job's messages, without the source provenance. */
+		contractor: {
+			communication_logs: { fields: ['job_assignment_id', 'message', 'sent_at', 'sender'] }
+		}
+	},
 	create: {
 		columns: {
 			communication_logs: ['job_assignment_id', 'message', 'sent_at', 'sender', 'source_message_id']

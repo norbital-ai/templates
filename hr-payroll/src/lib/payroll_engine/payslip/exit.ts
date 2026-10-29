@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { addDays, datePeriod, days, intersect } from '@norbital-ai/std/date';
-import { fieldValue, PAYROLL_DEFAULTS } from '../foundation.js';
+import { PAYROLL_DEFAULTS } from '../foundation.js';
 import {
 	num,
 	type PayslipLine,
@@ -19,9 +19,7 @@ export const exitCorrections = Effect.fnUntraced(function* (
 	const { contract, employee } = options.subject,
 		{ window, money } = options.payroll;
 	const who = employee?.name ?? contract.id;
-	const payroll = yield* Effect.fromResult(
-		fieldValue(options.jurisdiction.version.payroll, 'jurisdiction_settings.payroll')
-	);
+	const payroll = options.jurisdiction.version.payroll;
 	let made = 0;
 	const flip = (row: CatalogRow, amount: number): CatalogRow =>
 		amount >= 0 ? row : { ...row, direction: row.direction === 'SUBTRACT' ? 'ADD' : 'SUBTRACT' };

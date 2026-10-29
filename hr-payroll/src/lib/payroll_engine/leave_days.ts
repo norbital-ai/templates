@@ -79,7 +79,11 @@ const readRequestDays = Effect.fnUntraced(function* (
 		holidays: two.holiday
 	};
 });
-type RequestDaysRead = Effect.Success<ReturnType<typeof readRequestDays>>;
+type RequestDaysAnswer = Effect.Success<ReturnType<typeof readRequestDays>>;
+/** Each read's page (a prefetching batch passes its own, without a total). */
+type RequestDaysRead = {
+	readonly [K in keyof RequestDaysAnswer]: Omit<RequestDaysAnswer[K], 'total'>;
+};
 
 export function requestDays(
 	input: RequestDaysInput,

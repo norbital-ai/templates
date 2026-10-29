@@ -31,7 +31,8 @@ Teams (`src/access_control/team/+team.ts`) are source declarations that link the
 | Attendance Kiosk                       | `kiosk`             | The `attendance` kiosk        |
 
 Automations run as `hr_controller` (`calendar_tick`, `behaviour_taps` with `payslip_hold_automation`) or their own
-`*_automation` policy; `src/access_control/policy/grants.ts` holds the grant fragments policies share. Seed packs
+`*_automation` policy; `src/access_control/policy/grants.ts` holds the grant fragments policies share. Model effects run
+as the writer: every policy that writes a tapped model lists `behaviour_taps` (`TAPS`) so its effects may start it. Seed packs
 carry each staff member's team handle in `sys_user.team`.
 
 **Kiosk.** `attendance` (`/kiosk/attendance`) is the chromeless attendance-capture device for the Attendance Kiosk
@@ -68,15 +69,15 @@ automated jurisdiction coverage.
 
 ## Automations
 
-| Automation            | Trigger                                                                 | Result                                                                                                                                  |
-| --------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `behaviour_taps`      | Row events on runs, payslips, contracts, profiles, entities and entries | Applies the version's behaviour rules: each reads its declared rows and returns the writes.                                             |
-| `statutory_drift`     | Every Saturday 03:00 UTC; also **Run now**                              | Researches every sealed in-force lineage (or the one `code` given), one lineage at a time; a verified change becomes an unsealed draft. |
-| `late_arrival_notice` | Every five minutes                                                      | One reminder per person-day when a rostered shift has no clock-in after the entity's grace.                                             |
-| `calendar_tick`       | Daily                                                                   | Runs the behaviour rules for every employment in force, so date-driven duties raise tasks.                                              |
-| `invitation_profile`  | Staff invited; staff user created or contact changed                    | Creates employment profiles for invited staff and links their identities after acceptance.                                              |
+| Automation            | Trigger                                                                             | Result                                                                                                                                  |
+| --------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `behaviour_taps`      | Started by the effects of runs, payslips, contracts, profiles, entities and entries | Applies the version's behaviour rules: each reads its declared rows and returns the writes.                                             |
+| `statutory_drift`     | Every Saturday 03:00 UTC; also **Run now**                                          | Researches every sealed in-force lineage (or the one `code` given), one lineage at a time; a verified change becomes an unsealed draft. |
+| `late_arrival_notice` | Every five minutes                                                                  | One reminder per person-day when a rostered shift has no clock-in after the entity's grace.                                             |
+| `calendar_tick`       | Daily                                                                               | Runs the behaviour rules for every employment in force, so date-driven duties raise tasks.                                              |
+| `invitation_profile`  | Every five minutes: pending staff invitations and unpaired staff users              | Creates employment profiles for invited staff and links their identities after acceptance.                                              |
 
-Any automation that needs no input can be started by hand from **Settings → Automations → Run now**.
+Any automation that needs no input can be started by hand from **Command center → Automations → Run now**.
 
 ### Statutory research
 
@@ -130,8 +131,8 @@ and task is its own row whose `definition` names one duty, completed by its vers
 | `write-public-holidays`      | Entity created / calendar             | Writes the version's public holidays to the entity calendar                 |
 
 Which run kinds a version admits is a `VALIDATIONS` rule set (`site: payroll_run`, `kind: allow`), not a behaviour. The
-`payroll_run_bookkeeping` automation links a created run's settled entries to its payslips and withdraws a deleted
-run's open obligations and tasks.
+`payroll_run` model's `effect` links a created run's settled entries to its payslips and withdraws a deleted run's
+open obligations and tasks.
 
 Exit encashment is on for annual leave in every lineage except JP (no statutory payout); TW also encashes rest-day
 in-lieu and comp time.
@@ -170,27 +171,31 @@ loan's permitted purpose…) are declared per lineage in `employee_input_schema`
 Events → Work → ⚡:
 
 - **Download template** — the work-day sheet for the selected entity and pay period, prefilled with what is stored
-  (employee number, date, shift, clock in/out, OT consent, banked OT, leave, planned and approved OT windows). The file
+  (employee number, date, shift, clock in/out, OT consent, banked OT, planned and approved OT windows). The file
   appears as a download link when the template run finishes.
-- **Import…** — previews first: rule warnings (for example EA s.60A breaks and spread-over) must be accepted with
-  **Accept and import**. The import is a set over each person's days in the file: rows are created or updated, unsettled
-  days the file leaves out or blanks are deleted, and a settled day may only be restated unchanged.
+- **Import…** — one step: an error anywhere refuses the whole file and writes nothing; otherwise it imports and lists
+  its counts and rule warnings (for example EA s.60A breaks and spread-over). The import is a set over each person's
+  days in the file: rows are created or updated, unsettled days the file leaves out or blanks are deleted, and a settled
+  day may only be restated unchanged. Downloading the template and importing it unchanged changes nothing.
+- **Shift** must be a shift code in effect for that person and day; `REST` and `OFF` are the special codes. Any other
+  value refuses the whole file, naming the row and value; `PH` is one such case: public holidays come from the
+  jurisdiction calendar (the read-only **Holiday** column).
+- **Leave** has no column: leave is recorded and changed in the leave app, never through the sheet. A Leave column in
+  an older file is ignored. Clock times on a day of recorded full-day leave are still refused.
 
 ## Known gaps
 
 - **TW §34 bonus premium** is netted per run, not per month.
 - **SG part-time** hourly encashment and leave qualifying service, and the **CN** per-employee year-end payout skip,
   need engine support.
-- **Anonymising** a former employee blanks the profile but keeps contract-term facts (now holding dependants, spouse
-  status and similar inputs).
 
 ## Seed
 
-- **base** — `seed/jurisdiction/<CODE>/version_*/`: nine sealed jurisdiction lineages with their catalogues and rule
-  sets; `seed/overtime_policies.ts` adds each version's overtime rule.
-- **sample** (private) — `seed/seed.ts` reads the seed bank tree `norbital_hr` with `bolt build --bank=<checkout>`:
-  entities, people, contracts, rosters and their records. A roster day's overtime and incentive derive from its clock
-  past the planned shift, so the bank's typed hours are dropped on the way in.
+- **base** (public) — `seed/public/`: nine sealed jurisdiction lineages (`jurisdiction/<CODE>/version_*/`) with their
+  catalogues and rule sets, `rule_set.json`, and `bank.json`, the bank payment-file formats. `bolt build` writes
+  them as the release's `base` pack.
+- **private** — `seed/+seeder.ts` names the seed bank tree `norbital_hr`, which `bolt seed --bank=<checkout>` loads
+  into one demo beside the base rows: entities, people, contracts, rosters and their records.
 
 ## Payroll hotline
 
@@ -200,7 +205,7 @@ Employees ask about their own payslips on WhatsApp, one number per legal entity.
 1. An administrator adds and pairs a WhatsApp instance in Settings, Integrations.
 2. On the entity's General tab, HR picks that number as the payroll hotline (`entity.hotline`), saves, and selects
    **Answer payroll questions on this number**.
-3. An administrator records each employee's WhatsApp number on their account (Settings, People); an employment profile
+3. An administrator records each employee's WhatsApp number on their account (Command center, People); an employment profile
    links to the account through `user_id`.
 
 A DM holds `payroll_hotline` alone, even for an administrator: it reads only the sender's own payslips of the entity

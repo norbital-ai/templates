@@ -1,17 +1,16 @@
-import type { Masked, Row } from '@norbital-ai/bolt';
+import type { Row } from '@norbital-ai/bolt';
 import { Decimal } from '@norbital-ai/std/decimal';
-import { Result, Schema } from 'effect';
-import { fieldValue, numberOf } from './foundation.js';
+import { Schema } from 'effect';
+import { numberOf } from './foundation.js';
 
 type LineField = 'base' | 'adjustments' | 'company_payments' | 'statutory';
 /** One stored payslip line of a line column. */
-type Line<F extends LineField> = NonNullable<Exclude<Row<'payslip'>[F], Masked>>[number];
+type Line<F extends LineField> = NonNullable<Row<'payslip'>[F]>[number];
 /** A line column as read: the lines the report reads of each (a line's `source_id`, which it does not read, may be
- * absent), masked to a caller its grants leave it out of. */
+ * absent). */
 type Lines<F extends LineField, K extends keyof Line<F>> =
 	| readonly (Pick<Line<F>, Exclude<K, 'source_id'>> &
 			Partial<Pick<Line<F>, Extract<K, 'source_id'>>>)[]
-	| Masked
 	| null
 	| undefined;
 
@@ -92,9 +91,6 @@ const SalaryReportConfiguration = Schema.Struct({
 	)
 });
 
-/** A line column's lines; a masked column refuses rather than reading as none. */
-const linesOf = <T>(value: readonly T[] | Masked | null | undefined, field: LineField) =>
-	Result.getOrThrow(fieldValue(value ?? [], `payslip.${field}`));
 const money = (value: unknown): number => Schema.decodeUnknownSync(Schema.Number)(numberOf(value));
 const bankCharge = (value: unknown): number | null =>
 	Schema.decodeUnknownSync(Schema.NullOr(Schema.Number.check(Schema.isGreaterThanOrEqualTo(0))))(
@@ -169,7 +165,7 @@ export function salaryReport(input: {
 		);
 	const rows = input.employees.map((employee) => {
 		const amounts = new Map<string, number>();
-		const companyPayments = linesOf(employee.company_payments, 'company_payments');
+		const companyPayments = employee.company_payments ?? [];
 		let needsConfirmation = !profilePresent;
 		const bankCharges = bankCharge(employee.bank_charges);
 		if (bankCharges === null) {
@@ -278,12 +274,12 @@ export function salaryReport(input: {
 				deduction ? -row.amount : row.amount
 			);
 		};
-		for (const row of linesOf(employee.base, 'base'))
+		for (const row of employee.base ?? [])
 			line(row, catalog.has(key('ALLOWANCE', row.component_code)) ? 'ALLOWANCE' : 'WORK');
-		for (const row of linesOf(employee.adjustments, 'adjustments')) line(row, row.family);
+		for (const row of employee.adjustments ?? []) line(row, row.family);
 		for (const row of companyPayments) line({ ...row, destination: 'EMPLOYER' }, row.family);
 		let government = 0;
-		for (const row of linesOf(employee.statutory, 'statutory')) {
+		for (const row of employee.statutory ?? []) {
 			for (const [family, group, amount] of [
 				['EMPLOYEE_STATUTORY', 'Employee statutory', row.employee_amount],
 				['EMPLOYER_STATUTORY', 'Employer statutory', row.employer_amount]

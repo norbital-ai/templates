@@ -5,6 +5,7 @@ import { Schema } from 'effect';
 
 export const visitsReads = {
 	visits: {
+		output: 'customer',
 		where: { status: { in: ['scheduled', 'in_progress', 'done'] } },
 		fields: ['number', 'slot', 'address', 'status', 'eta_minutes', 'helper', 'booking'],
 		limit: 100
@@ -12,6 +13,7 @@ export const visitsReads = {
 	'visits.helper': { fields: ['name'] },
 	'visits.booking.service': { fields: ['name'] },
 	customer_notices: {
+		output: 'customer',
 		fields: ['subject', 'body'],
 		orderBy: { created_at: 'desc' },
 		limit: 10

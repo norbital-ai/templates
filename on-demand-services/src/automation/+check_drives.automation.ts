@@ -30,18 +30,14 @@ const MAX_CALLS = 25;
  * its helper can no longer reach from the one before, drive and settling in counted, is handed to the best match.
  * Without a Google key nothing is fetched, and the walk still catches two bookings that raced for one helper. Last, the
  * schedule is brought back to a local optimum (`optimise`): booking places each visit as it arrives, and this undoes the
- * choices later bookings, cancellations and new cleaners made poor. A move re-triggers this run, which then finds none.
+ * choices later bookings, cancellations and new cleaners made poor. A move schedules this run again (the visits effect), which then finds none.
  */
 export default automation('check_drives', {
 	description:
 		'Times every drive in the helpers’ next two weeks with Google Maps and caches it for matching; a visit its helper can no longer reach in time is reassigned to the best match; then movable visits are rebalanced to a local optimum of workload and driving.',
-	on: [
-		{ cron: '*/15 * * * *' },
-		{ created: 'bookings' },
-		{ updated: 'visits', fields: ['helper', 'slot', 'status'] },
-		{ updated: 'helpers', fields: ['home_location'] }
-	],
-	runAs: ['dispatch_automation'],
+	// also scheduled by the bookings, visits and helpers effects
+	on: { cron: '*/15 * * * *' },
+	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
 		const now = Date.parse(ctx.now);

@@ -1,15 +1,15 @@
 # On-Demand Services — local run sheet
 
 Use an owned local workspace with the current artifact. Keep the existing database intact.
-The public base pack has three helpers, two customers and four services; a private sample pack
-can supply a larger roster. Fixture identities, server URLs and device IDs belong to the local
+A new workspace starts empty; `bolt seed --bank=<checkout>` loads the private demo roster, services
+and bookings. Fixture identities, server URLs and device IDs belong to the local
 session rather than this template.
 
 ## Preparation
 
 From the template directory, run `bunx bolt check`, `bun run build` and `bun run dev`. When testing
 unpublished Norbital packages, apply the realm overlay first. Sign in as the local founder and
-use **Settings → People** to assign the declared Operations and Helpers teams. Link a helper’s
+use **Command center → People** to assign the declared Operations and Helpers teams. Link a helper’s
 sign-in account through their profile. Use separate browser profiles for controller, helper and
 customer sessions.
 

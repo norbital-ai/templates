@@ -27,5 +27,11 @@ export default model('helper_warnings', {
 		'helper_warnings.visit.booking.service': { fields: ['name'] }
 	},
 	create: { columns: { helper_warnings: ['helper', 'visit', 'reason', 'issued_at', 'notes'] } },
-	update: { columns: { helper_warnings: ['letter'] } }
+	update: { columns: { helper_warnings: ['letter'] } },
+	// the desk cannot attach the letter: `warning_letter` does, as dispatch
+	effect: {
+		created: function* (rows, ctx) {
+			yield* ctx.schedule('warning_letter', { ids: rows.map((r) => r.id) });
+		}
+	}
 });

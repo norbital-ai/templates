@@ -3,18 +3,39 @@ import type { ActInput, AutomationCtx, Id, Instant, Row, StartInput } from '@nor
 import { dayOf, loadPool, settingsOf, when } from './dispatch.js';
 import { rank, slotOf } from './matching.js';
 import { Refusal } from '@norbital-ai/bolt/errors';
+const UNREADABLE = 'The selected record does not exist or is not readable.';
+/**
+ * A helper answers only for their own visits: the run is the system identity, so the member who started it (its
+ * trigger) must be the helper of every target.
+ */
+export const ownVisits = Effect.fnUntraced(function* (
+	ctx: Pick<AutomationCtx, 'query' | 'run'>,
+	targets: readonly Id<'visits'>[]
+) {
+	const by = ctx.run.trigger;
+	const user = by.kind === 'person' && by.actor.kind === 'member' ? by.actor.id : null;
+	if (user === null) return yield* new Refusal({ message: UNREADABLE, field: 'targets' });
+	const { visits, helpers } = yield* ctx.query({
+		visits: { output: 'helper', where: { id: { in: targets } }, fields: ['helper'] },
+		helpers: { where: { user: { eq: user } }, fields: ['id'] }
+	});
+	const mine = new Set(helpers.rows.map((h) => h.id));
+	if (
+		visits.rows.length !== new Set(targets).size ||
+		visits.rows.some((v) => v.helper === null || !mine.has(v.helper))
+	)
+		return yield* new Refusal({ message: UNREADABLE, field: 'targets' });
+});
 /** The helper and controller report the same unavailable day through their own grants. */
 export function* declineShift(
 	{ mc, targets }: { readonly mc: boolean; readonly targets: readonly Id<'visits'>[] },
 	ctx: Pick<AutomationCtx, 'query' | 'act' | 'tz'>
 ) {
-	const { rows: targetsOf } = (yield* ctx.query({ visits: { where: { id: { in: targets } } } }))
-		.visits;
+	const { rows: targetsOf } = (yield* ctx.query({
+		visits: { output: 'helper', where: { id: { in: targets } } }
+	})).visits;
 	if (targetsOf.length !== targets.length)
-		return yield* new Refusal({
-			message: 'The selected record does not exist or is not readable.',
-			field: 'targets'
-		});
+		return yield* new Refusal({ message: UNREADABLE, field: 'targets' });
 	const updates: Extract<ActInput<'visits.update'>, readonly unknown[]>[number][] = [];
 	const revisions = new Map<string, number>();
 	for (const v of targetsOf) {
@@ -65,6 +86,7 @@ export const sameDay = Effect.fnUntraced(function* (
 		return yield* new Refusal({ message: 'This visit has no shift to answer for.' });
 	const { rows } = (yield* ctx.query({
 		visits: {
+			output: 'helper',
 			where: {
 				helper: { eq: v.helper },
 				status: { eq: 'scheduled' },

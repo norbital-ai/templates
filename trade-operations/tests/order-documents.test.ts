@@ -90,13 +90,17 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 					to: 'pdf',
 					context: { order, locale: 'en' }
 				});
-				const refused = yield* t.as(t.member(['logistics'])).start('orders.sync.document', {
-					mode: 'export',
-					to: 'pdf',
-					context: { order }
-				});
-				if (exported.kind !== 'committed' || refused.kind !== 'committed')
-					throw new Error('Document exports must be queued');
+				// logistics reads no order terms (only its narrower output), so it cannot start an export
+				expect(
+					yield* Effect.flip(
+						t.as(t.member(['logistics'])).start('orders.sync.document', {
+							mode: 'export',
+							to: 'pdf',
+							context: { order }
+						})
+					)
+				).toMatchObject({ _tag: 'ActRefused' });
+				if (exported.kind !== 'committed') throw new Error('Document exports must be queued');
 				converted.length = 0;
 				yield* t.runDue();
 				const run = (id: string) =>
@@ -110,7 +114,6 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 					state: 'succeeded',
 					output: { file: { name: expect.stringMatching(/\.pdf$/) } }
 				});
-				expect(yield* run(refused.output.id)).toMatchObject({ state: 'failed', output: null });
 				expect(converted).toEqual([preview.html]);
 			})
 	);

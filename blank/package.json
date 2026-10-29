@@ -10,9 +10,9 @@
 		"format": "prettier --write ."
 	},
 	"dependencies": {
-		"@norbital-ai/bolt": "0.0.5",
-		"@norbital-ai/std": "0.0.5",
-		"@norbital-ai/ui": "0.0.5",
+		"@norbital-ai/bolt": "0.0.6",
+		"@norbital-ai/std": "0.0.6",
+		"@norbital-ai/ui": "0.0.6",
 		"svelte": "5.57.3",
 		"vite": "8.3.5",
 		"effect": "4.0.6"
@@ -27,16 +27,13 @@
 		"@typescript/native": "npm:typescript@7.0.2",
 		"happy-dom": "20.14.5",
 		"svelte2tsx": "0.7.61",
-		"typescript": "6.0.3"
+		"typescript": "6.0.3",
+		"@norbital-ai/bolt-cli": "0.0.6"
 	},
 	"trustedDependencies": [
 		"esbuild",
-		"isolated-vm",
 		"msgpackr-extract"
 	],
-	"patchedDependencies": {
-		"isolated-vm@7.0.1": "isolated-vm.patch"
-	},
 	"overrides": {
 		"effect": "4.0.6",
 		"@effect/platform-node": "4.0.6",

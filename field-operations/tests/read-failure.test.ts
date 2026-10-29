@@ -37,9 +37,16 @@ it.live('a failed batched facts read writes no review or finding and schedules r
 				"SELECT due_at::text AS due, state FROM sys_run WHERE automation = 'review_job_assignment_suspicion' AND key = 'suspicion_retry'"
 			)
 		).toEqual([{ due: expect.stringMatching(/^2026-09-25 12:00:00/), state: 'queued' }]);
+		// filing the job ran its effect, which scheduled the review
+		expect(
+			yield* rows(
+				t,
+				"SELECT cause, state FROM sys_run WHERE automation = 'job_assignments.effect.created'"
+			)
+		).toEqual([{ cause: 'effect', state: 'succeeded' }]);
 		const failed = yield* rows(
 			t,
-			"SELECT state, error::text AS error FROM sys_run WHERE automation = 'review_job_assignment_suspicion' AND cause = 'created'"
+			"SELECT state, error::text AS error FROM sys_run WHERE automation = 'review_job_assignment_suspicion' AND cause = 'schedule' AND state = 'failed'"
 		);
 		expect(failed).toEqual([
 			{ state: 'failed', error: expect.stringContaining('Fixture batched facts read failure') }

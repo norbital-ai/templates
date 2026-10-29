@@ -14,14 +14,9 @@ const AHEAD = 14;
 export default automation('publish_openings', {
 	description:
 		'Publishes, for each active service and each of the next two weeks, the start times at which a helper with its skill is free — the times the booking portal offers.',
-	on: [
-		{ cron: '*/15 * * * *' },
-		{ created: 'bookings' },
-		{ updated: 'visits', fields: ['helper', 'slot', 'status'] },
-		{ created: 'helper_time_off' },
-		{ updated: 'helpers', fields: ['status', 'skills', 'work_days', 'day_start', 'day_end'] }
-	],
-	runAs: ['dispatch_automation'],
+	// also scheduled by the bookings, visits, helper_time_off and helpers effects
+	on: { cron: '*/15 * * * *' },
+	policies: ['dispatch_automation'],
 	concurrency: { max: 1 },
 	run: function* (_, ctx) {
 		const days = Array.from({ length: AHEAD }, (_, i) => addDays(ctx.today, i));
@@ -65,12 +60,15 @@ export default automation('publish_openings', {
 		}
 		// past days, and services no longer offered
 		const gone = [...have.values()].map((o) => o.id);
-		if (creates.length > 0) yield* ctx.act('openings.create', creates);
-		if (updates.length > 0) yield* ctx.act('openings.update', updates);
-		if (gone.length > 0)
-			yield* ctx.act(
-				'openings.delete',
-				gone.map((target) => ({ target }))
-			);
+		// a run that lost a race to another publish leaves the times to it: the newer run read the newer schedule
+		yield* Effect.gen(function* () {
+			if (creates.length > 0) yield* ctx.act('openings.create', creates);
+			if (updates.length > 0) yield* ctx.act('openings.update', updates);
+			if (gone.length > 0)
+				yield* ctx.act(
+					'openings.delete',
+					gone.map((target) => ({ target }))
+				);
+		}).pipe(Effect.catchTag('ActConflict', () => Effect.void));
 	}
 });

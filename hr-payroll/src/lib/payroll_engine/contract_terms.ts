@@ -4,7 +4,6 @@
  * declared term; an edited one is JSON shaped by the governing version's
  * `employee_input_schema.properties.contract_terms.items`: every key it holds is kept.
  */
-import { isMasked, type Masked } from '@norbital-ai/bolt';
 import {
 	addDays,
 	contains,
@@ -26,9 +25,9 @@ const isString = Schema.is(Schema.String);
 export type TermDraft = JsonObject & { readonly effective_range: DatePeriod };
 
 type Dated = { readonly effective_range: DatePeriod };
-/** A contract's `facts` as stored or written: masked or absent facts hold no terms. */
+/** A contract's `facts` as stored or written: absent facts hold no terms. */
 type TermsFacts<T extends Dated> =
-	{ readonly contract_terms?: readonly T[] | null } | Masked | null | undefined;
+	{ readonly contract_terms?: readonly T[] | null } | null | undefined;
 
 /** A term's keys as edited, without its range. */
 type TermValues = { readonly [key: string]: Schema.Json };
@@ -67,7 +66,7 @@ export function allowancesOf(term: ContractTerm): readonly AllowanceDraft[] {
 /** The terms a contract's facts hold. */
 export const termsFromFacts = <T extends Dated = ContractTerm>(
 	facts: TermsFacts<T>
-): readonly T[] => (facts == null || isMasked(facts) ? [] : (facts.contract_terms ?? []));
+): readonly T[] => facts?.contract_terms ?? [];
 
 export function termInForceOn<T extends Dated>(terms: readonly T[], day: string): T | undefined {
 	return terms

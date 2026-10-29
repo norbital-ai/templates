@@ -71,9 +71,9 @@ required. Issued transactions or active payments prevent cancellation.
 
 ## Automations and integrations
 
-| Automation      | Trigger                               | What it does                                                            |
-| --------------- | ------------------------------------- | ----------------------------------------------------------------------- |
-| `source_health` | a `kingdee` instance's status changes | Notifies configuration holders when a ledger connection needs attention |
+| Automation      | Trigger                                   | What it does                                                            |
+| --------------- | ----------------------------------------- | ----------------------------------------------------------------------- |
+| `source_health` | every 5 minutes, over `kingdee` instances | Notifies configuration holders when a ledger connection needs attention |
 
 Order documents need no automation. The Orders page converts the previewed quotation or contract
 version to PDF (`bolt.convert`), and `orders` declares a `document` file sync whose `write` returns
@@ -102,10 +102,11 @@ binding and unsupported document/write types remain explicitly unavailable.
 
 ## Seed
 
-- **base** — `seed/*.json`: synthetic commercial settings, document templates, parties, products and
-  warehouses. No credentials or live financial facts ship with the starter.
-- **sample** — optional native demo rows supplied separately at build time. They extend the public
-  defaults by identity; no private sample rows are included in the public starter.
+- **test** — `seed/test/*.json`: synthetic commercial settings, document templates, parties, products and
+  warehouses for `bolt test`. They never enter a release; no credentials or live financial facts ship with the
+  starter.
+- **private** — `seed/+seeder.ts` names the seed bank tree `trade-operations`, which
+  `bolt seed --bank=<checkout>` loads into one demo.
 
 ## Checks
 

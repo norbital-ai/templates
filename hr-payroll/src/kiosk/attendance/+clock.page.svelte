@@ -180,7 +180,9 @@
 		error: 'border-destructive/30 bg-destructive/10 text-destructive'
 	};
 	const companies = $derived.by(() =>
-		bolt.query({ entity: { fields: ['name'], orderBy: { name: 'asc' }, limit: 200 } })
+		bolt.query({
+			entity: { output: 'kiosk', fields: ['name'], orderBy: { name: 'asc' }, limit: 200 }
+		})
 	);
 	const companyById = $derived(
 		new Map((companies?.current?.entity.rows ?? []).map((company) => [company.id, company.name]))
@@ -579,6 +581,7 @@
 	) {
 		const { employment_profile: holders } = yield* bolt.query({
 			employment_profile: {
+				output: 'kiosk',
 				where: { face_enrollment_status: { eq: 'APPROVED' } },
 				fields: ['name', 'face_embedding']
 			}
@@ -601,6 +604,7 @@
 			return { status: 'unknown' } satisfies MatchResult;
 		const { employment_contract: contracts } = yield* bolt.query({
 			employment_contract: {
+				output: 'kiosk',
 				where: {
 					employee_id: { eq: best.id },
 					company_id: { eq: requestedCompanyId }
@@ -878,11 +882,7 @@
 		class="min-h-16 border-b bg-card px-4 py-3 sm:px-6"
 	>
 		<Inline gap="sm">
-			<Inline
-				justify="center"
-				shrink={false}
-				class="size-10 overflow-clip rounded-lg border bg-background"
-			>
+			<Inline justify="center" class="size-10 overflow-clip rounded-lg border bg-background">
 				{#if organizationLogoUrl !== null}
 					<img
 						src={organizationLogoUrl}
@@ -917,7 +917,7 @@
 			<p class="text-meta">{currentDate}</p>
 		</div>
 
-		<Inline gap="xs" shrink={false} aria-label={bolt.t('kiosk.tools')}>
+		<Inline gap="xs" aria-label={bolt.t('kiosk.tools')}>
 			<Button
 				variant={tab === 'scan' ? 'secondary' : 'ghost'}
 				onclick={toScan}
@@ -957,7 +957,7 @@
 		aria-atomic="true"
 	>
 		<Center measure="full" layout="inline" gap="sm" class="max-w-5xl">
-			<Frame ratio="square" shrink={false} class="size-9 rounded-full bg-current/10">
+			<Frame ratio="square" class="size-9 rounded-full bg-current/10">
 				<Icon
 					icon={status.icon}
 					class="size-5 {status.icon === 'lucide:loader-circle' ? 'animate-spin' : ''}"
@@ -972,7 +972,7 @@
 {/snippet}
 
 <!--
-	`Bound size="full"` + `Cover`: the kiosk is a full-screen device surface with its own header
+	`Bound size="fill"` + `Cover`: the kiosk is a full-screen device surface with its own header
 	and status bar as the chrome rows and the body as the definite middle track — deliberately not
 	an `AppShell`, which would add a workspace hero around a shop-floor time clock. The body grid
 	used to be `h-full` under a root with no definite height, which is where the empty band under
@@ -982,23 +982,24 @@
 	near-square iPad column used to show a 16:9 stream with its sides cut off, and a portrait
 	tablet under a 16:9 `aspect-video` frame showed a third of a portrait stream.
 -->
-<Bound size="full">
+<Bound size="fill">
 	{#key sessionId}
 		<div {@attach session.attach} class="contents">
 			<Cover
 				as="main"
+				size="fill"
 				top={header}
 				bottom={statusBar}
 				gap="none"
 				class="bg-background text-foreground"
 			>
 				{#if tab === 'scan' && phase._tag === 'boot'}
-					<Stack align="center" justify="center" fill gap="md">
+					<Stack align="center" justify="center" size="fill" gap="md">
 						<Spinner class="size-8" label={bolt.t('kiosk.preparing')} />
 						<p class="text-sm text-muted-foreground">{bolt.t('kiosk.preparing_detail')}</p>
 					</Stack>
 				{:else if tab === 'scan' && phase._tag === 'error'}
-					<Stack align="center" justify="center" fill gap="md" class="px-6 text-center">
+					<Stack align="center" justify="center" size="fill" gap="md" class="px-6 text-center">
 						<Frame ratio="square" class="size-14 rounded-full bg-destructive/10 text-destructive">
 							<Icon icon="lucide:camera-off" class="size-7" />
 						</Frame>
@@ -1028,7 +1029,6 @@
 						>
 							<Bound
 								as="section"
-								size="full"
 								clip
 								class="relative"
 								style="width: {frame.width}px; height: {frame.height}px;"
@@ -1128,6 +1128,7 @@
 
 						<Scroll
 							as="aside"
+							size="fill"
 							name={bolt.t('kiosk.identity')}
 							class="bg-card px-5 py-6 sm:px-8 sm:py-8"
 						>
@@ -1152,7 +1153,6 @@
 										<Inline align="start" gap="md">
 											<Frame
 												ratio="square"
-												shrink={false}
 												class="size-12 rounded-full bg-primary text-primary-foreground"
 											>
 												<Icon
@@ -1160,7 +1160,7 @@
 													class="size-6"
 												/>
 											</Frame>
-											<Stack gap="sm" grow>
+											<Stack gap="sm" size="fill">
 												<p class="truncate text-subhead">{candidate.employeeName}</p>
 												<Stack as="dl" gap="sm" class="text-sm">
 													<Inline justify="between" gap="md" class="border-b pb-2">
@@ -1176,11 +1176,7 @@
 										</Inline>
 									{:else if phase._tag === 'unknown'}
 										<Inline align="start" gap="md">
-											<Frame
-												ratio="square"
-												shrink={false}
-												class="size-12 rounded-full bg-warning/15"
-											>
+											<Frame ratio="square" class="size-12 rounded-full bg-warning/15">
 												<Icon
 													icon="lucide:user-round-question"
 													class="size-6 text-warning-foreground"
@@ -1195,11 +1191,7 @@
 										</Inline>
 									{:else if phase._tag === 'rejected' && notice !== null}
 										<Inline align="start" gap="md">
-											<Frame
-												ratio="square"
-												shrink={false}
-												class="size-12 rounded-full bg-destructive/10"
-											>
+											<Frame ratio="square" class="size-12 rounded-full bg-destructive/10">
 												<Icon icon={notice.icon} class="size-6 text-destructive" />
 											</Frame>
 											<div>
@@ -1209,11 +1201,7 @@
 										</Inline>
 									{:else if phase._tag === 'unavailable'}
 										<Inline align="start" gap="md">
-											<Frame
-												ratio="square"
-												shrink={false}
-												class="size-12 rounded-full bg-destructive/10"
-											>
+											<Frame ratio="square" class="size-12 rounded-full bg-destructive/10">
 												<Icon icon="lucide:cpu" class="size-6 text-destructive" />
 											</Frame>
 											<Stack gap="md" align="start">
@@ -1233,7 +1221,7 @@
 										</Inline>
 									{:else}
 										<Inline align="start" gap="md">
-											<Frame ratio="square" shrink={false} class="size-12 rounded-full bg-muted">
+											<Frame ratio="square" class="size-12 rounded-full bg-muted">
 												<Icon icon="lucide:user-round" class="size-6 text-muted-foreground" />
 											</Frame>
 											<div>
@@ -1259,7 +1247,7 @@
 						</Scroll>
 					</div>
 				{:else}
-					<Scroll name={bolt.t('kiosk.manual_entry')} inset class="bg-muted/40">
+					<Scroll name={bolt.t('kiosk.manual_entry')} size="fill" inset class="bg-muted/40">
 						{#key companyId}
 							<ManualTab
 								{companyId}

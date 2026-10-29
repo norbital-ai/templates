@@ -1,7 +1,6 @@
 <script lang="ts">
 	/** A visit, and for dispatch the helpers who could take it instead, best match first, each one click away. */
 	import { bolt } from '$bolt';
-	import { isMasked, type Masked } from '@norbital-ai/bolt';
 	import {
 		type RecordSection,
 		type RecordView,
@@ -25,7 +24,7 @@
 	const word = (field: 'attention' | 'shift_check', value: string) =>
 		enumText(value, { t: (key) => ui.t(key), model: 'visits', field });
 	const summaryText = Schema.optionalKey(
-		Schema.Union([Schema.String, Schema.Null, Schema.Undefined, Schema.declare<Masked>(isMasked)])
+		Schema.Union([Schema.String, Schema.Null, Schema.Undefined])
 	);
 	const completionSummary = Schema.decodeUnknownSync(
 		Schema.Struct({
@@ -52,8 +51,9 @@
 						name: 'attention',
 						title: t('section.attention'),
 						fields: ['attention', 'proposed_slot', 'proposed_helper', 'unavailable_helper'],
-						defaultOpen: !isMasked(record.attention) && record.attention !== 'none',
-						summary: isMasked(record.attention) ? '' : word('attention', record.attention)
+						// a helper's output has no attention or checks: their sections stay folded and blank
+						defaultOpen: typeof record.attention === 'string' && record.attention !== 'none',
+						summary: typeof record.attention === 'string' ? word('attention', record.attention) : ''
 					},
 					{
 						name: 'checks',
@@ -61,7 +61,7 @@
 						fields: ['shift_check', 'shift_asked_at', 'mc', 'eta_minutes', 'eta_checked_at'],
 						defaultOpen: false,
 						summary: [
-							isMasked(record.shift_check) ? '' : word('shift_check', record.shift_check),
+							typeof record.shift_check === 'string' ? word('shift_check', record.shift_check) : '',
 							typeof record.eta_minutes === 'number'
 								? t('component.eta', { minutes: record.eta_minutes })
 								: ''
@@ -81,9 +81,7 @@
 									? t('summary.completed', { at: when(r.completed_at) })
 									: typeof r.started_at === 'string'
 										? t('summary.started', { at: when(r.started_at) })
-										: isMasked(r.completed_at) || isMasked(r.started_at)
-											? ''
-											: t('summary.not_started'),
+										: t('summary.not_started'),
 								excerpt(typeof r.completion_notes === 'string' ? r.completion_notes : null)
 							]
 								.filter(Boolean)

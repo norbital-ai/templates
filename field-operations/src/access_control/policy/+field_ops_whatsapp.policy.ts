@@ -28,7 +28,7 @@ export default policy({
 		},
 		sites: { read: true },
 		communication_logs: { create: true },
-		sys_user: { read: true, fields: ['id', 'name'] }
+		sys_user: { outputs: { directory: true } }
 	},
 	limits: {
 		act: '60/min',

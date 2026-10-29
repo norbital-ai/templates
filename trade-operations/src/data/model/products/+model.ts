@@ -1,4 +1,5 @@
 import { model } from '@norbital-ai/bolt';
+import { logisticsProduct } from '../../../lib/logistics.js';
 import { columns, readSource } from '../../../integration/kingdee/polling.js';
 import { projections } from '../../../integration/kingdee/projections.js';
 import { preserveSource } from '../../../integration/kingdee/reconciliation.js';
@@ -77,6 +78,7 @@ export default model('products', {
 		}
 	},
 	read: 'all',
+	outputs: { logistics: { products: { fields: logisticsProduct } } },
 	update: { columns: { products: ['commission_factor', 'commission_basis_unit'] } },
 	syncs: {
 		kingdee: {

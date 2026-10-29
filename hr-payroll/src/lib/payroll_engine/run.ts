@@ -4,14 +4,7 @@ import type { Id } from '@norbital-ai/bolt';
 import type { Read } from './foundation.js';
 import type { ReadFailed } from '@norbital-ai/bolt/errors';
 import { addMonths, monthOf } from '@norbital-ai/std/date';
-import {
-	fieldValue,
-	PAYROLL_DEFAULTS,
-	payrollRulesOf,
-	Reads,
-	Refusal,
-	stableJson
-} from './foundation.js';
+import { PAYROLL_DEFAULTS, payrollRulesOf, Reads, Refusal, stableJson } from './foundation.js';
 import { eventIdOf, chainStarts } from './leave.js';
 import {
 	inForce,
@@ -178,9 +171,7 @@ export const buildPayrollRun = (
 			governedRows,
 			switched
 		} = admitted ?? (yield* admitPayrollRun(request));
-		const payroll = yield* Effect.fromResult(
-			fieldValue(version.payroll, 'jurisdiction_settings.payroll')
-		);
+		const payroll = version.payroll;
 		const historyMonths = yield* Effect.fromResult(payrollMonths(version, 'history_months'));
 		const rollingMonths = yield* Effect.fromResult(payrollMonths(version, 'rolling_hours_months'));
 		const window = payrollWindow(
@@ -225,7 +216,7 @@ export const buildPayrollRun = (
 						company: {
 							region: entity.region ?? '',
 							pay_frequency: entity.pay_frequency ?? '',
-							facts: yield* Effect.fromResult(fieldValue(entity.facts, 'entity.facts'))
+							facts: entity.facts
 						}
 					},
 					`${version.code} payroll.pay_date`
@@ -255,9 +246,7 @@ export const buildPayrollRun = (
 			row.rate
 		]);
 		// The version's `time_pay` lines in reserved-kind order: each line's code is its component code.
-		const timePay = yield* Effect.fromResult(
-			fieldValue(governed.time_pay, 'jurisdiction_settings.time_pay')
-		);
+		const timePay = governed.time_pay;
 		const workRows: CatalogRow[] = TIME_PAY_KEYS.flatMap((key) =>
 			(timePay?.[key] ?? []).map((line) => ({
 				...line,
@@ -270,8 +259,7 @@ export const buildPayrollRun = (
 		// Each leave class's pay lines, priced once a slip in the whole leave context: a line's code is its component code.
 		const leavePay: CatalogRow[] = [];
 		for (const held of governed.leave_catalog)
-			for (const line of (yield* Effect.fromResult(fieldValue(held.pay, 'leave_catalog.pay'))) ??
-				[])
+			for (const line of held.pay ?? [])
 				leavePay.push({
 					...line,
 					id: `${held.id}:${line.code}`,
@@ -281,9 +269,7 @@ export const buildPayrollRun = (
 		// Each suspension kind's pay lines, priced once a salary slip over every kind's suspended days.
 		const suspensionPay: CatalogRow[] = [];
 		for (const held of suspensionRows)
-			for (const line of (yield* Effect.fromResult(
-				fieldValue(held.pay, 'suspension_catalog.pay')
-			)) ?? [])
+			for (const line of held.pay ?? [])
 				suspensionPay.push({
 					...line,
 					id: `${held.id}:${line.code}`,
@@ -376,17 +362,13 @@ export const buildPayrollRun = (
 				return yield* new Refusal({
 					message: 'A repayment must belong to its employee’s actual loan.'
 				});
-			const principal = yield* Effect.fromResult(
-				fieldValue(parent.principal_amount, 'loan_catalog_entry.principal_amount')
-			);
+			const principal = parent.principal_amount;
 			repayments.push({
 				...row,
 				facts: loanRuleFacts({
 					principal_amount: principal,
-					facts: yield* Effect.fromResult(fieldValue(parent.facts, 'loan_catalog_entry.facts')),
-					advance_made_on: yield* Effect.fromResult(
-						fieldValue(parent.advance_made_on, 'loan_catalog_entry.advance_made_on')
-					)
+					facts: parent.facts,
+					advance_made_on: parent.advance_made_on
 				})
 			});
 		}
@@ -416,12 +398,8 @@ export const buildPayrollRun = (
 		const governingAllowances = new Set(allowanceRows.map((row) => row.id));
 		const capturedAllowanceIds = [
 			...new Set(
-				(yield* Effect.fromResult(
-					Result.all(
-						contracts.map((contract) => fieldValue(contract.facts, 'employment_contract.facts'))
-					)
-				))
-					.flatMap((facts) => facts?.contract_terms ?? [])
+				contracts
+					.flatMap((contract) => contract.facts?.contract_terms ?? [])
 					.flatMap((term) => term.allowances ?? [])
 					.map((line) => line.catalogue_id)
 					.filter((id): id is string => id != null && !governingAllowances.has(id))
@@ -438,10 +416,7 @@ export const buildPayrollRun = (
 		const capturedAllowanceCodes = new Map(lineageAllowances.map((row) => [row.id, row.code]));
 		for (const row of got.captured_allowances.rows) {
 			if (!outside.includes(row.id)) continue;
-			capturedAllowanceCodes.set(
-				row.id,
-				yield* Effect.fromResult(fieldValue(row.code, 'allowance_catalog.code'))
-			);
+			capturedAllowanceCodes.set(row.id, row.code);
 		}
 		// Entries name their class by the row of the version they were captured under; the governing version prices it by code.
 		const entries = new Map<string, readonly EntryRow[]>();
@@ -490,11 +465,9 @@ export const buildPayrollRun = (
 				row.work_date <= span.lte
 		);
 		if (salaryRun) {
-			for (const key of yield* Effect.fromResult(
-				reservedPinsFrom(
-					got.settlements.rows.filter((row) => row.company_id === request.company_id),
-					request.run_id
-				)
+			for (const key of reservedPinsFrom(
+				got.settlements.rows.filter((row) => row.company_id === request.company_id),
+				request.run_id
 			))
 				reservedPins.add(key);
 			for (const family of FAMILIES)

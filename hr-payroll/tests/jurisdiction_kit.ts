@@ -4,9 +4,8 @@
  */
 import assert from 'node:assert/strict';
 import { Effect, Layer, Schema } from 'effect';
-import { TestWorkspace, type Caller } from '@norbital-ai/bolt/test';
+import { TestWorkspace, type Caller } from '@norbital-ai/bolt-cli/test';
 import {
-	fieldValue,
 	moneyNumber,
 	Reads,
 	readsFrom,
@@ -204,7 +203,6 @@ export function law(): Tables {
 		[
 			'rule_set',
 			[
-				rule('PARAMETERS', 'record_retention', { until: 'add_years(employment.exit_date, 6)' }),
 				rule('PARAMETERS', 'exit_grounds', {
 					kinds: [{ code: 'RESIGNATION', name: 'Resignation' }]
 				}),
@@ -506,39 +504,33 @@ export const runOf = Effect.fnUntraced(function* (
 		}
 	})).payslip;
 	const slips = new Map(
-		yield* Effect.forEach(rows, (row) =>
-			Effect.gen(function* () {
-				const base = (yield* Effect.fromResult(fieldValue(row.base, 'payslip.base'))) ?? [];
-				const adjustments =
-					(yield* Effect.fromResult(fieldValue(row.adjustments, 'payslip.adjustments'))) ?? [];
-				const statutory =
-					(yield* Effect.fromResult(fieldValue(row.statutory, 'payslip.statutory'))) ?? [];
-				const lines = [...base, ...adjustments];
-				return [
-					String(row.employment_id),
-					{
-						id: row.id,
-						status: String(row.status),
-						gross: moneyNumber(row.gross),
-						net: moneyNumber(row.net),
-						lines: Object.fromEntries(lines.map((line) => [line.component_code, line.amount])),
-						quantities: Object.fromEntries(
-							base.map((line) => [line.component_code, line.quantity ?? null])
-						),
-						statutory: Object.fromEntries(
-							statutory.map((line) => [line.scheme_code, line.employee_amount])
-						)
-					}
-				] as const;
-			})
-		)
+		rows.map((row) => {
+			const base = row.base ?? [];
+			const adjustments = row.adjustments ?? [];
+			const statutory = row.statutory ?? [];
+			const lines = [...base, ...adjustments];
+			return [
+				String(row.employment_id),
+				{
+					id: row.id,
+					status: String(row.status),
+					gross: moneyNumber(row.gross),
+					net: moneyNumber(row.net),
+					lines: Object.fromEntries(lines.map((line) => [line.component_code, line.amount])),
+					quantities: Object.fromEntries(
+						base.map((line) => [line.component_code, line.quantity ?? null])
+					),
+					statutory: Object.fromEntries(
+						statutory.map((line) => [line.scheme_code, line.employee_amount])
+					)
+				}
+			] as const;
+		})
 	);
 	return {
 		id: run.id,
-		warnings: yield* Effect.fromResult(fieldValue(run.warnings, 'payroll_run.warnings')),
-		pins: Schema.decodeUnknownSync(Pins)(
-			(yield* Effect.fromResult(fieldValue(run.pins, 'payroll_run.pins'))) ?? []
-		),
+		warnings: run.warnings,
+		pins: Schema.decodeUnknownSync(Pins)(run.pins ?? []),
 		/** The payslip of `key`'s employment. */
 		slip: (key: string) => {
 			const found = slips.get(employment(key));

@@ -37,6 +37,20 @@ export default model('bookings', {
 		'bookings.customer': { fields: ['name', 'phone', 'email', 'address'] },
 		'bookings.service': { fields: ['name'] }
 	},
+	outputs: {
+		customer: {
+			bookings: {
+				fields: ['number', 'customer', 'service', 'repeat', 'status', 'visit_count']
+			},
+			'bookings.customer': { fields: ['name', 'phone', 'email', 'address'] },
+			'bookings.service': { fields: ['name'] }
+		},
+		helper: {
+			bookings: { fields: ['number', 'service', 'customer', 'notes'] },
+			'bookings.customer': { fields: ['name', 'phone', 'email', 'address'] },
+			'bookings.service': { fields: ['name'] }
+		}
+	},
 	create: {
 		columns: {
 			bookings: [
@@ -53,5 +67,12 @@ export default model('bookings', {
 			'bookings.visits': ['slot', 'address', 'location', 'area', 'skill', 'helper', 'attention']
 		}
 	},
-	update: { columns: { bookings: ['notes', 'status'] } }
+	update: { columns: { bookings: ['notes', 'status'] } },
+	// the portal's times and the drive checks are dispatch sweeps; a key coalesces a burst of writes into one run
+	effect: {
+		created: function* (_, ctx) {
+			yield* ctx.schedule('publish_openings', {}, { key: 'publish_openings' });
+			yield* ctx.schedule('check_drives', {}, { key: 'check_drives' });
+		}
+	}
 });

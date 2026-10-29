@@ -410,7 +410,7 @@
 			<video {@attach attachVideo} playsinline autoplay muted class="-scale-x-100"></video>
 			{#if warming}
 				<Imposter placement="fill" class="bg-black/40">
-					<Inline justify="center" fill>
+					<Inline justify="center" size="fill">
 						<Spinner class="size-8 text-white" label={bolt.t('face.preparing')} />
 					</Inline>
 				</Imposter>

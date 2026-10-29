@@ -20,6 +20,10 @@ export default model('customers', {
 	},
 	search: { text: ['name', 'phone', 'email', 'address'] },
 	read: 'all',
+	outputs: {
+		customer: { customers: { fields: ['name', 'phone', 'email', 'address', 'location', 'area'] } },
+		helper: { customers: { fields: ['name', 'email', 'phone', 'address'] } }
+	},
 	create: { columns: { customers: columns } },
 	update: { columns: { customers: columns } },
 	delete: {}

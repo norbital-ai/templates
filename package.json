@@ -19,7 +19,7 @@
 		"test": "bolt templates test"
 	},
 	"devDependencies": {
-		"@norbital-ai/bolt": "0.0.5",
+		"@norbital-ai/bolt-cli": "0.0.6",
 		"@typescript/native": "npm:typescript@7.0.2",
 		"pg": "^8.23.0",
 		"prettier": "^3.9.6",
@@ -29,8 +29,7 @@
 		"svelte2tsx": "0.7.61"
 	},
 	"trustedDependencies": [
-		"esbuild",
-		"isolated-vm"
+		"esbuild"
 	],
 	"overrides": {
 		"effect": "4.0.6",

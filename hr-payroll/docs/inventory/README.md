@@ -1,7 +1,7 @@
 # Jurisdiction trackers
 
 One CSV per jurisdiction, `docs/inventory/<CODE>.csv` (`SG`, `MY`, `PH`, `ID`, `VN`, `TW`, `CN`, `JP`, `TH`), describing
-the public seed configuration and its dated research baseline at `seed/jurisdiction/<CODE>/version_*/`.
+the public seed configuration and its dated research baseline at `seed/public/jurisdiction/<CODE>/version_*/`.
 
 Test names in `evidence` refer to the inventory's verification baseline. The jurisdiction suites were removed when
 the test suite switched to synthetic mechanism fixtures, so these historical references do not describe current

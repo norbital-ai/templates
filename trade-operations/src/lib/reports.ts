@@ -14,7 +14,7 @@ import {
 	DEFAULT_COMMISSION_EXPRESSION,
 	COMMISSION_ENGINE
 } from './commission-expressions.js';
-import { isMasked, type Id, type ReadAnswer, type Row, type Where } from '@norbital-ai/bolt';
+import { type Id, type ReadAnswer, type Row, type Where } from '@norbital-ai/bolt';
 import { hash } from './commercial.js';
 import { minorDigits, Decimal, sum } from '@norbital-ai/std/decimal';
 /** The order fields the commission and report helpers read. */
@@ -63,12 +63,7 @@ function commissionLines(
 		...withAgreement(record, version),
 		...(actual ? { status: 'confirmed' as const } : {})
 	};
-	if (
-		!order.sealed_snapshot ||
-		isMasked(order.sealed_snapshot) ||
-		order.direction !== 'sales' ||
-		order.status !== 'confirmed'
-	)
+	if (!order.sealed_snapshot || order.direction !== 'sales' || order.status !== 'confirmed')
 		return [];
 	const snapshot = order.sealed_snapshot;
 	const rule = order.sealed_commission;
@@ -230,7 +225,7 @@ export const commissionRead = {
 		where: { direction: { eq: 'sales' }, status: { in: ['draft', 'confirmed'] } },
 		fields: reportFields
 	},
-	sys_user: { fields: ['name'] }
+	sys_user: { output: 'directory', fields: ['name'] }
 } as const;
 /** Commission per sealed line of the read orders (one order when `order` is named), for a version or the executable one. */
 export function commissionReport(
@@ -274,7 +269,7 @@ export const salesRead = {
 	'source_sales_lines.order.party': { fields: ['name'] },
 	'source_sales_lines.order.lines': { fields: ['product'] },
 	products: { fields: ['name'] },
-	sys_user: { fields: ['name'] }
+	sys_user: { output: 'directory', fields: ['name'] }
 } as const;
 type SalesAnswer = ReadAnswer<typeof salesRead>;
 type SalesRange = { readonly from?: string | null; readonly to?: string | null };
@@ -443,7 +438,7 @@ const AGING = [
 export function arAging(answer: ReadAnswer<ReturnType<typeof agingRead>>, as_of: PlainDate) {
 	return answer.transactions.rows.flatMap((invoice) => {
 		const order = invoice.order;
-		if (!order || invoice.total === null || isMasked(invoice.total)) return [];
+		if (!order || invoice.total === null) return [];
 		const paid = sum(
 			answer.source_payments.rows.filter((p) => p.invoice === invoice.id).map((p) => p.amount)
 		);

@@ -138,9 +138,9 @@
 			</p>
 		</div>
 		{#if ifc && viewer}
-			<Bound size="fit" clip class="relative rounded-md border bg-muted/30">
+			<Bound size="viewport" clip class="relative rounded-md border bg-muted/30">
 				{#await viewer}
-					<Inline align="center" justify="center" fill class="text-sm text-muted-foreground">
+					<Inline align="center" justify="center" size="fill" class="text-sm text-muted-foreground">
 						{t('component.loading_viewer')}
 					</Inline>
 				{:then mod}
@@ -149,7 +149,7 @@
 						alt={text(ifc['title'], t('component.current_ifc_model'))}
 					/>
 				{:catch error}
-					<Inline align="center" justify="center" fill class="text-sm text-destructive">
+					<Inline align="center" justify="center" size="fill" class="text-sm text-destructive">
 						{String(error)}
 					</Inline>
 				{/await}

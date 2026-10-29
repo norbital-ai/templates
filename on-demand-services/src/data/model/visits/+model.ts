@@ -1,4 +1,5 @@
-import { model, type Instant, type UpdateSet } from '@norbital-ai/bolt';
+import { model, type Instant, type Row, type UpdateSet } from '@norbital-ai/bolt';
+import { alertHelpers } from '../../../lib/dispatch.js';
 import { Instant as instant } from '@norbital-ai/std/date';
 import { AREAS, lookups, refusal, SKILLS, type Refusal } from '../../../lib/matching.js';
 const HOUR = 3600000;
@@ -95,7 +96,7 @@ export default model('visits', {
 			where: { status: { ne: 'cancelled' }, helper: { isNull: false } }
 		}
 	],
-	// the layers the desk, the helper's day and the portal show beside a visit; each policy narrows them for its holders
+	// the layers the desk shows beside a visit; the helper's day and the portal read their own outputs
 	search: { text: ['number', 'address', 'helper', 'booking'] },
 	read: {
 		visits: { fields: 'all' },
@@ -104,6 +105,53 @@ export default model('visits', {
 		'visits.booking': { fields: 'all' },
 		'visits.booking.customer': { fields: 'all' },
 		'visits.booking.service': { fields: 'all' }
+	},
+	outputs: {
+		// when, where, who comes (by name) and how far away; who could not come is the desk's
+		customer: {
+			visits: {
+				fields: [
+					'number',
+					'booking',
+					'helper',
+					'slot',
+					'address',
+					'status',
+					'eta_minutes',
+					'completed_at'
+				]
+			},
+			'visits.helper': { fields: ['name'] },
+			'visits.booking': {
+				fields: ['number', 'customer', 'service', 'repeat', 'status', 'visit_count']
+			},
+			'visits.booking.customer': { fields: ['name'] },
+			'visits.booking.service': { fields: ['name', 'duration_minutes', 'description'] }
+		},
+		helper: {
+			visits: {
+				fields: [
+					'number',
+					'booking',
+					'helper',
+					'slot',
+					'address',
+					'location',
+					'skill',
+					'status',
+					'shift_check',
+					'mc',
+					'started_at',
+					'completed_at',
+					'completion_notes'
+				]
+			},
+			'visits.helper': { fields: ['name', 'phone'] },
+			'visits.unavailable_helper': { fields: ['name'] },
+			'visits.booking': { fields: ['number', 'service', 'customer', 'notes'] },
+			'visits.booking.customer': { fields: ['name', 'email', 'phone', 'address'] },
+			'visits.booking.service': { fields: ['name', 'duration_minutes', 'description'] }
+		}
 	},
 	update: {
 		columns: {
@@ -235,6 +283,36 @@ export default model('visits', {
 				);
 			}
 			return out;
+		}
+	},
+	// runs as the writer: the desk or a dispatch run assigns and moves visits, a helper only answers and works them
+	effect: {
+		created: function* (rows, ctx) {
+			yield* alertHelpers(
+				rows.flatMap((v) => (v.helper === null ? [] : [v.id])),
+				ctx
+			);
+		},
+		updated: function* (changes, ctx) {
+			const moved = (fields: readonly (keyof Row<'visits'>)[]) =>
+				changes.filter(({ before, after }) =>
+					fields.some((f) => JSON.stringify(before[f]) !== JSON.stringify(after[f]))
+				);
+			yield* alertHelpers(
+				moved(['helper', 'slot']).flatMap(({ after }) => (after.helper === null ? [] : [after.id])),
+				ctx
+			);
+			if (moved(['helper', 'slot', 'status']).length > 0) {
+				yield* ctx.schedule('publish_openings', {}, { key: 'publish_openings' });
+				yield* ctx.schedule('check_drives', {}, { key: 'check_drives' });
+			}
+			if (
+				changes.some(
+					({ before, after }) =>
+						before.shift_check !== after.shift_check && after.shift_check === 'declined'
+				)
+			)
+				yield* ctx.schedule('shift_watch', {}, { key: 'shift_watch' });
 		}
 	}
 });

@@ -1,4 +1,4 @@
-import { automation, isMasked, type Id } from '@norbital-ai/bolt';
+import { automation, type Id } from '@norbital-ai/bolt';
 import { Effect, Schema } from 'effect';
 import { Refusal } from '@norbital-ai/bolt/errors';
 import { inputSchema } from '@norbital-ai/std/kind';
@@ -16,7 +16,7 @@ const identity = <C extends string>(of: C, value: string) =>
 
 export default automation('orders_revise', {
 	description: 'Start or resume a replacement contract from the current accepted terms.',
-	runAs: 'trigger',
+	policies: ['order_revision'],
 	input: {
 		target: { kind: 'id', of: 'orders' },
 		revision: { kind: 'int', optional: true }
@@ -24,8 +24,7 @@ export default automation('orders_revise', {
 	run: function* ({ target, revision }, ctx) {
 		const [order] = (yield* ctx.query({ orders: { where: { id: { eq: target } }, limit: 1 } }))
 			.orders.rows;
-		if (!order || isMasked(order.currency))
-			return yield* new Refusal({ message: 'errors.agreement_access' });
+		if (!order) return yield* new Refusal({ message: 'errors.agreement_access' });
 		if (order.archived) return yield* new Refusal({ message: 'errors.order_archived' });
 		if (order.status !== 'confirmed' && !order.draft_setup)
 			return yield* new Refusal({ message: 'errors.transition' });

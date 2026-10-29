@@ -168,20 +168,17 @@ the reference and baseline model, not a replacement for native BIM files.
 
 ## Seed
 
-- **base** — `seed/*.json`: projects, certification types and workers.
-- **sample** (private) — `seed/seed.ts` reads the seed bank's `construction` tree (projects, jobs,
-  workers, permits, RFIs, defects, claims, the BIM matrix, documents) with
-  `bolt build --bank=<checkout>`. The bank's rows are read without rewriting them, so `seed.ts`
-  converts their shapes to the current field kinds (day ranges, dates in the business zone, money
-  with its row currency), maps the bank's team ids to the team handles, and rewrites document URLs to the artifact's `/assets/`, where the sample
-  IFC model under `assets/ifc/` is served for the project record's viewer.
+No public rows: a new workspace starts empty. `seed/+seeder.ts` names the seed bank's private
+`construction` tree (projects, jobs, workers, permits, RFIs, defects, claims, the BIM matrix,
+documents), whose rows `bolt seed --bank=<checkout>` loads into a demo environment as they are. The
+sample IFC model under `assets/ifc/` is served for the project record's viewer.
 
 ## Checks
 
 ```bash
 bun install
 bunx bolt check   # types, Svelte warnings, layout and declarations
-bun run build   # bolt build (add --bank=<checkout> for the sample pack)
+bun run build   # bolt build
 bun run test    # bolt test, including tests/e2e/surface-sweep.integration.test.ts
 ```
 

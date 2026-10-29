@@ -3,10 +3,8 @@ import { Context, Data, Effect, Result, Schema } from 'effect';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { addDays, datePeriod, eachDay, isPlainDate, monthOf } from '@norbital-ai/std/date';
 import {
-	isMasked,
 	type CallerQuery,
 	type DynamicAnswer,
-	type Masked,
 	type ReadAnswer,
 	type ReadField,
 	type ReadRequest,
@@ -39,12 +37,7 @@ export class Refusal extends Data.TaggedError('Refusal')<{
 	readonly message: string;
 	readonly detail?: string | undefined;
 }> {}
-/** A required native field stays unavailable until the caller's actual read admits it. */
-export const fieldValue = <A>(value: A | Masked, field: string): Result.Result<A, Refusal> =>
-	isMasked(value)
-		? Result.fail(new Refusal({ message: `This operation needs access to ${field}.` }))
-		: Result.succeed(value);
-/** Native readers: the workspace's (`ctx.db.query`, unmasked) and the caller's (`ctx.query`, masked). */
+/** Native readers: the workspace's (`ctx.db.query`, unfiltered) and the caller's (`ctx.query`, by its granted outputs). */
 export type HostRead = WorkspaceQuery['query'];
 export type CallerRead = CallerQuery<ReadFailed>['query'];
 export type HostRow<C extends ReadableName> = Row<C>;
@@ -53,12 +46,10 @@ export type Fields<C extends ReadableName> = readonly ReadField<C>[];
 /**
  * Every engine read is one layer-map read request (one crossing): a wave of roots and their declared layers. A
  * dependent read is the next wave, filtered by a literal `{ in: [...] }` of the ids the last wave returned. The server's
- * readers and the page's (`pageRead`) admit it; the caller's answer is masked, the workspace's is not.
+ * readers and the page's (`pageRead`) admit it; the caller's answer is its granted rows, the workspace's is all.
  */
 export interface Read<E = ReadFailed> {
-	<const R extends ReadRequestBase>(
-		request: ReadRequest<R>
-	): Effect.Effect<ReadAnswer<R> | ReadAnswer<R, false>, E>;
+	<const R extends ReadRequestBase>(request: ReadRequest<R>): Effect.Effect<ReadAnswer<R>, E>;
 }
 /** A server reader that also takes a rule-declared request as JSON (`ctx.query`, `ctx.db.query`). */
 export interface JsonRead<E = ReadFailed> extends Read<E> {
@@ -165,7 +156,7 @@ const sortValue = (value: unknown): unknown => {
 		);
 	return value;
 };
-type PayrollSettings = NonNullable<Exclude<Row<'jurisdiction_settings'>['payroll'], Masked>>;
+type PayrollSettings = NonNullable<Row<'jurisdiction_settings'>['payroll']>;
 type DefaultedPayrollKey =
 	| 'tax_year_start_month'
 	| 'pay_date'
@@ -228,7 +219,6 @@ export const payrollSetting = <
  * (`missingSlots`), `optional` ones are read when present.
  */
 export const PAYROLL_SLOTS = {
-	record_retention: 'required',
 	exit_grounds: 'required',
 	holiday_kinds: 'required',
 	salary_report: 'required',
@@ -246,7 +236,7 @@ export const payrollRulesOf = (
 		const rules: Record<string, JsonObject> = {};
 		for (const row of rows) {
 			if (row.family !== 'PARAMETERS') continue;
-			const value = yield* fieldValue(row.rules, `rule_set.${row.code}.rules`);
+			const value = row.rules;
 			if (!isJsonObject(value))
 				return yield* Result.fail(
 					new Refusal({ message: `${row.code} must contain an object of payroll rules.` })

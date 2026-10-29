@@ -11,7 +11,7 @@ export default automation('bookings_cancel', {
 		targets: { kind: 'list', of: { kind: 'id', of: 'bookings' }, min: 1 }
 	},
 	output: { kind: 'object', fields: { cancelled: { kind: 'int' }, late: { kind: 'int' } } },
-	runAs: 'trigger',
+	policies: ['operations'],
 	run: function* ({ targets }, ctx) {
 		const { rows: targetsOf } = (yield* ctx.query({ bookings: { where: { id: { in: targets } } } }))
 			.bookings;

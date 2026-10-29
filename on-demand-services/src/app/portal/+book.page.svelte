@@ -60,7 +60,13 @@
 	const quote = $derived(
 		availability === null
 			? null
-			: bolt.query({ availability_requests: { where: { id: { eq: availability } }, limit: 1 } })
+			: bolt.query({
+					availability_requests: {
+						output: 'customer',
+						where: { id: { eq: availability } },
+						limit: 1
+					}
+				})
 	);
 	const quoted = $derived(quote?.current?.availability_requests.rows[0]);
 	const days = $derived.by(() => {
@@ -76,6 +82,7 @@
 			? null
 			: bolt.query({
 					booking_requests: {
+						output: 'customer',
 						where: { id: { eq: request } },
 						fields: ['status', 'number', 'start', 'booking'],
 						limit: 1
@@ -97,6 +104,7 @@
 			? null
 			: bolt.query({
 					visits: {
+						output: 'customer',
 						where: { booking: { eq: booking } },
 						fields: ['slot', 'helper'],
 						orderBy: { number: 'asc' },
@@ -304,7 +312,7 @@
 	}
 </script>
 
-<Scroll name="portal-book" inset>
+<Scroll name="portal-book" size="fill" inset>
 	<Center measure="reading">
 		<Stack gap="lg" class="py-6 sm:py-8">
 			<Stack as="header" gap="md">

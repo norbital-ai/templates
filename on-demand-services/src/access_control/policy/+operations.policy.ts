@@ -24,6 +24,8 @@ export default policy({
 		customers: { read: true, create: true, update: true, delete: true },
 		helpers: {
 			read: true,
+			// the helper app's day reads it
+			outputs: { helper: true },
 			create: true,
 			update: true,
 			moves: 'all'
@@ -39,6 +41,7 @@ export default policy({
 		booking_helpers: { read: true },
 		visits: {
 			read: true,
+			outputs: { helper: true },
 			update: true,
 			moves: 'all'
 		},

@@ -94,6 +94,10 @@ export default model('photo_evidence', {
 		 */
 		'photo_evidence.job_assignment_id': { fields: ['title', 'site_id'] }
 	},
+	outputs: {
+		/** A contractor's view of their photos: the picture and its summary, never its forensic facts. */
+		contractor: { photo_evidence: { fields: ['job_assignment_id', 'photo', 'summary'] } }
+	},
 	create: {
 		columns: { photo_evidence: ['job_assignment_id', 'photo'] },
 		transform: function* (rows, ctx) {
@@ -128,5 +132,11 @@ export default model('photo_evidence', {
 			]
 		}
 	},
-	delete: {}
+	delete: {},
+	effect: {
+		// a filed photo is born uninspected: the sweep fills its facts (the filer may start it, `policy.automations`)
+		created: function* (_rows, ctx) {
+			yield* ctx.schedule('inspect_photo_evidence', {}, { key: 'inspect_photo_evidence' });
+		}
+	}
 });

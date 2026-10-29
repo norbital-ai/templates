@@ -2,6 +2,7 @@ import { model, type Id, type WriteCtx } from '@norbital-ai/bolt';
 import { Effect } from 'effect';
 import { beforeOf, runEngine } from '../../../lib/payroll_engine/foundation.js';
 import { admitCase, loadWorkplaceAdmission } from '../../../lib/payroll_engine/admit.js';
+import { moved, tap } from '../../../lib/payroll_engine/taps.js';
 
 /** A case names a kind its governing version lists; an employment's case takes the employment's company. */
 const admitted = (
@@ -106,6 +107,16 @@ export default model('workplace_case', {
 					Effect.as({ ...set, before: beforeOf(before, set) })
 				)
 			);
+		}
+	},
+	// The jurisdiction behaviour rules for this model's writes (`behaviour_taps`), started as the writer.
+	effect: {
+		created: function* (rows, ctx) {
+			yield* tap(ctx, 'created', { model: 'workplace_case', ids: rows.map((row) => row.id) });
+		},
+		updated: function* (changes, ctx) {
+			const ids = moved(changes, ['kind', 'opened_on', 'closed_on', 'facts']);
+			yield* tap(ctx, 'updated', { model: 'workplace_case', ids });
 		}
 	}
 });

@@ -14,8 +14,8 @@ import {
 export default automation('prepare_availability', {
 	description:
 		'Calculates customer-specific starts after preference, skills, address, travel and recurrence are known.',
-	on: { created: 'availability_requests' },
-	runAs: ['dispatch_automation'],
+	input: { ids: { kind: 'list', of: { kind: 'id', of: 'availability_requests' }, min: 1 } },
+	policies: ['dispatch_automation'],
 	run: function* ({ ids }, ctx) {
 		const { rows } = (yield* ctx.query({
 			availability_requests: { where: { id: { in: ids }, status: { eq: 'pending' } } }

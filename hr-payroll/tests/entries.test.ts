@@ -5,7 +5,7 @@
  */
 import assert from 'node:assert/strict';
 import { layer } from '@effect/vitest';
-import { TestWorkspace } from '@norbital-ai/bolt/test';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect } from 'effect';
@@ -25,46 +25,48 @@ const rows = employer([
 
 // leave first: the payroll test then settles March for every employment
 layer(world(rows).layer)('catalogue entries', (it) => {
-	it.effect('leave draws on the entitlement its class computes, and a batch past it is refused whole', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const hr = t.as(t.member(['hr_manager']));
-			const request = (from: string, to: string) => ({
-				catalog_id: CATALOG.ANNUAL,
-				employment_id: L,
-				occurred_on: PlainDate(from),
-				activity: 'TIME_OFF' as const,
-				from: PlainDate(from),
-				to: PlainDate(to)
-			});
-			// the page's balance: the engine's leave state read as the viewer, then the pure balance helper
-			const available = () =>
-				runEngine(leaveState(L, '2026-03-02'), hr.query, (message) =>
-					Effect.fail(new Error(message))
-				).pipe(
-					Effect.map(
-						(state) =>
-							leaveBalances({ ...state, offeredOnly: true }).find(
-								(row) => row.catalog_id === CATALOG.ANNUAL
-							)?.available
-					)
+	it.effect(
+		'leave draws on the entitlement its class computes, and a batch past it is refused whole',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const hr = t.as(t.member(['hr_manager']));
+				const request = (from: string, to: string) => ({
+					catalog_id: CATALOG.ANNUAL,
+					employment_id: L,
+					occurred_on: PlainDate(from),
+					activity: 'TIME_OFF' as const,
+					from: PlainDate(from),
+					to: PlainDate(to)
+				});
+				// the page's balance: the engine's leave state read as the viewer, then the pure balance helper
+				const available = () =>
+					runEngine(leaveState(L, '2026-03-02'), hr.query, (message) =>
+						Effect.fail(new Error(message))
+					).pipe(
+						Effect.map(
+							(state) =>
+								leaveBalances({ ...state, offeredOnly: true }).find(
+									(row) => row.catalog_id === CATALOG.ANNUAL
+								)?.available
+						)
+					);
+				// the class states five days a calendar year
+				assert.equal(yield* available(), 5);
+				// two three-day requests together pass the five: the batch is refused whole
+				const batch = yield* Effect.flip(
+					hr.act('leave_catalog_entry.create', [
+						request('2026-03-02', '2026-03-04'),
+						request('2026-03-09', '2026-03-11')
+					])
 				);
-			// the class states five days a calendar year
-			assert.equal(yield* available(), 5);
-			// two three-day requests together pass the five: the batch is refused whole
-			const batch = yield* Effect.flip(
-				hr.act('leave_catalog_entry.create', [
-					request('2026-03-02', '2026-03-04'),
-					request('2026-03-09', '2026-03-11')
-				])
-			);
-			assert.match(batch.message, /available 2 day/);
-			assert.equal(
-				(yield* t.storedQuery({ leave_catalog_entry: { where: { employment_id: { eq: L } } } }))
-					.leave_catalog_entry.rows.length,
-				0
-			);
-		})
+				assert.match(batch.message, /available 2 day/);
+				assert.equal(
+					(yield* t.storedQuery({ leave_catalog_entry: { where: { employment_id: { eq: L } } } }))
+						.leave_catalog_entry.rows.length,
+					0
+				);
+			})
 	);
 
 	it.effect(

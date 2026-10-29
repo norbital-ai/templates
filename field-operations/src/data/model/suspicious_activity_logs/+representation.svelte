@@ -59,6 +59,7 @@
 				name="basis"
 				title={t('component.suspicion_basis')}
 				defaultOpen={false}
+				size="fill"
 				summary={record.basis?.kind === 'human_judgement'
 					? record.basis.reason
 					: (record.basis?.job.title ?? t('component.not_recorded'))}

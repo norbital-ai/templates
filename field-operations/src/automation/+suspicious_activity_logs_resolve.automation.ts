@@ -3,7 +3,7 @@ import { Refusal } from '@norbital-ai/bolt/errors';
 
 export default automation('suspicious_activity_logs_resolve', {
 	description: 'Close this finding with the controller’s conclusion.',
-	runAs: 'trigger',
+	policies: ['field_ops_controller'],
 	input: {
 		finding: { kind: 'id', of: 'suspicious_activity_logs' },
 		resolution: { kind: 'text' }
@@ -25,7 +25,11 @@ export default automation('suspicious_activity_logs_resolve', {
 					set: {
 						resolution,
 						resolved_at: ctx.now,
-						resolved_by: ctx.actor.kind === 'member' ? ctx.actor.id : null
+						// the controller who started the run concludes it; a run nobody started records no one
+						resolved_by:
+							ctx.run.trigger.kind === 'person' && ctx.run.trigger.actor.kind === 'member'
+								? ctx.run.trigger.actor.id
+								: null
 					}
 				}
 			],

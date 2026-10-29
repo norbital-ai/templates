@@ -12,29 +12,20 @@ const OTHER_NUMBER = 'Use the mobile number you signed in with.';
 /**
  * A customer, signed up with their mobile number: the portal's services and open times, booking requests under their
  * own number, and their own record, bookings, visits (when, where, who comes and how far away they are) and notices.
- * Nothing of any other customer or of any helper's schedule; a request is booked by the `portal_intake` run.
+ * Nothing of any other customer or of any helper's schedule; a request is booked by the `portal_intake` run
+ * its effect schedules.
  */
 export default policy({
 	description: 'A customer: book on the portal, and see their own bookings, visits and notices.',
 	capabilities: { apps: ['portal'] },
 	grants: {
 		customers: {
-			read: {
-				customers: {
-					where: { id: ME },
-					fields: ['id', 'name', 'phone', 'email', 'address', 'location', 'area']
-				}
-			}
+			outputs: { customer: { customers: { where: { id: ME } } } }
 		},
 		services: {
-			read: {
-				services: {
-					where: { active: { eq: true } },
-					fields: ['id', 'name', 'duration_minutes', 'price', 'description', 'skill']
-				}
-			}
+			outputs: { customer: { services: { where: { active: { eq: true } } } } }
 		},
-		openings: { read: { openings: { fields: ['id', 'service', 'day', 'starts'] } } },
+		openings: { outputs: { portal: true } },
 		booking_requests: {
 			create: {
 				columns: {
@@ -56,59 +47,16 @@ export default policy({
 					return row < 0 ? ctx.allow() : ctx.deny(OTHER_NUMBER, { row, field: 'phone' });
 				}
 			},
-			read: {
-				booking_requests: {
-					where: MY_NUMBER,
-					fields: [
-						'id',
-						'number',
-						'phone',
-						'service',
-						'start',
-						'repeat',
-						'address',
-						'status',
-						'booking'
-					]
-				}
-			}
+			outputs: { customer: { booking_requests: { where: MY_NUMBER } } }
 		},
 		bookings: {
-			read: {
-				bookings: {
-					where: MINE,
-					fields: ['id', 'number', 'customer', 'service', 'repeat', 'status', 'visit_count']
-				}
-			}
+			outputs: { customer: { bookings: { where: MINE } } }
 		},
 		visits: {
-			read: {
-				visits: {
-					where: MY_VISITS,
-					fields: [
-						'id',
-						'number',
-						'booking',
-						'helper',
-						'slot',
-						'address',
-						'status',
-						'eta_minutes',
-						'completed_at'
-					]
-				},
-				// who comes, by name only; who could not come is the desk's
-				'visits.helper': { fields: ['name'] },
-				'visits.unavailable_helper': { where: { id: { in: [] } } },
-				'visits.booking': {
-					fields: ['number', 'customer', 'service', 'repeat', 'status', 'visit_count']
-				},
-				'visits.booking.customer': { fields: ['name'] },
-				'visits.booking.service': { fields: ['name', 'duration_minutes', 'description'] }
-			}
+			outputs: { customer: { visits: { where: MY_VISITS } } }
 		},
 		helpers: {
-			read: { helpers: { where: { status: { eq: 'active' } }, fields: ['id', 'name', 'skills'] } }
+			outputs: { customer: { helpers: { where: { status: { eq: 'active' } } } } }
 		},
 		availability_requests: {
 			create: {
@@ -129,32 +77,10 @@ export default policy({
 					return row < 0 ? ctx.allow() : ctx.deny(OTHER_NUMBER, { row, field: 'phone' });
 				}
 			},
-			read: {
-				availability_requests: {
-					where: MY_NUMBER,
-					fields: [
-						'id',
-						'phone',
-						'address',
-						'area',
-						'service',
-						'preference',
-						'helper',
-						'repeat',
-						'starts',
-						'estimated',
-						'status',
-						'problem',
-						'checked_at'
-					]
-				}
-			}
+			outputs: { customer: { availability_requests: { where: MY_NUMBER } } }
 		},
 		customer_notices: {
-			read: {
-				customer_notices: { where: MINE, fields: ['id', 'customer', 'visit', 'subject', 'body'] },
-				'customer_notices.customer': { fields: ['name'] }
-			}
+			outputs: { customer: { customer_notices: { where: MINE } } }
 		}
 	},
 	limits: { read: '300/min', act: '30/h' }

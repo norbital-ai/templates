@@ -3,7 +3,6 @@ import {
 	rosterSheet,
 	sheetFindings,
 	sheetKnown,
-	sheetLeave,
 	sheetRow
 } from '../../../lib/payroll_engine/roster_import.js';
 import {
@@ -17,7 +16,6 @@ const NOTHING: SheetKnown = {
 	contracts: [],
 	shifts: [],
 	leave: {},
-	classes: {},
 	kept: {},
 	consented: {}
 };
@@ -46,6 +44,7 @@ import {
 	type SettledWindow
 } from '../../../lib/payroll_engine/roster_entry.js';
 import { Effect } from 'effect';
+import { moved, tap } from '../../../lib/payroll_engine/taps.js';
 
 const create_columns = [
 	'shift_definition_id',
@@ -388,6 +387,10 @@ export default model('roster_entry', {
 	key: ['employment_id', 'work_date'],
 	locked: { payslip_id: { isNull: false } },
 	read: 'all',
+	outputs: {
+		// the attendance kiosk: the day and its clock
+		kiosk: { roster_entry: { fields: ['employment_id', 'work_date', 'worked_intervals'] } }
+	},
 	create: {
 		columns: { roster_entry: create_columns },
 		transform: function* (rows, ctx) {
@@ -456,11 +459,6 @@ export default model('roster_entry', {
 					kind: 'number',
 					min: 0,
 					label: SHEET_COLUMNS.banked_overtime_hours,
-					optional: true
-				},
-				leave_code: {
-					kind: 'text',
-					label: SHEET_COLUMNS.leave_code,
 					optional: true
 				},
 				name: { kind: 'text', label: SHEET_COLUMNS.name, optional: true },
@@ -543,8 +541,7 @@ export default model('roster_entry', {
 						: { approved_ot_1_break_minutes: row.approved_ot_1_break_minutes }),
 					...(row.approved_ot_2_break_minutes == null
 						? {}
-						: { approved_ot_2_break_minutes: row.approved_ot_2_break_minutes }),
-					...(row.leave_code == null ? {} : { leave_code: row.leave_code.trim() })
+						: { approved_ot_2_break_minutes: row.approved_ot_2_break_minutes })
 				}));
 				const known = yield* sheetKnown(mapped, context, ctx.db.query).pipe(
 					Effect.catchTag('Refusal', (failure) =>
@@ -569,9 +566,6 @@ export default model('roster_entry', {
 				);
 				return {
 					rows: rows.flatMap((row) => (row === null ? [] : [row])),
-					related: {
-						leave_catalog_entry: mapped.flatMap((record) => sheetLeave(record, known))
-					},
 					scope: { by: ['employment_id'], range: 'work_date' },
 					findings: findings.map(({ row, column, ...finding }) => ({
 						...finding,
@@ -583,6 +577,20 @@ export default model('roster_entry', {
 			write: function* ({ context }, ctx) {
 				return yield* rosterSheet(context, String(ctx.today), ctx.db.query);
 			}
+		}
+	},
+	// The jurisdiction behaviour rules for this model's writes (`behaviour_taps`), started as the writer.
+	effect: {
+		updated: function* (changes, ctx) {
+			// overtime is the recorded time past the planned shift's hours; pins alone move thousands of rows a month
+			const ids = moved(changes, [
+				'worked_intervals',
+				'shift_definition_id',
+				'planned_overtime_hours',
+				'approved_overtime_intervals',
+				'overtime_consented_at'
+			]);
+			yield* tap(ctx, 'updated', { model: 'roster_entry', ids });
 		}
 	}
 });

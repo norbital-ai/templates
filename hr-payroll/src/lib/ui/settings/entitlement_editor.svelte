@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { bolt } from '$bolt';
-	import { isMasked } from '@norbital-ai/bolt';
 	import { Editor, Section, useBolt, useForm, type Json } from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { STATUTORY_FIELDS } from '../../payroll_engine/statutory_fields.js';
@@ -71,54 +70,50 @@
 	</Stack>
 {/snippet}
 
-{#if isMasked(value)}
-	<p class="text-meta">{t('component.error')}</p>
-{:else}
-	<Stack gap="md">
-		{@render input('days')}
-		{@render input('overdraw')}
-		<p class="text-meta">{t('entitlement.days_help')}</p>
-		<Grid minimum="compact">
-			{@render input('window')}
-			{#each windowFields as name (name)}
-				{@render input(name)}
-			{/each}
-		</Grid>
+<Stack gap="md">
+	{@render input('days')}
+	{@render input('overdraw')}
+	<p class="text-meta">{t('entitlement.days_help')}</p>
+	<Grid minimum="compact">
+		{@render input('window')}
+		{#each windowFields as name (name)}
+			{@render input(name)}
+		{/each}
+	</Grid>
+	<Section
+		first
+		name="entitlement-bands"
+		title={t('entitlement.bands')}
+		defaultOpen={false}
+		collapsible={!entitlementHasError(errors, ['bands'])}
+	>
+		{@render input('bands')}
+	</Section>
+	{#if carries}
 		<Section
 			first
-			name="entitlement-bands"
-			title={t('entitlement.bands')}
+			name="entitlement-carry"
+			title={t('entitlement.carry_forward')}
 			defaultOpen={false}
-			collapsible={!entitlementHasError(errors, ['bands'])}
-		>
-			{@render input('bands')}
-		</Section>
-		{#if carries}
-			<Section
-				first
-				name="entitlement-carry"
-				title={t('entitlement.carry_forward')}
-				defaultOpen={false}
-				collapsible={!entitlementHasError(errors, ['carry_forward', 'carry_depth'])}
-			>
-				<Stack gap="md">
-					{@render input('carry_forward')}
-					{@render input('carry_depth')}
-				</Stack>
-			</Section>
-		{/if}
-		<Section
-			first
-			name="entitlement-pool"
-			title={t('entitlement.pool')}
-			defaultOpen={false}
-			collapsible={!entitlementHasError(errors, ['consumes_after_days', 'hours_per_day', 'unit'])}
+			collapsible={!entitlementHasError(errors, ['carry_forward', 'carry_depth'])}
 		>
 			<Stack gap="md">
-				{@render input('consumes_after_days')}
-				{@render input('hours_per_day')}
-				{@render input('unit')}
+				{@render input('carry_forward')}
+				{@render input('carry_depth')}
 			</Stack>
 		</Section>
-	</Stack>
-{/if}
+	{/if}
+	<Section
+		first
+		name="entitlement-pool"
+		title={t('entitlement.pool')}
+		defaultOpen={false}
+		collapsible={!entitlementHasError(errors, ['consumes_after_days', 'hours_per_day', 'unit'])}
+	>
+		<Stack gap="md">
+			{@render input('consumes_after_days')}
+			{@render input('hours_per_day')}
+			{@render input('unit')}
+		</Stack>
+	</Section>
+</Stack>

@@ -9,7 +9,7 @@ import {
 	type CommissionFact,
 	type ReportOrder
 } from './reports.js';
-import { isMasked, type ReadAnswer, type Row } from '@norbital-ai/bolt';
+import { type ReadAnswer, type Row } from '@norbital-ai/bolt';
 import { PlainDate } from '@norbital-ai/std/date';
 import { hash } from './commercial.js';
 type MonthlyOrder = ReportOrder;
@@ -31,7 +31,7 @@ export const boardRead = (period: PlainDate) =>
 	({
 		orders: { where: { direction: { eq: 'sales' } }, fields: reportFields },
 		commission_statements: { where: { period: { eq: period } }, fields: statementFields },
-		sys_user: { fields: ['name'] },
+		sys_user: { output: 'directory', fields: ['name'] },
 		source_sales_lines: { fields: commissionFactFields }
 	}) as const;
 export const monthlyCommission = Effect.fnUntraced(function* (
@@ -59,7 +59,7 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 		const version = agreement(record, fact.seal_hash);
 		if (!version) continue;
 		const order = withAgreement(record, version);
-		if (order.direction !== 'sales' || isMasked(order.currency)) continue;
+		if (order.direction !== 'sales') continue;
 		const key = `${order.owner}:${order.currency}`;
 		const group = groups.get(key) ?? { owner: order.owner, currency: order.currency, orders: [] };
 		if (
