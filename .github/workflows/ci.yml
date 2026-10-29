@@ -38,8 +38,12 @@ jobs:
           node-version: 26
           registry-url: https://npm.pkg.github.com
           scope: '@norbital-ai'
+      # bun reads only a project .npmrc, not the one setup-node writes; it holds the registry token for this step
       - name: Install repository tooling
-        run: bun install --frozen-lockfile --ignore-scripts
+        run: |
+          printf '@norbital-ai:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n' "$NODE_AUTH_TOKEN" > .npmrc
+          bun install --frozen-lockfile --ignore-scripts
+          rm .npmrc
       - name: Static checks
         run: bun run check:static
       - name: List templates
@@ -62,9 +66,13 @@ jobs:
           node-version: 26
           registry-url: https://npm.pkg.github.com
           scope: '@norbital-ai'
+      # a template holds no .npmrc (bolt check refuses one): the token lives only for the install
       - name: Install
         working-directory: ${{ matrix.template }}
-        run: bun install --frozen-lockfile
+        run: |
+          printf '@norbital-ai:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n' "$NODE_AUTH_TOKEN" > .npmrc
+          bun install --frozen-lockfile
+          rm .npmrc
       - name: bolt check
         working-directory: ${{ matrix.template }}
         run: bun x bolt check .
