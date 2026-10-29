@@ -330,9 +330,10 @@ layer(world(tables).layer)('work-day sheet import', (it) => {
 			// fresh clock values per plan: nothing parsed by the first is reused by the second
 			const ten = yield* conversions(10, '09:00', '18:00'),
 				twenty = yield* conversions(20, '08:00', '17:00');
-			// mapping, validation and the day's roster checks each read a row's clock; parsed once, a row adds a handful (24 when every read reparsed it)
+			// mapping, validation and the day's roster checks each read a row's clock; parsed once, a row adds a handful (24 when
+			// every read reparsed it). The count varies a little by host zone (6 locally, 11 on a UTC runner): the bound is half of 24
 			assert.ok(
-				(twenty - ten) / 10 <= 10,
+				(twenty - ten) / 10 <= 12,
 				`${(twenty - ten) / 10} zone conversions per clocked row`
 			);
 		})
