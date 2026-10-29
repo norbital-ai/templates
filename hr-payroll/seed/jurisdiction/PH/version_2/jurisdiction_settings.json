@@ -27,7 +27,7 @@
 						}
 					],
 					"eligibility": "true",
-					"quantity": "(has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? double(size(work.days.filter(d, d.worked && d.day_type in [\"WORK\", \"OFF\"] && d.holiday_kind == \"\"))) + sum(leave.rows.filter(r, !r.is_npl && r.activity == \"TIME_OFF\").map(r, r.days)) : period.paid_days / period.days",
+					"quantity": "(has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? double(size(work.days.filter(d, d.worked && d.day_type in [\"WORK\", \"OFF\"] && d.holiday_kind == \"\"))) + sum(leave.rows.filter(r, !r.is_npl && r.activity == \"TIME_OFF\").map(r, r.days * r.pay_fraction)) : period.paid_days / period.days",
 					"rate": "(has(terms.facts.rate_basis) && terms.facts.rate_basis == \"DAILY\") ? terms.base_salary : terms.base_salary / period.parts",
 					"prorated": true,
 					"denominator": "double(period.days)",

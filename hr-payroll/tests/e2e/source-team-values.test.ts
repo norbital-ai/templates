@@ -11,7 +11,19 @@ const draft = {
 	name: 'Test version',
 	payroll: { currency: 'USD' },
 	sources: { entries: [] },
-	effective_range: { from: '2026-01-01', to: null }
+	effective_range: { from: '2026-01-01', to: null },
+	// the PARAMETERS slots a version is sealed with
+	rule_set: [
+		{
+			family: 'PARAMETERS',
+			code: 'record_retention',
+			name: 'Record retention',
+			rules: { until: 'exit_on' }
+		},
+		{ family: 'PARAMETERS', code: 'exit_grounds', name: 'Exit grounds', rules: { kinds: [] } },
+		{ family: 'PARAMETERS', code: 'holiday_kinds', name: 'Holiday kinds', rules: { kinds: [] } },
+		{ family: 'PARAMETERS', code: 'salary_report', name: 'Salary report', rules: {} }
+	]
 } satisfies Draft;
 /** A suspension kind with its pricing of one day. */
 const kind = {

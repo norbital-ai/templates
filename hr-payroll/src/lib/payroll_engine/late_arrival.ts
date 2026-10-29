@@ -31,11 +31,7 @@ type LateArrivalNotice = {
 	readonly body: string;
 };
 
-function shiftStartMs(
-	work_date: string,
-	start_time: string,
-	time_zone: string
-): number | null {
+function shiftStartMs(work_date: string, start_time: string, time_zone: string): number | null {
 	if (!TIME.test(start_time)) return null;
 	return Result.getOrElse(
 		Result.try(() =>

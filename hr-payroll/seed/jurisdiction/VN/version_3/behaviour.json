@@ -715,7 +715,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]",
+			"applies_when": "contract.exit_ground in rules.exit_grounds.groups.WORKFORCE_REDUCTION",
 			"due": "add_days(exit_on, -30)"
 		}
 	},

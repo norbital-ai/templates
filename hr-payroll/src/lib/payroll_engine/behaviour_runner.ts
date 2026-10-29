@@ -30,7 +30,9 @@ import {
 	Reads,
 	readsFrom,
 	Refusal,
-	stableJson
+	stableJson,
+	payrollRulesOf,
+	isExitTag
 } from './foundation.js';
 import { chainStarts, leaveBalances } from './leave.js';
 import {
@@ -38,7 +40,6 @@ import {
 	leaveState,
 	loadLeaveState,
 	type LeaveStateRead,
-	payrollRules,
 	versionOn
 } from './payslip/context.js';
 import { BEHAVIOUR, CATALOG_DETAILS, CONTRACT, SETTINGS, RULE_SET } from './rows.js';
@@ -162,7 +163,7 @@ export const leaveBalancesFor = Effect.fnUntraced(function* (
 					rows: prefetched.entries.rows.filter(
 						(movement) =>
 							movement.payslip_id !== null ||
-							!String(movement.reference ?? '').startsWith(`exit:${movement.employment_id}:`)
+							!isExitTag(movement.reference, String(movement.employment_id ?? ''))
 					)
 				}
 			};
@@ -917,7 +918,7 @@ export const runBehaviourGroups = Effect.fnUntraced(function* (
 				row: { ...event.row, ...fields },
 				settings_id: version['id'],
 				// the governing version's PARAMETERS rule tables: the duties' `rules`
-				rules: payrollRules(version),
+				rules: yield* Effect.fromResult(payrollRulesOf(version.rule_set ?? [])),
 				day,
 				...staffed,
 				leave_balances: event.leave_balances ?? [],

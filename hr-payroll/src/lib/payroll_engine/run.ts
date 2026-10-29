@@ -4,7 +4,14 @@ import type { Id } from '@norbital-ai/bolt';
 import type { Read } from './foundation.js';
 import type { ReadFailed } from '@norbital-ai/bolt/errors';
 import { addMonths, monthOf } from '@norbital-ai/std/date';
-import { fieldValue, PAYROLL_DEFAULTS, Reads, Refusal, stableJson } from './foundation.js';
+import {
+	fieldValue,
+	PAYROLL_DEFAULTS,
+	payrollRulesOf,
+	Reads,
+	Refusal,
+	stableJson
+} from './foundation.js';
 import { eventIdOf, chainStarts } from './leave.js';
 import {
 	inForce,
@@ -34,7 +41,7 @@ import {
 } from './payslip/context.js';
 import { CONTRACT, PROFILE, ENTRY, LOAN, STATUTORY, ROSTER, HOLIDAY, HISTORY } from './rows.js';
 import { CYCLES, payrollWindow } from './frequency.js';
-import { admitPayrollRun, payrollRulesOf, validationsOf, reservedPinsFrom } from './admit.js';
+import { admitPayrollRun, validationsOf, reservedPinsFrom } from './admit.js';
 import { buildPayslip } from './payslip/lines.js';
 import { TIME_PAY_KEYS } from './statutory_fields.js';
 const contractSpan = (periods: readonly string[], lookbackMonths: number) => {
@@ -196,9 +203,7 @@ export const buildPayrollRun = (
 				'allowance_catalog' | 'adhoc_catalog' | 'claim_catalog' | 'leave_catalog' | 'loan_catalog'
 		): readonly CatalogRow[] => governed?.[name] ?? [];
 		const ruleRows = governed?.rule_set ?? [];
-		const rules = yield* Effect.fromResult(
-			payrollRulesOf(ruleRows.filter((row) => row.family === 'PARAMETERS'))
-		);
+		const rules = yield* Effect.fromResult(payrollRulesOf(ruleRows));
 		const validations = yield* validationsOf(
 			ruleRows.filter((row) => row.family === 'VALIDATIONS'),
 			'payslip'

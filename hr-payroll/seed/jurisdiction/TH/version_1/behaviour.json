@@ -184,7 +184,7 @@
 			"schemes": [],
 			"months": ["12"],
 			"due": "month_end(add_months(period.from, 3))",
-			"amount": "!(!has(company.facts.sdf_exemption) || company.facts.sdf_exemption == \"NONE\") ? 0.0 : (size(headcount_months.filter(m, double(m.headcount) >= 100.0)) == 0 ? 0.0 : round(337.0 * 30.0 * max(0.0, round(0.5 * (sum(headcount_months.filter(m, m.month >= first(headcount_months.filter(n, double(n.headcount) >= 100.0)).month).map(m, double(m.headcount))) / double(size(headcount_months.filter(m, m.month >= first(headcount_months.filter(n, double(n.headcount) >= 100.0)).month)))), 1.0, \"DOWN\") - (has(company.facts.sdf_trained_employees) ? double(company.facts.sdf_trained_employees) : 0.0)) * double(size(headcount_months.filter(m, m.month >= first(headcount_months.filter(n, double(n.headcount) >= 100.0)).month))) / 100.0, 0.01, \"HALF_UP\"))"
+			"amount": "!(!has(company.facts.sdf_exemption) || company.facts.sdf_exemption == \"NONE\") ? 0.0 : (size(headcount_months.filter(m, double(m.headcount) >= 100.0)) == 0 ? 0.0 : round(min(rules.minimum_wage.by_region.map(region, double(rules.minimum_wage.by_region[region]))) * 30.0 * max(0.0, round(0.5 * (sum(headcount_months.filter(m, m.month >= first(headcount_months.filter(n, double(n.headcount) >= 100.0)).month).map(m, double(m.headcount))) / double(size(headcount_months.filter(m, m.month >= first(headcount_months.filter(n, double(n.headcount) >= 100.0)).month)))), 1.0, \"DOWN\") - (has(company.facts.sdf_trained_employees) ? double(company.facts.sdf_trained_employees) : 0.0)) * double(size(headcount_months.filter(m, m.month >= first(headcount_months.filter(n, double(n.headcount) >= 100.0)).month))) / 100.0, 0.01, \"HALF_UP\"))"
 		}
 	},
 	{
@@ -722,16 +722,16 @@
 				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
 			}
 		],
-		"target_collection": "leave_catalog_entry",
+		"target_collection": "work_suspension",
 		"events": ["created"],
 		"definition": {
 			"description": "Notify a temporary cessation of business.",
 			"trigger": {
-				"collection": "leave_catalog_entry",
+				"collection": "work_suspension",
 				"events": ["created"]
 			},
-			"when": "row.catalog_code == \"TEMPORARY_SHUTDOWN\"",
-			"due": "add_days(has(row.from) && row.from != null ? row.from : row.occurred_on, -1)"
+			"when": "row.kind == \"TEMPORARY_CESSATION\"",
+			"due": "add_days(row.starts_on, -1)"
 		}
 	},
 	{

@@ -46,7 +46,7 @@
 				"amount": "(has(employment.exit_facts.average_daily_wage) ? 30.0 * double(employment.exit_facts.average_daily_wage) : (has(entry.facts.average_monthly_wage) ? double(entry.facts.average_monthly_wage) : 30.0 * sum(earned.months.filter(m, m.month >= add_months(period.month_from, -6).substring(0, 7) && m.month < period.month_key).map(m, m.gross - (has(m.bonus) ? m.bonus : 0.0) - (has(m.SEVERANCE_PAY) ? m.SEVERANCE_PAY : 0.0) - (has(m.NOTICE_PAY) ? m.NOTICE_PAY : 0.0) - (has(m.RETIREMENT_PAY) ? m.RETIREMENT_PAY : 0.0) - (has(m.ENCASHMENT) ? m.ENCASHMENT : 0.0))) / double(calendar_distance_days(add_months(period.month_from, -6), period.month_from)))) > 0.0 ? round((has(employment.exit_facts.average_daily_wage) ? 30.0 * double(employment.exit_facts.average_daily_wage) : (has(entry.facts.average_monthly_wage) ? double(entry.facts.average_monthly_wage) : 30.0 * sum(earned.months.filter(m, m.month >= add_months(period.month_from, -6).substring(0, 7) && m.month < period.month_key).map(m, m.gross - (has(m.bonus) ? m.bonus : 0.0) - (has(m.SEVERANCE_PAY) ? m.SEVERANCE_PAY : 0.0) - (has(m.NOTICE_PAY) ? m.NOTICE_PAY : 0.0) - (has(m.RETIREMENT_PAY) ? m.RETIREMENT_PAY : 0.0) - (has(m.ENCASHMENT) ? m.ENCASHMENT : 0.0))) / double(calendar_distance_days(add_months(period.month_from, -6), period.month_from)))) * (min(6.0, 0.5 * max(0.0, double(employment.service_months) - (has(employment.exit_facts.old_system_service_months) ? double(employment.exit_facts.old_system_service_months) : (has(entry.facts.old_system_service_months) ? double(entry.facts.old_system_service_months) : 0.0))) / 12.0) + round((has(employment.exit_facts.old_system_service_months) ? double(employment.exit_facts.old_system_service_months) : (has(entry.facts.old_system_service_months) ? double(entry.facts.old_system_service_months) : 0.0)), 1.0, \"UP\") / 12.0), 1.0, \"HALF_UP\") : entry.amount"
 			}
 		],
-		"qualifies_when": "(has(employment.exit_facts.lsa_termination_ground) ? employment.exit_facts.lsa_termination_ground : (employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] ? \"ARTICLE_11\" : \"OTHER\")) in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"]"
+		"qualifies_when": "(has(employment.exit_facts.lsa_termination_ground) ? employment.exit_facts.lsa_termination_ground : (employment.exit_ground in rules.exit_grounds.groups.WORKFORCE_REDUCTION ? \"ARTICLE_11\" : \"OTHER\")) in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_14\", \"ARTICLE_20\"]"
 	},
 	{
 		"id": "87928e35-e13e-5930-8753-d2868868572f",
@@ -55,7 +55,7 @@
 		"destination": "PAY",
 		"direction": "ADD",
 		"eligibility": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\"",
-		"qualifies_when": "(has(employment.exit_facts.lsa_termination_ground) ? employment.exit_facts.lsa_termination_ground : (employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] ? \"ARTICLE_11\" : \"OTHER\")) in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]",
+		"qualifies_when": "(has(employment.exit_facts.lsa_termination_ground) ? employment.exit_facts.lsa_termination_ground : (employment.exit_ground in rules.exit_grounds.groups.WORKFORCE_REDUCTION ? \"ARTICLE_11\" : \"OTHER\")) in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]",
 		"counts_toward": ["SEVERANCE_TAX"],
 		"name": "預告期間工資 (notice pay)",
 		"references": [

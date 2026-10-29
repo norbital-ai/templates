@@ -554,7 +554,12 @@
 					"name": "Others",
 					"encash_annual_leave": true
 				}
-			]
+			],
+			"groups": {
+				"DISMISSAL": ["DISMISSAL", "UNSATISFACTORY_PROBATION"],
+				"EMPLOYEE_ENDED": ["BREACH_BY_EMPLOYEE", "RESIGNATION"],
+				"RETRENCHMENT": ["RETRENCHMENT", "RETRENCHMENT_TERM_CONTRACT"]
+			}
 		}
 	},
 	{

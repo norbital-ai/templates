@@ -1280,7 +1280,17 @@
 					"code": "CLOSURE",
 					"name": "Closure, revoked licence or dissolution"
 				}
-			]
+			],
+			"groups": {
+				"ECONOMIC_COMPENSATION": [
+					"BANKRUPTCY",
+					"CLOSURE",
+					"ECONOMIC_LAYOFF",
+					"EMPLOYER_DEFAULT",
+					"INCAPACITY",
+					"MUTUAL_EMPLOYER_PROPOSED"
+				]
+			}
 		}
 	},
 	{

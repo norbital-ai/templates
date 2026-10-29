@@ -9,7 +9,8 @@ import {
 	fieldValue,
 	isJsonObject,
 	PAYROLL_DEFAULTS,
-	Refusal
+	Refusal,
+	isExitTag
 } from '../foundation.js';
 import { eventIdOf } from '../leave.js';
 import {
@@ -564,7 +565,7 @@ export const buildPayslip = (options: SlipContext): Effect.Effect<PayslipPlan | 
 		/** A leaver's exit encashment still unpaid: the first salary run on or after its day pays it, salaried or not. */
 		const exitEncashment = (row: EntryRow) =>
 			row.activity === 'ENCASHMENT' &&
-			String(row.reference ?? '').startsWith('exit:') &&
+			isExitTag(row.reference) &&
 			String(row.occurred_on ?? '') <= window.salary_to;
 		const encashesLate = salaryRun && !salaried && term != null && openLeave.some(exitEncashment);
 		if (

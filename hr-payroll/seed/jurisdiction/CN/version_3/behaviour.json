@@ -517,7 +517,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract != null && (contract.exit_ground in [\"MUTUAL_EMPLOYER_PROPOSED\", \"INCAPACITY\", \"ECONOMIC_LAYOFF\", \"EMPLOYER_DEFAULT\", \"BANKRUPTCY\", \"CLOSURE\"] || (contract.exit_ground == \"CONTRACT_EXPIRY\" && !(contract.exit_facts != null && has(contract.exit_facts.employee_refused_renewal_on_equal_terms) && contract.exit_facts.employee_refused_renewal_on_equal_terms == true)))",
+			"applies_when": "contract != null && (contract.exit_ground in rules.exit_grounds.groups.ECONOMIC_COMPENSATION || (contract.exit_ground == \"CONTRACT_EXPIRY\" && !(contract.exit_facts != null && has(contract.exit_facts.employee_refused_renewal_on_equal_terms) && contract.exit_facts.employee_refused_renewal_on_equal_terms == true)))",
 			"due": "exit_on"
 		}
 	},

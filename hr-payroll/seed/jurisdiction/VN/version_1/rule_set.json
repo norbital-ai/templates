@@ -15,26 +15,6 @@
 		}
 	},
 	{
-		"id": "a4e45139-53b6-56f1-93e8-00f9f69e2477",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "PARAMETERS",
-		"code": "allowance_npl_prorates",
-		"name": "allowance_npl_prorates",
-		"rules": {
-			"value": true
-		}
-	},
-	{
-		"id": "cda82443-483f-5493-9097-b4a97ee1695f",
-		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
-		"family": "PARAMETERS",
-		"code": "separation_wage_average_months",
-		"name": "separation_wage_average_months",
-		"rules": {
-			"value": 6
-		}
-	},
-	{
 		"id": "2f031c6b-3a66-5dd3-8c5a-36949e32dd6c",
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"family": "PARAMETERS",
@@ -592,7 +572,10 @@
 					"code": "UNILATERAL",
 					"name": "Unilateral termination by the employer"
 				}
-			]
+			],
+			"groups": {
+				"WORKFORCE_REDUCTION": ["REDUNDANCY", "RETRENCHMENT"]
+			}
 		}
 	},
 	{

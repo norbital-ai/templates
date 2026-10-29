@@ -670,7 +670,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (contract.exit_facts != null && ((has(contract.exit_facts.termination_cause) && contract.exit_facts.termination_cause != \"\") || (has(contract.exit_facts.terminated_for_disease) && contract.exit_facts.terminated_for_disease)))",
+			"applies_when": "contract.exit_ground in rules.exit_grounds.groups.WORKFORCE_REDUCTION || (contract.exit_facts != null && ((has(contract.exit_facts.termination_cause) && contract.exit_facts.termination_cause != \"\") || (has(contract.exit_facts.terminated_for_disease) && contract.exit_facts.terminated_for_disease)))",
 			"due": "add_months(exit_on, -1)"
 		}
 	},

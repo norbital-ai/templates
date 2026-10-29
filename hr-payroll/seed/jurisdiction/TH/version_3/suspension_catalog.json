@@ -24,7 +24,7 @@
 				"rate": "sum(work.days.filter(d, has(d.suspended) && d.suspended != null).map(d, max(0.0, (terms.monthly_wage / 30.0) - d.suspended.pay)))",
 				"destination": "PAY",
 				"direction": "SUBTRACT",
-				"counts_toward": ["SSO", "WCF", "PND1", "PVD", "EWF"]
+				"counts_toward": ["SSO", "WCF", "PND1", "PVD"]
 			},
 			{
 				"code": "SUSPENSION_PAY",
@@ -40,7 +40,7 @@
 				"rate": "sum(work.days.filter(d, has(d.suspended) && d.suspended != null).map(d, d.suspended.pay))",
 				"destination": "PAY",
 				"direction": "ADD",
-				"counts_toward": ["SSO", "WCF", "PND1", "PVD", "EWF"]
+				"counts_toward": ["SSO", "WCF", "PND1", "PVD"]
 			}
 		],
 		"references": [

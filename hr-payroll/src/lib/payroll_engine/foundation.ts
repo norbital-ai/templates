@@ -224,8 +224,8 @@ export const payrollSetting = <
 		: Result.succeed(value);
 };
 /**
- * The PARAMETERS rule_set codes the engine reads by name: `required` ones every seed version declares
- * (tests/payroll-slots), `optional` ones are read when present.
+ * The PARAMETERS rule_set codes the engine reads by name: a version is sealed only with every `required` one
+ * (`missingSlots`), `optional` ones are read when present.
  */
 export const PAYROLL_SLOTS = {
 	record_retention: 'required',
@@ -235,6 +235,33 @@ export const PAYROLL_SLOTS = {
 	case_kinds: 'optional',
 	overtime_classification: 'optional'
 } as const satisfies Readonly<Record<string, 'required' | 'optional'>>;
+/**
+ * A version's CEL `rules` root: its PARAMETERS rule-set rows by code, each an object. Other families keep their own
+ * payload contracts and are left out.
+ */
+export const payrollRulesOf = (
+	rows: readonly { readonly family: string; readonly code: string; readonly rules: unknown }[]
+) =>
+	Result.gen(function* () {
+		const rules: Record<string, JsonObject> = {};
+		for (const row of rows) {
+			if (row.family !== 'PARAMETERS') continue;
+			const value = yield* fieldValue(row.rules, `rule_set.${row.code}.rules`);
+			if (!isJsonObject(value))
+				return yield* Result.fail(
+					new Refusal({ message: `${row.code} must contain an object of payroll rules.` })
+				);
+			rules[row.code] = value;
+		}
+		return rules;
+	});
+/**
+ * What an exit behaviour raises carries its exit as `exit:<contract>:<code>:<day>/<ground>` (an entry's `facts.source`,
+ * a leave movement's `reference`; the seed's behaviour CEL writes it). Whether a value is one, of any contract or one.
+ */
+export const isExitTag = (value: unknown, contractId?: string): boolean =>
+	Predicate.isString(value) &&
+	value.startsWith(contractId === undefined ? 'exit:' : `exit:${contractId}:`);
 /** An actual `YYYY-MM-DD` calendar date. */
 /** One refused value: the engine's single error, thrown where no Effect channel exists. */
 const refuseNow = (message: string, detail?: string): never => {

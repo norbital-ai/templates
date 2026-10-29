@@ -572,7 +572,7 @@
 		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"eligibility": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\" && (has(employment.exit_facts.lsa_termination_ground) ? employment.exit_facts.lsa_termination_ground : (employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] ? \"ARTICLE_11\" : \"OTHER\")) in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]",
+		"eligibility": "employment.exit_date != \"\" && employment.exit_date < \"9999-12-31\" && (has(employment.exit_facts.lsa_termination_ground) ? employment.exit_facts.lsa_termination_ground : (employment.exit_ground in rules.exit_grounds.groups.WORKFORCE_REDUCTION ? \"ARTICLE_11\" : \"OTHER\")) in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"]",
 		"unit": "DAY",
 		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
 		"can_encash": false,

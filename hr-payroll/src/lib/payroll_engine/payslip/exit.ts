@@ -1,7 +1,13 @@
 import { Effect } from 'effect';
 import { addDays, datePeriod, days, intersect } from '@norbital-ai/std/date';
 import { fieldValue, PAYROLL_DEFAULTS } from '../foundation.js';
-import { num, type PayslipLine, type CatalogRow, type PayslipRow, type SlipContext } from './context.js';
+import {
+	num,
+	type PayslipLine,
+	type CatalogRow,
+	type PayslipRow,
+	type SlipContext
+} from './context.js';
 const EXIT_FAMILY = 'EXIT';
 const CORRECTION_FAMILY = 'CORRECTION';
 export const exitCorrections = Effect.fnUntraced(function* (
@@ -130,9 +136,12 @@ export const exitCorrections = Effect.fnUntraced(function* (
 				...options.jurisdiction.workRows,
 				...options.jurisdiction.suspensionPay,
 				...options.jurisdiction.leavePay
-			].find(
-				(candidate) => (candidate.component_code ?? candidate.code) === code
-			) ?? { id: code, code, destination: 'PAY', counts_toward: [] };
+			].find((candidate) => (candidate.component_code ?? candidate.code) === code) ?? {
+				id: code,
+				code,
+				destination: 'PAY',
+				counts_toward: []
+			};
 			yield* add(
 				row,
 				owed,

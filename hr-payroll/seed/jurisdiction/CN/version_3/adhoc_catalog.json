@@ -7,7 +7,7 @@
 		"destination": "PAY",
 		"direction": "ADD",
 		"counts_toward": ["IIT.SEPARATION"],
-		"eligibility": "(employment.exit_ground in [\"MUTUAL_EMPLOYER_PROPOSED\", \"INCAPACITY\", \"ECONOMIC_LAYOFF\", \"EMPLOYER_DEFAULT\", \"BANKRUPTCY\", \"CLOSURE\"] || (employment.exit_ground == \"CONTRACT_EXPIRY\" && !(employment.exit_facts != null && has(employment.exit_facts.employee_refused_renewal_on_equal_terms) && employment.exit_facts.employee_refused_renewal_on_equal_terms == true)))",
+		"eligibility": "(employment.exit_ground in rules.exit_grounds.groups.ECONOMIC_COMPENSATION || (employment.exit_ground == \"CONTRACT_EXPIRY\" && !(employment.exit_facts != null && has(employment.exit_facts.employee_refused_renewal_on_equal_terms) && employment.exit_facts.employee_refused_renewal_on_equal_terms == true)))",
 		"qualifies_when": "has(entry.facts.qualifying_months) && double(entry.facts.qualifying_months) >= 0.0 && has(entry.facts.local_average_monthly_wage)",
 		"bands": [
 			{

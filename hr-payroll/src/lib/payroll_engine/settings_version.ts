@@ -5,7 +5,7 @@
 import type { ActInput, Id, Insert } from '@norbital-ai/bolt';
 import { onlyShortens, sealWrites, voidOnce, type Lineage } from '@norbital-ai/std/versioned';
 import { Instant, PlainDate, type DatePeriod } from '@norbital-ai/std/date';
-import { stableJson } from './foundation.js';
+import { PAYROLL_SLOTS, stableJson } from './foundation.js';
 import { Struct } from 'effect';
 
 /** The columns `sealWrites` / `voidOnce` read, named as this model stores them. */
@@ -93,6 +93,21 @@ export function duplicateTimePayCode(
 			seen.add(line.code);
 		}
 	return null;
+}
+
+/** A version is sealed only with every PARAMETERS slot the engine reads by name that it marks `required`. */
+export function missingSlots(
+	ruleSet: readonly { readonly family: string; readonly code: string }[]
+): string | null {
+	const declared = new Set(
+		ruleSet.filter((row) => row.family === 'PARAMETERS').map((row) => row.code)
+	);
+	const missing = Object.entries(PAYROLL_SLOTS).flatMap(([code, need]) =>
+		need === 'required' && !declared.has(code) ? [code] : []
+	);
+	return missing.length === 0
+		? null
+		: `A version is sealed with every required PARAMETERS rule set: ${missing.join(', ')} missing.`;
 }
 
 export function refuseSealedUpdate(

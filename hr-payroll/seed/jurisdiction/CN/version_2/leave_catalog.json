@@ -384,26 +384,6 @@
 		"eligibility": ""
 	},
 	{
-		"id": "b0d120f8-7f1d-4f82-8064-d3b0629ed580",
-		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
-		"code": "STOPPAGE_NOT_EMPLOYEE_FAULT",
-		"name": "停工停产 (stoppage not caused by the employee)",
-		"description": "Full pay in the first pay cycle of the stoppage (one `facts.event_id`); from the second the agreed fraction (`entry.facts.agreed_pay_fraction`), never below the minimum wage where the employee works; without an agreement, full pay.",
-		"references": [
-			{
-				"title": "工资支付暂行规定 第十二条: 非因劳动者原因造成单位停工、停产在一个工资支付周期内的, 用人单位应按劳动合同规定的标准支付工资; 超过一个工资支付周期的, 若劳动者提供了正常劳动, 支付的劳动报酬不得低于当地的最低工资标准. SH: 上海市企业工资支付办法 (沪人社规〔2026〕10号) 第十二条 — 超过1个工资支付周期的按新的约定支付, 但不得低于本市规定的最低工资标准. KM: 昆明市工资支付条例 第二十八条 — 超过一个工资支付周期的协商确定新的工资支付办法."
-			}
-		],
-		"unit": "DAY",
-		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
-		"can_encash": false,
-		"encash_on_exit": false,
-		"is_npl": false,
-		"pay_fraction": "(company.region in rules.regions.by_region) ? (leave.month_index <= 1 ? 1.0 : (has(entry.facts.agreed_pay_fraction) ? max(double(entry.facts.agreed_pay_fraction), (terms.base_salary <= 0.0) ? 0.0 : min(1.0, double(rules.regions.by_region[company.region].minimum_wage.zones[(has(company.facts.wage_zone) ? string(company.facts.wage_zone) : rules.regions.by_region[company.region].minimum_wage.default_zone)].amount) / terms.base_salary)) : 1.0)) : 1.0",
-		"pay": [],
-		"eligibility": ""
-	},
-	{
 		"id": "22bcbe43-e6af-4ebc-90d0-de74be440a08",
 		"settings_id": "ba5b6c5a-0938-4fc5-b3a8-7538d325444b",
 		"code": "SOCIAL_ACTIVITY",

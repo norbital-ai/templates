@@ -123,11 +123,9 @@
 		"direction": "ADD",
 		"counts_toward": [
 			"HEALTH",
-			"CHILD_SUPPORT",
 			"PENSION",
 			"CHILD_CONTRIBUTION",
 			"SI_PREVIOUS_MONTH",
-			"SI_ADJUSTMENT_REFUND",
 			"EI",
 			"WORKERS_ACCIDENT",
 			"ASBESTOS_LEVY",

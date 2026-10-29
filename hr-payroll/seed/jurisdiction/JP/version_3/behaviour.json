@@ -774,7 +774,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "has(contract.exit_ground) && contract.exit_ground in [\"DISMISSAL\", \"DISCIPLINARY_DISMISSAL\", \"REDUNDANCY\"] && !(has(contract.exit_facts) && contract.exit_facts != null && has(contract.exit_facts.dismissal_exception_certified) && contract.exit_facts.dismissal_exception_certified == true) && !(calendar_distance_days(hired_on, exit_on) < 14 && has(contract.exit_facts) && contract.exit_facts != null && has(contract.exit_facts.probation) && contract.exit_facts.probation == true) && !(calendar_completed_months(hired_on, exit_on) < 2 && has(contract.exit_facts) && contract.exit_facts != null && has(contract.exit_facts.fixed_term_within_two_months) && contract.exit_facts.fixed_term_within_two_months == true)",
+			"applies_when": "has(contract.exit_ground) && contract.exit_ground in rules.exit_grounds.groups.EMPLOYER_DISMISSAL && !(has(contract.exit_facts) && contract.exit_facts != null && has(contract.exit_facts.dismissal_exception_certified) && contract.exit_facts.dismissal_exception_certified == true) && !(calendar_distance_days(hired_on, exit_on) < 14 && has(contract.exit_facts) && contract.exit_facts != null && has(contract.exit_facts.probation) && contract.exit_facts.probation == true) && !(calendar_completed_months(hired_on, exit_on) < 2 && has(contract.exit_facts) && contract.exit_facts != null && has(contract.exit_facts.fixed_term_within_two_months) && contract.exit_facts.fixed_term_within_two_months == true)",
 			"due": "add_days(exit_on, -30)"
 		}
 	},
@@ -2084,7 +2084,7 @@
 				"fields": ["exit_facts", "effective_range", "exit_ground"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "has(contract.exit_ground) && contract.exit_ground in [\"DISMISSAL\", \"DISCIPLINARY_DISMISSAL\", \"REDUNDANCY\"] && has(row.leave) && row.leave.exists(l, l.code in [\"PRENATAL_LEAVE\", \"POSTNATAL_LEAVE\", \"OCCUPATIONAL_INJURY_ABSENCE\"] && l[\"from\"] <= exit_on && add_days(l[\"to\"], 30) >= exit_on) && !(has(contract.exit_facts) && contract.exit_facts != null && has(contract.exit_facts.dismissal_restriction_lifted) && contract.exit_facts.dismissal_restriction_lifted == true)",
+			"applies_when": "has(contract.exit_ground) && contract.exit_ground in rules.exit_grounds.groups.EMPLOYER_DISMISSAL && has(row.leave) && row.leave.exists(l, l.code in [\"PRENATAL_LEAVE\", \"POSTNATAL_LEAVE\", \"OCCUPATIONAL_INJURY_ABSENCE\"] && l[\"from\"] <= exit_on && add_days(l[\"to\"], 30) >= exit_on) && !(has(contract.exit_facts) && contract.exit_facts != null && has(contract.exit_facts.dismissal_restriction_lifted) && contract.exit_facts.dismissal_restriction_lifted == true)",
 			"due": "today"
 		}
 	},

@@ -7,8 +7,6 @@
 		"counts_as_attended": "true",
 		"scheduled": "true",
 		"eligibility": "true",
-		"quantity": "1.0",
-		"rate": "day.day_type == \"WORK\" ? terms.base_salary / 26.0 : 0.0",
 		"pay": [],
 		"references": [
 			{

@@ -258,11 +258,9 @@
 		],
 		"counts_toward": [
 			"HEALTH",
-			"CHILD_SUPPORT",
 			"PENSION",
 			"CHILD_CONTRIBUTION",
 			"SI_PREVIOUS_MONTH",
-			"SI_ADJUSTMENT_REFUND",
 			"EI",
 			"WORKERS_ACCIDENT",
 			"ASBESTOS_LEVY"
@@ -293,11 +291,9 @@
 		],
 		"counts_toward": [
 			"HEALTH",
-			"CHILD_SUPPORT",
 			"PENSION",
 			"CHILD_CONTRIBUTION",
 			"SI_PREVIOUS_MONTH",
-			"SI_ADJUSTMENT_REFUND",
 			"EI",
 			"WORKERS_ACCIDENT",
 			"ASBESTOS_LEVY"
@@ -418,12 +414,7 @@
 				"title": "健康保険法 art.46, 厚生年金保険法 art.25: meals in kind are remuneration at the 告示 price of the prefecture (PAYROLL in_kind_values): entry.facts.meal_months × the month price, meal_days × the day price, breakfasts, lunches and dinners × the meal prices. Where the worker pays two thirds or more of that value (entry.facts.meal_payment) no meal is provided for insurance; otherwise the value less the payment (日本年金機構 Q&A 10). entry.facts.social_insurance_value overrides it (a society’s own rules). A DISPLAY line in the IN_KIND part of the standard-remuneration schemes: it enters the 報酬月額 grade the contract wage gives and the 定時決定/随時改定 averages; the income-tax value is MEALS_IN_KIND."
 			}
 		],
-		"counts_toward": [
-			"HEALTH.IN_KIND",
-			"PENSION.IN_KIND",
-			"CHILD_SUPPORT.IN_KIND",
-			"CHILD_CONTRIBUTION.IN_KIND"
-		]
+		"counts_toward": ["HEALTH.IN_KIND", "PENSION.IN_KIND", "CHILD_CONTRIBUTION.IN_KIND"]
 	},
 	{
 		"id": "00ac9f9e-52a5-5098-893d-57763cc562cc",
@@ -444,11 +435,6 @@
 				"title": "健康保険法 art.46, 厚生年金保険法 art.25: company housing is remuneration at the 告示 price of the prefecture (PAYROLL in_kind_values): to 30 September 2026 per 畳 of the living rooms (entry.facts.housing_tatami, or housing_room_m2 ÷ 1.65), from 1 October 2026 per square metre of the whole floor area (entry.facts.housing_area_m2); prorated for a mid-month move-in (occupied_days / month_days); less the rent the worker pays (entry.facts.rent_paid). entry.facts.social_insurance_value overrides it (a society’s own rules). A DISPLAY line in the IN_KIND part of the standard-remuneration schemes; the income-tax value is HOUSING_IN_KIND."
 			}
 		],
-		"counts_toward": [
-			"HEALTH.IN_KIND",
-			"PENSION.IN_KIND",
-			"CHILD_SUPPORT.IN_KIND",
-			"CHILD_CONTRIBUTION.IN_KIND"
-		]
+		"counts_toward": ["HEALTH.IN_KIND", "PENSION.IN_KIND", "CHILD_CONTRIBUTION.IN_KIND"]
 	}
 ]

@@ -11,7 +11,7 @@ import {
 	monthOf,
 	PlainDate
 } from '@norbital-ai/std/date';
-import { evaluateConfigured } from '../expressions.js';
+import { evaluateConfigured, failureMessage } from '../expressions.js';
 import { isMasked, type Id, type Masked, type Row } from '@norbital-ai/bolt';
 import {
 	type DynObject,
@@ -23,7 +23,9 @@ import {
 	type Read,
 	numberOf,
 	PAYROLL_DEFAULTS,
-	Refusal
+	Refusal,
+	payrollRulesOf,
+	isExitTag
 } from '../foundation.js';
 import {
 	type AttendanceDay,
@@ -339,7 +341,7 @@ export type EmployeeRow = Pick<
  */
 export const exitSource = (row: Pick<EntryColumns, 'facts'>): string | null => {
 	const source = row.facts?.['source'];
-	return Predicate.isString(source) && source.startsWith('exit:') ? source : null;
+	return isExitTag(source) && Predicate.isString(source) ? source : null;
 };
 /** An entry family's own columns; `facts` is the one open bag, merged last into the rule context. */
 export interface EntryColumns {
@@ -629,27 +631,6 @@ export type PayslipRow = Pick<
 	| 'gross'
 	| 'net'
 >;
-/** What each read selects: a caller's list read without `select` leaves json, custom and file fields out (Bolt X-33),
- * so every engine read names its fields. */
-export const payrollRules = (
-	version:
-		| {
-				readonly rule_set?: readonly {
-					readonly family: string;
-					readonly code: string;
-					readonly rules: Json;
-				}[];
-		  }
-		| null
-		| undefined
-): {
-	readonly [code: string]: Json;
-} =>
-	Object.fromEntries(
-		(version?.rule_set ?? []).flatMap((row): [string, Json][] =>
-			row.family === 'PARAMETERS' ? [[row.code, row.rules ?? {}]] : []
-		)
-	);
 export const FAMILIES = [
 	{ collection: 'adhoc_catalog_entry', catalog: 'adhoc_catalog', family: 'ADHOC' },
 	{ collection: 'claim_catalog_entry', catalog: 'claim_catalog', family: 'CLAIM' },
@@ -728,7 +709,10 @@ export const evaluate = (
 						message: `${where}: ${cause.message}`,
 						...(cause.detail === undefined ? {} : { detail: cause.detail })
 					})
-				: new Refusal({ message: `${where}: the stored expression failed.`, detail: String(cause) })
+				: new Refusal({
+						message: `${where}: ${failureMessage(expression, cause)}`,
+						detail: String(cause)
+					})
 	});
 export const evaluateNumber = (expression: string, context: DynObject, where: string) =>
 	evaluate(expression, context, where).pipe(
@@ -2185,7 +2169,7 @@ export const leaveSubject = (
 				})
 			)),
 			// the governing version's PARAMETERS rule tables (a region table: `rules.regions.by_region[company.region]`)
-			rules: payrollRules(found),
+			rules: yield* Effect.fromResult(payrollRulesOf(found?.rule_set ?? [])),
 			earned: yield* Effect.fromResult(
 				earnedFrom({
 					history,

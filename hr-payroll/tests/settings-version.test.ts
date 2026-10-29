@@ -7,6 +7,7 @@ import {
 	cloneSettingsFields,
 	diffCatalogCodes,
 	diffSettings,
+	missingSlots,
 	refuseSealedUpdate,
 	sealSettings
 } from '../src/lib/payroll_engine/settings_version.ts';
@@ -27,6 +28,18 @@ const row = (id: string, from: string, to: string | null, sealed = true) => ({
 });
 
 describe('settings version lifecycle', () => {
+	it('seals a version only with every required PARAMETERS slot', () => {
+		const slots = ['record_retention', 'exit_grounds', 'holiday_kinds', 'salary_report'];
+		assert.equal(missingSlots(slots.map((code) => ({ family: 'PARAMETERS', code }))), null);
+		assert.match(
+			missingSlots([
+				...slots.slice(1).map((code) => ({ family: 'PARAMETERS', code })),
+				{ family: 'VALIDATIONS', code: 'record_retention' }
+			]) ?? '',
+			/record_retention missing/
+		);
+	});
+
 	it('L-TPL-hr-payroll-009 clones an open unsealed successor with cloned_from_id', () => {
 		const next = cloneSettingsFields(row('a', '2026-01-01', null), '2026-07-01');
 		assert.equal(next.cloned_from_id, settingsId('a'));

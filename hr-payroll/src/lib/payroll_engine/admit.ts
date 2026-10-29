@@ -1,14 +1,7 @@
 import { Predicate } from 'effect';
 import { Effect, Option, Result, Schema } from 'effect';
 import { inputSchema } from '@norbital-ai/std/kind';
-import {
-	addDays,
-	addMonths,
-	contains,
-	monthOf,
-	overlaps,
-	PlainDate
-} from '@norbital-ai/std/date';
+import { addDays, addMonths, contains, monthOf, overlaps, PlainDate } from '@norbital-ai/std/date';
 import {
 	isMasked,
 	type Id,
@@ -35,9 +28,11 @@ import {
 	PAYROLL_DEFAULTS,
 	PAYROLL_SLOTS,
 	celValues,
-	getErrorMessage
+	getErrorMessage,
+	payrollRulesOf,
+	isExitTag
 } from './foundation.js';
-import { evaluateConfigured } from './expressions.js';
+import { evaluateConfigured, failureMessage } from './expressions.js';
 import { kindsOf } from './listed_kinds.js';
 import {
 	classFromRow,
@@ -546,7 +541,7 @@ export const staffingFrom = (
 				try: () => evaluateConfigured(permanentWhen, { terms: celValues(term ?? {}) }),
 				catch: (cause) =>
 					new Refusal({
-						message: 'payroll.permanent_when: the stored expression failed.',
+						message: `payroll.permanent_when: ${failureMessage(permanentWhen, cause)}`,
 						detail: getErrorMessage(cause)
 					})
 			}).pipe(
@@ -655,22 +650,6 @@ export const staffingFrom = (
 const RECORD_RETENTION: keyof typeof PAYROLL_SLOTS = 'record_retention';
 /** The PARAMETERS `record_retention` slot: the `until` CEL on the subject at the exit. */
 const RecordRetention = Schema.Struct({ until: Schema.String });
-/** PARAMETERS slots are objects in the CEL `rules` root; other families keep their own payload contracts. */
-export const payrollRulesOf = (
-	rows: readonly { readonly code: string; readonly rules: unknown }[]
-) =>
-	Result.gen(function* () {
-		const rules: Record<string, JsonObject> = {};
-		for (const row of rows) {
-			const value = yield* fieldValue(row.rules, `rule_set.${row.code}.rules`);
-			if (!isJsonObject(value))
-				return yield* Result.fail(
-					new Refusal({ message: `${row.code} must contain an object of payroll rules.` })
-				);
-			rules[row.code] = value;
-		}
-		return rules;
-	});
 /**
  * A version's `VALIDATIONS` rule-set rows: each `rules` names its `site` (`contract`: a contract's terms as written;
  * `payslip`: each slip of a build; `roster`: a roster day; `cycle`: a pattern cycle a roster write changes, `cycle`
@@ -956,9 +935,7 @@ export const admitContractTerms = (input: {
 			const context: DynObject = {
 				...subject,
 				...extras,
-				rules: yield* Effect.fromResult(
-					payrollRulesOf(versionRows.filter((row) => row.family === 'PARAMETERS'))
-				),
+				rules: yield* Effect.fromResult(payrollRulesOf(versionRows)),
 				term: subject.terms,
 				day
 			};
@@ -1129,9 +1106,7 @@ export const rosterFindingsFrom = (
 			rules.set(
 				version.id,
 				yield* Effect.fromResult(
-					payrollRulesOf(
-						ruleSets.filter((row) => row.settings_id === version.id && row.family === 'PARAMETERS')
-					)
+					payrollRulesOf(ruleSets.filter((row) => row.settings_id === version.id))
 				)
 			);
 		const contracts = got.contracts.rows;
@@ -2249,9 +2224,7 @@ export const admitEntry = <C extends EntryCollection>(input: {
 					version
 				})
 			)),
-			rules: yield* Effect.fromResult(
-				payrollRulesOf(version.rule_set.filter((row) => row.family === 'PARAMETERS'))
-			),
+			rules: yield* Effect.fromResult(payrollRulesOf(version.rule_set)),
 			entry: entryContext(values, input.occurred_on),
 			earlier: earlierContext(earlier, {
 				code: row.code,
@@ -2573,8 +2546,7 @@ export const transformEntries = Effect.fnUntraced(function* <
 				);
 				// An exit's encashment is judged against the balance without the exit's own unpaid encashments: a moved
 				// exit withdraws them in the same act (`retract-exit-effects`), as its balances leave them out.
-				const exitPrefix = `exit:${String(merged.employment_id ?? '')}:`;
-				const exitOwn = String(merged.reference ?? '').startsWith(exitPrefix);
+				const exitOwn = isExitTag(merged.reference, String(merged.employment_id ?? ''));
 				const movementPage = {
 					rows: coded
 						.filter(
@@ -2583,7 +2555,7 @@ export const transformEntries = Effect.fnUntraced(function* <
 								!(
 									exitOwn &&
 									row.payslip_id == null &&
-									String(row.reference ?? '').startsWith(exitPrefix)
+									isExitTag(row.reference, String(merged.employment_id ?? ''))
 								)
 						)
 						.map(({ catalog: _catalog, ...row }) => row)

@@ -5,8 +5,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { Result } from 'effect';
-import { payrollRulesOf } from '../src/lib/payroll_engine/admit.ts';
-import { evaluateConfigured, evaluateStrict } from '../src/lib/payroll_engine/expressions.ts';
+import { payrollRulesOf } from '../src/lib/payroll_engine/foundation.ts';
+import {
+	evaluateConfigured,
+	evaluateStrict,
+	failureMessage
+} from '../src/lib/payroll_engine/expressions.ts';
 import { Refusal } from '../src/lib/payroll_engine/foundation.ts';
 
 const cel = (expression: string, context: Record<string, unknown> = {}) =>
@@ -14,14 +18,45 @@ const cel = (expression: string, context: Record<string, unknown> = {}) =>
 const refusal = (error: unknown) => error instanceof Refusal;
 
 it('validates configured payroll rule objects before CEL evaluation', () => {
-	const rules = payrollRulesOf([{ code: 'example', rules: { value: 'synthetic' } }]);
+	const rules = payrollRulesOf([
+		{ family: 'PARAMETERS', code: 'example', rules: { value: 'synthetic' } },
+		{ family: 'VALIDATIONS', code: 'CHECK', rules: 'not a rule table' }
+	]);
 	assert.ok(Result.isSuccess(rules));
 	assert.deepEqual(rules.success, { example: { value: 'synthetic' } });
 	for (const value of [null, [], 'not-an-object']) {
-		const invalid = payrollRulesOf([{ code: 'example', rules: value }]);
+		const invalid = payrollRulesOf([{ family: 'PARAMETERS', code: 'example', rules: value }]);
 		assert.ok(Result.isFailure(invalid));
 		assert.ok(invalid.failure instanceof Refusal);
 	}
+});
+
+it('names the entity setting a failed lookup found missing or blank', () => {
+	const failed = (expression: string, context: Record<string, unknown>) =>
+		assert.throws(
+			() => cel(expression, context),
+			(error: unknown) => {
+				assert.equal(
+					failureMessage(expression, error),
+					`the setting ${expression.includes('[') ? 'company.risk_class' : 'company.facts.divisor'} is missing or blank.`
+				);
+				return true;
+			}
+		);
+	failed('rates[company.risk_class] * 2', { company: { risk_class: '' }, rates: { I: 1 } });
+	failed('company.facts.divisor * 2', { company: { facts: {} } });
+});
+
+it('takes the least of a list, refusing an empty one', () => {
+	const rules = { minimum_wage: { by_region: { BANGKOK: 400.0, YALA: 337.0, NAN: 345.0 } } };
+	assert.equal(
+		cel('min(rules.minimum_wage.by_region.map(r, double(rules.minimum_wage.by_region[r])))', {
+			rules
+		}),
+		337
+	);
+	assert.equal(cel('min(2.0, 3.0)'), 2);
+	assert.throws(() => cel('min([])'), refusal);
 });
 
 describe('rate bands', () => {

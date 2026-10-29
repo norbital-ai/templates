@@ -27,7 +27,7 @@
 		"code": "JOB_LOSS_ALLOWANCE",
 		"destination": "PAY",
 		"direction": "ADD",
-		"eligibility": "employment.service_months >= 12 && employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]",
+		"eligibility": "employment.service_months >= 12 && employment.exit_ground in rules.exit_grounds.groups.WORKFORCE_REDUCTION",
 		"counts_toward": [],
 		"name": "Trợ cấp mất việc làm (job-loss allowance)",
 		"references": [

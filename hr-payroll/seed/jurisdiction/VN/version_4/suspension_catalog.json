@@ -29,25 +29,6 @@
 		]
 	},
 	{
-		"id": "78735c58-9c80-5056-b3fd-3618a59d5ed7",
-		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
-		"code": "WORKER_FAULT",
-		"name": "Stoppage by the worker’s own fault — unpaid, not counted service",
-		"counts_as_attended": "false",
-		"scheduled": "true",
-		"eligibility": "true",
-		"quantity": "1.0",
-		"rate": "0.0",
-		"pay": [],
-		"references": [
-			{
-				"title": "Labour Code",
-				"locator": "art.99(2)",
-				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
-			}
-		]
-	},
-	{
 		"id": "68169b88-915e-5c40-b026-96ae17c6c81c",
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"code": "COWORKER_FAULT",

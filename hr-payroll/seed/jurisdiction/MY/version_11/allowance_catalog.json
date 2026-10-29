@@ -14,8 +14,7 @@
 			"HRDF",
 			"PCB.ORDINARY",
 			"SKBBK",
-			"SOCSO",
-			"FIRST_SCHEDULE_WAGES"
+			"SOCSO"
 		],
 		"name": "Scale-up allowance",
 		"amount": "allowance.amount * (period.part == period.parts ? ((employment.start_date <= period.month_from && (employment.exit_date == \"\" || employment.exit_date >= period.month_to)) ? 1.0 : double(calendar_distance_days(employment.start_date > period.month_from ? employment.start_date : period.month_from, (employment.exit_date != \"\" && employment.exit_date < period.month_to) ? employment.exit_date : period.month_to) + 1.0) / double(period.month_days)) - (allowance.amount > 0.0 ? (has(earned.month.SUA) ? earned.month.SUA : 0.0) / (allowance.amount) : 0.0) : ((employment.start_date <= period.month_from && (employment.exit_date == \"\" || employment.exit_date >= period.month_to)) ? 1.0 / double(period.parts) : double(period.paid_days) / double(period.month_days)))",
@@ -40,8 +39,7 @@
 			"HRDF",
 			"PCB.ORDINARY",
 			"SKBBK",
-			"SOCSO",
-			"FIRST_SCHEDULE_WAGES"
+			"SOCSO"
 		],
 		"name": "Child care allowance (children aged 12 and under)",
 		"references": [
@@ -65,8 +63,7 @@
 			"EPF_PR.ORDINARY",
 			"HRDF",
 			"SKBBK",
-			"SOCSO",
-			"FIRST_SCHEDULE_WAGES"
+			"SOCSO"
 		],
 		"name": "Meal allowance (regular, same rate for all)",
 		"references": [
@@ -90,8 +87,7 @@
 			"EPF_PR.ORDINARY",
 			"HRDF",
 			"SKBBK",
-			"SOCSO",
-			"FIRST_SCHEDULE_WAGES"
+			"SOCSO"
 		],
 		"name": "Parking allowance",
 		"references": [
@@ -116,8 +112,7 @@
 			"HRDF",
 			"PCB.ORDINARY",
 			"SKBBK",
-			"SOCSO",
-			"FIRST_SCHEDULE_WAGES"
+			"SOCSO"
 		],
 		"name": "On-call allowance",
 		"amount": "allowance.amount * (period.part == period.parts ? ((employment.start_date <= period.month_from && (employment.exit_date == \"\" || employment.exit_date >= period.month_to)) ? 1.0 : double(calendar_distance_days(employment.start_date > period.month_from ? employment.start_date : period.month_from, (employment.exit_date != \"\" && employment.exit_date < period.month_to) ? employment.exit_date : period.month_to) + 1.0) / double(period.month_days)) - (allowance.amount > 0.0 ? (has(earned.month.ONCALL) ? earned.month.ONCALL : 0.0) / (allowance.amount) : 0.0) : ((employment.start_date <= period.month_from && (employment.exit_date == \"\" || employment.exit_date >= period.month_to)) ? 1.0 / double(period.parts) : double(period.paid_days) / double(period.month_days)))",

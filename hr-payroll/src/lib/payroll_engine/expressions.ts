@@ -4,13 +4,7 @@ import { Result, Schema, SchemaTransformation } from 'effect';
 import type { Context as CelContext } from '@marcbachmann/cel-js';
 import { context as formulaContext, compile, evaluate } from '@norbital-ai/std/formula';
 import { isPlainDate, addDays, addMonths, datePeriod, days, monthOf } from '@norbital-ai/std/date';
-import {
-	type Json,
-	completedMonths,
-	getErrorMessage,
-	isDynObject,
-	Refusal
-} from './foundation.js';
+import { type Json, completedMonths, getErrorMessage, isDynObject, Refusal } from './foundation.js';
 /** The functions the environment carries, registered once when it is first built. */
 const registrations: [signature: string, handler: (...args: never[]) => unknown][] = [];
 /** Declared roots belong to the caller's captured rule context; CEL cannot invent another root. */
@@ -209,8 +203,15 @@ register('add_working_days', [4], (day, n, holidays, weekend) => {
 	return current;
 });
 // ── numbers ────────────────────────────────────────────────────────────────────────────────────────────────────────
-register('min', [2], (left, right) =>
-	Math.min(argument(NUMBER, left, 'Minimum'), argument(NUMBER, right, 'Minimum'))
+const least = (values: readonly number[]) => {
+	if (values.length === 0) throw new Refusal({ message: 'Minimum requires at least one number.' });
+	return Math.min(...values);
+};
+/** The lesser of two numbers, or the least of a list (`min(rates)`: the lowest regional minimum wage). */
+register('min', [1, 2], (left, right) =>
+	right === undefined
+		? least(argument(LIST, left, 'Minimum').map((value) => argument(NUMBER, value, 'Minimum')))
+		: Math.min(argument(NUMBER, left, 'Minimum'), argument(NUMBER, right, 'Minimum'))
 );
 register('max', [2], (left, right) =>
 	Math.max(argument(NUMBER, left, 'Maximum'), argument(NUMBER, right, 'Maximum'))
@@ -397,6 +398,22 @@ let failures:
 			readonly message: string;
 	  }[]
 	| undefined;
+/** The node a failed lookup names: a field access (`.`), or an index (`[]`) whose key is its `right` operand. */
+const Span = Schema.Struct({ start: Schema.Number, end: Schema.Number });
+const FailedLookup = Schema.Struct({ ...Span.fields, op: Schema.String, right: Schema.Unknown });
+/**
+ * A failed evaluation as an operator reads it: a lookup that found nothing names the setting as the formula reads it
+ * (`company.facts.leave_cash_out_day_divisor` missing, `company.risk_class` blank), else the evaluator's own message.
+ */
+export const failureMessage = (expression: string, cause: unknown): string => {
+	const message = getErrorMessage(cause);
+	if (!message.startsWith('No such key:') || !(cause instanceof Error)) return message;
+	const node = Schema.decodeUnknownOption(FailedLookup)(Reflect.get(cause, 'node'));
+	if (node._tag === 'None') return message;
+	const span =
+		node.value.op === '[]' && Schema.is(Span)(node.value.right) ? node.value.right : node.value;
+	return `the setting ${expression.slice(span.start, span.end)} is missing or blank.`;
+};
 /** A record's own stored expression, evaluated from another (the encash rule reads `leave_catalog.entitlement.days`). */
 registrations.push([
 	'configured_eval(string, map): dyn',
@@ -411,7 +428,7 @@ registrations.push([
 		const evaluated = Result.try(() => configuredProgram(expression)(context));
 		configuredNestedDepth--;
 		if (Result.isFailure(evaluated)) {
-			failures?.push({ expression, message: getErrorMessage(evaluated.failure) });
+			failures?.push({ expression, message: failureMessage(expression, evaluated.failure) });
 			throw evaluated.failure;
 		}
 		return evaluated.success;
@@ -434,7 +451,7 @@ export const evaluateStrict = (expression: string, context: CelContext): Json =>
 	const evaluated = Result.try(() => evaluateConfigured(expression, context));
 	failures = outer;
 	if (Result.isFailure(evaluated))
-		mine.push({ expression, message: getErrorMessage(evaluated.failure) });
+		mine.push({ expression, message: failureMessage(expression, evaluated.failure) });
 	const value = Result.isSuccess(evaluated) ? evaluated.success : null;
 	const [first] = mine;
 	if (first !== undefined) throw new Refusal({ message: first.message, detail: first.expression });

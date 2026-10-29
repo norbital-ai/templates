@@ -1,4 +1,5 @@
 import type { Actor, Flow, Id, PolicyReads, Verdict } from '@norbital-ai/bolt';
+import { isExitTag } from '../../lib/payroll_engine/foundation.js';
 /**
  * The literals the policies share: self-service scopes, approval routes and the grant fragments several ranks repeat.
  *
@@ -241,8 +242,7 @@ const adhocReviewed = function* (
 	rows: readonly { readonly facts?: { readonly [fact: string]: unknown } | null }[],
 	ctx: Reading
 ) {
-	return ctx.actor.kind === 'system' &&
-		rows.every((row) => String(row.facts?.['source'] ?? '').startsWith('exit:'))
+	return ctx.actor.kind === 'system' && rows.every((row) => isExitTag(row.facts?.['source']))
 		? ctx.allow()
 		: ctx.approve(payReview);
 };

@@ -309,25 +309,6 @@
 		"pay": []
 	},
 	{
-		"id": "6b195f2a-edf5-5232-aa82-ee2dad658109",
-		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
-		"code": "STOPPAGE_EMPLOYER_FAULT",
-		"name": "Work stoppage — employer’s fault (Ngừng việc do lỗi của người sử dụng lao động)",
-		"eligibility": "",
-		"unit": "DAY",
-		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
-		"can_encash": false,
-		"encash_on_exit": false,
-		"is_npl": false,
-		"pay_fraction": "",
-		"references": [
-			{
-				"title": "Labour Code 2019 art.99(1): the full contract wage. a fully paid day, nothing deducted. Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave."
-			}
-		],
-		"pay": []
-	},
-	{
 		"id": "6725d072-cd0d-567c-ba28-3bb08a7cb289",
 		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
 		"code": "STOPPAGE_WORKER_FAULT",
@@ -342,55 +323,6 @@
 		"references": [
 			{
 				"title": "Labour Code 2019 art.99(2): the worker at fault is not paid. an unpaid day (`is_npl`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): only stoppage not caused by the worker is counted service for severance and annual leave."
-			}
-		],
-		"pay": []
-	},
-	{
-		"id": "71fb6ae1-e53a-51eb-ab99-49b986e5b13b",
-		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
-		"code": "STOPPAGE_COWORKER",
-		"name": "Work stoppage — a co-worker’s fault (Ngừng việc do lỗi của người lao động khác)",
-		"eligibility": "",
-		"unit": "DAY",
-		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
-		"can_encash": false,
-		"encash_on_exit": false,
-		"is_npl": false,
-		"pay_fraction": "",
-		"references": [
-			{
-				"title": "Labour Code 2019 art.99(2): other workers of the unit who must stop are paid the agreed rate, not below the minimum wage. the agreed share, floored at the minimum wage every day. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave."
-			}
-		],
-		"pay": [
-			{
-				"code": "STOPPAGE_REDUCTION",
-				"name": "Stoppage pay reduction",
-				"eligibility": "(has(company.facts.stoppage_pay_percent) ? double(company.facts.stoppage_pay_percent) : 100.0) < 100.0 && leave.rows.exists(r, r.code in [\"STOPPAGE_COWORKER\", \"STOPPAGE_OBJECTIVE\"] && r.activity == \"TIME_OFF\" && r.days > 0.0)",
-				"quantity": "sum(leave.rows.filter(r, r.code in [\"STOPPAGE_COWORKER\", \"STOPPAGE_OBJECTIVE\"] && r.activity == \"TIME_OFF\").map(r, r.days))",
-				"rate": "max(0.0, (terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) - max((terms.base_salary / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))) * (has(company.facts.stoppage_pay_percent) ? double(company.facts.stoppage_pay_percent) : 100.0) / 100.0, double(rules.minimum_wage.by_region[company.region in [\"II\", \"III\", \"IV\"] ? company.region : \"I\"]) / (period.month_working_days + period.month_holiday_work_days > 0 ? double(period.month_working_days + period.month_holiday_work_days) : double(rules.working_time.fallback_working_days))))",
-				"destination": "PAY",
-				"direction": "SUBTRACT",
-				"counts_toward": ["PIT"]
-			}
-		]
-	},
-	{
-		"id": "dec85595-b939-5553-8389-a83f43ebdb24",
-		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
-		"code": "STOPPAGE_OBJECTIVE",
-		"name": "Work stoppage — utility failure, disaster, epidemic, relocation or economic reasons (Ngừng việc theo Điều 99(3))",
-		"eligibility": "",
-		"unit": "DAY",
-		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
-		"can_encash": false,
-		"encash_on_exit": false,
-		"is_npl": false,
-		"pay_fraction": "",
-		"references": [
-			{
-				"title": "Labour Code 2019 art.99(3): an electricity or water failure not the employer’s fault, natural disaster, fire, dangerous epidemic, enemy action, relocation ordered by a competent State authority or economic reasons: the agreed stoppage wage, not below the minimum wage for a stoppage of up to 14 working days, and for the first 14 working days of a longer one. the floor holds while `leave.event_day <= 14`; entries of one stoppage filed per pay period share its `event_date`. The minimum-wage floor is the regional minimum wage (`wage_floor`) prorated on the same working-day divisor as the contract wage, so the day’s floor is `wage_floor / terms.monthly_basic` of the day wage; the agreed share is recorded per entry (`agreed_pay_fraction`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): stoppage not caused by the worker is counted service for severance and annual leave."
 			}
 		],
 		"pay": []

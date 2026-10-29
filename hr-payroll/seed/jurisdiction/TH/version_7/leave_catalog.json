@@ -396,26 +396,6 @@
 		"can_encash": false,
 		"encash_on_exit": false,
 		"is_npl": false,
-		"pay_fraction": "0.75",
-		"id": "a57a5391-6992-5c3c-8b8b-b0ae8140990f",
-		"code": "TEMPORARY_SHUTDOWN",
-		"name": "Temporary cessation of business (75% pay)",
-		"pay": [],
-		"references": [
-			{
-				"title": "Labour Protection Act B.E. 2541 s.75 as amended by LPA (No. 2) B.E. 2551: when the employer must temporarily cease all or part of the business for a reason other than force majeure, it pays at least 75% of the working-day wage for the whole period, and notifies the employees and the labour inspector in writing beforehand (the Council of State translation shows the earlier 50%; 75% from the amended Thai text, secondary copy https://legardy.com/thai-law/labor-law/labor-law-section-5). The unpaid 25% is deducted by NO_PAY_LEAVE.",
-				"url": "https://legardy.com/thai-law/labor-law/labor-law-section-5"
-			}
-		]
-	},
-	{
-		"settings_id": "af475178-3e6d-5e7a-9cd7-35c08c83cfb8",
-		"eligibility": "",
-		"unit": "DAY",
-		"unplanned_days": "EVERY_DAY_BUT_HOLIDAYS",
-		"can_encash": false,
-		"encash_on_exit": false,
-		"is_npl": false,
 		"pay_fraction": "0.5",
 		"id": "e5663999-c4bc-51e3-96d8-0821b51d76a6",
 		"code": "SUSPENSION",

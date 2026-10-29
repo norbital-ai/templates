@@ -659,7 +659,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "calendar_completed_months(contract.effective_range.from, exit_on) >= 12 && (contract.exit_ground in [\"RETRENCHMENT\", \"RETRENCHMENT_TERM_CONTRACT\", \"UNILATERAL\", \"BREACH_BY_EMPLOYER\"] || (contract.exit_ground in [\"DISMISSAL\", \"UNSATISFACTORY_PROBATION\"] && !(contract.exit_facts != null && has(contract.exit_facts.misconduct_dismissal) && contract.exit_facts.misconduct_dismissal == true)) || (contract.exit_ground in [\"RESIGNATION\", \"BREACH_BY_EMPLOYEE\"] && contract.exit_facts != null && has(contract.exit_facts.notice_exception) && contract.exit_facts.notice_exception in [\"OTHER_PARTY_WILFUL_BREACH\", \"IMMEDIATE_DANGER\"])) && contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.effective_range) && t.effective_range.from <= exit_on && (t.effective_range.to == null || t.effective_range.to >= exit_on) && !(has(t.employment_type) && t.employment_type == \"DOMESTIC\") && ((has(t.base_salary) ? double(t.base_salary.value) : 0.0) + (has(t.allowances) ? sum(t.allowances.map(a, has(a.amount) && has(a.amount.value) ? double(a.amount.value) : 0.0)) : 0.0) <= 4000.0 || (has(t.statutory_work_category) && t.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\", \"VEHICLE_OPERATOR\", \"VESSEL_CREW\"]) || (has(t.facts) && t.facts != null && has(t.facts.overtime_by_contract) && t.facts.overtime_by_contract == true)))",
+			"applies_when": "calendar_completed_months(contract.effective_range.from, exit_on) >= 12 && (contract.exit_ground in [\"RETRENCHMENT\", \"RETRENCHMENT_TERM_CONTRACT\", \"UNILATERAL\", \"BREACH_BY_EMPLOYER\"] || (contract.exit_ground in rules.exit_grounds.groups.DISMISSAL && !(contract.exit_facts != null && has(contract.exit_facts.misconduct_dismissal) && contract.exit_facts.misconduct_dismissal == true)) || (contract.exit_ground in rules.exit_grounds.groups.EMPLOYEE_ENDED && contract.exit_facts != null && has(contract.exit_facts.notice_exception) && contract.exit_facts.notice_exception in [\"OTHER_PARTY_WILFUL_BREACH\", \"IMMEDIATE_DANGER\"])) && contract != null && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.effective_range) && t.effective_range.from <= exit_on && (t.effective_range.to == null || t.effective_range.to >= exit_on) && !(has(t.employment_type) && t.employment_type == \"DOMESTIC\") && ((has(t.base_salary) ? double(t.base_salary.value) : 0.0) + (has(t.allowances) ? sum(t.allowances.map(a, has(a.amount) && has(a.amount.value) ? double(a.amount.value) : 0.0)) : 0.0) <= 4000.0 || (has(t.statutory_work_category) && t.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\", \"VEHICLE_OPERATOR\", \"VESSEL_CREW\"]) || (has(t.facts) && t.facts != null && has(t.facts.overtime_by_contract) && t.facts.overtime_by_contract == true)))",
 			"due": "add_days(exit_on, 7)"
 		}
 	},
@@ -716,7 +716,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract.exit_ground in [\"RETRENCHMENT\", \"RETRENCHMENT_TERM_CONTRACT\"]",
+			"applies_when": "contract.exit_ground in rules.exit_grounds.groups.RETRENCHMENT",
 			"due": "add_days(exit_on, -30)"
 		}
 	},
@@ -990,7 +990,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "has(contract.exit_facts.pregnant_or_pregnancy_illness) && contract.exit_facts.pregnant_or_pregnancy_illness == true && !((contract.exit_ground == \"DISMISSAL_MISCONDUCT\" || (contract.exit_ground in [\"DISMISSAL\", \"UNSATISFACTORY_PROBATION\"] && has(contract.exit_facts.misconduct_dismissal) && contract.exit_facts.misconduct_dismissal == true))) && !(has(contract.exit_facts.notice_exception) && contract.exit_facts.notice_exception == \"OTHER_PARTY_WILFUL_BREACH\") && !(has(contract.exit_facts.notice_structural_ground) && contract.exit_facts.notice_structural_ground == \"BUSINESS_CLOSURE\")",
+			"applies_when": "has(contract.exit_facts.pregnant_or_pregnancy_illness) && contract.exit_facts.pregnant_or_pregnancy_illness == true && !((contract.exit_ground == \"DISMISSAL_MISCONDUCT\" || (contract.exit_ground in rules.exit_grounds.groups.DISMISSAL && has(contract.exit_facts.misconduct_dismissal) && contract.exit_facts.misconduct_dismissal == true))) && !(has(contract.exit_facts.notice_exception) && contract.exit_facts.notice_exception == \"OTHER_PARTY_WILFUL_BREACH\") && !(has(contract.exit_facts.notice_structural_ground) && contract.exit_facts.notice_structural_ground == \"BUSINESS_CLOSURE\")",
 			"due": "add_days(exit_on, 0)"
 		}
 	},
@@ -1043,7 +1043,7 @@
 				"fields": ["exit_facts", "effective_range"]
 			},
 			"when": "contract != null && contract.exit_facts != null && contract.effective_range.to != null",
-			"applies_when": "contract.exit_ground in [\"RETRENCHMENT\", \"RETRENCHMENT_TERM_CONTRACT\"] && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.residency_status) && t.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"])",
+			"applies_when": "contract.exit_ground in rules.exit_grounds.groups.RETRENCHMENT && has(contract.facts) && contract.facts != null && has(contract.facts.contract_terms) && contract.facts.contract_terms.exists(t, has(t.residency_status) && t.residency_status in [\"CITIZEN\", \"PERMANENT_RESIDENT\"])",
 			"due": "add_days(exit_on, -30)"
 		}
 	},

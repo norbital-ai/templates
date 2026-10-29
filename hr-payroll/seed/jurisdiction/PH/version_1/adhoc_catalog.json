@@ -134,7 +134,7 @@
 		"code": "SEPARATION_PAY",
 		"destination": "PAY",
 		"direction": "ADD",
-		"eligibility": "(has(employment.exit_facts.termination_cause) && employment.exit_facts.termination_cause in [\"LABOR_SAVING_DEVICES\", \"REDUNDANCY\", \"RETRENCHMENT\", \"CLOSURE_NOT_DUE_TO_SERIOUS_LOSSES\", \"DISEASE\", \"SECURITY_GUARD_NO_ASSIGNMENT\", \"CONTRACTOR_NO_ASSIGNMENT\", \"IMPOSSIBLE_REINSTATEMENT\", \"SUSPENSION_OVER_SIX_MONTHS\"]) || ((!has(employment.exit_facts.termination_cause) || employment.exit_facts.termination_cause == \"\") && ((employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"]) || (terms.employment_type != \"DOMESTIC\" && employment.exit_ground in [\"DISMISSAL\", \"UNILATERAL\"] && has(employment.exit_facts.terminated_for_disease) && employment.exit_facts.terminated_for_disease)))",
+		"eligibility": "(has(employment.exit_facts.termination_cause) && employment.exit_facts.termination_cause in [\"LABOR_SAVING_DEVICES\", \"REDUNDANCY\", \"RETRENCHMENT\", \"CLOSURE_NOT_DUE_TO_SERIOUS_LOSSES\", \"DISEASE\", \"SECURITY_GUARD_NO_ASSIGNMENT\", \"CONTRACTOR_NO_ASSIGNMENT\", \"IMPOSSIBLE_REINSTATEMENT\", \"SUSPENSION_OVER_SIX_MONTHS\"]) || ((!has(employment.exit_facts.termination_cause) || employment.exit_facts.termination_cause == \"\") && ((employment.exit_ground in rules.exit_grounds.groups.WORKFORCE_REDUCTION) || (terms.employment_type != \"DOMESTIC\" && employment.exit_ground in [\"DISMISSAL\", \"UNILATERAL\"] && has(employment.exit_facts.terminated_for_disease) && employment.exit_facts.terminated_for_disease)))",
 		"counts_toward": [],
 		"name": "Separation pay",
 		"references": [

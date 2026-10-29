@@ -1,6 +1,7 @@
 import { model } from '@norbital-ai/bolt';
 import {
 	duplicateTimePayCode,
+	missingSlots,
 	refuseSealedUpdate,
 	stripRow
 } from '../../../lib/payroll_engine/settings_version.js';
@@ -139,6 +140,23 @@ export default model('jurisdiction_settings', {
 			for (const [row, { before, set }] of changes.entries()) {
 				const refusal = refuseSealedUpdate(before, set) ?? duplicateTimePayCode(set.time_pay);
 				if (refusal != null) return yield* ctx.refuse(refusal, { row });
+			}
+			// sealing: the version's rule sets hold every slot the engine reads by name
+			const sealing = changes.flatMap(({ before, set }) =>
+				before.sealed_at == null && set.sealed_at != null ? [before.id] : []
+			);
+			if (sealing.length > 0) {
+				const { jurisdiction_settings: sealed } = yield* ctx.db.query({
+					jurisdiction_settings: { where: { id: { in: sealing } } },
+					'jurisdiction_settings.rule_set': {}
+				});
+				for (const version of sealed.rows) {
+					const refusal = missingSlots(version.rule_set ?? []);
+					if (refusal != null)
+						return yield* ctx.refuse(refusal, {
+							row: changes.findIndex(({ before }) => before.id === version.id)
+						});
+				}
 			}
 			return changes.map(({ set }) => set);
 		}

@@ -749,7 +749,10 @@
 					"code": "OTHER",
 					"name": "OTHER"
 				}
-			]
+			],
+			"groups": {
+				"WORKFORCE_REDUCTION": ["REDUNDANCY", "RETRENCHMENT"]
+			}
 		}
 	},
 	{

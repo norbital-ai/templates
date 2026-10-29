@@ -15,26 +15,6 @@
 		}
 	},
 	{
-		"id": "9251f9ea-0edf-54e1-a6a2-f6009ba09e43",
-		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
-		"family": "PARAMETERS",
-		"code": "allowance_npl_prorates",
-		"name": "allowance_npl_prorates",
-		"rules": {
-			"value": true
-		}
-	},
-	{
-		"id": "d79be8c0-c53a-55bf-8d32-bf5a5e5139ac",
-		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
-		"family": "PARAMETERS",
-		"code": "separation_wage_average_months",
-		"name": "separation_wage_average_months",
-		"rules": {
-			"value": 6
-		}
-	},
-	{
 		"id": "57b4cce5-948e-5eeb-9dc8-172fdcb97956",
 		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
 		"family": "PARAMETERS",
@@ -43,6 +23,9 @@
 		"references": [
 			{
 				"title": "Nghị định 293/2025/NĐ-CP art.3: monthly and hourly minimum wages by region from 1 January 2026; an hourly-paid worker is held to the hourly column. Decree 74/2024 art.4 (December 2025) and Decree 293/2025 art.4 (2026 onward): minimum wages govern wage agreements and payment; weekly wages convert at 52/12. Art.4(3): weekly and daily wages may satisfy either the monthly or the hourly minimum after conversion using lawful normal working time."
+			},
+			{
+				"title": "Decree 293/2025/NĐ-CP art.5(5): where an area moved to a lower region from 1 January 2026, an employee hired on or before 31 December 2025 keeps the Decree 74/2024 minimum of the prior region until the Government provides otherwise."
 			}
 		],
 		"rules": {
@@ -63,8 +46,7 @@
 				"II": 4410000,
 				"III": 3860000,
 				"IV": 3450000
-			},
-			"prior_authority": "Decree 293/2025/NĐ-CP art.5(5): where an area moved to a lower region from 1 January 2026, an employee hired on or before 31 December 2025 keeps the Decree 74/2024 minimum of the prior region until the Government provides otherwise."
+			}
 		}
 	},
 	{
@@ -599,7 +581,10 @@
 					"code": "UNILATERAL",
 					"name": "Unilateral termination by the employer"
 				}
-			]
+			],
+			"groups": {
+				"WORKFORCE_REDUCTION": ["REDUNDANCY", "RETRENCHMENT"]
+			}
 		}
 	},
 	{
