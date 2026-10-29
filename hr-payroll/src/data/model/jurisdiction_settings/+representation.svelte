@@ -15,7 +15,6 @@
 		RecordShell,
 		Section,
 		StructuredData,
-		Table,
 		isJsonSchema,
 		Textarea,
 		type FieldEditor,
@@ -280,15 +279,4 @@
 			{/snippet}
 		</Form>
 	{/key}
-	<!-- The version's suspension catalogue: its own rows, outside the version's form. -->
-	{#if record}
-		<Table
-			of="suspension_catalog"
-			key="settings-suspension-catalog"
-			toolbar={{ title: t('models.suspension_catalog.label'), new: record.sealed_at == null }}
-			where={{ settings_id: { eq: record.id } }}
-			orderBy={{ code: 'asc' }}
-			columns={['code', 'name', 'rate']}
-		/>
-	{/if}
 </RecordShell>

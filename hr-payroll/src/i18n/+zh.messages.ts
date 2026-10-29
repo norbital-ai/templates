@@ -94,6 +94,7 @@ export default messages({
 		'休假资格、额度、薪资和证明要求。仅可在设置草稿中编辑此目录。',
 	'app.settings.lineage_missing': '管辖地谱系 {code} 尚无任何版本。请创建一个版本。',
 	'app.settings.loan_catalog': '贷款目录',
+	'app.settings.suspension_catalog': '停工类别目录',
 	'app.settings.loan_catalog_description': '贷款还款规则和薪资扣款。仅可在设置草稿中编辑此目录。',
 	'app.settings.search_jurisdictions': '搜索管辖地…',
 	'app.settings.version_draft': '草稿',

@@ -39,7 +39,8 @@
 		['claim_catalog', 'lucide:receipt-text'],
 		['allowance_catalog', 'lucide:calendar-clock'],
 		['adhoc_catalog', 'lucide:hand-coins'],
-		['loan_catalog', 'lucide:landmark']
+		['loan_catalog', 'lucide:landmark'],
+		['suspension_catalog', 'lucide:circle-pause']
 	] as const;
 	type Catalogue = (typeof CATALOGUES)[number][0];
 </script>
@@ -117,6 +118,15 @@
 						{ field: 'is_npl', label: bolt.t('component.is_npl') }
 					]}
 				/>
+			{:else if collection === 'suspension_catalog'}
+				<Table
+					of={collection}
+					key={collection}
+					{toolbar}
+					{where}
+					orderBy={{ code: 'asc' }}
+					columns={['code', 'name', 'rate']}
+				/>
 			{:else}
 				<Table
 					of={collection}
@@ -147,7 +157,8 @@
 				claim_catalog: claimTab,
 				allowance_catalog: allowanceTab,
 				adhoc_catalog: adhocTab,
-				loan_catalog: loanTab
+				loan_catalog: loanTab,
+				suspension_catalog: suspensionTab
 			}[collection]
 		}))}
 	/>
@@ -157,6 +168,7 @@
 {#snippet allowanceTab()}{@render catalogue('allowance_catalog')}{/snippet}
 {#snippet adhocTab()}{@render catalogue('adhoc_catalog')}{/snippet}
 {#snippet loanTab()}{@render catalogue('loan_catalog')}{/snippet}
+{#snippet suspensionTab()}{@render catalogue('suspension_catalog')}{/snippet}
 
 {#snippet changes()}
 	<SnapshotChanges {version} {versions} />

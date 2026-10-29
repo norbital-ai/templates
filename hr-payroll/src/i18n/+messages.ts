@@ -100,6 +100,7 @@ export default messages({
 		'Leave eligibility, entitlements, pay and evidence requirements. Edit this catalogue in a draft settings version.',
 	'app.settings.lineage_missing': 'Jurisdiction lineage {code} has no version yet. Create one.',
 	'app.settings.loan_catalog': 'Loan catalogue',
+	'app.settings.suspension_catalog': 'Suspension catalogue',
 	'app.settings.loan_catalog_description':
 		'Loan repayment rules and payroll deductions. Edit this catalogue in a draft settings version.',
 	'app.settings.search_jurisdictions': 'Search jurisdictions…',
