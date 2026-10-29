@@ -8,7 +8,7 @@ import { businessRows } from './business-source.js';
 import { committed, workspace } from './kit.js';
 import { boardOf } from './reads.js';
 it.live(
-	'monthly statement freezes the calculation, is the owner\'s alone, and refuses stale or duplicate sign-offs',
+	"monthly statement freezes the calculation, is the owner's alone, and refuses stale or duplicate sign-offs",
 	() =>
 		Effect.gen(function* () {
 			const t = yield* workspace();

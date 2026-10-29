@@ -149,7 +149,8 @@ layer(shared(), { excludeTestServices: true })('configured commission', (test) =
 					{ order: own.order, amount: decimalText('250.00') }
 				]);
 				expect(
-					(yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders.rows[0]
+					(yield* as.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })).orders
+						.rows[0]
 				).toEqual(sealed);
 				expect(
 					yield* Effect.flip(
@@ -199,7 +200,9 @@ layer(shared(), { excludeTestServices: true })('configured commission', (test) =
 				);
 				const own = yield* draft(t);
 				yield* confirm(t, own.order);
-				expect(yield* commissionOf(as, { order: own.order })).toMatchObject([{ order: own.order, amount: decimalText('1.00') }]);
+				expect(yield* commissionOf(as, { order: own.order })).toMatchObject([
+					{ order: own.order, amount: decimalText('1.00') }
+				]);
 			})
 	);
 });

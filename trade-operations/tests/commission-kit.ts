@@ -43,7 +43,9 @@ export const commissionSale = Effect.fnUntraced(function* (t: T, confirmOrder = 
 	const own = yield* draft(t, 'sales', fixtureId('sys_user', sales.id), undefined, WEST);
 	committed(
 		'order_lines',
-		yield* as.act('order_lines.update', [{ target: own.line, set: { quantity: Decimal.of('1000') } }])
+		yield* as.act('order_lines.update', [
+			{ target: own.line, set: { quantity: Decimal.of('1000') } }
+		])
 	);
 	if (confirmOrder) yield* confirm(t, own.order);
 	return { sales, own };

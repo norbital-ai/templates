@@ -375,7 +375,8 @@ export const kingdeeDraft = Effect.fnUntraced(function* (
 	});
 	const party = masters.parties.rows[0];
 	const product = masters.products.rows[0];
-	if (!party || !product) throw new Error('seed/test must hold the source-bound party 101 and product 301');
+	if (!party || !product)
+		throw new Error('seed/test must hold the source-bound party 101 and product 301');
 	const order = committed(
 		'orders',
 		yield* as.act('orders.create', [

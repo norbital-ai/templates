@@ -47,11 +47,7 @@ const sourceStatus = (header: SqlRow): 'draft' | 'issued' | 'void' =>
 			? 'issued'
 			: 'draft';
 /** Compare only mapped commercial substance; approval, archive FIDs and rowversions are observations. */
-function sourceMatchesContract(
-	version: ContractVersion,
-	header: SqlRow,
-	rows: readonly SqlRow[]
-) {
+function sourceMatchesContract(version: ContractVersion, header: SqlRow, rows: readonly SqlRow[]) {
 	const snapshot = version.snapshot;
 	if (
 		isoCurrency(header) !== snapshot.currency ||

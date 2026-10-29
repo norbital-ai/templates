@@ -70,51 +70,48 @@ function amend(fid: string, archive: string) {
 layer(shared({ source: source.request }), { excludeTestServices: true })(
 	'kingdee contract versions',
 	(it) => {
-		it.effect(
-			'a formal Kingdee version retains immutable prior terms and the order binding',
-			() =>
-				Effect.gen(function* () {
-					const t = yield* Trade;
-					const as = t.as(t.admin);
-					const { own, fid } = yield* issued(t);
-					yield* t.pull('orders');
-					const read = () =>
-						as
-							.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })
-							.pipe(Effect.map((answer) => answer.orders.rows[0]));
-					const before = yield* read();
-					const first = before && agreements(before)[0];
-					if (!first?.kingdee)
-						throw new Error('The tracker must record the initial source identity');
-					amend(fid, '50001');
-					yield* t.pull('orders');
-					const after = yield* read();
-					if (!after) throw new Error('The local order must survive source amendment');
-					const versions = agreements(after);
-					expect(versions).toHaveLength(2);
-					expect(versions[0]).toMatchObject({
-						seal_hash: first.seal_hash,
-						snapshot: first.snapshot,
-						contract: first.contract,
-						lifecycle: 'superseded',
-						kingdee: {
-							source_version: '000',
-							source_id: '50001',
-							archived: true,
-							binding_id: first.kingdee.binding_id
-						}
-					});
-					expect(currentAgreement(after)).toMatchObject({
-						origin: 'kingdee',
-						lifecycle: 'current',
-						kingdee: {
-							source_version: '001',
-							archived: false,
-							binding_id: first.kingdee.binding_id
-						},
-						snapshot: { lines: [{ quantity: '12', unit_price: '3' }] }
-					});
-				})
+		it.effect('a formal Kingdee version retains immutable prior terms and the order binding', () =>
+			Effect.gen(function* () {
+				const t = yield* Trade;
+				const as = t.as(t.admin);
+				const { own, fid } = yield* issued(t);
+				yield* t.pull('orders');
+				const read = () =>
+					as
+						.query({ orders: { where: { id: { eq: own.order } }, limit: 1 } })
+						.pipe(Effect.map((answer) => answer.orders.rows[0]));
+				const before = yield* read();
+				const first = before && agreements(before)[0];
+				if (!first?.kingdee) throw new Error('The tracker must record the initial source identity');
+				amend(fid, '50001');
+				yield* t.pull('orders');
+				const after = yield* read();
+				if (!after) throw new Error('The local order must survive source amendment');
+				const versions = agreements(after);
+				expect(versions).toHaveLength(2);
+				expect(versions[0]).toMatchObject({
+					seal_hash: first.seal_hash,
+					snapshot: first.snapshot,
+					contract: first.contract,
+					lifecycle: 'superseded',
+					kingdee: {
+						source_version: '000',
+						source_id: '50001',
+						archived: true,
+						binding_id: first.kingdee.binding_id
+					}
+				});
+				expect(currentAgreement(after)).toMatchObject({
+					origin: 'kingdee',
+					lifecycle: 'current',
+					kingdee: {
+						source_version: '001',
+						archived: false,
+						binding_id: first.kingdee.binding_id
+					},
+					snapshot: { lines: [{ quantity: '12', unit_price: '3' }] }
+				});
+			})
 		);
 
 		it.effect(

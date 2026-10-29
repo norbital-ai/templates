@@ -90,7 +90,10 @@ it.live(
 				'ext_sales_orders',
 				yield* write(t, 'ext_sales_orders', [{ ...source, status: 'void' }], 'upsert')
 			);
-			writtenId('transactions', yield* write(t, 'transactions', [{ ...row, status: 'void' }], 'upsert'));
+			writtenId(
+				'transactions',
+				yield* write(t, 'transactions', [{ ...row, status: 'void' }], 'upsert')
+			);
 			expect(yield* write(t, 'transactions', [row], 'upsert')).not.toMatchObject({
 				kind: 'committed'
 			});

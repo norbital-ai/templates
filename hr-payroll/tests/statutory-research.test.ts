@@ -6,7 +6,11 @@
 import assert from 'node:assert/strict';
 import { it } from '@effect/vitest';
 import { Result, Schema } from 'effect';
-import { agentDraft, mergeAgent, SnapshotSchema } from '../src/lib/payroll_engine/statutory_snapshot.ts';
+import {
+	agentDraft,
+	mergeAgent,
+	SnapshotSchema
+} from '../src/lib/payroll_engine/statutory_snapshot.ts';
 import {
 	changeSummary,
 	quotePresent,
@@ -45,8 +49,9 @@ const merged = snapshot(
 	[rule('PARAMETERS', 'retention')],
 	[behaviour('exit'), behaviour('filing', 'filing', DUTY)]
 );
-const names = (rows: readonly { readonly code: string; readonly name?: string | null | undefined }[]) =>
-	rows.map((row) => [row.code, row.name]);
+const names = (
+	rows: readonly { readonly code: string; readonly name?: string | null | undefined }[]
+) => rows.map((row) => [row.code, row.name]);
 
 it('an agent drafts from its own rows only', () => {
 	const rules = agentDraft(merged, 'rules');
@@ -83,7 +88,10 @@ it("an agent's answer merges only its own rows: edits in place, additions after,
 });
 
 it('a changed row carries only the evidence its own references newly cite; a removed row refuses', () => {
-	const cite = { url: 'https://labour.example.gov/act', quote: 'Records are kept for seven years.' };
+	const cite = {
+		url: 'https://labour.example.gov/act',
+		quote: 'Records are kept for seven years.'
+	};
 	const before = { rule_set: [{ code: 'retention', references: [cite] }] };
 	const after = {
 		rule_set: [
@@ -120,8 +128,17 @@ it('a quote holds only on a registered official site whose page carries its word
 		entries: [{ agent: 'rules', url: 'https://labour.example.gov/act', instructions: 'The Act.' }]
 	});
 	const quote = 'Payroll records must be kept for the statutory retention period.';
-	assert.equal(quotePresent(`[Page 1] Payroll records must be\nkept for the statutory retention period.`, quote), true);
-	assert.equal(quotePresent('Payroll records ... retention period', 'Payroll records … retention period'), true);
+	assert.equal(
+		quotePresent(
+			`[Page 1] Payroll records must be\nkept for the statutory retention period.`,
+			quote
+		),
+		true
+	);
+	assert.equal(
+		quotePresent('Payroll records ... retention period', 'Payroll records … retention period'),
+		true
+	);
 	assert.equal(quotePresent('An unrelated bulletin.', quote), false);
 	const onSite = { url: 'https://cdn.example.gov/act.html', quote };
 	const offSite = { url: 'https://example.invalid/law', quote };
