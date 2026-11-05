@@ -1026,7 +1026,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const catalog = first(ctx.reads.adhoc_catalog);\nreturn ctx.entry.status === 'APPROVED' && catalog != null && [\"BONUS\", \"BONUS_OVER_SIX_MONTHS\"].includes(catalog.code);",
+		"condition": "const catalog = first(ctx.reads.adhoc_catalog);\nif (ctx.entry.status !== 'APPROVED') return false;\nif (catalog == null) return false;\nreturn [\"BONUS\", \"BONUS_OVER_SIX_MONTHS\"].includes(catalog.code);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(add_days(ctx.entry.incurred_on, ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"賞与支払届 (bonus payment report)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'BONUS_PAYMENT_REPORT', ctx.entry.id])\n}];",
@@ -1070,7 +1070,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const catalog = first(ctx.reads.leave_catalog);\nreturn ctx.entry.status === 'APPROVED' && catalog != null && [\"PRENATAL_LEAVE\", \"POSTNATAL_LEAVE\"].includes(catalog.code);",
+		"condition": "const catalog = first(ctx.reads.leave_catalog);\nif (ctx.entry.status !== 'APPROVED') return false;\nif (catalog == null) return false;\nreturn [\"PRENATAL_LEAVE\", \"POSTNATAL_LEAVE\"].includes(catalog.code);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(ctx.entry.days.map((d) => d.date).toSorted().at(-1), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"産前産後休業取得者申出書 (maternity premium exemption application)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'MATERNITY_PREMIUM_EXEMPTION', ctx.entry.id])\n}];",
@@ -1112,7 +1112,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const catalog = first(ctx.reads.leave_catalog);\nreturn ctx.entry.status === 'APPROVED' && catalog != null && [\"CHILDCARE_LEAVE\", \"POSTNATAL_PATERNITY_LEAVE\"].includes(catalog.code);",
+		"condition": "const catalog = first(ctx.reads.leave_catalog);\nif (ctx.entry.status !== 'APPROVED') return false;\nif (catalog == null) return false;\nreturn [\"CHILDCARE_LEAVE\", \"POSTNATAL_PATERNITY_LEAVE\"].includes(catalog.code);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(ctx.entry.days.map((d) => d.date).toSorted().at(-1), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"育児休業等取得者申出書 (childcare premium exemption application)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'CHILDCARE_PREMIUM_EXEMPTION', ctx.entry.id])\n}];",
@@ -1154,7 +1154,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const catalog = first(ctx.reads.leave_catalog);\nreturn ctx.entry.status === 'APPROVED' && catalog != null && [\"OCCUPATIONAL_INJURY_ABSENCE\"].includes(catalog.code) && ctx.entry.days.length >= 2 * ctx.lookup.report_days_threshold;",
+		"condition": "const catalog = first(ctx.reads.leave_catalog);\nif (ctx.entry.status !== 'APPROVED') return false;\nif (catalog == null) return false;\nif (![\"OCCUPATIONAL_INJURY_ABSENCE\"].includes(catalog.code)) return false;\nreturn ctx.entry.days.length >= 2 * ctx.lookup.report_days_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(add_days(first(ctx.entry.days.map((d) => d.date).toSorted()), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"労働者死傷病報告 (work-injury report, 4 days or more)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'WORK_INJURY_REPORT', ctx.entry.id])\n}];",
@@ -1199,7 +1199,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const catalog = first(ctx.reads.leave_catalog);\nreturn ctx.entry.status === 'APPROVED' && catalog != null && [\"OCCUPATIONAL_INJURY_ABSENCE\"].includes(catalog.code) && ctx.entry.days.length < 2 * ctx.lookup.report_days_threshold;",
+		"condition": "const catalog = first(ctx.reads.leave_catalog);\nif (ctx.entry.status !== 'APPROVED') return false;\nif (catalog == null) return false;\nif (![\"OCCUPATIONAL_INJURY_ABSENCE\"].includes(catalog.code)) return false;\nreturn ctx.entry.days.length < 2 * ctx.lookup.report_days_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(month_end(add_months(month_start(first(ctx.entry.days.map((d) => d.date).toSorted())), ctx.lookup.quarter_months - 1 - ((Number(first(ctx.entry.days.map((d) => d.date).toSorted()).substring(5, 7)) - 1) % ctx.lookup.quarter_months))), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"労働者死傷病報告 (work-injury report, under 4 days)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'WORK_INJURY_REPORT_QUARTERLY', ctx.entry.id])\n}];",
@@ -1317,7 +1317,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "const until = get(first(ctx.reads.entity_profile_version), 'entity_extension_data.overtime_agreement_to', '');\nreturn until !== '' && until >= month_start(add_months(ctx.entry.salary_coverage.from, 1)) && until <= month_end(add_months(ctx.entry.salary_coverage.from, 1));",
+		"condition": "const until = get(first(ctx.reads.entity_profile_version), 'entity_extension_data.overtime_agreement_to', '');\nif (until === '') return false;\nconst next = add_months(ctx.entry.salary_coverage.from, 1);\nif (!(until >= month_start(next))) return false;\nreturn until <= month_end(next);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(get(first(ctx.reads.entity_profile_version), 'entity_extension_data.overtime_agreement_to', ctx.entry.salary_coverage.to), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"36協定の締結・届出 (overtime agreement renewal and filing)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'OVERTIME_AGREEMENT_RENEWAL', ctx.entry.entity_id, get(first(ctx.reads.entity_profile_version), 'entity_extension_data.overtime_agreement_to', '')])\n}];",
@@ -1521,7 +1521,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const catalog = first(ctx.reads.leave_catalog);\nreturn ctx.entry.status === 'APPROVED' && catalog != null && [\"POSTNATAL_LEAVE\"].includes(catalog.code);",
+		"condition": "const catalog = first(ctx.reads.leave_catalog);\nif (ctx.entry.status !== 'APPROVED') return false;\nif (catalog == null) return false;\nreturn [\"POSTNATAL_LEAVE\"].includes(catalog.code);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(add_days(month_end(add_months(add_days(ctx.entry.days.map((d) => d.date).toSorted().at(-1), 1), ctx.lookup.date_offset_months)), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"産前産後休業終了時報酬月額変更届 (grade change after maternity leave)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'MATERNITY_END_GRADE_CHANGE', ctx.entry.id])\n}];",
@@ -1566,7 +1566,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const catalog = first(ctx.reads.leave_catalog);\nreturn ctx.entry.status === 'APPROVED' && catalog != null && [\"CHILDCARE_LEAVE\"].includes(catalog.code);",
+		"condition": "const catalog = first(ctx.reads.leave_catalog);\nif (ctx.entry.status !== 'APPROVED') return false;\nif (catalog == null) return false;\nreturn [\"CHILDCARE_LEAVE\"].includes(catalog.code);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(add_days(month_end(add_months(add_days(ctx.entry.days.map((d) => d.date).toSorted().at(-1), 1), ctx.lookup.date_offset_months)), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"育児休業等終了時報酬月額変更届・養育期間特例申出 (grade change after childcare leave)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'CHILDCARE_END_GRADE_CHANGE', ctx.entry.id])\n}];",
@@ -1611,7 +1611,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const catalog = first(ctx.reads.leave_catalog);\nreturn ctx.entry.status === 'APPROVED' && catalog != null && [\"CHILDCARE_LEAVE\"].includes(catalog.code);",
+		"condition": "const catalog = first(ctx.reads.leave_catalog);\nif (ctx.entry.status !== 'APPROVED') return false;\nif (catalog == null) return false;\nreturn [\"CHILDCARE_LEAVE\"].includes(catalog.code);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(month_end(add_days(add_months(first(ctx.entry.days.map((d) => d.date).toSorted()), ctx.lookup.date_offset_months), -1)), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"育児休業給付金・出生後休業支援給付金 初回申請 (childcare leave benefit, first application)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'CHILDCARE_BENEFIT_APPLICATION', ctx.entry.id])\n}];",
@@ -1655,7 +1655,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const catalog = first(ctx.reads.leave_catalog);\nreturn ctx.entry.status === 'APPROVED' && catalog != null && [\"FAMILY_CARE_LEAVE\"].includes(catalog.code);",
+		"condition": "const catalog = first(ctx.reads.leave_catalog);\nif (ctx.entry.status !== 'APPROVED') return false;\nif (catalog == null) return false;\nreturn [\"FAMILY_CARE_LEAVE\"].includes(catalog.code);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(month_end(add_days(add_months(add_days(ctx.entry.days.map((d) => d.date).toSorted().at(-1), 1), ctx.lookup.date_offset_months), -1)), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"介護休業給付金 申請 (family care leave benefit)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'CARE_LEAVE_BENEFIT_APPLICATION', ctx.entry.id])\n}];",
@@ -1688,7 +1688,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'payroll.date_of_birth', '') !== '' && get(ctx.entry, 'employee_extension_data.older_worker_continuation_benefit', false) === true;",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'payroll.date_of_birth', '') === '') return false;\nreturn get(ctx.entry, 'employee_extension_data.older_worker_continuation_benefit', false) === true;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(month_end(add_months(add_years(get(ctx.entry, 'payroll.date_of_birth', ''), ctx.lookup.age_years), ctx.lookup.period_months)), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"高年齢雇用継続給付 受給資格確認・60歳到達時賃金証明書 (older worker continuation benefit)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'OLDER_WORKER_CONTINUATION_BENEFIT', ctx.entry.id, ctx.lookup.age_years])\n}];",
@@ -1766,7 +1766,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const catalog = first(ctx.reads.adhoc_catalog);\nreturn ctx.entry.status === 'APPROVED' && catalog != null && [\"RETIREMENT_ALLOWANCE\", \"DISMISSAL_NOTICE_ALLOWANCE\"].includes(catalog.code);",
+		"condition": "const catalog = first(ctx.reads.adhoc_catalog);\nif (ctx.entry.status !== 'APPROVED') return false;\nif (catalog == null) return false;\nreturn [\"RETIREMENT_ALLOWANCE\", \"DISMISSAL_NOTICE_ALLOWANCE\"].includes(catalog.code);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(add_months(ctx.entry.incurred_on, ctx.lookup.date_offset_months), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"退職所得の源泉徴収票・特別徴収票 (retirement income slip)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'RETIREMENT_INCOME_SLIP', ctx.entry.id])\n}];",
@@ -1932,7 +1932,7 @@
 		"source_collection": "employee_contract",
 		"events": ["create", "update"],
 		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null && ctx.entry.signed_contract_period != null && (Number(get(ctx.entry, 'employee_extension_data.renewal_count', 0)) >= ctx.lookup.renewal_count_threshold || calendar_completed_months(ctx.entry.effective_range.from, ctx.entry.effective_range.to) >= ctx.lookup.service_months_threshold);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (ctx.entry.signed_contract_period == null) return false;\nif (Number(get(ctx.entry, 'employee_extension_data.renewal_count', 0)) >= ctx.lookup.renewal_count_threshold) return true;\nreturn calendar_completed_months(ctx.entry.effective_range.from, ctx.entry.effective_range.to) >= ctx.lookup.service_months_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_notice_days);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"雇止めの予告 (notice of non-renewal)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'NON_RENEWAL_NOTICE', ctx.entry.id, ctx.entry.effective_range.to])\n}];",
@@ -1976,7 +1976,7 @@
 		"source_collection": "employee_contract",
 		"events": ["create", "update"],
 		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' && (ctx.entry.engagement === 'PART_TIME' || ctx.entry.signed_contract_period != null);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nreturn ctx.entry.engagement === 'PART_TIME' || ctx.entry.signed_contract_period != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = ctx.entry.effective_range.from;\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"短時間・有期雇用労働者への特定事項の明示 (written specified terms for part-time and fixed-term workers)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'PART_TIME_TERMS_NOTICE', ctx.entry.id, ctx.entry.effective_range.from])\n}];",
@@ -2130,7 +2130,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "const until = get(first(ctx.reads.entity_profile_version), 'entity_extension_data.next_generation_plan_until', '');\nreturn Number(get(first(ctx.reads.entity_profile_version), 'entity_extension_data.regular_employee_count', 0)) > ctx.lookup.employee_count_threshold && (until === '' || until < ctx.entry.salary_coverage.from);",
+		"condition": "const profile = first(ctx.reads.entity_profile_version);\nif (!(Number(get(profile, 'entity_extension_data.regular_employee_count', 0)) > ctx.lookup.employee_count_threshold)) return false;\nconst until = get(profile, 'entity_extension_data.next_generation_plan_until', '');\nreturn until === '' || until < ctx.entry.salary_coverage.from;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(ctx.entry.salary_coverage.to, -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"次世代法 一般事業主行動計画の策定・届出 (next-generation action plan)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'NEXT_GENERATION_ACTION_PLAN', ctx.entry.entity_id, get(first(ctx.reads.entity_profile_version), 'entity_extension_data.next_generation_plan_until', '')])\n}];",
@@ -2177,7 +2177,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "const until = get(first(ctx.reads.entity_profile_version), 'entity_extension_data.women_action_plan_until', '');\nreturn Number(get(first(ctx.reads.entity_profile_version), 'entity_extension_data.regular_employee_count', 0)) > ctx.lookup.employee_count_threshold && (until === '' || until < ctx.entry.salary_coverage.from);",
+		"condition": "const profile = first(ctx.reads.entity_profile_version);\nif (!(Number(get(profile, 'entity_extension_data.regular_employee_count', 0)) > ctx.lookup.employee_count_threshold)) return false;\nconst until = get(profile, 'entity_extension_data.women_action_plan_until', '');\nreturn until === '' || until < ctx.entry.salary_coverage.from;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(ctx.entry.salary_coverage.to, -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"女性活躍推進法 一般事業主行動計画の策定・届出 (women's advancement action plan)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'WOMEN_ACTION_PLAN', ctx.entry.entity_id, get(first(ctx.reads.entity_profile_version), 'entity_extension_data.women_action_plan_until', '')])\n}];",
@@ -2280,7 +2280,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "const catalog = first(ctx.reads.leave_catalog);\nreturn ctx.entry.status === 'APPROVED' && catalog != null && [\"FAMILY_CARE_LEAVE\", \"FAMILY_CARE_DAYS\"].includes(catalog.code);",
+		"condition": "const catalog = first(ctx.reads.leave_catalog);\nif (ctx.entry.status !== 'APPROVED') return false;\nif (catalog == null) return false;\nreturn [\"FAMILY_CARE_LEAVE\", \"FAMILY_CARE_DAYS\"].includes(catalog.code);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = first(ctx.entry.days.map((d) => d.date).toSorted());\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"介護に直面した労働者への個別周知・意向確認 (individual notice to a worker facing care)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'CARE_INDIVIDUAL_NOTICE', ctx.entry.id])\n}];",
@@ -2523,7 +2523,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "const catalog = first(ctx.reads.leave_catalog);\nreturn ctx.entry.status === 'APPROVED' && catalog != null && [\"PRENATAL_LEAVE\", \"POSTNATAL_PATERNITY_LEAVE\"].includes(catalog.code);",
+		"condition": "const catalog = first(ctx.reads.leave_catalog);\nif (ctx.entry.status !== 'APPROVED') return false;\nif (catalog == null) return false;\nreturn [\"PRENATAL_LEAVE\", \"POSTNATAL_PATERNITY_LEAVE\"].includes(catalog.code);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = first(ctx.entry.days.map((d) => d.date).toSorted());\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"妊娠・出産等の申出時の個別周知・意向確認 (individual notice on a pregnancy or birth report)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'CHILDCARE_INDIVIDUAL_NOTICE', ctx.entry.id])\n}];",
@@ -2554,7 +2554,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "const catalog = first(ctx.reads.loan_catalog);\nreturn ctx.entry.status === 'APPROVED' && catalog != null && [\"EMERGENCY_ADVANCE\"].includes(catalog.code);",
+		"condition": "const catalog = first(ctx.reads.loan_catalog);\nif (ctx.entry.status !== 'APPROVED') return false;\nif (catalog == null) return false;\nreturn [\"EMERGENCY_ADVANCE\"].includes(catalog.code);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = ctx.entry.repayment_period.from;\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"非常時払 (emergency payment of earned wages)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'EMERGENCY_PAYMENT', ctx.entry.id])\n}];",
@@ -2706,7 +2706,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "return ctx.entry.kind === 'DATA_BREACH' && (get(ctx.entry, 'inputs.sensitive', false) === true || get(ctx.entry, 'inputs.financial_harm', false) === true || get(ctx.entry, 'inputs.misconduct', false) === true || Number(get(ctx.entry, 'inputs.affected_count', 0)) > ctx.lookup.affected_people_count_threshold || (get(ctx.entry, 'inputs.my_number', false) === true && Number(get(ctx.entry, 'inputs.affected_count', 0)) > ctx.lookup.my_number_count_threshold));",
+		"condition": "if (ctx.entry.kind !== 'DATA_BREACH') return false;\nif (get(ctx.entry, 'inputs.sensitive', false) === true) return true;\nif (get(ctx.entry, 'inputs.financial_harm', false) === true) return true;\nif (get(ctx.entry, 'inputs.misconduct', false) === true) return true;\nconst affected = Number(get(ctx.entry, 'inputs.affected_count', 0));\nif (affected > ctx.lookup.affected_people_count_threshold) return true;\nreturn get(ctx.entry, 'inputs.my_number', false) === true && affected > ctx.lookup.my_number_count_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(add_days(get(ctx.entry, 'inputs.discovered_on', '') !== '' ? get(ctx.entry, 'inputs.discovered_on', '') : ctx.entry.opened_on, ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"個人データ漏えい等 速報 (preliminary breach report)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'PERSONAL_DATA_BREACH_PRELIMINARY', ctx.entry.id])\n}];",
@@ -2741,7 +2741,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "return ctx.entry.kind === 'DATA_BREACH' && (get(ctx.entry, 'inputs.sensitive', false) === true || get(ctx.entry, 'inputs.financial_harm', false) === true || get(ctx.entry, 'inputs.misconduct', false) === true || Number(get(ctx.entry, 'inputs.affected_count', 0)) > ctx.lookup.affected_people_count_threshold || (get(ctx.entry, 'inputs.my_number', false) === true && Number(get(ctx.entry, 'inputs.affected_count', 0)) > ctx.lookup.my_number_count_threshold));",
+		"condition": "if (ctx.entry.kind !== 'DATA_BREACH') return false;\nif (get(ctx.entry, 'inputs.sensitive', false) === true) return true;\nif (get(ctx.entry, 'inputs.financial_harm', false) === true) return true;\nif (get(ctx.entry, 'inputs.misconduct', false) === true) return true;\nconst affected = Number(get(ctx.entry, 'inputs.affected_count', 0));\nif (affected > ctx.lookup.affected_people_count_threshold) return true;\nreturn get(ctx.entry, 'inputs.my_number', false) === true && affected > ctx.lookup.my_number_count_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(add_days(get(ctx.entry, 'inputs.discovered_on', '') !== '' ? get(ctx.entry, 'inputs.discovered_on', '') : ctx.entry.opened_on, get(ctx.entry, 'inputs.misconduct', false) === true ? ctx.lookup.malicious_report_days : ctx.lookup.ordinary_report_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"個人データ漏えい等 確報 (final breach report)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'PERSONAL_DATA_BREACH_FINAL', ctx.entry.id])\n}];",
@@ -2765,7 +2765,7 @@
 		"source_collection": "workplace_case_catalog_entry",
 		"events": ["create"],
 		"reads": {},
-		"condition": "return ctx.entry.kind === 'DATA_BREACH' && (get(ctx.entry, 'inputs.sensitive', false) === true || get(ctx.entry, 'inputs.financial_harm', false) === true || get(ctx.entry, 'inputs.misconduct', false) === true || Number(get(ctx.entry, 'inputs.affected_count', 0)) > ctx.lookup.affected_people_count_threshold || (get(ctx.entry, 'inputs.my_number', false) === true && Number(get(ctx.entry, 'inputs.affected_count', 0)) > ctx.lookup.my_number_count_threshold));",
+		"condition": "if (ctx.entry.kind !== 'DATA_BREACH') return false;\nif (get(ctx.entry, 'inputs.sensitive', false) === true) return true;\nif (get(ctx.entry, 'inputs.financial_harm', false) === true) return true;\nif (get(ctx.entry, 'inputs.misconduct', false) === true) return true;\nconst affected = Number(get(ctx.entry, 'inputs.affected_count', 0));\nif (affected > ctx.lookup.affected_people_count_threshold) return true;\nreturn get(ctx.entry, 'inputs.my_number', false) === true && affected > ctx.lookup.my_number_count_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = get(ctx.entry, 'inputs.discovered_on', '') !== '' ? get(ctx.entry, 'inputs.discovered_on', '') : ctx.entry.opened_on;\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"個人データ漏えい等 本人通知 (notice to the people affected)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'PERSONAL_DATA_BREACH_NOTICE', ctx.entry.id])\n}];",
@@ -2842,7 +2842,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'payroll.date_of_birth', '') !== '' && get(first(ctx.reads.entity_profile_version), 'entity_extension_data.continued_employment_measure', '') !== '';",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'payroll.date_of_birth', '') === '') return false;\nreturn get(first(ctx.reads.entity_profile_version), 'entity_extension_data.continued_employment_measure', '') !== '';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_days(add_years(get(ctx.entry, 'payroll.date_of_birth', ''), ctx.lookup.retirement_age), -1);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"継続雇用の希望確認 (continued employment past the retirement age)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'CONTINUED_EMPLOYMENT_CONFIRMATION', ctx.entry.id, ctx.lookup.retirement_age])\n}];",
@@ -2878,7 +2878,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "return ctx.entry.status === 'SEALED' && Number(get(first(ctx.reads.entity_profile_version), 'entity_extension_data.regular_employee_count', 0)) >= ctx.lookup.employee_count_threshold && get(first(ctx.reads.entity_profile_version), 'entity_extension_data.industrial_physician_appointed_on', '') === '';",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst profile = first(ctx.reads.entity_profile_version);\nif (!(Number(get(profile, 'entity_extension_data.regular_employee_count', 0)) >= ctx.lookup.employee_count_threshold)) return false;\nreturn get(profile, 'entity_extension_data.industrial_physician_appointed_on', '') === '';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_days(ctx.entry.effective_range.from, ctx.lookup.date_offset_days);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"産業医・衛生管理者の選任 (industrial physician and health supervisor at 50 workers)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'INDUSTRIAL_HEALTH_STAFF', ctx.entry.entity_id])\n}];",
@@ -2900,7 +2900,7 @@
 		"source_collection": "employee_contract",
 		"events": ["create", "update"],
 		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'payroll.date_of_birth', '') !== '' && age_on(get(ctx.entry, 'payroll.date_of_birth', ''), ctx.entry.effective_range.from) < ctx.lookup.employee_age_years_threshold;",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst birth = get(ctx.entry, 'payroll.date_of_birth', '');\nif (birth === '') return false;\nreturn age_on(birth, ctx.entry.effective_range.from) < ctx.lookup.employee_age_years_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = ctx.entry.effective_range.from;\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"年少者の証明書 (age certificate of a worker under 18)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'MINOR_AGE_CERTIFICATE', ctx.entry.id, ctx.entry.effective_range.from])\n}];",

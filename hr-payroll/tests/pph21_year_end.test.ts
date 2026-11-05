@@ -51,13 +51,14 @@ describe('PPh 21 in December', () => {
 						entity_id: 'entity',
 						gross_earnings: 10_000_000,
 						employee_statutory: 400_000,
-						employee_statutory_schemes: { JHT: 200_000, JP: 100_000, KESEHATAN: 100_000 },
-						employer_statutory_schemes: {
-							JHT: 370_000,
-							JP: 200_000,
-							JKK: 89_000,
-							JKM: 30_000,
-							KESEHATAN: 400_000
+						breakdown: {
+							statutory: [
+								{ code: 'JHT', kind: 'CONTRIBUTION', employee: 200_000, employer: 370_000 },
+								{ code: 'JP', kind: 'CONTRIBUTION', employee: 100_000, employer: 200_000 },
+								{ code: 'JKK', kind: 'CONTRIBUTION', employee: 0, employer: 89_000 },
+								{ code: 'JKM', kind: 'CONTRIBUTION', employee: 0, employer: 30_000 },
+								{ code: 'KESEHATAN', kind: 'CONTRIBUTION', employee: 100_000, employer: 400_000 }
+							]
 						},
 						tax_withheld: 262_975
 					}))

@@ -157,7 +157,7 @@
 				"YALA": 337
 			}
 		},
-		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst engagement = String(get(ctx.entry, 'engagement', 'EMPLOYEE'));\nreturn (\n\trate != null &&\n\tget(rate, 'unit', null) !== 'PIECE' &&\n\t!['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement)\n);",
+		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null) return false;\nif (get(rate, 'unit', null) === 'PIECE') return false;\nconst engagement = String(get(ctx.entry, 'engagement', 'EMPLOYEE'));\nreturn !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement);\n",
 		"validate": "// js\nconst rate = get(ctx.entry, 'terms.rate', {});\nconst unit = get(rate, 'unit', null);\nconst amount = Number(get(rate, 'amount', 0));\nconst employer = get(ctx.subject, 'employer', {});\nconst region = get(employer, 'entity_extension_data.region', null);\nconst table = ctx.lookup.by_region ?? {};\nif (region == null || table[region] == null) return true;\nconst hours = Number(\n\tget(ctx.entry, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day),\n);\nconst daily =\n\tunit === 'DAILY'\n\t\t? amount\n\t\t: unit === 'MONTHLY'\n\t\t\t? amount / ctx.lookup.wage_divisor\n\t\t\t: amount * hours;\nreturn daily >= Number(table[region]);",
 		"references": [
 			{
@@ -173,7 +173,7 @@
 		"code": "SKILL_STANDARD_WAGE",
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
-		"condition": "const rate = get(ctx.entry, 'terms.rate', null);\nreturn (\n\trate != null &&\n\tget(rate, 'unit', null) !== 'PIECE' &&\n\tget(ctx.entry, 'employee_extension_data.term_facts.skill_standard_day_rate', null) != null\n);",
+		"condition": "const rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null) return false;\nif (get(rate, 'unit', null) === 'PIECE') return false;\nreturn get(ctx.entry, 'employee_extension_data.term_facts.skill_standard_day_rate', null) != null;",
 		"lookup": {
 			"wage_divisor": 30,
 			"normal_hours_per_day": 8
@@ -253,7 +253,7 @@
 				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
 			}
 		],
-		"validate": "// The agreed rate and normal working time must meet this version's contract limits.\n// Hazardous work is seven hours a day and forty-two a week (LPA ss. 23, 68-69).\nconst limits = ctx.lookup.limits;\nconst terms = get(ctx.entry, 'terms', {});\nconst rate = get(terms, 'rate', null);\nif (rate != null && get(rate, 'amount', 0) < 0) return false;\nconst hazardous = get(terms, 'statutory_work_category', null) === 'HAZARDOUS';\nconst maxDay = hazardous\n\t? limits.normal_hours_per_day_hazardous_maximum\n\t: limits.normal_hours_per_day_maximum;\nconst maxWeek = hazardous\n\t? limits.normal_hours_per_week_hazardous_maximum\n\t: limits.normal_hours_per_week_maximum;\nconst day = get(terms, 'normal_hours_per_day', null);\nif (day != null && (day <= limits.normal_hours_per_day_minimum || day > maxDay)) return false;\nconst week = get(terms, 'normal_hours_per_week', null);\nif (week != null && (week <= limits.normal_hours_per_week_minimum || week > maxWeek)) return false;\nreturn true;",
+		"validate": "// The agreed rate and normal working time must meet this version's contract limits.\n// Hazardous work is seven hours a day and forty-two a week (LPA ss. 23, 68-69).\nconst limits = ctx.lookup.limits;\nconst terms = get(ctx.entry, 'terms', {});\nconst rate = get(terms, 'rate', null);\nif (rate != null && get(rate, 'amount', 0) < 0) return false;\nconst hazardous = get(terms, 'statutory_work_category', null) === 'HAZARDOUS';\nconst maxDay = hazardous\n\t? limits.normal_hours_per_day_hazardous_maximum\n\t: limits.normal_hours_per_day_maximum;\nconst maxWeek = hazardous\n\t? limits.normal_hours_per_week_hazardous_maximum\n\t: limits.normal_hours_per_week_maximum;\nconst day = get(terms, 'normal_hours_per_day', null);\nif (day != null && day <= limits.normal_hours_per_day_minimum) return false;\nif (day != null && day > maxDay) return false;\nconst week = get(terms, 'normal_hours_per_week', null);\nif (week != null && week <= limits.normal_hours_per_week_minimum) return false;\nif (week != null && week > maxWeek) return false;\nreturn true;",
 		"order": 25,
 		"id": "2c65708f-9d65-5eba-bc7a-a881ce46135c",
 		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
@@ -273,7 +273,7 @@
 				"locator": "The recorded personal details or agreement terms do not meet this jurisdiction version’s requirements."
 			}
 		],
-		"validate": "// The recorded PVD election and overtime category must meet this version's contract terms.\nconst data = get(ctx.entry, 'employee_extension_data', {});\nconst pvd = get(get(get(data, 'facts', {}), 'statutory', {}), 'PVD', {});\nconst percent = get(get(pvd, 'elections', {}), 'employee_percent', null);\nif (\n\tget(pvd, 'kind', '') === 'MEMBER' &&\n\t(typeof percent !== 'number' ||\n\t\tpercent < ctx.lookup.pvd_minimum_percent ||\n\t\tpercent > ctx.lookup.pvd_maximum_percent)\n)\n\treturn false;\nconst overtime = get(get(data, 'term_facts', {}), 'overtime_category', null);\nreturn overtime === null || ctx.lookup.overtime_categories.includes(overtime);",
+		"validate": "// The recorded PVD election and overtime category must meet this version's contract terms.\nconst data = get(ctx.entry, 'employee_extension_data', {});\nconst pvd = get(get(get(data, 'facts', {}), 'statutory', {}), 'PVD', {});\nconst percent = get(get(pvd, 'elections', {}), 'employee_percent', null);\nconst member = get(pvd, 'kind', '') === 'MEMBER';\nif (member && typeof percent !== 'number') return false;\nif (member && percent < ctx.lookup.pvd_minimum_percent) return false;\nif (member && percent > ctx.lookup.pvd_maximum_percent) return false;\nconst overtime = get(get(data, 'term_facts', {}), 'overtime_category', null);\nreturn overtime === null || ctx.lookup.overtime_categories.includes(overtime);",
 		"order": 26,
 		"id": "bb77d883-41d4-5502-bbab-c0172ba9c006",
 		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
@@ -291,7 +291,7 @@
 				"locator": "The recorded employer details do not meet this jurisdiction version’s requirements."
 			}
 		],
-		"validate": "// The employer's province and WCF business code are the keys the payroll formulas read.\nconst entity = get(ctx.entry, 'entity_extension_data', {});\nconst region = get(entity, 'region', null);\nconst risk = get(entity, 'risk_class', null);\nconst digits = '0123456789';\nreturn (\n\t(region === null || (typeof region === 'string' && region !== '')) &&\n\t(risk === null || (typeof risk === 'string' && risk.length === ctx.lookup.risk_class_digits && risk.split('').every((c) => digits.includes(c))))\n);",
+		"validate": "// The employer's province and WCF business code are the keys the payroll formulas read.\nconst entity = get(ctx.entry, 'entity_extension_data', {});\nconst region = get(entity, 'region', null);\nconst risk = get(entity, 'risk_class', null);\nif (region !== null && typeof region !== 'string') return false;\nif (region === '') return false;\nif (risk === null) return true;\nif (typeof risk !== 'string') return false;\nif (risk.length !== ctx.lookup.risk_class_digits) return false;\nconst digits = '0123456789';\nreturn risk.split('').every((c) => digits.includes(c));",
 		"order": 27,
 		"id": "0502c28d-d8f1-5749-8b8e-bb78690a1672",
 		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"

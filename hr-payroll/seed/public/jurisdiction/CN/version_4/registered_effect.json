@@ -34,7 +34,7 @@
 		"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'SI_MONTHLY_PAYMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nif (get(ctx.lookup.due_day, region, null) == null) return [];\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(run.salary_coverage.from, Number(get(ctx.lookup.due_day, region, 1)) - 1),\n  occurrence_key: 'SI_MONTHLY_PAYMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nif (get(ctx.lookup.due_day, region, null) == null) return [];\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(run.salary_coverage.from, get(ctx.lookup.due_day, region, 1) - 1),\n  occurrence_key: 'SI_MONTHLY_PAYMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
 		"id": "7129ba33-615a-5534-99cd-68e2e31c16fe",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -70,7 +70,7 @@
 		"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'HPF_MONTHLY_REMITTANCE:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(run.salary_coverage.from, ctx.lookup.due_days),\n  occurrence_key: 'HPF_MONTHLY_REMITTANCE:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(run.pay_date, ctx.lookup.due_days),\n  occurrence_key: 'HPF_MONTHLY_REMITTANCE:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
 		"id": "2b70d232-ac5a-5cc7-b997-9474bfd42443",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -122,7 +122,7 @@
 		"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'IIT_MONTHLY_DECLARATION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: (ctx.lookup.filing_dates ?? {})[run.salary_coverage.from.slice(0, 7)] ?? add_days(run.salary_coverage.from, ctx.lookup.due_days),\n  occurrence_key: 'IIT_MONTHLY_DECLARATION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"effects": "const run = ctx.entry;\nconst filing = month_start(add_months(month_start(run.pay_date), 1));\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: get(ctx.lookup.filing_dates, filing.slice(0, 7), add_days(filing, ctx.lookup.due_days)),\n  occurrence_key: 'IIT_MONTHLY_DECLARATION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
 		"id": "9b9ff400-8369-56e9-ae97-ce4d4e3d5388",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -165,7 +165,7 @@
 		"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'UNION_FUND_REMITTANCE:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst union = get(ext, 'union_established', false) === true ||\n  (get(ctx.lookup.preparatory, region, '') === 'ORGANISATION' && get(ext, 'union_preparatory', false) === true);\nif (!union) return [];\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: get(ctx.lookup.due_day, region, null) == null\n  ? month_end(add_months(month_start(run.salary_coverage.from), 1))\n  : add_days(month_start(add_months(run.salary_coverage.from, 1)), Number(get(ctx.lookup.due_day, region, 1)) - 1),\n  occurrence_key: 'UNION_FUND_REMITTANCE:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst union = get(ext, 'union_established', false) === true ||\n  (get(ctx.lookup.preparatory, region, '') === 'ORGANISATION' && get(ext, 'union_preparatory', false) === true);\nif (!union) return [];\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: get(ctx.lookup.due_day, region, null) == null\n  ? month_end(add_months(month_start(run.salary_coverage.from), 1))\n  : add_days(month_start(add_months(run.salary_coverage.from, 1)), get(ctx.lookup.due_day, region, 1) - 1),\n  occurrence_key: 'UNION_FUND_REMITTANCE:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
 		"id": "9a3f32f6-0740-5844-a41d-1d5f36be2a4b",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -496,7 +496,7 @@
 				"limit": 1000
 			}
 		},
-		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'VOID' || row.effective_range.to == null) return false;\nconst key = 'TERMINATION_CERTIFICATE:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"condition": "const row = ctx.entry;\nif (row == null) return false;\nif (row.status !== 'VOID') return false;\nif (row.effective_range.to == null) return false;\nconst key = 'TERMINATION_CERTIFICATE:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.to,\n  occurrence_key: 'TERMINATION_CERTIFICATE:' + row.id + ':exit:' + row.effective_range.to\n}];",
@@ -532,7 +532,7 @@
 				"limit": 1000
 			}
 		},
-		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'VOID' || row.effective_range.to == null) return false;\nconst key = 'SI_FILE_TRANSFER:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"condition": "const row = ctx.entry;\nif (row == null) return false;\nif (row.status !== 'VOID') return false;\nif (row.effective_range.to == null) return false;\nconst key = 'SI_FILE_TRANSFER:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.to, ctx.lookup.due_days),\n  occurrence_key: 'SI_FILE_TRANSFER:' + row.id + ':exit:' + row.effective_range.to\n}];",
@@ -568,7 +568,7 @@
 				"limit": 1000
 			}
 		},
-		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'VOID' || row.effective_range.to == null) return false;\nconst key = 'HPF_CHANGE_REGISTRATION:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"condition": "const row = ctx.entry;\nif (row == null) return false;\nif (row.status !== 'VOID') return false;\nif (row.effective_range.to == null) return false;\nconst key = 'HPF_CHANGE_REGISTRATION:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.to, ctx.lookup.due_days),\n  occurrence_key: 'HPF_CHANGE_REGISTRATION:' + row.id + ':exit:' + row.effective_range.to\n}];",
@@ -619,10 +619,10 @@
 				"limit": 1000
 			}
 		},
-		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'VOID' || row.effective_range.to == null) return false;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst working = Number(get(ctx.lookup.working_days, region, 0));\nconst key = 'FINAL_WAGES:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"condition": "const row = ctx.entry;\nif (row == null) return false;\nif (row.status !== 'VOID') return false;\nif (row.effective_range.to == null) return false;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst working = get(ctx.lookup.working_days, region, 0);\nconst key = 'FINAL_WAGES:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const row = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst working = Number(get(ctx.lookup.working_days, region, 0));\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: working > 0\n  ? add_working_days(row.effective_range.to, working, ctx.reads.holiday ?? [], [0, 6])\n  : row.effective_range.to,\n  occurrence_key: 'FINAL_WAGES:' + row.id + ':exit:' + row.effective_range.to\n}];",
+		"effects": "const row = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst working = get(ctx.lookup.working_days, region, 0);\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: working > 0\n  ? add_working_days(row.effective_range.to, working, ctx.reads.holiday ?? [], [0, 6])\n  : row.effective_range.to,\n  occurrence_key: 'FINAL_WAGES:' + row.id + ':exit:' + row.effective_range.to\n}];",
 		"id": "6640aa56-f826-5db6-b960-9d886ce02429",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -655,7 +655,7 @@
 				"limit": 1000
 			}
 		},
-		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'VOID' || row.effective_range.to == null) return false;\nconst key = 'TERMINATED_CONTRACT_RETENTION:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"condition": "const row = ctx.entry;\nif (row == null) return false;\nif (row.status !== 'VOID') return false;\nif (row.effective_range.to == null) return false;\nconst key = 'TERMINATED_CONTRACT_RETENTION:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_years(row.effective_range.to, ctx.lookup.retention_years),\n  occurrence_key: 'TERMINATED_CONTRACT_RETENTION:' + row.id + ':exit:' + row.effective_range.to\n}];",
@@ -693,7 +693,7 @@
 				"limit": 1000
 			}
 		},
-		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'VOID' || row.effective_range.to == null) return false;\nconst batch = Number(get(row.employee_extension_data, 'exit_facts.layoff_batch_size', 0));\nconst headcount = Number(get(ctx.subject.employer, 'entity_extension_data.prior_year_average_headcount', 0));\nif (!(batch >= ctx.lookup.batch_threshold || (headcount > 0 && batch >= headcount * ctx.lookup.headcount_share))) return false;\nconst key = 'ECONOMIC_LAYOFF_REPORT:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"condition": "const row = ctx.entry;\nif (row == null) return false;\nif (row.status !== 'VOID') return false;\nif (row.effective_range.to == null) return false;\nconst batch = Number(get(row.employee_extension_data, 'exit_facts.layoff_batch_size', 0));\nconst headcount = Number(get(ctx.subject.employer, 'entity_extension_data.prior_year_average_headcount', 0));\nif (!(batch >= ctx.lookup.batch_threshold || (headcount > 0 && batch >= headcount * ctx.lookup.headcount_share))) return false;\nconst key = 'ECONOMIC_LAYOFF_REPORT:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.to, -ctx.lookup.advance_days),\n  occurrence_key: 'ECONOMIC_LAYOFF_REPORT:' + row.id + ':exit:' + row.effective_range.to\n}];",
@@ -811,7 +811,7 @@
 				"limit": 1000
 			}
 		},
-		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'VOID' || row.effective_range.to == null) return false;\nconst key = 'EMPLOYMENT_DEREGISTRATION:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"condition": "const row = ctx.entry;\nif (row == null) return false;\nif (row.status !== 'VOID') return false;\nif (row.effective_range.to == null) return false;\nconst key = 'EMPLOYMENT_DEREGISTRATION:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.to, ctx.lookup.due_days),\n  occurrence_key: 'EMPLOYMENT_DEREGISTRATION:' + row.id + ':exit:' + row.effective_range.to\n}];",
@@ -1335,7 +1335,7 @@
 				"limit": 1000
 			}
 		},
-		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'VOID' || row.effective_range.to == null) return false;\nconst key = 'PERSONAL_DATA_DISPOSAL:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"condition": "const row = ctx.entry;\nif (row == null) return false;\nif (row.status !== 'VOID') return false;\nif (row.effective_range.to == null) return false;\nconst key = 'PERSONAL_DATA_DISPOSAL:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: String(Number(row.effective_range.to.slice(0, 4)) + ctx.lookup.retention_years) + '-12-31',\n  occurrence_key: 'PERSONAL_DATA_DISPOSAL:' + row.id + ':exit:' + row.effective_range.to\n}];",
@@ -1696,7 +1696,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const task = ctx.entry;\nif (task == null || task.state !== 'FULFILLED' || task.due_on == null || task.fulfilled_on == null) return false;\nif (!String(task.occurrence_key ?? '').startsWith('SI_MONTHLY_PAYMENT:')) return false;\nif (task.fulfilled_on <= task.due_on) return false;\nconst key = 'SI_LATE_SURCHARGE:' + task.id;\nreturn !ctx.reads.obligation.some((item) => item.occurrence_key === key);",
+		"condition": "const task = ctx.entry;\nif (task == null) return false;\nif (task.state !== 'FULFILLED') return false;\nif (task.due_on == null) return false;\nif (task.fulfilled_on == null) return false;\nif (!String(task.occurrence_key ?? '').startsWith('SI_MONTHLY_PAYMENT:')) return false;\nif (task.fulfilled_on <= task.due_on) return false;\nconst key = 'SI_LATE_SURCHARGE:' + task.id;\nreturn !ctx.reads.obligation.some((item) => item.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const task = ctx.entry;\nreturn [{\n  entity_id: task.entity_id,\n  title: ctx.lookup.title,\n  due_on: task.fulfilled_on,\n  occurrence_key: 'SI_LATE_SURCHARGE:' + task.id\n}];",

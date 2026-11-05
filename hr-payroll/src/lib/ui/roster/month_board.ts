@@ -61,7 +61,6 @@ type Contract = {
 	readonly to: string | null;
 	readonly patternId: string | null;
 	/** Where this person enters the cycle, when they run it on another phase than the pattern's. */
-	readonly patternStart?: string | null;
 };
 
 /** One roster row on the board: a person, each of their days read from the contract valid on it. */
@@ -200,16 +199,12 @@ export function shiftMinutes(shift: ShiftRow | undefined): number | null {
 }
 
 /** The cycle day a date falls on, or null when there is no cycle to place it in. */
-export const cycleShiftId = (
-	pattern: PatternRow | undefined,
-	date: string,
-	start?: string | null
-): string | null => {
+export const cycleShiftId = (pattern: PatternRow | undefined, date: string): string | null => {
 	const days = pattern?.pattern?.days;
-	const anchor = start ?? pattern?.pattern?.anchor_date ?? pattern?.effective_range?.from;
+	const anchor = pattern?.pattern?.anchor_date ?? pattern?.effective_range?.from;
 	const to = pattern?.effective_range?.to ?? null;
 	if (days == null || days.length === 0 || anchor == null) return null;
-	if (start == null && date < anchor) return null;
+	if (date < anchor) return null;
 	if (to != null && date > to) return null;
 	const span =
 		Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${anchor}T00:00:00Z`)) / 86_400_000) %
@@ -274,8 +269,7 @@ export function buildDays(input: {
 			const shiftId = entry?.shift_definition_id == null ? null : String(entry.shift_definition_id);
 			const employed = contract !== undefined;
 			// a pattern projects only inside the contract that names it
-			const projectedId =
-				shiftId == null ? cycleShiftId(pattern, date, contract?.patternStart) : null;
+			const projectedId = shiftId == null ? cycleShiftId(pattern, date) : null;
 			const plannedId = shiftId ?? projectedId;
 			const planned = plannedId == null ? undefined : shifts.get(plannedId);
 			const plannedMinutes = shiftMinutes(planned);

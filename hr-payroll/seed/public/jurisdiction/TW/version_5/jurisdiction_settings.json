@@ -60,7 +60,7 @@
 												"continued_after_65": {
 													"type": "boolean",
 													"default": false,
-													"description": "LI — a worker over 65 who has not claimed the old-age benefit and continues in labour insurance (勞工保險條例 §9-1; BLI 年逾65歲繼續工作者得繼續參加勞保): charged at 13% (no employment insurance after 65)."
+													"description": "LI — a worker over 65 who has not claimed the old-age benefit and continues in labour insurance (勞工保險條例 §9-1; BLI 年逾65歲繼續工作者得繼續參加勞保): charged at 12%, the ordinary-risk rate cut by 1% (no employment insurance after 65)."
 												},
 												"disability_subsidy": {
 													"type": "number",
@@ -278,7 +278,7 @@
 						"migrant_worker": {
 							"type": "boolean",
 							"default": false,
-							"description": "就業服務法 §46(1)(8)–(11) migrant worker. 勞動部 114年10月14日勞動福3字第1140153402A號令: from 1 April 2026 such a worker with under ten years at the unit is left out of the 勞動基準法 §56 reserve wage total. Unrecorded is no."
+							"description": "就業服務法 §46(1)(8)–(10) migrant worker. 勞動部 114年10月14日勞動福3字第1140153402A號令: from 1 April 2026 such a worker with under ten years at the unit may be left out of the 勞動基準法 §56 reserve wage total. Unrecorded is no."
 						}
 					}
 				},
@@ -455,7 +455,7 @@
 				"disabled_employees_counted": {
 					"type": "number",
 					"minimum": 0,
-					"description": "身心障礙者權益保障法 §38(3): the disabled employees counted toward the quota this month (a 重度 disability counts twice). Read by DISABLED_EMPLOYMENT_QUOTA_LEVY for an employer of 67 or more."
+					"description": "身心障礙者權益保障法 §38(5): the disabled employees counted toward the quota this month (a 重度 disability counts twice). Read by DISABLED_EMPLOYMENT_QUOTA_LEVY for an employer of 67 or more."
 				},
 				"flexible_working_time": {
 					"type": "boolean",

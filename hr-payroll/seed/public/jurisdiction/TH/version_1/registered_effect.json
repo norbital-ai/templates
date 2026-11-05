@@ -120,7 +120,7 @@
 		"condition": "const entry = ctx.entry;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const entry = ctx.entry;\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find((v) => v.entity_id === entry.entity_id && v.status === \"SEALED\" && v.effective_range.from <= entry.salary_coverage.from && (v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to));\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nconst online = get(facts, \"files_online\", false) === true;\nconst baseDue = add_days(month_end(entry.pay_date), ctx.lookup.date_offset_days);\nconst dueOn = online && baseDue <= ctx.lookup.online_effective_from ? add_days(month_end(entry.pay_date), ctx.lookup.online_offset_days) : baseDue;\nconst key = \"PND1_FILING\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"PND1 monthly withholding return\",\n  due_on: dueOn,\n  occurrence_key: key\n}];",
+		"effects": "const entry = ctx.entry;\nconst covering = (v) => {\n  if (v.entity_id !== entry.entity_id) return false;\n  if (v.status !== \"SEALED\") return false;\n  if (v.effective_range.from > entry.salary_coverage.from) return false;\n  return v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to;\n};\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find(covering);\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nconst online = get(facts, \"files_online\", false) === true;\nconst baseDue = add_days(month_end(entry.pay_date), ctx.lookup.date_offset_days);\nconst dueOn = online && baseDue <= ctx.lookup.online_effective_from ? add_days(month_end(entry.pay_date), ctx.lookup.online_offset_days) : baseDue;\nconst key = \"PND1_FILING\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"PND1 monthly withholding return\",\n  due_on: dueOn,\n  occurrence_key: key\n}];",
 		"id": "f748ccd9-0bea-51b1-aa9a-c8557938fdaf",
 		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
 	},
@@ -216,7 +216,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"12\"].includes(month)) return false;\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find((v) => v.entity_id === entry.entity_id && v.status === \"SEALED\" && v.effective_range.from <= entry.salary_coverage.from && (v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to));\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nconst headcount = get(ctx, \"reads.employee_contract\", []).filter((c) => c.entity_id === entry.entity_id && c.status === \"SEALED\" && c.engagement !== \"PAYEE\").length;\nreturn headcount >= ctx.lookup.employee_count_threshold && get(facts, \"sdf_exemption\", \"NONE\") === \"NONE\";",
+		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"12\"].includes(month)) return false;\nconst covering = (v) => {\n  if (v.entity_id !== entry.entity_id) return false;\n  if (v.status !== \"SEALED\") return false;\n  if (v.effective_range.from > entry.salary_coverage.from) return false;\n  return v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to;\n};\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find(covering);\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nconst headcount = get(ctx, \"reads.employee_contract\", []).filter((c) => c.entity_id === entry.entity_id && c.status === \"SEALED\" && c.engagement !== \"PAYEE\").length;\nreturn headcount >= ctx.lookup.employee_count_threshold && get(facts, \"sdf_exemption\", \"NONE\") === \"NONE\";",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"SKILL_DEVELOPMENT_FUND_PAYMENT\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Skill Development Fund contribution\",\n  due_on: month_end(add_months(entry.salary_coverage.from, ctx.lookup.date_offset_months)),\n  occurrence_key: key\n}];",
@@ -260,10 +260,10 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"02\"].includes(month)) return false;",
+		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"02\"].includes(month)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const entry = ctx.entry;\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find((v) => v.entity_id === entry.entity_id && v.status === \"SEALED\" && v.effective_range.from <= entry.salary_coverage.from && (v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to));\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nconst online = get(facts, \"files_online\", false) === true;\nconst dueOn = online && month_end(entry.salary_coverage.from) <= ctx.lookup.online_effective_from ? entry.salary_coverage.from.substring(0, 4) + ctx.lookup.annual_due : month_end(entry.salary_coverage.from);\nconst key = \"PND1_KOR_ANNUAL\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"PND1 Kor annual withholding return\",\n  due_on: dueOn,\n  occurrence_key: key\n}];",
+		"effects": "const entry = ctx.entry;\nconst covering = (v) => {\n  if (v.entity_id !== entry.entity_id) return false;\n  if (v.status !== \"SEALED\") return false;\n  if (v.effective_range.from > entry.salary_coverage.from) return false;\n  return v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to;\n};\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find(covering);\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nconst online = get(facts, \"files_online\", false) === true;\nconst dueOn = online && month_end(entry.salary_coverage.from) <= ctx.lookup.online_effective_from ? entry.salary_coverage.from.substring(0, 4) + ctx.lookup.annual_due : month_end(entry.salary_coverage.from);\nconst key = \"PND1_KOR_ANNUAL\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"PND1 Kor annual withholding return\",\n  due_on: dueOn,\n  occurrence_key: key\n}];",
 		"id": "f1f2a274-1614-500b-8ac8-b32caf51fbba",
 		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
 	},
@@ -292,7 +292,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"02\"].includes(month)) return false;",
+		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"02\"].includes(month)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"WITHHOLDING_CERTIFICATE_ANNUAL\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Annual withholding certificate to employees\",\n  due_on: add_days(entry.salary_coverage.from, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -336,7 +336,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"01\"].includes(month)) return false;\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find((v) => v.entity_id === entry.entity_id && v.status === \"SEALED\" && v.effective_range.from <= entry.salary_coverage.from && (v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to));\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nreturn get(facts, \"wcf_instalments\", false) !== true;",
+		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"01\"].includes(month)) return false;\nconst covering = (v) => {\n  if (v.entity_id !== entry.entity_id) return false;\n  if (v.status !== \"SEALED\") return false;\n  if (v.effective_range.from > entry.salary_coverage.from) return false;\n  return v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to;\n};\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find(covering);\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nreturn get(facts, \"wcf_instalments\", false) !== true;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"WCF_ANNUAL_CONTRIBUTION\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Annual Workmen’s Compensation Fund contribution\",\n  due_on: month_end(entry.salary_coverage.from),\n  occurrence_key: key\n}];",
@@ -366,7 +366,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"02\"].includes(month)) return false;",
+		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"02\"].includes(month)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"WCF_WAGE_STATEMENT\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Workmen’s compensation wage statement\",\n  due_on: month_end(entry.salary_coverage.from),\n  occurrence_key: key\n}];",
@@ -668,7 +668,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(employeeFacts, \"facts.nationality\", \"\");\nconst permitBasis = get(employeeFacts, \"facts.work_permit_basis\", \"\");\nreturn sealed && nationality !== \"\" && nationality !== \"TH\" && permitBasis !== \"SECTION_62\";",
+		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(employeeFacts, \"facts.nationality\", \"\");\nconst permitBasis = get(employeeFacts, \"facts.work_permit_basis\", \"\");\nif (!sealed) return false;\nif (nationality === \"\") return false;\nif (nationality === \"TH\") return false;\nreturn permitBasis !== \"SECTION_62\";",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"FOREIGN_WORKER_HIRE_NOTIFICATION\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Foreign worker hire notification\",\n  due_on: add_days(entry.effective_range.from, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -700,7 +700,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(employeeFacts, \"facts.nationality\", \"\");\nconst permitBasis = get(employeeFacts, \"facts.work_permit_basis\", \"\");\nreturn exited && nationality !== \"\" && nationality !== \"TH\" && permitBasis !== \"SECTION_62\";",
+		"condition": "const entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(employeeFacts, \"facts.nationality\", \"\");\nconst permitBasis = get(employeeFacts, \"facts.work_permit_basis\", \"\");\nif (!exited) return false;\nif (nationality === \"\") return false;\nif (nationality === \"TH\") return false;\nreturn permitBasis !== \"SECTION_62\";",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"FOREIGN_WORKER_EXIT_NOTIFICATION\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Foreign worker exit notification\",\n  due_on: add_days(entry.effective_range.to, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -732,7 +732,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"03\"].includes(month)) return false;",
+		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"03\"].includes(month)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"WCF_ADDITIONAL_CONTRIBUTION\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Additional Workmen’s Compensation Fund contribution\",\n  due_on: month_end(entry.salary_coverage.from),\n  occurrence_key: key\n}];",
@@ -776,7 +776,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst facts = get(entry, \"entity_extension_data\", {});\nconst firstEmployedOn = get(facts, \"first_employed_on\", null);\nconst isFirst = !get(ctx, \"reads.entity_profile_version\", []).some((v) => v.id !== entry.id && v.effective_range.from < entry.effective_range.from);\nreturn sealed && firstEmployedOn !== null && isFirst;",
+		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst facts = get(entry, \"entity_extension_data\", {});\nconst firstEmployedOn = get(facts, \"first_employed_on\", null);\nconst isFirst = !get(ctx, \"reads.entity_profile_version\", []).some((v) => v.id !== entry.id && v.effective_range.from < entry.effective_range.from);\nif (!sealed) return false;\nif (firstEmployedOn === null) return false;\nreturn isFirst;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst facts = get(entry, \"entity_extension_data\", {});\nconst firstEmployedOn = get(facts, \"first_employed_on\", null);\nconst key = \"EMPLOYER_REGISTRATION\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Employer registration with the Social Security Office\",\n  due_on: add_days(firstEmployedOn, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -821,7 +821,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst headcount = get(ctx, \"reads.employee_contract\", []).filter((c) => c.entity_id === entry.entity_id && c.status === \"SEALED\" && c.engagement !== \"PAYEE\").length;\nreturn sealed && headcount >= ctx.lookup.employee_count_threshold && headcount < ctx.lookup.employee_count_threshold_11;",
+		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst headcount = get(ctx, \"reads.employee_contract\", []).filter((c) => c.entity_id === entry.entity_id && c.status === \"SEALED\" && c.engagement !== \"PAYEE\").length;\nif (!sealed) return false;\nif (headcount < ctx.lookup.employee_count_threshold) return false;\nreturn headcount < ctx.lookup.employee_count_threshold_11;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"WORK_RULES\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Work rules for an employer reaching ten employees\",\n  due_on: add_days(entry.effective_range.from, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -901,7 +901,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst facts = get(entry, \"entity_extension_data\", {});\nconst ceasedOn = get(facts, \"ceased_on\", null);\nconst latest = !get(ctx, \"reads.entity_profile_version\", []).some((v) => v.id !== entry.id && v.effective_range.from > entry.effective_range.from);\nreturn sealed && ceasedOn !== null && latest;",
+		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst facts = get(entry, \"entity_extension_data\", {});\nconst ceasedOn = get(facts, \"ceased_on\", null);\nconst latest = !get(ctx, \"reads.entity_profile_version\", []).some((v) => v.id !== entry.id && v.effective_range.from > entry.effective_range.from);\nif (!sealed) return false;\nif (ceasedOn === null) return false;\nreturn latest;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst facts = get(entry, \"entity_extension_data\", {});\nconst ceasedOn = get(facts, \"ceased_on\", null);\nconst key = \"WCF_CLOSING_WAGE_STATEMENT\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Workmen’s compensation closing wage statement\",\n  due_on: add_days(ceasedOn, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -934,7 +934,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(employeeFacts, \"facts.nationality\", \"\");\nconst permitBasis = get(employeeFacts, \"facts.work_permit_basis\", \"\");\nreturn sealed && dateOfBirth !== \"\" && age_on(dateOfBirth, entry.effective_range.from) < ctx.lookup.employee_age_years_threshold;",
+		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(employeeFacts, \"facts.nationality\", \"\");\nconst permitBasis = get(employeeFacts, \"facts.work_permit_basis\", \"\");\nif (!sealed) return false;\nif (dateOfBirth === \"\") return false;\nreturn age_on(dateOfBirth, entry.effective_range.from) < ctx.lookup.employee_age_years_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"YOUNG_WORKER_HIRE_NOTICE\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Young worker hire notice\",\n  due_on: add_days(entry.effective_range.from, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -967,7 +967,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(employeeFacts, \"facts.nationality\", \"\");\nconst permitBasis = get(employeeFacts, \"facts.work_permit_basis\", \"\");\nreturn exited && dateOfBirth !== \"\" && age_on(dateOfBirth, entry.effective_range.to) < ctx.lookup.employee_age_years_threshold;",
+		"condition": "const entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(employeeFacts, \"facts.nationality\", \"\");\nconst permitBasis = get(employeeFacts, \"facts.work_permit_basis\", \"\");\nif (!exited) return false;\nif (dateOfBirth === \"\") return false;\nreturn age_on(dateOfBirth, entry.effective_range.to) < ctx.lookup.employee_age_years_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"YOUNG_WORKER_EXIT_NOTICE\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Young worker exit notice\",\n  due_on: add_days(entry.effective_range.to, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -979,11 +979,11 @@
 		"name": "Notify a temporary cessation of business",
 		"lookup": {
 			"kind": "TEMPORARY_CESSATION",
-			"advance_notice_days": 1
+			"advance_notice_days": 3
 		},
 		"references": [
 			{
-				"title": "Labour Protection Act B.E. 2541 s.75 para 2: the employer informs the employees and the labour inspector before ceasing business temporarily. Due the day before the cessation starts. Office of the Council of State English translation.",
+				"title": "Labour Protection Act B.E. 2541 s.75 para 2 (as replaced by Act No. 2 B.E. 2551): the employer informs the employees and the labour inspector in writing at least three working days before the cessation starts. Counted here in calendar days; move it earlier across a weekend or holiday.",
 				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
 			}
 		],
@@ -1117,7 +1117,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst exitOn = entry.effective_range.to;\nconst deposits = get(ctx, \"reads.workplace_case_catalog_entry\", []).filter((c) => c.kind === \"SECURITY_DEPOSIT_RECEIVED\" && c.employment_id === entry.id && c.closed_on === null && get(c, \"evidence_file\", null) !== null && c.opened_on <= exitOn && Number(get(c, \"inputs.amount\", 0)) > 0 && get(c, \"inputs.currency\", \"\") === ctx.lookup.currency && get(c, \"inputs.receipt_reference\", \"\") !== \"\");\nreturn exited && deposits.length > 0;",
+		"condition": "const entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst exitOn = entry.effective_range.to;\nconst held = (c) => {\n  if (c.kind !== \"SECURITY_DEPOSIT_RECEIVED\") return false;\n  if (c.employment_id !== entry.id) return false;\n  if (c.closed_on !== null) return false;\n  if (get(c, \"evidence_file\", null) === null) return false;\n  if (c.opened_on > exitOn) return false;\n  if (!(Number(get(c, \"inputs.amount\", 0)) > 0)) return false;\n  if (get(c, \"inputs.currency\", \"\") !== ctx.lookup.currency) return false;\n  return get(c, \"inputs.receipt_reference\", \"\") !== \"\";\n};\nconst deposits = get(ctx, \"reads.workplace_case_catalog_entry\", []).filter(held);\nreturn exited && deposits.length > 0;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"SECURITY_DEPOSIT_RETURN\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Return a security deposit on exit\",\n  due_on: add_days(entry.effective_range.to, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -1239,7 +1239,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find((v) => v.entity_id === entry.entity_id && v.status === \"SEALED\" && v.effective_range.from <= entry.effective_range.from && (v.effective_range.to == null || entry.effective_range.from <= v.effective_range.to));\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nconst headcount = get(ctx, \"reads.employee_contract\", []).filter((c) => c.entity_id === entry.entity_id && c.status === \"SEALED\" && c.engagement !== \"PAYEE\").length;\nreturn sealed && headcount >= ctx.lookup.employee_count_threshold && get(facts, \"sdf_exemption\", \"NONE\") === \"NONE\" && get(facts, \"sdf_registration_reference\", \"\") === \"\";",
+		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst covering = (v) => {\n  if (v.entity_id !== entry.entity_id) return false;\n  if (v.status !== \"SEALED\") return false;\n  if (v.effective_range.from > entry.effective_range.from) return false;\n  return v.effective_range.to == null || entry.effective_range.from <= v.effective_range.to;\n};\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find(covering);\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nconst headcount = get(ctx, \"reads.employee_contract\", []).filter((c) => c.entity_id === entry.entity_id && c.status === \"SEALED\" && c.engagement !== \"PAYEE\").length;\nif (!sealed) return false;\nif (headcount < ctx.lookup.employee_count_threshold) return false;\nif (get(facts, \"sdf_exemption\", \"NONE\") !== \"NONE\") return false;\nreturn get(facts, \"sdf_registration_reference\", \"\") === \"\";",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"SKILL_DEVELOPMENT_REGISTRATION\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Skill Development Fund registration\",\n  due_on: entry.effective_range.from,\n  occurrence_key: key\n}];",
@@ -1296,7 +1296,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"01\"].includes(month)) return false;\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find((v) => v.entity_id === entry.entity_id && v.status === \"SEALED\" && v.effective_range.from <= entry.salary_coverage.from && (v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to));\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nconst headcount = get(ctx, \"reads.employee_contract\", []).filter((c) => c.entity_id === entry.entity_id && c.status === \"SEALED\" && c.engagement !== \"PAYEE\").length;\nreturn headcount >= ctx.lookup.employee_count_threshold && get(facts, \"sdf_exemption\", \"NONE\") === \"NONE\";",
+		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"01\"].includes(month)) return false;\nconst covering = (v) => {\n  if (v.entity_id !== entry.entity_id) return false;\n  if (v.status !== \"SEALED\") return false;\n  if (v.effective_range.from > entry.salary_coverage.from) return false;\n  return v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to;\n};\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find(covering);\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nconst headcount = get(ctx, \"reads.employee_contract\", []).filter((c) => c.entity_id === entry.entity_id && c.status === \"SEALED\" && c.engagement !== \"PAYEE\").length;\nreturn headcount >= ctx.lookup.employee_count_threshold && get(facts, \"sdf_exemption\", \"NONE\") === \"NONE\";",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"SKILL_DEVELOPMENT_COURSE_CERTIFICATION\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Skill Development Fund course certification\",\n  due_on: add_days(entry.salary_coverage.from, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -1373,7 +1373,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"01\"].includes(month)) return false;\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find((v) => v.entity_id === entry.entity_id && v.status === \"SEALED\" && v.effective_range.from <= entry.salary_coverage.from && (v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to));\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nreturn get(facts, \"wcf_instalments\", false) === true;",
+		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"01\"].includes(month)) return false;\nconst covering = (v) => {\n  if (v.entity_id !== entry.entity_id) return false;\n  if (v.status !== \"SEALED\") return false;\n  if (v.effective_range.from > entry.salary_coverage.from) return false;\n  return v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to;\n};\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find(covering);\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nreturn get(facts, \"wcf_instalments\", false) === true;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"WCF_INSTALMENT_DEPOSIT\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Workmen’s Compensation Fund instalment deposit\",\n  due_on: month_end(entry.salary_coverage.from),\n  occurrence_key: key\n}];",
@@ -1417,7 +1417,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"01\", \"04\", \"07\", \"10\"].includes(month)) return false;\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find((v) => v.entity_id === entry.entity_id && v.status === \"SEALED\" && v.effective_range.from <= entry.salary_coverage.from && (v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to));\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nreturn get(facts, \"wcf_instalments\", false) === true;",
+		"condition": "const entry = ctx.entry;\nconst month = entry.salary_coverage.from.substring(5, 7);\nif (![\"01\", \"04\", \"07\", \"10\"].includes(month)) return false;\nconst covering = (v) => {\n  if (v.entity_id !== entry.entity_id) return false;\n  if (v.status !== \"SEALED\") return false;\n  if (v.effective_range.from > entry.salary_coverage.from) return false;\n  return v.effective_range.to == null || entry.salary_coverage.from <= v.effective_range.to;\n};\nconst entityRow = get(ctx, \"reads.entity_profile_version\", []).find(covering);\nconst facts = get(entityRow ?? {}, \"entity_extension_data\", {});\nreturn get(facts, \"wcf_instalments\", false) === true;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"WCF_INSTALMENT\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  title: \"Workmen’s Compensation Fund quarterly instalment\",\n  due_on: month_end(entry.salary_coverage.from),\n  occurrence_key: key\n}];",
@@ -1773,15 +1773,15 @@
 					"status": {
 						"eq": "SEALED"
 					},
-					"employee_id": {
+					"entity_id": {
 						"eq": {
-							"var": "ctx.entry.employee_id"
+							"var": "ctx.entry.entity_id"
 						}
 					}
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst prior = get(ctx, \"reads.employee_contract\", []).some((v) => v.id !== entry.id && v.employee_id === entry.employee_id && v.effective_range.from < entry.effective_range.from);\nreturn sealed && prior;",
+		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst prior = get(ctx, \"reads.employee_contract\", []).some((v) => v.id !== entry.id && v.employee_id === entry.employee_id && v.effective_range.from < entry.effective_range.from);\nconst headcount = get(ctx, \"reads.employee_contract\", []).filter((c) => c.entity_id === entry.entity_id && c.status === \"SEALED\" && c.engagement !== \"PAYEE\").length;\nif (!sealed) return false;\nif (!prior) return false;\nreturn headcount >= ctx.lookup.employee_count_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"EMPLOYEE_REGISTER_PAYROLL_UPDATE\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Update the employee register for a payroll change\",\n  due_on: add_days(entry.effective_range.from, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",

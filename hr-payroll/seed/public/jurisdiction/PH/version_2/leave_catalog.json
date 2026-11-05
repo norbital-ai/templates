@@ -211,25 +211,6 @@
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
 	{
-		"code": "ABSENCE",
-		"name": "Unpaid absence",
-		"references": [
-			{
-				"title": "DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.2; Omnibus Rules Book III Rule IV s.2: no work, no pay."
-			}
-		],
-		"lookup": {
-			"can_encash": false
-		},
-		"pay_treatment": "UNPAID",
-		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"id": "6454cdc9-8ede-5b27-8499-10718396ca5e",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
-	},
-	{
 		"code": "SOLO_PARENT_LEAVE",
 		"name": "Parental leave for solo parents",
 		"lookup": {

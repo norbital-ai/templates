@@ -45,6 +45,7 @@
 		'registrations',
 		'registered_address',
 		'final_pay_loan_floor_percent',
+		'overtime_full_award_percent',
 		'statutory_units',
 		'entity_extension_data',
 		'reason'

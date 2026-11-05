@@ -171,11 +171,7 @@
 					patternId:
 						contract.terms?.shift_pattern_id == null
 							? null
-							: String(contract.terms.shift_pattern_id),
-					patternStart:
-						contract.terms?.shift_pattern_start == null
-							? null
-							: String(contract.terms.shift_pattern_start)
+							: String(contract.terms.shift_pattern_id)
 				}));
 				const entries = spells.flatMap(({ id }) => entriesByEmployment.get(id) ?? []);
 				return {

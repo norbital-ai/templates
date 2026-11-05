@@ -198,8 +198,7 @@
 						? null
 						: cycleShiftId(
 								data.current.shift_pattern.rows.find((row) => row.id === patternId),
-								date,
-								valid?.terms?.shift_pattern_start
+								date
 							);
 				const projected = native.shift_definition?.find((s) => s.id === projectedId);
 				const projectedZone = zoneOn(date);

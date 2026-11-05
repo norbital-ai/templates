@@ -819,7 +819,7 @@ export default messages({
 	'app.work.description':
 		'Plan the monthly roster, publish it against the rules, and manage shifts and patterns.',
 	'app.work.sheet_help':
-		'The work-day sheet (⚡ → Download template, Import…) has one row per person-day. Shift must be a shift code in effect for that person and day, REST or OFF; any other value, PH included (public holidays come from the jurisdiction calendar, the Holiday column), refuses the file. The sheet has no leave: record leave in the leave app, and clock times on a day of full-day leave are refused. A Leave column in an older file is ignored. An import with errors writes nothing; otherwise it imports and lists its warnings.',
+		'The work-day sheet (⚡ → Download template, Import…) has one row per person-day. Shift must be a shift code in effect for that person and day, REST, OFF or ABS; any other value, PH included (public holidays come from the jurisdiction calendar, the Holiday column), refuses the file. The sheet has no leave: record leave in the leave app, and clock times on a day of full-day leave are refused. A Leave column in an older file is ignored. An import with errors writes nothing; otherwise it imports and lists its warnings.',
 	'app.adhoc.description':
 		'One-off payments and deductions, with the payroll capture that settled each.',
 	'app.claims.description':
@@ -871,6 +871,7 @@ export default messages({
 	'models.statutory_change.label': 'Statutory changes',
 	'models.statutory_change.singular': 'Statutory change',
 	'models.entity_profile_version.fields.final_pay_loan_floor_percent': 'Final-pay loan floor (%)',
+	'models.entity_profile_version.fields.overtime_full_award_percent': 'Full overtime threshold (%)',
 	'settings_version.changelog': 'Changelog',
 	'settings_version.compare': 'Compare',
 	'settings_version.compare_from': 'From version',

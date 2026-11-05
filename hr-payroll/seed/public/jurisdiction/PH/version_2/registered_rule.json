@@ -67,7 +67,10 @@
 				"FIELD_PERSONNEL",
 				"TASK_BASIS",
 				"PIECE_RATE",
-				"MANAGERIAL"
+				"MANAGERIAL",
+				"SUPERVISORY",
+				"DOMESTIC",
+				"CAREGIVER"
 			],
 			"residency_statuses": [
 				"CITIZEN",
@@ -79,7 +82,7 @@
 		},
 		"references": [
 			{
-				"title": "Labor Code art.82 (field personnel) and PD 851 Revised Guidelines (task-basis and piece-rate work): statutory work category; NIRC ss.22(E)-(G), 24(A) and 25(A)-(B): residency status selects the graduated or final withholding table."
+				"title": "Labor Code art.82 (field personnel) and PD 851 Revised Guidelines (task-basis and piece-rate work): statutory work category, with RA 10361 (kasambahay, DOMESTIC), RA 11965 (CAREGIVER) and NIRC s.33(A) (supervisory staff, SUPERVISORY, inside the fringe benefit tax); NIRC ss.22(E)-(G), 24(A) and 25(A)-(B): residency status selects the graduated or final withholding table."
 			}
 		],
 		"id": "6df44550-ffa4-58a6-9b44-180b0f6f2624",
@@ -109,7 +112,7 @@
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
 		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\tget(ctx.entry, 'final_pay_due_on', null) !== null;",
-		"validate": "const due = get(ctx.entry, 'final_pay_due_on', null);\nconst end = get(get(ctx.entry, 'effective_range', {}), 'to', null);\nreturn end !== null && due >= end && due <= add_days(end, ctx.lookup.maximum_days);",
+		"validate": "const due = get(ctx.entry, 'final_pay_due_on', null);\nconst end = get(get(ctx.entry, 'effective_range', {}), 'to', null);\nif (end === null) return false;\nif (!(due >= end)) return false;\nreturn due <= add_days(end, ctx.lookup.maximum_days);",
 		"order": 27,
 		"lookup": {
 			"maximum_days": 30
@@ -151,7 +154,7 @@
 		"target_collection": "workplace_case_catalog_entry",
 		"events": ["create", "update"],
 		"condition": "return ctx.entry.kind === ctx.lookup.kind;",
-		"validate": "const inputs = get(ctx.entry, 'inputs', {});\nconst year = get(inputs, 'tax_year', null);\nconst payment = get(inputs, 'compensation_payment_case_id', '');\nreturn year !== null && year >= ctx.lookup.minimum_year && String(payment).trim() !== '';",
+		"validate": "const inputs = get(ctx.entry, 'inputs', {});\nconst year = get(inputs, 'tax_year', null);\nconst payment = get(inputs, 'compensation_payment_case_id', '');\nif (year === null) return false;\nif (!(year >= ctx.lookup.minimum_year)) return false;\nreturn String(payment).trim() !== '';",
 		"order": 32,
 		"lookup": {
 			"kind": "BIR_2316_DELIVERED",
@@ -229,7 +232,7 @@
 			}
 		},
 		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT';",
-		"validate": "const wageRows = ctx.reads.statutory_contribution_catalog || [];\nconst wtax = wageRows.length > 0 ? wageRows[0].lookup : null;\nif (wtax == null) return true;\nconst employer = get(ctx.subject, 'employer.entity_extension_data', {});\nif (get(employer, 'bmbe_certificate_of_authority', false) === true) return true;\nif (get(employer, 'minimum_wage_exemption_approved', false) === true) return true;\nconst terms = get(ctx.entry, 'terms', {});\nconst facts = get(ctx.subject, 'employment.employee_extension_data', {});\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(get(terms, 'statutory_work_category', ''));\nconst region = get(facts, 'work_region', get(employer, 'region', ''));\nif (region === '') return true;\nconst table = domestic ? wtax.minimum_wage_domestic : wtax.minimum_wage_by_region;\nconst rates = (table || []).filter((entry) => entry.region === region && entry.from <= get(ctx.entry, 'effective_range.from', '9999-12-31'));\nif (rates.length === 0) return false;\nconst latest = rates.toSorted((a, b) => (a.from < b.from ? 1 : -1))[0];\nconst floor = Number(latest.monthly);\nconst annualDays = Number(get(wtax, 'annual_paid_days', 313));\nconst hours = Number(get(terms, 'normal_hours_per_day', get(wtax, 'normal_daily_hours', 8)));\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst daily = unit === 'DAILY' ? amount : unit === 'HOURLY' ? amount * hours : amount * 12 / annualDays;\nreturn daily + 0.005 >= floor * 12 / annualDays;",
+		"validate": "const wageRows = ctx.reads.statutory_contribution_catalog || [];\nconst wtax = wageRows.length > 0 ? wageRows[0].lookup : null;\nif (wtax == null) return true;\nconst employer = get(ctx.subject, 'employer.entity_extension_data', {});\nif (get(employer, 'bmbe_certificate_of_authority', false) === true) return true;\nif (get(employer, 'minimum_wage_exemption_approved', false) === true) return true;\nconst terms = get(ctx.entry, 'terms', {});\nconst facts = get(ctx.subject, 'employment.employee_extension_data', {});\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(get(terms, 'statutory_work_category', ''));\nconst region = get(facts, 'work_region', get(employer, 'region', ''));\nif (region === '') return true;\nconst table = domestic ? wtax.minimum_wage_domestic : wtax.minimum_wage_by_region;\nconst rates = (table || []).filter((entry) => entry.region === region && entry.from <= get(ctx.entry, 'effective_range.from', '9999-12-31'));\nif (rates.length === 0) return false;\nconst latest = rates.toSorted((a, b) => (a.from < b.from ? 1 : -1))[0];\nconst floor = Number(latest.monthly);\nconst annualDays = Number(get(wtax, 'annual_paid_days', 313));\nconst hours = Number(get(terms, 'normal_hours_per_day', get(wtax, 'normal_daily_hours', 8)));\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst daily = unit === 'DAILY'\n\t? amount\n\t: unit === 'HOURLY'\n\t\t? amount * hours\n\t\t: amount * 12 / annualDays;\nreturn daily + 0.005 >= floor * 12 / annualDays;",
 		"lookup": {
 			"job_natures": ["AGRI", "NONAGRI", "RETAIL", "DOMESTIC"]
 		},

@@ -20,10 +20,10 @@
 				"limit": 1000
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.entry.final_pay_due_on != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// A changed exit date raises the review again; the duties themselves are keyed by employment, not by exit facts.\nconst key = 'retract-exit-effects:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "// A changed exit date raises the review again; the duties themselves are keyed by employment, not by exit facts.\nconst key = 'retract-exit-effects:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.to,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "7ed2e18f-5e65-57b3-883c-b572f8d07b11",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -48,10 +48,10 @@
 				"limit": 1000
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.entry.final_pay_due_on != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'encash-leave-on-exit:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.final_pay_due_on,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'encash-leave-on-exit:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.final_pay_due_on,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "5e5a0aa7-687b-5089-a898-01fe6380cfc1",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -83,7 +83,7 @@
 		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'SI_HI_UI_MONTHLY_REMITTANCE:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: month_end(add_months(ctx.entry.salary_coverage.from, 1)),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'SI_HI_UI_MONTHLY_REMITTANCE:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: month_end(add_months(ctx.entry.salary_coverage.from, 1)),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "36c85cb2-9032-5a21-9e98-8c5b81f8fd7b",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -116,7 +116,7 @@
 		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'PIT_WITHHOLDING_DECLARATION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: month_end(add_months(month_start(ctx.entry.salary_coverage.from), ctx.lookup.quarter_months - ((Number(ctx.entry.salary_coverage.from.substring(5, 7)) - 1) % 3))),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'PIT_WITHHOLDING_DECLARATION:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: month_end(add_months(month_start(ctx.entry.salary_coverage.from), ctx.lookup.quarter_months - ((Number(ctx.entry.salary_coverage.from.substring(5, 7)) - 1) % 3))),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "dff02bcd-4b44-571e-bb71-0a267fbc244b",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -168,7 +168,7 @@
 		"condition": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nreturn !(get(profile, 'entity_extension_data.union_fee_suspended', false) === true);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nconst key = 'UNION_FEE_REMITTANCE:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: get(profile, 'entity_extension_data.union_fee_quarterly', false) === true\n\t\t\t\t\t? month_end(add_months(month_start(ctx.entry.salary_coverage.from), ctx.lookup.quarter_months - ((Number(ctx.entry.salary_coverage.from.substring(5, 7)) - 1) % 3)))\n\t\t\t\t\t: month_end(add_months(ctx.entry.salary_coverage.from, 1)),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nconst key = 'UNION_FEE_REMITTANCE:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: get(profile, 'entity_extension_data.union_fee_quarterly', false) === true\n\t\t\t? month_end(add_months(month_start(ctx.entry.salary_coverage.from), ctx.lookup.quarter_months - ((Number(ctx.entry.salary_coverage.from.substring(5, 7)) - 1) % 3)))\n\t\t\t: month_end(add_months(ctx.entry.salary_coverage.from, 1)),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "81447037-f299-587e-8a33-48b7474b8d7d",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -206,7 +206,7 @@
 		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'UNION_DUES_TRANSFER:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.pay_date,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'UNION_DUES_TRANSFER:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.pay_date,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "d5961641-934b-5e86-8cc7-9e1fe6785817",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -235,7 +235,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'encash-leave-at-window-end:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'encash-leave-at-window-end:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "2a53eb25-2c84-592b-987d-6279e3f10932",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -268,7 +268,7 @@
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'SI_HI_UI_REGISTRATION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.day_offset),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'SI_HI_UI_REGISTRATION:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.day_offset),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "f8f4ebdd-64bc-59c4-b325-c9ed3c5ac34e",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -302,7 +302,7 @@
 		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'SI_HI_UI_CHANGE_DECLARATION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: month_end(add_months(ctx.entry.salary_coverage.from, 1)),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'SI_HI_UI_CHANGE_DECLARATION:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: month_end(add_months(ctx.entry.salary_coverage.from, 1)),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "5b4cc58b-d449-5f94-b20f-b583ad0b65ca",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -362,10 +362,10 @@
 				}
 			}
 		},
-		"condition": "const catalog = first(get(ctx, 'reads.leave_catalog', []));\nreturn (\n\tcatalog != null &&\n\tctx.lookup.benefit_catalogs.includes(catalog.code) &&\n\t['APPROVED', 'FULFILLED'].includes(ctx.entry.status)\n);",
+		"condition": "const catalog = first(get(ctx, 'reads.leave_catalog', []));\nif (catalog == null) return false;\nif (!ctx.lookup.benefit_catalogs.includes(catalog.code)) return false;\nreturn ['APPROVED', 'FULFILLED'].includes(ctx.entry.status);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// The entry records no receipt date; the documented leave end bounds the seven-working-day window.\nconst last = ctx.entry.days.reduce((day, slot) => (slot.date > day ? slot.date : day), '');\nconst key = 'SI_BENEFIT_CLAIMS:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployment_id: ctx.entry.employment_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_working_days(last, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "// The entry records no receipt date; the documented leave end bounds the seven-working-day window.\nconst last = ctx.entry.days.reduce((day, slot) => (slot.date > day ? slot.date : day), '');\nconst key = 'SI_BENEFIT_CLAIMS:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(last, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "eebb5102-3fa5-5482-a61c-be1e6a98b629",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -399,7 +399,7 @@
 		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'INSURANCE_EQUIVALENT_PAYMENT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.pay_date,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'INSURANCE_EQUIVALENT_PAYMENT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.pay_date,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "cce82878-7180-5b09-bf64-8b01d58a2fb3",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -433,7 +433,7 @@
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'LABOUR_CONTRACT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.from,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'LABOUR_CONTRACT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.from,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "61ec13b7-aab5-55d2-b2db-c087d44cfeec",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -471,7 +471,7 @@
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'LABOUR_MANAGEMENT_BOOK:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.from,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'LABOUR_MANAGEMENT_BOOK:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.from,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "c1b3f6cf-b6c7-5074-8dec-6ea94642cc57",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -511,7 +511,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '05' || ctx.entry.period.substring(5, 7) === '11';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'LABOUR_USE_REPORT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.salary_coverage.to, ctx.lookup.day_offset),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'LABOUR_USE_REPORT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_days(ctx.entry.salary_coverage.to, ctx.lookup.day_offset),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "17d1eebf-66fd-5409-b680-c40a2d267636",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -546,7 +546,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'INTERNAL_LABOUR_RULES:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'INTERNAL_LABOUR_RULES:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "dceef2b2-c1f9-5409-b7f2-4de567f08181",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -580,7 +580,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'WAGE_SCALE_AND_NORMS:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'WAGE_SCALE_AND_NORMS:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "492276e6-20f1-5945-8e70-1e7c3fc18eb4",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -617,7 +617,7 @@
 		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'MINIMUM_WAGE:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'MINIMUM_WAGE:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "64618073-fa5f-582f-865f-8f5baf26fdbb",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -651,7 +651,7 @@
 		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'WAGE_PAYMENT_TIMING:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.pay_date,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'WAGE_PAYMENT_TIMING:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.pay_date,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "6214c726-7862-5f14-b829-ab9bbb1f576a",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -685,7 +685,7 @@
 		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'WAGE_STATEMENT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.pay_date,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'WAGE_STATEMENT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.pay_date,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "8546e0fa-4d43-5dfb-97ef-efcaf79c4ffb",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -720,7 +720,7 @@
 		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'WAGE_DEDUCTION_LIMIT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.pay_date,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'WAGE_DEDUCTION_LIMIT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.pay_date,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "622c797f-8003-512f-a734-333187be836a",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -762,7 +762,7 @@
 		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'OVERTIME_CONSENT_AND_LIMITS:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'OVERTIME_CONSENT_AND_LIMITS:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "e85ea6b2-088e-5378-a0f5-fc218b28d4fd",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -795,7 +795,7 @@
 		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'NIGHT_OVERTIME_STATEMENT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'NIGHT_OVERTIME_STATEMENT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "8d6e93dd-3b7a-5e46-b479-29d9b56c487e",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -834,7 +834,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '01';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'ANNUAL_LEAVE_SCHEDULE:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'ANNUAL_LEAVE_SCHEDULE:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "5d92e9e4-a198-54b8-8afb-dfab36d57248",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -868,7 +868,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'WORKPLACE_DIALOGUE:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'WORKPLACE_DIALOGUE:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "5fbba077-55e4-5b98-8cb9-14e992170917",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -910,10 +910,10 @@
 				}
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.entry.final_pay_due_on != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const term = get(ctx.entry, 'signed_contract_period', null);\nconst months = term != null ? calendar_completed_months(term.from, term.to) : null;\nconst agreed = get(ctx.entry.terms, 'notice_period.value', null);\nconst special = get(ctx.entry.employee_extension_data, 'term_facts.special_role_notice', false) === true;\nconst notice =\n\tagreed != null\n\t\t? Number(agreed)\n\t\t: get(ctx.entry.employee_extension_data, 'exit_facts.long_illness', false) === true\n\t\t\t? ctx.lookup.short_term_days\n\t\t\t: special\n\t\t\t\t? months == null || months >= 12\n\t\t\t\t\t? ctx.lookup.special_role_days\n\t\t\t\t\t: Math.ceil(calendar_distance_days(term.from, term.to) / 4)\n\t\t\t\t: months == null || months >= 36\n\t\t\t\t\t? ctx.lookup.indefinite_days\n\t\t\t\t\t: months >= 12\n\t\t\t\t\t\t? ctx.lookup.term_30_days\n\t\t\t\t\t\t: ctx.lookup.short_term_days;\nconst key = 'TERMINATION_NOTICE:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: notice === ctx.lookup.short_term_days\n\t\t\t\t\t? add_working_days(ctx.entry.effective_range.to, -notice, get(ctx, 'reads.holiday', []).map((h) => h.date), [0])\n\t\t\t\t\t: add_days(ctx.entry.effective_range.to, -notice),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const term = get(ctx.entry, 'signed_contract_period', null);\nconst end = get(term, 'to', null);\n// A contract's length includes its last day: 1 Jan to 31 Dec is the twelve months of Labour Code art.36(2)(b).\nconst months = end == null ? null : calendar_completed_months(term.from, add_days(end, 1));\nconst agreed = get(ctx.entry.terms, 'notice_period.value', null);\nconst special = get(ctx.entry.employee_extension_data, 'term_facts.special_role_notice', false) === true;\nconst noticeDays = () => {\n\tif (agreed != null) return Number(agreed);\n\tif (get(ctx.entry.employee_extension_data, 'exit_facts.long_illness', false) === true) return ctx.lookup.short_term_days;\n\tif (special && months != null && months < 12) return Math.ceil(calendar_distance_days(term.from, add_days(end, 1)) / 4);\n\tif (special) return ctx.lookup.special_role_days;\n\tif (months == null) return ctx.lookup.indefinite_days;\n\tif (months >= 12) return ctx.lookup.term_30_days;\n\treturn ctx.lookup.short_term_days;\n};\nconst notice = noticeDays();\nconst key = 'TERMINATION_NOTICE:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: notice === ctx.lookup.short_term_days\n\t\t\t? add_working_days(ctx.entry.effective_range.to, -notice, get(ctx, 'reads.holiday', []).map((h) => h.date), [0])\n\t\t\t: add_days(ctx.entry.effective_range.to, -notice),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "266e47ac-bea6-56ca-b27e-ed5f773cdc5f",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -945,10 +945,10 @@
 				"limit": 1000
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.entry.final_pay_due_on != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// The contract records no exit ground; confirm the ground before relying on the thirty-day plan.\nconst key = 'RESTRUCTURING_LABOUR_PLAN:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.effective_range.to, -ctx.lookup.day_offset),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "// The contract records no exit ground; confirm the ground before relying on the thirty-day plan.\nconst key = 'RESTRUCTURING_LABOUR_PLAN:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_days(ctx.entry.effective_range.to, -ctx.lookup.day_offset),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "d59d6fac-f83e-58e4-9979-95ba075e04f4",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -995,10 +995,10 @@
 				}
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.entry.final_pay_due_on != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'FINAL_SETTLEMENT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: get(ctx.entry.employee_extension_data, 'exit_facts.final_settlement_extended', false) === true\n\t\t\t\t\t? add_days(ctx.entry.effective_range.to, ctx.lookup.extended_days)\n\t\t\t\t\t: add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'FINAL_SETTLEMENT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: get(ctx.entry.employee_extension_data, 'exit_facts.final_settlement_extended', false) === true\n\t\t\t? add_days(ctx.entry.effective_range.to, ctx.lookup.extended_days)\n\t\t\t: add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0]),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "46c93e78-e551-57f3-9a0d-215bce7808b0",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1045,10 +1045,10 @@
 				}
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.entry.final_pay_due_on != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'SI_CONFIRMATION_ON_TERMINATION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: get(ctx.entry.employee_extension_data, 'exit_facts.final_settlement_extended', false) === true\n\t\t\t\t\t? add_days(ctx.entry.effective_range.to, ctx.lookup.extended_days)\n\t\t\t\t\t: add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'SI_CONFIRMATION_ON_TERMINATION:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: get(ctx.entry.employee_extension_data, 'exit_facts.final_settlement_extended', false) === true\n\t\t\t? add_days(ctx.entry.effective_range.to, ctx.lookup.extended_days)\n\t\t\t: add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0]),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "8ab0e273-9bba-58e2-8234-eae98c2c4f34",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1082,7 +1082,7 @@
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'PIT_TAX_REGISTRATION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: month_end(add_months(month_start(ctx.entry.effective_range.from), ctx.lookup.quarter_months - ((Number(ctx.entry.effective_range.from.substring(5, 7)) - 1) % 3))),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'PIT_TAX_REGISTRATION:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: month_end(add_months(month_start(ctx.entry.effective_range.from), ctx.lookup.quarter_months - ((Number(ctx.entry.effective_range.from.substring(5, 7)) - 1) % 3))),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "3dfa4c30-7e11-5e9b-8b6f-8058577b8340",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1116,7 +1116,7 @@
 		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'PIT_SHORT_CONTRACT_COMMITMENT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.pay_date,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'PIT_SHORT_CONTRACT_COMMITMENT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.pay_date,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "7eff8254-0c11-5c29-b20e-56abf76a32ed",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1149,7 +1149,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'PIT_ANNUAL_FINALISATION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.month_offset)),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'PIT_ANNUAL_FINALISATION:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.month_offset)),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "e97e86bb-fdfd-5959-b175-731bf41d13c1",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1178,10 +1178,10 @@
 				"limit": 1000
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.entry.final_pay_due_on != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'PIT_WITHHOLDING_CERTIFICATE:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'PIT_WITHHOLDING_CERTIFICATE:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.to,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "32e68ba2-85ab-5991-ae6b-34ebd1e30fbe",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1219,7 +1219,7 @@
 		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null\n);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst key = 'FOREIGN_WORK_PERMIT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.from,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst key = 'FOREIGN_WORK_PERMIT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.from,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "63ab96dd-f89b-5f18-a9f6-9006bc11f10f",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1252,10 +1252,10 @@
 				"limit": 1000
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.event.day < ctx.lookup.commencement &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null &&\n\tctx.event.day === add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_days)\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (!(ctx.event.day < ctx.lookup.commencement)) return false;\nif (get(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) == null) return false;\nreturn ctx.event.day === add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_days);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// The contract term bounds the authorisation; the record carries no permit expiry.\nconst key = 'WORK_PERMIT_EXTENSION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.effective_range.to, -ctx.lookup.due_days),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "// The contract term bounds the authorisation; the record carries no permit expiry.\nconst key = 'WORK_PERMIT_EXTENSION:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_days(ctx.entry.effective_range.to, -ctx.lookup.due_days),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "5dc004c8-94f0-5e9d-b5b8-7a3275483493",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1308,10 +1308,10 @@
 				}
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.effective_range.to >= ctx.lookup.commencement &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (!(ctx.entry.effective_range.to >= ctx.lookup.commencement)) return false;\nreturn ctx.entry.final_pay_due_on != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'WORK_PERMIT_RETURN:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.to >= ctx.lookup.commencement\n\t\t\t\t\t? add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6])\n\t\t\t\t\t: add_days(ctx.entry.effective_range.to, ctx.lookup.calendar_days),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'WORK_PERMIT_RETURN:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.to >= ctx.lookup.commencement\n\t\t\t? add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6])\n\t\t\t: add_days(ctx.entry.effective_range.to, ctx.lookup.calendar_days),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "0dad25e0-8a95-5aec-ba14-cdf6e876e588",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1352,10 +1352,10 @@
 				}
 			}
 		},
-		"condition": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nreturn ctx.entry.period.substring(5, 7) === '12' || (get(profile, 'entity_extension_data.six_monthly_health_checks', false) === true && ctx.entry.period.substring(5, 7) === '06');",
+		"condition": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nif (ctx.entry.period.substring(5, 7) === '12') return true;\nif (get(profile, 'entity_extension_data.six_monthly_health_checks', false) !== true) return false;\nreturn ctx.entry.period.substring(5, 7) === '06';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nconst key = 'OCCUPATIONAL_HEALTH_CHECK:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nconst key = 'OCCUPATIONAL_HEALTH_CHECK:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "c3faead2-5add-5bc6-a880-7e7135eb4da9",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1394,7 +1394,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '06' || ctx.entry.period.substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'OCCUPATIONAL_ACCIDENT_REPORT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.period.substring(5, 7) === '06'\n\t\t\t\t\t? add_days(ctx.entry.salary_coverage.to, ctx.lookup.june_day_offset)\n\t\t\t\t\t: add_days(ctx.entry.salary_coverage.to, ctx.lookup.december_day_offset),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'OCCUPATIONAL_ACCIDENT_REPORT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.period.substring(5, 7) === '06'\n\t\t\t? add_days(ctx.entry.salary_coverage.to, ctx.lookup.june_day_offset)\n\t\t\t: add_days(ctx.entry.salary_coverage.to, ctx.lookup.december_day_offset),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "db3f3058-2dea-5e50-b4a2-94ecea87dcd9",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1428,7 +1428,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'OSH_ANNUAL_REPORT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.salary_coverage.to, ctx.lookup.day_offset),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'OSH_ANNUAL_REPORT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_days(ctx.entry.salary_coverage.to, ctx.lookup.day_offset),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "4298a3e8-fc70-54c0-ae6d-3473d434bac5",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1469,7 +1469,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'RECORD_RETENTION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_months(ctx.entry.salary_coverage.to, ctx.lookup.retention_months),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'RECORD_RETENTION:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_months(ctx.entry.salary_coverage.to, ctx.lookup.retention_months),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "5e3a4fbf-1acd-5dc1-b0c5-25f9e44b8263",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1501,7 +1501,7 @@
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'PDPL_CONSENT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.from,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'PDPL_CONSENT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.from,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "5fc26149-020e-5ec5-af0d-a6eb30ba8320",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1532,10 +1532,10 @@
 				"limit": 1000
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.entry.final_pay_due_on != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'PDPL_RECRUITMENT_AND_EMPLOYMENT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'PDPL_RECRUITMENT_AND_EMPLOYMENT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.to,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "85b10cb0-2211-56cd-98ac-da5ddf32e5fe",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1582,10 +1582,10 @@
 				}
 			}
 		},
-		"condition": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nreturn !(get(profile, 'entity_extension_data.pdpl_exempt', false) === true) && (ctx.entry.period.substring(5, 7) === '06' || ctx.entry.period.substring(5, 7) === '12');",
+		"condition": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nif (get(profile, 'entity_extension_data.pdpl_exempt', false) === true) return false;\nreturn ctx.entry.period.substring(5, 7) === '06' || ctx.entry.period.substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nconst key = 'PDPL_IMPACT_ASSESSMENT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nconst key = 'PDPL_IMPACT_ASSESSMENT:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "0e40d5fb-e3ec-5075-bc46-636b7ba5d473",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1624,7 +1624,7 @@
 		"condition": "return ctx.entry.kind === 'PERSONAL_DATA_BREACH';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'PDPL_BREACH_NOTIFICATION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.opened_on, ctx.lookup.day_offset),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'PDPL_BREACH_NOTIFICATION:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_days(ctx.entry.opened_on, ctx.lookup.day_offset),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "cf067805-0e06-5c78-a1b0-5a235981d433",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1670,7 +1670,7 @@
 		"condition": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nreturn !(get(profile, 'entity_extension_data.pdpl_exempt', false) === true) && ctx.entry.period.substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nconst key = 'PDPL_DATA_PROTECTION_PERSONNEL:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nconst key = 'PDPL_DATA_PROTECTION_PERSONNEL:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "23dd7108-1cfa-5ff3-9e4c-853b53760612",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1703,7 +1703,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'DEPENDANT_TAX_REGISTRATION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: month_end(ctx.entry.salary_coverage.from),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'DEPENDANT_TAX_REGISTRATION:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: month_end(ctx.entry.salary_coverage.from),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "273d9898-65ca-5690-849c-7a0de0d9b912",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1736,7 +1736,7 @@
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// The employer version carries no operations-start date; its own start bounds the thirty-day filing.\nconst key = 'LABOUR_USE_DECLARATION:' + ctx.entry.entity_id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.day_offset),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "// The employer version carries no operations-start date; its own start bounds the thirty-day filing.\nconst key = 'LABOUR_USE_DECLARATION:' + ctx.entry.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.day_offset),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "e571e158-86dd-538a-ab7a-9707c50266c8",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1766,10 +1766,10 @@
 				"limit": 1000
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (ctx.entry.final_pay_due_on == null) return false;\nreturn get(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst key = 'FOREIGN_EXIT_PIT_FINALISATION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst key = 'FOREIGN_EXIT_PIT_FINALISATION:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.to,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "0a76f9c2-1b52-5c33-8a59-60697f4fe56c",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1801,7 +1801,7 @@
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'OSH_INDUCTION_TRAINING:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.from,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'OSH_INDUCTION_TRAINING:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.from,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "a15c9185-6735-507a-a670-9aeb97fec6ca",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1838,10 +1838,10 @@
 				"limit": 1000
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.entry.final_pay_due_on != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'PERSONAL_DATA_DISPOSAL:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_years(ctx.entry.effective_range.to.substring(0, 4) + ctx.lookup.year_end, ctx.lookup.retention_years),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'PERSONAL_DATA_DISPOSAL:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_years(ctx.entry.effective_range.to.substring(0, 4) + ctx.lookup.year_end, ctx.lookup.retention_years),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "d1310328-8297-5e76-bc21-f69c2c9937e6",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1891,10 +1891,10 @@
 				}
 			}
 		},
-		"condition": "const catalog = first(get(ctx, 'reads.leave_catalog', []));\nreturn (\n\tcatalog != null &&\n\tctx.lookup.benefit_catalogs.includes(catalog.code) &&\n\tctx.entry.evidence_file == null\n);",
+		"condition": "const catalog = first(get(ctx, 'reads.leave_catalog', []));\nif (catalog == null) return false;\nif (!ctx.lookup.benefit_catalogs.includes(catalog.code)) return false;\nreturn ctx.entry.evidence_file == null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const last = ctx.entry.days.reduce((day, slot) => (slot.date > day ? slot.date : day), '');\nconst key = 'SI_BENEFIT_FILE_RECEIPT_REVIEW:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployment_id: ctx.entry.employment_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: last,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const last = ctx.entry.days.reduce((day, slot) => (slot.date > day ? slot.date : day), '');\nconst key = 'SI_BENEFIT_FILE_RECEIPT_REVIEW:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: last,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "321986f2-0e41-5d5a-8a40-a90ec02ab886",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1933,7 +1933,7 @@
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// The employer version carries no processing-start date; its own start bounds the sixty-day filing.\nconst key = 'PDPL_INITIAL_IMPACT_FILING:' + ctx.entry.entity_id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.day_offset),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "// The employer version carries no processing-start date; its own start bounds the sixty-day filing.\nconst key = 'PDPL_INITIAL_IMPACT_FILING:' + ctx.entry.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.day_offset),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "b31a7785-e9c2-5009-9964-43a5eea70687",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1964,10 +1964,10 @@
 				"limit": 1000
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null &&\n\tctx.entry.effective_range.from >= ctx.lookup.commencement\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) == null) return false;\nreturn ctx.entry.effective_range.from >= ctx.lookup.commencement;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'FOREIGN_WORKER_NEW_DECREE_REVIEW:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.from,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'FOREIGN_WORKER_NEW_DECREE_REVIEW:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.from,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "f9309bf4-e8cf-5464-9d2a-1869624d4f9b",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -1999,10 +1999,10 @@
 				"limit": 1000
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.event.day === ctx.lookup.commencement &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.event.day !== ctx.lookup.commencement) return false;\nreturn get(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'FOREIGN_WORKER_NEW_DECREE_TRANSITION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.event.day,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'FOREIGN_WORKER_NEW_DECREE_TRANSITION:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.event.day,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "a91d6ab6-f0c8-5e79-bf8e-0c2eea861ed2",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -2034,10 +2034,10 @@
 				"limit": 1000
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.event.day < ctx.lookup.commencement &&\n\tctx.event.day >= add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_days) &&\n\tget(ctx.entry, 'terms.work_authorisation_category', null) != null\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (!(ctx.event.day < ctx.lookup.commencement)) return false;\nif (!(ctx.event.day >= add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_days))) return false;\nreturn get(ctx.entry, 'terms.work_authorisation_category', null) != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst key = 'WORK_PERMIT_TRANSITION_REVIEW:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.event.day,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst key = 'WORK_PERMIT_TRANSITION_REVIEW:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.event.day,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "5fd7a797-b580-50a6-b079-e2420414a55b",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -2075,10 +2075,10 @@
 				"limit": 1000
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null &&\n\tctx.entry.effective_range.to < ctx.lookup.commencement &&\n\tadd_days(ctx.entry.effective_range.to, ctx.lookup.calendar_days) >= ctx.lookup.commencement\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (ctx.entry.final_pay_due_on == null) return false;\nif (get(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) == null) return false;\nif (!(ctx.entry.effective_range.to < ctx.lookup.commencement)) return false;\nreturn add_days(ctx.entry.effective_range.to, ctx.lookup.calendar_days) >= ctx.lookup.commencement;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst key = 'WORK_PERMIT_RETURN_TRANSITION_REVIEW:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.effective_range.to, ctx.lookup.calendar_days),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst key = 'WORK_PERMIT_RETURN_TRANSITION_REVIEW:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_days(ctx.entry.effective_range.to, ctx.lookup.calendar_days),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "eb64e32d-2d94-5c6f-a162-6bdf31504b97",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -2116,7 +2116,7 @@
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'PDPL_PROCESSING_START_REVIEW:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.from,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'PDPL_PROCESSING_START_REVIEW:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.from,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "cf309572-0ba9-5833-ad70-1f106a94a409",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -2158,10 +2158,10 @@
 				}
 			}
 		},
-		"condition": "const kind = get(ctx.entry, 'terms.work_authorisation_category', null);\nreturn (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.from >= ctx.lookup.commencement &&\n\t['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(kind) &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_application_submitted_on', null) == null\n);",
+		"condition": "const kind = get(ctx.entry, 'terms.work_authorisation_category', null);\nif (ctx.entry.status !== 'SEALED') return false;\nif (!(ctx.entry.effective_range.from >= ctx.lookup.commencement)) return false;\nif (!['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(kind)) return false;\nreturn get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_application_submitted_on', null) == null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'WORK_AUTHORISATION_APPLICATION_393:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_working_days(ctx.entry.effective_range.from, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'WORK_AUTHORISATION_APPLICATION_393:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(ctx.entry.effective_range.from, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "ad19b580-6067-50e6-9b43-ae8dda3f8133",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -2203,10 +2203,10 @@
 				}
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.from >= ctx.lookup.commencement &&\n\tget(ctx.entry, 'terms.work_authorisation_category', null) === 'EXEMPT_NOTIFICATION'\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (!(ctx.entry.effective_range.from >= ctx.lookup.commencement)) return false;\nreturn get(ctx.entry, 'terms.work_authorisation_category', null) === 'EXEMPT_NOTIFICATION';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'WORK_AUTHORISATION_EXEMPT_NOTICE_393:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_working_days(ctx.entry.effective_range.from, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'WORK_AUTHORISATION_EXEMPT_NOTICE_393:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(ctx.entry.effective_range.from, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "fc9a1be1-1fb7-5243-9166-d535d343e6c5",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -2249,10 +2249,10 @@
 				}
 			}
 		},
-		"condition": "const kind = get(ctx.entry, 'terms.work_authorisation_category', null);\nreturn (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.event.day >= ctx.lookup.commencement &&\n\t['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(kind) &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_extension_count', null) === 0 &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_application_submitted_on', null) == null &&\n\tctx.event.day >= add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_days)\n);",
+		"condition": "const kind = get(ctx.entry, 'terms.work_authorisation_category', null);\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (!(ctx.event.day >= ctx.lookup.commencement)) return false;\nif (!['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(kind)) return false;\nif (get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_extension_count', null) !== 0) return false;\nif (get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_application_submitted_on', null) != null) return false;\nreturn ctx.event.day >= add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_days);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// The contract term bounds the authorisation; the record carries no permit expiry.\nconst key = 'WORK_AUTHORISATION_EXTENSION_393:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_working_days(ctx.entry.effective_range.to, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "// The contract term bounds the authorisation; the record carries no permit expiry.\nconst key = 'WORK_AUTHORISATION_EXTENSION_393:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(ctx.entry.effective_range.to, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "c95fd4e5-2226-5383-a79c-db20ddf81b1f",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -2295,10 +2295,10 @@
 				}
 			}
 		},
-		"condition": "const kind = get(ctx.entry, 'terms.work_authorisation_category', null);\nconst count = get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_extension_count', null);\nreturn (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.event.day >= ctx.lookup.commencement &&\n\t['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(kind) &&\n\tcount != null &&\n\tcount >= 1 &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_application_submitted_on', null) == null &&\n\tctx.event.day >= add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_days)\n);",
+		"condition": "const kind = get(ctx.entry, 'terms.work_authorisation_category', null);\nconst count = get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_extension_count', null);\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (!(ctx.event.day >= ctx.lookup.commencement)) return false;\nif (!['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(kind)) return false;\nif (count == null) return false;\nif (!(count >= 1)) return false;\nif (get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_application_submitted_on', null) != null) return false;\nreturn ctx.event.day >= add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_days);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// The contract term bounds the authorisation; the record carries no permit expiry.\nconst key = 'WORK_AUTHORISATION_FRESH_ISSUE_393:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_working_days(ctx.entry.effective_range.to, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "// The contract term bounds the authorisation; the record carries no permit expiry.\nconst key = 'WORK_AUTHORISATION_FRESH_ISSUE_393:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(ctx.entry.effective_range.to, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "0640c2d5-cf85-5ae8-9903-7e967c1f86af",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -2340,10 +2340,10 @@
 				}
 			}
 		},
-		"condition": "const changedOn = get(ctx.entry.employee_extension_data, 'term_facts.work_location_change_on', null);\nreturn (\n\tctx.entry.status === 'SEALED' &&\n\tchangedOn != null &&\n\tchangedOn >= ctx.lookup.commencement &&\n\t['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(get(ctx.entry, 'terms.work_authorisation_category', null))\n);",
+		"condition": "const changedOn = get(ctx.entry.employee_extension_data, 'term_facts.work_location_change_on', null);\nif (ctx.entry.status !== 'SEALED') return false;\nif (changedOn == null) return false;\nif (!(changedOn >= ctx.lookup.commencement)) return false;\nreturn ['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(get(ctx.entry, 'terms.work_authorisation_category', null));",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'WORK_AUTHORISATION_LOCATION_NOTICE_393:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_working_days(get(ctx.entry.employee_extension_data, 'term_facts.work_location_change_on', null), -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'WORK_AUTHORISATION_LOCATION_NOTICE_393:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(get(ctx.entry.employee_extension_data, 'term_facts.work_location_change_on', null), -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "680f9366-50f9-565e-87b5-2ca8f697b7bd",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -2385,10 +2385,10 @@
 				}
 			}
 		},
-		"condition": "const invalidatedOn = get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_invalidated_on', null);\nreturn (\n\tctx.entry.status === 'SEALED' &&\n\tinvalidatedOn != null &&\n\tinvalidatedOn >= ctx.lookup.commencement &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_invalidation_ground', null) != null\n);",
+		"condition": "const invalidatedOn = get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_invalidated_on', null);\nif (ctx.entry.status !== 'SEALED') return false;\nif (invalidatedOn == null) return false;\nif (!(invalidatedOn >= ctx.lookup.commencement)) return false;\nreturn get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_invalidation_ground', null) != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'WORK_AUTHORISATION_INVALIDATION_RETURN_393:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_working_days(get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_invalidated_on', null), ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'WORK_AUTHORISATION_INVALIDATION_RETURN_393:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_invalidated_on', null), ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "f55b7891-fad2-5751-8621-47196d1dd5e5",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -2433,10 +2433,10 @@
 				}
 			}
 		},
-		"condition": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.event.day && (version.effective_range.to == null || version.effective_range.to >= ctx.event.day));\nreturn (\n\tctx.entry.status === 'SEALED' &&\n\tctx.event.day >= ctx.lookup.commencement &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null &&\n\t!(get(profile, 'entity_extension_data.foreign_worker_database_available', false) === true)\n);",
+		"condition": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.event.day && (version.effective_range.to == null || version.effective_range.to >= ctx.event.day));\nif (ctx.entry.status !== 'SEALED') return false;\nif (!(ctx.event.day >= ctx.lookup.commencement)) return false;\nif (get(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) == null) return false;\nreturn !(get(profile, 'entity_extension_data.foreign_worker_database_available', false) === true);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.event.day && (version.effective_range.to == null || version.effective_range.to >= ctx.event.day));\nconst day = ctx.event.day;\nconst year = day.substring(0, 4);\nconst due = day.substring(5, 10) <= '06-04' ? year + ctx.lookup.half_year_due[0] : year + ctx.lookup.half_year_due[1];\nconst key = 'FOREIGN_WORKER_REPORT_393:' + ctx.entry.entity_id + ':' + due;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: due,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.event.day && (version.effective_range.to == null || version.effective_range.to >= ctx.event.day));\nconst day = ctx.event.day;\nconst year = day.substring(0, 4);\nconst due = day.substring(5, 10) <= '06-04' ? year + ctx.lookup.half_year_due[0] : year + ctx.lookup.half_year_due[1];\nconst key = 'FOREIGN_WORKER_REPORT_393:' + ctx.entry.entity_id + ':' + due;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: due,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "f5cfab87-a73e-5042-8a08-2feedca1ca75",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	},
@@ -2468,10 +2468,10 @@
 				"limit": 1000
 			}
 		},
-		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.event.day >= ctx.lookup.commencement &&\n\tget(ctx.entry, 'terms.work_authorisation_category', null) != null &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_extension_count', null) == null\n);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (!(ctx.event.day >= ctx.lookup.commencement)) return false;\nif (get(ctx.entry, 'terms.work_authorisation_category', null) == null) return false;\nreturn get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_extension_count', null) == null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'WORK_AUTHORISATION_EXPIRY_INPUTS_393:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.event.day,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"effects": "const key = 'WORK_AUTHORISATION_EXPIRY_INPUTS_393:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.event.day,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "f47dd657-e764-5845-ab93-51a162986e70",
 		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
 	}

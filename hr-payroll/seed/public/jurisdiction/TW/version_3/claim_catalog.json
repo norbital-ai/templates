@@ -11,7 +11,7 @@
 		],
 		"off_cycle_eligible": true,
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
-		"eligibility": "// js\nreturn (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.run.salary_coverage.from &&\n\tctx.entry.incurred_on <= ctx.run.salary_coverage.to\n);",
+		"eligibility": "// js\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= ctx.run.salary_coverage.from)) return false;\nreturn ctx.entry.incurred_on <= ctx.run.salary_coverage.to;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",

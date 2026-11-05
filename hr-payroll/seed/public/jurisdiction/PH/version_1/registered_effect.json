@@ -174,14 +174,14 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "Labor Code art.40; DOLE Department Order No. 248 s.2025, New Rules and Regulations on the Employment of Foreign Nationals (21 January 2025; ONAR 25-0111,; supersedes DO 221-21): a non-resident foreign national may be employed only with an Alien Employment Permit issued before work starts. Recorded default: a profile `nationality` other than Philippine (PH, PHL, FILIPINO) is a foreign national; an unrecorded nationality raises nothing.",
+				"title": "Labor Code art.40; DOLE Department Order No. 248 s.2025, New Rules and Regulations on the Employment of Foreign Nationals (21 January 2025; ONAR 25-0111,; supersedes DO 221-21): a non-resident foreign national may be employed only with an Alien Employment Permit issued before work starts. Rule I s.3: the permit is secured \"prior to the actual start\" of employment; Rule V s.1(f): a permanent, probationary or temporary resident visa holder is exempt, on a certificate of exemption (s.2). Recorded default: the contract's `residency_status` decides: CITIZEN and PERMANENT_RESIDENT raise nothing, the alien statuses raise the duty; a temporary resident visa holder closes it with the certificate.",
 				"url": "https://naro.law.upd.edu.ph/issuances/7205"
 			}
 		],
 		"source_collection": "employee_contract",
 		"events": ["create"],
 		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'terms.residency_status', null) !== null &&\n\t!['PH', 'PHL', 'FILIPINO', 'PHILIPPINES', 'PHILIPPINE'].includes(String(get(ctx.entry, 'terms.residency_status', '')).toUpperCase());",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'terms.residency_status', null) === null) return false;\nreturn !['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(ctx.entry, 'terms.residency_status', ''));",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Alien Employment Permit before a foreign national starts work\",\n\t\tdue_on: get(ctx.entry, 'effective_range.from', null),\n\t\toccurrence_key: \"ALIEN_EMPLOYMENT_PERMIT:\" + ctx.entry.id\n\t}\n];",
@@ -308,7 +308,7 @@
 		"source_collection": "employee_contract",
 		"events": ["create"],
 		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null &&\n\tget(ctx.entry, 'terms.statutory_work_category', null) === 'DOMESTIC';",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'effective_range.to', null) === null) return false;\nreturn get(ctx.entry, 'terms.statutory_work_category', null) === 'DOMESTIC';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Five days\\u2019 notice to end a kasambahay\\u2019s employment\",\n\t\tdue_on: add_days(get(ctx.entry, 'effective_range.to', null), -ctx.lookup.advance_notice_days),\n\t\toccurrence_key: \"KASAMBAHAY_TERMINATION_NOTICE:\" + ctx.entry.id\n\t}\n];",
@@ -534,7 +534,7 @@
 		"source_collection": "entity_profile_version",
 		"events": ["create"],
 		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' &&\n\t(get(ctx.entry, 'entity_extension_data.processes_sensitive_pi_1000', null) === true || get(ctx.entry, 'entity_extension_data.npc_processing_likely_risk', null) === true || get(ctx.entry, 'entity_extension_data.npc_automated_decisions_or_profiling', null) === true);",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'entity_extension_data.processes_sensitive_pi_1000', null) === true) return true;\nif (get(ctx.entry, 'entity_extension_data.npc_processing_likely_risk', null) === true) return true;\nreturn get(ctx.entry, 'entity_extension_data.npc_automated_decisions_or_profiling', null) === true;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Register the data processing systems and DPO with the NPC\",\n\t\tdue_on: add_days(get(ctx.entry, 'effective_range.from', null), ctx.lookup.due_days),\n\t\toccurrence_key: \"NPC_REGISTRATION:\" + ctx.entry.id\n\t}\n];",
@@ -1023,7 +1023,7 @@
 		"condition": "return ctx.entry.kind === 'REGULAR' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Duplicate 2316s with the certified list for substituted filing\",\n\t\tdue_on: month_end(add_months(get(ctx.entry, 'salary_coverage.to', null), 2)),\n\t\toccurrence_key: \"BIR_2316_SUBSTITUTED_FILING_LIST:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Duplicate 2316s with the certified list for substituted filing\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-02-28',\n\t\toccurrence_key: \"BIR_2316_SUBSTITUTED_FILING_LIST:\" + ctx.entry.id\n\t}\n];",
 		"id": "aa165232-805f-5ce7-b076-c675359bff4a",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},

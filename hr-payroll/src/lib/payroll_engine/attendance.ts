@@ -16,6 +16,7 @@ const instant = (date: string, time: string, zone: string): number => {
 		hourCycle: 'h23'
 	})
 		.formatToParts(new Date(guess))
+		.filter((part) => part.type !== 'literal')
 		.map((part) => part.value);
 	const [year, month, day, hour, minute, second] = shown;
 	return guess - (Date.UTC(+year!, +month! - 1, +day!, +hour!, +minute!, +second!) - guess);
@@ -27,13 +28,13 @@ export function scheduled(
 	data: { readonly zone: string; readonly shift?: JsonObject }
 ): {
 	readonly spans: readonly { readonly start: number; readonly end: number }[];
-	readonly day_type: 'WORK' | 'REST' | 'OFF';
+	readonly day_type: 'WORK' | 'REST' | 'OFF' | 'ABS';
 	readonly untimed: number;
 } {
 	const variant = data.shift === undefined ? null : objectValue(data.shift.variant);
 	const dayType = row.day_type ?? variant?.day_type;
-	const day_type: 'WORK' | 'REST' | 'OFF' =
-		dayType === 'REST' || dayType === 'OFF' ? dayType : 'WORK';
+	const day_type: 'WORK' | 'REST' | 'OFF' | 'ABS' =
+		dayType === 'REST' || dayType === 'OFF' || dayType === 'ABS' ? dayType : 'WORK';
 	if (day_type !== 'WORK') return { spans: [], day_type, untimed: 0 };
 	const untimed = typeof variant?.untimed_hours === 'number' ? variant.untimed_hours : 0;
 	if (variant == null || variant.start_time == null || variant.end_time == null)
@@ -42,7 +43,61 @@ export function scheduled(
 	const endDate = variant.ends_next_day === true ? String(addDays(date, 1)) : date;
 	const start = instant(date, String(variant.start_time), data.zone);
 	const end = instant(endDate, String(variant.end_time), data.zone);
-	return { spans: end > start ? [{ start, end }] : [], day_type, untimed };
+	const pauses = (Array.isArray(variant.breaks) ? variant.breaks : [])
+		.map(objectValue)
+		.filter((pause) => pause.paid !== true)
+		.map((pause) => {
+			const day = String(pause.start_time) < String(variant.start_time) ? endDate : date;
+			return {
+				start: instant(day, String(pause.start_time), data.zone),
+				end: instant(day, String(pause.end_time), data.zone)
+			};
+		})
+		.toSorted((a, b) => a.start - b.start);
+	const spans: { start: number; end: number }[] = [];
+	let from = start;
+	for (const pause of pauses) {
+		if (pause.start > from) spans.push({ start: from, end: pause.start });
+		from = Math.max(from, pause.end);
+	}
+	if (end > from) spans.push({ start: from, end });
+	return { spans, day_type, untimed };
+}
+
+interface Span {
+	readonly start: number;
+	readonly end: number;
+}
+
+const AWARD_STEP_MINUTES = 30;
+
+/** Where two sets of spans overlap. */
+export const overlapSpans = (a: readonly Span[], b: readonly Span[]): readonly Span[] =>
+	a.flatMap((left) =>
+		b.flatMap((right) => {
+			const start = Math.max(left.start, right.start);
+			const end = Math.min(left.end, right.end);
+			return end > start ? [{ start, end }] : [];
+		})
+	);
+
+const spanMinutes = (spans: readonly Span[]): number =>
+	spans.reduce((total, span) => total + (span.end - span.start) / 60_000, 0);
+
+/**
+ * What the clock awards of planned overtime: all of it once the clock covers `fullPercent` of the
+ * plan, otherwise the covered time rounded down to the half hour. A clock-out at 17:59 pays until
+ * 17:30, and time outside the plan never counts.
+ */
+export function awardedMinutes(
+	planned: readonly Span[],
+	clock: readonly Span[],
+	fullPercent: number
+): number {
+	const total = spanMinutes(planned);
+	const covered = spanMinutes(overlapSpans(planned, clock));
+	if (covered > 0 && covered * 100 >= total * fullPercent) return total;
+	return Math.floor(covered / AWARD_STEP_MINUTES) * AWARD_STEP_MINUTES;
 }
 
 /** The published holidays observed on a day. */

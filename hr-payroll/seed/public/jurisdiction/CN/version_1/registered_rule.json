@@ -4,8 +4,8 @@
 		"target_collection": "payroll_run",
 		"events": ["after_contributions"],
 		"order": 0,
-		"condition": "const region = String(get(ctx.subject.employer.entity_extension_data, 'region', ''));\nreturn (\n  (ctx.lookup.minimum_wage ?? []).some((r) => r.region === region) &&\n  ctx.subject.employment.terms.rate != null &&\n  ctx.subject.employment.terms.rate.unit === 'MONTHLY' &&\n  month_start(ctx.run.salary_coverage.from) === ctx.run.salary_coverage.from &&\n  month_end(ctx.run.salary_coverage.to) === ctx.run.salary_coverage.to &&\n  !['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(\n    ctx.subject.employment.engagement,\n  )\n);",
-		"validate": "const salary = ctx.run.salary_coverage;\nconst employment = ctx.subject.employment;\nconst covered =\n  employment.effective_range.from <= salary.from &&\n  (employment.effective_range.to == null ||\n    employment.effective_range.to === '' ||\n    employment.effective_range.to >= salary.to);\nconst fullMonth = month_start(salary.from) === salary.from && month_end(salary.to) === salary.to;\nconst engagement = employment.engagement;\nconst ext = ctx.subject.employer.entity_extension_data ?? {};\nconst region = String(get(ext, 'region', ''));\nconst regionRows = (ctx.lookup.minimum_wage ?? []).filter((r) => r.region === region);\nconst zone = String(get(ext, 'wage_zone', get(regionRows[0], 'default_zone', '1')));\nconst table = regionRows.find((r) => r.zone === zone);\nconst floor = Number(get(table, 'monthly', 0));\nconst rate = employment.terms.rate;\nconst wage = rate != null && rate.unit === 'MONTHLY' ? Number(rate.amount) : 0;\nconst amountOf = (a) => (typeof a === 'number' ? a : Number(get(a, 'amount', 0)));\nconst foreign = sum(\n  ['FOREIGN_HOUSING_ALLOWANCE', 'FOREIGN_LANGUAGE_ALLOWANCE', 'FOREIGN_CHILD_EDUCATION_ALLOWANCE'].map(\n    (c) => amountOf(get(employment.terms.allowances, c, 0)),\n  ),\n);\nconst contributions =\n  get(table, 'excludes_employee_contributions', false) && rate != null && rate.unit === 'MONTHLY'\n    ? sum(\n        ['PENSION', 'MEDICAL', 'UNEMPLOYMENT', 'HPF', 'HPF_SUPPLEMENTARY'].map((c) =>\n          Number(get(ctx.statutory, c + '.employee', 0)),\n        ),\n      )\n    : 0;\nreturn (\n  covered &&\n  fullMonth &&\n  !['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement) &&\n  floor > 0 &&\n  wage - foreign - contributions >= floor\n);",
+		"condition": "const region = String(get(ctx.subject.employer.entity_extension_data, 'region', ''));\nif (!(ctx.lookup.minimum_wage ?? []).some((r) => r.region === region)) return false;\nconst rate = ctx.subject.employment.terms.rate;\nif (rate == null) return false;\nif (rate.unit !== 'MONTHLY') return false;\nconst salary = ctx.run.salary_coverage;\nif (month_start(salary.from) !== salary.from) return false;\nif (month_end(salary.to) !== salary.to) return false;\nreturn !['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.subject.employment.engagement);",
+		"validate": "const salary = ctx.run.salary_coverage;\nconst employment = ctx.subject.employment;\nconst covered =\n  employment.effective_range.from <= salary.from &&\n  (employment.effective_range.to == null ||\n    employment.effective_range.to === '' ||\n    employment.effective_range.to >= salary.to);\nconst fullMonth = month_start(salary.from) === salary.from && month_end(salary.to) === salary.to;\nconst engagement = employment.engagement;\nconst ext = ctx.subject.employer.entity_extension_data ?? {};\nconst region = String(get(ext, 'region', ''));\nconst regionRows = (ctx.lookup.minimum_wage ?? []).filter((r) => r.region === region);\nconst zone = String(get(ext, 'wage_zone', get(regionRows[0], 'default_zone', '1')));\nconst table = regionRows.find((r) => r.zone === zone);\nconst floor = Number(get(table, 'monthly', 0));\nconst rate = employment.terms.rate;\nconst wage = rate != null && rate.unit === 'MONTHLY' ? Number(rate.amount) : 0;\nconst amountOf = (a) => (typeof a === 'number' ? a : Number(get(a, 'amount', 0)));\nconst foreign = sum(\n  ['FOREIGN_HOUSING_ALLOWANCE', 'FOREIGN_LANGUAGE_ALLOWANCE', 'FOREIGN_CHILD_EDUCATION_ALLOWANCE'].map(\n    (c) => amountOf(get(employment.terms.allowances, c, 0)),\n  ),\n);\nconst contributions =\n  get(table, 'excludes_employee_contributions', false) && rate != null && rate.unit === 'MONTHLY'\n    ? sum(\n        ['PENSION', 'MEDICAL', 'UNEMPLOYMENT', 'HPF', 'HPF_SUPPLEMENTARY'].map((c) =>\n          Number(get(ctx.statutory, c + '.employee', 0)),\n        ),\n      )\n    : 0;\nif (!covered) return false;\nif (!fullMonth) return false;\nif (['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement)) return false;\nif (!(floor > 0)) return false;\nreturn wage - foreign - contributions >= floor;",
 		"lookup": {
 			"minimum_wage": [
 				{
@@ -51,7 +51,7 @@
 		"events": ["prepare_payroll"],
 		"order": 1,
 		"condition": "const terms = get(ctx.subject.employment, 'terms', {});\nreturn (\n  ['STANDARD', ''].includes(String(get(terms, 'statutory_work_category', 'STANDARD'))) &&\n  !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.subject.employment.engagement)\n);",
-		"validate": "const entries = (ctx.reads.roster_entry ?? [])\n  .filter(\n    (e) =>\n      e.work_date >= ctx.run.salary_coverage.from && e.work_date <= ctx.run.salary_coverage.to,\n  );\nconst hours = sum(entries.map((e) => interval_minutes(e.planned_overtime_intervals) / 60));\nreturn hours <= Number(ctx.lookup.monthly_overtime_hours);",
+		"validate": "const entries = (ctx.reads.roster_entry ?? [])\n  .filter(\n    (e) =>\n      e.work_date >= ctx.run.salary_coverage.from && e.work_date <= ctx.run.salary_coverage.to,\n  );\nconst hours = sum(entries.map((e) => interval_minutes(e.planned_overtime_intervals) / 60));\nreturn hours <= ctx.lookup.monthly_overtime_hours;",
 		"reads": {
 			"roster_entry": {
 				"where": {
@@ -76,7 +76,7 @@
 		"events": ["prepare_payroll"],
 		"order": 2,
 		"condition": "const terms = get(ctx.subject.employment, 'terms', {});\nreturn (\n  ['STANDARD', ''].includes(String(get(terms, 'statutory_work_category', 'STANDARD'))) &&\n  !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.subject.employment.engagement)\n);",
-		"validate": "const entries = (ctx.reads.roster_entry ?? [])\n  .filter(\n    (e) =>\n      e.work_date >= ctx.run.salary_coverage.from && e.work_date <= ctx.run.salary_coverage.to,\n  );\nreturn !entries.some(\n  (e) =>\n    interval_minutes(e.planned_overtime_intervals) / 60 > Number(ctx.lookup.daily_overtime_hours),\n);",
+		"validate": "const entries = (ctx.reads.roster_entry ?? [])\n  .filter(\n    (e) =>\n      e.work_date >= ctx.run.salary_coverage.from && e.work_date <= ctx.run.salary_coverage.to,\n  );\nreturn !entries.some(\n  (e) =>\n    interval_minutes(e.planned_overtime_intervals) / 60 > ctx.lookup.daily_overtime_hours,\n);",
 		"reads": {
 			"roster_entry": {
 				"where": {
@@ -100,7 +100,7 @@
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
 		"order": 3,
-		"condition": "return (\n  ctx.entry.engagement === 'PART_TIME' &&\n  ctx.entry.terms.rate != null &&\n  ctx.entry.terms.rate.unit === 'HOURLY'\n);",
+		"condition": "if (ctx.entry.engagement !== 'PART_TIME') return false;\nconst rate = ctx.entry.terms.rate;\nif (rate == null) return false;\nreturn rate.unit === 'HOURLY';",
 		"validate": "const employer = (ctx.reads.entity_profile_version ?? []).find(\n  (v) =>\n    v.status === 'SEALED' &&\n    v.effective_range.from <= ctx.entry.effective_range.from &&\n    (v.effective_range.to == null || v.effective_range.to >= ctx.entry.effective_range.from),\n);\nconst ext = get(employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst regionRows = (ctx.lookup.minimum_wage ?? []).filter((r) => r.region === region);\nconst zone = String(get(ext, 'wage_zone', get(regionRows[0], 'default_zone', '1')));\nconst table = regionRows.find((r) => r.zone === zone);\nconst floor = Number(get(table, 'hourly', 0));\nreturn floor > 0 && Number(ctx.entry.terms.rate.amount) >= floor;",
 		"reads": {
 			"entity_profile_version": {
@@ -160,7 +160,7 @@
 		"events": ["create", "update"],
 		"order": 4,
 		"condition": "return get(ctx.entry.terms, 'probation_period', null) != null;",
-		"validate": "const probation = ctx.entry.terms.probation_period;\nconst engaged = ['PROJECT', 'PART_TIME'].includes(ctx.entry.engagement);\nconst signed = ctx.entry.signed_contract_period;\nlet months = Number(ctx.lookup.probation_months.open_ended);\nif (engaged) months = 0;\nelse if (signed != null) {\n  const length = calendar_completed_months(signed.from, add_days(signed.to, 1));\n  months =\n    length < Number(ctx.lookup.probation_months.minimum_contract)\n      ? 0\n      : length < Number(ctx.lookup.probation_months.medium_contract)\n        ? Number(ctx.lookup.probation_months.short)\n        : length < Number(ctx.lookup.probation_months.long_contract)\n          ? Number(ctx.lookup.probation_months.medium)\n          : Number(ctx.lookup.probation_months.long);\n}\nreturn (\n  months > 0 &&\n  probation.from >= ctx.entry.effective_range.from &&\n  probation.to < add_months(probation.from, months)\n);",
+		"validate": "const probation = ctx.entry.terms.probation_period;\nconst limits = ctx.lookup.probation_months;\nconst engaged = ['PROJECT', 'PART_TIME'].includes(ctx.entry.engagement);\nconst signed = ctx.entry.signed_contract_period;\nlet months = limits.open_ended;\nif (engaged) months = 0;\nelse if (signed != null) {\n  const length = calendar_completed_months(signed.from, add_days(signed.to, 1));\n  months =\n    length < limits.minimum_contract ? 0 :\n    length < limits.medium_contract ? limits.short :\n    length < limits.long_contract ? limits.medium :\n    limits.long;\n}\nif (!(months > 0)) return false;\nif (!(probation.from >= ctx.entry.effective_range.from)) return false;\nreturn probation.to < add_months(probation.from, months);",
 		"lookup": {
 			"probation_months": {
 				"open_ended": 6,
@@ -180,8 +180,8 @@
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
 		"order": 5,
-		"condition": "return (\n  get(ctx.entry.terms, 'probation_period', null) != null &&\n  get(ctx.entry.terms, 'rate', null) != null &&\n  ctx.entry.terms.rate.unit === 'MONTHLY'\n);",
-		"validate": "const employer = (ctx.reads.entity_profile_version ?? []).find(\n  (v) =>\n    v.status === 'SEALED' &&\n    v.effective_range.from <= ctx.entry.effective_range.from &&\n    (v.effective_range.to == null || v.effective_range.to >= ctx.entry.effective_range.from),\n);\nconst ext = ctx.entry.employee_extension_data ?? {};\nconst job = get(ext, 'term_facts.job_salary', null);\nconst jobValue =\n  job == null ? null : typeof job === 'number' ? job : Number(get(job, 'value', job));\nconst post = get(ext, 'term_facts.post_lowest_wage', null);\nconst rate = Number(ctx.entry.terms.rate.amount);\nconst comparable =\n  jobValue != null\n    ? Number(jobValue) * Number(ctx.lookup.probation_wage_share)\n    : post != null\n      ? Number(post)\n      : null;\nconst employerExt = get(employer, 'entity_extension_data', {});\nconst region = String(get(employerExt, 'region', ''));\nconst regionRows = (ctx.lookup.minimum_wage ?? []).filter((r) => r.region === region);\nconst zone = String(get(employerExt, 'wage_zone', get(regionRows[0], 'default_zone', '1')));\nconst table = regionRows.find((r) => r.zone === zone);\nconst floor = Number(get(table, 'monthly', 0));\nreturn comparable != null && floor > 0 && rate >= comparable && rate >= floor;",
+		"condition": "if (get(ctx.entry.terms, 'probation_period', null) == null) return false;\nconst rate = get(ctx.entry.terms, 'rate', null);\nif (rate == null) return false;\nreturn rate.unit === 'MONTHLY';",
+		"validate": "const employer = (ctx.reads.entity_profile_version ?? []).find(\n  (v) =>\n    v.status === 'SEALED' &&\n    v.effective_range.from <= ctx.entry.effective_range.from &&\n    (v.effective_range.to == null || v.effective_range.to >= ctx.entry.effective_range.from),\n);\nconst ext = ctx.entry.employee_extension_data ?? {};\nconst job = get(ext, 'term_facts.job_salary', null);\nconst jobValue =\n  job == null ? null :\n  typeof job === 'number' ? job :\n  Number(get(job, 'value', job));\nconst post = get(ext, 'term_facts.post_lowest_wage', null);\nconst rate = Number(ctx.entry.terms.rate.amount);\nconst comparable =\n  jobValue != null ? Number(jobValue) * ctx.lookup.probation_wage_share :\n  post != null ? Number(post) :\n  null;\nconst employerExt = get(employer, 'entity_extension_data', {});\nconst region = String(get(employerExt, 'region', ''));\nconst regionRows = (ctx.lookup.minimum_wage ?? []).filter((r) => r.region === region);\nconst zone = String(get(employerExt, 'wage_zone', get(regionRows[0], 'default_zone', '1')));\nconst table = regionRows.find((r) => r.zone === zone);\nconst floor = Number(get(table, 'monthly', 0));\nif (comparable == null) return false;\nif (!(floor > 0)) return false;\nif (!(rate >= comparable)) return false;\nreturn rate >= floor;",
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -251,7 +251,7 @@
 		"events": ["create", "update"],
 		"order": 7,
 		"condition": "return ctx.entry.engagement === 'PART_TIME';",
-		"validate": "const day = get(ctx.entry.terms, 'normal_hours_per_day', null);\nconst week = get(ctx.entry.terms, 'normal_hours_per_week', null);\nreturn (\n  (day != null || week != null) &&\n  (day == null || Number(day) <= Number(ctx.lookup.part_time_daily_hours)) &&\n  (week == null || Number(week) <= Number(ctx.lookup.part_time_weekly_hours))\n);",
+		"validate": "const day = get(ctx.entry.terms, 'normal_hours_per_day', null);\nconst week = get(ctx.entry.terms, 'normal_hours_per_week', null);\nif (day == null && week == null) return false;\nif (day != null && !(Number(day) <= ctx.lookup.part_time_daily_hours)) return false;\nif (week != null && !(Number(week) <= ctx.lookup.part_time_weekly_hours)) return false;\nreturn true;",
 		"lookup": {
 			"part_time_daily_hours": 4,
 			"part_time_weekly_hours": 24
@@ -291,7 +291,7 @@
 		"events": ["prepare_payroll"],
 		"order": 9,
 		"condition": "const terms = get(ctx.subject.employment, 'terms', {});\nreturn (\n  ['STANDARD', ''].includes(String(get(terms, 'statutory_work_category', 'STANDARD'))) &&\n  !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.subject.employment.engagement)\n);",
-		"validate": "const entries = (ctx.reads.roster_entry ?? [])\n  .filter(\n    (e) =>\n      e.work_date >= ctx.run.salary_coverage.from && e.work_date <= ctx.run.salary_coverage.to,\n  );\nconst worked = entries\n  .filter((e) => Array.isArray(e.actual_worked_intervals) && e.actual_worked_intervals.length > 0)\n  .map((e) => e.work_date)\n  .toSorted();\nreturn !worked.some((d, i) => i + 6 < worked.length && worked[i + 6] === add_days(d, 6));",
+		"validate": "const entries = (ctx.reads.roster_entry ?? [])\n  .filter(\n    (e) =>\n      e.work_date >= ctx.run.salary_coverage.from && e.work_date <= ctx.run.salary_coverage.to,\n  );\nconst worked = entries\n  .filter((e) => Array.isArray(e.actual_worked_intervals) && e.actual_worked_intervals.length > 0)\n  .map((e) => e.work_date)\n  .toSorted();\nconst span = ctx.lookup.weekly_rest_days - 1;\nreturn !worked.some((d, i) => i + span < worked.length && worked[i + span] === add_days(d, span));",
 		"reads": {
 			"roster_entry": {
 				"where": {
@@ -315,7 +315,7 @@
 		"target_collection": "leave_catalog_entry",
 		"events": ["create", "update", "approve"],
 		"order": 10,
-		"validate": "const catalog = ctx.reads.leave_catalog[0];\nif (catalog == null || catalog.code !== 'SICK_LEAVE') return true;\nconst used =\n  sum(\n    (ctx.reads.leave_catalog_entry ?? [])\n      .filter(\n        (e) =>\n          e.id !== ctx.entry.id &&\n          !e.is_reversal &&\n          e.catalog_id === ctx.entry.catalog_id &&\n          !e.is_reversal,\n      )\n      .map((e) => (e.days ?? []).length / 2),\n  ) +\n  (ctx.entry.days ?? []).length / 2;\nif (used <= Number(ctx.lookup.review_after_days)) return true;\nconst contract = ctx.subject.employment;\nreturn get(get(contract, 'employee_extension_data', {}), 'medical_period_review', null) != null;",
+		"validate": "const catalog = ctx.reads.leave_catalog[0];\nif (catalog == null || catalog.code !== 'SICK_LEAVE') return true;\nconst used =\n  sum(\n    (ctx.reads.leave_catalog_entry ?? [])\n      .filter(\n        (e) =>\n          e.id !== ctx.entry.id &&\n          !e.is_reversal &&\n          e.catalog_id === ctx.entry.catalog_id,\n      )\n      .map((e) => (e.days ?? []).length / 2),\n  ) +\n  (ctx.entry.days ?? []).length / 2;\nif (used <= ctx.lookup.review_after_days) return true;\nconst contract = ctx.subject.employment;\nreturn get(get(contract, 'employee_extension_data', {}), 'medical_period_review', null) != null;",
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -362,7 +362,7 @@
 		"target_collection": "leave_catalog_entry",
 		"events": ["create", "update", "approve"],
 		"order": 11,
-		"validate": "const catalog = ctx.reads.leave_catalog[0];\nif (catalog == null || catalog.code !== 'WORK_INJURY_LEAVE') return true;\nconst used =\n  sum(\n    (ctx.reads.leave_catalog_entry ?? [])\n      .filter(\n        (e) =>\n          e.id !== ctx.entry.id &&\n          !e.is_reversal &&\n          e.catalog_id === ctx.entry.catalog_id &&\n          !e.is_reversal,\n      )\n      .map((e) => (e.days ?? []).length / 2),\n  ) +\n  (ctx.entry.days ?? []).length / 2;\nif (used <= Number(ctx.lookup.maximum_days)) return true;\nconst contract = ctx.subject.employment;\nreturn get(get(contract, 'employee_extension_data', {}), 'work_injury_leave_extension', null) != null;",
+		"validate": "const catalog = ctx.reads.leave_catalog[0];\nif (catalog == null || catalog.code !== 'WORK_INJURY_LEAVE') return true;\nconst used =\n  sum(\n    (ctx.reads.leave_catalog_entry ?? [])\n      .filter(\n        (e) =>\n          e.id !== ctx.entry.id &&\n          !e.is_reversal &&\n          e.catalog_id === ctx.entry.catalog_id,\n      )\n      .map((e) => (e.days ?? []).length / 2),\n  ) +\n  (ctx.entry.days ?? []).length / 2;\nif (used <= ctx.lookup.maximum_days) return true;\nconst contract = ctx.subject.employment;\nreturn get(get(contract, 'employee_extension_data', {}), 'work_injury_leave_extension', null) != null;",
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -409,7 +409,7 @@
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
 		"order": 12,
-		"condition": "const end = get(ctx.entry.effective_range, 'to', null);\nreturn (\n  end != null &&\n  end !== '' &&\n  !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.entry.engagement)\n);",
+		"condition": "const end = get(ctx.entry.effective_range, 'to', null);\nif (end == null) return false;\nif (end === '') return false;\nreturn !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.entry.engagement);",
 		"validate": "const until = get(ctx.entry.employee_extension_data, 'exit_facts.protected_until', null);\nif (until == null) return true;\nreturn String(ctx.entry.effective_range.to) >= String(until);",
 		"lookup": {},
 		"id": "c4996b9c-c88c-566e-ba7d-081de89bfca6",
@@ -420,8 +420,8 @@
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
 		"order": 13,
-		"condition": "const dob = get(ctx.entry.payroll, 'date_of_birth', null);\nreturn (\n  dob != null &&\n  dob !== '' &&\n  !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.entry.engagement)\n);",
-		"validate": "const dob = get(ctx.entry.payroll, 'date_of_birth', null);\nconst date = ctx.entry.effective_range.from;\nif (dob == null || dob === '' || dob > date) return true;\nconst female = get(ctx.entry.payroll, 'gender', null) === 'FEMALE';\nconst category = female\n  ? String(get(ctx.entry.employee_extension_data, 'facts.retirement_category', 'FEMALE_50'))\n  : 'MALE';\nconst rows = ctx.lookup.retirement ?? [];\nconst rule = rows.find((r) => r.category === category) ?? rows.find((r) => r.category === 'MALE');\nif (rule == null) return false;\nconst extra =\n  dob < rule.cutoff\n    ? 0\n    : Math.min(\n        Number(rule.max_deferral_months),\n        Math.trunc(\n          calendar_completed_months(rule.cutoff, month_start(dob)) /\n            Number(rule.birth_months_per_step),\n        ) + 1,\n      );\nreturn calendar_completed_months(dob, date) < Number(rule.base_years) * 12 + extra;",
+		"condition": "const dob = get(ctx.entry.payroll, 'date_of_birth', null);\nif (dob == null) return false;\nif (dob === '') return false;\nreturn !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.entry.engagement);",
+		"validate": "const dob = get(ctx.entry.payroll, 'date_of_birth', null);\nconst date = ctx.entry.effective_range.from;\nif (dob == null || dob === '' || dob > date) return true;\nconst female = get(ctx.entry.payroll, 'gender', null) === 'FEMALE';\nconst category = female\n  ? String(get(ctx.entry.employee_extension_data, 'facts.retirement_category', 'FEMALE_50'))\n  : 'MALE';\nconst rows = ctx.lookup.retirement ?? [];\nconst rule = rows.find((r) => r.category === category) ?? rows.find((r) => r.category === 'MALE');\nif (rule == null) return false;\nif (dob < rule.cutoff) return calendar_completed_months(dob, date) < rule.base_years * 12;\nconst steps = Math.trunc(calendar_completed_months(rule.cutoff, month_start(dob)) / rule.birth_months_per_step) + 1;\nreturn calendar_completed_months(dob, date) < rule.base_years * 12 + Math.min(rule.max_deferral_months, steps);",
 		"lookup": {
 			"retirement": [
 				{
@@ -490,8 +490,8 @@
 		"target_collection": "roster_entry",
 		"events": ["create", "update"],
 		"order": 16,
-		"condition": "const terms = get(ctx.subject.employment, 'terms', {});\nconst standard = ['STANDARD', ''].includes(String(get(terms, 'statutory_work_category', 'STANDARD')));\nconst engagement = String(get(ctx.subject.employment, 'engagement', ''));\nconst dayType = String(get(get(ctx.reads.shift_definition[0], 'variant', {}), 'day_type', 'WORK'));\nreturn (\n  standard &&\n  !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement) &&\n  dayType === 'WORK'\n);",
-		"validate": "return interval_minutes(get(ctx.entry, 'planned_overtime_intervals', [])) / 60 <= Number(ctx.lookup.daily_overtime_hours);",
+		"condition": "const terms = get(ctx.subject.employment, 'terms', {});\nconst standard = ['STANDARD', ''].includes(String(get(terms, 'statutory_work_category', 'STANDARD')));\nconst engagement = String(get(ctx.subject.employment, 'engagement', ''));\nconst dayType = String(get(get(ctx.reads.shift_definition[0], 'variant', {}), 'day_type', 'WORK'));\nif (!standard) return false;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement)) return false;\nreturn dayType === 'WORK';",
+		"validate": "return interval_minutes(get(ctx.entry, 'planned_overtime_intervals', [])) / 60 <= ctx.lookup.daily_overtime_hours;",
 		"reads": {
 			"shift_definition": {
 				"where": {
@@ -522,8 +522,8 @@
 		"target_collection": "roster_entry",
 		"events": ["create", "update"],
 		"order": 17,
-		"condition": "const terms = get(ctx.subject.employment, 'terms', {});\nconst standard = ['STANDARD', ''].includes(String(get(terms, 'statutory_work_category', 'STANDARD')));\nconst engagement = String(get(ctx.subject.employment, 'engagement', ''));\nconst dayType = String(get(get(ctx.reads.shift_definition[0], 'variant', {}), 'day_type', 'WORK'));\nreturn (\n  standard &&\n  !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement) &&\n  dayType === 'WORK'\n);",
-		"validate": "const v = get(ctx.reads.shift_definition[0], 'variant', {});\nconst clock = (a, b, next) => {\n  const [ah, am] = String(a).split(':').map(Number);\n  const [bh, bm] = String(b).split(':').map(Number);\n  return bh * 60 + bm - (ah * 60 + am) + (next ? 1440 : 0);\n};\nconst span =\n  v.start_time != null && v.end_time != null\n    ? clock(v.start_time, v.end_time, v.ends_next_day === true)\n    : Number(v.untimed_hours ?? 0) * 60;\nconst unpaid = sum(\n  (v.breaks ?? []).filter((b) => b.paid !== true).map((b) => clock(b.start_time, b.end_time, false)),\n);\nconst ordinary = (span - unpaid) / 60;\nreturn (\n  ordinary <= Number(ctx.lookup.daily_hours) ||\n  (get(ctx.entry, 'planned_overtime_intervals', []) ?? []).length > 0\n);",
+		"condition": "const terms = get(ctx.subject.employment, 'terms', {});\nconst standard = ['STANDARD', ''].includes(String(get(terms, 'statutory_work_category', 'STANDARD')));\nconst engagement = String(get(ctx.subject.employment, 'engagement', ''));\nconst dayType = String(get(get(ctx.reads.shift_definition[0], 'variant', {}), 'day_type', 'WORK'));\nif (!standard) return false;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement)) return false;\nreturn dayType === 'WORK';",
+		"validate": "const v = get(ctx.reads.shift_definition[0], 'variant', {});\nconst clock = (a, b, next) => {\n  const [ah, am] = String(a).split(':').map(Number);\n  const [bh, bm] = String(b).split(':').map(Number);\n  return bh * 60 + bm - (ah * 60 + am) + (next ? 1440 : 0);\n};\nconst span =\n  v.start_time != null && v.end_time != null\n    ? clock(v.start_time, v.end_time, v.ends_next_day === true)\n    : Number(v.untimed_hours ?? 0) * 60;\nconst unpaid = sum(\n  (v.breaks ?? []).filter((b) => b.paid !== true).map((b) => clock(b.start_time, b.end_time, false)),\n);\nconst ordinary = (span - unpaid) / 60;\nreturn (\n  ordinary <= ctx.lookup.daily_hours ||\n  (get(ctx.entry, 'planned_overtime_intervals', []) ?? []).length > 0\n);",
 		"reads": {
 			"shift_definition": {
 				"where": {
@@ -548,7 +548,7 @@
 		"events": ["create", "update"],
 		"order": 18,
 		"condition": "const terms = get(ctx.subject.employment, 'terms', {});\nconst standard = ['STANDARD', ''].includes(String(get(terms, 'statutory_work_category', 'STANDARD')));\nconst engagement = String(get(ctx.subject.employment, 'engagement', ''));\nreturn standard && !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement);",
-		"validate": "const rows = (ctx.reads.roster_entry ?? []).filter(\n  (r) => r.work_date !== ctx.entry.work_date,\n);\nconst worked = rows\n  .filter((r) => Array.isArray(r.actual_worked_intervals) && r.actual_worked_intervals.length > 0)\n  .map((r) => r.work_date)\n  .concat(\n    Array.isArray(get(ctx.entry, 'actual_worked_intervals', [])) && get(ctx.entry, 'actual_worked_intervals', []).length > 0\n      ? [ctx.entry.work_date]\n      : [],\n  )\n  .toSorted();\nreturn !worked.some((d, i) => i + 6 < worked.length && worked[i + 6] === add_days(d, 6));",
+		"validate": "const rows = (ctx.reads.roster_entry ?? []).filter(\n  (r) => r.work_date !== ctx.entry.work_date,\n);\nconst worked = rows\n  .filter((r) => Array.isArray(r.actual_worked_intervals) && r.actual_worked_intervals.length > 0)\n  .map((r) => r.work_date)\n  .concat(\n    Array.isArray(get(ctx.entry, 'actual_worked_intervals', [])) && get(ctx.entry, 'actual_worked_intervals', []).length > 0\n      ? [ctx.entry.work_date]\n      : [],\n  )\n  .toSorted();\nconst span = ctx.lookup.weekly_rest_days - 1;\nreturn !worked.some((d, i) => i + span < worked.length && worked[i + span] === add_days(d, span));",
 		"reads": {
 			"roster_entry": {
 				"where": {
@@ -574,7 +574,7 @@
 		"events": ["create", "update"],
 		"order": 19,
 		"condition": "const terms = get(ctx.subject.employment, 'terms', {});\nreturn (\n  get(ctx.subject.employment, 'engagement', '') === 'PART_TIME' &&\n  terms != null\n);",
-		"validate": "const rows = (ctx.reads.roster_entry ?? [])\n  .filter((r) => r.work_date !== ctx.entry.work_date)\n  .concat([ctx.entry]);\nconst hours = (d) =>\n  sum(\n    rows\n      .filter((r) => r.work_date >= d && r.work_date <= add_days(d, 6))\n      .map((r) => interval_minutes(r.actual_worked_intervals) / 60),\n  );\nconst daily = (d) =>\n  sum(\n    rows\n      .filter((r) => r.work_date === d)\n      .map((r) => interval_minutes(r.actual_worked_intervals) / 60),\n  );\nreturn !rows.some(\n  (r) =>\n    daily(r.work_date) > Number(ctx.lookup.part_time_daily_hours) ||\n    hours(r.work_date) > Number(ctx.lookup.part_time_weekly_hours),\n);",
+		"validate": "const rows = (ctx.reads.roster_entry ?? [])\n  .filter((r) => r.work_date !== ctx.entry.work_date)\n  .concat([ctx.entry]);\nconst hours = (d) =>\n  sum(\n    rows\n      .filter((r) => r.work_date >= d && r.work_date <= add_days(d, 6))\n      .map((r) => interval_minutes(r.actual_worked_intervals) / 60),\n  );\nconst daily = (d) =>\n  sum(\n    rows\n      .filter((r) => r.work_date === d)\n      .map((r) => interval_minutes(r.actual_worked_intervals) / 60),\n  );\nreturn !rows.some(\n  (r) =>\n    daily(r.work_date) > ctx.lookup.part_time_daily_hours ||\n    hours(r.work_date) > ctx.lookup.part_time_weekly_hours,\n);",
 		"reads": {
 			"roster_entry": {
 				"where": {
@@ -613,7 +613,7 @@
 		"target_collection": "roster_entry",
 		"events": ["create", "update"],
 		"order": 21,
-		"validate": "const employment = ctx.subject.employment;\nconst dob = get(employment.payroll, 'date_of_birth', null);\nif (dob == null || dob === '') return false;\nif (age_on(dob, ctx.entry.work_date) >= Number(ctx.lookup.minimum_age_years)) return true;\nreturn get(employment.employee_extension_data, 'facts.minor_employment_approved', false) === true;",
+		"validate": "const employment = ctx.subject.employment;\nconst dob = get(employment.payroll, 'date_of_birth', null);\nif (dob == null || dob === '') return false;\nif (age_on(dob, ctx.entry.work_date) >= ctx.lookup.minimum_age_years) return true;\nreturn get(employment.employee_extension_data, 'facts.minor_employment_approved', false) === true;",
 		"lookup": {
 			"minimum_age_years": 16
 		},
@@ -659,7 +659,7 @@
 		"events": ["create", "update"],
 		"order": 23,
 		"condition": "return ctx.entry.signed_contract_period != null;",
-		"validate": "const prior = (ctx.reads.employee_contract ?? []).filter(\n  (c) => c.id !== ctx.entry.id && c.status === 'SEALED',\n);\nconst earliest = prior\n  .map((c) => c.effective_range.from)\n  .concat([ctx.entry.effective_range.from])\n  .toSorted()[0];\nconst service = calendar_completed_months(earliest, ctx.entry.signed_contract_period.from);\nconst required =\n  service >= Number(ctx.lookup.service_months) ||\n  prior.filter((c) => c.signed_contract_period != null).length >=\n    Number(ctx.lookup.prior_fixed_terms);\nif (!required) return true;\nreturn (ctx.reads.workplace_case_catalog_entry ?? []).some(\n  (c) =>\n    c.kind === 'FIXED_TERM_CONTRACT_REQUEST' &&\n    get(c, 'employment_id', null) === ctx.entry.id &&\n    c.opened_on <= get(c.inputs, 'signed_on', '') &&\n    get(c.inputs, 'contract_start', '') === ctx.entry.signed_contract_period.from &&\n    get(c.inputs, 'contract_end', '') === ctx.entry.signed_contract_period.to,\n);",
+		"validate": "const prior = (ctx.reads.employee_contract ?? []).filter(\n  (c) => c.id !== ctx.entry.id && c.status === 'SEALED',\n);\nconst earliest = prior\n  .map((c) => c.effective_range.from)\n  .concat([ctx.entry.effective_range.from])\n  .toSorted()[0];\nconst service = calendar_completed_months(earliest, ctx.entry.signed_contract_period.from);\nconst required =\n  service >= ctx.lookup.service_months ||\n  prior.filter((c) => c.signed_contract_period != null).length >=\n    ctx.lookup.prior_fixed_terms;\nif (!required) return true;\nreturn (ctx.reads.workplace_case_catalog_entry ?? []).some(\n  (c) =>\n    c.kind === 'FIXED_TERM_CONTRACT_REQUEST' &&\n    get(c, 'employment_id', null) === ctx.entry.id &&\n    c.opened_on <= get(c.inputs, 'signed_on', '') &&\n    get(c.inputs, 'contract_start', '') === ctx.entry.signed_contract_period.from &&\n    get(c.inputs, 'contract_end', '') === ctx.entry.signed_contract_period.to,\n);",
 		"reads": {
 			"employee_contract": {
 				"where": {
@@ -697,7 +697,7 @@
 		"target_collection": "payroll_run",
 		"events": ["after_gross"],
 		"order": 25,
-		"validate": "const code = String(ctx.lookup.catalog_code);\nconst catalogs = ctx.reads.adhoc_catalog ?? [];\nconst allowance = sum(\n  (ctx.reads.adhoc_catalog_entry ?? [])\n    .filter(\n      (e) =>\n        !e.is_reversal &&\n        e.incurred_on >= ctx.run.salary_coverage.from &&\n        e.incurred_on <= ctx.run.salary_coverage.to &&\n        catalogs.some((c) => c.id === e.catalog_id && c.code === code),\n    )\n    .map((e) => Number(e.quantity)),\n);\nif (allowance <= 0) return true;\nconst base = get(ctx.subject.employment.employee_extension_data, 'term_facts.si_contribution_base', null);\nif (base == null) return false;\nconst tolerance = Number(ctx.lookup.tolerance);\nreturn Number(base) >= allowance - tolerance && Number(base) <= allowance + tolerance;",
+		"validate": "const code = String(ctx.lookup.catalog_code);\nconst catalogs = ctx.reads.adhoc_catalog ?? [];\nconst allowance = sum(\n  (ctx.reads.adhoc_catalog_entry ?? [])\n    .filter(\n      (e) =>\n        !e.is_reversal &&\n        e.incurred_on >= ctx.run.salary_coverage.from &&\n        e.incurred_on <= ctx.run.salary_coverage.to &&\n        catalogs.some((c) => c.id === e.catalog_id && c.code === code),\n    )\n    .map((e) => Number(e.quantity)),\n);\nif (allowance <= 0) return true;\nconst base = get(ctx.subject.employment.employee_extension_data, 'term_facts.si_contribution_base', null);\nif (base == null) return false;\nconst tolerance = ctx.lookup.tolerance;\nreturn Number(base) >= allowance - tolerance && Number(base) <= allowance + tolerance;",
 		"reads": {
 			"adhoc_catalog": {
 				"limit": 10000
@@ -739,7 +739,7 @@
 		"events": ["create", "update"],
 		"order": 29,
 		"condition": "return get(ctx.entry.variant, 'day_type', 'WORK') === 'WORK';",
-		"validate": "const v = get(ctx.entry, 'variant', {});\nconst clock = (a, b, next) => {\n  const [ah, am] = String(a).split(':').map(Number);\n  const [bh, bm] = String(b).split(':').map(Number);\n  return bh * 60 + bm - (ah * 60 + am) + (next ? 1440 : 0);\n};\nconst span =\n  v.start_time != null && v.end_time != null\n    ? clock(v.start_time, v.end_time, v.ends_next_day === true)\n    : Number(v.untimed_hours ?? 0) * 60;\nconst unpaid = sum(\n  (v.breaks ?? []).filter((b) => b.paid !== true).map((b) => clock(b.start_time, b.end_time, false)),\n);\nconst ordinary = (span - unpaid) / 60;\nreturn ordinary <= Number(ctx.lookup.daily_hours);",
+		"validate": "const v = get(ctx.entry, 'variant', {});\nconst clock = (a, b, next) => {\n  const [ah, am] = String(a).split(':').map(Number);\n  const [bh, bm] = String(b).split(':').map(Number);\n  return bh * 60 + bm - (ah * 60 + am) + (next ? 1440 : 0);\n};\nconst span =\n  v.start_time != null && v.end_time != null\n    ? clock(v.start_time, v.end_time, v.ends_next_day === true)\n    : Number(v.untimed_hours ?? 0) * 60;\nconst unpaid = sum(\n  (v.breaks ?? []).filter((b) => b.paid !== true).map((b) => clock(b.start_time, b.end_time, false)),\n);\nconst ordinary = (span - unpaid) / 60;\nreturn ordinary <= ctx.lookup.daily_hours;",
 		"lookup": {
 			"daily_hours": 8
 		},
@@ -752,7 +752,7 @@
 		"events": ["prepare_payroll"],
 		"order": 30,
 		"condition": "const terms = get(ctx.subject.employment, 'terms', {});\nreturn String(get(terms, 'statutory_work_category', '')) === 'COMPREHENSIVE';",
-		"validate": "const review = get(\n  ctx.subject.employment.employee_extension_data,\n  'term_facts.comprehensive_overtime_review',\n  null,\n);\nconst period = String(ctx.run.period);\nreturn (\n  review != null &&\n  String(get(review, 'month', '')) === period &&\n  String(get(review, 'reference', '')).trim() !== '' &&\n  String(get(review, 'settlement_on', '')).slice(0, 7) === period\n);",
+		"validate": "const review = get(\n  ctx.subject.employment.employee_extension_data,\n  'term_facts.comprehensive_overtime_review',\n  null,\n);\nconst period = String(ctx.run.period);\nif (review == null) return false;\nif (String(get(review, 'month', '')) !== period) return false;\nif (String(get(review, 'reference', '')).trim() === '') return false;\nreturn String(get(review, 'settlement_on', '')).slice(0, 7) === period;",
 		"lookup": {},
 		"id": "07d32e5f-eafb-5bfc-87f6-853ac82db46b",
 		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
@@ -774,7 +774,7 @@
 		"events": ["prepare_payroll"],
 		"order": 32,
 		"condition": "return !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(\n  ctx.subject.employment.engagement,\n);",
-		"validate": "const service = calendar_completed_months(\n  ctx.subject.employment.effective_range.from,\n  ctx.run.salary_coverage.from,\n);\nif (service < Number(ctx.lookup.service_months)) return true;\nconst reviews = get(\n  ctx.subject.employment.employee_extension_data,\n  'term_facts.annual_leave_year_reviews',\n  [],\n);\nconst year = Number(String(ctx.run.period).slice(0, 4));\nreturn (\n  Array.isArray(reviews) &&\n  reviews.filter((r) => Math.trunc(Number(r.year)) === year).length === 1\n);",
+		"validate": "const service = calendar_completed_months(\n  ctx.subject.employment.effective_range.from,\n  ctx.run.salary_coverage.from,\n);\nif (service < ctx.lookup.service_months) return true;\nconst reviews = get(\n  ctx.subject.employment.employee_extension_data,\n  'term_facts.annual_leave_year_reviews',\n  [],\n);\nconst year = Number(String(ctx.run.period).slice(0, 4));\nreturn (\n  Array.isArray(reviews) &&\n  reviews.filter((r) => Math.trunc(Number(r.year)) === year).length === 1\n);",
 		"lookup": {
 			"service_months": 12
 		},
@@ -800,7 +800,7 @@
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
 		"order": 35,
-		"validate": "const terms = ctx.entry.terms;\nconst rate = get(terms, 'rate', null);\nconst day = get(terms, 'normal_hours_per_day', null);\nconst week = get(terms, 'normal_hours_per_week', null);\nconst days = get(terms, 'normal_days_per_week', null);\nreturn (\n  rate != null &&\n  Number(rate.amount) > Number(ctx.lookup.rate_minimum) &&\n  (day == null || Number(day) > Number(ctx.lookup.hours_per_day_minimum)) &&\n  (week == null || Number(week) > Number(ctx.lookup.hours_per_week_minimum)) &&\n  (days == null ||\n    (Number(days) >= Number(ctx.lookup.days_per_week_minimum) &&\n      Number(days) <= Number(ctx.lookup.days_per_week_maximum)))\n);",
+		"validate": "const terms = ctx.entry.terms;\nconst rate = get(terms, 'rate', null);\nif (rate == null) return false;\nif (!(Number(rate.amount) > ctx.lookup.rate_minimum)) return false;\nconst day = get(terms, 'normal_hours_per_day', null);\nif (day != null && !(Number(day) > ctx.lookup.hours_per_day_minimum)) return false;\nconst week = get(terms, 'normal_hours_per_week', null);\nif (week != null && !(Number(week) > ctx.lookup.hours_per_week_minimum)) return false;\nconst days = get(terms, 'normal_days_per_week', null);\nif (days == null) return true;\nif (!(Number(days) >= ctx.lookup.days_per_week_minimum)) return false;\nreturn Number(days) <= ctx.lookup.days_per_week_maximum;",
 		"lookup": {
 			"rate_minimum": 0,
 			"hours_per_day_minimum": 0,
@@ -817,7 +817,7 @@
 		"events": ["create", "update"],
 		"order": 36,
 		"condition": "return !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.entry.engagement);",
-		"validate": "const ext = ctx.entry.employee_extension_data ?? {};\nconst bad = (ctx.lookup.employee_fields ?? []).some((b) => {\n  const value = get(ext, b.field, null);\n  if (value == null) return false;\n  return (\n    (b.minimum != null && Number(value) < Number(b.minimum)) ||\n    (b.maximum != null && Number(value) > Number(b.maximum)) ||\n    (b.integer === true && Number(value) !== Math.trunc(Number(value)))\n  );\n});\nconst retirement = get(ext, 'facts.retirement_category', null);\nconst schemes = get(ext, 'facts.si_exempt_schemes', []);\nreturn (\n  !bad &&\n  (retirement == null || ctx.lookup.retirement_categories.includes(retirement)) &&\n  (!Array.isArray(schemes) || schemes.every((s) => ctx.lookup.si_exempt_schemes.includes(s)))\n);",
+		"validate": "const ext = ctx.entry.employee_extension_data ?? {};\nconst bad = (ctx.lookup.employee_fields ?? []).some((b) => {\n  const value = get(ext, b.field, null);\n  if (value == null) return false;\n  if (b.minimum != null && Number(value) < b.minimum) return true;\n  if (b.maximum != null && Number(value) > b.maximum) return true;\n  return b.integer === true && Number(value) !== Math.trunc(Number(value));\n});\nif (bad) return false;\nconst retirement = get(ext, 'facts.retirement_category', null);\nif (retirement != null && !ctx.lookup.retirement_categories.includes(retirement)) return false;\nconst schemes = get(ext, 'facts.si_exempt_schemes', []);\nif (!Array.isArray(schemes)) return true;\nreturn schemes.every((s) => ctx.lookup.si_exempt_schemes.includes(s));",
 		"lookup": {
 			"employee_fields": [
 				{
@@ -847,7 +847,7 @@
 		"target_collection": "entity_profile_version",
 		"events": ["create", "update"],
 		"order": 37,
-		"validate": "const ext = ctx.entry.entity_extension_data ?? {};\nconst bad = (ctx.lookup.entity_fields ?? []).some((b) => {\n  const value = get(ext, b.field, null);\n  if (value == null) return false;\n  return (\n    (b.minimum != null && Number(value) < Number(b.minimum)) ||\n    (b.maximum != null && Number(value) > Number(b.maximum)) ||\n    (b.integer === true && Number(value) !== Math.trunc(Number(value)))\n  );\n});\nconst zone = get(ext, 'wage_zone', null);\nreturn !bad && (zone == null || ctx.lookup.wage_zones.includes(zone));",
+		"validate": "const ext = ctx.entry.entity_extension_data ?? {};\nconst bad = (ctx.lookup.entity_fields ?? []).some((b) => {\n  const value = get(ext, b.field, null);\n  if (value == null) return false;\n  if (b.minimum != null && Number(value) < b.minimum) return true;\n  if (b.maximum != null && Number(value) > b.maximum) return true;\n  return b.integer === true && Number(value) !== Math.trunc(Number(value));\n});\nif (bad) return false;\nconst zone = get(ext, 'wage_zone', null);\nreturn zone == null || ctx.lookup.wage_zones.includes(zone);",
 		"lookup": {
 			"entity_fields": [
 				{
@@ -891,7 +891,7 @@
 		"events": ["create", "update"],
 		"order": 38,
 		"condition": "return ['FIXED_TERM_CONTRACT_REQUEST', 'CONTRACT_RENEWAL_REFUSAL'].includes(\n  ctx.entry.kind,\n);",
-		"validate": "const reference = String(\n  get(ctx.entry.inputs, 'reference', get(ctx.entry.inputs, 'offer_reference', '')),\n).trim();\nreturn (\n  get(ctx.entry, 'employment_id', null) != null &&\n  (reference !== '' || ctx.entry.evidence_file != null)\n);",
+		"validate": "const reference = String(\n  get(ctx.entry.inputs, 'reference', get(ctx.entry.inputs, 'offer_reference', '')),\n).trim();\nif (get(ctx.entry, 'employment_id', null) == null) return false;\nif (reference !== '') return true;\nreturn ctx.entry.evidence_file != null;",
 		"lookup": {},
 		"id": "2721bd5c-9fb9-57bf-ac86-c23fb770b501",
 		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
@@ -924,7 +924,7 @@
 		"events": ["create", "update"],
 		"order": 41,
 		"condition": "return ctx.entry.kind === 'FIXED_TERM_CONTRACT_REQUEST';",
-		"validate": "const start = String(get(ctx.entry.inputs, 'contract_start', ''));\nconst end = String(get(ctx.entry.inputs, 'contract_end', ''));\nreturn start !== '' && end >= start && String(ctx.entry.opened_on) <= start;",
+		"validate": "const start = String(get(ctx.entry.inputs, 'contract_start', ''));\nconst end = String(get(ctx.entry.inputs, 'contract_end', ''));\nif (start === '') return false;\nif (!(end >= start)) return false;\nreturn String(ctx.entry.opened_on) <= start;",
 		"lookup": {},
 		"id": "188883f9-fedf-57cb-abe3-b94373caf22b",
 		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
@@ -935,7 +935,7 @@
 		"events": ["create", "update"],
 		"order": 42,
 		"condition": "return ctx.entry.kind === 'CONTRACT_RENEWAL_REFUSAL';",
-		"validate": "const offered = String(get(ctx.entry.inputs, 'offered_on', ''));\nconst refused = String(get(ctx.entry.inputs, 'refused_on', ''));\nconst opened = String(ctx.entry.opened_on);\nif (offered === '' || refused === '' || offered > refused || refused > opened) return false;\nreturn ctx.entry.closed_on == null || String(ctx.entry.closed_on) >= refused;",
+		"validate": "const offered = String(get(ctx.entry.inputs, 'offered_on', ''));\nconst refused = String(get(ctx.entry.inputs, 'refused_on', ''));\nconst opened = String(ctx.entry.opened_on);\nif (offered === '') return false;\nif (refused === '') return false;\nif (offered > refused) return false;\nif (refused > opened) return false;\nreturn ctx.entry.closed_on == null || String(ctx.entry.closed_on) >= refused;",
 		"lookup": {},
 		"id": "0e042359-30d8-5274-bffb-000bad2bd985",
 		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"

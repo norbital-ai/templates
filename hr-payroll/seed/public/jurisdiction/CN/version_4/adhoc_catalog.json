@@ -2,7 +2,7 @@
 	{
 		"code": "ECONOMIC_COMPENSATION",
 		"name": "经济补偿 (economic compensation on termination)",
-		"description": "The entry quantity is the average monthly wage over the 12 months before termination. Service is measured from the contract start to the incurred date: a full year pays one month, six months or more pays one, and under six months pays half; the total is capped at 12 years.",
+		"description": "The entry quantity is the average monthly wage over the 12 months before termination. Service is measured from the contract start through the incurred date: a full year pays one month, six months or more pays one, and any shorter part pays half; the total is capped at 12 years.",
 		"lookup": {
 			"months_per_year": 12,
 			"full_year_min_months": 6,
@@ -18,7 +18,7 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0 && ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
-		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst months = calendar_completed_months(start, ctx.entry.incurred_on);\nconst years = Math.trunc(months / ctx.lookup.months_per_year);\nconst remainder = months % ctx.lookup.months_per_year;\nconst counted = Math.min(\n\tctx.lookup.max_years,\n\tyears +\n\t\t(remainder >= ctx.lookup.full_year_min_months\n\t\t\t? 1\n\t\t\t: remainder > 0\n\t\t\t\t? 0.5\n\t\t\t\t: 0)\n);\nreturn ctx.entry.quantity * counted;\n",
+		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst end = add_days(ctx.entry.incurred_on, 1);\nconst months = calendar_completed_months(start, end);\nconst years = Math.trunc(months / ctx.lookup.months_per_year);\nconst remainder = months % ctx.lookup.months_per_year;\nconst part =\n\tremainder >= ctx.lookup.full_year_min_months ? 1 :\n\tremainder > 0 || add_months(start, months) < end ? 0.5 :\n\t0;\nreturn ctx.entry.quantity * Math.min(ctx.lookup.max_years, years + part);\n",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "9988c4d7-6500-5d28-a122-b00bd12a2c8d",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
@@ -154,7 +154,7 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0 && ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
-		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst months = calendar_completed_months(start, ctx.entry.incurred_on);\nconst years = Math.trunc(months / ctx.lookup.months_per_year);\nconst remainder = months % ctx.lookup.months_per_year;\nconst counted = Math.min(\n\tctx.lookup.max_years,\n\tyears +\n\t\t(remainder >= ctx.lookup.full_year_min_months\n\t\t\t? 1\n\t\t\t: remainder > 0\n\t\t\t\t? 0.5\n\t\t\t\t: 0)\n);\nreturn ctx.entry.quantity * counted * ctx.lookup.multiple;\n",
+		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst end = add_days(ctx.entry.incurred_on, 1);\nconst months = calendar_completed_months(start, end);\nconst years = Math.trunc(months / ctx.lookup.months_per_year);\nconst remainder = months % ctx.lookup.months_per_year;\nconst part =\n\tremainder >= ctx.lookup.full_year_min_months ? 1 :\n\tremainder > 0 || add_months(start, months) < end ? 0.5 :\n\t0;\nreturn ctx.entry.quantity * Math.min(ctx.lookup.max_years, years + part) * ctx.lookup.multiple;\n",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "7c4656ad-67fa-5c33-9cc8-149119e68231",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
@@ -315,7 +315,7 @@
 		"subtotal_id": "03146d74-1ed4-5309-ac56-9455245707ce",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment.effective_range, 'to');\nreturn (\n\tctx.entry.quantity > 0 &&\n\tend != null &&\n\tctx.entry.incurred_on > end &&\n\tctx.entry.incurred_on <= add_years(end, ctx.lookup.max_years)\n);",
+		"eligibility": "const end = get(ctx.subject.employment.effective_range, 'to');\nif (!(ctx.entry.quantity > 0)) return false;\nif (end == null) return false;\nif (!(ctx.entry.incurred_on > end)) return false;\nreturn ctx.entry.incurred_on <= add_years(end, ctx.lookup.max_years);",
 		"conversion": "return ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "ef8a86d4-01fc-5bd9-8a06-a162920a223a",

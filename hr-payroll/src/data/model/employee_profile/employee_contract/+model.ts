@@ -151,7 +151,6 @@ export default model('employee_contract', {
 				residency_status: { kind: 'text', optional: true },
 				work_authorisation_category: { kind: 'text', optional: true },
 				shift_pattern_id: { kind: 'id', of: 'shift_pattern', optional: true },
-				shift_pattern_start: { kind: 'date', optional: true },
 				notice_period: {
 					kind: 'object',
 					optional: true,

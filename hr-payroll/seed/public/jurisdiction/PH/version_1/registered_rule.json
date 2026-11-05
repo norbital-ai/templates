@@ -67,7 +67,10 @@
 				"FIELD_PERSONNEL",
 				"TASK_BASIS",
 				"PIECE_RATE",
-				"MANAGERIAL"
+				"MANAGERIAL",
+				"SUPERVISORY",
+				"DOMESTIC",
+				"CAREGIVER"
 			],
 			"residency_statuses": [
 				"CITIZEN",
@@ -79,7 +82,7 @@
 		},
 		"references": [
 			{
-				"title": "Labor Code art.82 (field personnel) and PD 851 Revised Guidelines (task-basis and piece-rate work): statutory work category; NIRC ss.22(E)-(G), 24(A) and 25(A)-(B): residency status selects the graduated or final withholding table."
+				"title": "Labor Code art.82 (field personnel) and PD 851 Revised Guidelines (task-basis and piece-rate work): statutory work category, with RA 10361 (kasambahay, DOMESTIC), RA 11965 (CAREGIVER) and NIRC s.33(A) (supervisory staff, SUPERVISORY, inside the fringe benefit tax); NIRC ss.22(E)-(G), 24(A) and 25(A)-(B): residency status selects the graduated or final withholding table."
 			}
 		],
 		"id": "c3f38c04-14f0-55d5-b780-3d8005a76a63",
@@ -109,7 +112,7 @@
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
 		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\tget(ctx.entry, 'final_pay_due_on', null) !== null;",
-		"validate": "const due = get(ctx.entry, 'final_pay_due_on', null);\nconst end = get(get(ctx.entry, 'effective_range', {}), 'to', null);\nreturn end !== null && due >= end && due <= add_days(end, ctx.lookup.maximum_days);",
+		"validate": "const due = get(ctx.entry, 'final_pay_due_on', null);\nconst end = get(get(ctx.entry, 'effective_range', {}), 'to', null);\nif (end === null) return false;\nif (!(due >= end)) return false;\nreturn due <= add_days(end, ctx.lookup.maximum_days);",
 		"order": 27,
 		"lookup": {
 			"maximum_days": 30
@@ -151,7 +154,7 @@
 		"target_collection": "workplace_case_catalog_entry",
 		"events": ["create", "update"],
 		"condition": "return ctx.entry.kind === ctx.lookup.kind;",
-		"validate": "const inputs = get(ctx.entry, 'inputs', {});\nconst year = get(inputs, 'tax_year', null);\nconst payment = get(inputs, 'compensation_payment_case_id', '');\nreturn year !== null && year >= ctx.lookup.minimum_year && String(payment).trim() !== '';",
+		"validate": "const inputs = get(ctx.entry, 'inputs', {});\nconst year = get(inputs, 'tax_year', null);\nconst payment = get(inputs, 'compensation_payment_case_id', '');\nif (year === null) return false;\nif (!(year >= ctx.lookup.minimum_year)) return false;\nreturn String(payment).trim() !== '';",
 		"order": 32,
 		"lookup": {
 			"kind": "BIR_2316_DELIVERED",

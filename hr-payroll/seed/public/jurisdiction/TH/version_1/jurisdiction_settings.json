@@ -175,7 +175,7 @@
 													"minimum": 0,
 													"default": 0,
 													"title": "PND1: other annual allowances and deductions declared on Lor Yor 01",
-													"description": "Revenue Code s.47: parent and disabled-dependant allowances, life and health insurance premiums, home-loan interest and the other deductions the employee declares, in baht for the year. Spouse, child, social security and provident fund deductions are computed from their own inputs and must not be repeated here."
+													"description": "Revenue Code s.47: deductions the employee declares that have no input of their own here, such as health insurance, prenatal costs, RMF and donations, in baht for the year after their own limits. Everything with its own input (spouse, children, parents, disabled dependants, life, pension and parents’ health insurance, home-loan interest) and social security and the provident fund, which payroll computes, must not be repeated here."
 												},
 												"parents_count": {
 													"type": "integer",
@@ -448,7 +448,7 @@
 					"type": "number",
 					"enum": [3, 5],
 					"title": "SSO: documented rate for the southern disaster-relief review",
-					"description": "Only for the nine-province December2025–May2026 period requiring independent verification. Enter the actual applicable rate from an enacted notification or SSO assessment. The announcement alone does not establish3% eligibility."
+					"description": "The nine-province rate of 3 percent for December 2025 to May 2026 applies without any entry (Ministry of Labour notification B.E. 2569, Royal Gazette 8 January 2026). Enter 5 only with an SSO assessment showing the employer is registered outside those provinces; the month and reference below must match it."
 				},
 				"sso_rate_review_month": {
 					"type": "string",

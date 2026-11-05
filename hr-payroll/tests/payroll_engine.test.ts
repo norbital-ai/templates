@@ -241,6 +241,34 @@ describe('linear payroll engine', () => {
 		);
 	});
 
+	it('cuts salary for an ABS day as it does for an unpaid leave day', () => {
+		const npl = {
+			...input(),
+			entries: {
+				...input().entries,
+				leave_catalog_entry: [
+					{
+						id: 'leave-1',
+						catalog_id: 'npl',
+						days: [
+							{ date: '2026-03-05', part: 'AM' },
+							{ date: '2026-03-05', part: 'PM' }
+						]
+					}
+				]
+			}
+		};
+		const abs = {
+			...input(),
+			entries: { ...input().entries, leave_catalog_entry: [] },
+			work: { days: [{ date: '2026-03-05', day_type: 'ABS' }] }
+		};
+		assert.deepEqual(
+			calculatePayroll(abs).subtotals.map((row) => row.value),
+			calculatePayroll(npl).subtotals.map((row) => row.value)
+		);
+	});
+
 	it('accepts a subtotal the version declares and refuses an unknown one', () => {
 		const source = 'return ctx.subtotals.GROSS;';
 		checkExpression(source, 'CALCULATION');

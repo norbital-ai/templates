@@ -724,6 +724,7 @@ export default messages({
 	'models.statutory_change.label': '法定变更',
 	'models.statutory_change.singular': '法定变更',
 	'models.entity_profile_version.fields.final_pay_loan_floor_percent': '最后一期薪资贷款下限（%）',
+	'models.entity_profile_version.fields.overtime_full_award_percent': '全额加班门槛（%）',
 	'settings_version.changelog': '变更记录',
 	'settings_version.compare': '比较',
 	'settings_version.compare_from': '起始版本',
@@ -772,7 +773,7 @@ export default messages({
 	'app.work.title': '工作',
 	'app.work.description': '规划月度排班、按规则发布，并管理班次和排班模式。',
 	'app.work.sheet_help':
-		'工作日表（⚡ → 下载模板、导入…）每人每天一行。班次必须是该员工当天有效的班次代码、REST 或 OFF；其他任何值（包括 PH，公共假日来自司法辖区日历，即假日列）都会拒绝整个文件。表中不含假期：请在假期应用中记录假期，全天休假的日子不接受打卡时间。旧文件中的假期列会被忽略。有错误的导入不写入任何内容；否则导入并列出警告。',
+		'工作日表（⚡ → 下载模板、导入…）每人每天一行。班次必须是该员工当天有效的班次代码、REST、OFF 或 ABS；其他任何值（包括 PH，公共假日来自司法辖区日历，即假日列）都会拒绝整个文件。表中不含假期：请在假期应用中记录假期，全天休假的日子不接受打卡时间。旧文件中的假期列会被忽略。有错误的导入不写入任何内容；否则导入并列出警告。',
 	'app.adhoc.description': '一次性付款和扣款，以及结算每一项的薪资记录。',
 	'app.claims.description': '员工报销的费用，以及结算每一项的薪资记录。',
 	'app.kiosk.title': '考勤终端',
