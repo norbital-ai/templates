@@ -93,12 +93,20 @@
 			},
 			"holiday": {
 				"where": {}
+			},
+			"payslip": {
+				"where": {
+					"payroll_run_id": {
+						"eq": "ctx.entry.id"
+					}
+				},
+				"fields": ["breakdown"]
 			}
 		},
 		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst key = 'SG:SDL_REMITTANCE:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst run = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst dueOn = add_working_days(add_days(month_end(run.salary_coverage.to), ctx.lookup.offset_days - 1), 1, holidays, [0, 6]);\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: dueOn,\n\toccurrence_key: 'SG:SDL_REMITTANCE:' + run.id\n}];",
+		"effects": "// js\nconst run = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst dueOn = add_working_days(add_days(month_end(run.salary_coverage.to), ctx.lookup.offset_days - 1), 1, holidays, [0, 6]);\n// CPF Board: add each employee's levy, then round the sum down to a whole dollar\nconst levies = get(ctx, 'reads.payslip', []).flatMap((slip) => {\n\tif (!get(slip, 'breakdown.statutory', []).some((scheme) => scheme.code === 'SDL')) return [];\n\tconst wage = get(slip, 'breakdown.checkpoints', []).find((row) => row.code === 'ADDITIONAL_WAGES');\n\treturn [clamp(Number(get(wage, 'value', 0)) * ctx.lookup.sdl_rate, ctx.lookup.sdl_minimum, ctx.lookup.sdl_maximum)];\n});\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title + ': $' + round(sum(levies), 1, 'DOWN').toFixed(0),\n\tdue_on: dueOn,\n\toccurrence_key: 'SG:SDL_REMITTANCE:' + run.id\n}];",
 		"id": "87bab96e-f99e-57b3-ae84-5d82be986c91",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
 	},
@@ -138,7 +146,8 @@
 		"lookup": {
 			"title": "Withholding tax on non-resident director fees (IR37)",
 			"offset_days": 15,
-			"month_offset": 1
+			"month_offset": 1,
+			"scheme": "WHT_NR_DIRECTOR"
 		},
 		"references": [
 			{
@@ -151,12 +160,20 @@
 		"reads": {
 			"obligation": {
 				"where": {}
+			},
+			"payslip": {
+				"where": {
+					"payroll_run_id": {
+						"eq": "ctx.entry.id"
+					}
+				},
+				"fields": ["breakdown"]
 			}
 		},
-		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst key = 'SG:NR_DIRECTOR_WITHHOLDING:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst withheld = sum(\n\tget(ctx, 'reads.payslip', [])\n\t\t.flatMap((slip) => get(slip, 'breakdown.statutory', []))\n\t\t.filter((scheme) => scheme.code === ctx.lookup.scheme)\n\t\t.map((scheme) => scheme.employee)\n);\nif (!(withheld > 0)) return false;\nconst key = 'SG:NR_DIRECTOR_WITHHOLDING:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst run = ctx.entry;\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(month_end(add_months(get(run, 'pay_date', null) ?? run.salary_coverage.to, ctx.lookup.month_offset)), ctx.lookup.offset_days),\n\toccurrence_key: 'SG:NR_DIRECTOR_WITHHOLDING:' + run.id\n}];",
+		"effects": "// js\nconst run = ctx.entry;\nconst withheld = sum(\n\tget(ctx, 'reads.payslip', [])\n\t\t.flatMap((slip) => get(slip, 'breakdown.statutory', []))\n\t\t.filter((scheme) => scheme.code === ctx.lookup.scheme)\n\t\t.map((scheme) => scheme.employee)\n);\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title + ': $' + withheld.toFixed(2),\n\tdue_on: add_days(month_end(add_months(get(run, 'pay_date', null) ?? run.salary_coverage.to, ctx.lookup.month_offset)), ctx.lookup.offset_days),\n\toccurrence_key: 'SG:NR_DIRECTOR_WITHHOLDING:' + run.id\n}];",
 		"id": "e25d6278-40a4-5c82-8b89-a290dc1d9925",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
 	},
@@ -166,7 +183,8 @@
 		"lookup": {
 			"title": "Withholding tax on non-resident public entertainers (S45)",
 			"offset_days": 15,
-			"month_offset": 1
+			"month_offset": 1,
+			"scheme": "WHT_NR_ENTERTAINER"
 		},
 		"references": [
 			{
@@ -179,12 +197,20 @@
 		"reads": {
 			"obligation": {
 				"where": {}
+			},
+			"payslip": {
+				"where": {
+					"payroll_run_id": {
+						"eq": "ctx.entry.id"
+					}
+				},
+				"fields": ["breakdown"]
 			}
 		},
-		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst key = 'SG:NR_ENTERTAINER_WITHHOLDING:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst withheld = sum(\n\tget(ctx, 'reads.payslip', [])\n\t\t.flatMap((slip) => get(slip, 'breakdown.statutory', []))\n\t\t.filter((scheme) => scheme.code === ctx.lookup.scheme)\n\t\t.map((scheme) => scheme.employee)\n);\nif (!(withheld > 0)) return false;\nconst key = 'SG:NR_ENTERTAINER_WITHHOLDING:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst run = ctx.entry;\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(month_end(add_months(get(run, 'pay_date', null) ?? run.salary_coverage.to, ctx.lookup.month_offset)), ctx.lookup.offset_days),\n\toccurrence_key: 'SG:NR_ENTERTAINER_WITHHOLDING:' + run.id\n}];",
+		"effects": "// js\nconst run = ctx.entry;\nconst withheld = sum(\n\tget(ctx, 'reads.payslip', [])\n\t\t.flatMap((slip) => get(slip, 'breakdown.statutory', []))\n\t\t.filter((scheme) => scheme.code === ctx.lookup.scheme)\n\t\t.map((scheme) => scheme.employee)\n);\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title + ': $' + withheld.toFixed(2),\n\tdue_on: add_days(month_end(add_months(get(run, 'pay_date', null) ?? run.salary_coverage.to, ctx.lookup.month_offset)), ctx.lookup.offset_days),\n\toccurrence_key: 'SG:NR_ENTERTAINER_WITHHOLDING:' + run.id\n}];",
 		"id": "7f5499d8-622f-55d3-bdb8-67fe85276d71",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
 	},
@@ -267,7 +293,7 @@
 		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst key = 'SG:SALARY_PAYMENT_DEADLINE:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst run = ctx.entry;\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: get(run, 'pay_due_date', null) ?? add_days(run.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: 'SG:SALARY_PAYMENT_DEADLINE:' + run.id\n}];",
+		"effects": "// js\nconst run = ctx.entry;\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(run.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: 'SG:SALARY_PAYMENT_DEADLINE:' + run.id\n}];",
 		"id": "0a353d0f-dad9-566e-b90e-e452171f2cdd",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
 	},
@@ -311,23 +337,31 @@
 				"title": "Employment Act 1968 s.96 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Itemised pay slips (https://www.mom.gov.sg/employment-practices/salary/itemised-payslips). The engine produces the payslip content; issuing it is outside it."
 			}
 		],
-		"source_collection": "payslip",
+		"source_collection": "payroll_run",
 		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {}
 			},
-			"payroll_run": {
-				"where": {}
-			},
 			"holiday": {
 				"where": {}
+			},
+			"payslip": {
+				"where": {
+					"payroll_run_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["id", "entity_id", "employee_id", "employment_id"],
+				"limit": 10000
 			}
 		},
-		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.state !== 'PAID') return false;\nconst key = 'SG:ITEMISED_PAYSLIP:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nreturn ctx.entry.state === 'PAID';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst row = ctx.entry;\nconst run = get(ctx, 'reads.payroll_run', []).find((item) => item.id === row.payroll_run_id);\nif (run == null) return [];\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst paidOn = get(run, 'pay_date', null) ?? run.salary_coverage.to;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_working_days(paidOn, ctx.lookup.working_days, holidays, [0, 6]),\n\toccurrence_key: 'SG:ITEMISED_PAYSLIP:' + row.id\n}];",
+		"effects": "// js\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst paidOn = get(ctx.entry, 'pay_date', null) ?? ctx.entry.salary_coverage.to;\nreturn ctx.reads.payslip.flatMap((slip) => {\n\tconst key = 'SG:ITEMISED_PAYSLIP:' + slip.id;\n\tif (get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key)) return [];\n\treturn [{\n\t\tentity_id: slip.entity_id,\n\t\temployee_id: slip.employee_id,\n\t\temployment_id: slip.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(paidOn, ctx.lookup.working_days, holidays, [0, 6]),\n\t\toccurrence_key: key\n\t}];\n});",
 		"id": "55b6607e-a621-5bde-b292-c30af4fc44e0",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
 	},
@@ -656,12 +690,7 @@
 		"name": "Work accident report to MOM",
 		"lookup": {
 			"title": "Work accident report to MOM",
-			"catalog_codes": [
-				"SICK_LEAVE",
-				"HOSPITALIZATION_LEAVE",
-				"WORK_INJURY_MEDICAL_LEAVE",
-				"WORK_INJURY_HOSPITALISATION_LEAVE"
-			],
+			"catalog_codes": ["WORK_INJURY_MEDICAL_LEAVE", "WORK_INJURY_HOSPITALISATION_LEAVE"],
 			"offset_days": 10
 		},
 		"references": [
@@ -682,7 +711,7 @@
 		"condition": "// js\nconst row = ctx.entry;\nif (row == null || !Array.isArray(row.days) || row.days.length === 0) return false;\nconst catalog = get(ctx, 'reads.leave_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(catalog.code)) return false;\nconst key = 'SG:WORK_ACCIDENT_REPORT:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst row = ctx.entry;\nconst first = row.days.map((day) => day.date).toSorted().at(0);\nreturn [{\n\tentity_id: row.entity_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(first, ctx.lookup.offset_days),\n\toccurrence_key: 'SG:WORK_ACCIDENT_REPORT:' + row.id\n}];",
+		"effects": "// js\nconst row = ctx.entry;\nconst opening = row.days.map((day) => day.date).toSorted().at(0);\nreturn [{\n\tentity_id: row.entity_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(opening, ctx.lookup.offset_days),\n\toccurrence_key: 'SG:WORK_ACCIDENT_REPORT:' + row.id\n}];",
 		"id": "88ac6021-9239-5a1e-b782-e13fb443542d",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
 	},
@@ -1109,7 +1138,7 @@
 		"condition": "// js\nconst row = ctx.entry;\nif (row == null || !Array.isArray(row.days) || row.days.length === 0) return false;\nconst catalog = get(ctx, 'reads.leave_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || catalog.code !== 'NS_LEAVE') return false;\nconst key = 'SG:NS_MAKE_UP_PAY_CLAIM:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst row = ctx.entry;\nconst first = row.days.map((day) => day.date).toSorted().at(0);\nreturn [{\n\tentity_id: row.entity_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_months(first, ctx.lookup.offset_months),\n\toccurrence_key: 'SG:NS_MAKE_UP_PAY_CLAIM:' + row.id\n}];",
+		"effects": "// js\nconst row = ctx.entry;\nconst opening = row.days.map((day) => day.date).toSorted().at(0);\nreturn [{\n\tentity_id: row.entity_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_months(opening, ctx.lookup.offset_months),\n\toccurrence_key: 'SG:NS_MAKE_UP_PAY_CLAIM:' + row.id\n}];",
 		"id": "4c539bc8-ebee-5971-88f7-d581edce995f",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
 	},
@@ -1229,6 +1258,1050 @@
 		"target_action": "create",
 		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(row.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: 'SG:OCCUPATIONAL_DISEASE_REPORT:' + row.id\n}];",
 		"id": "d10711ed-b54c-588c-a5bf-5956ffc569e3",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "IR21_FINAL_PAY_HOLD",
+		"name": "IR21 clearance before final pay",
+		"lookup": {
+			"title": "Hold final pay until IRAS clears the IR21"
+		},
+		"references": [
+			{
+				"title": "IRAS Tax Clearance for Employees (verified 2026-10-31)",
+				"url": "https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/tax-clearance-for-employees",
+				"quote": "IRAS Tax Clearance for Employees (verified 2026-10-31): withhold all monies from awareness of impending cessation, irrespective of notice length. A recorded future exit establishes awareness; do not wait for the final salary period. https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/tax-clearance-for-employees"
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:IR21_FINAL_PAY_HOLD:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			},
+			"employee_contract": {
+				"where": {
+					"id": {
+						"eq": "ctx.entry.employment_id"
+					}
+				},
+				"fields": ["final_pay_due_on"],
+				"limit": 1
+			}
+		},
+		"condition": "// js\nconst contract = first(get(ctx, 'reads.employee_contract', []));\nif (get(contract, 'final_pay_due_on', null) == null) return false;\nconst employment = ctx.subject.employment;\nif (get(employment, 'terms.residency_status', '') === 'CITIZEN') return false;\nconst exit = get(employment, 'employee_extension_data.exit_facts', {});\nif (get(exit, 'ir21_clearance_on', null) != null) return false;\nif (get(exit, 'ir21_exemption', null) != null) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:IR21_FINAL_PAY_HOLD:' + row.id\n}];",
+		"id": "c32736aa-bcdb-5b36-a464-0eb7f8dc22a2",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "DEDUCTION_LIMIT",
+		"name": "Salary deductions over the limit",
+		"lookup": {
+			"title": "Deductions over 50% of the salary",
+			"share": 0.5,
+			"excluded_codes": [
+				"SALARY_ADVANCE",
+				"FESTIVE_ADVANCE",
+				"SALARY_OVERPAYMENT",
+				"UNEARNED_BENEFIT_RECOVERY",
+				"TRAVEL_ADVANCE",
+				"COOPERATIVE_DUES"
+			]
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.32(1)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr32-",
+				"quote": "Employment Act 1968 s.32(1): all deductions in one salary period other than under s.27(1)(a) (absence), (f) (advances, loans, overpayments) and (j) (co-operative society) must not exceed 50% of the salary payable for the period; s.32(2): not on the last salary on termination. CPF and fund deductions count. Reads PAYROLL deduction_ceiling.share. https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr32-"
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:DEDUCTION_LIMIT:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\n// EA s.32(2): the limit does not apply to the last salary on termination\nconst leaving = get(ctx.subject, 'employment.effective_range.to', null);\nif (leaving != null && leaving <= month_end(String(ctx.entry.period).slice(0, 7) + '-01')) return false;\n// EA s.32(1) leaves out only s.27(1)(a), (f) and (j): the CPF employee share under (h) counts\nconst lines = get(ctx.entry, 'breakdown.lines', []);\nconst excluded = sum(lines.filter((line) => ctx.lookup.excluded_codes.includes(line.code)).map((line) => line.amount));\nif (Number(row.total_deductions) - excluded <= ctx.lookup.share * Number(row.gross_earnings)) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:DEDUCTION_LIMIT:' + row.id\n}];",
+		"id": "f11eec83-421f-5c1b-b973-4fe3aa3c639f",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "OVERTIME_MONTHLY_LIMIT",
+		"name": "Overtime over the monthly limit",
+		"lookup": {
+			"title": "Overtime over 72 hours in the month",
+			"monthly_hours": 72
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.38(5)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"quote": "Employment Act 1968 s.38(5): an employee covered by Part 4 may not work overtime of more than 72 hours a month, save under a Commissioner exemption (s.41A). https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:OVERTIME_MONTHLY_LIMIT:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"eq": "ctx.entry.employment_id"
+					},
+					"payroll_run_id": {
+						"eq": "ctx.entry.payroll_run_id"
+					}
+				},
+				"fields": ["work_date", "actual_worked_intervals", "planned_overtime_intervals"]
+			}
+		},
+		"condition": "// js\nconst terms = get(ctx.subject, 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nif (!ctx.lookup.statutory_work_categories.includes(category)) return false;\nconst ceiling = category === 'NON_MANUAL' ? ctx.lookup.nonmanual_monthly_ceiling : ctx.lookup.manual_monthly_ceiling;\nif (!(Number(get(terms, 'rate.amount', 0)) <= ceiling)) return false;\nif (!ctx.lookup.covered_engagements.includes(get(ctx.subject, 'employment.engagement', ''))) return false;\nconst worked = get(ctx, 'reads.roster_entry', []).filter((day) => get(day, 'actual_worked_intervals', []).length > 0);\nconst minutes = sum(\n\tworked.map((day) => interval_minutes(get(day, 'planned_overtime_intervals', []).filter((span) => span.end != null)))\n);\nif (minutes <= ctx.lookup.monthly_hours * 60) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:OVERTIME_MONTHLY_LIMIT:' + row.id\n}];",
+		"id": "1c1ebba8-d7ab-521a-8b0f-3572660fed37",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "DAMAGE_DEDUCTION_LIMIT",
+		"name": "Damage recovery over the limit",
+		"lookup": {
+			"title": "Damage recovery over 25% of the salary",
+			"code": "DAMAGE_RECOVERY",
+			"gross_multiplier": 0.25
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.29(1)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"quote": "Employment Act 1968 s.29(1). https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:DAMAGE_DEDUCTION_LIMIT:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "// js\nconst lines = get(ctx.entry, 'breakdown.lines', []);\nconst recovered = sum(lines.filter((line) => line.code === ctx.lookup.code).map((line) => line.amount));\nif (recovered <= ctx.lookup.gross_multiplier * Number(ctx.entry.gross_earnings)) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:DAMAGE_DEDUCTION_LIMIT:' + row.id\n}];",
+		"id": "5493d245-bccc-55aa-ab78-f698c29eb589",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "ACCOMMODATION_DEDUCTION_LIMIT",
+		"name": "Accommodation recovery over the limit",
+		"lookup": {
+			"title": "Accommodation or amenities recovery over 25% of the salary",
+			"codes": ["ACCOMMODATION_RECOVERY", "AMENITIES_RECOVERY"],
+			"gross_multiplier": 0.25
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.30(2)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"quote": "Employment Act 1968 s.30(2). https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:ACCOMMODATION_DEDUCTION_LIMIT:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "// js\nconst lines = get(ctx.entry, 'breakdown.lines', []);\nconst recovered = sum(lines.filter((line) => ctx.lookup.codes.includes(line.code)).map((line) => line.amount));\nif (recovered <= ctx.lookup.gross_multiplier * Number(ctx.entry.gross_earnings)) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:ACCOMMODATION_DEDUCTION_LIMIT:' + row.id\n}];",
+		"id": "eaf2e2d6-6212-5b08-bf3d-ec5d60de7d08",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "INSTALMENT_LIMIT",
+		"name": "Advance instalment over the limit",
+		"lookup": {
+			"title": "An advance instalment over 25% of the salary",
+			"share": 0.25,
+			"instalment_codes": ["SALARY_ADVANCE", "FESTIVE_ADVANCE", "TRAVEL_ADVANCE"]
+		},
+		"references": [
+			{
+				"title": "Employment Act s.31(3)–(5); actual parameters define the advance/loan codes and instalment share. Ov",
+				"url": "https://www.mom.gov.sg/employment-practices/salary/salary-deductions",
+				"quote": "Employment Act s.31(3)–(5); actual parameters define the advance/loan codes and instalment share. Overpayment and unearned-benefit recovery are outside this instalment cap. https://www.mom.gov.sg/employment-practices/salary/salary-deductions"
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:INSTALMENT_LIMIT:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "// js\nconst lines = get(ctx.entry, 'breakdown.lines', []);\nconst limit = ctx.lookup.share * Number(ctx.entry.gross_earnings);\nconst within = ctx.lookup.instalment_codes.every(\n\t(code) => sum(lines.filter((line) => line.code === code).map((line) => line.amount)) <= limit\n);\nif (within) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:INSTALMENT_LIMIT:' + row.id\n}];",
+		"id": "e097fb78-1e81-58c4-a2cd-44e339c29f30",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "MOM_DECLARED_SALARY",
+		"name": "Pay under the salary declared to MOM",
+		"lookup": {
+			"title": "Pay under the salary declared to MOM"
+		},
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule conditions; MOM, Empl",
+				"url": "https://www.mom.gov.sg/passes-and-permits/employment-pass/conditions",
+				"quote": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule conditions; MOM, Employment Pass conditions (https://www.mom.gov.sg/passes-and-permits/employment-pass/conditions). Customer input: terms.facts.mom_declared_monthly_salary."
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:MOM_DECLARED_SALARY:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "// js\nconst employment = ctx.subject.employment;\nconst declared = get(employment, 'employee_extension_data.term_facts.mom_declared_monthly_salary', null);\nif (declared == null) return false;\nconst from = String(ctx.entry.period).slice(0, 7) + '-01';\nconst to = month_end(from);\nconst range = ctx.subject.employment.effective_range;\n// a month worked in part is no test of a monthly figure\nif (range.from > from) return false;\nconst leaving = get(range, 'to', null);\nif (leaving != null && leaving < to) return false;\nconst fixed = sum(\n\tObject.values(get(employment, 'terms.allowances', {})).map((allowance) => Number(get(allowance, 'amount', 0)))\n);\nif (Number(ctx.entry.basic_earnings) + fixed >= Number(declared)) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:MOM_DECLARED_SALARY:' + row.id\n}];",
+		"id": "e11d8032-e7fa-53f1-9b55-f65d61a5c7d2",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "PWM_WAGE_FLOOR",
+		"name": "Pay under the Progressive Wage floor",
+		"lookup": {
+			"title": "Pay under the Progressive Wage floor"
+		},
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower Act work-pass conditions (Progressive Wage Mark / PWM); Environmental",
+				"quote": "Employment of Foreign Manpower Act work-pass conditions (Progressive Wage Mark / PWM); Environmental Public Health Act (cleaning), Private Security Industry Act (security); MOM PWM pages. Reads PAYROLL pwm_wages. Customer input: terms.facts.pwm_role. A role’s optional steps ([{ from, monthly_floor }], newest first) replace its floor from each step’s day within the version (the July cleaning and landscape steps, the January security step)."
+			},
+			{
+				"title": "MOM Progressive Wage pages: the requirements cover citizens and permanent residents; gross wage is basic wage, allowances and productivity pay, without overtime or bonuses; part-time requirements are pro-rated on a 44-hour basis",
+				"url": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector",
+				"effective_from": "2026-01-01"
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:PWM_WAGE_FLOOR:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "// js\nconst employment = ctx.subject.employment;\nconst role = get(ctx.lookup.pwm_roles, String(get(employment, 'employee_extension_data.term_facts.pwm_role', '')), null);\nif (role === null) return false;\n// MOM: the Progressive Wage requirements cover citizens and permanent residents\nif (!ctx.lookup.local_residencies.includes(get(employment, 'terms.residency_status', ''))) return false;\nconst from = String(ctx.entry.period).slice(0, 7) + '-01';\nconst to = month_end(from);\nconst range = ctx.subject.employment.effective_range;\n// a month worked in part is no test of a monthly figure\nif (range.from > from) return false;\nconst leaving = get(range, 'to', null);\nif (leaving != null && leaving < to) return false;\nconst lines = get(ctx.entry, 'breakdown.lines', []);\n// MOM: a gross floor counts basic pay, allowances and productivity pay, never overtime or bonuses\nconst overtime = sum(lines.filter((line) => line.source === 'overtime_catalog').map((line) => line.amount));\nconst wage = role.base === 'BASIC' ? Number(ctx.entry.basic_earnings) : Number(ctx.entry.ordinary_wages) - overtime;\n// steps are newest first: the first one already started replaces the role's floor\nconst step = get(role, 'steps', []).find((row) => row.from <= to);\nconst floor = Number(get(step ?? role, 'monthly_floor', 0));\n// MOM: under 35 hours a week the floor is pro-rated on a 44-hour week\nconst hours = Number(get(employment, 'terms.normal_hours_per_week', ctx.lookup.full_time_weekly_hours));\nconst due = hours < ctx.lookup.full_time_minimum_hours ? (floor * hours) / ctx.lookup.full_time_weekly_hours : floor;\nif (wage >= due) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:PWM_WAGE_FLOOR:' + row.id\n}];",
+		"id": "0f0672b9-b121-5f4e-a540-19b8b7e6d419",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "DAILY_HOURS_LIMIT",
+		"name": "Work over the daily limit",
+		"lookup": {
+			"title": "Over 12 hours worked in a day"
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.38(8)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"quote": "Employment Act 1968 s.38(8). https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:DAILY_HOURS_LIMIT:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"eq": "ctx.entry.employment_id"
+					},
+					"payroll_run_id": {
+						"eq": "ctx.entry.payroll_run_id"
+					}
+				},
+				"fields": ["work_date", "actual_worked_intervals", "planned_overtime_intervals"]
+			}
+		},
+		"condition": "// js\nconst terms = get(ctx.subject, 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nif (!ctx.lookup.statutory_work_categories.includes(category)) return false;\nconst ceiling = category === 'NON_MANUAL' ? ctx.lookup.nonmanual_monthly_ceiling : ctx.lookup.manual_monthly_ceiling;\nif (!(Number(get(terms, 'rate.amount', 0)) <= ceiling)) return false;\nif (!ctx.lookup.covered_engagements.includes(get(ctx.subject, 'employment.engagement', ''))) return false;\nconst over = get(ctx, 'reads.roster_entry', []).some(\n\t(day) =>\n\t\tinterval_minutes(get(day, 'actual_worked_intervals', []).filter((span) => span.end != null)) >\n\t\tctx.lookup.daily_hours * 60\n);\nif (!over) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:DAILY_HOURS_LIMIT:' + row.id\n}];",
+		"id": "3240d1d4-6baf-56f3-919f-564f9f7c3e5b",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "WEEKLY_REST_DAY",
+		"name": "No rest day in a week",
+		"lookup": {
+			"title": "Seven or more days worked in a row",
+			"consecutive_days": 7
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.36(1) (AGC, read 2026-10-07)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"quote": "Employment Act 1968 s.36(1) (AGC, read 2026-10-07). https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:WEEKLY_REST_DAY:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"eq": "ctx.entry.employment_id"
+					},
+					"payroll_run_id": {
+						"eq": "ctx.entry.payroll_run_id"
+					}
+				},
+				"fields": ["work_date", "actual_worked_intervals", "planned_overtime_intervals"]
+			}
+		},
+		"condition": "// js\nconst terms = get(ctx.subject, 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nif (!ctx.lookup.statutory_work_categories.includes(category)) return false;\nconst ceiling = category === 'NON_MANUAL' ? ctx.lookup.nonmanual_monthly_ceiling : ctx.lookup.manual_monthly_ceiling;\nif (!(Number(get(terms, 'rate.amount', 0)) <= ceiling)) return false;\nif (!ctx.lookup.covered_engagements.includes(get(ctx.subject, 'employment.engagement', ''))) return false;\nconst dates = get(ctx, 'reads.roster_entry', [])\n\t.filter((day) => get(day, 'actual_worked_intervals', []).length > 0)\n\t.map((day) => day.work_date)\n\t.toSorted((left, right) => (left < right ? -1 : 1));\nlet streak = 0;\nlet longest = 0;\nlet previous = '';\nfor (const date of dates) {\n\tstreak = previous !== '' && add_days(previous, 1) === date ? streak + 1 : 1;\n\tlongest = Math.max(longest, streak);\n\tprevious = date;\n}\nif (longest < ctx.lookup.consecutive_days) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:WEEKLY_REST_DAY:' + row.id\n}];",
+		"id": "c13912f5-db87-554e-985c-9bb17ae25b45",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "IR21_ADDITIONAL_PAYMENT_HOLD",
+		"name": "Payment after IR21 clearance",
+		"lookup": {
+			"title": "Hold this payment until IRAS clears it"
+		},
+		"references": [
+			{
+				"title": "IRAS, Tax clearance for employees, \"When There is Additional Income Payable to Your Employee\" (read ",
+				"url": "https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/tax-clearance-for-employees",
+				"quote": "IRAS, Tax clearance for employees, \"When There is Additional Income Payable to Your Employee\" (read 2026-10-07): file an Additional/Amended Form IR21 to seek further tax clearance before releasing the additional income; do not report it in the next IR8A/AIS. IRAS, Getting tax clearance: a step-by-step guide, Step 5: after an Amended/Additional IR21 do not release the withheld monies until its Clearance Directive. Income Tax Act 1947 s.68(7). A payment after clearance is a slip of a period after the exit, or a slip after an earlier one in the exit period (an off-cycle run after the final pay). Ceiling: one recorded clearance releases every later payment. https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/tax-clearance-for-employees"
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:IR21_ADDITIONAL_PAYMENT_HOLD:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "// js\nconst exit = get(ctx.subject, 'employment.employee_extension_data.exit_facts', {});\nif (get(exit, 'ir21_clearance_on', null) == null) return false;\nif (get(exit, 'ir21_exemption', null) != null) return false;\nconst open = get(ctx, 'reads.obligation', []).length === 0;\nif (get(exit, 'ir21_additional_clearance_on', null) == null) return open;\nif (get(exit, 'ir21_additional_cleared_month', '') !== String(ctx.entry.period).slice(0, 7)) return open;\nif (Number(ctx.entry.gross_earnings) > Number(get(exit, 'ir21_additional_cleared_month_gross', 0))) return open;\nreturn false;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:IR21_ADDITIONAL_PAYMENT_HOLD:' + row.id\n}];",
+		"id": "02641e7e-ca6c-5b3a-95c6-7467ceac9004",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "PWM_BONUS",
+		"name": "PWM bonus under the minimum",
+		"lookup": {
+			"title": "PWM bonus under the minimum for the year",
+			"sectors": {
+				"CLEANING": {
+					"weeks": 2
+				},
+				"LANDSCAPE": {
+					"weeks": 2
+				},
+				"WASTE_MANAGEMENT": {
+					"months": 1
+				}
+			},
+			"annual_due_month": "12",
+			"service_months": 12,
+			"bonus_codes": ["bonus"]
+		},
+		"references": [
+			{
+				"title": "Cleaning: Order by the Commissioner for Labour under Environmental Public Health Act 1987 s.80H(2), ",
+				"url": "https://www.mom.gov.sg/-/media/mom/documents/employment-practices/pwm/order-by-commissioner-for-labour-under-section-80h2.pdf",
+				"quote": "Cleaning: Order by the Commissioner for Labour under Environmental Public Health Act 1987 s.80H(2), para 1.5 (https://www.mom.gov.sg/-/media/mom/documents/employment-practices/pwm/order-by-commissioner-for-labour-under-section-80h2.pdf): a Citizen or SPR cleaner with 12 continuous months with the business at its cut-off date is paid at least two weeks of basic monthly wage (monthly basic × 12 ÷ 52 × 2) a year, once or twice a calendar year, in CPF-attracting bonuses. Landscape: Addendum to the Tripartite Cluster for Landscape Industry report on the PWM Bonus, 3 July 2019 (https://www.mom.gov.sg/-/media/mom/documents/employment-practices/pwm/addendum-to-tcl-report-progressive-wage-model-bonus---3-july-2019.pdf), an NParks Landscape Company Register condition: the same quantum and service. Read 2026-10-07. Checked on the last slip of the calendar year against the year’s bonus lines; the pro-rated leaver bonus (change of service provider, retirement, medical board-out) is HR’s."
+			},
+			{
+				"title": "Cleaning: Order by the Commissioner for Labour under Environmental Public Health Act 1987 s.80H(2), ",
+				"url": "https://www.mom.gov.sg/-/media/mom/documents/employment-practices/pwm/addendum-to-tcl-report-progressive-wage-model-bonus---3-july-2019.pdf",
+				"quote": "Cleaning: Order by the Commissioner for Labour under Environmental Public Health Act 1987 s.80H(2), para 1.5 (https://www.mom.gov.sg/-/media/mom/documents/employment-practices/pwm/order-by-commissioner-for-labour-under-section-80h2.pdf): a Citizen or SPR cleaner with 12 continuous months with the business at its cut-off date is paid at least two weeks of basic monthly wage (monthly basic × 12 ÷ 52 × 2) a year, once or twice a calendar year, in CPF-attracting bonuses. Landscape: Addendum to the Tripartite Cluster for Landscape Industry report on the PWM Bonus, 3 July 2019 (https://www.mom.gov.sg/-/media/mom/documents/employment-practices/pwm/addendum-to-tcl-report-progressive-wage-model-bonus---3-july-2019.pdf), an NParks Landscape Company Register condition: the same quantum and service. Read 2026-10-07. Checked on the last slip of the calendar year against the year’s bonus lines; the pro-rated leaver bonus (change of service provider, retirement, medical board-out) is HR’s."
+			},
+			{
+				"title": "MOM, Waste management sector: a PWM Bonus of at least 1 month of basic monthly wages",
+				"url": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector",
+				"effective_from": "2026-01-01"
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:PWM_BONUS:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			},
+			"payslip": {
+				"where": {
+					"employee_id": {
+						"eq": "ctx.entry.employee_id"
+					}
+				},
+				"fields": ["period", "breakdown"]
+			}
+		},
+		"condition": "// js\nconst employment = ctx.subject.employment;\nconst role = get(ctx.lookup.pwm_roles, String(get(employment, 'employee_extension_data.term_facts.pwm_role', '')), null);\nif (role === null) return false;\n// MOM: the Progressive Wage requirements cover citizens and permanent residents\nif (!ctx.lookup.local_residencies.includes(get(employment, 'terms.residency_status', ''))) return false;\nconst rule = get(ctx.lookup.sectors, role.sector, null);\nif (rule === null) return false;\nconst period = String(ctx.entry.period);\nif (period.slice(5, 7) !== ctx.lookup.annual_due_month) return false;\nconst since = get(employment, 'effective_range.from', null);\nif (since === null) return false;\nif (calendar_completed_months(String(since), month_end(period.slice(0, 7) + '-01')) < ctx.lookup.service_months) return false;\nconst year = get(ctx, 'reads.payslip', []).filter((slip) => String(slip.period).slice(0, 4) === period.slice(0, 4));\nconst paid = sum(\n\tyear\n\t\t.flatMap((slip) => get(slip, 'breakdown.lines', []))\n\t\t.filter((line) => ctx.lookup.bonus_codes.includes(line.code))\n\t\t.map((line) => line.amount)\n);\nconst basic = Number(ctx.entry.basic_earnings);\nconst weekly = (basic * ctx.lookup.months_per_year) / ctx.lookup.weeks_per_year;\nif (paid >= weekly * get(rule, 'weeks', 0) + basic * get(rule, 'months', 0)) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:PWM_BONUS:' + row.id\n}];",
+		"id": "01f46024-eb40-59a7-913d-7389d0154cf4",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "REST_DAY_NORMAL_HOURS_MISSING",
+		"name": "Rest-day pay without normal hours",
+		"lookup": {
+			"title": "Rest-day pay needs the normal daily hours"
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.37(2)–(3)",
+				"quote": "Employment Act 1968 s.37(2)–(3): half or more of the normal daily hours decides the rest-day pay; the slip is held rather than paying nothing."
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:REST_DAY_NORMAL_HOURS_MISSING:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "// js\nconst lines = get(ctx.entry, 'breakdown.lines', []);\nif (!lines.some((line) => line.code === 'REST_DAY_WORK')) return false;\nif (get(ctx.subject, 'employment.terms.normal_hours_per_day', null) != null) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:REST_DAY_NORMAL_HOURS_MISSING:' + row.id\n}];",
+		"id": "62cb0b8b-598c-5a0d-a8fe-7a5083af1b17",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "PART_TIME_HOLIDAY_HOURS_MISSING",
+		"name": "Part-time holiday work without weekly hours",
+		"lookup": {
+			"title": "Part-time holiday work needs the weekly hours"
+		},
+		"references": [
+			{
+				"title": "Employment (Part-Time Employees) Regulations",
+				"quote": "Employment (Part-Time Employees) Regulations: holiday work is paid at the hourly basic rate from the contracted hours; the slip is held rather than paying nothing."
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:PART_TIME_HOLIDAY_HOURS_MISSING:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "// js\nif (get(ctx.subject, 'employment.engagement', '') !== 'PART_TIME') return false;\nconst lines = get(ctx.entry, 'breakdown.lines', []);\nif (!lines.some((line) => line.code === 'HOLIDAY_WORK')) return false;\nif (get(ctx.subject, 'employment.terms.normal_hours_per_week', null) != null) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:PART_TIME_HOLIDAY_HOURS_MISSING:' + row.id\n}];",
+		"id": "3be94288-eb3a-564c-9bcf-66b159217b2b",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "DAILY_RATE_WORKING_WEEK_MISSING",
+		"name": "Daily rate without a working week",
+		"lookup": {
+			"title": "A daily rate needs the working week",
+			"codes": ["REST_DAY_WORK", "HOLIDAY_WORK", "ANNUAL_LEAVE", "SALARY_IN_LIEU_OF_NOTICE"]
+		},
+		"references": [
+			{
+				"title": "MOM daily basic/gross = 12 × monthly basic/gross ÷ (52 × average required days per week), verified 2",
+				"url": "https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary",
+				"quote": "MOM daily basic/gross = 12 × monthly basic/gross ÷ (52 × average required days per week), verified 2026-10-31. https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary"
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:DAILY_RATE_WORKING_WEEK_MISSING:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "// js\nconst lines = get(ctx.entry, 'breakdown.lines', []);\nif (!lines.some((line) => ctx.lookup.codes.includes(line.code))) return false;\nif (get(ctx.subject, 'employment.terms.normal_days_per_week', null) != null) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:DAILY_RATE_WORKING_WEEK_MISSING:' + row.id\n}];",
+		"id": "a1a959d3-dcc3-508f-a18d-c241ade77ade",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "PART_TIME_LEAVE_INPUTS_REQUIRED",
+		"name": "Part-time leave without contract hours",
+		"lookup": {
+			"title": "Part-time leave needs the contract hours"
+		},
+		"references": [],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:PART_TIME_LEAVE_INPUTS_REQUIRED:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			},
+			"leave_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"eq": "ctx.entry.employment_id"
+					},
+					"payroll_run_id": {
+						"eq": "ctx.entry.payroll_run_id"
+					}
+				},
+				"fields": ["id"]
+			}
+		},
+		"condition": "// js\nconst employment = ctx.subject.employment;\nif (get(employment, 'engagement', '') !== 'PART_TIME') return false;\nif (get(ctx, 'reads.leave_catalog_entry', []).length === 0) return false;\nconst open = get(ctx, 'reads.obligation', []).length === 0;\nconst extension = get(employment, 'employee_extension_data', {});\nif (get(employment, 'terms.normal_hours_per_week', null) == null) return open;\nif (get(employment, 'terms.normal_days_per_week', null) == null) return open;\nif (get(extension, 'facts.no_similar_full_time_employee', false) === true) return false;\nif (get(extension, 'term_facts.comparable_full_time_hours_per_day', null) == null) return open;\nif (get(extension, 'term_facts.comparable_full_time_hours_per_week', null) == null) return open;\nreturn false;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:PART_TIME_LEAVE_INPUTS_REQUIRED:' + row.id\n}];",
+		"id": "15af76a7-4386-5547-aac7-3b005cb9a70b",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "PART_TIME_ONGOING_ENCASHMENT_LIMIT",
+		"name": "Part-time annual leave cashed out in service",
+		"lookup": {
+			"title": "Part-time annual leave cashed out in service"
+		},
+		"references": [],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:PART_TIME_ONGOING_ENCASHMENT_LIMIT:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			},
+			"leave_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"eq": "ctx.entry.employment_id"
+					},
+					"payroll_run_id": {
+						"eq": "ctx.entry.payroll_run_id"
+					},
+					"encashment": {
+						"eq": true
+					}
+				},
+				"fields": ["id"]
+			}
+		},
+		"condition": "// js\nif (get(ctx.subject, 'employment.engagement', '') !== 'PART_TIME') return false;\nif (get(ctx, 'reads.leave_catalog_entry', []).length === 0) return false;\nconst leaving = get(ctx.subject, 'employment.effective_range.to', null);\nif (leaving != null && leaving <= month_end(String(ctx.entry.period).slice(0, 7) + '-01')) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:PART_TIME_ONGOING_ENCASHMENT_LIMIT:' + row.id\n}];",
+		"id": "e7f80431-0a68-5967-bef5-147239eebb25",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "WICA_AME_EVIDENCE_REQUIRED",
+		"name": "Work-injury leave without evidence",
+		"lookup": {
+			"title": "Work-injury leave needs its evidence"
+		},
+		"references": [],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:WICA_AME_EVIDENCE_REQUIRED:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			},
+			"leave_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"eq": "ctx.entry.employment_id"
+					},
+					"payroll_run_id": {
+						"eq": "ctx.entry.payroll_run_id"
+					},
+					"catalog_id": {
+						"is": {
+							"code": {
+								"in": ["WORK_INJURY_MEDICAL_LEAVE", "WORK_INJURY_HOSPITALISATION_LEAVE"]
+							}
+						}
+					}
+				},
+				"fields": ["evidence_file"]
+			}
+		},
+		"condition": "// js\nconst rows = get(ctx, 'reads.leave_catalog_entry', []);\nif (rows.every((row) => get(row, 'evidence_file', null) != null)) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:WICA_AME_EVIDENCE_REQUIRED:' + row.id\n}];",
+		"id": "e9650ec4-1c86-5ba5-af4e-566a6a4db028",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "IR21_DEPARTURE_PAY_HOLD",
+		"name": "Departure clearance does not cover this pay",
+		"lookup": {
+			"title": "Hold pay until IRAS clears the departure"
+		},
+		"references": [],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:IR21_DEPARTURE_PAY_HOLD:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "// js\nconst employment = ctx.subject.employment;\nif (get(employment, 'terms.residency_status', '') === 'CITIZEN') return false;\nconst facts = get(employment, 'employee_extension_data.facts', {});\nif (get(facts, 'ir21_departure_exemption_evidence', '') !== '') return false;\n// a departure case names no employee: the contract's clearance facts say who is leaving\nif (get(facts, 'ir21_departure_clearance_on', null) == null) return false;\nconst open = get(ctx, 'reads.obligation', []).length === 0;\nconst through = get(facts, 'ir21_departure_clearance_through', null);\nif (through == null) return open;\nif (month_end(String(ctx.entry.period).slice(0, 7) + '-01') > String(through)) return open;\nif (get(facts, 'ir21_departure_clearance_evidence', '') === '') return open;\nreturn false;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:IR21_DEPARTURE_PAY_HOLD:' + row.id\n}];",
+		"id": "70716f03-ed12-5600-9d27-fef355207064",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "STATUTORY_GROSS_ALLOWANCE_REVIEW",
+		"name": "Allowances in a gross rate need review",
+		"lookup": {
+			"title": "Review the allowances in this gross rate",
+			"codes": ["ANNUAL_LEAVE", "SALARY_IN_LIEU_OF_NOTICE"],
+			"allowance_purposes": [
+				"FOOD",
+				"HOUSING",
+				"TRAVEL",
+				"EXPENSE_REIMBURSEMENT",
+				"PRODUCTIVITY_INCENTIVE",
+				"SHIFT",
+				"LOCATION",
+				"OTHER"
+			],
+			"fixed_purposes": [
+				"FOOD",
+				"HOUSING",
+				"TRAVEL",
+				"EXPENSE_REIMBURSEMENT",
+				"PRODUCTIVITY_INCENTIVE"
+			]
+		},
+		"references": [],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:STATUTORY_GROSS_ALLOWANCE_REVIEW:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "// js\nconst lines = get(ctx.entry, 'breakdown.lines', []);\nif (!lines.some((line) => ctx.lookup.codes.includes(line.code))) return false;\nconst allowances = Object.values(get(ctx.subject, 'employment.terms.allowances', {}));\nconst settled = allowances.every((allowance) => {\n\tconst purpose = get(allowance, 'purpose', '');\n\tif (!ctx.lookup.allowance_purposes.includes(purpose)) return false;\n\tif (ctx.lookup.fixed_purposes.includes(purpose)) return true;\n\treturn get(allowance, 'variability', '') === 'FIXED';\n});\nif (settled) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:STATUTORY_GROSS_ALLOWANCE_REVIEW:' + row.id\n}];",
+		"id": "1cd2c3e9-d2b5-512a-8734-7166490ae685",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "UNPAID_QUALIFYING_SERVICE_REVIEW",
+		"name": "Unpaid service excluded from annual leave",
+		"lookup": {
+			"title": "Review the unpaid service excluded from annual leave"
+		},
+		"references": [
+			{
+				"title": "EA88A(4): disregard employee-requested approved unpaid absence",
+				"url": "https://sso.agc.gov.sg/Act/CDCSA2001?ProvIds=pr12D-&ViewType=Advance&WiAl=1",
+				"quote": "EA88A(4): disregard employee-requested approved unpaid absence. CDCA12D(9): unpaid infant-care leave counts as service despite EA. Do not infer exclusion from paid_share=0 or working-day debit alone. https://sso.agc.gov.sg/Act/CDCSA2001?ProvIds=pr12D-&ViewType=Advance&WiAl=1"
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:UNPAID_QUALIFYING_SERVICE_REVIEW:' + ctx.entry.employment_id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "// js\nconst fact = get(ctx.subject, 'employment.employee_extension_data.term_facts.annual_leave_unpaid_service_policy', '');\nif (fact !== 'EXCLUDE_REQUIRES_REVIEW') return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:UNPAID_QUALIFYING_SERVICE_REVIEW:' + row.employment_id\n}];",
+		"id": "a39b0eb4-7a1f-54e8-bf24-b136839ff91e",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "MIXED_LEAVE_YEAR_REVIEW",
+		"name": "Mixed full-time and part-time leave year",
+		"lookup": {
+			"title": "Review the mixed full-time and part-time leave year"
+		},
+		"references": [
+			{
+				"title": "MOM official FAQ, verified 2026-10-31",
+				"url": "https://www.mom.gov.sg/faq/part-time-employment/how-should-i-compute-my-ee-leave-if-convert-from-ft-to-pte-or-vice-versa",
+				"quote": "MOM official FAQ, verified 2026-10-31: Employment Act provides no FT/PT conversion calculation; employer and employee agree. Dated contract segments alone do not establish that agreement. https://www.mom.gov.sg/faq/part-time-employment/how-should-i-compute-my-ee-leave-if-convert-from-ft-to-pte-or-vice-versa"
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:MIXED_LEAVE_YEAR_REVIEW:' + ctx.entry.employment_id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "// js\nconst fact = get(ctx.subject, 'employment.employee_extension_data.term_facts.leave_year_employment_basis', '');\nif (fact !== 'MIXED_REQUIRES_REVIEW') return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:MIXED_LEAVE_YEAR_REVIEW:' + row.employment_id\n}];",
+		"id": "f25e29d5-f343-5cf5-8e14-de82718d8b29",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "PART_TIME_INCOMPLETE_MONTH_REVIEW",
+		"name": "Part-time salary for an incomplete month",
+		"lookup": {
+			"title": "Review the part-time salary for this incomplete month"
+		},
+		"references": [],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:PART_TIME_INCOMPLETE_MONTH_REVIEW:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "// js\nconst employment = ctx.subject.employment;\nif (get(employment, 'engagement', '') !== 'PART_TIME') return false;\nconst from = String(ctx.entry.period).slice(0, 7) + '-01';\nconst range = employment.effective_range;\nconst leaving = get(range, 'to', null);\nif (range.from <= from && (leaving == null || leaving >= month_end(from))) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:PART_TIME_INCOMPLETE_MONTH_REVIEW:' + row.id\n}];",
+		"id": "e9e51732-2f7f-5f08-8a09-2421e59993cc",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "PART_TIME_HOURLY_ALLOWANCE_REVIEW",
+		"name": "Annual leave paid in hourly wages",
+		"lookup": {
+			"title": "Review the annual leave paid in hourly wages",
+			"codes": ["PT_ANNUAL_HOURLY_OW", "PT_ANNUAL_HOURLY_AW"],
+			"days_threshold": 5,
+			"hours_threshold": 30,
+			"hours_threshold_ceiling": 34
+		},
+		"references": [],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'SG:PART_TIME_HOURLY_ALLOWANCE_REVIEW:' + ctx.entry.employment_id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "// js\nconst terms = get(ctx.subject, 'employment.terms', {});\nconst paid = Object.entries(get(terms, 'allowances', {})).some(\n\t([code, allowance]) => ctx.lookup.codes.includes(code) && Number(get(allowance, 'amount', 0)) > 0\n);\nif (!paid) return false;\nconst open = get(ctx, 'reads.obligation', []).length === 0;\nconst days = Number(get(terms, 'normal_days_per_week', 0));\nconst hours = Number(get(terms, 'normal_hours_per_week', 0));\nconst banned = hours >= ctx.lookup.hours_threshold && hours <= ctx.lookup.hours_threshold_ceiling;\nif (days >= ctx.lookup.days_threshold && banned) return open;\nconst facts = get(ctx.subject, 'employment.employee_extension_data.facts', {});\nif (get(facts, 'part_time_annual_encashment_agreed', false) !== true) return open;\nif (get(facts, 'pt_leave_hourly_uplift_evidence', '') === '') return open;\nreturn false;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: month_end(String(row.period).slice(0, 7) + '-01'),\n\toccurrence_key: 'SG:PART_TIME_HOURLY_ALLOWANCE_REVIEW:' + row.employment_id\n}];",
+		"id": "e18dbfa2-0c6d-5c70-9c10-9d682d2efbe0",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "LQS_WAGE_FLOOR",
+		"name": "Pay under the Local Qualifying Salary",
+		"lookup": {
+			"title": "Pay under the Local Qualifying Salary",
+			"monthly_floor": 1600,
+			"hourly_floor": 10.5
+		},
+		"references": [
+			{
+				"title": "MOM, Local Qualifying Salary; Factsheet on lower-wage workers, COS 2026 para.10",
+				"url": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/local-qualifying-salary",
+				"quote": "From 1 July 2026 the LQS rises from $1,600 to $1,800 for full-time local workers; part-time locals (under 35 hours a week) at least $10.50 an hour, total monthly gross over total hours worked."
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"like": {
+							"var": "'SG:LQS_WAGE_FLOOR:' + ctx.entry.id + ':%'"
+						}
+					}
+				}
+			},
+			"payslip": {
+				"where": {
+					"payroll_run_id": {
+						"eq": "ctx.entry.id"
+					}
+				},
+				"fields": ["employee_id", "employment_id", "entity_id", "ordinary_wages", "breakdown"]
+			},
+			"employee_contract": {
+				"where": {
+					"entity_id": {
+						"eq": "ctx.entry.entity_id"
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				},
+				"fields": ["id", "employee_id", "effective_range", "terms", "employee_extension_data"]
+			}
+		},
+		"condition": "// js\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst run = ctx.entry;\nconst from = run.salary_coverage.from;\nconst to = run.salary_coverage.to;\nconst contracts = get(ctx, 'reads.employee_contract', []).filter((contract) => {\n\tif (contract.effective_range.from > to) return false;\n\tconst end = get(contract, 'effective_range.to', null);\n\treturn end == null || end >= from;\n});\n// MOM: the LQS binds firms that hold work passes\nconst holdsPasses = contracts.some((contract) =>\n\tctx.lookup.work_pass_categories.includes(get(contract, 'terms.work_authorisation_category', ''))\n);\nif (!holdsPasses) return [];\nreturn get(ctx, 'reads.payslip', []).flatMap((slip) => {\n\tconst contract = contracts.find((row) => row.id === slip.employment_id);\n\tif (contract == null) return [];\n\tconst terms = get(contract, 'terms', {});\n\tif (!ctx.lookup.local_residencies.includes(get(terms, 'residency_status', ''))) return [];\n\tif (get(contract, 'employee_extension_data.term_facts.pwm_role', '') !== '') return [];\n\t// a month worked in part is no test of a monthly figure\n\tif (contract.effective_range.from > from) return [];\n\tconst end = get(contract, 'effective_range.to', null);\n\tif (end != null && end < to) return [];\n\tconst overtime = sum(\n\t\tget(slip, 'breakdown.lines', []).filter((line) => line.source === 'overtime_catalog').map((line) => line.amount)\n\t);\n\tconst wage = Number(slip.ordinary_wages) - overtime;\n\tconst hours = Number(get(terms, 'normal_hours_per_week', ctx.lookup.full_time_weekly_hours));\n\t// MOM: under 35 hours a week the LQS is hourly, on gross pay over the month's hours\n\tconst floor =\n\t\thours < ctx.lookup.full_time_minimum_hours\n\t\t\t? (ctx.lookup.hourly_floor * hours * ctx.lookup.weeks_per_year) / ctx.lookup.months_per_year\n\t\t\t: ctx.lookup.monthly_floor;\n\tif (wage >= floor) return [];\n\treturn [{\n\t\tentity_id: run.entity_id,\n\t\temployee_id: slip.employee_id,\n\t\temployment_id: slip.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: to,\n\t\toccurrence_key: 'SG:LQS_WAGE_FLOOR:' + run.id + ':' + slip.employment_id\n\t}];\n});",
+		"id": "6f22810c-d769-58b6-b5a6-4454f18b0ef4",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "CPF_AW_YEAR_END_RECALCULATION",
+		"name": "Additional Wage ceiling recalculation",
+		"lookup": {
+			"title": "Re-calculate CPF on Additional Wages: pay any shortfall, apply for a refund of any excess",
+			"offset_days": 14
+		},
+		"references": [
+			{
+				"title": "CPF Board, Examples for computation of Additional Wage ceiling, Step 2",
+				"url": "https://www.cpf.gov.sg/content/dam/web/employer/employer-obligations/documents/ExamplesonAdditionalWageCeilingComputation.pdf",
+				"effective_from": "2026-01-01"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"like": {
+							"var": "'SG:CPF_AW_YEAR_END_RECALCULATION:' + ctx.entry.id + ':%'"
+						}
+					}
+				}
+			},
+			"payslip": {
+				"where": {
+					"payroll_run_id": {
+						"eq": "ctx.entry.id"
+					}
+				},
+				"fields": ["employee_id", "employment_id", "entity_id", "ordinary_wages", "breakdown"]
+			},
+			"employee_contract": {
+				"where": {
+					"entity_id": {
+						"eq": "ctx.entry.entity_id"
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				},
+				"fields": ["id", "employee_id", "effective_range", "terms", "employee_extension_data"]
+			},
+			"employee_balance": {
+				"where": {},
+				"fields": ["employee_id", "account"]
+			}
+		},
+		"condition": "// js\nreturn get(ctx, 'reads.obligation', []).length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\n// CPF Board Step 2: in December or the last month of employment, re-calculate the AW ceiling on the actual OW. The balance holds AW paid, not AW charged, so the difference is raised rather than charged\nconst run = ctx.entry;\nconst to = run.salary_coverage.to;\nconst month = Number(to.slice(5, 7));\nconst contracts = get(ctx, 'reads.employee_contract', []);\nconst balances = get(ctx, 'reads.employee_balance', []);\nreturn get(ctx, 'reads.payslip', []).flatMap((slip) => {\n\tif (!get(slip, 'breakdown.statutory', []).some((scheme) => scheme.code === 'CPF')) return [];\n\tconst contract = contracts.find((row) => row.id === slip.employment_id);\n\tconst leaving = String(get(contract, 'effective_range.to', ''));\n\tif (month !== ctx.lookup.months_per_year && (leaving === '' || leaving > month_end(to))) return [];\n\tconst account = get(balances.find((row) => row.employee_id === slip.employee_id), 'account', {});\n\tconst ordinary = Number(get(account, 'ytd.ORDINARY_WAGES', 0));\n\tconst additional = Number(get(account, 'ytd.ADDITIONAL_WAGES', 0)) - ordinary;\n\t// no estimate can fall under the ceiling less twelve capped months: AW within it was charged in full\n\tif (additional <= ctx.lookup.annual_ceiling - ctx.lookup.months_per_year * ctx.lookup.ordinary_ceiling) return [];\n\tconst started = String(get(contract, 'effective_range.from', ''));\n\tconst opening = started.slice(0, 4) === to.slice(0, 4) ? Number(started.slice(5, 7)) : 1;\n\tconst months = month - opening + 1;\n\t// a steady year to December: Step 1's estimate was the actual\n\tif (month === ctx.lookup.months_per_year && ordinary === Number(slip.ordinary_wages) * months) return [];\n\tconst ceiling = ctx.lookup.annual_ceiling - Math.min(ordinary, ctx.lookup.ordinary_ceiling * months);\n\treturn [{\n\t\tentity_id: run.entity_id,\n\t\temployee_id: slip.employee_id,\n\t\temployment_id: slip.employment_id,\n\t\ttitle: ctx.lookup.title + ': ceiling $' + ceiling.toFixed(2) + ', AW paid $' + additional.toFixed(2),\n\t\tdue_on: add_days(month_end(to), ctx.lookup.offset_days),\n\t\toccurrence_key: 'SG:CPF_AW_YEAR_END_RECALCULATION:' + run.id + ':' + slip.employment_id\n\t}];\n});",
+		"id": "9f1114f2-1d39-51fd-a402-b4c038d71eb6",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
 	}
 ]

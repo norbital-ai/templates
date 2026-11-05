@@ -21,9 +21,23 @@
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
 	{
+		"code": "SEVERANCE",
+		"name": "Wages and severance",
+		"previous_id": "64cb83b6-e9a2-5a1c-b263-671b68fd1ecf",
+		"id": "f921e7ab-0098-5964-8db0-5f8b8de0c895",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "PENSION_BENEFIT",
+		"name": "Wages, severance and pension benefit",
+		"previous_id": "f921e7ab-0098-5964-8db0-5f8b8de0c895",
+		"id": "7f972b42-ab87-5b53-9561-c52b5287a34e",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
 		"code": "GROSS",
 		"name": "Gross earnings",
-		"previous_id": "64cb83b6-e9a2-5a1c-b263-671b68fd1ecf",
+		"previous_id": "7f972b42-ab87-5b53-9561-c52b5287a34e",
 		"id": "1e301412-2e0d-5576-b127-ca961b6cac6e",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},

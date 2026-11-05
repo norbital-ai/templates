@@ -13,7 +13,7 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
 		"eligibility": "return get(ctx.subject, 'employment.terms.rate.unit', '') === 'MONTHLY';",
 		"conversion": "// js\nconst amount = get(ctx.subject, 'employment.terms.allowances.FIXED_MONTHLY.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",
@@ -35,7 +35,7 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "576d9a95-0b2e-58eb-8d16-14dcd0cf8835",
 		"eligibility": "return ctx.subject.employment.engagement === 'PART_TIME';",
 		"conversion": "// js\nconst amount = get(ctx.subject, 'employment.terms.allowances.PT_ANNUAL_HOURLY_AW.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",
@@ -57,7 +57,7 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
 		"eligibility": "return ctx.subject.employment.engagement === 'PART_TIME';",
 		"conversion": "// js\nconst amount = get(ctx.subject, 'employment.terms.allowances.PT_ANNUAL_HOURLY_OW.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",

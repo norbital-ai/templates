@@ -22,8 +22,7 @@
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_months)), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"健康保険・厚生年金保険料の納付 (social insurance premium payment)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'SOCIAL_INSURANCE_PAYMENT', ctx.entry.entity_id, ctx.entry.period])\n}];",
 		"lookup": {
-			"date_offset_months": 1,
-			"schemes": ["HEALTH", "HEALTH_BONUS", "PENSION", "PENSION_BONUS", "CHILD_CONTRIBUTION"]
+			"date_offset_months": 1
 		},
 		"references": [
 			{
@@ -1151,7 +1150,6 @@
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(add_days(first(ctx.entry.days.map((d) => d.date).toSorted()), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"労働者死傷病報告 (work-injury report, 4 days or more)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'WORK_INJURY_REPORT', ctx.entry.id])\n}];",
 		"lookup": {
-			"report_days_threshold": 4,
 			"date_offset_days": 3
 		},
 		"references": [
@@ -1196,7 +1194,6 @@
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(month_end(add_months(month_start(first(ctx.entry.days.map((d) => d.date).toSorted())), ctx.lookup.quarter_months - 1 - ((Number(first(ctx.entry.days.map((d) => d.date).toSorted()).substring(5, 7)) - 1) % ctx.lookup.quarter_months))), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"労働者死傷病報告 (work-injury report, under 4 days)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'WORK_INJURY_REPORT_QUARTERLY', ctx.entry.id])\n}];",
 		"lookup": {
-			"report_days_threshold": 4,
 			"quarter_months": 3
 		},
 		"references": [
@@ -1245,8 +1242,7 @@
 		"effects": "const due = add_working_days(add_days(month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_months)), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"女性の活躍に関する情報公表 (women's advancement information publication)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'WOMEN_ADVANCEMENT_PUBLICATION', ctx.entry.entity_id, ctx.entry.period])\n}];",
 		"lookup": {
 			"employee_count_threshold": 100,
-			"date_offset_months": 2,
-			"business_year_end_month": 3
+			"date_offset_months": 2
 		},
 		"references": [
 			{
@@ -1758,7 +1754,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const catalog = first(ctx.reads.adhoc_catalog);\nif (ctx.entry.status !== 'APPROVED') return false;\nif (catalog == null) return false;\nreturn [\"RETIREMENT_ALLOWANCE\", \"DISMISSAL_NOTICE_ALLOWANCE\"].includes(catalog.code);",
+		"condition": "const catalog = first(ctx.reads.adhoc_catalog);\nif (ctx.entry.status !== 'APPROVED') return false;\nif (catalog == null) return false;\nreturn [\"RETIREMENT_ALLOWANCE\", \"RETIREMENT_ALLOWANCE_UNDECLARED\", \"DISMISSAL_NOTICE_ALLOWANCE\"].includes(catalog.code);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(add_months(ctx.entry.incurred_on, ctx.lookup.date_offset_months), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"退職所得の源泉徴収票・特別徴収票 (retirement income slip)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'RETIREMENT_INCOME_SLIP', ctx.entry.id])\n}];",
@@ -2079,8 +2075,7 @@
 		"effects": "const due = add_working_days(add_days(month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_months)), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"男性の育児休業等取得状況の公表 (publication of men's childcare leave)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'MALE_CHILDCARE_LEAVE_PUBLICATION', ctx.entry.entity_id, ctx.entry.period])\n}];",
 		"lookup": {
 			"employee_count_threshold": 300,
-			"date_offset_months": 2,
-			"business_year_end_month": 3
+			"date_offset_months": 2
 		},
 		"references": [
 			{
@@ -2222,8 +2217,7 @@
 		"effects": "const due = add_working_days(add_days(month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_months)), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"中途採用比率の公表 (publication of the mid-career hiring ratio)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'MID_CAREER_HIRING_PUBLICATION', ctx.entry.entity_id, ctx.entry.period])\n}];",
 		"lookup": {
 			"employee_count_threshold": 300,
-			"date_offset_months": 2,
-			"business_year_end_month": 3
+			"date_offset_months": 2
 		},
 		"references": [
 			{
@@ -2703,8 +2697,6 @@
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(add_days(get(ctx.entry, 'inputs.discovered_on', '') !== '' ? get(ctx.entry, 'inputs.discovered_on', '') : ctx.entry.opened_on, ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"個人データ漏えい等 速報 (preliminary breach report)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'PERSONAL_DATA_BREACH_PRELIMINARY', ctx.entry.id])\n}];",
 		"lookup": {
-			"affected_people_count_threshold": 1000,
-			"my_number_count_threshold": 100,
 			"date_offset_days": 4
 		},
 		"references": [
@@ -2738,8 +2730,6 @@
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(add_days(get(ctx.entry, 'inputs.discovered_on', '') !== '' ? get(ctx.entry, 'inputs.discovered_on', '') : ctx.entry.opened_on, get(ctx.entry, 'inputs.misconduct', false) === true ? ctx.lookup.malicious_report_days : ctx.lookup.ordinary_report_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"個人データ漏えい等 確報 (final breach report)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'PERSONAL_DATA_BREACH_FINAL', ctx.entry.id])\n}];",
 		"lookup": {
-			"affected_people_count_threshold": 1000,
-			"my_number_count_threshold": 100,
 			"malicious_report_days": 60,
 			"ordinary_report_days": 30
 		},
@@ -2761,10 +2751,7 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = get(ctx.entry, 'inputs.discovered_on', '') !== '' ? get(ctx.entry, 'inputs.discovered_on', '') : ctx.entry.opened_on;\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"個人データ漏えい等 本人通知 (notice to the people affected)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'PERSONAL_DATA_BREACH_NOTICE', ctx.entry.id])\n}];",
-		"lookup": {
-			"affected_people_count_threshold": 1000,
-			"my_number_count_threshold": 100
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "個人情報保護法 art.26(2) with 施行規則 art.10: promptly, on a reportable leak; 番号法 art.29の4(2)."
@@ -2896,15 +2883,1402 @@
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = ctx.entry.effective_range.from;\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"年少者の証明書 (age certificate of a worker under 18)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'MINOR_AGE_CERTIFICATE', ctx.entry.id, ctx.entry.effective_range.from])\n}];",
-		"lookup": {
-			"employee_age_years_threshold": 18
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "労働基準法 art.57(1) with 年少者労働基準規則 art.1: the employer keeps at the workplace a certificate of the age of each worker under 18 (a 住民票記載事項の証明書 suffices; 昭和50年2月17日 基発83号). Raised on the hire of a worker under 18 on the hire day."
 			}
 		],
 		"id": "43127745-d1ee-5e71-bedd-f318ff944904",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "OVERTIME_MONTHLY_45H",
+		"name": "時間外労働の限度時間 45時間 (monthly overtime limit)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'OVERTIME_MONTHLY_45H', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.entry.employee_id"
+								}
+							}
+						}
+					},
+					"work_date": {
+						"gte": {
+							"var": "add_months(ctx.entry.period + '-01', -11)"
+						},
+						"lte": {
+							"var": "month_end(ctx.entry.period + '-01')"
+						}
+					}
+				},
+				"fields": [
+					"work_date",
+					"shift_definition_id",
+					"actual_worked_intervals",
+					"planned_overtime_intervals"
+				],
+				"limit": 400
+			},
+			"shift_definition": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["id", "variant"],
+				"limit": 10000
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nconst terms = ctx.subject.employment.terms;\nif (['MANAGERIAL', 'OFFICER'].includes(get(terms, 'work_classification', 'ORDINARY'))) return false;\nconst shifts = ctx.reads.shift_definition;\nconst onRest = (row) => get(shifts.find((shift) => shift.id === row.shift_definition_id) ?? {}, 'variant.day_type', 'WORK') === 'REST';\nconst taken = (row) => (get(row, 'actual_worked_intervals', []).length > 0 ? interval_minutes(get(row, 'planned_overtime_intervals', [])) / 60 : 0);\nconst hours = ctx.reads.roster_entry.map((row) => ({ date: row.work_date, month: row.work_date.substring(0, 7), rest: onRest(row), taken: taken(row) })).filter((row) => row.taken > 0);\nconst overtime = group_sum(hours.filter((row) => !row.rest), 'month', 'taken');\nconst restWork = group_sum(hours.filter((row) => row.rest), 'month', 'taken');\nconst month = ctx.entry.period;\nconst inMonth = (table) => Number(get(table, month, 0));\nconst employer = get(ctx.subject.employer, 'entity_extension_data', {});\nconst end = month_end(month + '-01');\nconst from = get(employer, 'overtime_agreement_from', null);\nconst start = from == null || from > end ? month.substring(0, 4) + '-01-01' : add_months(from, Math.floor(calendar_completed_months(from, end) / 12) * 12);\nconst months = Object.entries(overtime).filter((pair) => pair[0] >= start.substring(0, 7) && pair[0] <= month);\nif (!(inMonth(overtime) > ctx.lookup.monthly_overtime_hours_threshold)) return false;\nif (get(employer, 'overtime_special_clause', false) !== true) return true;\nreturn months.filter((pair) => pair[1] > ctx.lookup.monthly_overtime_hours_threshold).length > ctx.lookup.maximum_months_over_limit;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'OVERTIME_MONTHLY_45H', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "Overtime above 45 hours this month: lawful only under the special clause of the 36 agreement, and in at most six months a year (労働基準法 art.36(4)–(5)).",
+			"monthly_overtime_hours_threshold": 45,
+			"maximum_months_over_limit": 6
+		},
+		"references": [
+			{
+				"title": "労働基準法 art.36(3)–(5): the limit is 45 hours a month and 360 hours a year; a special clause may exceed 45 hours in at most six months a year (働き方改革関連法, in force for all employers since April 2020). The yearly 360/720-hour totals and the 2–6 month 80-hour average need hours of earlier months, which no root carries."
+			}
+		],
+		"id": "59f35666-7ec0-5e02-b259-016cb8c33980",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "OVERTIME_REST_DAY_100H",
+		"name": "時間外・休日労働 100時間未満 (absolute monthly cap)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'OVERTIME_REST_DAY_100H', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.entry.employee_id"
+								}
+							}
+						}
+					},
+					"work_date": {
+						"gte": {
+							"var": "ctx.entry.period + '-01'"
+						},
+						"lte": {
+							"var": "month_end(ctx.entry.period + '-01')"
+						}
+					}
+				},
+				"fields": [
+					"work_date",
+					"shift_definition_id",
+					"actual_worked_intervals",
+					"planned_overtime_intervals"
+				],
+				"limit": 400
+			},
+			"shift_definition": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["id", "variant"],
+				"limit": 10000
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nconst terms = ctx.subject.employment.terms;\nif (['MANAGERIAL', 'OFFICER'].includes(get(terms, 'work_classification', 'ORDINARY'))) return false;\nconst shifts = ctx.reads.shift_definition;\nconst onRest = (row) => get(shifts.find((shift) => shift.id === row.shift_definition_id) ?? {}, 'variant.day_type', 'WORK') === 'REST';\nconst taken = (row) => (get(row, 'actual_worked_intervals', []).length > 0 ? interval_minutes(get(row, 'planned_overtime_intervals', [])) / 60 : 0);\nconst hours = ctx.reads.roster_entry.map((row) => ({ date: row.work_date, month: row.work_date.substring(0, 7), rest: onRest(row), taken: taken(row) })).filter((row) => row.taken > 0);\nconst overtime = group_sum(hours.filter((row) => !row.rest), 'month', 'taken');\nconst restWork = group_sum(hours.filter((row) => row.rest), 'month', 'taken');\nconst month = ctx.entry.period;\nconst inMonth = (table) => Number(get(table, month, 0));\nreturn inMonth(overtime) + inMonth(restWork) >= ctx.lookup.monthly_hours_limit;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'OVERTIME_REST_DAY_100H', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "Overtime and statutory rest-day work reached 100 hours this month; the law requires under 100 even under a special clause (労働基準法 art.36(6)(ii)).",
+			"monthly_hours_limit": 100
+		},
+		"references": [
+			{
+				"title": "労働基準法 art.36(6)(ii): overtime and rest-day work together must be under 100 hours in each month; art.119 (penalty). The wages are still owed, so the slip warns rather than refuses."
+			}
+		],
+		"id": "ab2265d3-156e-5157-bd59-e32d30ea59e0",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "OVERTIME_WITHOUT_AGREEMENT",
+		"name": "36協定の有効期間外の時間外労働 (overtime outside the 36 agreement)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'OVERTIME_WITHOUT_AGREEMENT', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.entry.employee_id"
+								}
+							}
+						}
+					},
+					"work_date": {
+						"gte": {
+							"var": "ctx.entry.period + '-01'"
+						},
+						"lte": {
+							"var": "month_end(ctx.entry.period + '-01')"
+						}
+					}
+				},
+				"fields": [
+					"work_date",
+					"shift_definition_id",
+					"actual_worked_intervals",
+					"planned_overtime_intervals"
+				],
+				"limit": 400
+			},
+			"shift_definition": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["id", "variant"],
+				"limit": 10000
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nconst terms = ctx.subject.employment.terms;\nif (['MANAGERIAL', 'OFFICER'].includes(get(terms, 'work_classification', 'ORDINARY'))) return false;\nconst shifts = ctx.reads.shift_definition;\nconst onRest = (row) => get(shifts.find((shift) => shift.id === row.shift_definition_id) ?? {}, 'variant.day_type', 'WORK') === 'REST';\nconst taken = (row) => (get(row, 'actual_worked_intervals', []).length > 0 ? interval_minutes(get(row, 'planned_overtime_intervals', [])) / 60 : 0);\nconst hours = ctx.reads.roster_entry.map((row) => ({ date: row.work_date, month: row.work_date.substring(0, 7), rest: onRest(row), taken: taken(row) })).filter((row) => row.taken > 0);\nconst overtime = group_sum(hours.filter((row) => !row.rest), 'month', 'taken');\nconst restWork = group_sum(hours.filter((row) => row.rest), 'month', 'taken');\nconst month = ctx.entry.period;\nconst inMonth = (table) => Number(get(table, month, 0));\nconst employer = get(ctx.subject.employer, 'entity_extension_data', {});\nconst from = get(employer, 'overtime_agreement_from', null);\nconst to = get(employer, 'overtime_agreement_to', null);\nreturn hours.some((row) => {\n\tif (row.month !== month) return false;\n\tif (to == null) return true;\n\tif (row.date > to) return true;\n\treturn from != null && row.date < from;\n});",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'OVERTIME_WITHOUT_AGREEMENT', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "Overtime falls outside the period of the 36 agreement on record (company.facts overtime_agreement_from/to); overtime needs an agreement filed with the labour standards office (労働基準法 arts.32, 36(1))."
+		},
+		"references": [
+			{
+				"title": "労働基準法 art.36(1): overtime and rest-day work are lawful only under a written agreement filed with the labour standards office; customer input: company.facts.overtime_agreement_from, overtime_agreement_to."
+			}
+		],
+		"id": "8587010f-77ba-55ac-8310-06d59ab19309",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "OVERTIME_YEAR_360H",
+		"name": "時間外労働の限度時間 年360時間 (yearly overtime limit)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'OVERTIME_YEAR_360H', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.entry.employee_id"
+								}
+							}
+						}
+					},
+					"work_date": {
+						"gte": {
+							"var": "add_months(ctx.entry.period + '-01', -11)"
+						},
+						"lte": {
+							"var": "month_end(ctx.entry.period + '-01')"
+						}
+					}
+				},
+				"fields": [
+					"work_date",
+					"shift_definition_id",
+					"actual_worked_intervals",
+					"planned_overtime_intervals"
+				],
+				"limit": 400
+			},
+			"shift_definition": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["id", "variant"],
+				"limit": 10000
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nconst terms = ctx.subject.employment.terms;\nif (['MANAGERIAL', 'OFFICER'].includes(get(terms, 'work_classification', 'ORDINARY'))) return false;\nconst shifts = ctx.reads.shift_definition;\nconst onRest = (row) => get(shifts.find((shift) => shift.id === row.shift_definition_id) ?? {}, 'variant.day_type', 'WORK') === 'REST';\nconst taken = (row) => (get(row, 'actual_worked_intervals', []).length > 0 ? interval_minutes(get(row, 'planned_overtime_intervals', [])) / 60 : 0);\nconst hours = ctx.reads.roster_entry.map((row) => ({ date: row.work_date, month: row.work_date.substring(0, 7), rest: onRest(row), taken: taken(row) })).filter((row) => row.taken > 0);\nconst overtime = group_sum(hours.filter((row) => !row.rest), 'month', 'taken');\nconst restWork = group_sum(hours.filter((row) => row.rest), 'month', 'taken');\nconst month = ctx.entry.period;\nconst inMonth = (table) => Number(get(table, month, 0));\nconst employer = get(ctx.subject.employer, 'entity_extension_data', {});\nif (get(employer, 'overtime_sector', 'GENERAL') === 'NEW_TECH_RD') return false;\nconst end = month_end(month + '-01');\nconst from = get(employer, 'overtime_agreement_from', null);\nconst start = from == null || from > end ? month.substring(0, 4) + '-01-01' : add_months(from, Math.floor(calendar_completed_months(from, end) / 12) * 12);\nconst months = Object.entries(overtime).filter((pair) => pair[0] >= start.substring(0, 7) && pair[0] <= month);\nif (!(sum(months.map((pair) => pair[1])) > ctx.lookup.annual_overtime_hours_limit)) return false;\nreturn get(employer, 'overtime_special_clause', false) !== true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'OVERTIME_YEAR_360H', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "Overtime in this agreement year is above 360 hours: lawful only under the special clause of the 36 agreement (労働基準法 art.36(4)–(5)).",
+			"annual_overtime_hours_limit": 360
+		},
+		"references": [
+			{
+				"title": "労働基準法 art.36(2)(iv), (4): 360 hours a year counted from the agreement's 起算日 (company.facts.overtime_agreement_from; else 1 January) over hours.months. 新技術・新商品等の研究開発 is outside the limits (art.36(11)). hours.months does not split rest-day work or within-legal-hours overtime (every approved hour past the schedule) from statutory overtime, so the count includes them and errs high."
+			}
+		],
+		"id": "fbd21340-3e96-5450-9d13-df23025b7df8",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "OVERTIME_YEAR_720H",
+		"name": "特別条項の上限 年720時間 (yearly cap under a special clause)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'OVERTIME_YEAR_720H', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.entry.employee_id"
+								}
+							}
+						}
+					},
+					"work_date": {
+						"gte": {
+							"var": "add_months(ctx.entry.period + '-01', -11)"
+						},
+						"lte": {
+							"var": "month_end(ctx.entry.period + '-01')"
+						}
+					}
+				},
+				"fields": [
+					"work_date",
+					"shift_definition_id",
+					"actual_worked_intervals",
+					"planned_overtime_intervals"
+				],
+				"limit": 400
+			},
+			"shift_definition": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["id", "variant"],
+				"limit": 10000
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nconst terms = ctx.subject.employment.terms;\nif (['MANAGERIAL', 'OFFICER'].includes(get(terms, 'work_classification', 'ORDINARY'))) return false;\nconst shifts = ctx.reads.shift_definition;\nconst onRest = (row) => get(shifts.find((shift) => shift.id === row.shift_definition_id) ?? {}, 'variant.day_type', 'WORK') === 'REST';\nconst taken = (row) => (get(row, 'actual_worked_intervals', []).length > 0 ? interval_minutes(get(row, 'planned_overtime_intervals', [])) / 60 : 0);\nconst hours = ctx.reads.roster_entry.map((row) => ({ date: row.work_date, month: row.work_date.substring(0, 7), rest: onRest(row), taken: taken(row) })).filter((row) => row.taken > 0);\nconst overtime = group_sum(hours.filter((row) => !row.rest), 'month', 'taken');\nconst restWork = group_sum(hours.filter((row) => row.rest), 'month', 'taken');\nconst month = ctx.entry.period;\nconst inMonth = (table) => Number(get(table, month, 0));\nconst employer = get(ctx.subject.employer, 'entity_extension_data', {});\nconst sector = get(employer, 'overtime_sector', 'GENERAL');\nif (sector === 'NEW_TECH_RD') return false;\nconst end = month_end(month + '-01');\nconst from = get(employer, 'overtime_agreement_from', null);\nconst start = from == null || from > end ? month.substring(0, 4) + '-01-01' : add_months(from, Math.floor(calendar_completed_months(from, end) / 12) * 12);\nconst months = Object.entries(overtime).filter((pair) => pair[0] >= start.substring(0, 7) && pair[0] <= month);\nconst total = sum(months.map((pair) => pair[1]));\nif (sector === 'DOCTOR_BC') return total > ctx.lookup.medical_sector_annual_overtime_limit;\nif (['DRIVER', 'DOCTOR_A'].includes(sector)) return total > ctx.lookup.designated_sector_annual_overtime_limit;\nreturn total > ctx.lookup.standard_annual_overtime_limit;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'OVERTIME_YEAR_720H', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "Overtime in this agreement year is above the yearly cap even under a special clause (720 hours; 960 for drivers and A-level doctors, 1,860 for B/C doctors) (労働基準法 arts.36(5), 140–141).",
+			"designated_sector_annual_overtime_limit": 960,
+			"medical_sector_annual_overtime_limit": 1860,
+			"standard_annual_overtime_limit": 720
+		},
+		"references": [
+			{
+				"title": "労働基準法 art.36(5); from April 2024 drivers 960 h (art.140), doctors by level (art.141 with 医師の労働時間短縮 省令) (company.facts.overtime_sector). hours.months and hours.month/year carry every approved hour past the schedule, within-legal-hours overtime included, so this count errs high."
+			}
+		],
+		"id": "11d3dcaa-4404-52cd-a8d0-c1ef55dd1f66",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "OVERTIME_AVERAGE_80H",
+		"name": "複数月平均80時間以内 (2- to 6-month average cap)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'OVERTIME_AVERAGE_80H', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.entry.employee_id"
+								}
+							}
+						}
+					},
+					"work_date": {
+						"gte": {
+							"var": "add_months(ctx.entry.period + '-01', -5)"
+						},
+						"lte": {
+							"var": "month_end(ctx.entry.period + '-01')"
+						}
+					}
+				},
+				"fields": [
+					"work_date",
+					"shift_definition_id",
+					"actual_worked_intervals",
+					"planned_overtime_intervals"
+				],
+				"limit": 400
+			},
+			"shift_definition": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["id", "variant"],
+				"limit": 10000
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nconst terms = ctx.subject.employment.terms;\nif (['MANAGERIAL', 'OFFICER'].includes(get(terms, 'work_classification', 'ORDINARY'))) return false;\nconst shifts = ctx.reads.shift_definition;\nconst onRest = (row) => get(shifts.find((shift) => shift.id === row.shift_definition_id) ?? {}, 'variant.day_type', 'WORK') === 'REST';\nconst taken = (row) => (get(row, 'actual_worked_intervals', []).length > 0 ? interval_minutes(get(row, 'planned_overtime_intervals', [])) / 60 : 0);\nconst hours = ctx.reads.roster_entry.map((row) => ({ date: row.work_date, month: row.work_date.substring(0, 7), rest: onRest(row), taken: taken(row) })).filter((row) => row.taken > 0);\nconst overtime = group_sum(hours.filter((row) => !row.rest), 'month', 'taken');\nconst restWork = group_sum(hours.filter((row) => row.rest), 'month', 'taken');\nconst month = ctx.entry.period;\nconst inMonth = (table) => Number(get(table, month, 0));\nconst employer = get(ctx.subject.employer, 'entity_extension_data', {});\nif (!['GENERAL', 'CONSTRUCTION'].includes(get(employer, 'overtime_sector', 'GENERAL'))) return false;\nif (get(employer, 'disaster_recovery_work', false) === true) return false;\nconst totals = [0, 1, 2, 3, 4, 5].map((back) => {\n\tconst key = add_months(month + '-01', 0 - back).substring(0, 7);\n\treturn Number(get(overtime, key, 0)) + Number(get(restWork, key, 0));\n});\nreturn ctx.lookup.averaging_windows.some((span) => sum(totals.slice(0, span)) / span > ctx.lookup.averaged_monthly_overtime_limit);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'OVERTIME_AVERAGE_80H', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "Overtime and rest-day work average more than 80 hours a month over a 2- to 6-month span (労働基準法 art.36(6)(iii)).",
+			"averaged_monthly_overtime_limit": 80,
+			"averaging_windows": [2, 3, 4, 5, 6]
+		},
+		"references": [
+			{
+				"title": "労働基準法 art.36(6)(iii) over hours.months: each month’s overtime beyond the statutory limits plus every hour worked on a statutory rest day (法定休日, day_type REST: the approved overtime of those days is counted once, as rest-day work); work on another day off (所定休日, OFF) or a national holiday counts as overtime only where it exceeds the limits. Not applied to drivers, doctors, R&D or disaster recovery in construction (arts.139–141). hours.months and hours.month/year carry every approved hour past the schedule, within-legal-hours overtime included, so this count errs high."
+			}
+		],
+		"id": "b8701deb-2f71-50da-b08d-0abe3570db51",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "OVERTIME_SIX_MONTHS_OVER_45",
+		"name": "45時間超は年6か月まで (at most six months above 45 hours)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'OVERTIME_SIX_MONTHS_OVER_45', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.entry.employee_id"
+								}
+							}
+						}
+					},
+					"work_date": {
+						"gte": {
+							"var": "add_months(ctx.entry.period + '-01', -11)"
+						},
+						"lte": {
+							"var": "month_end(ctx.entry.period + '-01')"
+						}
+					}
+				},
+				"fields": [
+					"work_date",
+					"shift_definition_id",
+					"actual_worked_intervals",
+					"planned_overtime_intervals"
+				],
+				"limit": 400
+			},
+			"shift_definition": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["id", "variant"],
+				"limit": 10000
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nconst terms = ctx.subject.employment.terms;\nif (['MANAGERIAL', 'OFFICER'].includes(get(terms, 'work_classification', 'ORDINARY'))) return false;\nconst shifts = ctx.reads.shift_definition;\nconst onRest = (row) => get(shifts.find((shift) => shift.id === row.shift_definition_id) ?? {}, 'variant.day_type', 'WORK') === 'REST';\nconst taken = (row) => (get(row, 'actual_worked_intervals', []).length > 0 ? interval_minutes(get(row, 'planned_overtime_intervals', [])) / 60 : 0);\nconst hours = ctx.reads.roster_entry.map((row) => ({ date: row.work_date, month: row.work_date.substring(0, 7), rest: onRest(row), taken: taken(row) })).filter((row) => row.taken > 0);\nconst overtime = group_sum(hours.filter((row) => !row.rest), 'month', 'taken');\nconst restWork = group_sum(hours.filter((row) => row.rest), 'month', 'taken');\nconst month = ctx.entry.period;\nconst inMonth = (table) => Number(get(table, month, 0));\nconst employer = get(ctx.subject.employer, 'entity_extension_data', {});\nif (!['GENERAL', 'CONSTRUCTION'].includes(get(employer, 'overtime_sector', 'GENERAL'))) return false;\nconst end = month_end(month + '-01');\nconst from = get(employer, 'overtime_agreement_from', null);\nconst start = from == null || from > end ? month.substring(0, 4) + '-01-01' : add_months(from, Math.floor(calendar_completed_months(from, end) / 12) * 12);\nconst months = Object.entries(overtime).filter((pair) => pair[0] >= start.substring(0, 7) && pair[0] <= month);\nreturn months.filter((pair) => pair[1] > ctx.lookup.monthly_overtime_threshold).length > ctx.lookup.maximum_excess_months;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'OVERTIME_SIX_MONTHS_OVER_45', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "More than six months in this agreement year have overtime above 45 hours (労働基準法 art.36(5)).",
+			"monthly_overtime_threshold": 45,
+			"maximum_excess_months": 6
+		},
+		"references": [
+			{
+				"title": "労働基準法 art.36(5): the special clause may exceed 45 hours a month in at most six months of the agreement year (hours.months from the 起算日). hours.months and hours.month/year carry every approved hour past the schedule, within-legal-hours overtime included, so this count errs high."
+			}
+		],
+		"id": "35025963-3017-511b-8268-2010f6b2bad4",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "OVERTIME_80H_NOTICE",
+		"name": "月80時間超の時間外・休日労働 (over 80 hours: notice and doctor interview)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'OVERTIME_80H_NOTICE', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.entry.employee_id"
+								}
+							}
+						}
+					},
+					"work_date": {
+						"gte": {
+							"var": "ctx.entry.period + '-01'"
+						},
+						"lte": {
+							"var": "month_end(ctx.entry.period + '-01')"
+						}
+					}
+				},
+				"fields": [
+					"work_date",
+					"shift_definition_id",
+					"actual_worked_intervals",
+					"planned_overtime_intervals"
+				],
+				"limit": 400
+			},
+			"shift_definition": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["id", "variant"],
+				"limit": 10000
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nconst shifts = ctx.reads.shift_definition;\nconst onRest = (row) => get(shifts.find((shift) => shift.id === row.shift_definition_id) ?? {}, 'variant.day_type', 'WORK') === 'REST';\nconst taken = (row) => (get(row, 'actual_worked_intervals', []).length > 0 ? interval_minutes(get(row, 'planned_overtime_intervals', [])) / 60 : 0);\nconst hours = ctx.reads.roster_entry.map((row) => ({ date: row.work_date, month: row.work_date.substring(0, 7), rest: onRest(row), taken: taken(row) })).filter((row) => row.taken > 0);\nconst overtime = group_sum(hours.filter((row) => !row.rest), 'month', 'taken');\nconst restWork = group_sum(hours.filter((row) => row.rest), 'month', 'taken');\nconst month = ctx.entry.period;\nconst inMonth = (table) => Number(get(table, month, 0));\nreturn inMonth(overtime) + inMonth(restWork) > ctx.lookup.monthly_hours_threshold;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'OVERTIME_80H_NOTICE', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "Overtime and rest-day work exceed 80 hours this month: tell the worker promptly and arrange the doctor's interview on request (労働安全衛生法 art.66の8; 安衛則 arts.52の2–52の3).",
+			"monthly_hours_threshold": 80
+		},
+		"references": [
+			{
+				"title": "労働安全衛生法 arts.66の8, 66の8の3 with 安衛則 art.52の2: the employer grasps everyone's hours (managers included) and informs a worker above 80 hours a month."
+			}
+		],
+		"id": "b3c69cc9-8157-5d1c-a9e9-196d63d20512",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "MINOR_LIMITS",
+		"name": "年少者の時間外・休日・深夜労働 (minors: no overtime, rest-day or night work)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'MINOR_LIMITS', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.entry.employee_id"
+								}
+							}
+						}
+					},
+					"work_date": {
+						"gte": {
+							"var": "ctx.entry.period + '-01'"
+						},
+						"lte": {
+							"var": "month_end(ctx.entry.period + '-01')"
+						}
+					}
+				},
+				"fields": [
+					"work_date",
+					"shift_definition_id",
+					"actual_worked_intervals",
+					"planned_overtime_intervals"
+				],
+				"limit": 400
+			},
+			"shift_definition": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["id", "variant"],
+				"limit": 10000
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nconst birth = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nif (birth == null || birth === '') return false;\nif (age_on(birth, month_end(ctx.entry.period + '-01')) >= ctx.lookup.employee_age_years_threshold) return false;\nconst shifts = ctx.reads.shift_definition;\nconst onRest = (row) => get(shifts.find((shift) => shift.id === row.shift_definition_id) ?? {}, 'variant.day_type', 'WORK') === 'REST';\nconst taken = (row) => (get(row, 'actual_worked_intervals', []).length > 0 ? interval_minutes(get(row, 'planned_overtime_intervals', [])) / 60 : 0);\nconst hours = ctx.reads.roster_entry.map((row) => ({ date: row.work_date, month: row.work_date.substring(0, 7), rest: onRest(row), taken: taken(row) })).filter((row) => row.taken > 0);\nconst overtime = group_sum(hours.filter((row) => !row.rest), 'month', 'taken');\nconst restWork = group_sum(hours.filter((row) => row.rest), 'month', 'taken');\nconst month = ctx.entry.period;\nconst inMonth = (table) => Number(get(table, month, 0));\nconst closed = (row) => get(row, 'actual_worked_intervals', []).filter((span) => get(span, 'end', null) != null);\nconst zone = get(ctx.subject.employer, 'time_zone', 'Asia/Tokyo');\nconst night = sum(ctx.reads.roster_entry.map((row) => clock_window_minutes(closed(row), zone, ctx.lookup.night_from, ctx.lookup.night_to)));\nif (inMonth(overtime) > 0) return true;\nif (inMonth(restWork) > 0) return true;\nreturn night > 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'MINOR_LIMITS', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "A worker under 18 did overtime, rest-day or night work, which the law forbids (労働基準法 arts.60–61)."
+		},
+		"references": [
+			{
+				"title": "労働基準法 art.60(1) (no 36-agreement overtime or rest-day work) and art.61(1) (no work 22:00–05:00), with the listed exceptions."
+			}
+		],
+		"id": "ac2dc6b6-1ce0-5e8d-a643-12d787620c75",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "MATERNITY_LIMITS",
+		"name": "妊産婦の請求による時間外・休日・深夜の制限 (pregnant and post-partum workers)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'MATERNITY_LIMITS', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.entry.employee_id"
+								}
+							}
+						}
+					},
+					"work_date": {
+						"gte": {
+							"var": "ctx.entry.period + '-01'"
+						},
+						"lte": {
+							"var": "month_end(ctx.entry.period + '-01')"
+						}
+					}
+				},
+				"fields": [
+					"work_date",
+					"shift_definition_id",
+					"actual_worked_intervals",
+					"planned_overtime_intervals"
+				],
+				"limit": 400
+			},
+			"shift_definition": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["id", "variant"],
+				"limit": 10000
+			},
+			"workplace_case_catalog_entry": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["kind", "opened_on", "closed_on", "inputs"],
+				"limit": 10000
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nconst employment = ctx.subject.employment.id;\nconst active = (kinds, date) => ctx.reads.workplace_case_catalog_entry.find((c) => {\n\tif (!kinds.includes(c.kind)) return false;\n\tif (get(c.inputs, 'employment_id', null) !== employment) return false;\n\tif (!(c.opened_on <= date)) return false;\n\tif (get(c, 'closed_on', null) != null) return false;\n\tif (!(get(c.inputs, 'effective_from', '') <= date)) return false;\n\treturn get(c.inputs, 'effective_to', '9999-12-31') >= date;\n});\nif (active(ctx.lookup.case_kinds, month_end(ctx.entry.period + '-01')) == null) return false;\nconst shifts = ctx.reads.shift_definition;\nconst onRest = (row) => get(shifts.find((shift) => shift.id === row.shift_definition_id) ?? {}, 'variant.day_type', 'WORK') === 'REST';\nconst taken = (row) => (get(row, 'actual_worked_intervals', []).length > 0 ? interval_minutes(get(row, 'planned_overtime_intervals', [])) / 60 : 0);\nconst hours = ctx.reads.roster_entry.map((row) => ({ date: row.work_date, month: row.work_date.substring(0, 7), rest: onRest(row), taken: taken(row) })).filter((row) => row.taken > 0);\nconst overtime = group_sum(hours.filter((row) => !row.rest), 'month', 'taken');\nconst restWork = group_sum(hours.filter((row) => row.rest), 'month', 'taken');\nconst month = ctx.entry.period;\nconst inMonth = (table) => Number(get(table, month, 0));\nconst closed = (row) => get(row, 'actual_worked_intervals', []).filter((span) => get(span, 'end', null) != null);\nconst zone = get(ctx.subject.employer, 'time_zone', 'Asia/Tokyo');\nconst night = sum(ctx.reads.roster_entry.map((row) => clock_window_minutes(closed(row), zone, ctx.lookup.night_from, ctx.lookup.night_to)));\nif (inMonth(overtime) > 0) return true;\nif (inMonth(restWork) > 0) return true;\nreturn night > 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'MATERNITY_LIMITS', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "A pregnant or post-partum worker who asked to be excused did overtime, rest-day or night work (労働基準法 art.66).",
+			"case_kinds": ["PREGNANCY_WORK_LIMIT_REQUEST"]
+		},
+		"references": [
+			{
+				"title": "労働基準法 art.66(2)–(3): on the worker's request no overtime, rest-day or night work (terms.facts.pregnancy_work_limits_requested)."
+			}
+		],
+		"id": "f68c0996-897b-51ac-aeee-84c1541709bf",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "CHILDCARE_CARE_LIMITS",
+		"name": "育児・介護のための時間外・深夜の制限 (childcare and care limits)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'CHILDCARE_CARE_LIMITS', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.entry.employee_id"
+								}
+							}
+						}
+					},
+					"work_date": {
+						"gte": {
+							"var": "add_months(ctx.entry.period + '-01', -11)"
+						},
+						"lte": {
+							"var": "month_end(ctx.entry.period + '-01')"
+						}
+					}
+				},
+				"fields": [
+					"work_date",
+					"shift_definition_id",
+					"actual_worked_intervals",
+					"planned_overtime_intervals"
+				],
+				"limit": 400
+			},
+			"shift_definition": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["id", "variant"],
+				"limit": 10000
+			},
+			"workplace_case_catalog_entry": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["kind", "opened_on", "closed_on", "inputs"],
+				"limit": 10000
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nconst employment = ctx.subject.employment.id;\nconst active = (kinds, date) => ctx.reads.workplace_case_catalog_entry.find((c) => {\n\tif (!kinds.includes(c.kind)) return false;\n\tif (get(c.inputs, 'employment_id', null) !== employment) return false;\n\tif (!(c.opened_on <= date)) return false;\n\tif (get(c, 'closed_on', null) != null) return false;\n\tif (!(get(c.inputs, 'effective_from', '') <= date)) return false;\n\treturn get(c.inputs, 'effective_to', '9999-12-31') >= date;\n});\nconst shifts = ctx.reads.shift_definition;\nconst onRest = (row) => get(shifts.find((shift) => shift.id === row.shift_definition_id) ?? {}, 'variant.day_type', 'WORK') === 'REST';\nconst taken = (row) => (get(row, 'actual_worked_intervals', []).length > 0 ? interval_minutes(get(row, 'planned_overtime_intervals', [])) / 60 : 0);\nconst hours = ctx.reads.roster_entry.map((row) => ({ date: row.work_date, month: row.work_date.substring(0, 7), rest: onRest(row), taken: taken(row) })).filter((row) => row.taken > 0);\nconst overtime = group_sum(hours.filter((row) => !row.rest), 'month', 'taken');\nconst restWork = group_sum(hours.filter((row) => row.rest), 'month', 'taken');\nconst month = ctx.entry.period;\nconst inMonth = (table) => Number(get(table, month, 0));\nconst closed = (row) => get(row, 'actual_worked_intervals', []).filter((span) => get(span, 'end', null) != null);\nconst zone = get(ctx.subject.employer, 'time_zone', 'Asia/Tokyo');\nconst night = sum(ctx.reads.roster_entry.map((row) => clock_window_minutes(closed(row), zone, ctx.lookup.night_from, ctx.lookup.night_to)));\nconst end = month_end(month + '-01');\nif (active(ctx.lookup.no_overtime_case_kinds, end) != null && inMonth(overtime) > 0) return true;\nif (active(ctx.lookup.night_case_kinds, end) != null && night > 0) return true;\nconst limited = active(ctx.lookup.overtime_limit_case_kinds, end);\nif (limited == null) return false;\nif (inMonth(overtime) > ctx.lookup.monthly_overtime_hours_threshold) return true;\nconst since = get(limited.inputs, 'effective_from', '');\nreturn sum(hours.filter((row) => !row.rest && row.date >= since).map((row) => row.taken)) > ctx.lookup.annual_overtime_hours_threshold;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'CHILDCARE_CARE_LIMITS', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "A worker who asked for the childcare or care limits did more overtime or night work than allowed (育児・介護休業法 arts.16の8, 17, 19).",
+			"monthly_overtime_hours_threshold": 24,
+			"annual_overtime_hours_threshold": 150,
+			"no_overtime_case_kinds": ["CHILDCARE_NO_OVERTIME_REQUEST"],
+			"overtime_limit_case_kinds": ["CHILDCARE_OVERTIME_LIMIT_REQUEST"],
+			"night_case_kinds": ["CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST"]
+		},
+		"references": [
+			{
+				"title": "育児・介護休業法 art.16の8 (no work beyond the schedule, to pre-school age from April 2025), art.17 (at most 24 h a month and 150 h a year), art.19 (no night work), on request (terms.facts). hours.months and hours.month/year carry every approved hour past the schedule, within-legal-hours overtime included, so this count errs high."
+			}
+		],
+		"id": "b9408b3b-16e7-5ee4-9de4-ae6012900a1f",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "DAYTIME_STUDENT_EI",
+		"name": "昼間学生の雇用保険適用 (daytime students outside employment insurance)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'DAYTIME_STUDENT_EI', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nif (get(ctx.subject.employment.employee_extension_data, 'daytime_student', false) !== true) return false;\nreturn ['SOCIAL_AND_EMPLOYMENT', 'EMPLOYMENT_ONLY'].includes(get(ctx.subject.employment.terms, 'statutory_work_category', 'NONE'));",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'DAYTIME_STUDENT_EI', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "A daytime student is not insured for employment insurance (雇用保険法 art.6(iv)); check the coverage on the terms."
+		},
+		"references": [
+			{
+				"title": "雇用保険法 art.6(iv) with 施行規則 art.3の2; a worker 65 or over with several jobs is insured only on application (art.37の5, マルチジョブホルダー)."
+			}
+		],
+		"id": "3fe1a21f-31ae-52c5-af05-49a52ea626ce",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "SHORT_TIME_COVERAGE",
+		"name": "短時間労働者の社会保険適用 (short-time worker coverage)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'SHORT_TIME_COVERAGE', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"workplace_case_catalog_entry": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["kind", "opened_on", "closed_on", "inputs"],
+				"limit": 10000
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nconst terms = ctx.subject.employment.terms;\nconst hours = Number(get(terms, 'normal_hours_per_week', 0));\nif (hours < ctx.lookup.minimum_weekly_hours) return false;\nif (hours >= ctx.lookup.standard_coverage_weekly_hours) return false;\nconst covered = ['SOCIAL_AND_EMPLOYMENT', 'SOCIAL_ONLY'].includes(get(terms, 'statutory_work_category', 'NONE'));\nconst student = get(ctx.subject.employment.employee_extension_data, 'daytime_student', false) === true;\nconst wage = ctx.lookup.minimum_monthly_wage == null || Number(get(ctx.entry, 'basic_earnings', 0)) >= ctx.lookup.minimum_monthly_wage;\n// The pension office's notice or an approved voluntary application makes the employer a covered one, not its raw headcount.\nconst filed = ctx.reads.workplace_case_catalog_entry.some((c) => ctx.lookup.employer_case_kinds.includes(c.kind) && get(c, 'closed_on', null) == null);\nconst establishment = ctx.lookup.employer_headcount_threshold == null || filed;\nreturn covered !== (!student && wage && establishment);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'SHORT_TIME_COVERAGE', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "The captured social-insurance category differs from the short-time requirements and the actual governing pension-office notice or voluntary approval.",
+			"minimum_weekly_hours": 20,
+			"standard_coverage_weekly_hours": 30,
+			"employer_headcount_threshold": 50,
+			"minimum_monthly_wage": 88000,
+			"employer_case_kinds": ["SHORT_TIME_COVERAGE_NOTICE", "SHORT_TIME_VOLUNTARY_APPROVAL"]
+		},
+		"references": [
+			{
+				"title": "健康保険法art.3(1)(ix), 厚生年金保険法art.12(v): actual pension-office specific-application notice or approved voluntary coverage establishes employer status. Do not substitute raw current headcount for the qualified same-legal-entity insured population. Other individual eligibility and actual ordinary-worker comparison remain separate legal facts.",
+				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=00tc8229&dataType=1&pageNo=1"
+			}
+		],
+		"id": "a42faeca-f9bb-5002-9c7e-aee84d5ee798",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "DISCIPLINARY_DEDUCTION_LIMIT",
+		"name": "減給の総額制限 (disciplinary reductions above one tenth)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'DISCIPLINARY_DEDUCTION_LIMIT', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nconst lines = get(ctx.entry, 'breakdown.lines', []).filter((line) => line.code === ctx.lookup.catalog_code);\nif (lines.length === 0) return false;\nreturn sum_field(lines, 'amount') > Number(get(ctx.entry, 'gross_earnings', 0)) * ctx.lookup.wage_period_share;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'DISCIPLINARY_DEDUCTION_LIMIT', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "Disciplinary reductions exceed one tenth of the period's wages (労働基準法 art.91); carry the rest to a later period.",
+			"catalog_code": "DISCIPLINARY_DEDUCTION"
+		},
+		"references": [
+			{
+				"title": "労働基準法 art.91: in all at most one tenth of the wages of one pay period."
+			}
+		],
+		"id": "2d1c72e9-1895-52cc-827b-ad4e363ad9f5",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "DIGITAL_WAGE_CONSENT",
+		"name": "賃金のデジタル払いの同意 (digital wage payment consent)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'DIGITAL_WAGE_CONSENT', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"workplace_case_catalog_entry": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["kind", "opened_on", "closed_on", "inputs"],
+				"limit": 10000
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"fields": ["pay_date"],
+				"limit": 1
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nif (get(ctx.subject.employment.terms, 'wage_payment_method', null) !== 'DIGITAL') return false;\nconst employment = ctx.subject.employment.id;\nconst active = (kinds, date) => ctx.reads.workplace_case_catalog_entry.find((c) => {\n\tif (!kinds.includes(c.kind)) return false;\n\tif (get(c.inputs, 'employment_id', null) !== employment) return false;\n\tif (!(c.opened_on <= date)) return false;\n\tif (get(c, 'closed_on', null) != null) return false;\n\tif (!(get(c.inputs, 'effective_from', '') <= date)) return false;\n\treturn get(c.inputs, 'effective_to', '9999-12-31') >= date;\n});\nconst run = first(ctx.reads.payroll_run);\nif (run == null) return false;\nif (active(ctx.lookup.case_kinds, run.pay_date) == null) return true;\nconst signed = ctx.reads.workplace_case_catalog_entry.some((c) => {\n\tif (c.kind !== ctx.lookup.consent_kind) return false;\n\tif (get(c.inputs, 'employment_id', null) !== employment) return false;\n\tif (get(c.inputs, 'signed_on', '') === '') return false;\n\tif (get(c.inputs, 'provider', '') === '') return false;\n\treturn get(c.inputs, 'account_reference', '') !== '';\n});\nreturn !signed;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'DIGITAL_WAGE_CONSENT', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "Wages paid to a designated fund-transfer account need the worker's written consent (労働基準法施行規則 art.7の2(1)(iii)).",
+			"case_kinds": ["DIGITAL_WAGE_PAYMENT_CONSENT"],
+			"consent_kind": "DIGITAL_WAGE_PAYMENT_CONSENT"
+		},
+		"references": [
+			{
+				"title": "労働基準法 art.24(1) with 施行規則 art.7の2: payment through a 指定資金移動業者 only with the worker's consent after the required explanation."
+			}
+		],
+		"id": "2cf5d763-f18b-5e7c-a635-2546af111a2d",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "EI_COVERAGE_HOURS",
+		"name": "雇用保険の適用 (employment insurance by weekly hours)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'EI_COVERAGE_HOURS', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'work_classification', 'ORDINARY') === 'OFFICER') return false;\nconst hours = Number(get(terms, 'normal_hours_per_week', 0));\nif (hours <= 0) return false;\nconst insured = ['SOCIAL_AND_EMPLOYMENT', 'EMPLOYMENT_ONLY'].includes(get(terms, 'statutory_work_category', 'NONE'));\nif (get(ctx.subject.employment.employee_extension_data, 'daytime_student', false) === true) return insured;\nreturn (hours >= ctx.lookup.minimum_weekly_hours) !== insured;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'EI_COVERAGE_HOURS', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "Employment insurance coverage does not match the weekly hours: 20 hours or more a week is insured (雇用保険法 art.6(i)).",
+			"minimum_weekly_hours": 20
+		},
+		"references": [
+			{
+				"title": "雇用保険法 art.6(i): a worker of under 20 scheduled hours a week is outside employment insurance (20 before 1 October 2028; 雇用保険法等の一部を改正する法律, 令和6年法律第26号, lowers it to 10 from that day); a daytime student (art.6(iv), terms.facts.daytime_student) is outside it whatever the hours. terms.statutory_work_category records the coverage."
+			}
+		],
+		"id": "6700eada-b220-504e-9c9e-a8022aac5f26",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "JP_STANDARD_SHIFT_OVERTIME",
+		"name": "Statutory overtime cannot be hidden inside a planned ordinary shift",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'JP_STANDARD_SHIFT_OVERTIME', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.entry.employee_id"
+								}
+							}
+						}
+					},
+					"work_date": {
+						"gte": {
+							"var": "ctx.entry.period + '-01'"
+						},
+						"lte": {
+							"var": "month_end(ctx.entry.period + '-01')"
+						}
+					}
+				},
+				"fields": [
+					"work_date",
+					"shift_definition_id",
+					"actual_worked_intervals",
+					"planned_overtime_intervals"
+				],
+				"limit": 400
+			},
+			"shift_definition": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["id", "variant"],
+				"limit": 10000
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nconst terms = ctx.subject.employment.terms;\nif (['MANAGERIAL', 'OFFICER'].includes(get(terms, 'work_classification', 'ORDINARY'))) return false;\nif (get(ctx.subject.employer, 'entity_extension_data.working_time_regime', 'STANDARD') !== 'STANDARD') return false;\nconst clock = (t) => Number(t.substring(0, 2)) * 60 + Number(t.substring(3, 5));\nconst planned = (shift) => {\n\tconst v = shift.variant;\n\tif (get(v, 'untimed_hours', null) != null) return get(v, 'untimed_hours', null);\n\tif (get(v, 'start_time', null) == null || get(v, 'end_time', null) == null) return 0;\n\tlet total = clock(get(v, 'end_time', null)) - clock(get(v, 'start_time', null)) + (get(v, 'ends_next_day', false) === true ? 1440 : 0);\n\tfor (const b of get(v, 'breaks', [])) if (get(b, 'paid', false) !== true) total = total - ((clock(b.end_time) - clock(b.start_time) + 1440) % 1440);\n\treturn Math.max(0, total / 60);\n};\nreturn ctx.reads.roster_entry.some((row) => {\n\tif (get(row, 'actual_worked_intervals', []).length === 0) return false;\n\tconst shift = ctx.reads.shift_definition.find((item) => item.id === row.shift_definition_id);\n\tif (shift == null) return false;\n\tif (get(shift, 'variant.day_type', 'WORK') === 'REST') return false;\n\treturn planned(shift) > ctx.lookup.standard_daily_hours;\n});",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'JP_STANDARD_SHIFT_OVERTIME', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "A standard shift has more than8 ordinary hours. Reclassify and approve the statutory overtime before payroll; the ordinary shift cannot absorb its required premium."
+		},
+		"references": [
+			{
+				"title": "Statutory overtime cannot be hidden inside a planned ordinary shift",
+				"url": "https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/roudouseisaku/chushoukigyou/joken_kankyou_rule.html"
+			}
+		],
+		"id": "839c6966-7e3d-589e-9641-39da930a3146",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "JP_SOURCE_IN_KIND",
+		"name": "Built-in in-kind remuneration values are verified through FY2026 only",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'JP_SOURCE_IN_KIND', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"adhoc_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					},
+					"incurred_on": {
+						"gte": {
+							"var": "ctx.entry.period + '-01'"
+						},
+						"lte": {
+							"var": "month_end(ctx.entry.period + '-01')"
+						}
+					},
+					"catalog_id": {
+						"is": {
+							"code": {
+								"in": [
+									"MEALS_IN_KIND",
+									"HOUSING_IN_KIND",
+									"MEALS_IN_KIND_SOCIAL_INSURANCE",
+									"HOUSING_IN_KIND_SOCIAL_INSURANCE"
+								]
+							}
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nif (month_end(ctx.entry.period + '-01') <= ctx.lookup.in_kind_through) return false;\nreturn ctx.reads.adhoc_catalog_entry.length > 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'JP_SOURCE_IN_KIND', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "Built-in in-kind remuneration values are verified through FY2026 only. Update the official annual valuation source before using them for later payroll.",
+			"in_kind_through": "2027-03-31"
+		},
+		"references": [
+			{
+				"title": "厚生年金保険法",
+				"locator": "25条（現物給与の価額）",
+				"url": "https://www.nenkin.go.jp/service/kounen/hokenryo/hoshu/20150511.html",
+				"quote": "報酬又は賞与の全部又は一部が通貨以外のもので支払われる場合、その価額は厚生労働大臣が定める。"
+			}
+		],
+		"id": "707787e5-033e-51db-9d7e-96054fe0422a",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "JP_SOURCE_MINIMUM_WAGE",
+		"name": "Built-in regional minimum wage source coverage ends September2027",
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'JP_SOURCE_MINIMUM_WAGE', ctx.entry.entity_id, ctx.entry.period])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nreturn ctx.entry.salary_coverage.to > ctx.lookup.minimum_wage_through;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: ctx.lookup.message,\n\tdue_on: ctx.entry.salary_coverage.to,\n\toccurrence_key: occurrence_key(['JP', 'JP_SOURCE_MINIMUM_WAGE', ctx.entry.entity_id, ctx.entry.period])\n}];",
+		"lookup": {
+			"message": "Built-in regional minimum wage source coverage ends September2027. Review the next official prefectural and applicable industry orders before later automatic payroll; this source horizon is not a statutory expiration.",
+			"minimum_wage_through": "2027-09-30"
+		},
+		"references": [
+			{
+				"title": "最低賃金法",
+				"locator": "7条（地域別最低賃金）",
+				"url": "https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/koyou_roudou/roudoukijun/minimumichiran/index.html",
+				"quote": "地域別最低賃金は、都道府県ごとに厚生労働大臣又は都道府県労働局長が決定する。"
+			}
+		],
+		"id": "2ecede1b-a3e5-559b-9694-3d7dc5fe2557",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "PREMIUM_EXEMPTION_CHARGED",
+		"name": "育休・産休の保険料免除月の控除 (premium charged in an exempt month)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'PREMIUM_EXEMPTION_CHARGED', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"leave_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.entry.employee_id"
+								}
+							}
+						}
+					},
+					"catalog_id": {
+						"is": {
+							"code": {
+								"in": [
+									"PRENATAL_LEAVE",
+									"POSTNATAL_LEAVE",
+									"CHILDCARE_LEAVE",
+									"POSTNATAL_PATERNITY_LEAVE"
+								]
+							}
+						}
+					}
+				},
+				"fields": ["days", "status"],
+				"limit": 100
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nconst charged = get(ctx.entry, 'breakdown.statutory', []).filter((row) => ctx.lookup.premium_codes.includes(row.code));\nif (!(sum_field(charged, 'employee') > 0)) return false;\nconst days = ctx.reads.leave_catalog_entry.filter((entry) => entry.status === 'APPROVED').flatMap((entry) => get(entry, 'days', []));\nconst month = ctx.entry.period;\nif (days.some((day) => day.date === month_end(month + '-01'))) return true;\nreturn Object.keys(group_by(days.filter((day) => day.date.substring(0, 7) === month), 'date')).length >= ctx.lookup.minimum_days_in_month;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'PREMIUM_EXEMPTION_CHARGED', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "A health or pension premium was charged in a month a maternity or childcare leave exempts: refund it (健康保険法 arts.159, 159の3; 厚生年金保険法 arts.81の2, 81の2の2).",
+			"premium_codes": [
+				"HEALTH",
+				"HEALTH_BONUS",
+				"CHILD_SUPPORT",
+				"CHILD_SUPPORT_BONUS",
+				"PENSION",
+				"PENSION_BONUS"
+			],
+			"minimum_days_in_month": 14
+		},
+		"references": [
+			{
+				"title": "健康保険法 arts.159, 159の3; 厚生年金保険法 arts.81の2, 81の2の2: premiums are exempt from the month the leave starts to the month before the one holding the day after it ends, and in a month with 14 days or more of childcare leave. No calculation reads a leave entry, so the premium is still charged and this raises the correction.",
+				"url": "https://www.nenkin.go.jp/service/kounen/hokenryo/menjo/20140122-01.html"
+			}
+		],
+		"id": "c620d165-1466-566a-913d-d05816f4939e",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "RETIREMENT_DECLARATION_MISSING",
+		"name": "退職所得の受給に関する申告書の未受領 (retirement pay without the declaration)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'RETIREMENT_DECLARATION_MISSING', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"workplace_case_catalog_entry": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["kind", "opened_on", "closed_on", "inputs"],
+				"limit": 10000
+			}
+		},
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nconst paid = get(ctx.entry, 'breakdown.lines', []).some((line) => ctx.lookup.declared_codes.includes(line.code));\nif (!paid) return false;\nconst employment = ctx.subject.employment.id;\nreturn !ctx.reads.workplace_case_catalog_entry.some((c) => c.kind === ctx.lookup.case_kind && get(c.inputs, 'employment_id', null) === employment);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'RETIREMENT_DECLARATION_MISSING', ctx.entry.id])\n}];",
+		"lookup": {
+			"message": "Retirement pay was withheld as declared but no 退職所得の受給に関する申告書 is on record: without it the rate is 20.42% (所得税法 art.201(3)); use RETIREMENT_ALLOWANCE_UNDECLARED.",
+			"declared_codes": ["RETIREMENT_ALLOWANCE", "DISMISSAL_NOTICE_ALLOWANCE"],
+			"case_kind": "RETIREMENT_INCOME_DECLARATION"
+		},
+		"references": [
+			{
+				"title": "所得税法 arts.201(1), 201(3), 203",
+				"url": "https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2732.htm"
+			}
+		],
+		"id": "921f97bc-b3d5-5473-8671-86a660aaac03",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "TAX_REFUND",
+		"name": "Refund overpaid tax",
+		"lookup": {},
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"adhoc_catalog": {
+				"where": {
+					"settings_id": {
+						"eq": {
+							"var": "ctx.entry.settings_id"
+						}
+					},
+					"code": {
+						"eq": "STATUTORY_ADJUSTMENT"
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"fields": ["pay_date"],
+				"limit": 1
+			},
+			"adhoc_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					},
+					"is_reversal": {
+						"eq": true
+					}
+				},
+				"fields": ["catalog_id", "quantity", "incurred_on"],
+				"limit": 1000
+			}
+		},
+		"condition": "// js\nreturn get(ctx.entry, 'breakdown.statutory', []).some((row) => Number(get(row, 'overpaid', 0)) > 0);",
+		"target_collection": "adhoc_catalog_entry",
+		"target_action": "create",
+		"effects": "// js\n// An overpaid year comes back as a reversal entry on the adjustment item. What this year already raised is not raised again.\nconst item = first(ctx.reads.adhoc_catalog);\nconst run = first(ctx.reads.payroll_run);\nif (item == null || run == null) return [];\nconst year = String(run.pay_date).slice(0, 4);\nconst raised = sum(\n\tctx.reads.adhoc_catalog_entry\n\t\t.filter((row) => row.catalog_id === item.id && String(row.incurred_on).slice(0, 4) === year)\n\t\t.map((row) => Number(row.quantity))\n);\nconst overpaid = sum(get(ctx.entry, 'breakdown.statutory', []).map((row) => Number(get(row, 'overpaid', 0))));\nif (overpaid <= raised) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployment_id: ctx.entry.employment_id,\n\tcatalog_id: item.id,\n\tdescription: 'Tax overpaid in ' + year,\n\tquantity: overpaid - raised,\n\tunit: 'MONEY',\n\tincurred_on: run.pay_date,\n\tis_reversal: true\n}];",
+		"id": "d70047f7-4674-5b38-a5d8-13dd2b198ebb",
 		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
 	}
 ]

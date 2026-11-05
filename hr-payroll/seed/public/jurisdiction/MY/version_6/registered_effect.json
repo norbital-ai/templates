@@ -282,7 +282,7 @@
 		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:WAGE_PAYMENT_DEADLINE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Pay wages by the statutory deadline',\n\tdue_on: get(r, 'pay_due_date', add_days(r.salary_coverage.to, ctx.lookup.offset_days)),\n\toccurrence_key: key\n}];",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:WAGE_PAYMENT_DEADLINE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Pay wages by the statutory deadline',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
 		"id": "f0f644a9-13e7-5c4a-bc36-264115df77f9",
 		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
 	},
@@ -686,8 +686,7 @@
 		"code": "TERMINATION_BENEFIT_PAYMENT",
 		"name": "TERMINATION_BENEFIT_PAYMENT",
 		"lookup": {
-			"offset_days": 7,
-			"service_months": 12
+			"offset_days": 7
 		},
 		"references": [
 			{
@@ -753,13 +752,7 @@
 		"code": "RETRENCHMENT_NOTIFICATION",
 		"name": "RETRENCHMENT_NOTIFICATION",
 		"lookup": {
-			"advance_notice_days": 30,
-			"retrenchment_grounds": [
-				"RETRENCHMENT",
-				"RETRENCHMENT_TERM_CONTRACT",
-				"UNILATERAL",
-				"BREACH_BY_EMPLOYER"
-			]
+			"advance_notice_days": 30
 		},
 		"references": [
 			{
@@ -1191,13 +1184,7 @@
 		"code": "RETRENCHMENT_FOREIGN_FIRST",
 		"name": "RETRENCHMENT_FOREIGN_FIRST",
 		"lookup": {
-			"advance_notice_days": 30,
-			"retrenchment_grounds": [
-				"RETRENCHMENT",
-				"RETRENCHMENT_TERM_CONTRACT",
-				"UNILATERAL",
-				"BREACH_BY_EMPLOYER"
-			]
+			"advance_notice_days": 30
 		},
 		"references": [
 			{
@@ -1804,7 +1791,7 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (!(get(r.terms, 'residency_status', '') === 'FOREIGNER')) return false;\nreturn get(r.employee_extension_data, 'employment_type', '') === 'DOMESTIC';",
+		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (!(get(r.terms, 'residency_status', '') === 'FOREIGNER')) return false;\nreturn get(r.terms, 'statutory_work_category', '') === 'DOMESTIC';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FOREIGN_DOMESTIC_EMPLOYMENT_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify the Director General of a foreign domestic employee',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
@@ -1837,7 +1824,7 @@
 				"limit": 10
 			}
 		},
-		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (get(r, 'effective_range.to', null) == null) return false;\nif (!(get(r.terms, 'residency_status', '') === 'FOREIGNER')) return false;\nreturn get(r.employee_extension_data, 'employment_type', '') === 'DOMESTIC';",
+		"condition": "// js\nconst r = ctx.entry;\nif (r.status !== 'SEALED') return false;\nif (get(r, 'effective_range.to', null) == null) return false;\nif (!(get(r.terms, 'residency_status', '') === 'FOREIGNER')) return false;\nreturn get(r.terms, 'statutory_work_category', '') === 'DOMESTIC';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FOREIGN_DOMESTIC_TERMINATION_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify the Director General of a domestic employee\\'s termination',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",

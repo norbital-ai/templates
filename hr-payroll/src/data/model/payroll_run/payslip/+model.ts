@@ -3,8 +3,8 @@ import { tap } from '../../../../lib/payroll_engine/taps.js';
 
 export default model('payslip', {
 	description:
-		'Finalised per-employee payroll totals. Financial detail is recomputed from the subtotal chain, catalogue entries and ledger.',
-	record_label: "record.state + ' · ' + string(record.net_pay)",
+		'Per-employee payroll totals, read-only once written. Financial detail is recomputed from the subtotal chain, catalogue entries and ledger.',
+	record_label: 'string(record.net_pay)',
 	fields: {
 		payroll_run_id: {
 			kind: 'ref',
@@ -35,18 +35,9 @@ export default model('payslip', {
 			kind: 'json',
 			shape: { kind: 'record', of: { kind: 'json' } },
 			default: {}
-		},
-		state: {
-			kind: 'state',
-			initial: 'FINALISED',
-			states: {
-				FINALISED: { to: ['PAID'], edit: ['state'] },
-				PAID: { to: [], edit: 'none' }
-			}
 		}
 	},
 	unique: [{ fields: ['payroll_run_id', 'employee_id', 'entity_id'] }],
-	locked: { state: { in: ['FINALISED', 'PAID'] } },
 	read: {
 		payslip: { fields: 'all' },
 		'payslip.employment_id': { fields: 'all' },
@@ -73,13 +64,9 @@ export default model('payslip', {
 				'employee_statutory',
 				'employer_statutory',
 				'tax_withheld',
-				'breakdown',
-				'state'
+				'breakdown'
 			]
 		}
-	},
-	update: {
-		columns: { payslip: ['state'] }
 	},
 	effect: {
 		created: function* (rows, ctx) {
@@ -88,14 +75,6 @@ export default model('payslip', {
 				'create',
 				{ collection: 'payslip', ids: rows.map((row) => row.id) },
 				rows.map((after) => ({ after }))
-			);
-		},
-		updated: function* (changes, ctx) {
-			yield* tap(
-				ctx,
-				'update',
-				{ collection: 'payslip', ids: changes.map((change) => change.after.id) },
-				changes
 			);
 		}
 	}

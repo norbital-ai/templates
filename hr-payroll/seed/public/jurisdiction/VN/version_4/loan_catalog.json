@@ -4,11 +4,11 @@
 		"name": "Tạm ứng tiền lương (salary advance)",
 		"lookup": {},
 		"off_cycle_eligible": false,
-		"subtotal_id": "590c3572-ed5d-522c-af48-b37da2dcfb3c",
+		"subtotal_id": "36d140c0-a6cf-58a0-8c59-7c42de45b237",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"id": "b6a33fe4-6041-50f7-bc14-315f45ed2d4d",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb",
+		"id": "bd321266-749f-5de9-b80c-7e0764b5a518",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d",
 		"references": [
 			{
 				"title": "Labour Code 45/2019/QH14",

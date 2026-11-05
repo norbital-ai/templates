@@ -3,17 +3,7 @@
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
 		"pay_treatment": "PAID",
-		"lookup": {
-			"service_bands": [],
-			"grant": {
-				"value_1": 12,
-				"value_2": 6,
-				"value_3": 0.01
-			},
-			"paid_share": {
-				"value_1": 1
-			}
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.30, 56, 67",
@@ -31,15 +21,7 @@
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (ลาป่วย)",
 		"pay_treatment": "PAID",
-		"lookup": {
-			"service_bands": [],
-			"grant": {
-				"value_1": 30
-			},
-			"paid_share": {
-				"value_1": 1
-			}
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.32, 57",
@@ -57,11 +39,7 @@
 		"code": "SICK_LEAVE_UNPAID",
 		"name": "Sick leave beyond 30 paid days",
 		"pay_treatment": "UNPAID",
-		"lookup": {
-			"paid_share": {
-				"value_1": 0
-			}
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.32, 57",
@@ -79,15 +57,7 @@
 		"code": "PERSONAL_BUSINESS_LEAVE",
 		"name": "Personal business leave (ลากิจ)",
 		"pay_treatment": "PAID",
-		"lookup": {
-			"service_bands": [],
-			"grant": {
-				"value_1": 3
-			},
-			"paid_share": {
-				"value_1": 1
-			}
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.34, 57/1",
@@ -105,11 +75,7 @@
 		"code": "STERILISATION_LEAVE",
 		"name": "Sterilisation leave (ลาเพื่อทำหมัน)",
 		"pay_treatment": "PAID",
-		"lookup": {
-			"paid_share": {
-				"value_1": 1
-			}
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.33, 57",
@@ -127,15 +93,7 @@
 		"code": "MILITARY_LEAVE",
 		"name": "Military service leave (ลารับราชการทหาร)",
 		"pay_treatment": "PAID",
-		"lookup": {
-			"service_bands": [],
-			"grant": {
-				"value_1": 60
-			},
-			"paid_share": {
-				"value_1": 1
-			}
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.35, 58",
@@ -153,11 +111,7 @@
 		"code": "TRAINING_LEAVE",
 		"name": "Training leave (ลาฝึกอบรม)",
 		"pay_treatment": "UNPAID",
-		"lookup": {
-			"paid_share": {
-				"value_1": 0
-			}
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.36",
@@ -175,18 +129,7 @@
 		"code": "YOUNG_WORKER_TRAINING_LEAVE",
 		"name": "Training or meeting leave for an employee under 18 (ลาของลูกจ้างซึ่งเป็นเด็ก)",
 		"pay_treatment": "PAID",
-		"lookup": {
-			"service_bands": [],
-			"eligibility": {
-				"value_1": 18
-			},
-			"grant": {
-				"value_1": 30
-			},
-			"paid_share": {
-				"value_1": 1
-			}
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.52",
@@ -204,15 +147,7 @@
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave, employer-paid days (ลาคลอด)",
 		"pay_treatment": "PAID",
-		"lookup": {
-			"service_bands": [],
-			"grant": {
-				"value_1": 60
-			},
-			"paid_share": {
-				"value_1": 1
-			}
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act (No. 9) B.E. 2568 s.41 para 1 and s.59",
@@ -230,15 +165,7 @@
 		"code": "MATERNITY_LEAVE_SSO",
 		"name": "Maternity leave, days without employer pay",
 		"pay_treatment": "UNPAID",
-		"lookup": {
-			"service_bands": [],
-			"grant": {
-				"value_1": 60
-			},
-			"paid_share": {
-				"value_1": 0
-			}
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act (No. 9) B.E. 2568 s.41; Social Security Act B.E. 2533 (1990) s.67",
@@ -256,11 +183,7 @@
 		"code": "PUBLIC_HOLIDAY",
 		"name": "Traditional holidays (วันหยุดตามประเพณี)",
 		"pay_treatment": "PAID",
-		"lookup": {
-			"paid_share": {
-				"value_1": 1
-			}
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.29, 56(2)",
@@ -278,11 +201,7 @@
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave by agreement",
 		"pay_treatment": "UNPAID",
-		"lookup": {
-			"paid_share": {
-				"value_1": 0
-			}
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.5, 70",
@@ -301,13 +220,7 @@
 		"name": "Child-care leave after maternity (ลาเพื่อดูแลบุตร)",
 		"pay_treatment": "PAID",
 		"lookup": {
-			"service_bands": [],
-			"grant": {
-				"value_1": 15
-			},
-			"paid_share": {
-				"value_1": 0.5
-			}
+			"paid_share": 0.5
 		},
 		"references": [
 			{
@@ -317,27 +230,18 @@
 				"quote": "Up to 15 further consecutive days after maternity leave where the child is ill, at risk, abnormal or disabled, on a medical certificate; wages at 50 percent."
 			}
 		],
-		"subtotal_id": null,
+		"subtotal_id": "d5cb1e8c-b72e-59dc-8f3f-c128bf73805c",
 		"off_cycle_eligible": false,
 		"id": "322e881f-141a-570d-9b2e-70fbdf092cca",
-		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
+		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
+		"direction": "DEDUCT",
+		"conversion": "// js\n// LPA s.59/1: half the working-day wage. The salary pays the whole day, so the other half comes off.\nreturn ctx.day_rate * (1 - ctx.lookup.paid_share) * ctx.entry.quantity;"
 	},
 	{
 		"code": "PATERNITY_LEAVE",
 		"name": "Leave to support a spouse at childbirth (ลาไปช่วยเหลือคู่สมรส)",
 		"pay_treatment": "PAID",
-		"lookup": {
-			"service_bands": [],
-			"eligibility": {
-				"value_1": 90
-			},
-			"grant": {
-				"value_1": 15
-			},
-			"paid_share": {
-				"value_1": 1
-			}
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act (No. 9) B.E. 2568 s.41/1 and s.59/2",
@@ -355,11 +259,7 @@
 		"code": "WORK_INJURY_LEAVE",
 		"name": "Work-injury absence (WCF compensation)",
 		"pay_treatment": "UNPAID",
-		"lookup": {
-			"paid_share": {
-				"value_1": 0
-			}
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.32 para 3; Workmen's Compensation Act B.E. 2537 s.18(1)",
@@ -378,13 +278,7 @@
 		"name": "Suspension pending investigation (at least 50% pay)",
 		"pay_treatment": "PAID",
 		"lookup": {
-			"service_bands": [],
-			"grant": {
-				"value_1": 7
-			},
-			"paid_share": {
-				"value_1": 0.5
-			}
+			"paid_share": 0.5
 		},
 		"references": [
 			{
@@ -394,9 +288,11 @@
 				"quote": "Suspension pending an investigation is at most 7 days and paid at not less than 50 percent of the working-day wage; a cleared employee gets the full wage plus 15 percent a year interest."
 			}
 		],
-		"subtotal_id": null,
+		"subtotal_id": "d5cb1e8c-b72e-59dc-8f3f-c128bf73805c",
 		"off_cycle_eligible": false,
 		"id": "217fcc8f-7121-54a2-a3e2-7cfa7672d388",
-		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
+		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
+		"direction": "DEDUCT",
+		"conversion": "// js\n// LPA s.116: at least half the working-day wage. The salary pays the whole day, so the other half comes off.\nreturn ctx.day_rate * (1 - ctx.lookup.paid_share) * ctx.entry.quantity;"
 	}
 ]

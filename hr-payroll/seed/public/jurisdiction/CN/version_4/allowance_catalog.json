@@ -13,8 +13,8 @@
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": true,
-		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"off_cycle_eligible": false,
+		"subtotal_id": "6d3de9a9-320c-52b9-aa89-1c7b18e0de18",
 		"id": "f599cc60-ef48-515f-83ac-8edf00869e9b",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -32,7 +32,7 @@
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
 		"id": "68215c38-1749-5e5c-bb8f-6682e76fa726",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
@@ -51,8 +51,8 @@
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": true,
-		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"off_cycle_eligible": false,
+		"subtotal_id": "774613ce-1ec5-4560-9c53-457f516e6891",
 		"id": "67e7afaf-ccf9-5753-8b67-1cfaf4c7a82f",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -70,8 +70,8 @@
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": true,
-		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"off_cycle_eligible": false,
+		"subtotal_id": "774613ce-1ec5-4560-9c53-457f516e6891",
 		"id": "9e718c1e-b1c2-55cb-841c-8c882e5ee3c9",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -89,8 +89,8 @@
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": true,
-		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"off_cycle_eligible": false,
+		"subtotal_id": "774613ce-1ec5-4560-9c53-457f516e6891",
 		"id": "4c6389d8-57eb-5b8b-be53-06a9bdcd9e6b",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -108,8 +108,8 @@
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": true,
-		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"off_cycle_eligible": false,
+		"subtotal_id": "6d3de9a9-320c-52b9-aa89-1c7b18e0de18",
 		"id": "d587b294-1f34-5699-96f2-98963a565089",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -127,8 +127,8 @@
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": true,
-		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"off_cycle_eligible": false,
+		"subtotal_id": "6d3de9a9-320c-52b9-aa89-1c7b18e0de18",
 		"id": "26cd3aa3-795d-5891-866b-e05327216028",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	},
@@ -146,9 +146,32 @@
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": true,
-		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"off_cycle_eligible": false,
+		"subtotal_id": "6d3de9a9-320c-52b9-aa89-1c7b18e0de18",
 		"id": "802d2797-8514-534f-88f2-71a5145453b9",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	},
+	{
+		"code": "HIGH_TEMPERATURE_ALLOWANCE",
+		"name": "High-temperature allowance (高温津贴)",
+		"lookup": {
+			"region": "SH",
+			"monthly": 300,
+			"months": [6, 7, 8, 9]
+		},
+		"references": [
+			{
+				"title": "防暑降温措施管理办法 (安监总安健〔2012〕89号) 第十七条: 室外露天作业或工作场所不能降到33℃以下的, 发放高温津贴并纳入工资总额. 上海 300元/月, 6月至9月 (沪人社规〔2019〕19号; 官方通知未读, 2026年媒体转载一致 https://www.thepaper.cn/newsDetail_forward_33263111)."
+			}
+		],
+		"eligibility": "if (get(ctx.subject.employer, 'entity_extension_data.region', '') !== ctx.lookup.region) return false;\nif (get(ctx.subject.employment, 'employee_extension_data.term_facts.high_temperature_exposed', false) !== true) return false;\nreturn ctx.lookup.months.includes(Number(ctx.as_of.slice(5, 7)));",
+		"conversion": "return ctx.lookup.monthly;",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": false,
+		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"id": "45cadd8a-9335-4134-827e-44cadd9bbfe4",
 		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
 	}
 ]

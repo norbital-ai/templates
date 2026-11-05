@@ -127,9 +127,7 @@
 	{
 		"code": "FINAL_PAY_RELEASE",
 		"name": "Final pay",
-		"lookup": {
-			"maximum_days": 30
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "DOLE LA06-20 PartII: final pay within30calendar days from separation, or the shorter deadline established by company policy/individual/CBA agreement. The task uses the earlier reviewed payment date or legal/policy deadline; a later planned payment never extends the deadline.",
@@ -142,7 +140,7 @@
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Final pay\",\n\t\tdue_on: get(ctx.entry, 'final_pay_due_on', null) ?? add_days(get(ctx.entry, 'effective_range.to', null), ctx.lookup.maximum_days),\n\t\toccurrence_key: \"FINAL_PAY_RELEASE:\" + ctx.entry.id\n\t}\n];",
+		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Final pay\",\n\t\tdue_on: get(ctx.entry, 'final_pay_due_on', null) ?? add_days(get(ctx.entry, 'effective_range.to', null), ctx.lookup.final_pay_maximum_days),\n\t\toccurrence_key: \"FINAL_PAY_RELEASE:\" + ctx.entry.id\n\t}\n];",
 		"id": "cd93827b-4e6e-517d-a406-c098d1836574",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -196,13 +194,13 @@
 		},
 		"references": [
 			{
-				"title": "Labor Code arts.298–299; DOLE Department Order 147-15; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.14 §E: served at least one month before the intended date of termination. Recorded default: the month counts back from the last day of work, so the duty is overdue when the exit is recorded later than that."
+				"title": "Labor Code arts.298–299; DOLE Department Order 147-15; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.14 §E: served at least one month before the intended date of termination. Recorded default: the month counts back from the last day of work, so the duty is overdue when the exit is recorded later than that. Raised only when the exit records a `termination_cause`."
 			}
 		],
 		"source_collection": "employee_contract",
 		"events": ["create"],
 		"reads": {},
-		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
+		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null &&\n\tget(ctx.entry, 'employee_extension_data.termination_cause', null) !== null;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Written notice of an authorised-cause termination to the employee and DOLE\",\n\t\tdue_on: add_months(get(ctx.entry, 'effective_range.to', null), -ctx.lookup.notice_months),\n\t\toccurrence_key: \"AUTHORISED_CAUSE_TERMINATION_NOTICE:\" + ctx.entry.id\n\t}\n];",
@@ -275,11 +273,12 @@
 		"code": "COMPULSORY_RETIREMENT_AGE",
 		"name": "Compulsory retirement at sixty-five",
 		"lookup": {
-			"retirement_age": 65
+			"retirement_age": 65,
+			"mine_worker_retirement_age": 60
 		},
 		"references": [
 			{
-				"title": "Labor Code art.302 (RA 7641); DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.15 §B: retirement at sixty or more \"but not beyond 65 years\". Raised once, on the sixty-fifth birthday.",
+				"title": "Labor Code art.302 (RA 7641); DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.15 §B: retirement at sixty or more \"but not beyond 65 years\". Raised once, on the sixty-fifth birthday. RA 8558 and RA 10757: a mine worker's compulsory age is sixty (Handbook ch.15 §H).",
 				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
 			}
 		],
@@ -289,7 +288,7 @@
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'payroll.date_of_birth', null) !== null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: \"Compulsory retirement at sixty-five\",\n\t\tdue_on: add_years(get(ctx.entry, 'payroll.date_of_birth', null), ctx.lookup.retirement_age),\n\t\toccurrence_key: \"COMPULSORY_RETIREMENT_AGE:\" + ctx.entry.id\n\t}\n];",
+		"effects": "const mine = get(ctx.entry, 'employee_extension_data.mine_worker', null) !== null;\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: mine ? \"Compulsory retirement of a mine worker at sixty\" : \"Compulsory retirement at sixty-five\",\n\t\tdue_on: add_years(get(ctx.entry, 'payroll.date_of_birth', null), mine ? ctx.lookup.mine_worker_retirement_age : ctx.lookup.retirement_age),\n\t\toccurrence_key: \"COMPULSORY_RETIREMENT_AGE:\" + ctx.entry.id\n\t}\n];",
 		"id": "726c65fe-56e3-54d4-b045-142a0965a2a8",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -960,7 +959,7 @@
 		"source_collection": "payroll_run",
 		"events": ["create"],
 		"reads": {},
-		"condition": "return ctx.entry.kind === 'REGULAR' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
+		"condition": "return ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Year-end annualisation and refund of over-withholding\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-01-25',\n\t\toccurrence_key: \"BIR_YEAR_END_ADJUSTMENT:\" + ctx.entry.id\n\t}\n];",
@@ -980,7 +979,7 @@
 		"source_collection": "payroll_run",
 		"events": ["create"],
 		"reads": {},
-		"condition": "return ctx.entry.kind === 'REGULAR' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
+		"condition": "return ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"BIR Form 1604-C with the alphalist of employees\",\n\t\tdue_on: month_end(add_months(get(ctx.entry, 'salary_coverage.to', null), 1)),\n\t\toccurrence_key: \"BIR_1604C_ANNUAL_ALPHALIST:\" + ctx.entry.id\n\t}\n];",
@@ -1000,7 +999,7 @@
 		"source_collection": "payroll_run",
 		"events": ["create"],
 		"reads": {},
-		"condition": "return ctx.entry.kind === 'REGULAR' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
+		"condition": "return ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"BIR Form 2316 to every employee for the year\",\n\t\tdue_on: month_end(add_months(get(ctx.entry, 'salary_coverage.to', null), 1)),\n\t\toccurrence_key: \"BIR_2316_CERTIFICATE:\" + ctx.entry.id\n\t}\n];",
@@ -1020,7 +1019,7 @@
 		"source_collection": "payroll_run",
 		"events": ["create"],
 		"reads": {},
-		"condition": "return ctx.entry.kind === 'REGULAR' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
+		"condition": "return ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Duplicate 2316s with the certified list for substituted filing\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-02-28',\n\t\toccurrence_key: \"BIR_2316_SUBSTITUTED_FILING_LIST:\" + ctx.entry.id\n\t}\n];",
@@ -1040,7 +1039,7 @@
 		"source_collection": "payroll_run",
 		"events": ["create"],
 		"reads": {},
-		"condition": "return ctx.entry.kind === 'REGULAR' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
+		"condition": "return ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"13th-month pay for the year\",\n\t\tdue_on: String(get(ctx.entry, 'salary_coverage.to', '')).substring(0, 4) + '-12-24',\n\t\toccurrence_key: \"THIRTEENTH_MONTH_PAYMENT:\" + ctx.entry.id\n\t}\n];",
@@ -1060,7 +1059,7 @@
 		"source_collection": "payroll_run",
 		"events": ["create"],
 		"reads": {},
-		"condition": "return ctx.entry.kind === 'REGULAR' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
+		"condition": "return ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"13th-month compliance report to DOLE\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-01-15',\n\t\toccurrence_key: \"THIRTEENTH_MONTH_DOLE_REPORT:\" + ctx.entry.id\n\t}\n];",
@@ -1080,7 +1079,7 @@
 		"source_collection": "payroll_run",
 		"events": ["create"],
 		"reads": {},
-		"condition": "return ctx.entry.kind === 'REGULAR' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
+		"condition": "return ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Annual Establishment Report on Wages (NWPC)\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-08-31',\n\t\toccurrence_key: \"ANNUAL_ESTABLISHMENT_REPORT_ON_WAGES:\" + ctx.entry.id\n\t}\n];",
@@ -1100,7 +1099,7 @@
 		"source_collection": "payroll_run",
 		"events": ["create"],
 		"reads": {},
-		"condition": "return ctx.entry.kind === 'REGULAR' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
+		"condition": "return ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Annual Work Accident/Illness Exposure Data Report (AEDR)\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-01-30',\n\t\toccurrence_key: \"DOLE_ANNUAL_EXPOSURE_DATA_REPORT:\" + ctx.entry.id\n\t}\n];",
@@ -1120,11 +1119,65 @@
 		"source_collection": "payroll_run",
 		"events": ["create"],
 		"reads": {},
-		"condition": "return ctx.entry.kind === 'REGULAR' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
+		"condition": "return ctx.entry.kind === 'ON_CYCLE' &&\n\tString(get(ctx.entry, 'salary_coverage.to', '')).substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "return [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: \"Annual Medical Report (AMR) to the DOLE regional office\",\n\t\tdue_on: String(Number(get(ctx.entry, 'salary_coverage.to', '').substring(0, 4)) + 1) + '-03-31',\n\t\toccurrence_key: \"DOLE_ANNUAL_MEDICAL_REPORT:\" + ctx.entry.id\n\t}\n];",
 		"id": "8ab45f18-ff0a-5386-9676-24d8bb530237",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "TAX_REFUND",
+		"name": "Refund overpaid tax",
+		"lookup": {},
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"adhoc_catalog": {
+				"where": {
+					"settings_id": {
+						"eq": {
+							"var": "ctx.entry.settings_id"
+						}
+					},
+					"code": {
+						"eq": "STATUTORY_ADJUSTMENT"
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"fields": ["pay_date"],
+				"limit": 1
+			},
+			"adhoc_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					},
+					"is_reversal": {
+						"eq": true
+					}
+				},
+				"fields": ["catalog_id", "quantity", "incurred_on"],
+				"limit": 1000
+			}
+		},
+		"condition": "// js\nreturn get(ctx.entry, 'breakdown.statutory', []).some((row) => Number(get(row, 'overpaid', 0)) > 0);",
+		"target_collection": "adhoc_catalog_entry",
+		"target_action": "create",
+		"effects": "// js\n// An overpaid year comes back as a reversal entry on the adjustment item. What this year already raised is not raised again.\nconst item = first(ctx.reads.adhoc_catalog);\nconst run = first(ctx.reads.payroll_run);\nif (item == null || run == null) return [];\nconst year = String(run.pay_date).slice(0, 4);\nconst raised = sum(\n\tctx.reads.adhoc_catalog_entry\n\t\t.filter((row) => row.catalog_id === item.id && String(row.incurred_on).slice(0, 4) === year)\n\t\t.map((row) => Number(row.quantity))\n);\nconst overpaid = sum(get(ctx.entry, 'breakdown.statutory', []).map((row) => Number(get(row, 'overpaid', 0))));\nif (overpaid <= raised) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployment_id: ctx.entry.employment_id,\n\tcatalog_id: item.id,\n\tdescription: 'Tax overpaid in ' + year,\n\tquantity: overpaid - raised,\n\tunit: 'MONEY',\n\tincurred_on: run.pay_date,\n\tis_reversal: true\n}];",
+		"id": "8b974dd1-6a34-514b-a94a-44eedd87af34",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	}
 ]

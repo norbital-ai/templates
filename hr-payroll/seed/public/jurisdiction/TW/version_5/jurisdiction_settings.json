@@ -503,7 +503,87 @@
 		},
 		"lookup": {
 			"rounding": "HALF_UP",
-			"rounding_scale": 0
+			"rounding_scale": 0,
+			"monthly_divisor": 30,
+			"normal_hours_per_day": 8,
+			"day_rate": "// 民法 §123(2): a month not counted continuously is thirty days; 勞動基準法 §24, Ministry of Labor: monthly wage ÷ 30, allowances included.\n// proration_basis CALENDAR_DAYS: no statute prorates by working days; an incomplete month counts its calendar days, rest days included, and 勞動部 102-11-15 勞動2字第1020083156號函 leaves the divisor to agreement.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\nconst hours = Number(get(terms, 'normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nif (unit === 'DAILY') return amount;\nif (unit === 'HOURLY' || unit === 'PIECE') return amount * hours;\nconst allowances = Object.values(get(terms, 'allowances', {})).reduce(\n\t(total, allowance) => total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nreturn (amount + allowances) / ctx.lookup.monthly_divisor;",
+			"proration_basis": "CALENDAR_DAYS",
+			"months_per_year": 12,
+			"monthly_wage": 30900,
+			"hourly_wage": 205,
+			"li_grades": [30900, 31800, 33300, 34800, 36300, 38200, 40100, 42000, 43900, 45800],
+			"li_part_time_grades": [
+				11100, 12540, 13500, 15840, 16500, 17280, 17880, 19047, 20008, 21009, 22000, 23100, 24000,
+				25250, 26400, 27600, 28590, 29500, 30300
+			],
+			"occ_grades": [
+				30900, 31800, 33300, 34800, 36300, 38200, 40100, 42000, 43900, 45800, 48200, 50600, 53000,
+				55400, 57800, 60800, 63800, 66800, 69800, 72800
+			],
+			"nhi_grades": [
+				30900, 31800, 33300, 34800, 36300, 38200, 40100, 42000, 43900, 45800, 48200, 50600, 53000,
+				55400, 57800, 60800, 63800, 66800, 69800, 72800, 76500, 80200, 83900, 87600, 92100, 96600,
+				101100, 105600, 110100, 115500, 120900, 126300, 131700, 137100, 142500, 147900, 150000,
+				156400, 162800, 169200, 175600, 182000, 189500, 197000, 204500, 212000, 219500, 228200,
+				236900, 245600, 254300, 263000, 273000, 283000, 293000, 303000, 313000
+			],
+			"lp_grades": [
+				1500, 3000, 4500, 6000, 7500, 8700, 9900, 11100, 12540, 13500, 15840, 16500, 17280, 17880,
+				19047, 20008, 21009, 22000, 23100, 24000, 25250, 26400, 27600, 28590, 29500, 30900, 31800,
+				33300, 34800, 36300, 38200, 40100, 42000, 43900, 45800, 48200, 50600, 53000, 55400, 57800,
+				60800, 63800, 66800, 69800, 72800, 76500, 80200, 83900, 87600, 92100, 96600, 101100, 105600,
+				110100, 115500, 120900, 126300, 131700, 137100, 142500, 147900, 150000
+			],
+			"insurance_employee_share": 0.2,
+			"insurance_employer_share": 0.7,
+			"maximum_coverage_age_years": 65,
+			"foreign_professional_covered": true,
+			"nhi_supplement_rate": 0.0211,
+			"nhi_supplement_payment_ceiling": 10000000,
+			"withholding_rate": 0.05,
+			"bonus_withholding_threshold": 90501,
+			"non_resident_rate": 0.18,
+			"retirement_exemption_per_service_year": 206000,
+			"tail_threshold_months": 6,
+			"long_tail_years": 1,
+			"short_tail_years": 0.5,
+			"meal_exempt_monthly": 3000,
+			"half_pay_share": 0.5,
+			"overtime_first_hours": 2,
+			"overtime_first_multiplier": 1.34,
+			"overtime_further_multiplier": 1.67,
+			"holiday_kinds": [
+				"PUBLIC_HOLIDAY",
+				"SPECIAL_HOLIDAY",
+				"SUBSTITUTE",
+				"DOUBLE_HOLIDAY",
+				"DOUBLE_SPECIAL"
+			],
+			"old_system_cutoff": "2005-07-01",
+			"severance_grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20"],
+			"notice_grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_20"],
+			"retirement_eligibility": [
+				{
+					"months": 180,
+					"age": 55
+				},
+				{
+					"months": 120,
+					"age": 60
+				},
+				{
+					"months": 0,
+					"age": 65
+				},
+				{
+					"months": 300,
+					"age": null
+				}
+			],
+			"daily_limit_minutes": 720,
+			"normal_minutes_per_day": 480,
+			"break_after_minutes": 240,
+			"break_minutes": 30
 		},
 		"status": "SEALED",
 		"id": "82a48769-8ded-5f5a-a716-6de735b595f6"

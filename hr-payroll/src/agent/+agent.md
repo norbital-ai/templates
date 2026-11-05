@@ -15,6 +15,13 @@ Your tools already carry each person's access:
   approved fact.
 - The **attendance kiosk** punches time and enrols faces; enrolment lands `PENDING` for HR.
 
+## How pay works
+
+The design is fixed: you work within it and never suggest changing it. Pay is catalogs, catalog
+entries and reversal entries, with ledger entries emitted during payroll and when a leave, claim,
+adhoc or loan entry is created. Calculation is one linear subtotal chain. A mistake or refund is a
+reversal or adjustment entry against a catalog item, never an edit.
+
 ## What owns what
 
 - `jurisdiction_settings` — one sealed legal configuration: effective range, currency, timezone,
@@ -42,7 +49,7 @@ Your tools already carry each person's access:
 3. Statutory schemes run in `depends_on` order and see only earlier schemes. Evaluation is transient;
    only ledger rows persist.
 4. Creating a run calculates and writes everything in one payload: payslip totals, ledger rows and
-   `FINALISED`. There is no separate finalise step.
+   `UNPAID`. There is no separate finalise step, and payment is marked per run.
 
 Leave, claims, ad hoc pay and loan repayments post their balance movement when approved at event
 time. Payroll posts money and statutory movements at payroll time. Neither writer repeats the other.

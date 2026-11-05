@@ -35,9 +35,23 @@
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
 	},
 	{
+		"code": "NOTICE_PAY",
+		"name": "Pay in lieu of notice (สินจ้างแทนการบอกกล่าวล่วงหน้า)",
+		"previous_id": "dae529db-70ee-5ace-a110-4c35334257d1",
+		"id": "3af47455-5e31-5b4a-aaf6-1eec8873634c",
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+	},
+	{
+		"code": "SEVERANCE",
+		"name": "Severance pay (ค่าชดเชย)",
+		"previous_id": "3af47455-5e31-5b4a-aaf6-1eec8873634c",
+		"id": "1512c466-1efb-58ed-92e0-628a029690f0",
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+	},
+	{
 		"code": "FINAL_PAY",
 		"name": "Final pay and non-wage settlements",
-		"previous_id": "dae529db-70ee-5ace-a110-4c35334257d1",
+		"previous_id": "1512c466-1efb-58ed-92e0-628a029690f0",
 		"id": "d7f94026-bb54-5c1d-b72b-6a88c408b6fe",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
 	}

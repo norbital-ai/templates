@@ -11,7 +11,7 @@
 				"quote": "Income from employment includes money's worth and other benefits the employer provides, including housing, a car and income tax the employer bears."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.BENEFIT_IN_KIND.amount', 0)) > 0;",
 		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.BENEFIT_IN_KIND.amount', 0));",
@@ -24,7 +24,9 @@
 	{
 		"code": "FIXED_ALLOWANCE",
 		"name": "Fixed monthly allowance",
-		"lookup": {},
+		"lookup": {
+			"prorate": true
+		},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.5; Social Security Act B.E. 2533 (1990) s.5",

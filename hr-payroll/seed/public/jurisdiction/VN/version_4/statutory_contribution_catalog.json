@@ -3,19 +3,7 @@
 		"code": "SI",
 		"name": "Social Insurance (Bảo hiểm xã hội)",
 		"lookup": {
-			"minimum_contract_months": 1,
-			"foreign_minimum_contract_months": 12,
-			"excluded_allowances": [
-				"MEAL_ALLOWANCE",
-				"HOUSING",
-				"INSURANCE_EQUIVALENT",
-				"WORK_EXPENSE_ALLOWANCE",
-				"EMPLOYER_PENSION_CONTRIBUTION"
-			],
-			"floor": 2530000,
-			"ceiling": 50600000,
 			"employee_rate": 0.08,
-			"employer_rate": 0.175,
 			"employer_reduced_rate": 0.173
 		},
 		"references": [
@@ -27,7 +15,7 @@
 				"title": "Law on Social Insurance 41/2024/QH15 (Luật Bảo hiểm xã hội)",
 				"locator": "art.2(1)(a), (l), art.2(2), (7)(b), art.31(1)(b), (đ), art.33–34, art.53(1), (8)",
 				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm",
-				"quote": "Art.33–34: 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,530,000, ceiling 50,600,000). Employer 17.5% = 3% sickness and maternity + 14% retirement and survivorship + 0.5% occupational accident and disease; 17.3% where the reduced 0.3% occupational-accident rate applies. Above the ceiling the employer’s share is the ceiling at the employer’s own rate. Art.31(1)(đ): tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,530,000 đ). Art.33(5): an unpaid month of 14 or more working days is waived for the listed categories (not part-time employees, art.2(1)(l)), and may be continued by agreement at the most recent contribution base (arts.33(5), 34(3)); art.33(6): SI is due in the first working or return month with at least 14 sickness-benefit working days. Art.53(8): birth, adoption under six months, surrogate-birth and commissioning-mother benefit leave are exempt without the 14 working days; other maternity-benefit cases only from 14 working days in the month. Art.2(1)(a): fixed-term contract covered only “từ đủ 01 tháng trở lên”. Art.2(7)(b): a domestic worker is not a compulsory participant. Art.2(2)(b): a foreign employee at retirement age (measured at the contract’s signing) is excluded; also excluded: foreign employee on a contract under 12 months, intra-company transferee, treaty-exempt. Part-time pay below 2,530,000 is outside compulsory SI and UI."
+				"quote": "Art.33–34: 8% employee and 17.5% employer, on a salary capped at 20 times the statutory reference level (2,340,000, ceiling 46,800,000). Employer 17.5% = 3% sickness and maternity + 14% retirement and survivorship + 0.5% occupational accident and disease; 17.3% where the reduced 0.3% occupational-accident rate applies. Above the ceiling the employer’s share is the ceiling at the employer’s own rate. Art.31(1)(đ): tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ). Art.33(5): an unpaid month of 14 or more working days is waived for the listed categories (not part-time employees, art.2(1)(l)), and may be continued by agreement at the most recent contribution base (arts.33(5), 34(3)); art.33(6): SI is due in the first working or return month with at least 14 sickness-benefit working days. Art.53(8): birth, adoption under six months, surrogate-birth and commissioning-mother benefit leave are exempt without the 14 working days; other maternity-benefit cases only from 14 working days in the month. Art.2(1)(a): fixed-term contract covered only “từ đủ 01 tháng trở lên”. Art.2(7)(b): a domestic worker is not a compulsory participant. Art.2(2)(b): a foreign employee at retirement age (measured at the contract’s signing) is excluded; also excluded: foreign employee on a contract under 12 months, intra-company transferee, treaty-exempt. Part-time pay below 2,340,000 is outside compulsory SI and UI."
 			},
 			{
 				"title": "Decree 158/2025/NĐ-CP (Nghị định 158/2025/NĐ-CP)",
@@ -90,33 +78,21 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": "590c3572-ed5d-522c-af48-b37da2dcfb3c",
-		"employer_cost_subtotal_id": "e6d7745a-27ce-50c5-9059-2ab2463820dc",
+		"subtotal_id": "36d140c0-a6cf-58a0-8c59-7c42de45b237",
+		"employer_cost_subtotal_id": "36d140c0-a6cf-58a0-8c59-7c42de45b237",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst facts = get(extension, 'facts', {});\nconst signed = get(employment, 'signed_contract_period', null);\nconst probation = get(terms, 'probation_period', null);\nconst ended = get(employment.effective_range, 'to', null);\nif (ended != null && ended < ctx.run.salary_coverage.from) return false;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE', 'INTERN', 'APPRENTICE'].includes(employment.engagement))\n\treturn false;\nif (probation != null && ctx.run.salary_coverage.from <= probation.to) return false;\nif (get(facts, 'domestic_worker', false) === true) return false;\nif (get(extension, 'term_facts.receiving_pension', false) === true) return false;\nif (get(extension, 'term_facts.pass_type', '') === 'INTRA_COMPANY_TRANSFER') return false;\n\nif (get(facts, 'statutory.SI.elections.si_treaty_exempt', false) === true) return false;\nconst review = get(extension, 'term_facts.insurance_review', null);\nif (\n\tget(review, 'month', '') === String(ctx.as_of).substring(0, 7) &&\n\tget(review, 'si_temporarily_suspended', false) === true\n)\n\treturn false;\n\nconst foreign = !['VN', 'VNM', 'VIETNAM', 'VIETNAMESE', 'Vietnam', 'Vietnamese'].includes(\n\tString(get(facts, 'nationality', 'VN'))\n);\nconst months =\n\tsigned?.from == null || signed.to == null\n\t\t? Infinity\n\t\t: calendar_completed_months(signed.from, add_days(signed.to, 1));\nif (\n\tmonths <\n\t(foreign ? ctx.lookup.foreign_minimum_contract_months : ctx.lookup.minimum_contract_months)\n)\n\treturn false;\nconst pay = Number(get(ctx.subtotals, 'BASIC', 0));\nreturn employment.engagement !== 'PART_TIME' || pay >= ctx.lookup.floor;",
-		"employee_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst review = get(extension, 'term_facts.insurance_review', null);\nconst paid = Number(get(ctx.subtotals, 'BASIC', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst reviewed = get(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? Number(get(review, 'salary_vnd', paid + fixed)) : paid + fixed;\nif (paid <= 0 && fixed <= 0) return 0;\n\nconst base = Math.min(Math.max(reviewed, ctx.lookup.floor), ctx.lookup.ceiling);\nreturn base * ctx.lookup.employee_rate;",
-		"employer_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst review = get(extension, 'term_facts.insurance_review', null);\nconst paid = Number(get(ctx.subtotals, 'BASIC', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst reviewed = get(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? Number(get(review, 'salary_vnd', paid + fixed)) : paid + fixed;\nif (paid <= 0 && fixed <= 0) return 0;\n\nconst base = Math.min(Math.max(reviewed, ctx.lookup.floor), ctx.lookup.ceiling);\nconst reduced =\n\tget(ctx.subject.employer.entity_extension_data, 'occupational_accident_reduced', false) ===\n\ttrue;\nreturn base * (reduced ? ctx.lookup.employer_reduced_rate : ctx.lookup.employer_rate);",
-		"id": "c8d05e0f-275d-51d8-974d-9db552a58a59",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst facts = get(extension, 'facts', {});\nconst signed = get(employment, 'signed_contract_period', null);\nconst probation = get(terms, 'probation_period', null);\nconst ended = get(employment.effective_range, 'to', null);\nif (ended != null && ended < ctx.run.salary_coverage.from) return false;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE', 'INTERN', 'APPRENTICE'].includes(employment.engagement))\n\treturn false;\nif (probation != null && ctx.run.salary_coverage.from <= probation.to) return false;\nif (get(facts, 'domestic_worker', false) === true) return false;\nif (get(extension, 'term_facts.receiving_pension', false) === true) return false;\nif (get(extension, 'term_facts.pass_type', '') === 'INTRA_COMPANY_TRANSFER') return false;\n\nif (get(facts, 'statutory.SI.elections.si_treaty_exempt', false) === true) return false;\nconst review = get(extension, 'term_facts.insurance_review', null);\nif (\n\tget(review, 'month', '') === String(ctx.as_of).substring(0, 7) &&\n\tget(review, 'si_temporarily_suspended', false) === true\n)\n\treturn false;\n\nconst foreign = !ctx.lookup.vietnamese_nationality.includes(\n\tString(get(facts, 'nationality', 'VN'))\n);\nconst months =\n\tsigned?.from == null || signed.to == null\n\t\t? Infinity\n\t\t: calendar_completed_months(signed.from, add_days(signed.to, 1));\nif (\n\tmonths <\n\t(foreign ? ctx.lookup.foreign_minimum_contract_months : ctx.lookup.minimum_contract_months)\n)\n\treturn false;\nconst pay = Number(get(ctx.subtotals, 'BASIC', 0));\nreturn employment.engagement !== 'PART_TIME' || pay >= ctx.lookup.insurance_floor;",
+		"employee_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst review = get(extension, 'term_facts.insurance_review', null);\nconst paid = Number(get(ctx.subtotals, 'BASIC', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst reviewed = get(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? Number(get(review, 'salary_vnd', paid + fixed)) : paid + fixed;\nif (paid <= 0 && fixed <= 0) return 0;\n\nconst base = Math.min(Math.max(reviewed, ctx.lookup.insurance_floor), ctx.lookup.insurance_ceiling);\nreturn base * ctx.lookup.employee_rate;",
+		"employer_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst review = get(extension, 'term_facts.insurance_review', null);\nconst paid = Number(get(ctx.subtotals, 'BASIC', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst reviewed = get(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? Number(get(review, 'salary_vnd', paid + fixed)) : paid + fixed;\nif (paid <= 0 && fixed <= 0) return 0;\n\nconst base = Math.min(Math.max(reviewed, ctx.lookup.insurance_floor), ctx.lookup.insurance_ceiling);\nconst reduced =\n\tget(ctx.subject.employer.entity_extension_data, 'occupational_accident_reduced', false) ===\n\ttrue;\nreturn base * (reduced ? ctx.lookup.employer_reduced_rate : ctx.lookup.si_employer_rate);",
+		"id": "00937623-4ed0-5465-a323-1c3070d6fee4",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
 	},
 	{
 		"code": "HI",
 		"name": "Health Insurance (Bảo hiểm y tế)",
 		"lookup": {
-			"minimum_contract_months": 1,
-			"foreign_minimum_contract_months": 12,
-			"excluded_allowances": [
-				"MEAL_ALLOWANCE",
-				"HOUSING",
-				"INSURANCE_EQUIVALENT",
-				"WORK_EXPENSE_ALLOWANCE",
-				"EMPLOYER_PENSION_CONTRIBUTION"
-			],
-			"floor": 2530000,
-			"ceiling": 50600000,
-			"employee_rate": 0.015,
-			"employer_rate": 0.03
+			"employee_rate": 0.015
 		},
 		"references": [
 			{
@@ -133,13 +109,13 @@
 			{
 				"title": "Decree 188/2025/NĐ-CP",
 				"locator": "art.6(1)(a), art.70(2), (4)(a), (5)",
-				"quote": "4.5% of the monthly compulsory-SI salary: employer two-thirds (3%), employee one-third (1.5%), on the same 20 times reference level ceiling as social insurance (50,600,000). In force from 1 July 2025 (art.70(2)); repealed Decree 146/2018/NĐ-CP (art.70(4)(a), (5)).",
+				"quote": "4.5% of the monthly compulsory-SI salary: employer two-thirds (3%), employee one-third (1.5%), on the same 20 times reference level ceiling as social insurance (46,800,000). In force from 1 July 2025 (art.70(2)); repealed Decree 146/2018/NĐ-CP (art.70(4)(a), (5)).",
 				"effective_from": "2025-07-01"
 			},
 			{
 				"title": "Law on Social Insurance 41/2024/QH15 (Luật Bảo hiểm xã hội)",
 				"locator": "art.2(2)(b), art.8(2)(b), art.31(1)(b), (đ), art.53(8), art.84(2)(c)",
-				"quote": "Art.31(1)(đ): tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,530,000 đ). Arts.8(2)(b), 84(2)(c): HI payment transfers to the SI fund only for maternity-benefit leave of at least 14 working days in the month; an early return resumes payroll HI; shorter special-category leave can be SI-exempt under art.53(8) while payroll HI remains due. Art.2(2)(b): a foreign employee at retirement age is measured at the contract’s signing. Where an unpaid-leave agreement continues compulsory SI, HI continues on that SI base."
+				"quote": "Art.31(1)(đ): tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ). Arts.8(2)(b), 84(2)(c): HI payment transfers to the SI fund only for maternity-benefit leave of at least 14 working days in the month; an early return resumes payroll HI; shorter special-category leave can be SI-exempt under art.53(8) while payroll HI remains due. Art.2(2)(b): a foreign employee at retirement age is measured at the contract’s signing. Where an unpaid-leave agreement continues compulsory SI, HI continues on that SI base."
 			},
 			{
 				"title": "Decree 158/2025/NĐ-CP (Nghị định 158/2025/NĐ-CP)",
@@ -190,38 +166,21 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": "590c3572-ed5d-522c-af48-b37da2dcfb3c",
-		"employer_cost_subtotal_id": "e6d7745a-27ce-50c5-9059-2ab2463820dc",
+		"subtotal_id": "36d140c0-a6cf-58a0-8c59-7c42de45b237",
+		"employer_cost_subtotal_id": "36d140c0-a6cf-58a0-8c59-7c42de45b237",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst facts = get(extension, 'facts', {});\nconst signed = get(employment, 'signed_contract_period', null);\nconst probation = get(terms, 'probation_period', null);\nconst ended = get(employment.effective_range, 'to', null);\nif (ended != null && ended < ctx.run.salary_coverage.from) return false;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE', 'INTERN', 'APPRENTICE'].includes(employment.engagement))\n\treturn false;\nif (probation != null && ctx.run.salary_coverage.from <= probation.to) return false;\nif (get(facts, 'domestic_worker', false) === true) return false;\nif (get(extension, 'term_facts.receiving_pension', false) === true) return false;\nif (get(extension, 'term_facts.pass_type', '') === 'INTRA_COMPANY_TRANSFER') return false;\n\nif (get(facts, 'statutory.HI.elections.hi_treaty_exempt', false) === true) return false;\n\nconst foreign = !['VN', 'VNM', 'VIETNAM', 'VIETNAMESE', 'Vietnam', 'Vietnamese'].includes(\n\tString(get(facts, 'nationality', 'VN'))\n);\nconst months =\n\tsigned?.from == null || signed.to == null\n\t\t? Infinity\n\t\t: calendar_completed_months(signed.from, add_days(signed.to, 1));\nif (\n\tmonths <\n\t(foreign ? ctx.lookup.foreign_minimum_contract_months : ctx.lookup.minimum_contract_months)\n)\n\treturn false;\nconst pay = Number(get(ctx.subtotals, 'BASIC', 0));\nreturn employment.engagement !== 'PART_TIME' || pay >= ctx.lookup.floor;",
-		"employee_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst review = get(extension, 'term_facts.insurance_review', null);\nconst paid = Number(get(ctx.subtotals, 'BASIC', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst reviewed = get(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? Number(get(review, 'salary_vnd', paid + fixed)) : paid + fixed;\nif (paid <= 0 && fixed <= 0) return 0;\n\nconst base = Math.min(Math.max(reviewed, ctx.lookup.floor), ctx.lookup.ceiling);\nreturn base * ctx.lookup.employee_rate;",
-		"employer_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst review = get(extension, 'term_facts.insurance_review', null);\nconst paid = Number(get(ctx.subtotals, 'BASIC', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst reviewed = get(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? Number(get(review, 'salary_vnd', paid + fixed)) : paid + fixed;\nif (paid <= 0 && fixed <= 0) return 0;\n\nconst base = Math.min(Math.max(reviewed, ctx.lookup.floor), ctx.lookup.ceiling);\nreturn base * ctx.lookup.employer_rate;",
-		"id": "ddfe2eca-9e81-57ee-b052-c945e236ec29",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst facts = get(extension, 'facts', {});\nconst signed = get(employment, 'signed_contract_period', null);\nconst probation = get(terms, 'probation_period', null);\nconst ended = get(employment.effective_range, 'to', null);\nif (ended != null && ended < ctx.run.salary_coverage.from) return false;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE', 'INTERN', 'APPRENTICE'].includes(employment.engagement))\n\treturn false;\nif (probation != null && ctx.run.salary_coverage.from <= probation.to) return false;\nif (get(facts, 'domestic_worker', false) === true) return false;\nif (get(extension, 'term_facts.receiving_pension', false) === true) return false;\nif (get(extension, 'term_facts.pass_type', '') === 'INTRA_COMPANY_TRANSFER') return false;\n\nif (get(facts, 'statutory.HI.elections.hi_treaty_exempt', false) === true) return false;\n\nconst foreign = !ctx.lookup.vietnamese_nationality.includes(\n\tString(get(facts, 'nationality', 'VN'))\n);\nconst months =\n\tsigned?.from == null || signed.to == null\n\t\t? Infinity\n\t\t: calendar_completed_months(signed.from, add_days(signed.to, 1));\nif (\n\tmonths <\n\t(foreign ? ctx.lookup.foreign_minimum_contract_months : ctx.lookup.minimum_contract_months)\n)\n\treturn false;\nconst pay = Number(get(ctx.subtotals, 'BASIC', 0));\nreturn employment.engagement !== 'PART_TIME' || pay >= ctx.lookup.insurance_floor;",
+		"employee_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst review = get(extension, 'term_facts.insurance_review', null);\nconst paid = Number(get(ctx.subtotals, 'BASIC', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst reviewed = get(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? Number(get(review, 'salary_vnd', paid + fixed)) : paid + fixed;\nif (paid <= 0 && fixed <= 0) return 0;\n\nconst base = Math.min(Math.max(reviewed, ctx.lookup.insurance_floor), ctx.lookup.insurance_ceiling);\nreturn base * ctx.lookup.employee_rate;",
+		"employer_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst review = get(extension, 'term_facts.insurance_review', null);\nconst paid = Number(get(ctx.subtotals, 'BASIC', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst reviewed = get(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? Number(get(review, 'salary_vnd', paid + fixed)) : paid + fixed;\nif (paid <= 0 && fixed <= 0) return 0;\n\nconst base = Math.min(Math.max(reviewed, ctx.lookup.insurance_floor), ctx.lookup.insurance_ceiling);\nreturn base * ctx.lookup.hi_employer_rate;",
+		"id": "3961e3f0-227f-56fe-8e04-ac02c27c6086",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
 	},
 	{
 		"code": "UI",
 		"name": "Unemployment Insurance (Bảo hiểm thất nghiệp)",
 		"lookup": {
-			"minimum_contract_months": 1,
-			"excluded_allowances": [
-				"MEAL_ALLOWANCE",
-				"HOUSING",
-				"INSURANCE_EQUIVALENT",
-				"WORK_EXPENSE_ALLOWANCE",
-				"EMPLOYER_PENSION_CONTRIBUTION"
-			],
-			"floor": 2530000,
 			"employee_rate": 0.01,
-			"employer_rate": 0.01,
-			"cap_multiple": 20,
-			"minimum_wage_by_region": {
-				"I": 5310000,
-				"II": 4730000,
-				"III": 4140000,
-				"IV": 3700000
-			},
 			"disabled_new_hire_relief": true,
 			"disabled_new_hire_months": 12,
 			"disabled_new_hire_start": "2026-01-01"
@@ -231,11 +190,12 @@
 				"title": "Law on Employment 74/2025/QH15 (Luật Việc làm)",
 				"locator": "arts.31–33, art.34(1)(b), (2)",
 				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm",
-				"quote": "Arts.31–33: 1% of the employee’s monthly wage and 1% of the employer’s monthly wage fund, on a wage capped at 20 times the regional monthly minimum wage the Government publishes at the time of contribution (art.34(1)(b), (2)). Covers Vietnamese employees; a foreign employee is outside it. Art.31(1)(a): fixed-term contract covered only from one full month (under it the base is nothing; Labour Code art.168(3) equivalent instead). Art.31(2): excludes an employee who already qualifies for a pension, not only one drawing it; a domestic worker (to 31 December 2025, Law 38/2013/QH13 art.43(1)); a worker “đang làm việc theo hợp đồng thử việc” (probation contract; Government full text, read 2026-09-28); a low-paid part-timer (art.31(1)–(2)). Art.33(4) exempts UI only when the worker has at least 14 working days without salary; special SI maternity categories create no shorter exemption, and an SI continuation agreement does not remove it."
+				"quote": "Arts.31–33, in force 1 January 2026: 1% of the employee’s monthly wage and 1% of the employer’s monthly wage fund, on a wage capped at 20 times the regional monthly minimum wage the Government publishes at the time of contribution (art.34(1)(b), (2)). Covers Vietnamese employees; a foreign employee is outside it. Art.31(1)(a): fixed-term contract covered only from one full month (under it the base is nothing; Labour Code art.168(3) equivalent instead). Art.31(2): excludes an employee who already qualifies for a pension, not only one drawing it; a domestic worker (to 31 December 2025, Law 38/2013/QH13 art.43(1)); a worker “đang làm việc theo hợp đồng thử việc” (probation contract; Government full text, read 2026-09-28); a low-paid part-timer (art.31(1)–(2)). Art.33(4), effective 1 January 2026, exempts UI only when the worker has at least 14 working days without salary; special SI maternity categories create no shorter exemption, and an SI continuation agreement does not remove it.",
+				"effective_from": "2026-01-01"
 			},
 			{
 				"title": "Decree 293/2025/NĐ-CP",
-				"quote": "Regional minimum wage (unchanged on 1 July 2026): Region I 5,310,000; cap 20 × 5,310,000 = 106,200,000. The cap uses the entity’s region; an entity without a recorded region is capped at the Region I figure."
+				"quote": "Regional minimum wage: Region I 5,310,000; cap 20 × 5,310,000 = 106,200,000. The cap uses the entity’s region; an entity without a recorded region is capped at the Region I figure."
 			},
 			{
 				"title": "Decree 374/2025/NĐ-CP",
@@ -287,38 +247,27 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": "590c3572-ed5d-522c-af48-b37da2dcfb3c",
-		"employer_cost_subtotal_id": "e6d7745a-27ce-50c5-9059-2ab2463820dc",
+		"subtotal_id": "36d140c0-a6cf-58a0-8c59-7c42de45b237",
+		"employer_cost_subtotal_id": "36d140c0-a6cf-58a0-8c59-7c42de45b237",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst facts = get(extension, 'facts', {});\nconst signed = get(employment, 'signed_contract_period', null);\nconst probation = get(terms, 'probation_period', null);\nconst ended = get(employment.effective_range, 'to', null);\nif (ended != null && ended < ctx.run.salary_coverage.from) return false;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE', 'INTERN', 'APPRENTICE'].includes(employment.engagement))\n\treturn false;\nif (probation != null && ctx.run.salary_coverage.from <= probation.to) return false;\nif (get(facts, 'domestic_worker', false) === true) return false;\nif (get(extension, 'term_facts.receiving_pension', false) === true) return false;\n\nif (get(facts, 'statutory.UI.elections.pension_qualified', false) === true) return false;\n\nconst foreign = !['VN', 'VNM', 'VIETNAM', 'VIETNAMESE', 'Vietnam', 'Vietnamese'].includes(\n\tString(get(facts, 'nationality', 'VN'))\n);\nif (foreign) return false;\nconst months =\n\tsigned?.from == null || signed.to == null\n\t\t? Infinity\n\t\t: calendar_completed_months(signed.from, add_days(signed.to, 1));\nif (\n\tmonths <\n\t(foreign ? ctx.lookup.foreign_minimum_contract_months : ctx.lookup.minimum_contract_months)\n)\n\treturn false;\nconst pay = Number(get(ctx.subtotals, 'BASIC', 0));\nreturn employment.engagement !== 'PART_TIME' || pay >= ctx.lookup.floor;",
-		"employee_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst review = get(extension, 'term_facts.insurance_review', null);\nconst paid = Number(get(ctx.subtotals, 'BASIC', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst reviewed = get(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? Number(get(review, 'salary_vnd', paid + fixed)) : paid + fixed;\nif (paid <= 0 && fixed <= 0) return 0;\n\nconst region = String(get(ctx.subject.employer.entity_extension_data, 'region', 'I'));\nconst minimum = get(ctx.lookup.minimum_wage_by_region, region, ctx.lookup.minimum_wage_by_region.I);\nconst base = Math.min(Math.max(reviewed, ctx.lookup.floor), minimum * ctx.lookup.cap_multiple);\nreturn base * ctx.lookup.employee_rate;",
-		"employer_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst review = get(extension, 'term_facts.insurance_review', null);\nconst paid = Number(get(ctx.subtotals, 'BASIC', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst reviewed = get(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? Number(get(review, 'salary_vnd', paid + fixed)) : paid + fixed;\nif (paid <= 0 && fixed <= 0) return 0;\n\nconst region = String(get(ctx.subject.employer.entity_extension_data, 'region', 'I'));\nconst minimum = get(ctx.lookup.minimum_wage_by_region, region, ctx.lookup.minimum_wage_by_region.I);\nconst base = Math.min(Math.max(reviewed, ctx.lookup.floor), minimum * ctx.lookup.cap_multiple);\nconst relief = () => {\n\tif (ctx.lookup.disabled_new_hire_relief !== true) return false;\n\tif (get(extension, 'facts.statutory.UI.elections.disabled_new_hire_relief', false) !== true) return false;\n\tif (get(extension, 'term_facts.disabled', false) !== true) return false;\n\tconst hired = ctx.subject.employment.effective_range.from;\n\tif (!(hired >= ctx.lookup.disabled_new_hire_start)) return false;\n\treturn calendar_completed_months(hired, ctx.run.salary_coverage.from) < ctx.lookup.disabled_new_hire_months;\n};\nreturn base * (relief() ? 0 : ctx.lookup.employer_rate);",
-		"id": "57faec3c-400e-5815-8a60-ecb5c441f7c4",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst facts = get(extension, 'facts', {});\nconst signed = get(employment, 'signed_contract_period', null);\nconst probation = get(terms, 'probation_period', null);\nconst ended = get(employment.effective_range, 'to', null);\nif (ended != null && ended < ctx.run.salary_coverage.from) return false;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE', 'INTERN', 'APPRENTICE'].includes(employment.engagement))\n\treturn false;\nif (probation != null && ctx.run.salary_coverage.from <= probation.to) return false;\nif (get(facts, 'domestic_worker', false) === true) return false;\nif (get(extension, 'term_facts.receiving_pension', false) === true) return false;\n\nif (get(facts, 'statutory.UI.elections.pension_qualified', false) === true) return false;\n\nconst foreign = !ctx.lookup.vietnamese_nationality.includes(\n\tString(get(facts, 'nationality', 'VN'))\n);\nif (foreign) return false;\nconst months =\n\tsigned?.from == null || signed.to == null\n\t\t? Infinity\n\t\t: calendar_completed_months(signed.from, add_days(signed.to, 1));\nif (months < ctx.lookup.minimum_contract_months) return false;\nconst pay = Number(get(ctx.subtotals, 'BASIC', 0));\nreturn employment.engagement !== 'PART_TIME' || pay >= ctx.lookup.insurance_floor;",
+		"employee_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst review = get(extension, 'term_facts.insurance_review', null);\nconst paid = Number(get(ctx.subtotals, 'BASIC', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst reviewed = get(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? Number(get(review, 'salary_vnd', paid + fixed)) : paid + fixed;\nif (paid <= 0 && fixed <= 0) return 0;\n\nconst region = String(get(ctx.subject.employer.entity_extension_data, 'region', 'I'));\nconst minimum = get(ctx.lookup.minimum_wage.by_region, region, ctx.lookup.minimum_wage.by_region.I);\nconst base = Math.min(Math.max(reviewed, ctx.lookup.insurance_floor), minimum * ctx.lookup.ui_cap_multiple);\nreturn base * ctx.lookup.employee_rate;",
+		"employer_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst review = get(extension, 'term_facts.insurance_review', null);\nconst paid = Number(get(ctx.subtotals, 'BASIC', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst reviewed = get(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? Number(get(review, 'salary_vnd', paid + fixed)) : paid + fixed;\nif (paid <= 0 && fixed <= 0) return 0;\n\nconst region = String(get(ctx.subject.employer.entity_extension_data, 'region', 'I'));\nconst minimum = get(ctx.lookup.minimum_wage.by_region, region, ctx.lookup.minimum_wage.by_region.I);\nconst base = Math.min(Math.max(reviewed, ctx.lookup.insurance_floor), minimum * ctx.lookup.ui_cap_multiple);\nconst relief = () => {\n\tif (ctx.lookup.disabled_new_hire_relief !== true) return false;\n\tif (get(extension, 'facts.statutory.UI.elections.disabled_new_hire_relief', false) !== true) return false;\n\tif (get(extension, 'term_facts.disabled', false) !== true) return false;\n\tconst hired = ctx.subject.employment.effective_range.from;\n\tif (!(hired >= ctx.lookup.disabled_new_hire_start)) return false;\n\treturn calendar_completed_months(hired, ctx.run.salary_coverage.from) < ctx.lookup.disabled_new_hire_months;\n};\nreturn base * (relief() ? 0 : ctx.lookup.ui_employer_rate);",
+		"id": "54e4dae5-b97d-5f98-bf3f-6c020133a86f",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
 	},
 	{
 		"code": "UNION_FEE",
 		"name": "Trade Union Fee (Kinh phí công đoàn)",
 		"lookup": {
-			"minimum_contract_months": 1,
-			"foreign_minimum_contract_months": 12,
-			"excluded_allowances": [
-				"MEAL_ALLOWANCE",
-				"HOUSING",
-				"INSURANCE_EQUIVALENT",
-				"WORK_EXPENSE_ALLOWANCE",
-				"EMPLOYER_PENSION_CONTRIBUTION"
-			],
-			"floor": 2530000,
-			"ceiling": 50600000,
 			"employer_rate": 0.02
 		},
 		"references": [
 			{
 				"title": "Law on Trade Unions 50/2024/QH15 (Luật Công đoàn)",
 				"locator": "art.29(1)(b)",
-				"quote": "In force 1 July 2025: employer levy of 2% of the social-insurance salary fund (the sum of the insured salaries), payable whether or not a union has been established, on the same 20 times reference level ceiling (50,600,000); floor the reference level (2,530,000). Out of SI for 14 or more unpaid working days (Law 41/2024 art.33(5)) adds nothing; an employee outside compulsory SI adds nothing.",
+				"quote": "In force 1 July 2025: employer levy of 2% of the social-insurance salary fund (the sum of the insured salaries), payable whether or not a union has been established, on the same 20 times reference level ceiling (46,800,000); floor the reference level (2,340,000). Out of SI for 14 or more unpaid working days (Law 41/2024 art.33(5)) adds nothing; an employee outside compulsory SI adds nothing.",
 				"effective_from": "2025-07-01"
 			},
 			{
@@ -331,7 +280,7 @@
 			{
 				"title": "Law on Social Insurance 41/2024/QH15 (Luật Bảo hiểm xã hội)",
 				"locator": "art.31(1)(b), (đ), art.33(5)",
-				"quote": "Art.31(1)(đ): tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,530,000 đ). Art.33(5): a month with 14 or more unpaid working days is out of SI."
+				"quote": "Art.31(1)(đ): tiền lương làm căn cứ đóng thấp nhất bằng mức tham chiếu (2,340,000 đ). Art.33(5): a month with 14 or more unpaid working days is out of SI."
 			},
 			{
 				"title": "Decree 158/2025/NĐ-CP (Nghị định 158/2025/NĐ-CP)",
@@ -359,62 +308,74 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": "590c3572-ed5d-522c-af48-b37da2dcfb3c",
-		"employer_cost_subtotal_id": "e6d7745a-27ce-50c5-9059-2ab2463820dc",
+		"subtotal_id": "36d140c0-a6cf-58a0-8c59-7c42de45b237",
+		"employer_cost_subtotal_id": "36d140c0-a6cf-58a0-8c59-7c42de45b237",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst facts = get(extension, 'facts', {});\nconst signed = get(employment, 'signed_contract_period', null);\nconst probation = get(terms, 'probation_period', null);\nconst ended = get(employment.effective_range, 'to', null);\nif (ended != null && ended < ctx.run.salary_coverage.from) return false;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE', 'INTERN', 'APPRENTICE'].includes(employment.engagement))\n\treturn false;\nif (probation != null && ctx.run.salary_coverage.from <= probation.to) return false;\nif (get(facts, 'domestic_worker', false) === true) return false;\nif (get(extension, 'term_facts.receiving_pension', false) === true) return false;\nif (get(extension, 'term_facts.pass_type', '') === 'INTRA_COMPANY_TRANSFER') return false;\n\nif (get(facts, 'statutory.SI.elections.si_treaty_exempt', false) === true) return false;\nconst review = get(extension, 'term_facts.insurance_review', null);\nif (\n\tget(review, 'month', '') === String(ctx.as_of).substring(0, 7) &&\n\tget(review, 'si_temporarily_suspended', false) === true\n)\n\treturn false;\n\nconst foreign = !['VN', 'VNM', 'VIETNAM', 'VIETNAMESE', 'Vietnam', 'Vietnamese'].includes(\n\tString(get(facts, 'nationality', 'VN'))\n);\nconst months =\n\tsigned?.from == null || signed.to == null\n\t\t? Infinity\n\t\t: calendar_completed_months(signed.from, add_days(signed.to, 1));\nif (\n\tmonths <\n\t(foreign ? ctx.lookup.foreign_minimum_contract_months : ctx.lookup.minimum_contract_months)\n)\n\treturn false;\nconst pay = Number(get(ctx.subtotals, 'BASIC', 0));\nreturn employment.engagement !== 'PART_TIME' || pay >= ctx.lookup.floor;",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst facts = get(extension, 'facts', {});\nconst signed = get(employment, 'signed_contract_period', null);\nconst probation = get(terms, 'probation_period', null);\nconst ended = get(employment.effective_range, 'to', null);\nif (ended != null && ended < ctx.run.salary_coverage.from) return false;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE', 'INTERN', 'APPRENTICE'].includes(employment.engagement))\n\treturn false;\nif (probation != null && ctx.run.salary_coverage.from <= probation.to) return false;\nif (get(facts, 'domestic_worker', false) === true) return false;\nif (get(extension, 'term_facts.receiving_pension', false) === true) return false;\nif (get(extension, 'term_facts.pass_type', '') === 'INTRA_COMPANY_TRANSFER') return false;\n\nif (get(facts, 'statutory.SI.elections.si_treaty_exempt', false) === true) return false;\nconst review = get(extension, 'term_facts.insurance_review', null);\nif (\n\tget(review, 'month', '') === String(ctx.as_of).substring(0, 7) &&\n\tget(review, 'si_temporarily_suspended', false) === true\n)\n\treturn false;\n\nconst foreign = !ctx.lookup.vietnamese_nationality.includes(\n\tString(get(facts, 'nationality', 'VN'))\n);\nconst months =\n\tsigned?.from == null || signed.to == null\n\t\t? Infinity\n\t\t: calendar_completed_months(signed.from, add_days(signed.to, 1));\nif (\n\tmonths <\n\t(foreign ? ctx.lookup.foreign_minimum_contract_months : ctx.lookup.minimum_contract_months)\n)\n\treturn false;\nconst pay = Number(get(ctx.subtotals, 'BASIC', 0));\nreturn employment.engagement !== 'PART_TIME' || pay >= ctx.lookup.insurance_floor;",
 		"employee_amount": "// js\nreturn 0;",
-		"employer_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst review = get(extension, 'term_facts.insurance_review', null);\nconst monthly = Number(get(ctx.subtotals, 'BASIC', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst reviewed = get(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? Number(get(review, 'salary_vnd', monthly + fixed)) : monthly + fixed;\n\nconst base = Math.min(Math.max(reviewed, ctx.lookup.floor), ctx.lookup.ceiling);\nconst employer = get(ctx.subject, 'employer.entity_extension_data', {});\nif (get(employer, 'union_fee_suspended', false) === true) return 0;\nreturn base * ctx.lookup.employer_rate * (1 - Number(get(employer, 'union_fee_reduction_percent', 0)) / 100);",
-		"id": "f45f14a0-b7db-5804-ab07-490f560289f1",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+		"employer_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst review = get(extension, 'term_facts.insurance_review', null);\nconst monthly = Number(get(ctx.subtotals, 'BASIC', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst reviewed = get(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? Number(get(review, 'salary_vnd', monthly + fixed)) : monthly + fixed;\n\nconst base = Math.min(Math.max(reviewed, ctx.lookup.insurance_floor), ctx.lookup.insurance_ceiling);\nconst employer = get(ctx.subject, 'employer.entity_extension_data', {});\nif (get(employer, 'union_fee_suspended', false) === true) return 0;\nreturn base * ctx.lookup.employer_rate * (1 - Number(get(employer, 'union_fee_reduction_percent', 0)) / 100);",
+		"id": "417d545d-cd10-5cf1-ae7a-b40689ed726f",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "PIT_TAXABLE_INCOME",
+		"name": "Thu nhập chịu thuế (taxable income, memo for the finalisation)",
+		"lookup": {
+			"meal_allowance_cap": null,
+			"housing_exempt_ratio": 0.15
+		},
+		"references": [
+			{
+				"title": "Decree 253/2026/NĐ-CP art.8(2)(g), (h), art.26, arts.46, 51: the year's taxable income is the sum of the months' (art.46(4)(c)). The balance keeps the sum here because employer-paid benefits reach no subtotal balance and the monthly caps do not add up. A memo row: it charges nobody and has no cost subtotal. Before 1 July 2026 a documented cash-meal policy sets the meal exemption.",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf"
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": "36d140c0-a6cf-58a0-8c59-7c42de45b237",
+		"kind": "TAX",
+		"eligibility": "// js\nreturn Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0)) > 0;",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d",
+		"depends_on": [],
+		"employee_amount": "// js\nreturn 0;",
+		"employer_amount": "// js\n// The run's taxable income: each subtotal holds one treatment, so every cap applies to what was paid.\nconst extension = get(ctx.subject.employment, 'employee_extension_data', {});\nconst subtotal = (code) => Number(get(ctx.subtotals, code, 0));\nconst meal = subtotal('MEAL_PAY') - subtotal('BASIC');\nconst workExpense = subtotal('WORK_EXPENSE_PAY') - subtotal('MEAL_PAY');\nconst housing = subtotal('HOUSING_PAY') - subtotal('WORK_EXPENSE_PAY');\nconst outside = subtotal('PIT_EXEMPT_PAY') - subtotal('PENSION_PAY');\n// Night and overtime pay within the Labour Code limits is exempt for a resident from tax period 2026 (Decree 253/2026 arts.26(1), 69(1)(a)).\nconst resident = get(ctx.subject.employment.terms, 'residency_status', null) !== 'NON_RESIDENT';\nconst exemptOvertime = resident ? Number(ctx.overtime) : 0;\nconst fixedMealCap = ctx.lookup.meal_allowance_cap;\nconst mealCap =\n\tfixedMealCap == null\n\t\t? get(extension, 'term_facts.cash_meal_policy_limit_vnd', null)\n\t\t: fixedMealCap;\nif (mealCap == null && meal > 0)\n\tthrow 'Record the documented cash-meal policy limit for this pay month.';\nconst employerLimit = Number(\n\tget(ctx.subject.employer.entity_extension_data, 'work_expense_limit', 0)\n);\nconst wages = Math.max(\n\t0,\n\tsubtotal('ADDITIONAL_WAGES') - meal - workExpense - housing - outside - exemptOvertime\n);\nconst otherTaxable =\n\twages + Math.max(0, meal - Number(mealCap ?? 0)) + Math.max(0, workExpense - employerLimit);\nreturn otherTaxable + Math.min(housing, ctx.lookup.housing_exempt_ratio * otherTaxable);",
+		"id": "3aa3c504-e67e-5559-82e0-258fe4eb31b6"
+	},
+	{
+		"code": "PIT_PENSION_DEDUCTION",
+		"name": "Giảm trừ hưu trí, nhân thọ (pension deduction, memo for the finalisation)",
+		"lookup": {
+			"pension_cap": 3000000
+		},
+		"references": [
+			{
+				"title": "Decree 253/2026/NĐ-CP art.46(2)(a), arts.69(1)(a), 70(2): pension and life insurance deducted as paid, employer's and worker's together, at most 3,000,000 a month from tax year 2026; the months withheld before July at 1,000,000 are settled in the finalisation, so this row records the 3,000,000 figure from January 2026 and the tax row applies its own monthly cap. A memo row: it charges nobody and has no cost subtotal.",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf"
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": "36d140c0-a6cf-58a0-8c59-7c42de45b237",
+		"kind": "TAX",
+		"eligibility": "// js\nreturn Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0)) > 0;",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d",
+		"depends_on": [],
+		"employee_amount": "// js\nreturn 0;",
+		"employer_amount": "// js\n// Art.46(2)(a): the employer's contribution and the worker's own share one monthly cap. An off-cycle run adds no second month of the worker's own.\nconst subtotal = (code) => Number(get(ctx.subtotals, code, 0));\nconst own = get(ctx.run, 'kind', 'ON_CYCLE') === 'OFF_CYCLE'\n\t? 0\n\t: Number(get(get(ctx.subject.employment, 'employee_extension_data.facts.statutory.PIT.elections', {}), 'voluntary_pension_contribution', 0));\nreturn Math.min(subtotal('PENSION_PAY') - subtotal('HOUSING_PAY') + own, ctx.lookup.pension_cap);",
+		"id": "4c1ddd43-4ac8-5b2d-8389-b36c5d540776"
 	},
 	{
 		"code": "PIT",
 		"name": "Personal Income Tax (Thuế thu nhập cá nhân)",
 		"lookup": {
-			"personal_deduction": 15500000,
-			"dependant_deduction": 6200000,
-			"brackets": [
-				{
-					"up_to": 10000000,
-					"rate": 0.05
-				},
-				{
-					"up_to": 30000000,
-					"rate": 0.1
-				},
-				{
-					"up_to": 60000000,
-					"rate": 0.2
-				},
-				{
-					"up_to": 100000000,
-					"rate": 0.3
-				},
-				{
-					"up_to": null,
-					"rate": 0.35
-				}
-			],
-			"meal_allowance_cap": 1200000,
-			"housing_exempt_ratio": 0.15,
-			"pension_cap": 3000000,
+			"pension_cap": 1000000,
 			"non_resident_rate": 0.2,
 			"short_term_rate": 0.1,
-			"short_term_threshold": 5000000,
-			"short_term_months": 3
+			"short_term_threshold": 2000000
 		},
 		"references": [
 			{
-				"title": "Resident salary withholding (Decree 253/2026/NĐ-CP art.50(1): the month’s taxable income through the progressive table, signed text p.35; art.46(3): income is taxed when paid; Law 109/2025/QH15 art.9 states the table by month and by year; Circular 111/2013 art.25(1)(b) before): each month’s ordinary and bonus income, less that month’s employee contributions and deductions, goes through the monthly column. Runs of the same month are read from that month’s payslips, so the month is taxed once. A bonus is income of the month it is paid in. The annual column (the monthly thresholds × 12) belongs to the finalisation (art.51), not to the monthly withholding.",
-				"url": "https://xaydungchinhsach.chinhphu.vn/thue-thu-nhap-ca-nhan-doi-voi-thu-nhap-tu-tien-luong-tien-cong-119260703141953435.htm"
-			},
-			{
-				"title": "Circular 87/2026/TT-BTC",
-				"locator": "art.6(2)",
-				"quote": "In force 1 July 2026, resident salary from tax period 2026. Its art.6(2) replaces Circular 111/2013/TT-BTC; Circular 111/2013 and Law 04/2007/QH12 apply only where the earlier rule is contrasted.",
-				"effective_from": "2026-07-01"
+				"title": "From 15 June 2025 until 30 June 2026, documented cash-meal policy sets the exemption after repeal of Circular 26/2016. cash_meal_policy_limit_vnd is required where a meal payment is present; 730,000 is not retained as a legal ceiling.",
+				"url": "https://baochinhphu.vn/xac-dinh-thu-nhap-chiu-thue-khoan-chi-an-ca-cho-nguoi-lao-dong-102251030101936343.htm"
 			},
 			{
 				"title": "Personal Income Tax Law 04/2007/QH12 (Luật Thuế thu nhập cá nhân)",
@@ -432,21 +393,13 @@
 				"effective_from": "2026-01-01"
 			},
 			{
-				"title": "Decree 253/2026/NĐ-CP",
-				"locator": "arts.4–5, 8(2)(g)–(h), 26, 46, 49, 51, 64(4), 66(1)(a), 69, 70, 50(2)",
-				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf",
-				"effective_from": "2026-07-01",
-				"quote": "Art.4: resident = present 183 days in the calendar year or twelve months from arrival, or registered permanent residence or rented home for 183 days or more; art.5: anyone else is non-resident (20% on taxable remuneration, no personal, dependant or insurance deductions). Neither law nor decree presumes residence, so an unrecorded residence stops the calculation. Art.66(1)(a): residence governs the calendar year, or the first twelve months from arrival; art.46(3), art.64(4): income is taxed when paid, each month on the status recorded for it; a status change is settled in the annual finalisation (art.51), which re-prices wage income on the resident table and credits what was withheld at 20%; earlier months are never re-withheld. Art.26(1): overtime and statutory cessation leave exemptions apply to residents from tax year 2026 and non-residents from 1 July 2026 (art.69); before that non-residents keep the earlier overtime-premium exemption and taxable leave cash-out; a future departure does not establish cessation; payments beyond statutory limits remain taxable. Art.26(2): pay for untaken leave exempt only within Labour Code art.113(3) conditions and rate (Decree 145/2020 art.67(3) day), art.26(3) taxes the excess in the month it is paid (art.46(3)). Art.49 medical, education and charity deductions are settled by the taxpayer with the tax office (art.51(3)). Art.51(2): December finalisation only for an employee who authorised it and qualifies. Art.8(2)(g) with art.69(1)(b): from 1 July 2026 a meal paid by the employer is taxable only above 1,200,000 a month; a meal served in kind is not income. Art.8(2)(h): rent, power and water the employer pays on the worker’s behalf taxable at the amount paid, not above 15% of the worker’s other taxable income at the unit. Art.46(2)(a) with art.69(1)(a): voluntary pension and life insurance deducted as paid, at most 3,000,000 a month including the employer’s share (employer contributions are taxable), from tax year 2026; art.69(1)(a) applies the salary-income rules from tax period 2026, so the December finalisation caps every 2026 month at 3,000,000, January–June included (1,000,000 before July 2026 for the months withheld); art.70(2) settles the months withheld under the old rule in that finalisation (signed text pp.56–57, read 2026-10-08). Art.50(2): a resident with no contract or one under three months is withheld 10% on a payment of 5,000,000 or more; nothing below it or with the commitment form. Art.26(1) exempts “tiền lương, tiền công làm việc ban đêm” — the wage for night work itself."
-			},
-			{
 				"title": "Decree 126/2020/NĐ-CP",
 				"locator": "art.8(6)(d)",
 				"quote": "The employer may make the year-end finalisation (December re-pricing on the annual table) only for an employee who authorised it and qualifies."
 			},
 			{
 				"title": "Circular 111/2013/TT-BTC",
-				"locator": "art.3(1)(i), art.7 and Annex 02, art.9(1)(c)",
-				"quote": "Contrast with the earlier rule: art.3(1)(i) exempted only “phần tiền lương, tiền công trả cao hơn” the day wage (the night premium). Art.7 and Annex 02: net-of-tax contract, the employer bears the tax, grossed up bracket by bracket. Art.9(1)(c): dependant deduction counts each dependant from the month registered."
+				"locator": "art.2(2)(g.5), 2(2)(đ), 3(1)(i), 7 and Annex 02, 9(2)(b)–(c), 25(1)(b), 25(1)(i)"
 			},
 			{
 				"title": "Decree 145/2020/NĐ-CP",
@@ -459,36 +412,37 @@
 				"quote": "Conditions and rate for exempt pay for untaken leave."
 			},
 			{
+				"title": "General Department of Taxation letter 51/TCT-DNNCN",
+				"locator": "7 January 2021",
+				"quote": "Directs 10% withholding on a taxable payment made after the labour contract has ended.",
+				"effective_from": "2021-01-07"
+			},
+			{
 				"title": "Payment time and annual converted-income basis",
 				"url": "https://xaydungchinhsach.chinhphu.vn/thue-thu-nhap-ca-nhan-doi-voi-thu-nhap-tu-tien-luong-tien-cong-119260703141953435.htm"
+			},
+			{
+				"title": "Official tax answer after cap repeal",
+				"url": "https://baochinhphu.vn/xac-dinh-thu-nhap-chiu-thue-khoan-chi-an-ca-cho-nguoi-lao-dong-102251030101936343.htm"
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": "590c3572-ed5d-522c-af48-b37da2dcfb3c",
-		"employer_cost_subtotal_id": "e6d7745a-27ce-50c5-9059-2ab2463820dc",
+		"subtotal_id": "36d140c0-a6cf-58a0-8c59-7c42de45b237",
+		"employer_cost_subtotal_id": "36d140c0-a6cf-58a0-8c59-7c42de45b237",
 		"kind": "TAX",
-		"depends_on": ["SI", "HI", "UI"],
+		"depends_on": ["SI", "HI", "UI", "PIT_TAXABLE_INCOME", "PIT_PENSION_DEDUCTION"],
 		"eligibility": "// js\nreturn Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0)) > 0;",
-		"employee_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst ordinary_wages = Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst total = Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', ordinary_wages));\nconst bonus = Math.max(0, total - ordinary_wages);\nif (total <= 0) return 0;\nconst residency = get(terms, 'residency_status', null);\nif (residency == null)\n\tthrow 'Record the tax residence on the sealed contract (CITIZEN, PERMANENT_RESIDENT, RESIDENT or NON_RESIDENT); Vietnamese law presumes neither residence nor non-residence.';\nconst resident = residency !== 'NON_RESIDENT';\nconst allowance = (code) => Number(get(terms, 'allowances.' + code + '.amount', 0));\nconst meal = allowance('MEAL_ALLOWANCE');\nconst housing = allowance('HOUSING');\nconst pension = allowance('EMPLOYER_PENSION_CONTRIBUTION');\nconst voluntaryPension = Number(\n\tget(extension, 'facts.statutory.PIT.elections.voluntary_pension_contribution', 0)\n);\nconst workExpense = allowance('WORK_EXPENSE_ALLOWANCE');\nconst fixedMealCap = ctx.lookup.meal_allowance_cap;\nconst mealCap =\n\tfixedMealCap == null\n\t\t? get(extension, 'term_facts.cash_meal_policy_limit_vnd', null)\n\t\t: fixedMealCap;\nif (mealCap == null && meal > 0)\n\tthrow 'Record the documented cash-meal policy limit for this pay month.';\n// Night and overtime pay within the Labour Code limits is exempt (Decree 253/2026 art.26(1)).\nconst ordinary = Math.max(0, ordinary_wages - meal - housing - pension - workExpense - Number(ctx.overtime));\nconst taxableMeal = Math.max(0, meal - Number(mealCap ?? 0));\nconst employerLimit = Number(\n\tget(ctx.subject.employer.entity_extension_data, 'work_expense_limit', 0)\n);\nconst taxableWorkExpense = Math.max(0, workExpense - employerLimit);\nconst otherTaxable = ordinary + taxableMeal + pension + taxableWorkExpense + bonus;\nconst taxableHousing = Math.max(\n\t0,\n\tMath.min(housing, ctx.lookup.housing_exempt_ratio * otherTaxable)\n);\nconst remuneration = otherTaxable + taxableHousing;\nconst pensionDeduction = Math.min(pension + voluntaryPension, ctx.lookup.pension_cap);\nconst signed = get(employment, 'signed_contract_period', null);\nconst shortContract =\n\tget(signed, 'to', null) != null &&\n\tadd_months(signed.from, ctx.lookup.short_term_months) > add_days(signed.to, 1);\nconst shortTerm =\n\tshortContract || ['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''));\nconst committed = get(extension, 'facts.statutory.PIT.elections.commitment_form', false) === true;\nconst insurance =\n\tNumber(get(get(ctx.statutory, 'SI', {}), 'employee', 0)) +\n\tNumber(get(get(ctx.statutory, 'HI', {}), 'employee', 0)) +\n\tNumber(get(get(ctx.statutory, 'UI', {}), 'employee', 0));\nif (get(terms, 'employer_bears_income_tax', false) === true) return 0;\nif (!resident) return remuneration * ctx.lookup.non_resident_rate;\nif (shortTerm && committed) return 0;\nif (shortTerm && remuneration < ctx.lookup.short_term_threshold) return 0;\nif (shortTerm) return remuneration * ctx.lookup.short_term_rate;\nconst month = String(get(ctx.run, 'period', ctx.as_of.substring(0, 7))).substring(0, 7);\nconst prior = get(ctx.history, 'payslips', []).filter(\n\t(slip) => String(get(slip, 'period', '')).substring(0, 7) === month\n);\nconst priorGross = sum(prior.map((slip) => Number(get(slip, 'gross_earnings', 0))));\nconst priorInsurance = sum(prior.map((slip) => Number(get(slip, 'employee_statutory', 0))));\nconst priorTax = sum(prior.map((slip) => Number(get(slip, 'tax_withheld', 0))));\nconst monthlyDeduction =\n\tctx.lookup.personal_deduction +\n\tctx.lookup.dependant_deduction *\n\t\tNumber(get(extension, 'facts.statutory.PIT.elections.dependants', 0));\nconst assessable = Math.max(\n\t0,\n\tpriorGross + remuneration - priorInsurance - insurance - pensionDeduction - monthlyDeduction\n);\n// The month's taxable income through the monthly column; the annual column is the finalisation's.\n// Monthly withholding is non-negative; an excess is credited in the annual finalisation.\nreturn Math.max(0, ladder(assessable, ctx.lookup.brackets) - priorTax);",
-		"employer_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst ordinary_wages = Number(get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst total = Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', ordinary_wages));\nconst bonus = Math.max(0, total - ordinary_wages);\nif (total <= 0) return 0;\nconst residency = get(terms, 'residency_status', null);\nif (residency == null)\n\tthrow 'Record the tax residence on the sealed contract (CITIZEN, PERMANENT_RESIDENT, RESIDENT or NON_RESIDENT); Vietnamese law presumes neither residence nor non-residence.';\nconst resident = residency !== 'NON_RESIDENT';\nconst allowance = (code) => Number(get(terms, 'allowances.' + code + '.amount', 0));\nconst meal = allowance('MEAL_ALLOWANCE');\nconst housing = allowance('HOUSING');\nconst pension = allowance('EMPLOYER_PENSION_CONTRIBUTION');\nconst voluntaryPension = Number(\n\tget(extension, 'facts.statutory.PIT.elections.voluntary_pension_contribution', 0)\n);\nconst workExpense = allowance('WORK_EXPENSE_ALLOWANCE');\nconst fixedMealCap = ctx.lookup.meal_allowance_cap;\nconst mealCap =\n\tfixedMealCap == null\n\t\t? get(extension, 'term_facts.cash_meal_policy_limit_vnd', null)\n\t\t: fixedMealCap;\nif (mealCap == null && meal > 0)\n\tthrow 'Record the documented cash-meal policy limit for this pay month.';\n// Night and overtime pay within the Labour Code limits is exempt (Decree 253/2026 art.26(1)).\nconst ordinary = Math.max(0, ordinary_wages - meal - housing - pension - workExpense - Number(ctx.overtime));\nconst taxableMeal = Math.max(0, meal - Number(mealCap ?? 0));\nconst employerLimit = Number(\n\tget(ctx.subject.employer.entity_extension_data, 'work_expense_limit', 0)\n);\nconst taxableWorkExpense = Math.max(0, workExpense - employerLimit);\nconst otherTaxable = ordinary + taxableMeal + pension + taxableWorkExpense + bonus;\nconst taxableHousing = Math.max(\n\t0,\n\tMath.min(housing, ctx.lookup.housing_exempt_ratio * otherTaxable)\n);\nconst remuneration = otherTaxable + taxableHousing;\nconst pensionDeduction = Math.min(pension + voluntaryPension, ctx.lookup.pension_cap);\nconst signed = get(employment, 'signed_contract_period', null);\nconst shortContract =\n\tget(signed, 'to', null) != null &&\n\tadd_months(signed.from, ctx.lookup.short_term_months) > add_days(signed.to, 1);\nconst shortTerm =\n\tshortContract || ['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''));\nconst committed = get(extension, 'facts.statutory.PIT.elections.commitment_form', false) === true;\nconst insurance =\n\tNumber(get(get(ctx.statutory, 'SI', {}), 'employee', 0)) +\n\tNumber(get(get(ctx.statutory, 'HI', {}), 'employee', 0)) +\n\tNumber(get(get(ctx.statutory, 'UI', {}), 'employee', 0));\nif (get(terms, 'employer_bears_income_tax', false) !== true) return 0;\nif (!resident)\n\treturn (remuneration * ctx.lookup.non_resident_rate) / (1 - ctx.lookup.non_resident_rate);\nif (shortTerm && committed) return 0;\nif (shortTerm && remuneration < ctx.lookup.short_term_threshold) return 0;\nif (shortTerm) return (remuneration * ctx.lookup.short_term_rate) / (1 - ctx.lookup.short_term_rate);\nconst month = String(get(ctx.run, 'period', ctx.as_of.substring(0, 7))).substring(0, 7);\nconst prior = get(ctx.history, 'payslips', []).filter(\n\t(slip) => String(get(slip, 'period', '')).substring(0, 7) === month\n);\nconst priorGross = sum(prior.map((slip) => Number(get(slip, 'gross_earnings', 0))));\nconst priorInsurance = sum(prior.map((slip) => Number(get(slip, 'employee_statutory', 0))));\nconst monthlyDeduction =\n\tctx.lookup.personal_deduction +\n\tctx.lookup.dependant_deduction *\n\t\tNumber(get(extension, 'facts.statutory.PIT.elections.dependants', 0));\nconst grossUp = (base) => {\n\tlet tax = 0;\n\tfor (let index = 0; index < 20; index += 1) tax = ladder(Math.max(0, base + tax), ctx.lookup.brackets);\n\treturn tax;\n};\nconst assessable = Math.max(\n\t0,\n\tpriorGross + remuneration - priorInsurance - insurance - pensionDeduction - monthlyDeduction\n);\nconst priorAssessable = Math.max(0, priorGross - priorInsurance - monthlyDeduction);\n// The month's taxable income through the monthly column; the annual column is the finalisation's.\n// Monthly withholding is non-negative; an excess is credited in the annual finalisation.\nreturn Math.max(0, grossUp(assessable) - grossUp(priorAssessable));",
-		"id": "6949f136-d900-5ba1-a61e-d95ebdbcb9e8",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+		"employee_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst elections = get(employment, 'employee_extension_data.facts.statutory.PIT.elections', {});\nconst remuneration = Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0));\nconst residency = get(terms, 'residency_status', null);\nif (residency == null)\n\tthrow 'Record the tax residence on the sealed contract (CITIZEN, PERMANENT_RESIDENT, RESIDENT or NON_RESIDENT); Vietnamese law presumes neither residence nor non-residence.';\nconst signed = get(employment, 'signed_contract_period', null);\nconst shortContract =\n\tget(signed, 'to', null) != null &&\n\tadd_months(signed.from, ctx.lookup.short_term_months) > add_days(signed.to, 1);\nconst shortTerm =\n\tshortContract || ['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''));\nconst committed = get(elections, 'commitment_form', false) === true;\nif (get(terms, 'employer_bears_income_tax', false) === true) return 0;\nif (residency === 'NON_RESIDENT') return remuneration * ctx.lookup.non_resident_rate;\nif (shortTerm && committed) return 0;\nif (shortTerm && remuneration < ctx.lookup.short_term_threshold) return 0;\nif (shortTerm) return remuneration * ctx.lookup.short_term_rate;\nconst insurance =\n\tNumber(get(ctx.statutory, 'SI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'HI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'UI.employee', 0));\nconst pension = Number(get(ctx.statutory, 'PIT_PENSION_DEDUCTION.employer', 0));\nconst dependants = Number(get(elections, 'dependants', 0));\n// One month's runs are one month of income: what an earlier run of this month paid is in the balance.\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\nconst before = (code, side) => heldIn(paidMonth, code + '.' + side);\nconst earlierInsurance = before('SI', 'employee') + before('HI', 'employee') + before('UI', 'employee');\nconst monthlyDeduction = ctx.lookup.personal_deduction + ctx.lookup.dependant_deduction * dependants;\nconst assessable = Math.max(\n\t0,\n\tbefore('PIT_TAXABLE_INCOME', 'employer') +\n\t\tremuneration -\n\t\tearlierInsurance -\n\t\tinsurance -\n\t\tMath.min(before('PIT_PENSION_DEDUCTION', 'employer') + pension, ctx.lookup.pension_cap) -\n\t\tmonthlyDeduction\n);\n// The month's taxable income through the monthly column; the annual column is the finalisation's.\n// Monthly withholding is non-negative; an excess is credited in the annual finalisation.\nreturn Math.max(0, ladder(assessable, ctx.lookup.brackets) - before('PIT', 'employee'));",
+		"employer_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst elections = get(employment, 'employee_extension_data.facts.statutory.PIT.elections', {});\nconst remuneration = Number(get(ctx.statutory, 'PIT_TAXABLE_INCOME.employer', 0));\nconst residency = get(terms, 'residency_status', null);\nif (residency == null)\n\tthrow 'Record the tax residence on the sealed contract (CITIZEN, PERMANENT_RESIDENT, RESIDENT or NON_RESIDENT); Vietnamese law presumes neither residence nor non-residence.';\nconst signed = get(employment, 'signed_contract_period', null);\nconst shortContract =\n\tget(signed, 'to', null) != null &&\n\tadd_months(signed.from, ctx.lookup.short_term_months) > add_days(signed.to, 1);\nconst shortTerm =\n\tshortContract || ['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''));\nconst committed = get(elections, 'commitment_form', false) === true;\nif (get(terms, 'employer_bears_income_tax', false) !== true) return 0;\nif (residency === 'NON_RESIDENT')\n\treturn (remuneration * ctx.lookup.non_resident_rate) / (1 - ctx.lookup.non_resident_rate);\nif (shortTerm && committed) return 0;\nif (shortTerm && remuneration < ctx.lookup.short_term_threshold) return 0;\nif (shortTerm) return (remuneration * ctx.lookup.short_term_rate) / (1 - ctx.lookup.short_term_rate);\nconst insurance =\n\tNumber(get(ctx.statutory, 'SI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'HI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'UI.employee', 0));\nconst pension = Number(get(ctx.statutory, 'PIT_PENSION_DEDUCTION.employer', 0));\nconst dependants = Number(get(elections, 'dependants', 0));\n// One month's runs are one month of income: what an earlier run of this month paid is in the balance.\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\nconst before = (code, side) => heldIn(paidMonth, code + '.' + side);\nconst earlierInsurance = before('SI', 'employee') + before('HI', 'employee') + before('UI', 'employee');\nconst monthlyDeduction = ctx.lookup.personal_deduction + ctx.lookup.dependant_deduction * dependants;\nconst assessable = Math.max(\n\t0,\n\tbefore('PIT_TAXABLE_INCOME', 'employer') +\n\t\tremuneration -\n\t\tearlierInsurance -\n\t\tinsurance -\n\t\tMath.min(before('PIT_PENSION_DEDUCTION', 'employer') + pension, ctx.lookup.pension_cap) -\n\t\tmonthlyDeduction\n);\nconst grossUp = (base) => {\n\tlet tax = 0;\n\tfor (let index = 0; index < 20; index += 1) tax = ladder(Math.max(0, base + tax), ctx.lookup.brackets);\n\treturn tax;\n};\n// The month's taxable income through the monthly column; the annual column is the finalisation's.\n// Monthly withholding is non-negative; an excess is credited in the annual finalisation.\nreturn Math.max(0, grossUp(assessable) - grossUp(earlierAssessable));",
+		"id": "568731b5-7b1b-5e98-ad53-ba19225e54ee",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
 	},
 	{
 		"code": "UNION_DUES",
 		"name": "Đoàn phí công đoàn (union membership dues)",
 		"lookup": {
-			"excluded_allowances": [
-				"MEAL_ALLOWANCE",
-				"HOUSING",
-				"INSURANCE_EQUIVALENT",
-				"WORK_EXPENSE_ALLOWANCE",
-				"EMPLOYER_PENSION_CONTRIBUTION"
-			],
-			"floor": 2530000,
-			"ceiling": 50600000,
 			"employee_rate": 0.005,
-			"cap": 253000
+			"cap": 234000
 		},
 		"references": [
 			{
@@ -500,7 +454,7 @@
 				"title": "Decision 61/QĐ-TLĐ of the Vietnam General Confederation of Labour",
 				"locator": "art.1 (city-portal transcription)",
 				"url": "https://pbgdpl.cantho.gov.vn/quyet-dinh-61qd-tld-ve-dieu-chinh-giam-muc-dong-doan-phi-cong-doan",
-				"quote": "In force from 1 July 2025. A member in an enterprise outside the State sector pays dues of 0.5% of the salary the compulsory social insurance is based on, capped at 10% of the base salary (mức lương cơ sở) — at most 253,000 (10% of 2,530,000). Art.1 waives dues only for a member on SI benefit for a month or more, or without work, income or pay for a month or more — not for the 14 unpaid working days that end the month’s SI contribution (Law 41/2024 art.33(5)); such a member still pays 0.5% of the insurance salary. A member outside compulsory SI pays a set sum of at least 0.5% of the base salary, which the union sets. In a State-owned enterprise the dues are 0.5% of the take-home salary after SI, HI, UI and PIT, same cap. Owner rule 2026-11-04: this version computes State-sector and other members on the compulsory-SI wage base (actual ordinary pay plus fixed allowances), capped at 10% of the base salary; the bonus-inclusive GROSS checkpoint is not a dues base. Caveat (owner rule 2026-09-28, law silent on a part month): the waiver applies to a pay month in which every scheduled working day is wholly unpaid; maternity-benefit months stay waived as SI’s own exemption; a month with SI nil counts as a benefit month only for a birth, adoption, surrogate-birth or commissioning-mother maternity spell, not a paternity spell (at most 14 working days, art.53(2)) or a short maternity event (miscarriage, check-up, contraception).",
+				"quote": "In force from 1 July 2025. A member in an enterprise outside the State sector pays dues of 0.5% of the salary the compulsory social insurance is based on, capped at 10% of the base salary (mức lương cơ sở) — at most 234,000 (10% of 2,340,000). Art.1 waives dues only for a member on SI benefit for a month or more, or without work, income or pay for a month or more — not for the 14 unpaid working days that end the month’s SI contribution (Law 41/2024 art.33(5)); such a member still pays 0.5% of the insurance salary. A member outside compulsory SI pays a set sum of at least 0.5% of the base salary, which the union sets. In a State-owned enterprise the dues are 0.5% of the take-home salary after SI, HI, UI and PIT, same cap. Owner rule 2026-11-04: this version computes State-sector and other members on the compulsory-SI wage base (actual ordinary pay plus fixed allowances), capped at 10% of the base salary; the bonus-inclusive GROSS checkpoint is not a dues base. Caveat (owner rule 2026-09-28, law silent on a part month): the waiver applies to a pay month in which every scheduled working day is wholly unpaid; maternity-benefit months stay waived as SI’s own exemption; a month with SI nil counts as a benefit month only for a birth, adoption, surrogate-birth or commissioning-mother maternity spell, not a paternity spell (at most 14 working days, art.53(2)) or a short maternity event (miscarriage, check-up, contraception).",
 				"effective_from": "2025-07-01"
 			},
 			{
@@ -517,7 +471,7 @@
 			{
 				"title": "Law on Social Insurance 41/2024/QH15 (Luật Bảo hiểm xã hội)",
 				"locator": "art.31(1)(b), (đ), art.33(5), art.53(2), (8)",
-				"quote": "Insurance salary (contractual salary and fixed supplements) within the reference-level floor (2,530,000) and ceiling. Art.33(5): 14 unpaid working days end the month’s SI contribution. Art.53(8): maternity-benefit months exempt from SI."
+				"quote": "Insurance salary (contractual salary and fixed supplements) within the reference-level floor (2,340,000) and ceiling. Art.33(5): 14 unpaid working days end the month’s SI contribution. Art.53(8): maternity-benefit months exempt from SI."
 			},
 			{
 				"title": "Decree 158/2025/NĐ-CP (Nghị định 158/2025/NĐ-CP)",
@@ -551,14 +505,14 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": "590c3572-ed5d-522c-af48-b37da2dcfb3c",
-		"employer_cost_subtotal_id": "e6d7745a-27ce-50c5-9059-2ab2463820dc",
+		"subtotal_id": "36d140c0-a6cf-58a0-8c59-7c42de45b237",
+		"employer_cost_subtotal_id": "36d140c0-a6cf-58a0-8c59-7c42de45b237",
 		"kind": "CONTRIBUTION",
 		"depends_on": ["SI", "HI", "UI"],
 		"eligibility": "// js\nconst extension = get(ctx.subject.employment, 'employee_extension_data', {});\nconst review = get(extension, 'term_facts.insurance_review', null);\nreturn (\n\tget(extension, 'facts.statutory.UNION_DUES.elections.union_member', false) === true &&\n\tget(review, 'union_dues_exempt', false) !== true\n);",
-		"employee_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst review = get(extension, 'term_facts.insurance_review', null);\nconst monthly = Number(get(ctx.subtotals, 'BASIC', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst reviewed = get(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? Number(get(review, 'salary_vnd', monthly + fixed)) : monthly + fixed;\nconst insurance = Math.min(Math.max(reviewed, ctx.lookup.floor), ctx.lookup.ceiling);\nreturn Math.min(insurance * ctx.lookup.employee_rate, ctx.lookup.cap);",
+		"employee_amount": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst review = get(extension, 'term_facts.insurance_review', null);\nconst monthly = Number(get(ctx.subtotals, 'BASIC', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst reviewed = get(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? Number(get(review, 'salary_vnd', monthly + fixed)) : monthly + fixed;\nconst insurance = Math.min(Math.max(reviewed, ctx.lookup.insurance_floor), ctx.lookup.insurance_ceiling);\nreturn Math.min(insurance * ctx.lookup.employee_rate, ctx.lookup.cap);",
 		"employer_amount": "// js\nreturn 0;",
-		"id": "aeadb9f8-b152-5534-99b5-5779b79c2b81",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+		"id": "3ef41f12-5308-5636-b4fa-aeb4d9b6a6b0",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
 	}
 ]

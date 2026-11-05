@@ -10,7 +10,7 @@ export default model('adhoc_catalog_entry', {
 		entity_id: { kind: 'ref', to: 'entity' },
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'adhoc_catalog_entry' },
 		catalog_id: { kind: 'ref', to: 'adhoc_catalog', onDelete: 'restrict' },
-		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true },
+		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, onDelete: 'setNull' },
 		description: { kind: 'text' },
 		quantity: { kind: 'decimal', scale: 12, min: 0 },
 		unit: { kind: 'enum', values: ['DAY', 'CALENDAR_DAY', 'HOUR', 'MONEY', 'COUNT'] },

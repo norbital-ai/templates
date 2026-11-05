@@ -21,20 +21,6 @@
 		"validate": "// js\nconst employer = ctx.reads.entity_profile_version[0];\nconst region = get(employer, 'entity_extension_data.region', null);\nconst floor = get(ctx.lookup.minimum_wage.by_region, region, null);\nif (floor === null) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nconst prior = () => {\n\tif (get(facts, 'prior_floor_reclassified', false) !== true) return 0;\n\tif (get(facts, 'prior_floor_region', null) === null) return 0;\n\tif (!(ctx.entry.effective_range.from <= ctx.lookup.prior_floor_effective_until)) return 0;\n\treturn get(ctx.lookup.minimum_wage.prior_by_region, facts.prior_floor_region, 0);\n};\nreturn ctx.entry.terms.rate.amount >= Math.max(floor, prior());",
 		"order": 1,
 		"lookup": {
-			"minimum_wage": {
-				"by_region": {
-					"I": 5310000,
-					"II": 4730000,
-					"III": 4140000,
-					"IV": 3700000
-				},
-				"prior_by_region": {
-					"I": 4960000,
-					"II": 4410000,
-					"III": 3860000,
-					"IV": 3450000
-				}
-			},
 			"prior_floor_effective_until": "2025-12-31"
 		},
 		"references": [
@@ -43,8 +29,8 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "1baf7637-ba8e-5ed6-8cd5-55bbedb50622",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "ed12038c-cf6c-58e8-b8fb-8dbad285f6ab",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "OVERTIME_MONTHLY_CAP",
@@ -73,8 +59,8 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "38f7c836-593b-5544-ad22-5d320096c8ed",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "e783bad9-6de3-5e93-a5ea-2b4c7a745d35",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "OVERTIME_DAILY_CAP",
@@ -93,8 +79,8 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "8f7dbbe1-d60d-51f8-bf18-20f9837447a3",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "86b9e0a3-5faf-5340-8100-695e5e9b1e9e",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "DAMAGE_DEDUCTION_CEILING",
@@ -116,9 +102,6 @@
 						"eq": {
 							"var": "ctx.entry.employment_id"
 						}
-					},
-					"state": {
-						"in": ["FINALISED", "PAID"]
 					}
 				}
 			},
@@ -131,19 +114,17 @@
 			}
 		},
 		"condition": "// js\nconst catalog = ctx.reads.adhoc_catalog[0];\nif (get(catalog, 'code', '') !== 'PROPERTY_DAMAGE_COMPENSATION') return false;\nif (ctx.entry.unit !== 'MONEY') return false;\nreturn ctx.entry.is_reversal !== true;",
-		"validate": "// js\nconst slip = ctx.reads.payslip[0];\nif (slip === null || slip === undefined) return true;\nconst statutory = sum(\n\tctx.reads.ledger_entry\n\t\t.filter((entry) => entry.account === 'statutory_contribution' && entry.code.endsWith('.employee'))\n\t\t.map((entry) => get(entry, 'amount', 0))\n);\nreturn ctx.entry.quantity <= ctx.lookup.share * (get(slip, 'gross_earnings', 0) - statutory);",
+		"validate": "// js\nconst slip = ctx.reads.payslip[0];\nif (slip === null || slip === undefined) return true;\nconst statutory = sum(\n\tctx.reads.ledger_entry\n\t\t.filter((entry) => entry.account === 'statutory_contribution' && entry.code.endsWith('.employee'))\n\t\t.map((entry) => get(entry, 'amount', 0))\n);\nreturn ctx.entry.quantity <= ctx.lookup.deduction_share * (get(slip, 'gross_earnings', 0) - statutory);",
 		"order": 4,
-		"lookup": {
-			"share": 0.3
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Code 45/2019/QH14 art.102(3): the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory social insurance, health insurance, unemployment insurance and personal income tax.",
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "9c078e21-b382-55c8-ad59-3f4d670b9ac9",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "782f269b-ff49-5ae8-a57e-8239ed0fe388",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "OVERTIME_ANNUAL_CAP",
@@ -182,8 +163,8 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "5a3ada44-dfab-5d23-8719-65ffe15697d8",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "5a8aefdb-21d0-5cb6-a0ed-d8650b8b0539",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "REGION_REQUIRED",
@@ -211,8 +192,8 @@
 				"title": "Decree 293/2025/NĐ-CP arts.3–4: the minimum wage is the region of the employer’s place of operation."
 			}
 		],
-		"id": "8c64ae8a-29f0-59bb-89a9-3709c799df30",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "e891b7ca-a87b-54c8-804d-b53c8b7d502f",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "HOURLY_MINIMUM_WAGE",
@@ -232,8 +213,8 @@
 				}
 			}
 		},
-		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nreturn rate !== null && rate.unit === 'HOURLY';",
-		"validate": "// js\nconst employer = ctx.reads.entity_profile_version[0];\nconst region = get(employer, 'entity_extension_data.region', null);\nconst floor = get(ctx.lookup.hourly_by_region, region, null);\nreturn floor === null || ctx.entry.terms.rate.amount >= floor;",
+		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nreturn rate !== null && ['HOURLY', 'DAILY'].includes(rate.unit);",
+		"validate": "// js\nconst employer = ctx.reads.entity_profile_version[0];\nconst region = get(employer, 'entity_extension_data.region', null);\nconst floor = get(ctx.lookup.hourly_by_region, region, null);\nif (floor === null) return true;\nconst rate = ctx.entry.terms.rate;\nif (rate.unit === 'HOURLY') return rate.amount >= floor;\n// A day converts to an hour over the normal hours of the day, or to a month over the normal days; either floor met is enough (art.4(3)).\nconst hours = Number(get(ctx.entry, 'terms.normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nif (rate.amount / hours >= floor) return true;\nconst days = Number(get(ctx.entry, 'terms.normal_days_per_week', 0));\nreturn (rate.amount * days * 52) / ctx.lookup.months_per_year >= get(ctx.lookup.minimum_wage.by_region, region, Infinity);",
 		"order": 7,
 		"lookup": {
 			"hourly_by_region": {
@@ -245,11 +226,12 @@
 		},
 		"references": [
 			{
-				"title": "Decree 293/2025/NĐ-CP art.3(2), art.4: an hourly-paid worker is paid at least the regional hourly minimum (term fact hourly_rate)."
+				"title": "Decree 293/2025/NĐ-CP art.3, art.4(2)–(3): an hourly wage is at least the regional hourly minimum. A daily wage converted to an hour (over the normal hours of the day) or to a month (over the normal working days of the month) may not fall below the hourly or monthly minimum.",
+				"url": "https://xaydungchinhsach.chinhphu.vn/nghi-dinh-so-293-2025-nd-cp-quy-dinh-muc-luong-toi-thieu-doi-voi-nguoi-lao-dong-lam-viec-theo-hop-dong-lao-dong-119251110172808433.htm"
 			}
 		],
-		"id": "5911e955-b6fa-55f6-892d-7b4178585cf5",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "f44a5283-6972-5bf0-8c80-b7a36c1a3a1d",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "PROBATION_WAGE",
@@ -268,8 +250,8 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "ba486f34-c90b-5ec3-957d-b0672a8de1c5",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "8be3edd7-e9eb-5ca7-a693-2bb62ec9e296",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "PROBATION_PERIOD",
@@ -290,8 +272,8 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "50f0a3e4-c86a-5471-b902-af4da2f6571f",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "4df27266-b5f1-50c0-8f09-364c562fbbfd",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "PREGNANT_OR_INFANT_NIGHT_OVERTIME",
@@ -302,10 +284,7 @@
 		"order": 10,
 		"lookup": {
 			"advance_months": 3,
-			"infant_months": 12,
-			"night_from": "22:00",
-			"night_to": "06:00",
-			"timezone": "Asia/Ho_Chi_Minh"
+			"infant_months": 12
 		},
 		"references": [
 			{
@@ -313,8 +292,8 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "44aad442-22bd-5f80-a0b5-5169a4513eb4",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "c4783938-0db7-5f62-9a38-3f26808243e1",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "MINOR_WORKING_TIME",
@@ -340,10 +319,7 @@
 			"child_daily": 4,
 			"child_weekly": 20,
 			"young_daily": 8,
-			"young_weekly": 40,
-			"night_from": "22:00",
-			"night_to": "06:00",
-			"timezone": "Asia/Ho_Chi_Minh"
+			"young_weekly": 40
 		},
 		"references": [
 			{
@@ -351,8 +327,8 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "3bda3fe3-c0d3-58d7-9ff2-9e18b4ff13bf",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "bd03df70-0dd0-56f1-b79a-ce5f172d3968",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "WEEKLY_REST",
@@ -391,8 +367,8 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "c83bb6bf-9208-50c8-9153-4930bcc5b316",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "da0ee599-dd9f-5638-9d85-c4e0e4644cfc",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "ROSTER_NORMAL_HOURS_DAY",
@@ -411,8 +387,8 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "ae09212f-c08d-57c6-b621-6a0fdf3e46a1",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "c96b7d13-4973-5a27-9ef5-961534451381",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "ROSTER_NORMAL_HOURS_WEEK",
@@ -441,20 +417,19 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "3561b233-fe19-5312-915f-fff2b7d75a73",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "1cba19b1-dff5-56e1-bf6a-db29f195a5a5",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "ROSTER_OVERTIME_DAY",
 		"target_collection": "roster_entry",
 		"events": ["create", "update"],
 		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) > 0;",
-		"validate": "// js\nconst contract = ctx.subject.employment;\nconst normal = get(contract, 'terms.normal_hours_per_day', ctx.lookup.default_normal_hours);\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) / 60;\nif (!(normal > 0)) return false;\nif (!(overtime <= ctx.lookup.share * normal)) return false;\nreturn normal + overtime <= ctx.lookup.daily_hours;",
+		"validate": "// js\nconst contract = ctx.subject.employment;\nconst normal = get(contract, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day);\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) / 60;\nif (!(normal > 0)) return false;\nif (!(overtime <= ctx.lookup.share * normal)) return false;\nreturn normal + overtime <= ctx.lookup.daily_hours;",
 		"order": 15,
 		"lookup": {
 			"share": 0.5,
-			"daily_hours": 12,
-			"default_normal_hours": 8
+			"daily_hours": 12
 		},
 		"references": [
 			{
@@ -462,8 +437,8 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "77bc8540-4e3a-5c97-aa29-8776ccf1f304",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "4bef6113-fc68-5f52-9c84-f7bef230df36",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "ROSTER_SHIFT_CHANGE_REST",
@@ -492,8 +467,8 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "c26638ad-92bf-597c-a025-27303b78e68f",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "820d7dde-5528-512e-8831-640479b1c34c",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "ROSTER_WEEKLY_REST",
@@ -531,8 +506,8 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "ed341b30-6d9a-5a31-bb14-76ade853b9a6",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "503edd1c-4b7b-5975-b79c-984bc6c8205b",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "ROSTER_MINOR_WORKING_TIME",
@@ -551,8 +526,8 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "bb2b7133-c879-52a0-8181-72612cf07b5c",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "e9dbc65c-469b-56c2-8512-e20fc6697324",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "ROSTER_MATERNITY_NIGHT_OVERTIME",
@@ -571,8 +546,8 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "f9c7c018-1742-5c68-903d-826e90a5109b",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "c8fa7efb-9758-5519-a0e8-9acb79ad70c7",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "ROSTER_UNDER_13",
@@ -590,45 +565,8 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
 			}
 		],
-		"id": "cc85c798-ea45-5793-82d9-873cfa7bb74b",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
-	},
-	{
-		"code": "ROSTER_PATTERN_CYCLE",
-		"target_collection": "roster_entry",
-		"events": ["update"],
-		"reads": {
-			"shift_pattern": {
-				"limit": 10000
-			},
-			"roster_entry": {
-				"where": {
-					"employment_id": {
-						"eq": {
-							"var": "ctx.entry.employment_id"
-						}
-					}
-				}
-			}
-		},
-		"condition": "// js\nreturn get(ctx.subject.employment, 'terms.shift_pattern_id', null) !== null;",
-		"validate": "// js\nconst patternId = get(ctx.subject.employment, 'terms.shift_pattern_id', null);\nconst pattern = patternId == null ? undefined : ctx.reads.shift_pattern.find((row) => row.id === patternId);\nconst days = get(pattern, 'pattern.days', []);\nconst anchor = get(pattern, 'pattern.anchor_date', null);\nif (days.length === 0 || anchor === null) return true;\nconst offset = ((calendar_distance_days(anchor, ctx.entry.work_date) % days.length) + days.length) % days.length;\nconst cycleStart = add_days(ctx.entry.work_date, -offset);\nconst cycleEnd = add_days(cycleStart, days.length - 1);\nconst planned = ctx.reads.roster_entry\n\t.filter((day) => day.work_date >= cycleStart && day.work_date <= cycleEnd && day.work_date !== ctx.entry.work_date)\n\t.map((day) => day.shift_definition_id)\n\t.concat([get(ctx.entry, 'shift_definition_id', null)])\n\t.toSorted();\nconst expected = days.map((day) => day.shift_definition_id).toSorted();\nreturn planned.length === expected.length && planned.every((value, index) => value === expected[index]);",
-		"order": 21,
-		"lookup": {},
-		"id": "a11cd8ad-1aad-51f6-8a39-f1f243635c11",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
-	},
-	{
-		"code": "PAYROLL_RUN_KINDS",
-		"target_collection": "payroll_run",
-		"events": ["create"],
-		"validate": "// js\nreturn ctx.lookup.kinds.includes(ctx.entry.kind);",
-		"order": 22,
-		"lookup": {
-			"kinds": ["REGULAR", "OFF_CYCLE"]
-		},
-		"id": "3e6fb23c-2370-5d13-8cff-918a197c0b71",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "9fb6cbe7-1723-52df-acad-7a8df43195c9",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "ENCASHMENT_PRIOR_WAGE_REVIEW",
@@ -658,8 +596,8 @@
 		"validate": "// js\nconst contract = ctx.subject.employment;\nconst exit = contract.effective_range.to;\nconst review = get(contract, 'employee_extension_data.term_facts.encashment_review', null);\nreturn (\n\treview !== null &&\n\tget(review, 'month', '') === add_months(month_start(exit), -1).substring(0, 7)\n);",
 		"order": 23,
 		"lookup": {},
-		"id": "f9442741-c300-5b6b-b8f7-2a381efcc5e9",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "8282c91a-9241-5cc2-966c-2f68e17acb24",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "ANNUAL_SERVICE_EXIT_REVIEW",
@@ -678,8 +616,8 @@
 		"validate": "// js\nconst exit = ctx.entry.effective_range.to;\nconst review = get(ctx.entry, 'employee_extension_data.facts.annual_leave_service_review', null);\nif (review === null) return false;\nif (String(get(review, 'year', '')) !== exit.substring(0, 4) || get(review, 'as_of', '') !== exit) return false;\nconst covered = ctx.reads.workplace_case_catalog_entry.some((record) => {\n\tif (!(record.opened_on <= exit)) return false;\n\tif (record.closed_on != null && !(record.closed_on >= exit)) return false;\n\tif (!(get(record, 'inputs.effective_from', '') <= exit)) return false;\n\treturn get(record, 'inputs.effective_to', '') >= exit;\n});\nif (!covered) return true;\nif (get(review, 'carry_previous_year_days', null) === null) return false;\nreturn get(review, 'carry_second_previous_year_days', null) !== null;",
 		"order": 24,
 		"lookup": {},
-		"id": "e0ddc011-72a4-540d-a913-1ab296560d85",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "469b4af8-0a55-5d33-a53c-43f86326fccc",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "CONTRACT_CATEGORIES",
@@ -693,8 +631,8 @@
 			"residency_status": ["CITIZEN", "PERMANENT_RESIDENT", "RESIDENT", "NON_RESIDENT"],
 			"work_pass_categories": ["PERMIT", "EXEMPTION_CERTIFICATE", "EXEMPT_NOTIFICATION"]
 		},
-		"id": "92bc7473-8afd-5e2a-b3d2-a2d28230c769",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "509333ea-3b0d-512b-b90a-e754ffc3c1a2",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "SHARED_CONTRACT_TERMS",
@@ -706,8 +644,8 @@
 			"daily_hours": 10,
 			"weekly_hours": 48
 		},
-		"id": "5aa10909-e17d-51f9-bcf4-ea73987ca9e0",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "c7605b5a-ff23-50fa-b09a-04d064d18b7a",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "SHARED_STRUCTURED_EMPLOYEE_INPUTS",
@@ -728,8 +666,8 @@
 				}
 			}
 		},
-		"id": "dc4d92a1-960f-512b-842e-f04ce93f2413",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "c826413d-3c38-5a08-a180-3afef3be3904",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "SHARED_STRUCTURED_ENTITY_INPUTS",
@@ -740,8 +678,8 @@
 		"lookup": {
 			"bounds": {}
 		},
-		"id": "96f657f5-49b3-5db1-9591-23a650393dc9",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "02dd2df0-9caa-543e-887b-1c5d08920fd8",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "SHARED_ORIGINAL_AGREEMENT_INTENT",
@@ -763,8 +701,8 @@
 				"url": "https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/110469/VNM110469%20Eng.pdf"
 			}
 		],
-		"id": "ea17bc3c-9572-5bcf-99dc-e1108250b41f",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "fa487b14-397f-5198-822c-39019eaa6750",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "OPERATIONS_EVENT_DATE_REQUIRED",
@@ -774,8 +712,8 @@
 		"validate": "// js\nconst firstEmployed = get(ctx.entry, 'entity_extension_data.first_employed_on', null);\nif (firstEmployed === null) return true;\nreturn get(ctx.entry, 'entity_extension_data.operations_started_on', null) !== null;",
 		"order": 30,
 		"lookup": {},
-		"id": "d93e0687-0c58-53d7-837a-a21dde4dbaeb",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "7508d14f-aa29-5262-9d6b-369a33813fbc",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "BUSINESS_CASE_SUBJECT_AND_REFERENCE",
@@ -785,8 +723,8 @@
 		"validate": "// js\nreturn (\n\tget(ctx.entry, 'inputs.employment_id', null) !== null &&\n\tget(ctx.entry, 'inputs.reference', '') !== ''\n);",
 		"order": 31,
 		"lookup": {},
-		"id": "5edb9101-00fc-5f49-8a53-d6ae6692064f",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "8cd5e0f3-c471-5654-9081-3ea9e5910cc3",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "BUSINESS_CASE_EFFECTIVE_INTERVAL",
@@ -796,8 +734,8 @@
 		"validate": "// js\nconst from = get(ctx.entry, 'inputs.effective_from', null);\nconst to = get(ctx.entry, 'inputs.effective_to', null);\nif (from === null) return false;\nif (to === null) return false;\nif (!(from >= ctx.entry.opened_on)) return false;\nreturn to >= from;",
 		"order": 32,
 		"lookup": {},
-		"id": "fd4fb9eb-2a00-593a-87c1-dfc3a2d8a4fe",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "cf364b18-7c2e-5f37-bedb-098a5ecd0940",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "BUSINESS_CASE_DOCUMENT_REQUIRED",
@@ -807,8 +745,8 @@
 		"validate": "// js\nreturn get(ctx.entry, 'evidence_file', null) !== null;",
 		"order": 33,
 		"lookup": {},
-		"id": "c4cb8a02-dc49-5eaa-ae9c-5da592d2c677",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "e29c7aa6-fb0a-5b39-804f-6082fed27a0b",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "ANNUAL_LEAVE_COMBINING_MAXIMUM",
@@ -820,8 +758,8 @@
 		"lookup": {
 			"maximum_years": 3
 		},
-		"id": "6078bbe8-cc6d-5f21-b715-0b227e28d3e1",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "02f8978a-f656-551f-bbb2-64930f844d67",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "ROSTER_WARNINGS",
@@ -839,7 +777,7 @@
 				"weekly_rest_days": 1
 			}
 		},
-		"id": "2728ec39-ebb1-5342-95ab-426ed87ddc5e",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "f8dbdd39-a67b-58b7-a73a-4a2bcd7f0904",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	}
 ]

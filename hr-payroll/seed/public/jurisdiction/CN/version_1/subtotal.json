@@ -14,17 +14,45 @@
 		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
 	},
 	{
+		"code": "ANNUAL_BONUS_WAGES",
+		"name": "Annual one-time bonus (全年一次性奖金)",
+		"previous_id": "5d2efd27-f65d-57da-b1e9-1ad4692f4433",
+		"id": "da7dd61e-efce-4399-80c8-d2b5c2f3ad57",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
 		"code": "ADDITIONAL_WAGES",
 		"name": "Additional wages (含奖金的工资总额)",
-		"previous_id": "5d2efd27-f65d-57da-b1e9-1ad4692f4433",
+		"previous_id": "da7dd61e-efce-4399-80c8-d2b5c2f3ad57",
 		"id": "ed00279c-5ec1-5ac2-ab6d-e84123212b76",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "FOREIGN_ALLOWANCES",
+		"name": "Expatriate allowances (外籍个人津补贴)",
+		"previous_id": "ed00279c-5ec1-5ac2-ab6d-e84123212b76",
+		"id": "f01ef90e-854b-4ab6-b6a6-759cd311f772",
 		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
 	},
 	{
 		"code": "GROSS",
 		"name": "Gross earnings (应发工资)",
-		"previous_id": "ed00279c-5ec1-5ac2-ab6d-e84123212b76",
+		"previous_id": "f01ef90e-854b-4ab6-b6a6-759cd311f772",
 		"id": "35bd2db8-d143-55cd-bf85-fc9e8d1e7d61",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "SEVERANCE",
+		"name": "Termination compensation (一次性补偿收入)",
+		"previous_id": "35bd2db8-d143-55cd-bf85-fc9e8d1e7d61",
+		"id": "8e795974-d89b-4c2d-8d68-f695e5da19e0",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "FINAL_PAY",
+		"name": "Final pay and non-wage settlements",
+		"previous_id": "8e795974-d89b-4c2d-8d68-f695e5da19e0",
+		"id": "a8bae74d-a536-516b-b236-5ff4d6643b62",
 		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
 	},
 	{
@@ -32,13 +60,6 @@
 		"name": "Net pay (实发工资)",
 		"previous_id": "a8bae74d-a536-516b-b236-5ff4d6643b62",
 		"id": "d9c8dd3f-f83f-5ac4-9e88-48a2710b7910",
-		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
-	},
-	{
-		"code": "FINAL_PAY",
-		"name": "Final pay and non-wage settlements",
-		"previous_id": "35bd2db8-d143-55cd-bf85-fc9e8d1e7d61",
-		"id": "a8bae74d-a536-516b-b236-5ff4d6643b62",
 		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
 	}
 ]

@@ -29,10 +29,11 @@ const catalog = (id: string, code: string, extra: Record<string, unknown> = {}) 
 const input = (): PayrollInput => ({
 	run: {
 		id: 'run-1',
+		entity_id: 'entity-1',
 		pay_date: '2026-03-31',
 		salary_coverage: { from: '2026-03-01', to: '2026-03-31' }
 	},
-	settings: { id: 'sg', lookup: { working_days: 22 } },
+	settings: { id: 'sg', code: 'SG', lookup: { working_days: 22 } },
 	subtotals: [
 		subtotal('base', 'BASE', null),
 		subtotal('gross', 'GROSS', 'base'),
@@ -67,7 +68,14 @@ const input = (): PayrollInput => ({
 		terms: { rate: { amount: 5000, unit: 'MONTHLY' } }
 	},
 	employer: { id: 'entity-1' },
-	balance: { id: 'balance-1', account: { leave: { ANNUAL_LEAVE: 10 } } },
+	balance: {
+		id: 'balance-1',
+		account: {
+			leave: { ANNUAL_LEAVE: 10 },
+			ytd: { TAX_YEAR: 2026, 'LAW.SG': 1 },
+			statutory_contribution: { 'CPF.employee': 1000, 'CPF.employer': 850 }
+		}
+	},
 	entries: {
 		leave_catalog_entry: [
 			{
@@ -91,8 +99,7 @@ const input = (): PayrollInput => ({
 				]
 			}
 		]
-	},
-	history: { statutory: [{ code: 'CPF', employee: 1000, employer: 850 }] }
+	}
 });
 
 describe('linear payroll engine', () => {
@@ -119,6 +126,10 @@ describe('linear payroll engine', () => {
 		assert.deepEqual(
 			result.ledger.map((row) => [row.account, row.code, row.operation, row.amount]),
 			[
+				['ytd', 'BASE', 'ADD', 4545.45],
+				['ytd', 'GROSS', 'ADD', 4999.99],
+				['ytd', 'CPF', 'ADD', 3999.99],
+				['ytd', 'NET', 'ADD', 3999.99],
 				['payroll', 'NET_PAY', 'ADD', 3999.99],
 				['statutory_contribution', 'CPF.employee', 'ADD', 1000],
 				['statutory_contribution', 'CPF.employer', 'ADD', 850]
@@ -266,6 +277,83 @@ describe('linear payroll engine', () => {
 		assert.deepEqual(
 			calculatePayroll(abs).subtotals.map((row) => row.value),
 			calculatePayroll(npl).subtotals.map((row) => row.value)
+		);
+	});
+
+	it('closes year-to-date with dated entries on the first run of a tax year', () => {
+		const base = input();
+		const result = calculatePayroll({
+			...base,
+			run: { ...base.run, pay_date: '2027-01-28' },
+			balance: {
+				id: 'balance-1',
+				account: {
+					ytd: { TAX_YEAR: 2026, GROSS: 60000 },
+					statutory_contribution: { 'CPF.employee': 12000 }
+				}
+			}
+		});
+		assert.deepEqual(
+			result.ledger.slice(0, 3).map((row) => [row.code, row.operation, row.amount]),
+			[
+				['TAX_YEAR', 'DEDUCT', 2026],
+				['GROSS', 'DEDUCT', 60000],
+				['CPF.employee', 'DEDUCT', 12000]
+			]
+		);
+		assert.equal(result.ledger[3]?.code, 'TAX_YEAR');
+		assert.equal(result.statutory[0]?.employee_ytd, 1000);
+	});
+
+	it('closes year-to-date when someone moves to another jurisdiction', () => {
+		const base = input();
+		const result = calculatePayroll({
+			...base,
+			balance: {
+				id: 'balance-1',
+				account: {
+					leave: { ANNUAL_LEAVE: 10 },
+					ytd: { TAX_YEAR: 2026, 'LAW.MY': 1, GROSS: 15000 },
+					statutory_contribution: { 'EPF.employee': 3000 }
+				}
+			}
+		});
+		assert.deepEqual(
+			result.ledger.filter((row) => row.operation === 'DEDUCT').map((row) => row.code),
+			['TAX_YEAR', 'LAW.MY', 'GROSS', 'EPF.employee']
+		);
+		assert.equal(result.statutory[0]?.employee_ytd, 1000);
+	});
+
+	it('carries the balance through a transfer inside one jurisdiction', () => {
+		const result = calculatePayroll({
+			...input(),
+			run: { ...input().run, entity_id: 'entity-2' }
+		});
+		assert.equal(result.statutory[0]?.employee_ytd, 2000);
+		assert.equal(
+			result.ledger.some((row) => row.operation === 'DEDUCT'),
+			false
+		);
+	});
+
+	it('reports an overpaid year and posts no negative line or ledger entry', () => {
+		const base = input();
+		const [scheme] = base.statutory;
+		assert.ok(scheme !== undefined);
+		const result = calculatePayroll({
+			...base,
+			statutory: [{ ...scheme, employee_amount: 'return -300;', employer_amount: 'return 0;' }]
+		});
+		assert.equal(result.statutory[0]?.employee, 0);
+		assert.equal(result.statutory[0]?.overpaid, 300);
+		assert.equal(
+			result.lines.some((line) => line.code === 'CPF'),
+			false
+		);
+		assert.equal(
+			result.ledger.some((row) => row.account === 'statutory_contribution'),
+			false
 		);
 	});
 

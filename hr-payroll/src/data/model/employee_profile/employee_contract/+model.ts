@@ -37,8 +37,8 @@ const capturedRun = Effect.fnUntraced(function* (
 	const entityIds = [...new Set(rows.map((row) => row.entity_id))];
 	const runs = yield* queryRows(read, {
 		payroll_run: {
-			where: { entity_id: { in: entityIds }, state: { in: ['FINALISED', 'PAID'] } },
-			fields: ['id', 'entity_id', 'salary_coverage', 'occurrence_key'],
+			where: { entity_id: { in: entityIds } },
+			fields: ['id', 'entity_id', 'salary_coverage', 'run_number'],
 			limit: 10000
 		}
 	});
@@ -53,7 +53,7 @@ const capturedRun = Effect.fnUntraced(function* (
 			);
 		});
 		if (captured !== undefined)
-			return `Payroll run ${String(captured.occurrence_key)} already captured this period; the contract cannot change under it.`;
+			return `Payroll run ${String(captured.run_number)} already captured this period; the contract cannot change under it.`;
 	}
 	return null;
 });

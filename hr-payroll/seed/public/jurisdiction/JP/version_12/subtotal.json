@@ -3,56 +3,63 @@
 		"code": "BASIC",
 		"name": "基本給 (basic salary)",
 		"previous_id": null,
-		"id": "13a2d7ba-8b71-5c7d-9d3f-04775d8f124c",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "90171110-d8b9-52ca-971b-034c31a9e652",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
+	},
+	{
+		"code": "NON_TAXABLE_PAY",
+		"name": "非課税の通勤手当・宿日直手当 (non-taxable commuting and duty pay)",
+		"previous_id": "90171110-d8b9-52ca-971b-034c31a9e652",
+		"id": "971a7f37-2a75-555f-a145-0b3b2e7e1a06",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "ORDINARY_WAGES",
 		"name": "通常賃金 (ordinary wages)",
-		"previous_id": "13a2d7ba-8b71-5c7d-9d3f-04775d8f124c",
-		"id": "a0a5fce6-4c14-5092-9c8f-c41289c20f88",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"previous_id": "971a7f37-2a75-555f-a145-0b3b2e7e1a06",
+		"id": "c9a129e9-0e24-5df9-8d31-1560b0b8a864",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
+	},
+	{
+		"code": "LONG_PERIOD_BONUS",
+		"name": "賞与（計算期間6か月超） (bonus for a period over six months)",
+		"previous_id": "c9a129e9-0e24-5df9-8d31-1560b0b8a864",
+		"id": "e9120d06-d87f-51df-b5b4-fd2a094fac7e",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "ADDITIONAL_WAGES",
 		"name": "通常賃金＋加算賃金 (ordinary and additional wages)",
-		"previous_id": "a0a5fce6-4c14-5092-9c8f-c41289c20f88",
-		"id": "793894f8-3d14-5b0f-bcfb-8b7624eec1de",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"previous_id": "e9120d06-d87f-51df-b5b4-fd2a094fac7e",
+		"id": "ce8695db-8fae-580b-90c6-913daaa555ac",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
-		"code": "GROSS",
-		"name": "総支給額 (gross earnings)",
-		"previous_id": "793894f8-3d14-5b0f-bcfb-8b7624eec1de",
-		"id": "2a000dfa-1c0a-5bf1-8612-eb30fb20bfba",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"code": "RETIREMENT_UNDECLARED",
+		"name": "退職手当 申告書なし (retirement pay without the declaration)",
+		"previous_id": "ce8695db-8fae-580b-90c6-913daaa555ac",
+		"id": "0d8fb2fa-e34f-583a-9dc6-10ce94e8918c",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "RETIREMENT",
 		"name": "退職金 (retirement pay)",
-		"previous_id": "2a000dfa-1c0a-5bf1-8612-eb30fb20bfba",
-		"id": "daa3cca8-b613-5e97-8600-695e296a8123",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
-	},
-	{
-		"code": "EMPLOYER_COST",
-		"name": "事業主負担 (employer statutory cost)",
-		"previous_id": "daa3cca8-b613-5e97-8600-695e296a8123",
-		"id": "e031c749-25d7-531b-959d-08477f0c5bd5",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"previous_id": "0d8fb2fa-e34f-583a-9dc6-10ce94e8918c",
+		"id": "70ba8baf-6816-573b-a3c8-218e26f474b4",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "NET",
 		"name": "差引支給額 (net pay)",
-		"previous_id": "1e9bc317-e884-5289-af95-01e1eda221d2",
-		"id": "8d2499f6-3c84-5794-9bd5-2cf1563bc069",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"previous_id": "d4f42862-137d-5d76-859c-056a36a672d6",
+		"id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "FINAL_PAY",
 		"name": "Final pay and non-wage settlements",
-		"previous_id": "e031c749-25d7-531b-959d-08477f0c5bd5",
-		"id": "1e9bc317-e884-5289-af95-01e1eda221d2",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"previous_id": "70ba8baf-6816-573b-a3c8-218e26f474b4",
+		"id": "d4f42862-137d-5d76-859c-056a36a672d6",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	}
 ]

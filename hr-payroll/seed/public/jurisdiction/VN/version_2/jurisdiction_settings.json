@@ -4,7 +4,7 @@
 		"name": "Vietnam — 1 January 2026",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-05-15"
+			"to": "2026-04-14"
 		},
 		"currency": "VND",
 		"timezone": "Asia/Ho_Chi_Minh",
@@ -30,79 +30,6 @@
 							"type": "string",
 							"title": "Initial health-care facility (nơi đăng ký KCB ban đầu)",
 							"description": "The facility the participant chose for initial health-insurance treatment, D02-LT column 16 on a registration. Quyết định 366/QĐ-BHXH ngày 29/4/2026, mẫu D02-LT and its guide (https://baohiemxahoi.gov.vn/vanban/Pages/default.aspx?ItemID=5018)"
-						},
-						"pit_cash_month": {
-							"type": "string",
-							"pattern": "^[0-9]{4}-[0-9]{2}$",
-							"description": "Payment month independently reconciled against all salary/bonus payments, including other salary periods and prior systems. Required for automatic PIT; Decree 253/2026 art.46(3), Circular 111/2013 art.8(2)(b) before."
-						},
-						"pit_cash_month_single_salary_period": {
-							"type": "boolean",
-							"description": "True only after confirming every payment in pit_cash_month belongs to this salary month. False or absent requires a reviewed payment PIT delta. This engine does not aggregate by actual cash month/year."
-						},
-						"pit_review": {
-							"type": "object",
-							"additionalProperties": false,
-							"properties": {
-								"period_key": {
-									"type": "string",
-									"minLength": 1,
-									"description": "Exact payroll period.key whose current payment is reviewed."
-								},
-								"pay_date": {
-									"type": "string",
-									"format": "date",
-									"description": "Actual payment date; exact period.pay_date match required."
-								},
-								"tax_year": {
-									"type": "integer",
-									"minimum": 2025,
-									"description": "Actual cash payment calendar year, checked against pay_date. A prior-year settlement target is recorded separately as settlement_tax_year."
-								},
-								"assessed_month_to_date_vnd": {
-									"type": "number",
-									"minimum": 0,
-									"description": "Exact engine PIT assessable salary-month base, before insurance/personal deductions; guards reuse against a changed payment."
-								},
-								"prior_employee_tax_vnd": {
-									"type": "number",
-									"description": "Exact PIT already charged to the employee in this salary month before this payment; signed credits included."
-								},
-								"prior_employer_tax_vnd": {
-									"type": "number",
-									"description": "Exact employer-paid PIT already charged in this salary month before this payment."
-								},
-								"employee_tax_delta_vnd": {
-									"type": "number",
-									"description": "Legally reviewed PIT to deduct (positive) or refund (negative) on this payment only. Include actual cash-month/year withholding and annual credits; not a salary-month liability."
-								},
-								"employer_tax_delta_vnd": {
-									"type": "number",
-									"description": "Legally reviewed employer-paid PIT/credit on this payment only. Net-of-tax employees must have employee_tax_delta_vnd zero."
-								},
-								"reference": {
-									"type": "string",
-									"minLength": 1,
-									"description": "Calculation/authority reference covering cash-month totals, residence, gross-up, deductions and prior employee/employer withholding. Required for annual finalisation and cross-month/cash-year payments."
-								},
-								"settlement_tax_year": {
-									"type": "integer",
-									"minimum": 2025,
-									"description": "Tax year whose authorised annual/final reconciliation was reviewed. Required for a December authorised finalisation; separate from the calendar year of actual payment."
-								}
-							},
-							"required": [
-								"period_key",
-								"pay_date",
-								"tax_year",
-								"assessed_month_to_date_vnd",
-								"prior_employee_tax_vnd",
-								"prior_employer_tax_vnd",
-								"employee_tax_delta_vnd",
-								"employer_tax_delta_vnd",
-								"reference"
-							],
-							"description": "Reviewed payment delta for cases the shared engine cannot reconstruct. No automatic annual-finalisation or cash-year result is inferred from salary-period history."
 						},
 						"annual_leave_service_review": {
 							"type": "object",
@@ -166,10 +93,6 @@
 											"type": "object",
 											"title": "Declared inputs",
 											"properties": {
-												"hi_treaty_exempt": {
-													"type": "boolean",
-													"description": "HI standing only: an applicable international agreement specifically exempts Vietnamese HI under Health Insurance Law art.12(1)(c). SI pension-treaty exemption alone does not establish HI exemption."
-												},
 												"si_treaty_exempt": {
 													"type": "boolean",
 													"default": false,
@@ -210,12 +133,6 @@
 												"hi_treaty_exempt": {
 													"type": "boolean",
 													"description": "HI standing only: an applicable international agreement specifically exempts Vietnamese HI under Health Insurance Law art.12(1)(c). SI pension-treaty exemption alone does not establish HI exemption."
-												},
-												"si_treaty_exempt": {
-													"type": "boolean",
-													"default": false,
-													"title": "Exempt from Vietnamese SI by treaty",
-													"description": "SI standing: a foreign employee an international agreement Vietnam is party to exempts (Law 41/2024/QH15 art.2(2))."
 												}
 											},
 											"additionalProperties": false
@@ -242,16 +159,6 @@
 											"type": "object",
 											"title": "Declared inputs",
 											"properties": {
-												"hi_treaty_exempt": {
-													"type": "boolean",
-													"description": "HI standing only: an applicable international agreement specifically exempts Vietnamese HI under Health Insurance Law art.12(1)(c). SI pension-treaty exemption alone does not establish HI exemption."
-												},
-												"si_treaty_exempt": {
-													"type": "boolean",
-													"default": false,
-													"title": "Exempt from Vietnamese SI by treaty",
-													"description": "SI standing: a foreign employee an international agreement Vietnam is party to exempts (Law 41/2024/QH15 art.2(2))."
-												},
 												"pension_qualified": {
 													"type": "boolean",
 													"default": false,
@@ -288,18 +195,7 @@
 										"elections": {
 											"type": "object",
 											"title": "Declared inputs",
-											"properties": {
-												"hi_treaty_exempt": {
-													"type": "boolean",
-													"description": "HI standing only: an applicable international agreement specifically exempts Vietnamese HI under Health Insurance Law art.12(1)(c). SI pension-treaty exemption alone does not establish HI exemption."
-												},
-												"si_treaty_exempt": {
-													"type": "boolean",
-													"default": false,
-													"title": "Exempt from Vietnamese SI by treaty",
-													"description": "SI standing: a foreign employee an international agreement Vietnam is party to exempts (Law 41/2024/QH15 art.2(2))."
-												}
-											},
+											"properties": {},
 											"additionalProperties": false
 										}
 									},
@@ -324,16 +220,6 @@
 											"type": "object",
 											"title": "Declared inputs",
 											"properties": {
-												"hi_treaty_exempt": {
-													"type": "boolean",
-													"description": "HI standing only: an applicable international agreement specifically exempts Vietnamese HI under Health Insurance Law art.12(1)(c). SI pension-treaty exemption alone does not establish HI exemption."
-												},
-												"si_treaty_exempt": {
-													"type": "boolean",
-													"default": false,
-													"title": "Exempt from Vietnamese SI by treaty",
-													"description": "SI standing: a foreign employee an international agreement Vietnam is party to exempts (Law 41/2024/QH15 art.2(2))."
-												},
 												"commitment_form": {
 													"type": "boolean",
 													"default": false,
@@ -351,7 +237,7 @@
 													"type": "boolean",
 													"default": false,
 													"title": "Authorises the employer PIT finalisation",
-													"description": "PIT standing: the employer finalises the year only for an employee who authorised it (Decree 126/2020 art.8(6)(d); Decree 253/2026 art.51 from 2026)."
+													"description": "PIT standing: the December run finalises the year only for an employee who authorised it and qualifies: one source of salary income under a labour contract of three months or more, still working here when the year is finalised, any other income at most 15,000,000 a month on average with 10% withheld (Decree 253/2026 art.51(1)(b), (2); Decree 126/2020 art.8(6)(d) before). Not for someone claiming a tax reduction or art.49 deductions, who finalises personally (art.51(3)). Set it only when every payment of the tax year is on this payroll, because the finalisation reads the year's balance, and not in a foreign resident's first year here, whose personal deduction runs from the month of arrival (art.48(1)(c))."
 												},
 												"voluntary_pension_contribution": {
 													"type": "number",
@@ -385,16 +271,6 @@
 											"type": "object",
 											"title": "Declared inputs",
 											"properties": {
-												"hi_treaty_exempt": {
-													"type": "boolean",
-													"description": "HI standing only: an applicable international agreement specifically exempts Vietnamese HI under Health Insurance Law art.12(1)(c). SI pension-treaty exemption alone does not establish HI exemption."
-												},
-												"si_treaty_exempt": {
-													"type": "boolean",
-													"default": false,
-													"title": "Exempt from Vietnamese SI by treaty",
-													"description": "SI standing: a foreign employee an international agreement Vietnam is party to exempts (Law 41/2024/QH15 art.2(2))."
-												},
 												"union_member": {
 													"type": "boolean",
 													"default": false,
@@ -709,7 +585,90 @@
 		},
 		"lookup": {
 			"rounding": "HALF_UP",
-			"rounding_scale": 0
+			"rounding_scale": 0,
+			"normal_hours_per_day": 8,
+			"fallback_working_days": 26,
+			"day_rate": "// Decree 145/2020 art.54(1)(a)(a3): a day of a monthly wage is the wage over the month's normal working days, so proration_basis is WORKING_DAYS. Art.55 and Labour Code 45/2019/QH14 art.98 price overtime on the same day.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\nconst from = month_start(ctx.run.salary_coverage.from);\nconst to = month_end(ctx.run.salary_coverage.from);\nconst offDays = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nlet workingDays = 0;\nfor (let day = from; day <= to; day = add_days(day, 1)) {\n\tif (!offDays.includes(weekday(day))) workingDays = workingDays + 1;\n}\nconst weekDays = Math.max(1, 7 - offDays.length);\nconst contractDays = Number(get(terms, 'normal_days_per_week', 0)) || weekDays;\nconst days =\n\tworkingDays > 0 ? (workingDays * contractDays) / weekDays : ctx.lookup.fallback_working_days;\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nconst hours = Number(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nif (unit === 'HOURLY') return (amount * days * hours + fixed) / days;\nif (unit === 'DAILY') return (amount * days + fixed) / days;\nreturn (amount + fixed) / days;",
+			"proration_basis": "WORKING_DAYS",
+			"excluded_allowances": [
+				"MEAL_ALLOWANCE",
+				"HOUSING",
+				"INSURANCE_EQUIVALENT",
+				"WORK_EXPENSE_ALLOWANCE",
+				"EMPLOYER_PENSION_CONTRIBUTION"
+			],
+			"benefit_catalogs": [
+				"SICK_LEAVE",
+				"MATERNITY_LEAVE",
+				"PATERNITY_LEAVE",
+				"CHILD_SICK_CARE",
+				"PRENATAL_CHECKUP",
+				"MISCARRIAGE_LEAVE",
+				"CONTRACEPTION_LEAVE",
+				"CONVALESCENCE_LEAVE"
+			],
+			"calendar_days": 15,
+			"months_per_year": 12,
+			"minimum_wage": {
+				"by_region": {
+					"I": 5310000,
+					"II": 4730000,
+					"III": 4140000,
+					"IV": 3700000
+				},
+				"prior_by_region": {
+					"I": 4960000,
+					"II": 4410000,
+					"III": 3860000,
+					"IV": 3450000
+				}
+			},
+			"insurance_floor": 2340000,
+			"insurance_ceiling": 46800000,
+			"si_employer_rate": 0.175,
+			"hi_employer_rate": 0.03,
+			"ui_employer_rate": 0.01,
+			"ui_cap_multiple": 20,
+			"minimum_contract_months": 1,
+			"foreign_minimum_contract_months": 12,
+			"deduction_share": 0.3,
+			"night_from": "22:00",
+			"night_to": "06:00",
+			"timezone": "Asia/Ho_Chi_Minh",
+			"vietnamese_nationality": ["VN", "VNM", "VIETNAM", "VIETNAMESE", "Vietnam", "Vietnamese"],
+			"short_term_months": 3,
+			"personal_deduction": 15500000,
+			"dependant_deduction": 6200000,
+			"brackets": [
+				{
+					"up_to": 10000000,
+					"rate": 0.05
+				},
+				{
+					"up_to": 30000000,
+					"rate": 0.1
+				},
+				{
+					"up_to": 60000000,
+					"rate": 0.2
+				},
+				{
+					"up_to": 100000000,
+					"rate": 0.3
+				},
+				{
+					"up_to": null,
+					"rate": 0.35
+				}
+			],
+			"month_balance": [
+				"SI.employee",
+				"HI.employee",
+				"UI.employee",
+				"PIT_TAXABLE_INCOME.employer",
+				"PIT_PENSION_DEDUCTION.employer",
+				"PIT.employee"
+			]
 		},
 		"status": "SEALED",
 		"id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"

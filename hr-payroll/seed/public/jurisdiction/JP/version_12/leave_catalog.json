@@ -210,8 +210,8 @@
 				"quote": "The entire preceding six months/annual grant window is counted. Initial absences are retained, work and whole-day deemed attendance count once, full substitute leave and legally excluded shutdown days leave the denominator. A public holiday scheduled as work remains a working day. Missing or ambiguous evidence refuses rather than accepting a final reviewed grant."
 			}
 		],
-		"id": "fcb17652-2b64-5e06-9fce-1e2e2b59e713",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "43a0d8dc-f7a8-5d00-9ebc-58d2fbc09c3c",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "PRENATAL_LEAVE",
@@ -229,8 +229,8 @@
 				"title": "労働基準法 art.65(1): on request, 6 weeks before the expected birth (14 weeks for a multiple pregnancy). The employer need not pay; 健康保険法 art.102 pays the 出産手当金 (two thirds of the standard daily remuneration) and art.159 exempts the premiums on the employer's application. Metered per birth (facts.event_id): 42 days, 98 for a multiple pregnancy (entry.facts.multiple_pregnancy), counted to the expected birth day."
 			}
 		],
-		"id": "fa8f0f20-927e-504c-93a4-25b2ed68de55",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "c14c815e-cb0f-5f94-b1b5-c2be534d46eb",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "POSTNATAL_LEAVE",
@@ -247,8 +247,8 @@
 				"title": "労働基準法 art.65(2): no work for 8 weeks after the birth (after 6 weeks the woman may work where a doctor approves). 健康保険法 art.102: 出産手当金 paid by the insurer; premiums exempt (健保法 art.159, 厚年法 art.81の2の2). Metered per birth (facts.event_id): 56 days from the day after the birth."
 			}
 		],
-		"id": "a7ff8830-fdaa-51c9-a57a-64d1c470f45b",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "874163ba-3501-5b1c-9f5e-3338a46b91fa",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "CHILDCARE_LEAVE",
@@ -261,8 +261,8 @@
 				"title": "育児・介護休業法 arts.5–9: until the child is 1, extendable to 1½ and 2 where no childcare place is available, in up to two periods; 雇用保険法 arts.61の7 and 61の10: the 育児休業給付金 (67% for 180 days, then 50%) and, from April 2025, the 出生後休業支援給付金 are paid by employment insurance; health and pension premiums are exempt on application (健保法 art.159, 厚年法 art.81の2)."
 			}
 		],
-		"id": "44b7b454-7873-54d3-ab7e-65400f472214",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "7ab713cd-8b73-5652-9211-fe53a9429873",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "POSTNATAL_PATERNITY_LEAVE",
@@ -278,8 +278,8 @@
 				"title": "育児・介護休業法 arts.9の2–9の5: up to 4 weeks within 8 weeks of the birth, in up to two periods, requested 2 weeks ahead; 雇用保険法 art.61の8: 出生時育児休業給付金 paid by employment insurance. Metered per birth (facts.event_id): 28 days."
 			}
 		],
-		"id": "a8311d20-b964-516f-a161-7a0c50e4f957",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "c68ee508-6043-56bf-a437-42d006cd2bcf",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "FAMILY_CARE_LEAVE",
@@ -295,8 +295,8 @@
 				"title": "育児・介護休業法 arts.11–15: up to 93 days for each family member in need of constant care, in up to three periods; 雇用保険法 art.61の4: 介護休業給付金 (67%) paid by employment insurance. Metered per family member (entry.facts.care_recipient_id): 93 days in all."
 			}
 		],
-		"id": "cfcc5699-de61-5a82-9985-2a12c56fe655",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "7cf5c5bb-3958-53a7-bb20-ccb0e4a51c0d",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "CHILD_NURSING_LEAVE",
@@ -315,8 +315,8 @@
 				"title": "育児・介護休業法 art.16の2 as amended from 1 April 2025: 5 days a year (10 for two or more children) up to the end of the child's third year of elementary school, for illness, injury, vaccination, health checks, school closure, entrance or graduation ceremonies; in hours where requested; the law does not require pay. Metered per business year from 1 April (育児・介護休業法 art.16の2(1) \"一の年度\", the year starting 1 April unless the work rules say otherwise; window_key): 5 days for one child up to the end of the third grade (a child not yet 9 on 1 April of the school year, 学校教育法 art.17(1)), 10 for two or more (employee.children)."
 			}
 		],
-		"id": "7f886901-4e7e-512a-823a-f3cccbaaf49e",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "f592e01f-0fa1-5e69-99fb-5dece432ede4",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "FAMILY_CARE_DAYS",
@@ -334,8 +334,8 @@
 				"title": "育児・介護休業法 art.16の5: 5 days a year (10 for two or more family members needing care), takeable in hours; unpaid by law. Metered per business year from 1 April (window_key): 5 days, or 10 where two or more family members need care (employee.facts.family_care_recipients)."
 			}
 		],
-		"id": "53a5374c-bf34-5248-a2d5-3b9eebbc7dce",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "4a3f0827-c9b6-5753-bde1-0ed1547b12e1",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "MENSTRUAL_LEAVE",
@@ -349,8 +349,8 @@
 				"title": "労働基準法 art.68: a woman for whom work on menstruation days is very difficult may not be made to work on request; the law does not require pay."
 			}
 		],
-		"id": "bb14e6f4-38b4-5410-a888-9663f88177d0",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "9e691ad6-49ad-506d-a4fd-7ae241f4a74b",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "CIVIC_DUTY_LEAVE",
@@ -363,8 +363,8 @@
 				"title": "労働基準法 art.7: time needed to vote, serve as a lay judge (裁判員法 art.100) or perform a public duty must be granted; the law does not require pay."
 			}
 		],
-		"id": "f6c378f8-b996-5099-8919-ab840e4d9b35",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "f716c925-bace-58ab-a77a-94786e537ada",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "SICKNESS_ABSENCE",
@@ -377,8 +377,8 @@
 				"title": "No statutory paid sick leave; 健康保険法 art.99 pays the 傷病手当金 (two thirds of the standard daily remuneration) from the fourth consecutive day of incapacity for up to 1 year 6 months in aggregate."
 			}
 		],
-		"id": "7afbb98c-3e70-541b-bfea-2877b27bde08",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "b6e6746c-c004-53b1-85f4-9d0c873e6f33",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "OCCUPATIONAL_INJURY_ABSENCE",
@@ -391,8 +391,8 @@
 				"title": "労働者災害補償保険法 art.14: from the fourth day of absence the 休業補償給付 (60% of the 給付基礎日額, plus a 20% special payment) is paid by the insurance; the first three days are the employer's (労働基準法 art.76; adhoc INJURY_WAITING_COMPENSATION). art.19: no dismissal during the absence and 30 days after."
 			}
 		],
-		"id": "21a0292c-2b2e-5ffd-9aee-cbbcd98f5365",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "6e935d6a-c23e-58dc-9ccf-ab4a8a5b590a",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "UNPAID_LEAVE",
@@ -405,8 +405,8 @@
 				"title": "Leave or absence the work rules leave unpaid (労働基準法 art.89(i) and the no-work-no-pay principle, 民法 art.624(1)); deducted by NO_PAY_LEAVE."
 			}
 		],
-		"id": "c65b6a15-5d35-5420-a7a9-881c05cc480c",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "c1846d60-cd19-5f4a-b6f0-ff0bf2247637",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "ANNUAL_LEAVE_HOURS",
@@ -424,8 +424,8 @@
 				"title": "労働基準法 art.39(4) with 施行規則 art.24の4: under a labour-management agreement up to 5 days a year of annual leave may be taken in hours (5 × the scheduled daily hours, terms.facts.scheduled_daily_hours); it draws on the annual leave. Planned leave (計画的付与, art.39(6)) is a scheduling of the same days."
 			}
 		],
-		"id": "1932783a-c711-5369-886b-194fc05df16b",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "eb4d60cd-63e4-5fed-b955-a2c249b51a0e",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "NURSING_TIME",
@@ -438,8 +438,8 @@
 				"title": "労働基準法 art.67: a woman with a child under one may claim two periods of at least 30 minutes a day besides her breaks; the law does not require pay."
 			}
 		],
-		"id": "ed5ff3b7-36ad-5a56-ba5d-b44fd3f80ff8",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "58380fdd-f41b-52d3-8769-c9cd562a8746",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "MATERNAL_HEALTH_CHECK",
@@ -453,8 +453,8 @@
 				"title": "男女雇用機会均等法 arts.12–13 with 施行規則 art.2の4: the employer must allow the time a pregnant or post-partum worker needs for health guidance and checks (every 4 weeks to week 23, 2 weeks to 35, then weekly) and act on the doctor's instructions; the law does not require pay."
 			}
 		],
-		"id": "db4e5850-8c50-53c3-a3b9-58d878520d69",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "514c9904-7a3d-56f5-8265-942e65df45bb",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	},
 	{
 		"code": "SUBSTITUTE_LEAVE_FOR_OVERTIME",
@@ -467,7 +467,7 @@
 				"title": "労働基準法 art.37(3) with 施行規則 art.19の2: paid leave in place of the extra 25% for overtime beyond 60 hours, taken within two months, in half days or days, under a labour-management agreement; it reduces OVERTIME_OVER_60 by OVERTIME_SUBSTITUTED."
 			}
 		],
-		"id": "bc952e6d-0a06-5cc1-b71c-1b6624a1af77",
-		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
+		"id": "8453f183-c31c-5624-aab8-adc362cd4898",
+		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
 	}
 ]

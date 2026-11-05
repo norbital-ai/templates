@@ -219,8 +219,7 @@
 		"code": "encash-leave-at-window-end",
 		"name": "Encash leave lapsing at the carry window",
 		"lookup": {
-			"title": "Encash the leave lapsing at the carry window",
-			"carry_windows": 2
+			"title": "Encash the leave lapsing at the carry window"
 		},
 		"references": [],
 		"source_collection": "payroll_run",
@@ -321,17 +320,7 @@
 		"name": "Submit the SI benefit claim",
 		"lookup": {
 			"title": "Submit the SI benefit claim within seven working days of complete-file receipt",
-			"working_days": 7,
-			"benefit_catalogs": [
-				"SICK_LEAVE",
-				"MATERNITY_LEAVE",
-				"PATERNITY_LEAVE",
-				"CHILD_SICK_CARE",
-				"PRENATAL_CHECKUP",
-				"MISCARRIAGE_LEAVE",
-				"CONTRACEPTION_LEAVE",
-				"CONVALESCENCE_LEAVE"
-			]
+			"working_days": 7
 		},
 		"references": [
 			{
@@ -529,8 +518,7 @@
 		"code": "INTERNAL_LABOUR_RULES",
 		"name": "Issue and register the internal labour rules",
 		"lookup": {
-			"title": "Issue and register the internal labour rules",
-			"employee_count_threshold": 10
+			"title": "Issue and register the internal labour rules"
 		},
 		"references": [
 			{
@@ -703,8 +691,7 @@
 		"code": "WAGE_DEDUCTION_LIMIT",
 		"name": "Keep wage deductions within the statutory limit",
 		"lookup": {
-			"title": "Keep the damage-compensation deduction within 30% of the paid wage",
-			"limit_percent": 30
+			"title": "Keep the damage-compensation deduction within 30% of the paid wage"
 		},
 		"references": [
 			{
@@ -738,10 +725,7 @@
 		"code": "OVERTIME_CONSENT_AND_LIMITS",
 		"name": "Keep overtime consented and within its limits",
 		"lookup": {
-			"title": "Keep overtime consented and within its daily, monthly and yearly limits",
-			"monthly_hours": 40,
-			"yearly_hours": 200,
-			"yearly_hours_extended": 300
+			"title": "Keep overtime consented and within its daily, monthly and yearly limits"
 		},
 		"references": [
 			{
@@ -1272,8 +1256,7 @@
 		"lookup": {
 			"title": "Return the work authorisation with its invalidation report",
 			"commencement": "2026-12-05",
-			"working_days": 10,
-			"calendar_days": 15
+			"working_days": 10
 		},
 		"references": [
 			{
@@ -1315,7 +1298,7 @@
 				}
 			}
 		},
-		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (!(ctx.entry.effective_range.to >= ctx.lookup.commencement)) return false;\nreturn ctx.entry.final_pay_due_on != null;",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (!(ctx.entry.effective_range.to >= ctx.lookup.commencement)) return false;\nif (ctx.entry.final_pay_due_on == null) return false;\nreturn get(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const key = 'WORK_PERMIT_RETURN:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.entry.effective_range.to >= ctx.lookup.commencement\n\t\t\t? add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6])\n\t\t\t: add_days(ctx.entry.effective_range.to, ctx.lookup.calendar_days),\n\t\toccurrence_key: key\n\t}\n];",
@@ -1744,17 +1727,7 @@
 		"code": "SI_BENEFIT_FILE_RECEIPT_REVIEW",
 		"name": "Obtain the SI benefit file and record its receipt",
 		"lookup": {
-			"title": "Obtain the SI benefit file and record the complete-file receipt date",
-			"benefit_catalogs": [
-				"SICK_LEAVE",
-				"MATERNITY_LEAVE",
-				"PATERNITY_LEAVE",
-				"CHILD_SICK_CARE",
-				"PRENATAL_CHECKUP",
-				"MISCARRIAGE_LEAVE",
-				"CONTRACEPTION_LEAVE",
-				"CONVALESCENCE_LEAVE"
-			]
+			"title": "Obtain the SI benefit file and record the complete-file receipt date"
 		},
 		"references": [
 			{
@@ -1902,8 +1875,7 @@
 		"name": "Review the transitional return deadline",
 		"lookup": {
 			"title": "Establish the transitional return deadline for the work authorisation",
-			"commencement": "2026-12-05",
-			"calendar_days": 15
+			"commencement": "2026-12-05"
 		},
 		"references": [
 			{
@@ -2291,6 +2263,60 @@
 		"target_action": "create",
 		"effects": "const key = 'WORK_AUTHORISATION_EXPIRY_INPUTS_393:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.event.day,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "30c49f8d-b2f3-5ea4-a030-da8e9e22aef3",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "TAX_REFUND",
+		"name": "Refund overpaid tax",
+		"lookup": {},
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"adhoc_catalog": {
+				"where": {
+					"settings_id": {
+						"eq": {
+							"var": "ctx.entry.settings_id"
+						}
+					},
+					"code": {
+						"eq": "STATUTORY_ADJUSTMENT"
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"fields": ["pay_date"],
+				"limit": 1
+			},
+			"adhoc_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					},
+					"is_reversal": {
+						"eq": true
+					}
+				},
+				"fields": ["catalog_id", "quantity", "incurred_on"],
+				"limit": 1000
+			}
+		},
+		"condition": "// js\nreturn get(ctx.entry, 'breakdown.statutory', []).some((row) => Number(get(row, 'overpaid', 0)) > 0);",
+		"target_collection": "adhoc_catalog_entry",
+		"target_action": "create",
+		"effects": "// js\n// An overpaid year comes back as a reversal entry on the adjustment item. What this year already raised is not raised again.\nconst item = first(ctx.reads.adhoc_catalog);\nconst run = first(ctx.reads.payroll_run);\nif (item == null || run == null) return [];\nconst year = String(run.pay_date).slice(0, 4);\nconst raised = sum(\n\tctx.reads.adhoc_catalog_entry\n\t\t.filter((row) => row.catalog_id === item.id && String(row.incurred_on).slice(0, 4) === year)\n\t\t.map((row) => Number(row.quantity))\n);\nconst overpaid = sum(get(ctx.entry, 'breakdown.statutory', []).map((row) => Number(get(row, 'overpaid', 0))));\nif (overpaid <= raised) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployment_id: ctx.entry.employment_id,\n\tcatalog_id: item.id,\n\tdescription: 'Tax overpaid in ' + year,\n\tquantity: overpaid - raised,\n\tunit: 'MONEY',\n\tincurred_on: run.pay_date,\n\tis_reversal: true\n}];",
+		"id": "6f231cd1-6cc3-5f7f-b63d-a16f292496b3",
 		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
 	}
 ]

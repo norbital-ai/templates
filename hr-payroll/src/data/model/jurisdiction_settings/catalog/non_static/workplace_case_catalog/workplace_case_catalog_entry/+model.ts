@@ -15,7 +15,7 @@ export default model('workplace_case_catalog_entry', {
 			onDelete: 'restrict'
 		},
 		entity_id: { kind: 'ref', to: 'entity', inverse: 'workplace_case_catalog_entries' },
-		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true },
+		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, onDelete: 'setNull' },
 		kind: { kind: 'text' },
 		opened_on: { kind: 'date' },
 		scheduled_on: { kind: 'date', optional: true },

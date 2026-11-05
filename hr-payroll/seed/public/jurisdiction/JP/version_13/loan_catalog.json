@@ -9,14 +9,14 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": "9cc72155-0947-5ca5-865f-aeb36ea6bf03",
+		"subtotal_id": "8d2499f6-3c84-5794-9bd5-2cf1563bc069",
 		"eligibility": "// js\nreturn get(ctx.subject.employer, 'entity_extension_data.wage_deduction_agreement', false) === true;",
 		"conversion": "// js\nreturn ctx.entry.amount;",
 		"incurred_on": "// js\nreturn ctx.entry.paid_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"id": "a4ac0a11-e2dc-5d36-835f-7e0627851804",
-		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3"
+		"id": "e11a7fba-27b0-58ef-b0b3-22be83cf07fe",
+		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
 	},
 	{
 		"code": "STAFF_LOAN",
@@ -28,14 +28,14 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": "9cc72155-0947-5ca5-865f-aeb36ea6bf03",
+		"subtotal_id": "8d2499f6-3c84-5794-9bd5-2cf1563bc069",
 		"eligibility": "// js\nreturn get(ctx.subject.employer, 'entity_extension_data.wage_deduction_agreement', false) === true;",
 		"conversion": "// js\nreturn ctx.entry.amount;",
 		"incurred_on": "// js\nreturn ctx.entry.paid_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"id": "4b061b5c-5d0c-599b-bcb2-c0e3751de5ce",
-		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3"
+		"id": "95ac0044-1a93-5537-a609-5e00b9ae1ed3",
+		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
 	},
 	{
 		"code": "EMERGENCY_ADVANCE",
@@ -47,13 +47,13 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": "9cc72155-0947-5ca5-865f-aeb36ea6bf03",
+		"subtotal_id": "8d2499f6-3c84-5794-9bd5-2cf1563bc069",
 		"eligibility": "// js\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.amount;",
 		"incurred_on": "// js\nreturn ctx.entry.paid_on;",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"id": "a5927981-a627-5706-97a9-6bbe14b9bf2b",
-		"settings_id": "cf097878-5f14-5d5a-a974-1d50ea44fbc3"
+		"id": "befe4f46-6fe2-5c14-bab0-aa9f902311ce",
+		"settings_id": "0f60d563-f3ea-5e26-8981-9021802f0492"
 	}
 ]

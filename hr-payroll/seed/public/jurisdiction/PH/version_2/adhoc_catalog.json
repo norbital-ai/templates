@@ -107,7 +107,7 @@
 				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/1/44163"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -210,7 +210,7 @@
 				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
@@ -223,7 +223,7 @@
 	{
 		"code": "RETIREMENT_PAY",
 		"name": "Retirement pay",
-		"description": "The entry quantity is the RA 7641 retirement amount; age, service, establishment and plan exemptions gate the definition.",
+		"description": "The entry quantity is the RA 7641 retirement amount; age, service and establishment exemptions gate the definition. A retirement plan does not: where it pays less than RA 7641, this class pays the difference (DOLE Handbook 2024 ch.15 §E).",
 		"lookup": {},
 		"references": [
 			{
@@ -235,7 +235,7 @@
 		"subtotal_id": "6f429be3-0584-58d4-bb41-9108d103de9e",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst birth = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nconst age = birth === null ? 0 : age_on(birth, ctx.entry.incurred_on);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nconst threshold = get(ctx.subject.employment, 'employee_extension_data.mine_worker', null) === null ? 60 : 50;\nif (age < threshold) return false;\nconst from = get(ctx.subject.employment, 'effective_range.from', ctx.entry.incurred_on);\nif (calendar_completed_months(from, ctx.entry.incurred_on) < 60) return false;\nif (get(ctx.subject.employer, 'entity_extension_data.retirement_exempt_establishment', false) === true) return false;\nreturn get(ctx.subject.employer, 'entity_extension_data.bir_qualified_retirement_plan', false) !== true;",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst birth = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nconst age = birth === null ? 0 : age_on(birth, ctx.entry.incurred_on);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nconst threshold = get(ctx.subject.employment, 'employee_extension_data.mine_worker', null) === null ? 60 : 50;\nif (age < threshold) return false;\nconst from = get(ctx.subject.employment, 'effective_range.from', ctx.entry.incurred_on);\nif (calendar_completed_months(from, ctx.entry.incurred_on) < 60) return false;\nreturn get(ctx.subject.employer, 'entity_extension_data.retirement_exempt_establishment', false) !== true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "54f76488-dc8a-5061-8824-53f99b31c1fd",
@@ -247,11 +247,11 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (e): uniform and clothing allowance to ₱8,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `UNIFORM`, capped over the calendar year."
+				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (e): uniform and clothing allowance to ₱8,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the DE_MINIMIS_UNIFORM checkpoint, capped over the calendar year."
 			}
 		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
+		"off_cycle_eligible": false,
+		"subtotal_id": "e109728c-8f95-4d31-be27-96469baf901b",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
@@ -266,11 +266,11 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (f): actual medical assistance (medical allowance, annual check-up, maternity assistance, routine consultations) to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `MEDICAL`, capped over the calendar year."
+				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (f): actual medical assistance (medical allowance, annual check-up, maternity assistance, routine consultations) to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the DE_MINIMIS_MEDICAL checkpoint, capped over the calendar year."
 			}
 		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
+		"off_cycle_eligible": false,
+		"subtotal_id": "27d37d27-1788-4b6f-9b67-6d9c49d92e96",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
@@ -285,11 +285,11 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (h): achievement awards for length of service or safety, in any form, under a written non-discriminatory plan, to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `AWARD`, capped over the calendar year."
+				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (h): achievement awards for length of service or safety, in any form, under a written non-discriminatory plan, to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the DE_MINIMIS_AWARD checkpoint, capped over the calendar year."
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
+		"subtotal_id": "fdb872ce-7961-495f-b51b-a1c119d2b73c",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
@@ -304,11 +304,11 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (i): Christmas and major anniversary gifts to ₱6,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `GIFT`, capped over the calendar year."
+				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (i): Christmas and major anniversary gifts to ₱6,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the DE_MINIMIS_GIFT checkpoint, capped over the calendar year."
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
+		"subtotal_id": "3a9ad02a-bb45-4895-a243-69dffd4a1c5c",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
@@ -323,11 +323,11 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (k): benefits under a CBA and a productivity incentive scheme, combined, to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the WTAX part `CBA`, capped over the calendar year."
+				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (k): benefits under a CBA and a productivity incentive scheme, combined, to ₱12,000 a year: a de minimis benefit, outside compensation to the ceiling; the excess is an ‘other benefit’ inside the ₱90,000 exclusion (NIRC s.32(B)(7)(e)) — the DE_MINIMIS_CBA checkpoint, capped over the calendar year."
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
+		"subtotal_id": "f96bae98-4fcd-4327-9629-ecc98e988715",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
@@ -342,11 +342,11 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (j): a daily meal allowance for overtime work or a night/graveyard shift is de minimis to 30% of the region’s basic minimum wage for each such day (the region’s monthly figure × 12 ÷ 313 is the daily wage the order states). The ceiling bounds the exemption, never the pay: the class pays what the employer keyed, whole. the WTAX part `OT_MEAL` is exempt to 30% × the daily minimum wage × `person.period.overtime_days` (the payslip’s dates with overtime or night-window hours); the excess is an ‘other benefit’ inside the ₱90,000 exclusion (RR 11-2018 s.2.78.1(A)(3) closing paragraph; RMC 50-2018: “benefits given in excess of the maximum amount allowed as de minimis benefits shall be included as part of ‘other benefits’”)."
+				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (j): a daily meal allowance for overtime work or a night/graveyard shift is de minimis to 30% of the region’s basic minimum wage for each such day (the region’s monthly figure × 12 ÷ 313 is the daily wage the order states). The ceiling bounds the exemption, never the pay: the class pays what the employer keyed, whole. the DE_MINIMIS_OT_MEAL checkpoint is exempt to 30% × the daily minimum wage × the days (the run’s dates with overtime or night-window hours); the excess is an ‘other benefit’ inside the ₱90,000 exclusion (RR 11-2018 s.2.78.1(A)(3) closing paragraph; RMC 50-2018: “benefits given in excess of the maximum amount allowed as de minimis benefits shall be included as part of ‘other benefits’”)."
 			}
 		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
+		"off_cycle_eligible": false,
+		"subtotal_id": "210feac0-37c7-4a8c-8fd1-4aa497f966c7",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
@@ -360,7 +360,6 @@
 		"name": "Kasambahay unjustified-departure salary forfeiture",
 		"description": "The entry quantity is the unpaid salary; the deduction is capped at fifteen days at the recorded daily rate.",
 		"lookup": {
-			"days_per_year": 313,
 			"forfeiture_days": 15
 		},
 		"references": [
@@ -369,12 +368,12 @@
 				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(ctx.subject.employment, 'terms.statutory_work_category', '') !== 'DOMESTIC') return false;\nreturn get(ctx.subject.employment, 'employee_extension_data.kasambahay_unjustified_departure', false) === true;",
-		"conversion": "// js\nconst rate = get(ctx.subject.employment, 'terms.rate', null);\nconst days = get(ctx.subject.employment, 'employee_extension_data.days_per_year', ctx.lookup.days_per_year);\nconst daily = rate === null\n\t? 0\n\t: rate.unit === 'DAILY'\n\t\t? rate.amount\n\t\t: rate.unit === 'MONTHLY'\n\t\t\t? (rate.amount * 12) / days\n\t\t\t: rate.unit === 'HOURLY'\n\t\t\t\t? rate.amount * get(ctx.subject.employment, 'terms.normal_hours_per_day', 8)\n\t\t\t\t: 0;\nreturn Math.min(ctx.entry.quantity, ctx.lookup.forfeiture_days * daily);",
+		"conversion": "// js\nconst daily = ctx.day_rate;\nreturn Math.min(ctx.entry.quantity, ctx.lookup.forfeiture_days * daily);",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "1ba4db45-181c-5323-873b-c8360e96ceff",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
@@ -384,7 +383,6 @@
 		"name": "Kasambahay unjust-dismissal indemnity",
 		"description": "The entry quantity records the indemnity; the amount is fifteen days at the recorded daily rate.",
 		"lookup": {
-			"days_per_year": 313,
 			"indemnity_days": 15
 		},
 		"references": [
@@ -393,12 +391,12 @@
 				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "6f429be3-0584-58d4-bb41-9108d103de9e",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(ctx.subject.employment, 'terms.statutory_work_category', '') !== 'DOMESTIC') return false;\nreturn get(ctx.subject.employment, 'employee_extension_data.kasambahay_unjust_dismissal', false) === true;",
-		"conversion": "// js\nconst rate = get(ctx.subject.employment, 'terms.rate', null);\nconst days = get(ctx.subject.employment, 'employee_extension_data.days_per_year', ctx.lookup.days_per_year);\nconst daily = rate === null\n\t? 0\n\t: rate.unit === 'DAILY'\n\t\t? rate.amount\n\t\t: rate.unit === 'MONTHLY'\n\t\t\t? (rate.amount * 12) / days\n\t\t\t: rate.unit === 'HOURLY'\n\t\t\t\t? rate.amount * get(ctx.subject.employment, 'terms.normal_hours_per_day', 8)\n\t\t\t\t: 0;\nreturn ctx.lookup.indemnity_days * daily;",
+		"conversion": "// js\nconst daily = ctx.day_rate;\nreturn ctx.lookup.indemnity_days * daily;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "4912a0f8-cbf0-51d9-8455-a3a615d5c9bb",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
@@ -418,7 +416,7 @@
 				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "6f429be3-0584-58d4-bb41-9108d103de9e",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -434,12 +432,12 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "NIRC s.24(A)(2); RR 11-2018 s.2.78.1(B)(13): hazard pay is compensation (SSS, Pag-IBIG) that a minimum wage earner receives exempt (the WTAX `wage` part). Customer input: the amount the employer’s hazard-pay plan pays.",
+				"title": "NIRC s.24(A)(2); RR 11-2018 s.2.78.1(B)(13): hazard pay is compensation (SSS, Pag-IBIG) that a minimum wage earner receives exempt (the STATUTORY_WAGES checkpoint). Customer input: the amount the employer’s hazard-pay plan pays.",
 				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
 			}
 		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
+		"off_cycle_eligible": false,
+		"subtotal_id": "ae519ec2-f1dc-4a09-b4fc-7b1038ad8709",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
@@ -458,11 +456,11 @@
 				"url": "https://lawphil.net/statutes/repacts/ra2019/ra_11360_2019.html"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn get(ctx.subject.employment, 'terms.statutory_work_category', '') !== 'MANAGERIAL';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "e9de420f-8d53-58ed-8655-e43388e96169",
@@ -474,12 +472,12 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "Labor Code art.113(b) and the check-off provisions (arts.250(o), 259(e) as renumbered): deducted only with the employee’s written authorisation (`evidence` REQUIRED); NIRC s.32(B)(7)(f) and RR 11-2018 s.2.78.1(B)(12): excluded from taxable compensation (WTAX `person.contributions`).",
+				"title": "Labor Code art.113(b) and the check-off provisions (arts.250(o), 259(e) as renumbered): deducted only with the employee’s written authorisation (`evidence` REQUIRED); NIRC s.32(B)(7)(f) and RR 11-2018 s.2.78.1(B)(12): excluded from taxable compensation (the UNION_DUES checkpoint, which WTAX subtracts).",
 				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
 			}
 		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"off_cycle_eligible": false,
+		"subtotal_id": "bf81a985-f816-47b0-8a97-e1c761e966c9",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
@@ -498,7 +496,7 @@
 				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/19155"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
@@ -517,7 +515,7 @@
 				"title": "RA 9679 s.7; Pag-IBIG MP2 programme: a voluntary savings deduction on the employee’s election, after tax. Customer input: the elected amount (`evidence` REQUIRED)."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
@@ -540,7 +538,7 @@
 				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
@@ -557,12 +555,12 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "NIRC s.33; RR 11-2018 s.2.33: a benefit in kind (housing, vehicle, membership, …) is priced and settled but adds no pay: for supervisory and managerial staff it is the FBT scheme’s base, for rank-and-file it is taxable compensation (WTAX `fringe`). Customer input: the monetary value under RR 3-98 s.2.33(B).",
+				"title": "NIRC s.33; RR 11-2018 s.2.33: a benefit in kind (housing, vehicle, membership, …) is priced and settled but adds no pay: for supervisory and managerial staff it is the FBT scheme’s base, for rank-and-file it is taxable compensation (WTAX adds the FRINGE_BENEFIT checkpoint). Customer input: the monetary value under RR 3-98 s.2.33(B).",
 				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
 			}
 		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "6f429be3-0584-58d4-bb41-9108d103de9e",
+		"off_cycle_eligible": false,
+		"subtotal_id": "014555de-d546-41b3-85c8-79a90ed0be9e",
 		"direction": "ADD",
 		"party": "EMPLOYER",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
@@ -581,7 +579,7 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "6f429be3-0584-58d4-bb41-9108d103de9e",
+		"subtotal_id": "49c04220-922c-4e5d-ae47-aa39757905f0",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
@@ -600,7 +598,7 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "6f429be3-0584-58d4-bb41-9108d103de9e",
+		"subtotal_id": "49c04220-922c-4e5d-ae47-aa39757905f0",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
@@ -620,7 +618,7 @@
 				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "6f429be3-0584-58d4-bb41-9108d103de9e",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -640,7 +638,7 @@
 				"title": "RA 11199 s.14-A as amended by RA 11210 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333, read 2026-10-07): a member with at least three monthly contributions in the twelve months before the semester of the contingency is paid 100% of her average daily salary credit, advanced in full by the employer within thirty days of the application and reimbursed by SSS; s.8(n)–(p): the average daily salary credit is the six highest monthly salary credits of those twelve months ÷ 180, the semester the two quarters ending in the quarter of the contingency. SSS Maternity Benefit page (https://www.sss.gov.ph/maternity-benefit/, read 2026-10-07): 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination; \"The computation of benefits under the Regular SSS Program shall be based on contributions up to 20,000 MSC.\" The contingency is `entry.occurred_on`, the event `entry.facts.event_kind` and the solo-parent claim `entry.facts.solo_parent_claimed`, as on the maternity leave; each month’s credit is its SSS base charged (`earned.history[].statutory.SSS.base`) on the contribution table’s ₱500 steps, ₱5,000 floor (₱1,000 for a kasambahay) and ₱20,000 Regular SS ceiling. The credits are this employer’s payroll only; contributions paid through an earlier employer count at SSS, so when this payroll holds fewer than three of the twelve months’ credits the class pays the entry amount — customer input: the benefit SSS computes (SSS also applies the three-contribution test there). Exempt from withholding as an SSS benefit (RR 2-98 s.2.78.1(B)(1)(e))."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "6f429be3-0584-58d4-bb41-9108d103de9e",
 		"direction": "ADD",
 		"party": "EMPLOYEE",

@@ -9,11 +9,11 @@
 		"references": [
 			{
 				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] paras 2, 3(1), 5(1)",
-				"locator": "RM1,700 a month for a monthly-rated employee; domestic servants and apprentices are outside the Order.",
+				"locator": "RM1,700 a month for a monthly-rated employee; para 2 leaves out only a domestic employee as EA s.2(1) defines one. An apprentice is inside: the National Wages Consultative Council (Amendment) Act 2025 brought apprenticeship contracts into Act 732 from 1 August 2025.",
 				"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
 			}
 		],
-		"validate": "// Minimum Wages Order 2024: a monthly-rated employee earns at least RM1,700 a month.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null || get(rate, 'unit', null) !== 'MONTHLY') return true;\nif (['PART_TIME', 'APPRENTICE', 'PAYEE'].includes(get(ctx.entry, 'engagement', 'EMPLOYEE'))) return true;\nif (get(ctx.entry, 'terms.statutory_work_category', null) === 'TASK_BASIS') return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nif (get(facts, 'industrial_training_student', false) === true) return true;\nreturn get(rate, 'amount', 0) >= ctx.lookup.monthly_wage;",
+		"validate": "// Minimum Wages Order 2024: a monthly-rated employee earns at least RM1,700 a month.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null || get(rate, 'unit', null) !== 'MONTHLY') return true;\nif (['PART_TIME', 'PAYEE'].includes(get(ctx.entry, 'engagement', 'EMPLOYEE'))) return true;\nif (['TASK_BASIS', 'DOMESTIC'].includes(get(ctx.entry, 'terms.statutory_work_category', null))) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nif (get(facts, 'industrial_training_student', false) === true) return true;\nreturn get(rate, 'amount', 0) >= ctx.lookup.monthly_wage;",
 		"order": 0,
 		"id": "77164b3a-8df5-501c-82ad-587ae34c2276",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
@@ -22,11 +22,7 @@
 		"code": "MINIMUM_WAGE_HOURLY_PART_TIME",
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
-		"lookup": {
-			"hourly_wage": 8.72,
-			"months_per_year": 12,
-			"weeks_per_year": 52
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] paras 3(1), 5(1)",
@@ -39,7 +35,7 @@
 				"url": "https://lom.agc.gov.my/"
 			}
 		],
-		"validate": "// A part-time rate is reduced to its hourly equivalent and held to the hourly floor.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (get(ctx.entry, 'engagement', 'EMPLOYEE') !== 'PART_TIME' || rate == null) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nif (get(facts, 'industrial_training_student', false) === true) return true;\nconst unit = get(rate, 'unit', null);\nconst amount = get(rate, 'amount', 0);\nconst week = Number(get(ctx.entry, 'terms.normal_hours_per_week', 0));\nconst day = Number(get(ctx.entry, 'terms.normal_hours_per_day', 0));\nconst hourly =\n  unit === 'MONTHLY' && week > 0 ? (amount * ctx.lookup.months_per_year) / (ctx.lookup.weeks_per_year * week)\n  : unit === 'WEEKLY' && week > 0 ? amount / week\n  : unit === 'DAILY' && day > 0 ? amount / day\n  : unit === 'HOURLY' ? amount\n  : null;\nreturn hourly == null || hourly >= ctx.lookup.hourly_wage;",
+		"validate": "// A part-time rate is reduced to its hourly equivalent and held to the hourly floor.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (get(ctx.entry, 'engagement', 'EMPLOYEE') !== 'PART_TIME' || rate == null) return true;\nif (get(ctx.entry, 'terms.statutory_work_category', null) === 'DOMESTIC') return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nif (get(facts, 'industrial_training_student', false) === true) return true;\nconst unit = get(rate, 'unit', null);\nconst amount = get(rate, 'amount', 0);\nconst week = Number(get(ctx.entry, 'terms.normal_hours_per_week', 0));\nconst day = Number(get(ctx.entry, 'terms.normal_hours_per_day', 0));\nconst hourly =\n  unit === 'MONTHLY' && week > 0 ? (amount * ctx.lookup.months_per_year) / (ctx.lookup.weeks_per_year * week)\n  : unit === 'WEEKLY' && week > 0 ? amount / week\n  : unit === 'DAILY' && day > 0 ? amount / day\n  : unit === 'HOURLY' ? amount\n  : null;\nreturn hourly == null || hourly >= ctx.lookup.hourly_wage;",
 		"order": 1,
 		"id": "21ef3810-ba67-5967-8de0-c94f57b42fba",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
@@ -96,11 +92,7 @@
 		"code": "MINIMUM_WAGE_DAILY",
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
-		"lookup": {
-			"daily_four_day_week": 98.08,
-			"daily_five_day_week": 78.46,
-			"daily_six_day_week": 65.38
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] paras 3(1), 5(1)",
@@ -108,39 +100,16 @@
 				"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
 			}
 		],
-		"validate": "// The daily floor follows the agreed number of working days a week.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null || get(rate, 'unit', null) !== 'DAILY') return true;\nif (['APPRENTICE', 'PAYEE'].includes(get(ctx.entry, 'engagement', 'EMPLOYEE'))) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nif (get(facts, 'industrial_training_student', false) === true) return true;\nconst days = Number(get(ctx.entry, 'terms.normal_days_per_week', 6));\nconst floor =\n  days <= 4 ? ctx.lookup.daily_four_day_week\n  : days === 5 ? ctx.lookup.daily_five_day_week\n  : ctx.lookup.daily_six_day_week;\nreturn get(rate, 'amount', 0) >= floor;",
+		"validate": "// The daily floor follows the agreed number of working days a week.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null || get(rate, 'unit', null) !== 'DAILY') return true;\nif (get(ctx.entry, 'engagement', 'EMPLOYEE') === 'PAYEE') return true;\nif (get(ctx.entry, 'terms.statutory_work_category', null) === 'DOMESTIC') return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nif (get(facts, 'industrial_training_student', false) === true) return true;\nconst days = Number(get(ctx.entry, 'terms.normal_days_per_week', 6));\nconst floor =\n  days <= 4 ? ctx.lookup.daily_four_day_week\n  : days === 5 ? ctx.lookup.daily_five_day_week\n  : ctx.lookup.daily_six_day_week;\nreturn get(rate, 'amount', 0) >= floor;",
 		"order": 12,
 		"id": "962cd394-8456-52ae-8277-89e77fee76ce",
-		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
-	},
-	{
-		"code": "MINIMUM_WAGE_WEEKLY",
-		"target_collection": "employee_contract",
-		"events": ["create", "update"],
-		"lookup": {
-			"daily_four_day_week": 98.08,
-			"daily_five_day_week": 78.46,
-			"daily_six_day_week": 65.38
-		},
-		"references": [
-			{
-				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] paras 3(1), 5(1)",
-				"locator": "a weekly rate is at least the daily minimum for the working days a week times those days.",
-				"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
-			}
-		],
-		"validate": "// A weekly rate is at least the daily floor times the agreed working days a week.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null || get(rate, 'unit', null) !== 'WEEKLY') return true;\nif (['APPRENTICE', 'PAYEE', 'PART_TIME'].includes(get(ctx.entry, 'engagement', 'EMPLOYEE'))) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nif (get(facts, 'industrial_training_student', false) === true) return true;\nconst days = Number(get(ctx.entry, 'terms.normal_days_per_week', 6));\nconst floor =\n  days <= 4 ? ctx.lookup.daily_four_day_week\n  : days === 5 ? ctx.lookup.daily_five_day_week\n  : ctx.lookup.daily_six_day_week;\nreturn get(rate, 'amount', 0) >= floor * days;",
-		"order": 13,
-		"id": "e085f75c-cfbe-5fd3-9be0-3ae6ca1c55c1",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
 	{
 		"code": "MINIMUM_WAGE_HOURLY",
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
-		"lookup": {
-			"hourly_wage": 8.72
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] paras 3(1), 5(1)",
@@ -148,7 +117,7 @@
 				"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
 			}
 		],
-		"validate": "// An hourly rate is at least RM8.72.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null || get(rate, 'unit', null) !== 'HOURLY') return true;\nif (['APPRENTICE', 'PAYEE'].includes(get(ctx.entry, 'engagement', 'EMPLOYEE'))) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nif (get(facts, 'industrial_training_student', false) === true) return true;\nreturn get(rate, 'amount', 0) >= ctx.lookup.hourly_wage;",
+		"validate": "// An hourly rate is at least RM8.72.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null || get(rate, 'unit', null) !== 'HOURLY') return true;\nif (get(ctx.entry, 'engagement', 'EMPLOYEE') === 'PAYEE') return true;\nif (get(ctx.entry, 'terms.statutory_work_category', null) === 'DOMESTIC') return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nif (get(facts, 'industrial_training_student', false) === true) return true;\nreturn get(rate, 'amount', 0) >= ctx.lookup.hourly_wage;",
 		"order": 14,
 		"id": "89a22395-8fc6-52d4-94c3-85e539d5164a",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
@@ -326,25 +295,6 @@
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
 	},
 	{
-		"code": "PAYROLL_RUN_KINDS",
-		"target_collection": "payroll_run",
-		"events": ["create"],
-		"lookup": {
-			"kinds": ["REGULAR", "OFF_CYCLE"]
-		},
-		"references": [
-			{
-				"title": "Employment Act 1955 s.19",
-				"locator": "wages are paid for the completed wage period; the lineage admits regular and off-cycle runs.",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
-			}
-		],
-		"validate": "// The jurisdiction admits regular and off-cycle payroll runs.\nreturn ctx.lookup.kinds.includes(get(ctx.entry, 'kind', null));",
-		"order": 32,
-		"id": "0b7d9822-6247-57ff-a0eb-02b4e58b5821",
-		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"
-	},
-	{
 		"code": "CONTRACT_CATEGORIES",
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
@@ -356,7 +306,8 @@
 					"NON_MANUAL",
 					"TASK_BASIS",
 					"VEHICLE_OPERATOR",
-					"VESSEL_CREW"
+					"VESSEL_CREW",
+					"DOMESTIC"
 				],
 				"residency_status": ["CITIZEN", "PERMANENT_RESIDENT", "FOREIGNER"]
 			}
@@ -366,6 +317,12 @@
 				"title": "Employment Act 1955 First Schedule (as amended by Act A1651, 1 January 2023)",
 				"locator": "the statutory work category fixes coverage and the overtime, rest-day and holiday premia.",
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			},
+			{
+				"title": "Employment Act 1955 s.2(1) \"domestic employee\"; EPF Act 1991 First Schedule para (2)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
+				"locator": "DOMESTIC",
+				"quote": "Work of a private dwelling-house, not of a trade, business or profession carried on by the employer. EPF para (2) keeps a domestic servant of a registered business, society or corporation in the Fund: such a person is not this category."
 			}
 		],
 		"validate": "// The jurisdiction admits only these contract categories.\nconst categories = ctx.lookup.categories;\nconst category = get(ctx.entry, 'terms.statutory_work_category', null);\nif (category != null && !categories.statutory_work_category.includes(category)) return false;\nconst residency = get(ctx.entry, 'terms.residency_status', null);\nif (residency != null && !categories.residency_status.includes(residency)) return false;\nreturn true;",

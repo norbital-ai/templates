@@ -2,20 +2,7 @@
 	{
 		"code": "SSS",
 		"name": "Social Security System",
-		"lookup": {
-			"minor_unit": 0.01,
-			"employee_rate": 0.05,
-			"employer_rate": 0.1,
-			"combined_rate": 0.15,
-			"minimum_salary_credit": 5000,
-			"maximum_salary_credit": 35000,
-			"salary_credit_step": 500,
-			"regular_fund_salary_credit_ceiling": 20000,
-			"domestic_salary_credit_floor": 1000,
-			"domestic_threshold": 5000,
-			"ordinary_coverage_age_years": 60,
-			"extended_coverage_age_years": 65
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Republic Act 11199 (Social Security Act of 2018)",
@@ -50,34 +37,24 @@
 				"title": "SSS contribution base is the monthly ordinary wage",
 				"locator": "RA 11199 s.8(f); IRR (2019) Rule 12 s.6(iii)",
 				"url": "https://www.sss.gov.ph/wp-content/uploads/2022/04/IRR-RA11199-SS-Act-of-2018_2.pdf",
-				"quote": "Read 2026-11-04. s.8(f): compensation is all actual remuneration for employment. IRR Rule 12 s.6(iii) lists \"[b]onuses (except Christmas bonus)\" as compensation. IRR Rule 12 s.6(iii) excludes a Christmas bonus and does not name 13th-month pay. Practical treatment: the monthly salary credit reads the ORDINARY_WAGES checkpoint, so 13th month pay, Christmas bonus, separation and retirement pay and SSS benefits are outside the monthly MSC; WTAX taxes the final GROSS and includes the 13th month and Christmas bonus in its PHP90,000 pool."
+				"quote": "Read 2026-11-04. s.8(f): compensation is all actual remuneration for employment. IRR Rule 12 s.6(iii) lists \"[b]onuses (except Christmas bonus)\" as compensation. IRR Rule 12 s.6(iii) excludes a Christmas bonus and does not name 13th-month pay. Practical treatment: the monthly salary credit reads the ORDINARY_WAGES checkpoint, so 13th month pay, Christmas bonus, separation and retirement pay and SSS benefits are outside the monthly MSC, as are the ad hoc de minimis classes, which post after ADDITIONAL_WAGES; WTAX puts the 13th month and Christmas bonus in its PHP90,000 pool. On a SEMI_MONTHLY schedule each run charges half of the month its own wages imply, whole for a joiner or leaver with one run that month: `ctx.balances` holds tax-year totals, so the second run cannot read what the first paid."
 			}
 		],
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"off_cycle_eligible": false,
-		"subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
-		"eligibility": "const p = ctx.lookup;\nconst base = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst exempt = get(facts, 'statutory.SSS.elections.exempt_by_totalisation', false) === true;\nconst dob = get(ctx.subject.employment, 'payroll.date_of_birth', '');\nconst age = dob === '' ? 0 : age_on(dob, add_days(ctx.run.salary_coverage.from, -1));\nconst start = get(ctx.subject.employment, 'effective_range.from', '');\nconst before60 = get(facts, 'statutory.SSS.elections.covered_before_60', false) === true ||\n\t(dob !== '' && start !== '' && age_on(dob, start) < p.ordinary_coverage_age_years);\nconst firstMonth = domestic && start !== '' && calendar_completed_months(start, ctx.run.salary_coverage.from) < 1;\nif (base <= 0) return false;\nif (exempt) return false;\nif (firstMonth) return false;\nif (age >= p.extended_coverage_age_years) return false;\nreturn age < p.ordinary_coverage_age_years || before60;",
-		"employee_amount": "const p = ctx.lookup;\nconst base = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst low = domestic && base < p.domestic_threshold;\nconst credit = low\n\t? Math.max(round(base, p.salary_credit_step, 'HALF_UP'), p.domestic_salary_credit_floor)\n\t: clamp(round(base, p.salary_credit_step, 'HALF_UP'), p.minimum_salary_credit, p.maximum_salary_credit);\nif (low) return 0;\nconst regular = Math.min(credit, p.regular_fund_salary_credit_ceiling);\nreturn round(regular * p.employee_rate, p.minor_unit, 'HALF_UP');",
-		"employer_amount": "const p = ctx.lookup;\nconst base = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst low = domestic && base < p.domestic_threshold;\nconst credit = low\n\t? Math.max(round(base, p.salary_credit_step, 'HALF_UP'), p.domestic_salary_credit_floor)\n\t: clamp(round(base, p.salary_credit_step, 'HALF_UP'), p.minimum_salary_credit, p.maximum_salary_credit);\nreturn low\n\t? round(credit * p.combined_rate, p.minor_unit, 'HALF_UP')\n\t: round(Math.min(credit, p.regular_fund_salary_credit_ceiling) * p.employer_rate, p.minor_unit, 'HALF_UP');",
-		"employer_cost_subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
+		"eligibility": "const p = ctx.lookup;\nconst base = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = category === 'DOMESTIC';\nconst exempt = get(facts, 'statutory.SSS.elections.exempt_by_totalisation', false) === true;\nconst dob = get(ctx.subject.employment, 'payroll.date_of_birth', '');\nconst age = dob === '' ? 0 : age_on(dob, add_days(ctx.run.salary_coverage.from, -1));\nconst start = get(ctx.subject.employment, 'effective_range.from', '');\nconst before60 = get(facts, 'statutory.SSS.elections.covered_before_60', false) === true ||\n\t(dob !== '' && start !== '' && age_on(dob, start) < p.ordinary_coverage_age_years);\nconst firstMonth = domestic && start !== '' && calendar_completed_months(start, ctx.run.salary_coverage.from) < 1;\nif (base <= 0) return false;\nif (exempt) return false;\nif (firstMonth) return false;\nif (age >= p.extended_coverage_age_years) return false;\nreturn age < p.ordinary_coverage_age_years || before60;",
+		"employee_amount": "const p = ctx.lookup;\n// Twice a month the first run charges half of the month its own wages imply; the second charges what the month's actual wages leave, and a person with one run that month is charged whole.\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\nconst earlier = (code) => heldIn(paidMonth, code);\nconst before = earlier('ORDINARY_WAGES');\nconst coverage = ctx.run.salary_coverage;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nconst firstRun = Number(coverage.to.slice(8, 10)) <= 15;\nconst alone = firstRun ? exit !== null && exit <= coverage.to : get(ctx.subject.employment, 'effective_range.from', '') >= coverage.from;\nconst runs = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY' && !alone && before === 0 ? 2 : 1;\nconst now = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst base = before > 0 ? before + now : now * runs;\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = category === 'DOMESTIC';\nconst low = domestic && base < p.domestic_threshold;\nconst credit = low\n\t? Math.max(round(base, p.salary_credit_step, 'HALF_UP'), p.domestic_salary_credit_floor)\n\t: clamp(round(base, p.salary_credit_step, 'HALF_UP'), p.minimum_salary_credit, p.maximum_salary_credit);\nif (low) return 0;\nconst regular = Math.min(credit, p.regular_fund_salary_credit_ceiling);\nreturn Math.max(0, round(regular * p.sss_employee_rate / runs, p.minor_unit, 'HALF_UP') - earlier('SSS.employee'));",
+		"employer_amount": "const p = ctx.lookup;\n// Twice a month the first run charges half of the month its own wages imply; the second charges what the month's actual wages leave, and a person with one run that month is charged whole.\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\nconst earlier = (code) => heldIn(paidMonth, code);\nconst before = earlier('ORDINARY_WAGES');\nconst coverage = ctx.run.salary_coverage;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nconst firstRun = Number(coverage.to.slice(8, 10)) <= 15;\nconst alone = firstRun ? exit !== null && exit <= coverage.to : get(ctx.subject.employment, 'effective_range.from', '') >= coverage.from;\nconst runs = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY' && !alone && before === 0 ? 2 : 1;\nconst now = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst base = before > 0 ? before + now : now * runs;\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = category === 'DOMESTIC';\nconst low = domestic && base < p.domestic_threshold;\nconst credit = low\n\t? Math.max(round(base, p.salary_credit_step, 'HALF_UP'), p.domestic_salary_credit_floor)\n\t: clamp(round(base, p.salary_credit_step, 'HALF_UP'), p.minimum_salary_credit, p.maximum_salary_credit);\nconst owed = low\n\t? round(credit * (p.sss_employee_rate + p.sss_employer_rate) / runs, p.minor_unit, 'HALF_UP')\n\t: round(Math.min(credit, p.regular_fund_salary_credit_ceiling) * p.sss_employer_rate / runs, p.minor_unit, 'HALF_UP');\nreturn Math.max(0, owed - earlier('SSS.employer'));",
+		"employer_cost_subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"id": "fb7b18cf-0654-57d2-b95f-dc2c859af0d4",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
 	{
 		"code": "SSS_MPF",
 		"name": "SSS Mandatory Provident Fund (WISP)",
-		"lookup": {
-			"minor_unit": 0.01,
-			"employee_rate": 0.05,
-			"employer_rate": 0.1,
-			"minimum_salary_credit": 5000,
-			"maximum_salary_credit": 35000,
-			"salary_credit_step": 500,
-			"regular_fund_salary_credit_ceiling": 20000,
-			"domestic_salary_credit_floor": 1000,
-			"domestic_threshold": 5000
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Republic Act 11199 (Social Security Act of 2018)",
@@ -119,11 +96,11 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": ["SSS"],
 		"off_cycle_eligible": false,
-		"subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"eligibility": "return get(ctx.statutory, 'SSS', null) !== null;",
-		"employee_amount": "const p = ctx.lookup;\nconst base = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst low = domestic && base < p.domestic_threshold;\nconst credit = low\n\t? Math.max(round(base, p.salary_credit_step, 'HALF_UP'), p.domestic_salary_credit_floor)\n\t: clamp(round(base, p.salary_credit_step, 'HALF_UP'), p.minimum_salary_credit, p.maximum_salary_credit);\nif (low) return 0;\nconst excess = Math.max(0, credit - p.regular_fund_salary_credit_ceiling);\nreturn round(excess * p.employee_rate, p.minor_unit, 'HALF_UP');",
-		"employer_amount": "const p = ctx.lookup;\nconst base = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst low = domestic && base < p.domestic_threshold;\nconst credit = low\n\t? Math.max(round(base, p.salary_credit_step, 'HALF_UP'), p.domestic_salary_credit_floor)\n\t: clamp(round(base, p.salary_credit_step, 'HALF_UP'), p.minimum_salary_credit, p.maximum_salary_credit);\nif (low) return 0;\nconst excess = Math.max(0, credit - p.regular_fund_salary_credit_ceiling);\nreturn round(excess * p.employer_rate, p.minor_unit, 'HALF_UP');",
-		"employer_cost_subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"employee_amount": "const p = ctx.lookup;\n// Twice a month the first run charges half of the month its own wages imply; the second charges what the month's actual wages leave, and a person with one run that month is charged whole.\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\nconst earlier = (code) => heldIn(paidMonth, code);\nconst before = earlier('ORDINARY_WAGES');\nconst coverage = ctx.run.salary_coverage;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nconst firstRun = Number(coverage.to.slice(8, 10)) <= 15;\nconst alone = firstRun ? exit !== null && exit <= coverage.to : get(ctx.subject.employment, 'effective_range.from', '') >= coverage.from;\nconst runs = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY' && !alone && before === 0 ? 2 : 1;\nconst now = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst base = before > 0 ? before + now : now * runs;\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = category === 'DOMESTIC';\nconst low = domestic && base < p.domestic_threshold;\nconst credit = low\n\t? Math.max(round(base, p.salary_credit_step, 'HALF_UP'), p.domestic_salary_credit_floor)\n\t: clamp(round(base, p.salary_credit_step, 'HALF_UP'), p.minimum_salary_credit, p.maximum_salary_credit);\nif (low) return 0;\nconst excess = Math.max(0, credit - p.regular_fund_salary_credit_ceiling);\nreturn Math.max(0, round(excess * p.sss_employee_rate / runs, p.minor_unit, 'HALF_UP') - earlier('SSS_MPF.employee'));",
+		"employer_amount": "const p = ctx.lookup;\n// Twice a month the first run charges half of the month its own wages imply; the second charges what the month's actual wages leave, and a person with one run that month is charged whole.\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\nconst earlier = (code) => heldIn(paidMonth, code);\nconst before = earlier('ORDINARY_WAGES');\nconst coverage = ctx.run.salary_coverage;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nconst firstRun = Number(coverage.to.slice(8, 10)) <= 15;\nconst alone = firstRun ? exit !== null && exit <= coverage.to : get(ctx.subject.employment, 'effective_range.from', '') >= coverage.from;\nconst runs = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY' && !alone && before === 0 ? 2 : 1;\nconst now = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst base = before > 0 ? before + now : now * runs;\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = category === 'DOMESTIC';\nconst low = domestic && base < p.domestic_threshold;\nconst credit = low\n\t? Math.max(round(base, p.salary_credit_step, 'HALF_UP'), p.domestic_salary_credit_floor)\n\t: clamp(round(base, p.salary_credit_step, 'HALF_UP'), p.minimum_salary_credit, p.maximum_salary_credit);\nif (low) return 0;\nconst excess = Math.max(0, credit - p.regular_fund_salary_credit_ceiling);\nreturn Math.max(0, round(excess * p.sss_employer_rate / runs, p.minor_unit, 'HALF_UP') - earlier('SSS_MPF.employer'));",
+		"employer_cost_subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"id": "77b9e570-8245-503d-b0b5-242a235a95a2",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -133,12 +110,7 @@
 		"lookup": {
 			"employer_compensation_salary_threshold": 15000,
 			"lower_employer_compensation_amount": 10,
-			"upper_employer_compensation_amount": 30,
-			"minimum_salary_credit": 5000,
-			"maximum_salary_credit": 35000,
-			"salary_credit_step": 500,
-			"domestic_salary_credit_floor": 1000,
-			"domestic_threshold": 5000
+			"upper_employer_compensation_amount": 30
 		},
 		"references": [
 			{
@@ -184,11 +156,11 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": ["SSS"],
 		"off_cycle_eligible": false,
-		"subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"eligibility": "return get(ctx.statutory, 'SSS', null) !== null;",
 		"employee_amount": "return 0;",
-		"employer_amount": "const p = ctx.lookup;\nconst base = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst low = domestic && base < p.domestic_threshold;\nconst credit = low\n\t? Math.max(round(base, p.salary_credit_step, 'HALF_UP'), p.domestic_salary_credit_floor)\n\t: clamp(round(base, p.salary_credit_step, 'HALF_UP'), p.minimum_salary_credit, p.maximum_salary_credit);\nreturn credit >= p.employer_compensation_salary_threshold\n\t? p.upper_employer_compensation_amount\n\t: p.lower_employer_compensation_amount;",
-		"employer_cost_subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"employer_amount": "const p = ctx.lookup;\n// Twice a month each run charges half of the month its own wages imply; a person with one run that month, a joiner or a leaver, is charged whole.\nconst coverage = ctx.run.salary_coverage;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nconst firstRun = Number(coverage.to.slice(8, 10)) <= 15;\nconst alone = firstRun ? exit !== null && exit <= coverage.to : get(ctx.subject.employment, 'effective_range.from', '') >= coverage.from;\nconst runs = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY' && !alone ? 2 : 1;\nconst base = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay))) * runs;\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = category === 'DOMESTIC';\nconst low = domestic && base < p.domestic_threshold;\nconst credit = low\n\t? Math.max(round(base, p.salary_credit_step, 'HALF_UP'), p.domestic_salary_credit_floor)\n\t: clamp(round(base, p.salary_credit_step, 'HALF_UP'), p.minimum_salary_credit, p.maximum_salary_credit);\nconst premium = credit >= p.employer_compensation_salary_threshold\n\t? p.upper_employer_compensation_amount\n\t: p.lower_employer_compensation_amount;\nreturn premium / runs;",
+		"employer_cost_subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"id": "082a25d9-b437-5b97-8b86-a5c6b72dbe2a",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -196,11 +168,9 @@
 		"code": "PHIC",
 		"name": "PhilHealth",
 		"lookup": {
-			"minor_unit": 0.01,
 			"combined_rate": 0.05,
 			"minimum_salary_base": 10000,
-			"maximum_salary_base": 100000,
-			"domestic_threshold": 5000
+			"maximum_salary_base": 100000
 		},
 		"references": [
 			{
@@ -234,17 +204,17 @@
 				"title": "PhilHealth Monthly Basic Salary excludes 13th month, bonus, commission, overtime and allowances",
 				"locator": "RA 11223 s.10; PhilHealth Circular 2020-0005 §V.F; Advisory 2025-0002",
 				"url": "https://www.philhealth.gov.ph/circulars/2020/circ2020-0005.pdf",
-				"quote": "Read 2026-11-05. MBS is \"the fixed basic rate of an employee which shall not include sales commission, overtime pay, allowances, thirteenth month pay, bonuses or other gratuity payments\", and pay deductions for undertime, tardiness, leave without pay and absences \"shall also be excluded in this computation\"; for monthly- and daily-paid employees it follows the Estimated Equivalent Monthly Rate of the DOLE Handbook (2024 ch.1 §E: daily rate × factor ÷ 12). So the premium reads the contract rate, whole for a short month, and never the paid BASIC checkpoint, which unpaid days reduce. BASIC only gates it: a run with no paid basic, such as a settlement after the exit month, charges none."
+				"quote": "Read 2026-11-05. MBS is \"the fixed basic rate of an employee which shall not include sales commission, overtime pay, allowances, thirteenth month pay, bonuses or other gratuity payments\", and pay deductions for undertime, tardiness, leave without pay and absences \"shall also be excluded in this computation\"; for monthly- and daily-paid employees it follows the Estimated Equivalent Monthly Rate of the DOLE Handbook (2024 ch.1 §E: daily rate × factor ÷ 12). So the premium reads the contract rate, whole for a short month, and never the paid BASIC checkpoint, which unpaid days reduce. BASIC only gates it: a run with no paid basic, such as a settlement after the exit month, charges none. On a SEMI_MONTHLY schedule the month's share splits across the two runs, whole for a joiner or leaver with one run that month."
 			}
 		],
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"off_cycle_eligible": false,
-		"subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
-		"eligibility": "const monthlyBasic = Number(get(ctx.subtotals, 'BASIC', ctx.base_pay));\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst start = get(ctx.subject.employment, 'effective_range.from', '');\nconst firstMonth = domestic && start !== '' && calendar_completed_months(start, ctx.run.salary_coverage.from) < 1;\nreturn monthlyBasic > 0 && !firstMonth;",
-		"employee_amount": "const p = ctx.lookup;\n// PhilHealth Circular 2020-0005 s.IV.F; Advisory 2025-0002: the fixed basic rate, whole against undertime, tardiness,\n// leave without pay and absences. A daily or hourly rate takes its Estimated Equivalent Monthly Rate.\nconst rate = Number(get(ctx.subject.employment, 'terms.rate.amount', 0));\nconst unit = get(ctx.subject.employment, 'terms.rate.unit', 'MONTHLY');\nconst days = Number(get(ctx.subject.employment, 'employee_extension_data.days_per_year', 313));\nconst hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day', 8));\nconst monthlyBasic = unit === 'DAILY'\n\t? rate * days / 12\n\t: unit === 'HOURLY'\n\t\t? rate * hours * days / 12\n\t\t: rate;\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst base = clamp(monthlyBasic, p.minimum_salary_base, p.maximum_salary_base);\nconst premium = round(base * p.combined_rate, p.minor_unit, 'HALF_UP');\nreturn domestic && monthlyBasic < p.domestic_threshold\n\t? 0\n\t: round(premium / 2, p.minor_unit, 'TRUNCATE');",
-		"employer_amount": "const p = ctx.lookup;\n// PhilHealth Circular 2020-0005 s.IV.F; Advisory 2025-0002: the fixed basic rate, whole against undertime, tardiness,\n// leave without pay and absences. A daily or hourly rate takes its Estimated Equivalent Monthly Rate.\nconst rate = Number(get(ctx.subject.employment, 'terms.rate.amount', 0));\nconst unit = get(ctx.subject.employment, 'terms.rate.unit', 'MONTHLY');\nconst days = Number(get(ctx.subject.employment, 'employee_extension_data.days_per_year', 313));\nconst hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day', 8));\nconst monthlyBasic = unit === 'DAILY'\n\t? rate * days / 12\n\t: unit === 'HOURLY'\n\t\t? rate * hours * days / 12\n\t\t: rate;\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst base = clamp(monthlyBasic, p.minimum_salary_base, p.maximum_salary_base);\nconst premium = round(base * p.combined_rate, p.minor_unit, 'HALF_UP');\nconst share = round(premium / 2, p.minor_unit, 'TRUNCATE');\nreturn domestic && monthlyBasic < p.domestic_threshold\n\t? premium\n\t: round(premium - share, p.minor_unit, 'HALF_UP');",
-		"employer_cost_subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
+		"eligibility": "const monthlyBasic = Number(get(ctx.subtotals, 'BASIC', ctx.base_pay));\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = category === 'DOMESTIC';\nconst start = get(ctx.subject.employment, 'effective_range.from', '');\nconst firstMonth = domestic && start !== '' && calendar_completed_months(start, ctx.run.salary_coverage.from) < 1;\nreturn monthlyBasic > 0 && !firstMonth;",
+		"employee_amount": "const p = ctx.lookup;\n// PhilHealth Circular 2020-0005 s.IV.F; Advisory 2025-0002: the fixed basic rate, whole against undertime, tardiness,\n// leave without pay and absences. A daily or hourly rate takes its Estimated Equivalent Monthly Rate.\n// Twice a month the month's share splits across the two runs, whole for a joiner or leaver with one run that month.\nconst coverage = ctx.run.salary_coverage;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nconst firstRun = Number(coverage.to.slice(8, 10)) <= 15;\nconst alone = firstRun ? exit !== null && exit <= coverage.to : get(ctx.subject.employment, 'effective_range.from', '') >= coverage.from;\nconst runs = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY' && !alone ? 2 : 1;\nconst rate = Number(get(ctx.subject.employment, 'terms.rate.amount', 0));\nconst unit = get(ctx.subject.employment, 'terms.rate.unit', 'MONTHLY');\nconst days = Number(get(ctx.subject.employment, 'employee_extension_data.days_per_year', p.days_per_year));\nconst monthlyBasic = unit === 'DAILY' || unit === 'HOURLY' ? (ctx.day_rate * days) / p.months_per_year : rate;\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = category === 'DOMESTIC';\nconst base = clamp(monthlyBasic, p.minimum_salary_base, p.maximum_salary_base);\nconst premium = round(base * p.combined_rate, p.minor_unit, 'HALF_UP');\nconst month = domestic && monthlyBasic < p.domestic_threshold\n\t? 0\n\t: round(premium / 2, p.minor_unit, 'TRUNCATE');\nif (runs === 1) return month;\nconst half = round(month / 2, p.minor_unit, 'TRUNCATE');\nreturn firstRun ? half : round(month - half, p.minor_unit, 'HALF_UP');",
+		"employer_amount": "const p = ctx.lookup;\n// PhilHealth Circular 2020-0005 s.IV.F; Advisory 2025-0002: the fixed basic rate, whole against undertime, tardiness,\n// leave without pay and absences. A daily or hourly rate takes its Estimated Equivalent Monthly Rate.\n// Twice a month the month's share splits across the two runs, whole for a joiner or leaver with one run that month.\nconst coverage = ctx.run.salary_coverage;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nconst firstRun = Number(coverage.to.slice(8, 10)) <= 15;\nconst alone = firstRun ? exit !== null && exit <= coverage.to : get(ctx.subject.employment, 'effective_range.from', '') >= coverage.from;\nconst runs = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY' && !alone ? 2 : 1;\nconst rate = Number(get(ctx.subject.employment, 'terms.rate.amount', 0));\nconst unit = get(ctx.subject.employment, 'terms.rate.unit', 'MONTHLY');\nconst days = Number(get(ctx.subject.employment, 'employee_extension_data.days_per_year', p.days_per_year));\nconst monthlyBasic = unit === 'DAILY' || unit === 'HOURLY' ? (ctx.day_rate * days) / p.months_per_year : rate;\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = category === 'DOMESTIC';\nconst base = clamp(monthlyBasic, p.minimum_salary_base, p.maximum_salary_base);\nconst premium = round(base * p.combined_rate, p.minor_unit, 'HALF_UP');\nconst share = round(premium / 2, p.minor_unit, 'TRUNCATE');\nconst month = domestic && monthlyBasic < p.domestic_threshold\n\t? premium\n\t: round(premium - share, p.minor_unit, 'HALF_UP');\nif (runs === 1) return month;\nconst half = round(month / 2, p.minor_unit, 'TRUNCATE');\nreturn firstRun ? half : round(month - half, p.minor_unit, 'HALF_UP');",
+		"employer_cost_subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"id": "af49b039-44b1-5211-aee7-1cc305f5cad2",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -252,14 +222,10 @@
 		"code": "HDMF",
 		"name": "Pag-IBIG Fund (Home Development Mutual Fund)",
 		"lookup": {
-			"minor_unit": 0.01,
 			"maximum_salary_base": 10000,
 			"lower_employee_rate_salary_ceiling": 1500,
 			"lower_employee_rate": 0.01,
-			"higher_employee_and_employer_rate": 0.02,
-			"domestic_threshold": 5000,
-			"ordinary_coverage_age_years": 60,
-			"extended_coverage_age_years": 65
+			"higher_employee_and_employer_rate": 0.02
 		},
 		"references": [
 			{
@@ -297,17 +263,17 @@
 				"title": "Pag-IBIG Fund Salary excludes 13th month and bonus",
 				"locator": "RA 9679 ss.4, 7; HDMF Circular 460 C.1",
 				"url": "https://mpm.ph/wp-content/uploads/2024/01/HDMF-Circular-No.-460-Pag-ibig-HDMF-Table-2024.pdf",
-				"quote": "Read 2026-11-04. RA 9679 s.4 defines compensation as \"basic monthly salary plus mandated cost of living allowance\"; s.7 computes contributions on that monthly compensation. Circular 460's Fund Salary is \"basic salary and other allowances\" — a bonus or 13th-month payment is neither. The ORDINARY_WAGES checkpoint applies."
+				"quote": "Read 2026-11-04. RA 9679 s.4 defines compensation as \"basic monthly salary plus mandated cost of living allowance\"; s.7 computes contributions on that monthly compensation. Circular 460's Fund Salary is \"basic salary and other allowances\" — a bonus or 13th-month payment is neither. The ORDINARY_WAGES checkpoint applies. On a SEMI_MONTHLY schedule each run charges half of the month its own wages imply, whole for a joiner or leaver with one run that month: `ctx.balances` holds tax-year totals, so the second run cannot read what the first paid."
 			}
 		],
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"off_cycle_eligible": false,
-		"subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
-		"eligibility": "const facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst start = get(ctx.subject.employment, 'effective_range.from', '');\nconst firstMonth = domestic && start !== '' && calendar_completed_months(start, ctx.run.salary_coverage.from) < 1;\nconst dob = get(ctx.subject.employment, 'payroll.date_of_birth', '');\nconst age = dob === '' ? 0 : age_on(dob, add_days(ctx.run.salary_coverage.from, -1));\nconst before60 = get(facts, 'statutory.SSS.elections.covered_before_60', false) === true ||\n\t(dob !== '' && start !== '' && age_on(dob, start) < ctx.lookup.ordinary_coverage_age_years);\nif (firstMonth) return false;\nif (age < ctx.lookup.ordinary_coverage_age_years) return true;\nreturn before60 && age < ctx.lookup.extended_coverage_age_years;",
-		"employee_amount": "const p = ctx.lookup;\nconst ordinary = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst base = Math.min(ordinary, p.maximum_salary_base);\nconst rate = base <= p.lower_employee_rate_salary_ceiling ? p.lower_employee_rate : p.higher_employee_and_employer_rate;\nconst employee = round(base * rate, p.minor_unit, 'HALF_UP');\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nreturn domestic && ordinary < p.domestic_threshold ? 0 : employee;",
-		"employer_amount": "const p = ctx.lookup;\nconst ordinary = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst base = Math.min(ordinary, p.maximum_salary_base);\nconst rate = base <= p.lower_employee_rate_salary_ceiling ? p.lower_employee_rate : p.higher_employee_and_employer_rate;\nconst employee = round(base * rate, p.minor_unit, 'HALF_UP');\nconst employer = round(base * p.higher_employee_and_employer_rate, p.minor_unit, 'HALF_UP');\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nreturn domestic && ordinary < p.domestic_threshold\n\t? round(employee + employer, p.minor_unit, 'HALF_UP')\n\t: employer;",
-		"employer_cost_subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
+		"eligibility": "const facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = category === 'DOMESTIC';\nconst start = get(ctx.subject.employment, 'effective_range.from', '');\nconst firstMonth = domestic && start !== '' && calendar_completed_months(start, ctx.run.salary_coverage.from) < 1;\nconst dob = get(ctx.subject.employment, 'payroll.date_of_birth', '');\nconst age = dob === '' ? 0 : age_on(dob, add_days(ctx.run.salary_coverage.from, -1));\nconst before60 = get(facts, 'statutory.SSS.elections.covered_before_60', false) === true ||\n\t(dob !== '' && start !== '' && age_on(dob, start) < ctx.lookup.ordinary_coverage_age_years);\nif (firstMonth) return false;\nif (age < ctx.lookup.ordinary_coverage_age_years) return true;\nreturn before60 && age < ctx.lookup.extended_coverage_age_years;",
+		"employee_amount": "const p = ctx.lookup;\n// Twice a month the first run charges half of the month its own wages imply; the second charges what the month's actual wages leave, and a person with one run that month is charged whole.\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\nconst earlier = (code) => heldIn(paidMonth, code);\nconst before = earlier('ORDINARY_WAGES');\nconst coverage = ctx.run.salary_coverage;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nconst firstRun = Number(coverage.to.slice(8, 10)) <= 15;\nconst alone = firstRun ? exit !== null && exit <= coverage.to : get(ctx.subject.employment, 'effective_range.from', '') >= coverage.from;\nconst runs = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY' && !alone && before === 0 ? 2 : 1;\nconst now = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst ordinary = before > 0 ? before + now : now * runs;\nconst base = Math.min(ordinary, p.maximum_salary_base);\nconst rate = base <= p.lower_employee_rate_salary_ceiling ? p.lower_employee_rate : p.higher_employee_and_employer_rate;\nconst employee = round(base * rate / runs, p.minor_unit, 'HALF_UP');\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = category === 'DOMESTIC';\nreturn domestic && ordinary < p.domestic_threshold ? 0 : Math.max(0, employee - earlier('HDMF.employee'));",
+		"employer_amount": "const p = ctx.lookup;\n// Twice a month the first run charges half of the month its own wages imply; the second charges what the month's actual wages leave, and a person with one run that month is charged whole.\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\nconst earlier = (code) => heldIn(paidMonth, code);\nconst before = earlier('ORDINARY_WAGES');\nconst coverage = ctx.run.salary_coverage;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nconst firstRun = Number(coverage.to.slice(8, 10)) <= 15;\nconst alone = firstRun ? exit !== null && exit <= coverage.to : get(ctx.subject.employment, 'effective_range.from', '') >= coverage.from;\nconst runs = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY' && !alone && before === 0 ? 2 : 1;\nconst now = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst ordinary = before > 0 ? before + now : now * runs;\nconst base = Math.min(ordinary, p.maximum_salary_base);\nconst rate = base <= p.lower_employee_rate_salary_ceiling ? p.lower_employee_rate : p.higher_employee_and_employer_rate;\nconst employee = round(base * rate / runs, p.minor_unit, 'HALF_UP');\nconst employer = round(base * p.higher_employee_and_employer_rate / runs, p.minor_unit, 'HALF_UP');\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = category === 'DOMESTIC';\nconst owed = domestic && ordinary < p.domestic_threshold\n\t? round(employee + employer, p.minor_unit, 'HALF_UP')\n\t: employer;\nreturn Math.max(0, owed - earlier('HDMF.employer'));",
+		"employer_cost_subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"id": "d1c67697-4373-5d49-8cce-d8b5bed12602",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -315,7 +281,6 @@
 		"code": "WTAX",
 		"name": "Withholding Tax on Compensation",
 		"lookup": {
-			"minor_unit": 0.01,
 			"nonresident_rate": 0.25,
 			"monthly_tax": [
 				{
@@ -420,642 +385,7 @@
 					"up_to": null,
 					"rate": 0.35
 				}
-			],
-			"de_minimis": {
-				"rice_monthly": 2000,
-				"laundry_monthly": 300,
-				"dependant_medical_semester": 1500,
-				"uniform_annual": 7000,
-				"medical_annual": 10000,
-				"award_annual": 10000,
-				"cba_annual": 10000,
-				"gift_annual": 5000,
-				"monetised_leave_days": 10,
-				"overtime_meal_minimum_wage_share": 0.25,
-				"annual_bonus_and_other_benefits": 90000
-			},
-			"minimum_wage_by_region": [
-				{
-					"region": "BARMM-CITY-AGRI-RETAIL",
-					"from": "2026-12-01",
-					"monthly": 11372.33
-				},
-				{
-					"region": "BARMM-CITY-AGRI-RETAIL",
-					"from": "2026-08-06",
-					"monthly": 10720.25
-				},
-				{
-					"region": "BARMM-CITY-AGRI-RETAIL",
-					"from": "2025-12-01",
-					"monthly": 10068.17
-				},
-				{
-					"region": "BARMM-CITY-NONAGRI",
-					"from": "2026-12-01",
-					"monthly": 12024.42
-				},
-				{
-					"region": "BARMM-CITY-NONAGRI",
-					"from": "2026-08-06",
-					"monthly": 11372.33
-				},
-				{
-					"region": "BARMM-CITY-NONAGRI",
-					"from": "2025-12-01",
-					"monthly": 10720.25
-				},
-				{
-					"region": "BARMM-PROV-AGRI",
-					"from": "2026-12-01",
-					"monthly": 11111.5
-				},
-				{
-					"region": "BARMM-PROV-AGRI",
-					"from": "2026-08-06",
-					"monthly": 10459.42
-				},
-				{
-					"region": "BARMM-PROV-AGRI",
-					"from": "2025-12-01",
-					"monthly": 9807.33
-				},
-				{
-					"region": "BARMM-PROV-NONAGRI",
-					"from": "2026-12-01",
-					"monthly": 11372.33
-				},
-				{
-					"region": "BARMM-PROV-NONAGRI",
-					"from": "2026-08-06",
-					"monthly": 10720.25
-				},
-				{
-					"region": "BARMM-PROV-NONAGRI",
-					"from": "2025-12-01",
-					"monthly": 10068.17
-				},
-				{
-					"region": "CAR",
-					"from": "2025-12-30",
-					"monthly": 13172.08
-				},
-				{
-					"region": "CAR",
-					"from": "2025-12-01",
-					"monthly": 12259.17
-				},
-				{
-					"region": "I-LOW",
-					"from": "2025-12-01",
-					"monthly": 12520
-				},
-				{
-					"region": "I-NONAGRI-10PLUS",
-					"from": "2025-12-01",
-					"monthly": 13172.08
-				},
-				{
-					"region": "II",
-					"from": "2025-12-01",
-					"monthly": 13041.67
-				},
-				{
-					"region": "III-AURORA-AGRI",
-					"from": "2026-04-16",
-					"monthly": 14215.42
-				},
-				{
-					"region": "III-AURORA-AGRI",
-					"from": "2025-12-01",
-					"monthly": 13432.92
-				},
-				{
-					"region": "III-AURORA-NONAGRI",
-					"from": "2026-04-16",
-					"monthly": 14606.67
-				},
-				{
-					"region": "III-AURORA-NONAGRI",
-					"from": "2025-12-01",
-					"monthly": 13824.17
-				},
-				{
-					"region": "III-AURORA-RETAIL",
-					"from": "2026-04-16",
-					"monthly": 13432.92
-				},
-				{
-					"region": "III-AURORA-RETAIL",
-					"from": "2025-12-01",
-					"monthly": 12389.58
-				},
-				{
-					"region": "III-CORE-AGRI",
-					"from": "2026-04-16",
-					"monthly": 14867.5
-				},
-				{
-					"region": "III-CORE-AGRI",
-					"from": "2025-12-01",
-					"monthly": 14085
-				},
-				{
-					"region": "III-CORE-NONAGRI",
-					"from": "2026-04-16",
-					"monthly": 15650
-				},
-				{
-					"region": "III-CORE-NONAGRI",
-					"from": "2025-12-01",
-					"monthly": 14867.5
-				},
-				{
-					"region": "III-CORE-RETAIL",
-					"from": "2026-04-16",
-					"monthly": 15389.17
-				},
-				{
-					"region": "III-CORE-RETAIL",
-					"from": "2025-12-01",
-					"monthly": 14606.67
-				},
-				{
-					"region": "IV-A",
-					"from": "2025-12-01",
-					"monthly": 15650
-				},
-				{
-					"region": "IV-A-1ST",
-					"from": "2025-12-01",
-					"monthly": 14345.83
-				},
-				{
-					"region": "IV-A-2ND-5TH",
-					"from": "2026-04-01",
-					"monthly": 13693.75
-				},
-				{
-					"region": "IV-A-2ND-5TH",
-					"from": "2025-12-01",
-					"monthly": 13302.5
-				},
-				{
-					"region": "IV-A-AGRI-2ND-5TH",
-					"from": "2026-04-01",
-					"monthly": 13250.33
-				},
-				{
-					"region": "IV-A-AGRI-2ND-5TH",
-					"from": "2025-12-01",
-					"monthly": 12650.42
-				},
-				{
-					"region": "IV-A-AGRI-COMPONENT-1ST",
-					"from": "2025-12-01",
-					"monthly": 13693.75
-				},
-				{
-					"region": "IV-A-AGRI-RECLASSIFIED-1ST",
-					"from": "2026-04-01",
-					"monthly": 13693.75
-				},
-				{
-					"region": "IV-A-AGRI-RECLASSIFIED-1ST",
-					"from": "2025-12-01",
-					"monthly": 12650.42
-				},
-				{
-					"region": "IV-A-RECLASSIFIED-1ST",
-					"from": "2026-04-01",
-					"monthly": 14345.83
-				},
-				{
-					"region": "IV-A-RECLASSIFIED-1ST",
-					"from": "2025-12-01",
-					"monthly": 13302.5
-				},
-				{
-					"region": "IV-A-ROSARIO-CAVITE",
-					"from": "2025-12-01",
-					"monthly": 15650
-				},
-				{
-					"region": "IV-A-RETAIL-SMALL",
-					"from": "2026-04-01",
-					"monthly": 13250.33
-				},
-				{
-					"region": "IV-A-RETAIL-SMALL",
-					"from": "2025-12-01",
-					"monthly": 12650.42
-				},
-				{
-					"region": "IV-B",
-					"from": "2026-01-01",
-					"monthly": 11867.92
-				},
-				{
-					"region": "IV-B",
-					"from": "2025-12-01",
-					"monthly": 11215.83
-				},
-				{
-					"region": "IV-B-SMALL",
-					"from": "2026-01-01",
-					"monthly": 11867.92
-				},
-				{
-					"region": "IV-B-SMALL",
-					"from": "2025-12-01",
-					"monthly": 10537.67
-				},
-				{
-					"region": "IX-HIGH",
-					"from": "2026-06-01",
-					"monthly": 12102.67
-				},
-				{
-					"region": "IX-HIGH",
-					"from": "2026-01-01",
-					"monthly": 11450.58
-				},
-				{
-					"region": "IX-HIGH",
-					"from": "2025-12-01",
-					"monthly": 10798.5
-				},
-				{
-					"region": "IX-LOW",
-					"from": "2026-06-01",
-					"monthly": 11763.58
-				},
-				{
-					"region": "IX-LOW",
-					"from": "2026-01-01",
-					"monthly": 11111.5
-				},
-				{
-					"region": "IX-LOW",
-					"from": "2025-12-01",
-					"monthly": 10459.42
-				},
-				{
-					"region": "NCR",
-					"from": "2026-09-26",
-					"monthly": 19692.92
-				},
-				{
-					"region": "NCR",
-					"from": "2025-12-01",
-					"monthly": 18127.92
-				},
-				{
-					"region": "NCR-AGRI-SMALL",
-					"from": "2026-09-26",
-					"monthly": 18727.83
-				},
-				{
-					"region": "NCR-AGRI-SMALL",
-					"from": "2025-12-01",
-					"monthly": 17162.83
-				},
-				{
-					"region": "V",
-					"from": "2026-12-01",
-					"monthly": 12520
-				},
-				{
-					"region": "V",
-					"from": "2026-04-08",
-					"monthly": 11867.92
-				},
-				{
-					"region": "V",
-					"from": "2025-12-01",
-					"monthly": 11346.25
-				},
-				{
-					"region": "VI-AGRI",
-					"from": "2025-12-01",
-					"monthly": 13563.33
-				},
-				{
-					"region": "VI-NONAGRI-10ORLESS",
-					"from": "2025-12-01",
-					"monthly": 13693.75
-				},
-				{
-					"region": "VI-NONAGRI-11PLUS",
-					"from": "2025-12-01",
-					"monthly": 14345.83
-				},
-				{
-					"region": "VII-A",
-					"from": "2026-10-14",
-					"monthly": 15180.5
-				},
-				{
-					"region": "VII-A",
-					"from": "2025-12-01",
-					"monthly": 14085
-				},
-				{
-					"region": "VII-B",
-					"from": "2026-10-14",
-					"monthly": 14137.17
-				},
-				{
-					"region": "VII-B",
-					"from": "2025-12-01",
-					"monthly": 13041.67
-				},
-				{
-					"region": "VIII-HIGH",
-					"from": "2026-06-01",
-					"monthly": 12259.17
-				},
-				{
-					"region": "VIII-HIGH",
-					"from": "2025-12-08",
-					"monthly": 11789.67
-				},
-				{
-					"region": "VIII-HIGH",
-					"from": "2025-12-01",
-					"monthly": 11346.25
-				},
-				{
-					"region": "VIII-LOW",
-					"from": "2026-06-01",
-					"monthly": 11476.67
-				},
-				{
-					"region": "VIII-LOW",
-					"from": "2025-12-08",
-					"monthly": 11007.17
-				},
-				{
-					"region": "VIII-LOW",
-					"from": "2025-12-01",
-					"monthly": 10563.75
-				},
-				{
-					"region": "X-CAT-I",
-					"from": "2026-05-01",
-					"monthly": 13041.67
-				},
-				{
-					"region": "X-CAT-I",
-					"from": "2026-01-16",
-					"monthly": 12676.5
-				},
-				{
-					"region": "X-CAT-I",
-					"from": "2025-12-01",
-					"monthly": 12024.42
-				},
-				{
-					"region": "X-CAT-II",
-					"from": "2026-05-01",
-					"monthly": 12650.42
-				},
-				{
-					"region": "X-CAT-II",
-					"from": "2026-01-16",
-					"monthly": 12285.25
-				},
-				{
-					"region": "X-CAT-II",
-					"from": "2025-12-01",
-					"monthly": 11633.17
-				},
-				{
-					"region": "XI-AGRI",
-					"from": "2026-09-01",
-					"monthly": 13693.75
-				},
-				{
-					"region": "XI-AGRI",
-					"from": "2026-03-13",
-					"monthly": 13432.92
-				},
-				{
-					"region": "XI-AGRI",
-					"from": "2025-12-01",
-					"monthly": 13172.08
-				},
-				{
-					"region": "XI-NONAGRI",
-					"from": "2026-09-01",
-					"monthly": 14085
-				},
-				{
-					"region": "XI-NONAGRI",
-					"from": "2026-03-13",
-					"monthly": 13693.75
-				},
-				{
-					"region": "XI-NONAGRI",
-					"from": "2025-12-01",
-					"monthly": 13302.5
-				},
-				{
-					"region": "XII-AGRI",
-					"from": "2025-12-15",
-					"monthly": 11554.92
-				},
-				{
-					"region": "XII-AGRI",
-					"from": "2025-12-01",
-					"monthly": 11294.08
-				},
-				{
-					"region": "XII-NONAGRI",
-					"from": "2025-12-15",
-					"monthly": 11998.33
-				},
-				{
-					"region": "XII-NONAGRI",
-					"from": "2025-12-01",
-					"monthly": 11737.5
-				},
-				{
-					"region": "XIII",
-					"from": "2026-05-01",
-					"monthly": 12389.58
-				},
-				{
-					"region": "XIII",
-					"from": "2026-01-03",
-					"monthly": 11867.92
-				},
-				{
-					"region": "XIII",
-					"from": "2025-12-01",
-					"monthly": 11346.25
-				}
-			],
-			"minimum_wage_domestic": [
-				{
-					"region": "BARMM",
-					"from": "2026-01-08",
-					"monthly": 5500
-				},
-				{
-					"region": "BARMM",
-					"from": "2025-12-01",
-					"monthly": 5000
-				},
-				{
-					"region": "CAR",
-					"from": "2025-12-30",
-					"monthly": 6600
-				},
-				{
-					"region": "CAR",
-					"from": "2025-12-01",
-					"monthly": 6000
-				},
-				{
-					"region": "I",
-					"from": "2025-12-01",
-					"monthly": 6700
-				},
-				{
-					"region": "II",
-					"from": "2025-12-01",
-					"monthly": 6500
-				},
-				{
-					"region": "III",
-					"from": "2025-12-01",
-					"monthly": 6500
-				},
-				{
-					"region": "IV-A",
-					"from": "2025-12-01",
-					"monthly": 6750
-				},
-				{
-					"region": "IV-B",
-					"from": "2026-01-01",
-					"monthly": 7000
-				},
-				{
-					"region": "IV-B",
-					"from": "2025-12-01",
-					"monthly": 6500
-				},
-				{
-					"region": "IX",
-					"from": "2026-05-20",
-					"monthly": 6000
-				},
-				{
-					"region": "IX",
-					"from": "2025-12-01",
-					"monthly": 5500
-				},
-				{
-					"region": "IX-OTHER",
-					"from": "2026-05-20",
-					"monthly": 5500
-				},
-				{
-					"region": "IX-OTHER",
-					"from": "2025-12-01",
-					"monthly": 5000
-				},
-				{
-					"region": "NCR",
-					"from": "2026-02-07",
-					"monthly": 7800
-				},
-				{
-					"region": "NCR",
-					"from": "2025-12-01",
-					"monthly": 7000
-				},
-				{
-					"region": "V",
-					"from": "2025-12-01",
-					"monthly": 6000
-				},
-				{
-					"region": "VI",
-					"from": "2025-12-01",
-					"monthly": 6500
-				},
-				{
-					"region": "VII",
-					"from": "2026-10-14",
-					"monthly": 7500
-				},
-				{
-					"region": "VII",
-					"from": "2025-12-01",
-					"monthly": 7000
-				},
-				{
-					"region": "VIII",
-					"from": "2025-12-08",
-					"monthly": 6400
-				},
-				{
-					"region": "VIII",
-					"from": "2025-12-01",
-					"monthly": 6000
-				},
-				{
-					"region": "VIII-OTHER",
-					"from": "2025-12-08",
-					"monthly": 5800
-				},
-				{
-					"region": "VIII-OTHER",
-					"from": "2025-12-01",
-					"monthly": 5500
-				},
-				{
-					"region": "X",
-					"from": "2026-01-16",
-					"monthly": 6500
-				},
-				{
-					"region": "X",
-					"from": "2025-12-01",
-					"monthly": 6000
-				},
-				{
-					"region": "XI",
-					"from": "2026-03-13",
-					"monthly": 6500
-				},
-				{
-					"region": "XI",
-					"from": "2025-12-01",
-					"monthly": 6000
-				},
-				{
-					"region": "XII",
-					"from": "2025-12-01",
-					"monthly": 6000
-				},
-				{
-					"region": "XIII",
-					"from": "2026-01-03",
-					"monthly": 6500
-				},
-				{
-					"region": "XIII",
-					"from": "2025-12-01",
-					"monthly": 6000
-				}
-			],
-			"annual_paid_days": 313,
-			"normal_daily_hours": 8,
-			"rice_subsidy_ceiling": 2000
+			]
 		},
 		"references": [
 			{
@@ -1068,9 +398,9 @@
 			},
 			{
 				"title": "Revenue Regulations 11-2018",
-				"locator": "s.2.79(B)(5)(b) Steps 1-4; s.2.78.1(B)",
+				"locator": "s.2.79(A), (B)(5)(b) Steps 1-4; s.2.78.1(B)",
 				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf",
-				"quote": "Withholding on compensation. Each period withholds on the month to date with the monthly column; December's last period and the exit period annualise: the year's taxable compensation, plus a previous employer's (from its Form 2316), less the year's withholding; a negative result refunds. The year-end deficiency is withheld from the last payment of compensation for the year. Exclusions (s.2.78.1(B)): the employee shares of SSS, MPF, PhilHealth and Pag-IBIG as charged and union dues ((B)(12)); 13th-month pay, other benefits and de minimis excess to PHP90,000 ((B)(11)); minimum wage earner ((B)(13)): exempt on the statutory minimum wage, holiday, overtime, night-shift and hazard pay when the contract's rate for an 8-hour day is at or below the regional daily floor of the workplace in force on the period's last day; a certified BMBE has no floor. Fringe benefits: rank-and-file compensation; for supervisory and managerial staff the FBT scheme's instead."
+				"quote": "Withholding on compensation. Each period withholds on its own Annex E column; the last pay date of the calendar year and the exit run annualise: the year's taxable compensation, plus a previous employer's (from its Form 2316), less the year's withholding; a negative result refunds through WTAX_REFUND. The year-end deficiency is withheld from the last payment of compensation for the year. Exclusions (s.2.78.1(B)): the employee shares of SSS, MPF, PhilHealth and Pag-IBIG as charged and union dues ((B)(12)); 13th-month pay, other benefits and de minimis excess to PHP90,000 ((B)(11)); minimum wage earner ((B)(13)): exempt on the statutory minimum wage, holiday, overtime, night-shift and hazard pay when the contract's rate for an 8-hour day is at or below the regional daily floor of the workplace in force on the period's last day; a certified BMBE has no floor. Additional compensation paid to a minimum wage earner, such as commissions, fringe benefits, benefits over PHP90,000 and taxable allowances, is taxed alone (s.2.79(A)): \"taxable only on such additional compensation received\". Fringe benefits: rank-and-file compensation; for supervisory and managerial staff the FBT scheme's instead."
 			},
 			{
 				"title": "Revenue Regulations 11-2018, Annex E (withholding tax tables)",
@@ -1088,26 +418,26 @@
 				"quote": "A minimum wage earner is taxed on pay other than the statutory minimum wage and its holiday, overtime, night-shift and hazard pay."
 			},
 			{
-				"title": "RR11-2018 s.2.79(B)(3),(5)(a): overtime and other variable wage benefits are supplementary even though this template groups them in WTAX.WAGE for MWE exemptions. The review trigger separately counts known taxable variable-wage codes; MWE statutory wage benefits remain exempt. Historical variable wages and an offcycle before salary conservatively require exact-period review until captured actual-period classification supports automatic cumulative calculation.",
+				"title": "RR 11-2018 s.2.79(B)(3): overtime and commissions are supplementary compensation, taxed with the period's regular pay on its column. The cumulative average method of s.2.79(B)(5)(a) is not computed: it divides by the count of payroll periods, which the balance does not hold, so the annualisation trues up the year.",
 				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
 			},
 			{
-				"title": "RR11-2018 s.2.79(B)(3),(5)(a),(5)(b): cash/payment-date withholding. Complete same-frequency MONTHLY history derives cumulative tax using distinct actual salary periods, captured last causal assessment of each prior cash month, actual previous-employer taxable compensation/tax/period facts, and current actual month taxable base. Offcycles do not create periods. The cumulative excess is nonnegative; annual final-payment rule permits refunds. Unknown/mixed/delayed-period and legacy cases retain exact-period reviewed liability/refusal. December requires an evidenced final payment date, not a month-end inferred from a salary window.",
+				"title": "RR 11-2018 s.2.79(B)(5)(b): cash basis. The year is read from `ctx.balances`, the tax year's checkpoint and scheme totals before this run, plus this run. A previous employer's Form 2316 figures count when `previous_employer_year` is this year or unrecorded. A last run paid in the next calendar year is not annualised here: the balance has closed, so the December run paid in December is the last one.",
 				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
 			},
 			{
 				"title": "13th-month pay and other benefits are exempt to PHP90,000 in the aggregate",
 				"locator": "NIRC s.32(B)(7)(e); RR 11-2018 s.2.78.1(B)(11)",
 				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf",
-				"quote": "Read 2026-11-04. 13th-month pay and other benefits are excluded from gross compensation up to PHP90,000 for the calendar year; the excess is taxable compensation. The monthly withholding taxes the final GROSS and adds ADDITIONAL_WAGES - ORDINARY_WAGES once to the PHP90,000 pool, reading prior payslips' additional_wages for the part already used by the same employer."
+				"quote": "Read 2026-11-04. 13th-month pay and other benefits are excluded from gross compensation up to PHP90,000 for the calendar year; the excess is taxable compensation. The pool holds ADDITIONAL_WAGES - ORDINARY_WAGES and each de minimis class's excess over its ceiling; the part already used this year is the same figures read from `ctx.balances.ytd`. Exempt termination pay and SSS benefits post at GROSS, which WTAX does not read, except for a non-resident alien not engaged in trade or business, taxed on all of it."
 			}
 		],
 		"kind": "TAX",
 		"depends_on": ["SSS", "SSS_MPF", "PHIC", "HDMF"],
 		"off_cycle_eligible": false,
-		"subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"eligibility": "return Number(get(ctx.subtotals, 'GROSS', ctx.base_pay)) > 0;",
-		"employee_amount": "// RR 2-98 s.2.78.1(A)(3): a de minimis allowance to its ceiling is not compensation and uses none of the\n// PHP90,000 pool; the excess is an other benefit inside the pool. Monthly here; the semester ceiling is a sixth.\nconst allowance = (code) => Number(get(ctx.subject.employment, 'terms.allowances.' + code + '.amount', 0));\nconst deMinimis = [\n\t{ paid: allowance('meal'), ceiling: ctx.lookup.rice_subsidy_ceiling },\n\t{ paid: allowance('LAUNDRY_ALLOWANCE'), ceiling: ctx.lookup.de_minimis.laundry_monthly },\n\t{ paid: allowance('DEPENDANT_MEDICAL_ALLOWANCE'), ceiling: ctx.lookup.de_minimis.dependant_medical_semester / 6 }\n];\nconst deMinimisPaid = sum(deMinimis.map((row) => Math.min(row.paid, row.ceiling)));\nconst deMinimisExcess = sum(deMinimis.map((row) => Math.max(0, row.paid - row.ceiling)));\nconst ordinary = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst additional = Math.max(ordinary, Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', ordinary)));\nconst total = Math.max(additional, Number(get(ctx.subtotals, 'GROSS', additional)));\nconst benefits = additional - ordinary + deMinimisExcess;\nconst residency = get(ctx.subject.employment.terms, 'residency_status', 'RESIDENT');\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nif (get(facts, 'statutory.WTAX.elections.treaty_exempt', false) === true) return 0;\nif (residency === 'NON_RESIDENT_ALIEN_NETB') {\n\treturn round(total * ctx.lookup.nonresident_rate, ctx.lookup.minor_unit, 'HALF_UP');\n}\nconst minimumWageEarner = (() => {\n\tconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\n\tconst employerFacts = get(ctx.subject.employer, 'entity_extension_data', {});\n\tif (get(employerFacts, 'bmbe_certificate_of_authority', false) === true) return false;\n\tconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\n\tconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\n\tconst region = get(facts, 'work_region', get(employerFacts, 'region', ''));\n\tconst table = domestic ? ctx.lookup.minimum_wage_domestic : ctx.lookup.minimum_wage_by_region;\n\tconst rates = table.filter((entry) => entry.region === region);\n\tif (rates.length === 0) return false;\n\tconst day = ctx.run.salary_coverage.to;\n\tconst applicable = rates.filter((entry) => entry.from <= day).toSorted((a, b) => a.from > b.from ? -1 : 1);\n\tif (applicable.length === 0) return false;\n\tconst floor = Number(applicable[0].monthly);\n\tif (floor <= 0) return false;\n\tconst terms = ctx.subject.employment.terms;\n\tconst rate = Number(get(terms.rate, 'amount', 0));\n\tconst unit = get(terms.rate, 'unit', 'MONTHLY');\n\tconst annualDays = Number(get(facts, 'days_per_year', ctx.lookup.annual_paid_days));\n\tconst hours = Number(get(terms, 'normal_hours_per_day', ctx.lookup.normal_daily_hours));\n\tif (domestic) {\n\t\tconst monthly = unit === 'MONTHLY'\n\t\t\t? rate\n\t\t\t: unit === 'DAILY'\n\t\t\t\t? rate * ctx.lookup.annual_paid_days / 12\n\t\t\t\t: unit === 'HOURLY'\n\t\t\t\t\t? rate * hours * ctx.lookup.annual_paid_days / 12\n\t\t\t\t\t: rate;\n\t\treturn monthly <= floor + 0.005;\n\t}\n\tconst daily = unit === 'DAILY' ? rate : unit === 'HOURLY' ? rate * hours : rate * 12 / annualDays;\n\treturn daily <= floor * 12 / ctx.lookup.annual_paid_days + 0.005;\n})();\nif (minimumWageEarner) return 0;\nconst contributions = Number(get(ctx.statutory, 'SSS.employee', 0)) +\n\tNumber(get(ctx.statutory, 'SSS_MPF.employee', 0)) +\n\tNumber(get(ctx.statutory, 'PHIC.employee', 0)) +\n\tNumber(get(ctx.statutory, 'HDMF.employee', 0));\n// RR 11-2018 s.2.79(B)(3)-(4): the period table taxes the period's total\n// compensation. The annual input is the PHP90,000 13th-month/other-benefits\n// pool (s.2.78.1(B)(11)); the payslip's additional_wages\n// is ADDITIONAL_WAGES - ORDINARY_WAGES, so prior slips carry what this employer\n// already paid this year.\nconst year = String(ctx.run.salary_coverage.to).slice(0, 4);\nconst employerId = String(get(ctx.subject.employer, 'entity_id', get(ctx.subject.employer, 'id', '')));\nlet benefitsYtd = 0;\nfor (const slip of get(ctx.history, 'payslips', [])) {\n\tif (String(get(slip, 'period', '')).slice(0, 4) !== year) continue;\n\tif (employerId !== '' && String(get(slip, 'entity_id', '')) !== employerId) continue;\n\tbenefitsYtd += Math.max(0, Number(get(slip, 'additional_wages', 0)));\n}\nconst ceiling = ctx.lookup.de_minimis.annual_bonus_and_other_benefits;\nconst exempt = Math.min(benefits, Math.max(0, ceiling - benefitsYtd));\nconst taxable = Math.max(0, total - deMinimisPaid - contributions - exempt);\nif (taxable <= 0) return 0;\nconst days = calendar_distance_days(ctx.run.salary_coverage.from, ctx.run.salary_coverage.to) + 1;\nconst bands = days <= 1\n\t? ctx.lookup.daily_tax\n\t: days <= 7\n\t\t? ctx.lookup.weekly_tax\n\t\t: days <= 16\n\t\t\t? ctx.lookup.semi_monthly_tax\n\t\t\t: ctx.lookup.monthly_tax;\nreturn round(ladder(taxable, bands), ctx.lookup.minor_unit, 'HALF_UP');",
+		"employee_amount": "const p = ctx.lookup;\nconst employment = ctx.subject.employment;\nconst coverage = ctx.run.salary_coverage;\nconst facts = get(employment, 'employee_extension_data', {});\nconst employer = get(ctx.subject.employer, 'entity_extension_data', {});\nconst category = get(employment.terms, 'statutory_work_category', '');\nif (get(facts, 'statutory.WTAX.elections.treaty_exempt', false) === true) return 0;\nconst now = (code) => Number(get(ctx.subtotals, code, 0));\nconst before = (code) => Number(get(ctx.balances, 'ytd.' + code, 0));\nconst year = (code) => now(code) + before(code);\n// RR 11-2018 s.2.79(B)(5)(b) Step 2(c): a manager's fringe is the FBT scheme's; rank-and-file fringe is compensation.\nconst fringe = ['MANAGERIAL', 'SUPERVISORY'].includes(category) ? 0 : now('FRINGE_BENEFIT') - now('GROSS');\nif (get(employment.terms, 'residency_status', 'RESIDENT') === 'NON_RESIDENT_ALIEN_NETB') {\n\treturn round((now('GROSS') + fringe) * p.nonresident_rate, p.minor_unit, 'HALF_UP');\n}\nconst domestic = category === 'DOMESTIC';\nconst unit = get(employment.terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(employment.terms, 'rate.amount', 0));\nconst region = get(facts, 'work_region', get(employer, 'region', ''));\nconst table = domestic ? p.minimum_wage_domestic : p.minimum_wage_by_region;\nconst rates = table\n\t.filter((entry) => entry.region === region && entry.from <= coverage.to)\n\t.toSorted((a, b) => (a.from > b.from ? -1 : 1));\nconst floor = rates.length === 0 ? 0 : Number(rates[0].monthly);\nconst dailyFloor = (floor * p.months_per_year) / p.days_per_year;\nconst monthlyRate = unit === 'MONTHLY' ? amount : (ctx.day_rate * p.days_per_year) / p.months_per_year;\nconst earnsMinimum = domestic ? monthlyRate <= floor + 0.005 : ctx.day_rate <= dailyFloor + 0.005;\nconst minimumWageEarner = floor > 0 && earnsMinimum && get(employer, 'bmbe_certificate_of_authority', false) !== true;\nconst paidOn = String(get(ctx.run, 'pay_date', coverage.to));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst hired = String(get(employment, 'effective_range.from', paidOn));\nconst firstMonth = hired.slice(0, 4) === paidOn.slice(0, 4) ? Number(hired.slice(5, 7)) : 1;\nconst lastMonth = Number(paidOn.slice(5, 7));\n// A de minimis class is the gap between its checkpoint and the one before it. Excess enters the PHP90,000 pool.\nconst paid = (row, read) => read(row.subtotal) - read(row.after);\nconst yearCeiling = (row) =>\n\trow.ceiling * (Math.floor((lastMonth - 1) / row.months) - Math.floor((firstMonth - 1) / row.months) + 1);\nconst zone = get(ctx.subject.employer, 'time_zone', p.time_zone);\nconst night = (d) => clock_window_minutes(get(d, 'intervals', []), zone, p.night_window_start, p.night_window_end, ctx.as_of) > 0;\nconst mealDays = ctx.work.days.filter((d) => Number(get(d, 'overtime_hours', 0)) > 0 || night(d)).length;\nconst meal = now('DE_MINIMIS_OT_MEAL') - now('DE_MINIMIS_CBA');\nconst mealExcess = Math.max(0, meal - p.overtime_meal_minimum_wage_share * dailyFloor * mealDays);\nconst schemes = ['SSS', 'SSS_MPF', 'PHIC', 'HDMF'];\nconst held = get(ctx.balances, 'statutory_contribution', {});\nconst heldOf = (code) => (Object.hasOwn(held, code) ? Number(held[code]) : 0);\nconst charged = sum(schemes.map((code) => Number(get(ctx.statutory, code + '.employee', 0))));\n// RR 11-2018 s.2.79(A): a minimum wage earner is taxed only on additional compensation, so wages and what they carry drop out.\nconst taxable = (read, contributions) =>\n\tread('ORDINARY_WAGES') - read('DE_MINIMIS_DEPENDANT_MEDICAL') + read('TAXABLE_TERMINATION') - read('DE_MINIMIS_OT_MEAL') +\n\t(minimumWageEarner ? 0 : read('STATUTORY_WAGES') - contributions - read('FRINGE_BENEFIT') + read('UNION_DUES'));\nconst exit = get(employment, 'effective_range.to', null);\nconst final = (exit !== null && exit <= coverage.to) || add_days(paidOn, days).slice(0, 4) !== paidOn.slice(0, 4);\nif (!final) {\n\t// RR 2-98 s.2.78.1(A)(3): rice, laundry and dependants' medical to their ceiling for the part of the month this run pays;\n\t// the yearly classes to what is left of the year's ceiling.\n\tconst share = days / (calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1);\n\tconst ceiling = (row) => (row.months === 12 ? Math.max(0, row.ceiling - paid(row, before)) : (row.ceiling * share) / row.months);\n\tconst excess = mealExcess + sum(p.de_minimis.map((row) => Math.max(0, paid(row, now) - ceiling(row))));\n\tconst used = before('ADDITIONAL_WAGES') - before('ORDINARY_WAGES') +\n\t\tsum(p.de_minimis.map((row) => Math.max(0, paid(row, before) - yearCeiling(row))));\n\tconst benefits = now('ADDITIONAL_WAGES') - now('ORDINARY_WAGES') + excess;\n\tconst exempt = Math.min(benefits, Math.max(0, p.annual_bonus_and_other_benefits - used));\n\tconst period = taxable(now, charged) + fringe + benefits - exempt;\n\tif (period <= 0) return 0;\n\tconst bands = days <= 1 ? p.daily_tax : days <= 7 ? p.weekly_tax : days <= 16 ? p.semi_monthly_tax : p.monthly_tax;\n\treturn round(ladder(period, bands), p.minor_unit, 'HALF_UP');\n}\n// RR 11-2018 s.2.79(B)(5)(b): the year's taxable pay with a previous employer's, less the year's withholding.\nconst taxYear = Number(paidOn.slice(0, 4));\nconst sameYear = Number(get(facts, 'previous_employer_year', taxYear)) === taxYear;\nconst previous = (key) => (sameYear ? Number(get(facts, key, 0)) : 0);\nconst yearBenefits = year('ADDITIONAL_WAGES') - year('ORDINARY_WAGES') + mealExcess +\n\tsum(p.de_minimis.map((row) => Math.max(0, paid(row, year) - yearCeiling(row))));\nconst yearTaxable = taxable(year, charged + sum(schemes.map((code) => heldOf(code + '.employee')))) + fringe +\n\tMath.max(0, yearBenefits - p.annual_bonus_and_other_benefits) + previous('previous_employer_taxable_compensation');\nconst due = round(ladder(Math.max(0, yearTaxable), p.annual_tax), p.minor_unit, 'HALF_UP') -\n\theldOf('WTAX.employee') - previous('previous_employer_tax_withheld');\nreturn due;",
 		"employer_amount": "return 0;",
 		"id": "e30f4d1d-a59a-56ba-9b01-a719addb7c55",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
@@ -1117,7 +447,6 @@
 		"code": "FBT",
 		"name": "Fringe benefit tax",
 		"lookup": {
-			"minor_unit": 0.01,
 			"ordinary_gross_up_share": 0.65,
 			"ordinary_rate": 0.35,
 			"special_nonresident_gross_up_share": 0.75,
@@ -1139,11 +468,11 @@
 		"kind": "TAX",
 		"depends_on": [],
 		"off_cycle_eligible": false,
-		"subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
-		"eligibility": "const classification = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst base = Math.max(0, Number(get(ctx.subtotals, 'FRINGE_BENEFIT', 0)));\nreturn ['MANAGERIAL', 'SUPERVISORY'].includes(classification) && base > 0;",
+		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
+		"eligibility": "const classification = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst base = Math.max(0, ctx.subtotals.FRINGE_BENEFIT - ctx.subtotals.GROSS);\nreturn ['MANAGERIAL', 'SUPERVISORY'].includes(classification) && base > 0;",
 		"employee_amount": "return 0;",
-		"employer_amount": "const base = Math.max(0, Number(get(ctx.subtotals, 'FRINGE_BENEFIT', 0)));\nif (base <= 0) return 0;\nconst special = get(ctx.subject.employment.terms, 'residency_status', 'RESIDENT') === 'NON_RESIDENT_ALIEN_NETB';\nconst share = special ? ctx.lookup.special_nonresident_gross_up_share : ctx.lookup.ordinary_gross_up_share;\nconst rate = special ? ctx.lookup.special_nonresident_rate : ctx.lookup.ordinary_rate;\nreturn round(base / share * rate, ctx.lookup.minor_unit, 'HALF_UP');",
-		"employer_cost_subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"employer_amount": "const base = Math.max(0, ctx.subtotals.FRINGE_BENEFIT - ctx.subtotals.GROSS);\nif (base <= 0) return 0;\nconst special = get(ctx.subject.employment.terms, 'residency_status', 'RESIDENT') === 'NON_RESIDENT_ALIEN_NETB';\nconst share = special ? ctx.lookup.special_nonresident_gross_up_share : ctx.lookup.ordinary_gross_up_share;\nconst rate = special ? ctx.lookup.special_nonresident_rate : ctx.lookup.ordinary_rate;\nreturn round(base / share * rate, ctx.lookup.minor_unit, 'HALF_UP');",
+		"employer_cost_subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"id": "ad706649-1da9-553f-b18b-c0797fc598ba",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	}

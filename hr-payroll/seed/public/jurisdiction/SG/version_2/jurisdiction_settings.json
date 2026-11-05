@@ -464,7 +464,481 @@
 		"lookup": {
 			"rounding": "HALF_UP",
 			"rounding_scale": 2,
-			"statutory_work_categories": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"]
+			"statutory_work_categories": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
+			"months_per_year": 12,
+			"day_rate": "// Basic day rate, what EA ss.37 and 88(4) pay on: MOM, 12 × monthly basic ÷ (52 × days required a week). Proration: EA s.20A and MOM, monthly gross ÷ days required to work in that month × days worked, so WORKING_DAYS in every version.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\nconst hours = Number(get(terms, 'normal_hours_per_day', 8));\nif (unit === 'DAILY') return amount;\nif (unit === 'HOURLY' || unit === 'PIECE') return amount * hours;\nreturn (amount * 12) / (52 * Number(get(terms, 'normal_days_per_week', 5)));",
+			"proration_basis": "WORKING_DAYS",
+			"rounding_step": 1.0,
+			"weeks_per_year": 52,
+			"covered_engagements": ["EMPLOYEE", "PART_TIME", "INTERN", "APPRENTICE"],
+			"local_residencies": ["CITIZEN", "PERMANENT_RESIDENT"],
+			"work_pass_categories": ["WORK_PERMIT", "S_PASS", "EMPLOYMENT_PASS"],
+			"daily_hours": 12,
+			"manual_categories": ["MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
+			"manual_monthly_ceiling": 4500,
+			"nonmanual_monthly_ceiling": 2600,
+			"full_time_weekly_hours": 44,
+			"full_time_minimum_hours": 35,
+			"holiday_kinds": ["PUBLIC_HOLIDAY", "SUBSTITUTE"],
+			"ordinary_ceiling": 8000.0,
+			"annual_ceiling": 102000.0,
+			"cpf_bands": [
+				{
+					"phase": "full",
+					"age": 0,
+					"key": "r14"
+				},
+				{
+					"phase": "full",
+					"age": 55,
+					"key": "r15"
+				},
+				{
+					"phase": "full",
+					"age": 60,
+					"key": "r16"
+				},
+				{
+					"phase": "full",
+					"age": 65,
+					"key": "r17"
+				},
+				{
+					"phase": "full",
+					"age": 70,
+					"key": "r5"
+				},
+				{
+					"phase": "first_year",
+					"age": 0,
+					"key": "r9"
+				},
+				{
+					"phase": "first_year",
+					"age": 60,
+					"key": "r10"
+				},
+				{
+					"phase": "first_year_full_employer",
+					"age": 0,
+					"key": "r1"
+				},
+				{
+					"phase": "first_year_full_employer",
+					"age": 55,
+					"key": "r2"
+				},
+				{
+					"phase": "first_year_full_employer",
+					"age": 60,
+					"key": "r3"
+				},
+				{
+					"phase": "first_year_full_employer",
+					"age": 65,
+					"key": "r4"
+				},
+				{
+					"phase": "first_year_full_employer",
+					"age": 70,
+					"key": "r5"
+				},
+				{
+					"phase": "second_year",
+					"age": 0,
+					"key": "r11"
+				},
+				{
+					"phase": "second_year",
+					"age": 55,
+					"key": "r12"
+				},
+				{
+					"phase": "second_year",
+					"age": 60,
+					"key": "r13"
+				},
+				{
+					"phase": "second_year",
+					"age": 65,
+					"key": "r10"
+				},
+				{
+					"phase": "second_year_full_employer",
+					"age": 0,
+					"key": "r6"
+				},
+				{
+					"phase": "second_year_full_employer",
+					"age": 55,
+					"key": "r7"
+				},
+				{
+					"phase": "second_year_full_employer",
+					"age": 60,
+					"key": "r8"
+				},
+				{
+					"phase": "second_year_full_employer",
+					"age": 65,
+					"key": "r4"
+				},
+				{
+					"phase": "second_year_full_employer",
+					"age": 70,
+					"key": "r5"
+				}
+			],
+			"cpf_rates": {
+				"r1_low": 0.17,
+				"r1_mid": 0.15,
+				"r1_high": 0.05,
+				"r1_total": 0.22,
+				"r2_low": 0.16,
+				"r2_mid": 0.15,
+				"r2_high": 0.05,
+				"r2_total": 0.21,
+				"r3_low": 0.125,
+				"r3_mid": 0.15,
+				"r3_high": 0.05,
+				"r3_total": 0.175,
+				"r4_low": 0.09,
+				"r4_mid": 0.15,
+				"r4_high": 0.05,
+				"r4_total": 0.14,
+				"r5_low": 0.075,
+				"r5_mid": 0.15,
+				"r5_high": 0.05,
+				"r5_total": 0.125,
+				"r6_low": 0.17,
+				"r6_mid": 0.45,
+				"r6_high": 0.15,
+				"r6_total": 0.32,
+				"r7_low": 0.16,
+				"r7_mid": 0.375,
+				"r7_high": 0.125,
+				"r7_total": 0.285,
+				"r8_low": 0.125,
+				"r8_mid": 0.225,
+				"r8_high": 0.075,
+				"r8_total": 0.2,
+				"r9_low": 0.04,
+				"r9_mid": 0.15,
+				"r9_high": 0.05,
+				"r9_total": 0.09,
+				"r10_low": 0.035,
+				"r10_mid": 0.15,
+				"r10_high": 0.05,
+				"r10_total": 0.085,
+				"r11_low": 0.09,
+				"r11_mid": 0.45,
+				"r11_high": 0.15,
+				"r11_total": 0.24,
+				"r12_low": 0.06,
+				"r12_mid": 0.375,
+				"r12_high": 0.125,
+				"r12_total": 0.185,
+				"r13_low": 0.035,
+				"r13_mid": 0.225,
+				"r13_high": 0.075,
+				"r13_total": 0.11,
+				"r14_low": 0.17,
+				"r14_mid": 0.6,
+				"r14_high": 0.2,
+				"r14_total": 0.37,
+				"r15_low": 0.16,
+				"r15_mid": 0.54,
+				"r15_high": 0.18,
+				"r15_total": 0.34,
+				"r16_low": 0.125,
+				"r16_mid": 0.375,
+				"r16_high": 0.125,
+				"r16_total": 0.25,
+				"r17_low": 0.09,
+				"r17_mid": 0.225,
+				"r17_high": 0.075,
+				"r17_total": 0.165
+			},
+			"sdl_rate": 0.0025,
+			"sdl_minimum": 2.0,
+			"sdl_maximum": 11.25,
+			"pwm_roles": {
+				"ADMIN_ASSISTANT": {
+					"sector": "ADMINISTRATOR_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 1980
+				},
+				"ADMIN_EXECUTIVE": {
+					"sector": "ADMINISTRATOR_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2580
+				},
+				"ADMIN_SUPERVISOR": {
+					"sector": "ADMINISTRATOR_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3160
+				},
+				"CLEAN_CONSERVANCY_GENERAL": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2325
+				},
+				"CLEAN_CONSERVANCY_MULTI_SKILLED": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2530
+				},
+				"CLEAN_CONSERVANCY_SUPERVISOR": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2700
+				},
+				"CLEAN_CONSERVANCY_TRUCK_DRIVER": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2830
+				},
+				"CLEAN_FNB_DISHWASHER": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2325
+				},
+				"CLEAN_FNB_GENERAL": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 1910
+				},
+				"CLEAN_FNB_MULTI_SKILLED": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2530
+				},
+				"CLEAN_FNB_SUPERVISOR": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2700
+				},
+				"CLEAN_FNB_TABLE_TOP": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2010
+				},
+				"CLEAN_OFFICE_GENERAL": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 1910
+				},
+				"CLEAN_OFFICE_MULTI_SKILLED": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2530
+				},
+				"CLEAN_OFFICE_OUTDOOR": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2325
+				},
+				"CLEAN_OFFICE_SUPERVISOR": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2700
+				},
+				"DRIVER_GENERAL": {
+					"sector": "DRIVER_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2190
+				},
+				"DRIVER_SPECIALISED": {
+					"sector": "DRIVER_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2320
+				},
+				"FOOD_FS_COOK": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2380
+				},
+				"FOOD_FS_KITCHEN_ASSISTANT": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2180
+				},
+				"FOOD_FS_WAITER": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2180
+				},
+				"FOOD_FS_WAITER_SUPERVISOR": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2730
+				},
+				"FOOD_QS_COOK": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2330
+				},
+				"FOOD_QS_KITCHEN_ASSISTANT": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2155
+				},
+				"FOOD_QS_STALL_ASSISTANT": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2080
+				},
+				"LANDSCAPE_ASSISTANT_SUPERVISOR": {
+					"sector": "LANDSCAPE",
+					"base": "BASIC",
+					"monthly_floor": 2545
+				},
+				"LANDSCAPE_SUPERVISOR": {
+					"sector": "LANDSCAPE",
+					"base": "BASIC",
+					"monthly_floor": 2900
+				},
+				"LANDSCAPE_TECHNICIAN": {
+					"sector": "LANDSCAPE",
+					"base": "BASIC",
+					"monthly_floor": 2330
+				},
+				"LANDSCAPE_WORKER": {
+					"sector": "LANDSCAPE",
+					"base": "BASIC",
+					"monthly_floor": 1950
+				},
+				"LIFT_ASSISTANT_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 2525
+				},
+				"LIFT_PRINCIPAL_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 3590
+				},
+				"LIFT_SENIOR_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 3215
+				},
+				"LIFT_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 2880
+				},
+				"LIFT_SUPERVISOR": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 3445
+				},
+				"RETAIL_ASSISTANT": {
+					"sector": "RETAIL",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2305
+				},
+				"RETAIL_ASSISTANT_SUPERVISOR": {
+					"sector": "RETAIL",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2790
+				},
+				"RETAIL_SENIOR_ASSISTANT": {
+					"sector": "RETAIL",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2535
+				},
+				"SECURITY_INHOUSE_OFFICER": {
+					"sector": "SECURITY",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2475
+				},
+				"SECURITY_INHOUSE_SENIOR_OFFICER": {
+					"sector": "SECURITY",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2675
+				},
+				"SECURITY_INHOUSE_SUPERVISOR": {
+					"sector": "SECURITY",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2905
+				},
+				"SECURITY_OUTSOURCED_OFFICER": {
+					"sector": "SECURITY",
+					"base": "BASIC",
+					"monthly_floor": 3090
+				},
+				"SECURITY_OUTSOURCED_SENIOR_OFFICER": {
+					"sector": "SECURITY",
+					"base": "BASIC",
+					"monthly_floor": 3390
+				},
+				"SECURITY_OUTSOURCED_SENIOR_SUPERVISOR": {
+					"sector": "SECURITY",
+					"base": "BASIC",
+					"monthly_floor": 3990
+				},
+				"SECURITY_OUTSOURCED_SUPERVISOR": {
+					"sector": "SECURITY",
+					"base": "BASIC",
+					"monthly_floor": 3690
+				},
+				"WASTE_COLLECTION_CREW": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2630
+				},
+				"WASTE_COLLECTION_DRIVER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3030
+				},
+				"WASTE_COLLECTION_HOOKLIFT_DRIVER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3130
+				},
+				"WASTE_COLLECTION_SENIOR_CREW": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2830
+				},
+				"WASTE_COLLECTION_SENIOR_DRIVER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3330
+				},
+				"WASTE_COLLECTION_SUPERVISOR": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3280
+				},
+				"WASTE_COLLECTION_TEAM_LEAD": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3030
+				},
+				"WASTE_MRF_PLANT_SUPERVISOR": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3130
+				},
+				"WASTE_MRF_SENIOR_SORTER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2730
+				},
+				"WASTE_MRF_SORTER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2530
+				},
+				"WASTE_MRF_TEAM_LEAD": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2930
+				}
+			}
 		},
 		"status": "SEALED",
 		"id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"

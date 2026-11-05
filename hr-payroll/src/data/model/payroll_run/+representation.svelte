@@ -1,12 +1,23 @@
 <script lang="ts">
 	import { bolt } from '$bolt';
-	import { Schema } from 'effect';
-	import { Button, Form, RecordShell, Table, Tabs, type RecordView } from '@norbital-ai/ui';
+	import { Effect, Schema } from 'effect';
+	import { fork } from '@norbital-ai/ui/effect';
+	import {
+		Button,
+		Form,
+		notifyOutcome,
+		RecordShell,
+		Table,
+		Tabs,
+		toast,
+		type RecordView
+	} from '@norbital-ai/ui';
 	import { downloadSalaryListing } from '../../../lib/export_format_configuration/salary_listing_export.js';
 	import { PayslipBreakdown } from '../../../lib/payroll_engine/payslip_breakdown.js';
 	let { view }: { view: RecordView<'payroll_run'> } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	let downloading = $state(false);
+	let paying = $state(false);
 	const slips = $derived(
 		record === null
 			? null
@@ -62,6 +73,21 @@
 		}
 		return 0;
 	};
+	const markPaid = () => {
+		if (record === null) return;
+		paying = true;
+		fork(
+			bolt.act('payroll_run.update', [{ target: record.id, set: { state: 'PAID' } }]).pipe(
+				Effect.tap((outcome) => Effect.sync(() => notifyOutcome(bolt, outcome))),
+				Effect.catch((error) =>
+					Effect.sync(() =>
+						toast.error(error instanceof Error ? error.message : bolt.t('component.error'))
+					)
+				),
+				Effect.ensuring(Effect.sync(() => (paying = false)))
+			)
+		);
+	};
 	const download = async () => {
 		if (record === null || slips?.current == null || contracts?.current == null) return;
 		downloading = true;
@@ -92,7 +118,7 @@
 				company: String(context?.current?.entity.rows[0]?.name ?? ''),
 				currency: String(context?.current?.jurisdiction_settings.rows[0]?.currency ?? ''),
 				period: String(record.period ?? ''),
-				runKind: String(record.kind ?? 'REGULAR'),
+				runKind: String(record.kind ?? 'ON_CYCLE'),
 				payDate: String(record.pay_date ?? ''),
 				runReference: String(record.run_number ?? record.id),
 				rows
@@ -103,7 +129,10 @@
 	};
 </script>
 
-{#snippet summary()}{#if record !== null}<div class="mb-2 flex justify-end">
+{#snippet summary()}{#if record !== null}<div class="mb-2 flex justify-end gap-2">
+			{#if record.state === 'UNPAID'}<Button disabled={paying} onclick={markPaid}
+					>{bolt.t('app.payroll.mark_paid')}</Button
+				>{/if}
 			<Button
 				variant="secondary"
 				disabled={downloading ||
@@ -131,8 +160,7 @@
 				'gross_earnings',
 				'net_pay',
 				'total_deductions',
-				'employer_cost',
-				'state'
+				'employer_cost'
 			]}
 		/>{/if}{/snippet}
 <RecordShell

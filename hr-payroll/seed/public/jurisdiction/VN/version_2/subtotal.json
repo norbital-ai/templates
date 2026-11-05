@@ -7,9 +7,44 @@
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
 	},
 	{
+		"code": "MEAL_PAY",
+		"name": "Meal allowance (Tiền ăn giữa ca)",
+		"previous_id": "45246b26-45e2-58c4-a4cf-5927e27db18f",
+		"id": "259e53ee-2f2d-5766-9318-6b407ef0d385",
+		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
+	},
+	{
+		"code": "WORK_EXPENSE_PAY",
+		"name": "Work expense allowance (Phụ cấp công tác)",
+		"previous_id": "259e53ee-2f2d-5766-9318-6b407ef0d385",
+		"id": "4ac516ae-a81f-5026-b68c-727528ca0099",
+		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
+	},
+	{
+		"code": "HOUSING_PAY",
+		"name": "Employer-paid housing (Tiền nhà đơn vị trả thay)",
+		"previous_id": "4ac516ae-a81f-5026-b68c-727528ca0099",
+		"id": "f5f21d32-fcb4-5cfe-abdf-7b4416e5842b",
+		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
+	},
+	{
+		"code": "PENSION_PAY",
+		"name": "Employer pension and life insurance (Hưu trí bổ sung, nhân thọ)",
+		"previous_id": "f5f21d32-fcb4-5cfe-abdf-7b4416e5842b",
+		"id": "e6064152-7d81-5953-bd6a-f0e29d37e0e7",
+		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
+	},
+	{
+		"code": "PIT_EXEMPT_PAY",
+		"name": "Outside taxable income (Không tính vào thu nhập chịu thuế)",
+		"previous_id": "e6064152-7d81-5953-bd6a-f0e29d37e0e7",
+		"id": "fdaafdfc-3c13-505c-a12c-6be358d84146",
+		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
+	},
+	{
 		"code": "ORDINARY_WAGES",
 		"name": "Ordinary wages (Tiền lương thông thường)",
-		"previous_id": "45246b26-45e2-58c4-a4cf-5927e27db18f",
+		"previous_id": "fdaafdfc-3c13-505c-a12c-6be358d84146",
 		"id": "198c493d-213b-5528-a115-786dd8b28942",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
 	},
@@ -21,13 +56,6 @@
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
 	},
 	{
-		"code": "GROSS",
-		"name": "Gross earnings (Tổng thu nhập trước khấu trừ)",
-		"previous_id": "4869b44e-fae3-5cfe-9926-016523db72f1",
-		"id": "e33fea88-1961-53e2-9124-7e634f3a8b2f",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
-	},
-	{
 		"code": "NET",
 		"name": "Net pay (Thực lĩnh)",
 		"previous_id": "aad0309e-ab46-5104-85f8-47b165db9ede",
@@ -35,16 +63,9 @@
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
 	},
 	{
-		"id": "8964ce76-a463-51b7-8014-1c21cfd07610",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"code": "EMPLOYER_COST",
-		"name": "Employer cost",
-		"previous_id": "55fa3e5c-9716-575a-8524-3145442f05f6"
-	},
-	{
 		"code": "FINAL_PAY",
 		"name": "Final pay and non-wage settlements",
-		"previous_id": "e33fea88-1961-53e2-9124-7e634f3a8b2f",
+		"previous_id": "4869b44e-fae3-5cfe-9926-016523db72f1",
 		"id": "aad0309e-ab46-5104-85f8-47b165db9ede",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
 	}

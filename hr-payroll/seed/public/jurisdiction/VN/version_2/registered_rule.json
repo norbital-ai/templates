@@ -21,20 +21,6 @@
 		"validate": "// js\nconst employer = ctx.reads.entity_profile_version[0];\nconst region = get(employer, 'entity_extension_data.region', null);\nconst floor = get(ctx.lookup.minimum_wage.by_region, region, null);\nif (floor === null) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nconst prior = () => {\n\tif (get(facts, 'prior_floor_reclassified', false) !== true) return 0;\n\tif (get(facts, 'prior_floor_region', null) === null) return 0;\n\tif (!(ctx.entry.effective_range.from <= ctx.lookup.prior_floor_effective_until)) return 0;\n\treturn get(ctx.lookup.minimum_wage.prior_by_region, facts.prior_floor_region, 0);\n};\nreturn ctx.entry.terms.rate.amount >= Math.max(floor, prior());",
 		"order": 1,
 		"lookup": {
-			"minimum_wage": {
-				"by_region": {
-					"I": 5310000,
-					"II": 4730000,
-					"III": 4140000,
-					"IV": 3700000
-				},
-				"prior_by_region": {
-					"I": 4960000,
-					"II": 4410000,
-					"III": 3860000,
-					"IV": 3450000
-				}
-			},
 			"prior_floor_effective_until": "2025-12-31"
 		},
 		"references": [
@@ -116,9 +102,6 @@
 						"eq": {
 							"var": "ctx.entry.employment_id"
 						}
-					},
-					"state": {
-						"in": ["FINALISED", "PAID"]
 					}
 				}
 			},
@@ -131,11 +114,9 @@
 			}
 		},
 		"condition": "// js\nconst catalog = ctx.reads.adhoc_catalog[0];\nif (get(catalog, 'code', '') !== 'PROPERTY_DAMAGE_COMPENSATION') return false;\nif (ctx.entry.unit !== 'MONEY') return false;\nreturn ctx.entry.is_reversal !== true;",
-		"validate": "// js\nconst slip = ctx.reads.payslip[0];\nif (slip === null || slip === undefined) return true;\nconst statutory = sum(\n\tctx.reads.ledger_entry\n\t\t.filter((entry) => entry.account === 'statutory_contribution' && entry.code.endsWith('.employee'))\n\t\t.map((entry) => get(entry, 'amount', 0))\n);\nreturn ctx.entry.quantity <= ctx.lookup.share * (get(slip, 'gross_earnings', 0) - statutory);",
+		"validate": "// js\nconst slip = ctx.reads.payslip[0];\nif (slip === null || slip === undefined) return true;\nconst statutory = sum(\n\tctx.reads.ledger_entry\n\t\t.filter((entry) => entry.account === 'statutory_contribution' && entry.code.endsWith('.employee'))\n\t\t.map((entry) => get(entry, 'amount', 0))\n);\nreturn ctx.entry.quantity <= ctx.lookup.deduction_share * (get(slip, 'gross_earnings', 0) - statutory);",
 		"order": 4,
-		"lookup": {
-			"share": 0.3
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Code 45/2019/QH14 art.102(3): the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory social insurance, health insurance, unemployment insurance and personal income tax.",
@@ -232,8 +213,8 @@
 				}
 			}
 		},
-		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nreturn rate !== null && rate.unit === 'HOURLY';",
-		"validate": "// js\nconst employer = ctx.reads.entity_profile_version[0];\nconst region = get(employer, 'entity_extension_data.region', null);\nconst floor = get(ctx.lookup.hourly_by_region, region, null);\nreturn floor === null || ctx.entry.terms.rate.amount >= floor;",
+		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nreturn rate !== null && ['HOURLY', 'DAILY'].includes(rate.unit);",
+		"validate": "// js\nconst employer = ctx.reads.entity_profile_version[0];\nconst region = get(employer, 'entity_extension_data.region', null);\nconst floor = get(ctx.lookup.hourly_by_region, region, null);\nif (floor === null) return true;\nconst rate = ctx.entry.terms.rate;\nif (rate.unit === 'HOURLY') return rate.amount >= floor;\n// A day converts to an hour over the normal hours of the day, or to a month over the normal days; either floor met is enough (art.4(3)).\nconst hours = Number(get(ctx.entry, 'terms.normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nif (rate.amount / hours >= floor) return true;\nconst days = Number(get(ctx.entry, 'terms.normal_days_per_week', 0));\nreturn (rate.amount * days * 52) / ctx.lookup.months_per_year >= get(ctx.lookup.minimum_wage.by_region, region, Infinity);",
 		"order": 7,
 		"lookup": {
 			"hourly_by_region": {
@@ -245,7 +226,8 @@
 		},
 		"references": [
 			{
-				"title": "Decree 293/2025/NĐ-CP art.3(2), art.4: an hourly-paid worker is paid at least the regional hourly minimum (term fact hourly_rate)."
+				"title": "Decree 293/2025/NĐ-CP art.3, art.4(2)–(3): an hourly wage is at least the regional hourly minimum. A daily wage converted to an hour (over the normal hours of the day) or to a month (over the normal working days of the month) may not fall below the hourly or monthly minimum.",
+				"url": "https://xaydungchinhsach.chinhphu.vn/nghi-dinh-so-293-2025-nd-cp-quy-dinh-muc-luong-toi-thieu-doi-voi-nguoi-lao-dong-lam-viec-theo-hop-dong-lao-dong-119251110172808433.htm"
 			}
 		],
 		"id": "f7b2fef9-59cb-55e1-9f4c-35ba7213a45a",
@@ -302,10 +284,7 @@
 		"order": 10,
 		"lookup": {
 			"advance_months": 3,
-			"infant_months": 12,
-			"night_from": "22:00",
-			"night_to": "06:00",
-			"timezone": "Asia/Ho_Chi_Minh"
+			"infant_months": 12
 		},
 		"references": [
 			{
@@ -340,10 +319,7 @@
 			"child_daily": 4,
 			"child_weekly": 20,
 			"young_daily": 8,
-			"young_weekly": 40,
-			"night_from": "22:00",
-			"night_to": "06:00",
-			"timezone": "Asia/Ho_Chi_Minh"
+			"young_weekly": 40
 		},
 		"references": [
 			{
@@ -449,12 +425,11 @@
 		"target_collection": "roster_entry",
 		"events": ["create", "update"],
 		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) > 0;",
-		"validate": "// js\nconst contract = ctx.subject.employment;\nconst normal = get(contract, 'terms.normal_hours_per_day', ctx.lookup.default_normal_hours);\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) / 60;\nif (!(normal > 0)) return false;\nif (!(overtime <= ctx.lookup.share * normal)) return false;\nreturn normal + overtime <= ctx.lookup.daily_hours;",
+		"validate": "// js\nconst contract = ctx.subject.employment;\nconst normal = get(contract, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day);\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) / 60;\nif (!(normal > 0)) return false;\nif (!(overtime <= ctx.lookup.share * normal)) return false;\nreturn normal + overtime <= ctx.lookup.daily_hours;",
 		"order": 15,
 		"lookup": {
 			"share": 0.5,
-			"daily_hours": 12,
-			"default_normal_hours": 8
+			"daily_hours": 12
 		},
 		"references": [
 			{
@@ -591,43 +566,6 @@
 			}
 		],
 		"id": "2c14262a-f9ee-5811-ae0d-060466c6c3d7",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
-	},
-	{
-		"code": "ROSTER_PATTERN_CYCLE",
-		"target_collection": "roster_entry",
-		"events": ["update"],
-		"reads": {
-			"shift_pattern": {
-				"limit": 10000
-			},
-			"roster_entry": {
-				"where": {
-					"employment_id": {
-						"eq": {
-							"var": "ctx.entry.employment_id"
-						}
-					}
-				}
-			}
-		},
-		"condition": "// js\nreturn get(ctx.subject.employment, 'terms.shift_pattern_id', null) !== null;",
-		"validate": "// js\nconst patternId = get(ctx.subject.employment, 'terms.shift_pattern_id', null);\nconst pattern = patternId == null ? undefined : ctx.reads.shift_pattern.find((row) => row.id === patternId);\nconst days = get(pattern, 'pattern.days', []);\nconst anchor = get(pattern, 'pattern.anchor_date', null);\nif (days.length === 0 || anchor === null) return true;\nconst offset = ((calendar_distance_days(anchor, ctx.entry.work_date) % days.length) + days.length) % days.length;\nconst cycleStart = add_days(ctx.entry.work_date, -offset);\nconst cycleEnd = add_days(cycleStart, days.length - 1);\nconst planned = ctx.reads.roster_entry\n\t.filter((day) => day.work_date >= cycleStart && day.work_date <= cycleEnd && day.work_date !== ctx.entry.work_date)\n\t.map((day) => day.shift_definition_id)\n\t.concat([get(ctx.entry, 'shift_definition_id', null)])\n\t.toSorted();\nconst expected = days.map((day) => day.shift_definition_id).toSorted();\nreturn planned.length === expected.length && planned.every((value, index) => value === expected[index]);",
-		"order": 21,
-		"lookup": {},
-		"id": "4a1550e8-a3e3-53af-bab2-b9e69d26c78b",
-		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
-	},
-	{
-		"code": "PAYROLL_RUN_KINDS",
-		"target_collection": "payroll_run",
-		"events": ["create"],
-		"validate": "// js\nreturn ctx.lookup.kinds.includes(ctx.entry.kind);",
-		"order": 22,
-		"lookup": {
-			"kinds": ["REGULAR", "OFF_CYCLE"]
-		},
-		"id": "c525c946-ab0b-5206-9156-925f9ce8209b",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
 	},
 	{

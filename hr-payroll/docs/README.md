@@ -3,9 +3,11 @@
 This template's maintained documentation. Read the source tree as the final authority; these
 documents describe its contracts and the gates that keep it honest.
 
+**Start with [section 0 of the calculation architecture](0001-hrms-calculation-architecture.md#0-the-design-is-fixed).** It is the owner's fixed design. Every agent wires around it.
+
 | Document                                                                 | Owns                                                             |
 | ------------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| [0001 — Calculation architecture](0001-hrms-calculation-architecture.md) | Ledger, base pay, subtotal chain, statutory order and posting    |
+| [0001 — Calculation architecture](0001-hrms-calculation-architecture.md) | The fixed design; ledger, base pay, subtotal chain and posting   |
 | [0002 — Model specification](0002-model-specification.md)                | Model fields, ownership, relationships and the final source tree |
 | [0003 — Jurisdiction seed](0003-jurisdiction-seed-specification.md)      | Seed pack integrity, replacement procedure and authoring rules   |
 | [0004 — Verification and gates](0004-verification-gates.md)              | Current verified state, open gates and evidence policy           |

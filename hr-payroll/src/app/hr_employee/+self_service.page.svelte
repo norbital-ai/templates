@@ -285,7 +285,6 @@
 			orderBy={{ created_at: 'desc' }}
 			columns={[
 				{ field: 'payroll_run_id', label: bolt.t('app.hr_employee.pay_run') },
-				{ field: 'state', label: bolt.t('component.status') },
 				{ field: 'gross_earnings', label: bolt.t('component.gross') },
 				{ field: 'total_deductions', label: bolt.t('component.deductions') },
 				{ field: 'net_pay', label: bolt.t('component.net') }

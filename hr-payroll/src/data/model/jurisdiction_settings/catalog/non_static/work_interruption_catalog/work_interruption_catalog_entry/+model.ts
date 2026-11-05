@@ -13,7 +13,7 @@ export default model('work_interruption_catalog_entry', {
 			onDelete: 'restrict'
 		},
 		entity_id: { kind: 'ref', to: 'entity', inverse: 'work_interruptions' },
-		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true },
+		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, onDelete: 'setNull' },
 		period: { kind: 'period', of: 'date' },
 		worksite: { kind: 'text', optional: true },
 		evidence_file: {

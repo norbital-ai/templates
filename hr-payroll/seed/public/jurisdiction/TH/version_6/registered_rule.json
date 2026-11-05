@@ -29,10 +29,7 @@
 		"code": "REST_BREAK",
 		"target_collection": "roster_entry",
 		"events": ["create", "update"],
-		"lookup": {
-			"elapsed_minutes": 300,
-			"break_minutes": 60
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 s. 27",
@@ -69,96 +66,9 @@
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
 		"order": 9,
-		"lookup": {
-			"wage_divisor": 30,
-			"normal_hours_per_day": 8,
-			"by_region": {
-				"BANGKOK": 400,
-				"CHACHOENGSAO": 400,
-				"CHONBURI": 400,
-				"PHUKET": 400,
-				"RAYONG": 400,
-				"SURAT_THANI_KOH_SAMUI": 400,
-				"KOH_SAMUI": 400,
-				"CHIANG_MAI_MUEANG": 380,
-				"SONGKHLA_HAT_YAI": 380,
-				"HAT_YAI": 380,
-				"NAKHON_PATHOM": 372,
-				"NONTHABURI": 372,
-				"PATHUM_THANI": 372,
-				"SAMUT_PRAKAN": 372,
-				"SAMUT_SAKHON": 372,
-				"NAKHON_RATCHASIMA": 359,
-				"SAMUT_SONGKHRAM": 358,
-				"KHON_KAEN": 357,
-				"CHIANG_MAI": 357,
-				"PRACHINBURI": 357,
-				"PHRA_NAKHON_SI_AYUTTHAYA": 357,
-				"SARABURI": 357,
-				"LOPBURI": 356,
-				"NAKHON_NAYOK": 355,
-				"SUPHAN_BURI": 355,
-				"NONG_KHAI": 355,
-				"KRABI": 354,
-				"TRAT": 354,
-				"KANCHANABURI": 352,
-				"CHANTHABURI": 352,
-				"CHIANG_RAI": 352,
-				"TAK": 352,
-				"NAKHON_PHANOM": 352,
-				"BURIRAM": 352,
-				"PRACHUAP_KHIRI_KHAN": 352,
-				"PHANG_NGA": 352,
-				"PHITSANULOK": 352,
-				"MUKDAHAN": 352,
-				"SAKON_NAKHON": 352,
-				"SONGKHLA": 352,
-				"SA_KAEO": 352,
-				"SURAT_THANI": 352,
-				"UBON_RATCHATHANI": 352,
-				"CHUMPHON": 351,
-				"PHETCHABURI": 351,
-				"SURIN": 351,
-				"NAKHON_SAWAN": 350,
-				"YASOTHON": 350,
-				"LAMPHUN": 350,
-				"KALASIN": 349,
-				"NAKHON_SI_THAMMARAT": 349,
-				"BUENG_KAN": 349,
-				"PHETCHABUN": 349,
-				"ROI_ET": 349,
-				"CHAI_NAT": 348,
-				"CHAIYAPHUM": 348,
-				"PHATTHALUNG": 348,
-				"SING_BURI": 348,
-				"ANG_THONG": 348,
-				"KAMPHAENG_PHET": 347,
-				"PHICHIT": 347,
-				"MAHA_SARAKHAM": 347,
-				"MAE_HONG_SON": 347,
-				"RANONG": 347,
-				"RATCHABURI": 347,
-				"LAMPANG": 347,
-				"LOEI": 347,
-				"SI_SA_KET": 347,
-				"SATUN": 347,
-				"SUKHOTHAI": 347,
-				"NONG_BUA_LAM_PHU": 347,
-				"AMNAT_CHAROEN": 347,
-				"UDON_THANI": 347,
-				"UTTARADIT": 347,
-				"UTHAI_THANI": 347,
-				"TRANG": 345,
-				"NAN": 345,
-				"PHAYAO": 345,
-				"PHRAE": 345,
-				"NARATHIWAT": 337,
-				"PATTANI": 337,
-				"YALA": 337
-			}
-		},
+		"lookup": {},
 		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null) return false;\nif (get(rate, 'unit', null) === 'PIECE') return false;\nconst engagement = String(get(ctx.entry, 'engagement', 'EMPLOYEE'));\nreturn !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement);\n",
-		"validate": "// js\nconst rate = get(ctx.entry, 'terms.rate', {});\nconst unit = get(rate, 'unit', null);\nconst amount = Number(get(rate, 'amount', 0));\nconst employer = get(ctx.subject, 'employer', {});\nconst region = get(employer, 'entity_extension_data.region', null);\nconst table = ctx.lookup.by_region ?? {};\nif (region == null || table[region] == null) return true;\nconst hours = Number(\n\tget(ctx.entry, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day),\n);\nconst daily =\n\tunit === 'DAILY'\n\t\t? amount\n\t\t: unit === 'MONTHLY'\n\t\t\t? amount / ctx.lookup.wage_divisor\n\t\t\t: amount * hours;\nreturn daily >= Number(table[region]);",
+		"validate": "// js\nconst employer = get(ctx.subject.employer, 'entity_extension_data', {});\nif (get(employer, 'minimum_wage_exempt', false) === true) return true;\nconst floor = get(employer, 'minimum_wage_400_business', false) === true\n\t? ctx.lookup.business_400\n\t: get(ctx.lookup.by_region, String(get(employer, 'region', '')), null);\nif (floor === null) return true;\nconst rate = get(ctx.entry, 'terms.rate', {});\nconst unit = get(rate, 'unit', null);\nconst amount = Number(get(rate, 'amount', 0));\nconst hours = Number(\n\tget(ctx.entry, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day),\n);\nconst daily =\n\tunit === 'DAILY'\n\t\t? amount\n\t\t: unit === 'MONTHLY'\n\t\t\t? amount / ctx.lookup.monthly_divisor\n\t\t\t: amount * hours;\nreturn daily >= floor;",
 		"references": [
 			{
 				"title": "Wage Committee Notification on Minimum Wage Rates (No. 14), 17 June 2025, in force 1 July 2025",
@@ -174,10 +84,7 @@
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
 		"condition": "const rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null) return false;\nif (get(rate, 'unit', null) === 'PIECE') return false;\nreturn get(ctx.entry, 'employee_extension_data.term_facts.skill_standard_day_rate', null) != null;",
-		"lookup": {
-			"wage_divisor": 30,
-			"normal_hours_per_day": 8
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 s. 90",
@@ -185,7 +92,7 @@
 				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
 			}
 		],
-		"validate": "// Labour Protection Act B.E. 2541 s. 90: a certified worker's day wage must reach the\n// skill-standard rate of the trade. The rate is a recorded term fact, not a table here.\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst amount = get(rate, 'amount', 0);\nconst unit = get(rate, 'unit', null);\nconst daily =\n\tunit === 'DAILY'\n\t\t? amount\n\t\t: unit === 'MONTHLY'\n\t\t\t? amount / ctx.lookup.wage_divisor\n\t\t\t: amount * get(ctx.entry, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day);\nreturn daily >= get(ctx.entry, 'employee_extension_data.term_facts.skill_standard_day_rate', 0);",
+		"validate": "// Labour Protection Act B.E. 2541 s. 90: a certified worker's day wage must reach the\n// skill-standard rate of the trade. The rate is a recorded term fact, not a table here.\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst amount = get(rate, 'amount', 0);\nconst unit = get(rate, 'unit', null);\nconst daily =\n\tunit === 'DAILY'\n\t\t? amount\n\t\t: unit === 'MONTHLY'\n\t\t\t? amount / ctx.lookup.monthly_divisor\n\t\t\t: amount * get(ctx.entry, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day);\nreturn daily >= get(ctx.entry, 'employee_extension_data.term_facts.skill_standard_day_rate', 0);",
 		"order": 10,
 		"id": "1288d9a5-f55d-51cf-a154-2137a8a3368d",
 		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
@@ -194,10 +101,7 @@
 		"code": "ROSTER_REST_BREAK",
 		"target_collection": "roster_entry",
 		"events": ["create", "update"],
-		"lookup": {
-			"elapsed_minutes": 300,
-			"break_minutes": 60
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 s. 27 para 1",
@@ -263,8 +167,6 @@
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
 		"lookup": {
-			"pvd_minimum_percent": 2,
-			"pvd_maximum_percent": 15,
 			"overtime_categories": ["MANAGER", "SECTION_65_OTHER"]
 		},
 		"references": [

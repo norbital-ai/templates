@@ -55,7 +55,7 @@ Owners write `seed/public/jurisdiction/<J>/version_<v>/<file>.json`: one file pe
 
 ### Formulas
 
-Formulas are rewritten from their new responsibilities. The engine owns history scoping, balance admission and posting, dependency reuse, delta assessment and rounding; formulas select an evidenced base and assess an amount.
+Formulas are rewritten from their new responsibilities. The engine owns balance admission and posting, dependency reuse, delta assessment and rounding; formulas select an evidenced base and assess an amount.
 
 - Each definition's constants, rates and flat legal tables live in its own `lookup`; no cross-owner inheritance.
 - Statutory bases come from completed subtotals and explicit catalog references. A tax formula reuses contribution results rather than reproducing their maths.
@@ -66,7 +66,6 @@ Formulas are rewritten from their new responsibilities. The engine owns history 
 
 - `subtotal` rows carry `code`, `name`, `previous_id` and optional `calculation`. The first computes base pay; later rows accumulate producer lines. Do not seed output bindings, phases, channels, order fields or subtotal-held catalogue lists.
 - Static catalogues hold confirmed definitions and leave `subtotal_id` null when they create no pay line. Non-static catalogues own their entries.
-- `payroll_run.source_manifest` holds captured source references and hashes. There is no separate source-link model.
 
 ### Data
 

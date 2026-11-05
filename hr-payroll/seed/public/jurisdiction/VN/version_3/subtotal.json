@@ -3,49 +3,70 @@
 		"code": "BASIC",
 		"name": "Basic salary (Lương cơ bản)",
 		"previous_id": null,
-		"id": "6551221c-17b5-51d8-8392-678affa5a17d",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "d9220e85-24b1-54d6-9335-4b30a37c6e04",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+	},
+	{
+		"code": "MEAL_PAY",
+		"name": "Meal allowance (Tiền ăn giữa ca)",
+		"previous_id": "d9220e85-24b1-54d6-9335-4b30a37c6e04",
+		"id": "d9029002-c9f1-5fee-88e9-0e97d282f084",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+	},
+	{
+		"code": "WORK_EXPENSE_PAY",
+		"name": "Work expense allowance (Phụ cấp công tác)",
+		"previous_id": "d9029002-c9f1-5fee-88e9-0e97d282f084",
+		"id": "c7325a28-ea7d-5fde-a7f8-2364be830e47",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+	},
+	{
+		"code": "HOUSING_PAY",
+		"name": "Employer-paid housing (Tiền nhà đơn vị trả thay)",
+		"previous_id": "c7325a28-ea7d-5fde-a7f8-2364be830e47",
+		"id": "4f46417e-14c5-5c0b-9c3b-6720233f7237",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+	},
+	{
+		"code": "PENSION_PAY",
+		"name": "Employer pension and life insurance (Hưu trí bổ sung, nhân thọ)",
+		"previous_id": "4f46417e-14c5-5c0b-9c3b-6720233f7237",
+		"id": "76d26741-8d20-5fb0-a804-f58c59c7d204",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
+	},
+	{
+		"code": "PIT_EXEMPT_PAY",
+		"name": "Outside taxable income (Không tính vào thu nhập chịu thuế)",
+		"previous_id": "76d26741-8d20-5fb0-a804-f58c59c7d204",
+		"id": "e728a119-f907-55ee-a580-bef3c774863f",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "ORDINARY_WAGES",
 		"name": "Ordinary wages (Tiền lương thông thường)",
-		"previous_id": "6551221c-17b5-51d8-8392-678affa5a17d",
-		"id": "b6527447-b4e7-5b31-92fa-e7c38a0fbfbb",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"previous_id": "e728a119-f907-55ee-a580-bef3c774863f",
+		"id": "c331f4ca-e086-5ed3-a8ca-237cfb6b7a60",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "ADDITIONAL_WAGES",
 		"name": "Ordinary pay and bonus (Tiền lương và tiền thưởng)",
-		"previous_id": "b6527447-b4e7-5b31-92fa-e7c38a0fbfbb",
-		"id": "f5e78984-9f4b-5754-8d7f-c9946f427b41",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
-	},
-	{
-		"code": "GROSS",
-		"name": "Gross earnings (Tổng thu nhập trước khấu trừ)",
-		"previous_id": "f5e78984-9f4b-5754-8d7f-c9946f427b41",
-		"id": "2553237e-044b-5405-8a15-245e1f831b87",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"previous_id": "c331f4ca-e086-5ed3-a8ca-237cfb6b7a60",
+		"id": "bf9e1a02-e1fb-55d7-83f8-f04e42f311bc",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "NET",
 		"name": "Net pay (Thực lĩnh)",
-		"previous_id": "5b43f0d1-25bb-50de-b8dd-00ab6f58af82",
-		"id": "36d140c0-a6cf-58a0-8c59-7c42de45b237",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
-	},
-	{
-		"id": "2bf81fff-3f16-57ff-9c6f-b2c71d03e85a",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d",
-		"code": "EMPLOYER_COST",
-		"name": "Employer cost",
-		"previous_id": "36d140c0-a6cf-58a0-8c59-7c42de45b237"
+		"previous_id": "a1f3ee3c-3886-51f7-b3b7-5afb26398d4f",
+		"id": "17a00dad-28db-564a-bf96-8961e6eca4ad",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "FINAL_PAY",
 		"name": "Final pay and non-wage settlements",
-		"previous_id": "2553237e-044b-5405-8a15-245e1f831b87",
-		"id": "5b43f0d1-25bb-50de-b8dd-00ab6f58af82",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"previous_id": "bf9e1a02-e1fb-55d7-83f8-f04e42f311bc",
+		"id": "a1f3ee3c-3886-51f7-b3b7-5afb26398d4f",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	}
 ]

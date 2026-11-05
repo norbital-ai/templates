@@ -27,8 +27,8 @@ describe('HRD levy', () => {
 					employer: { entity_extension_data: { hrd_registration_class: 'COMPULSORY' } }
 				},
 				lookup: hrdf.lookup,
-				overtime: 500,
-				subtotals: { ORDINARY_WAGES: 3500 }
+				// overtime sits above WAGE_ARREARS, so the levy never sees it
+				subtotals: { WAGE_ARREARS: 3000, ORDINARY_WAGES: 3500 }
 			},
 			'HRDF'
 		);

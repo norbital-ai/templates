@@ -1249,5 +1249,22 @@
 				"url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001"
 			}
 		]
+	},
+	{
+		"code": "FOREIGN_WORKER_ABSENCE",
+		"name": "Foreign worker absent three days (就業服務法 §56)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"references": [
+			{
+				"title": "就業服務法 §56(1)",
+				"locator": "受聘僱之外國人有連續曠職三日失去聯繫…雇主應於三日內以書面載明相關事項通知當地主管機關、入出國管理機關及警察機關",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&flno=56"
+			}
+		],
+		"id": "a17dc3e5-0841-4994-a1d8-4047c5f4836e",
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
 	}
 ]

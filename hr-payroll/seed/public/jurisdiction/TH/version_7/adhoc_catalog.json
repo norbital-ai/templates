@@ -2,34 +2,7 @@
 	{
 		"code": "SEVERANCE_PAY",
 		"name": "Severance pay (ค่าชดเชย)",
-		"lookup": {
-			"calendar_days": 30,
-			"hours_per_day": 8,
-			"minimum_service_days": 120,
-			"first_tier_days": 30,
-			"schedule": [
-				{
-					"up_to": 35,
-					"amount": 90
-				},
-				{
-					"up_to": 71,
-					"amount": 180
-				},
-				{
-					"up_to": 119,
-					"amount": 240
-				},
-				{
-					"up_to": 239,
-					"amount": 300
-				},
-				{
-					"up_to": null,
-					"amount": 400
-				}
-			]
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.118 (as amended by Act No. 7 B.E. 2562); Ministerial Regulation No. 394 B.E. 2567",
@@ -39,9 +12,9 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "77c30db3-8211-5e54-8514-03cdd8769f52",
+		"subtotal_id": "dc853c02-96be-5b88-86c6-41bf969c0fe3",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nconst served = calendar_distance_days(employment.effective_range.from, ctx.entry.incurred_on) + 1;\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (get(employment, 'employee_extension_data.exit_facts.section_119_ground', false)) return false;\nif (get(employment, 'employee_extension_data.exit_facts.fixed_term_project', false)) return false;\nreturn served >= ctx.lookup.minimum_service_days;\n",
-		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\n// The fixed allowance paid for normal work is wage (LPA s.5), so it is part of the final wage rate.\nconst allowance = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nconst monthly =\n\trate.unit === 'PIECE'\n\t\t? ctx.entry.quantity\n\t\t: rate.unit === 'DAILY'\n\t\t\t? rate.amount * ctx.lookup.calendar_days + allowance\n\t\t\t: rate.unit === 'HOURLY'\n\t\t\t\t? rate.amount * get(terms, 'normal_hours_per_day', ctx.lookup.hours_per_day) * ctx.lookup.calendar_days + allowance\n\t\t\t\t: get(rate, 'amount', 0) + allowance;\nconst months = calendar_completed_months(employment.effective_range.from, ctx.entry.incurred_on);\nconst days = months < 12 ? ctx.lookup.first_tier_days : bracket(months, ctx.lookup.schedule);\nreturn (monthly / ctx.lookup.calendar_days) * days;",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst monthly = rate.unit === 'PIECE' ? ctx.entry.quantity : ctx.day_rate * ctx.lookup.monthly_divisor;\nconst months = calendar_completed_months(employment.effective_range.from, ctx.entry.incurred_on);\nconst days = months < 12 ? ctx.lookup.first_tier_days : bracket(months, ctx.lookup.schedule);\nreturn (monthly / ctx.lookup.monthly_divisor) * days;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -51,10 +24,7 @@
 	{
 		"code": "PAY_IN_LIEU_OF_NOTICE",
 		"name": "Pay in lieu of notice (สินจ้างแทนการบอกกล่าวล่วงหน้า)",
-		"lookup": {
-			"calendar_days": 30,
-			"hours_per_day": 8
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.17, 17/1",
@@ -64,9 +34,9 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "77c30db3-8211-5e54-8514-03cdd8769f52",
+		"subtotal_id": "ac336309-e31a-527b-8c26-5b33eb96de1d",
 		"eligibility": "// js\nconst ended = get(ctx.subject.employment, 'effective_range.to', null);\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (ctx.entry.unit === 'MONEY') return true;\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nreturn ctx.entry.unit === 'DAY' && rate.unit !== 'PIECE';\n",
-		"conversion": "// js\nif (ctx.entry.unit === 'MONEY') return ctx.entry.quantity;\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\n// The fixed allowance paid for normal work is wage (LPA s.5), so it is part of the final wage rate.\nconst allowance = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nconst monthly =\n\trate.unit === 'DAILY'\n\t\t? rate.amount * ctx.lookup.calendar_days + allowance\n\t\t: rate.unit === 'HOURLY'\n\t\t\t? rate.amount * get(terms, 'normal_hours_per_day', ctx.lookup.hours_per_day) * ctx.lookup.calendar_days + allowance\n\t\t\t: get(rate, 'amount', 0) + allowance;\nreturn (monthly / ctx.lookup.calendar_days) * ctx.entry.quantity;",
+		"conversion": "// js\nif (ctx.entry.unit === 'MONEY') return ctx.entry.quantity;\nreturn ctx.day_rate * ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -76,95 +46,7 @@
 	{
 		"code": "MINIMUM_WAGE_ARREARS",
 		"name": "Minimum wage arrears",
-		"lookup": {
-			"calendar_days": 30,
-			"hours_per_day": 8,
-			"minimum_wage": {
-				"by_region": {
-					"BANGKOK": 400,
-					"CHACHOENGSAO": 400,
-					"CHON_BURI": 400,
-					"PHUKET": 400,
-					"RAYONG": 400,
-					"SURAT_THANI_KO_SAMUI": 400,
-					"CHIANG_MAI_MUEANG": 380,
-					"SONGKHLA_HAT_YAI": 380,
-					"NAKHON_PATHOM": 372,
-					"NONTHABURI": 372,
-					"PATHUM_THANI": 372,
-					"SAMUT_PRAKAN": 372,
-					"SAMUT_SAKHON": 372,
-					"NAKHON_RATCHASIMA": 359,
-					"SAMUT_SONGKHRAM": 358,
-					"KHON_KAEN": 357,
-					"CHIANG_MAI": 357,
-					"PRACHIN_BURI": 357,
-					"PHRA_NAKHON_SI_AYUTTHAYA": 357,
-					"SARABURI": 357,
-					"LOP_BURI": 356,
-					"NAKHON_NAYOK": 355,
-					"SUPHAN_BURI": 355,
-					"NONG_KHAI": 355,
-					"KRABI": 354,
-					"TRAT": 354,
-					"KANCHANABURI": 352,
-					"CHANTHABURI": 352,
-					"CHIANG_RAI": 352,
-					"TAK": 352,
-					"NAKHON_PHANOM": 352,
-					"BURI_RAM": 352,
-					"PRACHUAP_KHIRI_KHAN": 352,
-					"PHANGNGA": 352,
-					"PHITSANULOK": 352,
-					"MUKDAHAN": 352,
-					"SAKON_NAKHON": 352,
-					"SONGKHLA": 352,
-					"SA_KAEO": 352,
-					"SURAT_THANI": 352,
-					"UBON_RATCHATHANI": 352,
-					"CHUMPHON": 351,
-					"PHETCHABURI": 351,
-					"SURIN": 351,
-					"NAKHON_SAWAN": 350,
-					"YASOTHON": 350,
-					"LAMPHUN": 350,
-					"KALASIN": 349,
-					"NAKHON_SI_THAMMARAT": 349,
-					"BUENG_KAN": 349,
-					"PHETCHABUN": 349,
-					"ROI_ET": 349,
-					"CHAI_NAT": 348,
-					"CHAIYAPHUM": 348,
-					"PHATTHALUNG": 348,
-					"SING_BURI": 348,
-					"ANG_THONG": 348,
-					"KAMPHAENG_PHET": 347,
-					"PHICHIT": 347,
-					"MAHA_SARAKHAM": 347,
-					"MAE_HONG_SON": 347,
-					"RANONG": 347,
-					"RATCHABURI": 347,
-					"LAMPANG": 347,
-					"LOEI": 347,
-					"SI_SA_KET": 347,
-					"SATUN": 347,
-					"SUKHOTHAI": 347,
-					"NONG_BUA_LAM_PHU": 347,
-					"AMNAT_CHAROEN": 347,
-					"UDON_THANI": 347,
-					"UTTARADIT": 347,
-					"UTHAI_THANI": 347,
-					"TRANG": 345,
-					"NAN": 345,
-					"PHAYAO": 345,
-					"PHRAE": 345,
-					"NARATHIWAT": 337,
-					"PATTANI": 337,
-					"YALA": 337
-				},
-				"business_400": 400
-			}
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Wage Committee Notification on Minimum Wage Rates (No. 14) B.E. 2568; Labour Protection Act B.E. 2541 (1998) ss.79(3), 88, 90",
@@ -176,8 +58,8 @@
 		],
 		"off_cycle_eligible": true,
 		"subtotal_id": "d5cb1e8c-b72e-59dc-8f3f-c128bf73805c",
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst employer = ctx.subject.employer;\nconst ended = get(employment, 'effective_range.to', null);\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (get(employer, 'entity_extension_data.minimum_wage_exempt', false)) return false;\nif (ctx.entry.unit !== 'DAY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nconst rate = get(employment, 'terms.rate', {});\nif (rate.unit === 'PIECE') return false;\nconst business = get(employer, 'entity_extension_data.minimum_wage_400_business', false);\nif (business) return business;\nconst region = get(employer, 'entity_extension_data.region', null);\nif (typeof region !== 'string') return false;\nreturn Object.hasOwn(ctx.lookup.minimum_wage.by_region, region);\n",
-		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst employer = ctx.subject.employer;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst minimum =\n\tget(employer, 'entity_extension_data.minimum_wage_400_business', false)\n\t\t? ctx.lookup.minimum_wage.business_400\n\t\t: get(ctx.lookup.minimum_wage, 'by_region.' + String(get(employer, 'entity_extension_data.region', '')), 0);\nconst fixed = sum(\n\tObject.values(get(terms, 'allowances', {}))\n\t\t.filter((allowance) => get(allowance, 'fixed', true) !== false)\n\t\t.map((allowance) => get(allowance, 'amount', 0))\n);\nconst paid =\n\trate.unit === 'DAILY'\n\t\t? rate.amount\n\t\t: rate.unit === 'HOURLY'\n\t\t\t? rate.amount * get(terms, 'normal_hours_per_day', ctx.lookup.hours_per_day)\n\t\t\t: (get(rate, 'amount', 0) + fixed) / ctx.lookup.calendar_days;\nreturn Math.max(0, minimum - paid) * ctx.entry.quantity;",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst employer = ctx.subject.employer;\nconst ended = get(employment, 'effective_range.to', null);\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (get(employer, 'entity_extension_data.minimum_wage_exempt', false)) return false;\nif (ctx.entry.unit !== 'DAY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nconst rate = get(employment, 'terms.rate', {});\nif (rate.unit === 'PIECE') return false;\nconst business = get(employer, 'entity_extension_data.minimum_wage_400_business', false);\nif (business) return business;\nconst region = get(employer, 'entity_extension_data.region', null);\nif (typeof region !== 'string') return false;\nreturn Object.hasOwn(ctx.lookup.by_region, region);\n",
+		"conversion": "// js\nconst employer = ctx.subject.employer;\nconst minimum =\n\tget(employer, 'entity_extension_data.minimum_wage_400_business', false)\n\t\t? ctx.lookup.business_400\n\t\t: get(ctx.lookup.by_region, String(get(employer, 'entity_extension_data.region', '')), 0);\nreturn Math.max(0, minimum - ctx.day_rate) * ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -211,8 +93,6 @@
 		"code": "SPECIAL_SEVERANCE_TECHNOLOGY",
 		"name": "Special severance — technology redundancy (s.122)",
 		"lookup": {
-			"calendar_days": 30,
-			"hours_per_day": 8,
 			"days_per_year": 15,
 			"maximum_days": 360,
 			"qualifying_years": 6,
@@ -227,9 +107,9 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "77c30db3-8211-5e54-8514-03cdd8769f52",
+		"subtotal_id": "dc853c02-96be-5b88-86c6-41bf969c0fe3",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (get(employment, 'employee_extension_data.exit_facts.special_severance_ground', null) !== 'TECHNOLOGY') return false;\nreturn calendar_completed_months(employment.effective_range.from, ctx.entry.incurred_on) >= ctx.lookup.qualifying_years * 12;\n",
-		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\n// The fixed allowance paid for normal work is wage (LPA s.5), so it is part of the final wage rate.\nconst allowance = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nconst monthly =\n\trate.unit === 'PIECE'\n\t\t? ctx.entry.quantity\n\t\t: rate.unit === 'DAILY'\n\t\t\t? rate.amount * ctx.lookup.calendar_days + allowance\n\t\t\t: rate.unit === 'HOURLY'\n\t\t\t\t? rate.amount * get(terms, 'normal_hours_per_day', ctx.lookup.hours_per_day) * ctx.lookup.calendar_days + allowance\n\t\t\t\t: get(rate, 'amount', 0) + allowance;\nconst start = employment.effective_range.from;\nconst whole = Math.trunc(calendar_completed_months(start, ctx.entry.incurred_on) / 12);\nconst part = calendar_distance_days(add_years(start, whole), ctx.entry.incurred_on) + 1;\nconst years = whole + (part > ctx.lookup.part_year_days ? 1 : 0);\nreturn (monthly / ctx.lookup.calendar_days) * Math.min(ctx.lookup.maximum_days, ctx.lookup.days_per_year * years);",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst monthly = rate.unit === 'PIECE' ? ctx.entry.quantity : ctx.day_rate * ctx.lookup.monthly_divisor;\nconst start = employment.effective_range.from;\nconst whole = Math.trunc(calendar_completed_months(start, ctx.entry.incurred_on) / 12);\nconst part = calendar_distance_days(add_years(start, whole), ctx.entry.incurred_on) + 1;\nconst years = whole + (part > ctx.lookup.part_year_days ? 1 : 0);\nreturn (monthly / ctx.lookup.monthly_divisor) * Math.min(ctx.lookup.maximum_days, ctx.lookup.days_per_year * years);",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -240,8 +120,6 @@
 		"code": "TECHNOLOGY_NOTICE_IN_LIEU",
 		"name": "Pay in lieu of 60 days' notice — technology redundancy (s.121)",
 		"lookup": {
-			"calendar_days": 30,
-			"hours_per_day": 8,
 			"notice_days": 60
 		},
 		"references": [
@@ -253,9 +131,9 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "77c30db3-8211-5e54-8514-03cdd8769f52",
+		"subtotal_id": "ac336309-e31a-527b-8c26-5b33eb96de1d",
 		"eligibility": "// js\nconst ended = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ended == null || ctx.entry.incurred_on <= ended;",
-		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\n// The fixed allowance paid for normal work is wage (LPA s.5), so it is part of the final wage rate.\nconst allowance = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nconst monthly =\n\trate.unit === 'PIECE'\n\t\t? ctx.entry.quantity\n\t\t: rate.unit === 'DAILY'\n\t\t\t? rate.amount * ctx.lookup.calendar_days + allowance\n\t\t\t: rate.unit === 'HOURLY'\n\t\t\t\t? rate.amount * get(terms, 'normal_hours_per_day', ctx.lookup.hours_per_day) * ctx.lookup.calendar_days + allowance\n\t\t\t\t: get(rate, 'amount', 0) + allowance;\nreturn (monthly / ctx.lookup.calendar_days) * ctx.lookup.notice_days;",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst monthly = rate.unit === 'PIECE' ? ctx.entry.quantity : ctx.day_rate * ctx.lookup.monthly_divisor;\nreturn (monthly / ctx.lookup.monthly_divisor) * ctx.lookup.notice_days;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -265,34 +143,7 @@
 	{
 		"code": "SPECIAL_SEVERANCE_RELOCATION",
 		"name": "Special severance — relocation refused (s.120)",
-		"lookup": {
-			"calendar_days": 30,
-			"hours_per_day": 8,
-			"minimum_service_days": 120,
-			"first_tier_days": 30,
-			"schedule": [
-				{
-					"up_to": 35,
-					"amount": 90
-				},
-				{
-					"up_to": 71,
-					"amount": 180
-				},
-				{
-					"up_to": 119,
-					"amount": 240
-				},
-				{
-					"up_to": 239,
-					"amount": 300
-				},
-				{
-					"up_to": null,
-					"amount": 400
-				}
-			]
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.120 para 3 (as replaced by Act No. 7 B.E. 2562)",
@@ -302,9 +153,9 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "77c30db3-8211-5e54-8514-03cdd8769f52",
+		"subtotal_id": "dc853c02-96be-5b88-86c6-41bf969c0fe3",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nconst served = calendar_distance_days(employment.effective_range.from, ctx.entry.incurred_on) + 1;\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (get(employment, 'employee_extension_data.exit_facts.special_severance_ground', null) !== 'RELOCATION') return false;\nreturn served >= ctx.lookup.minimum_service_days;\n",
-		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\n// The fixed allowance paid for normal work is wage (LPA s.5), so it is part of the final wage rate.\nconst allowance = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nconst monthly =\n\trate.unit === 'PIECE'\n\t\t? ctx.entry.quantity\n\t\t: rate.unit === 'DAILY'\n\t\t\t? rate.amount * ctx.lookup.calendar_days + allowance\n\t\t\t: rate.unit === 'HOURLY'\n\t\t\t\t? rate.amount * get(terms, 'normal_hours_per_day', ctx.lookup.hours_per_day) * ctx.lookup.calendar_days + allowance\n\t\t\t\t: get(rate, 'amount', 0) + allowance;\nconst months = calendar_completed_months(employment.effective_range.from, ctx.entry.incurred_on);\nconst days = months < 12 ? ctx.lookup.first_tier_days : bracket(months, ctx.lookup.schedule);\nreturn (monthly / ctx.lookup.calendar_days) * days;",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst monthly = rate.unit === 'PIECE' ? ctx.entry.quantity : ctx.day_rate * ctx.lookup.monthly_divisor;\nconst months = calendar_completed_months(employment.effective_range.from, ctx.entry.incurred_on);\nconst days = months < 12 ? ctx.lookup.first_tier_days : bracket(months, ctx.lookup.schedule);\nreturn (monthly / ctx.lookup.monthly_divisor) * days;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -315,8 +166,6 @@
 		"code": "RELOCATION_NOTICE_IN_LIEU",
 		"name": "Pay in lieu of 30 days' relocation notice (s.120)",
 		"lookup": {
-			"calendar_days": 30,
-			"hours_per_day": 8,
 			"notice_days": 30
 		},
 		"references": [
@@ -328,9 +177,9 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "77c30db3-8211-5e54-8514-03cdd8769f52",
+		"subtotal_id": "ac336309-e31a-527b-8c26-5b33eb96de1d",
 		"eligibility": "// js\nconst ended = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ended == null || ctx.entry.incurred_on <= ended;",
-		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\n// The fixed allowance paid for normal work is wage (LPA s.5), so it is part of the final wage rate.\nconst allowance = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nconst monthly =\n\trate.unit === 'PIECE'\n\t\t? ctx.entry.quantity\n\t\t: rate.unit === 'DAILY'\n\t\t\t? rate.amount * ctx.lookup.calendar_days + allowance\n\t\t\t: rate.unit === 'HOURLY'\n\t\t\t\t? rate.amount * get(terms, 'normal_hours_per_day', ctx.lookup.hours_per_day) * ctx.lookup.calendar_days + allowance\n\t\t\t\t: get(rate, 'amount', 0) + allowance;\nreturn (monthly / ctx.lookup.calendar_days) * ctx.lookup.notice_days;",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst monthly = rate.unit === 'PIECE' ? ctx.entry.quantity : ctx.day_rate * ctx.lookup.monthly_divisor;\nreturn (monthly / ctx.lookup.monthly_divisor) * ctx.lookup.notice_days;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -363,8 +212,6 @@
 		"code": "LATE_PAYMENT_INTEREST",
 		"name": "Interest and surcharge on late wages or severance (s.9)",
 		"lookup": {
-			"calendar_days": 30,
-			"hours_per_day": 8,
 			"annual_rate": 0.15,
 			"days_per_year": 365
 		},
@@ -379,7 +226,7 @@
 		"off_cycle_eligible": true,
 		"subtotal_id": "77c30db3-8211-5e54-8514-03cdd8769f52",
 		"eligibility": "// js\nconst ended = get(ctx.subject.employment, 'effective_range.to', null);\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (ctx.entry.unit === 'MONEY') return true;\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nreturn ctx.entry.unit === 'DAY' && rate.unit !== 'PIECE';\n",
-		"conversion": "// js\nif (ctx.entry.unit === 'MONEY') return ctx.entry.quantity;\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst monthly =\n\trate.unit === 'DAILY'\n\t\t? rate.amount * ctx.lookup.calendar_days\n\t\t: rate.unit === 'HOURLY'\n\t\t\t? rate.amount * get(terms, 'normal_hours_per_day', ctx.lookup.hours_per_day) * ctx.lookup.calendar_days\n\t\t\t: get(rate, 'amount', 0);\nreturn (monthly * ctx.lookup.annual_rate * ctx.entry.quantity) / ctx.lookup.days_per_year;",
+		"conversion": "// js\nif (ctx.entry.unit === 'MONEY') return ctx.entry.quantity;\nconst monthly = ctx.day_rate * ctx.lookup.monthly_divisor;\nreturn (monthly * ctx.lookup.annual_rate * ctx.entry.quantity) / ctx.lookup.days_per_year;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -389,23 +236,19 @@
 	{
 		"code": "HOLIDAY_NOT_GRANTED",
 		"name": "Holiday not granted, paid as worked (s.64)",
-		"lookup": {
-			"calendar_days": 30,
-			"hours_per_day": 8,
-			"hazardous_hours_per_day": 7
-		},
+		"lookup": {},
 		"references": [
 			{
-				"title": "Labour Protection Act B.E. 2541 (1998) s.64",
-				"locator": "s.64",
+				"title": "Labour Protection Act B.E. 2541 (1998) ss.56, 62, 64",
+				"locator": "ss.56, 62, 64",
 				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
-				"quote": "A holiday under ss.28-30 not granted, or granted short, is paid at the s.62 and s.63 rates as if worked."
+				"quote": "A holiday under ss.28-30 not granted, or granted short, is paid at the s.62 and s.63 rates as if worked: 1× with holiday pay, 2× without it."
 			}
 		],
 		"off_cycle_eligible": true,
 		"subtotal_id": "670757ec-b2ae-57a3-affd-dbba0185a7e0",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nif (ctx.entry.unit !== 'HOUR') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nconst rate = get(employment, 'terms.rate', {});\nreturn ['MONTHLY', 'DAILY', 'HOURLY'].includes(rate.unit);\n",
-		"conversion": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst hours = get(\n\tterms,\n\t'normal_hours_per_day',\n\tget(terms, 'statutory_work_category', null) === 'HAZARDOUS'\n\t\t? ctx.lookup.hazardous_hours_per_day\n\t\t: ctx.lookup.hours_per_day\n);\n// A monthly wage takes the fixed allowance paid for normal work (LPA ss.5, 68).\nconst allowance = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nconst hourly =\n\trate.unit === 'HOURLY'\n\t\t? rate.amount\n\t\t: rate.unit === 'DAILY'\n\t\t\t? rate.amount / hours\n\t\t\t: (get(rate, 'amount', 0) + allowance) / ctx.lookup.calendar_days / hours;\nreturn hourly * ctx.entry.quantity;",
+		"conversion": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst hours = get(\n\tterms,\n\t'normal_hours_per_day',\n\tget(terms, 'statutory_work_category', null) === 'HAZARDOUS'\n\t\t? ctx.lookup.hazardous_normal_hours_per_day\n\t\t: ctx.lookup.normal_hours_per_day\n);\n// s.64 pays at the s.62 rate: a monthly wage already pays the holiday (s.56(1)), so 1×; a day or hour\n// rate has no weekly-holiday pay, so 2× (s.62(2)). An entry does not say which holiday, so a daily\n// worker's traditional or annual holiday (s.62(1), 1×) is paid above the minimum.\nconst multiple = rate.unit === 'MONTHLY' ? ctx.lookup.paid_multiple : ctx.lookup.unpaid_multiple;\nreturn (ctx.day_rate / hours) * multiple * ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -424,7 +267,7 @@
 				"quote": "Security money may be taken only for work, in the amounts and by the keeping method the Minister's notification allows, and is returned with interest within 7 days of the exit."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "42975af4-33c6-5112-bf20-496b8d83cf77",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nif (ended != null && ctx.entry.incurred_on > ended) return false;\nconst post = get(employment, 'employee_extension_data.term_facts.security_deposit_post', false);\nif (!post) return post;\nif (ctx.entry.unit !== 'MONEY') return false;\nreturn ctx.entry.quantity > 0;\n",
 		"conversion": "// js\nreturn ctx.entry.quantity;",

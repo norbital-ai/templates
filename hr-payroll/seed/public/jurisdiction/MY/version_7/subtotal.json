@@ -7,9 +7,65 @@
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
+		"code": "REGULAR_PAY",
+		"name": "Regular pay",
+		"id": "068ecb1e-ca60-518f-8f4e-c6b485373556",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"previous_id": "b6462b20-0518-5283-885d-e34dd83a8801"
+	},
+	{
+		"code": "EXEMPT_ALLOWANCES",
+		"name": "Tax-exempt allowances",
+		"id": "fbf9a660-f639-5350-9d8b-b25b497aad8e",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"previous_id": "068ecb1e-ca60-518f-8f4e-c6b485373556"
+	},
+	{
+		"code": "CHILDCARE",
+		"name": "Child care allowance",
+		"id": "51c4dde5-54e0-5129-a40a-012e78087aed",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"previous_id": "fbf9a660-f639-5350-9d8b-b25b497aad8e"
+	},
+	{
+		"code": "WAGE_ARREARS",
+		"name": "Arrears of wages",
+		"id": "5418b193-e55e-52af-8c4f-5fb9915853f5",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"previous_id": "51c4dde5-54e0-5129-a40a-012e78087aed"
+	},
+	{
+		"code": "COMMISSION",
+		"name": "Monthly commission",
+		"id": "6a9ac931-8c6b-59ce-a6ad-cad897f2ce8c",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"previous_id": "5418b193-e55e-52af-8c4f-5fb9915853f5"
+	},
+	{
+		"code": "IRREGULAR_COMMISSION",
+		"name": "Commission not paid monthly",
+		"id": "aa3b7090-5d47-530b-99d2-d5aac0be16e6",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"previous_id": "6a9ac931-8c6b-59ce-a6ad-cad897f2ce8c"
+	},
+	{
+		"code": "AWARDS",
+		"name": "Excellence awards",
+		"id": "7e550444-91a9-5d27-bcef-7720c991eee9",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"previous_id": "aa3b7090-5d47-530b-99d2-d5aac0be16e6"
+	},
+	{
+		"code": "LONG_SERVICE",
+		"name": "Long service awards",
+		"id": "d8e116ab-4fb6-59ef-9cdf-4e948ca64523",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"previous_id": "7e550444-91a9-5d27-bcef-7720c991eee9"
+	},
+	{
 		"code": "ORDINARY_WAGES",
 		"name": "Ordinary wages",
-		"previous_id": "b6462b20-0518-5283-885d-e34dd83a8801",
+		"previous_id": "d8e116ab-4fb6-59ef-9cdf-4e948ca64523",
 		"id": "975adb31-a659-575b-befe-42549bfe0051",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
@@ -21,31 +77,38 @@
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{
-		"code": "GROSS",
-		"name": "Gross earnings",
-		"previous_id": "e7af0d07-be82-590a-9518-1e64717502fb",
-		"id": "e7d47d63-c399-5eff-bb7d-59cd5f8ee72f",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
-	},
-	{
-		"code": "NET",
-		"name": "Net pay",
-		"previous_id": "8db5aab3-89d0-582e-ba12-a499eb54bf62",
-		"id": "dd52b358-2b42-5ad0-bbc0-a829775941e8",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
-	},
-	{
-		"id": "239b3203-409e-5718-949a-6a05e4201d42",
+		"code": "SEPARATION_PAY",
+		"name": "Termination and lay-off benefits",
+		"id": "08d443a7-052a-5a60-beba-06eb161ed6ab",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
-		"code": "EMPLOYER_COST",
-		"name": "Employer cost",
-		"previous_id": "dd52b358-2b42-5ad0-bbc0-a829775941e8"
+		"previous_id": "e7af0d07-be82-590a-9518-1e64717502fb"
+	},
+	{
+		"code": "OFFICIAL_TRAVEL",
+		"name": "Official travel",
+		"id": "91c5dbb6-add5-5d03-b1d6-baba27eb09ca",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"previous_id": "08d443a7-052a-5a60-beba-06eb161ed6ab"
 	},
 	{
 		"code": "FINAL_PAY",
 		"name": "Final pay and non-wage settlements",
-		"previous_id": "e7d47d63-c399-5eff-bb7d-59cd5f8ee72f",
+		"previous_id": "91c5dbb6-add5-5d03-b1d6-baba27eb09ca",
 		"id": "8db5aab3-89d0-582e-ba12-a499eb54bf62",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+	},
+	{
+		"code": "ZAKAT",
+		"name": "Payroll zakat",
+		"id": "9175877f-41b7-5f63-9140-a26032e34f39",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"previous_id": "8db5aab3-89d0-582e-ba12-a499eb54bf62"
+	},
+	{
+		"code": "NET",
+		"name": "Net pay",
+		"previous_id": "9175877f-41b7-5f63-9140-a26032e34f39",
+		"id": "dd52b358-2b42-5ad0-bbc0-a829775941e8",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	}
 ]

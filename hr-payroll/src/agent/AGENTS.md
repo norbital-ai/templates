@@ -2,6 +2,18 @@
 
 Norbius reads [`+agent.md`](./+agent.md). This file maps the source and the refactor rules for coding agents.
 
+## The design is fixed
+
+Read [section 0 of the calculation architecture](../../docs/0001-hrms-calculation-architecture.md#0-the-design-is-fixed) before you touch anything here. It is the owner's design, and you wire around it. In short:
+
+1. Catalogs, catalog entries and reversal entries. A refund or correction is a reversal or adjustment entry against a catalog item.
+2. Ledger entries are emitted during payroll and when a leave, claim, adhoc or loan entry is created. The balance is their projection and replaces payroll history.
+3. Linear computation: one subtotal chain, then statutory schemes in dependency order.
+4. Jurisdiction settings hold the global lookup; a row's own lookup is local and wins. Registered rules validate; registered effects are side effects; reads happen once, up front.
+5. Simplicity: thin models, a thin payroll run, and no field or engine concept the owner did not ask for.
+
+"It doesn't fit" is not a finding. Express the requirement with these parts. If it still has no home, ask the owner; do not change the design, add to it or ship an approximation. Brief every subagent with this section.
+
 ## Model ownership
 
 `src/data/model/` mirrors ownership. A child model sits inside its owner's folder; only the leaf folder names the model.
@@ -46,8 +58,7 @@ statutory_finding/
 statutory_source/
 payroll_run/
   payslip/
-roster/
-  roster_entry/
+roster_entry/
 ```
 
 ## Surfaces
@@ -85,7 +96,7 @@ The published `@norbital-ai/*` 0.0.8 SDK discovers only `src/data/model/<name>`;
 ## Invariants
 
 - Every fact has one owner; a value is read from its owner, never copied into a second model or JSON bag.
-- The first subtotal computes base pay; later subtotals accumulate employee lines; statutory schemes evaluate in dependency order.
+- The first subtotal opens with base pay; later subtotals accumulate employee lines; statutory schemes evaluate in dependency order.
 - `payroll_run.create` calculates and writes payslips plus ledger rows as one payload; there is no separate finalise step.
 - Ledger rows are immutable and the balance is a rebuildable projection.
 - A change of law is a new sealed jurisdiction version, never an edit to a sealed one.

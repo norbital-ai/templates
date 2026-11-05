@@ -332,7 +332,784 @@
 		},
 		"lookup": {
 			"rounding": "HALF_UP",
-			"rounding_scale": 2
+			"rounding_scale": 2,
+			"normal_hours_per_day": 8,
+			"days_per_year": 313,
+			"months_per_year": 12,
+			"day_rate": "// DOLE Handbook on Workers' Statutory Monetary Benefits 2024: monthly rate × 12 ÷ paid days a year, 313 or 261.\n// proration_basis WORKING_DAYS: no statute fixes a basis for an incomplete month. Handbook ch.1 §I deducts \"the wages corresponding\n// to the days taken off\", on \"no work, no pay\", so joiners, leavers and absences lose their own working days.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\nconst hours = Number(get(terms, 'normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nif (unit === 'DAILY') return amount;\nif (unit === 'HOURLY' || unit === 'PIECE') return amount * hours;\nconst days = Number(get(ctx.subject.employment, 'employee_extension_data.days_per_year', ctx.lookup.days_per_year));\nreturn (amount * ctx.lookup.months_per_year) / days;",
+			"proration_basis": "WORKING_DAYS",
+			"minor_unit": 0.01,
+			"domestic_threshold": 5000,
+			"ordinary_coverage_age_years": 60,
+			"extended_coverage_age_years": 65,
+			"minimum_salary_credit": 5000,
+			"maximum_salary_credit": 35000,
+			"salary_credit_step": 500,
+			"regular_fund_salary_credit_ceiling": 20000,
+			"domestic_salary_credit_floor": 1000,
+			"sss_employee_rate": 0.05,
+			"sss_employer_rate": 0.1,
+			"final_pay_maximum_days": 30,
+			"premium_excluded_categories": [
+				"MANAGERIAL",
+				"DOMESTIC",
+				"FIELD_PERSONNEL",
+				"TASK_BASIS",
+				"PIECE_RATE"
+			],
+			"time_zone": "Asia/Manila",
+			"night_window_start": "22:00",
+			"night_window_end": "06:00",
+			"overtime_multiples": {
+				"ordinary": 1.25,
+				"rest": 1.69,
+				"special": 1.69,
+				"special_rest": 1.95,
+				"double_special": 1.95,
+				"double_special_rest": 2.535,
+				"holiday": 2.6,
+				"holiday_rest": 3.38,
+				"double_holiday": 3.9,
+				"double_holiday_rest": 5.07
+			},
+			"day_multiples": {
+				"ordinary": 1,
+				"rest": 1.3,
+				"special": 1.3,
+				"special_rest": 1.5,
+				"double_special": 1.5,
+				"double_special_rest": 1.95,
+				"holiday": 2,
+				"holiday_rest": 2.6,
+				"double_holiday": 3,
+				"double_holiday_rest": 3.9
+			},
+			"annual_tax": [
+				{
+					"up_to": 250000,
+					"rate": 0
+				},
+				{
+					"up_to": 400000,
+					"rate": 0.15
+				},
+				{
+					"up_to": 800000,
+					"rate": 0.2
+				},
+				{
+					"up_to": 2000000,
+					"rate": 0.25
+				},
+				{
+					"up_to": 8000000,
+					"rate": 0.3
+				},
+				{
+					"up_to": null,
+					"rate": 0.35
+				}
+			],
+			"annual_bonus_and_other_benefits": 90000,
+			"overtime_meal_minimum_wage_share": 0.25,
+			"de_minimis": [
+				{
+					"subtotal": "DE_MINIMIS_RICE",
+					"after": "STATUTORY_WAGES",
+					"months": 1,
+					"ceiling": 2000
+				},
+				{
+					"subtotal": "DE_MINIMIS_LAUNDRY",
+					"after": "DE_MINIMIS_RICE",
+					"months": 1,
+					"ceiling": 300
+				},
+				{
+					"subtotal": "DE_MINIMIS_DEPENDANT_MEDICAL",
+					"after": "DE_MINIMIS_LAUNDRY",
+					"months": 6,
+					"ceiling": 1500
+				},
+				{
+					"subtotal": "DE_MINIMIS_UNIFORM",
+					"after": "ADDITIONAL_WAGES",
+					"months": 12,
+					"ceiling": 7000
+				},
+				{
+					"subtotal": "DE_MINIMIS_MEDICAL",
+					"after": "DE_MINIMIS_UNIFORM",
+					"months": 12,
+					"ceiling": 10000
+				},
+				{
+					"subtotal": "DE_MINIMIS_AWARD",
+					"after": "DE_MINIMIS_MEDICAL",
+					"months": 12,
+					"ceiling": 10000
+				},
+				{
+					"subtotal": "DE_MINIMIS_GIFT",
+					"after": "DE_MINIMIS_AWARD",
+					"months": 12,
+					"ceiling": 5000
+				},
+				{
+					"subtotal": "DE_MINIMIS_CBA",
+					"after": "DE_MINIMIS_GIFT",
+					"months": 12,
+					"ceiling": 10000
+				}
+			],
+			"minimum_wage_by_region": [
+				{
+					"region": "BARMM-CITY-AGRI-RETAIL",
+					"from": "2026-12-01",
+					"monthly": 11372.33
+				},
+				{
+					"region": "BARMM-CITY-AGRI-RETAIL",
+					"from": "2026-08-06",
+					"monthly": 10720.25
+				},
+				{
+					"region": "BARMM-CITY-AGRI-RETAIL",
+					"from": "2025-12-01",
+					"monthly": 10068.17
+				},
+				{
+					"region": "BARMM-CITY-NONAGRI",
+					"from": "2026-12-01",
+					"monthly": 12024.42
+				},
+				{
+					"region": "BARMM-CITY-NONAGRI",
+					"from": "2026-08-06",
+					"monthly": 11372.33
+				},
+				{
+					"region": "BARMM-CITY-NONAGRI",
+					"from": "2025-12-01",
+					"monthly": 10720.25
+				},
+				{
+					"region": "BARMM-PROV-AGRI",
+					"from": "2026-12-01",
+					"monthly": 11111.5
+				},
+				{
+					"region": "BARMM-PROV-AGRI",
+					"from": "2026-08-06",
+					"monthly": 10459.42
+				},
+				{
+					"region": "BARMM-PROV-AGRI",
+					"from": "2025-12-01",
+					"monthly": 9807.33
+				},
+				{
+					"region": "BARMM-PROV-NONAGRI",
+					"from": "2026-12-01",
+					"monthly": 11372.33
+				},
+				{
+					"region": "BARMM-PROV-NONAGRI",
+					"from": "2026-08-06",
+					"monthly": 10720.25
+				},
+				{
+					"region": "BARMM-PROV-NONAGRI",
+					"from": "2025-12-01",
+					"monthly": 10068.17
+				},
+				{
+					"region": "CAR",
+					"from": "2025-12-30",
+					"monthly": 13172.08
+				},
+				{
+					"region": "CAR",
+					"from": "2025-12-01",
+					"monthly": 12259.17
+				},
+				{
+					"region": "I-LOW",
+					"from": "2025-12-01",
+					"monthly": 12520
+				},
+				{
+					"region": "I-NONAGRI-10PLUS",
+					"from": "2025-12-01",
+					"monthly": 13172.08
+				},
+				{
+					"region": "II",
+					"from": "2025-12-01",
+					"monthly": 13041.67
+				},
+				{
+					"region": "III-AURORA-AGRI",
+					"from": "2026-04-16",
+					"monthly": 14215.42
+				},
+				{
+					"region": "III-AURORA-AGRI",
+					"from": "2025-12-01",
+					"monthly": 13432.92
+				},
+				{
+					"region": "III-AURORA-NONAGRI",
+					"from": "2026-04-16",
+					"monthly": 14606.67
+				},
+				{
+					"region": "III-AURORA-NONAGRI",
+					"from": "2025-12-01",
+					"monthly": 13824.17
+				},
+				{
+					"region": "III-AURORA-RETAIL",
+					"from": "2026-04-16",
+					"monthly": 13432.92
+				},
+				{
+					"region": "III-AURORA-RETAIL",
+					"from": "2025-12-01",
+					"monthly": 12389.58
+				},
+				{
+					"region": "III-CORE-AGRI",
+					"from": "2026-04-16",
+					"monthly": 14867.5
+				},
+				{
+					"region": "III-CORE-AGRI",
+					"from": "2025-12-01",
+					"monthly": 14085
+				},
+				{
+					"region": "III-CORE-NONAGRI",
+					"from": "2026-04-16",
+					"monthly": 15650
+				},
+				{
+					"region": "III-CORE-NONAGRI",
+					"from": "2025-12-01",
+					"monthly": 14867.5
+				},
+				{
+					"region": "III-CORE-RETAIL",
+					"from": "2026-04-16",
+					"monthly": 15389.17
+				},
+				{
+					"region": "III-CORE-RETAIL",
+					"from": "2025-12-01",
+					"monthly": 14606.67
+				},
+				{
+					"region": "IV-A",
+					"from": "2025-12-01",
+					"monthly": 15650
+				},
+				{
+					"region": "IV-A-1ST",
+					"from": "2025-12-01",
+					"monthly": 14345.83
+				},
+				{
+					"region": "IV-A-2ND-5TH",
+					"from": "2026-04-01",
+					"monthly": 13693.75
+				},
+				{
+					"region": "IV-A-2ND-5TH",
+					"from": "2025-12-01",
+					"monthly": 13302.5
+				},
+				{
+					"region": "IV-A-AGRI-2ND-5TH",
+					"from": "2026-04-01",
+					"monthly": 13250.33
+				},
+				{
+					"region": "IV-A-AGRI-2ND-5TH",
+					"from": "2025-12-01",
+					"monthly": 12650.42
+				},
+				{
+					"region": "IV-A-AGRI-COMPONENT-1ST",
+					"from": "2025-12-01",
+					"monthly": 13693.75
+				},
+				{
+					"region": "IV-A-AGRI-RECLASSIFIED-1ST",
+					"from": "2026-04-01",
+					"monthly": 13693.75
+				},
+				{
+					"region": "IV-A-AGRI-RECLASSIFIED-1ST",
+					"from": "2025-12-01",
+					"monthly": 12650.42
+				},
+				{
+					"region": "IV-A-RECLASSIFIED-1ST",
+					"from": "2026-04-01",
+					"monthly": 14345.83
+				},
+				{
+					"region": "IV-A-RECLASSIFIED-1ST",
+					"from": "2025-12-01",
+					"monthly": 13302.5
+				},
+				{
+					"region": "IV-A-ROSARIO-CAVITE",
+					"from": "2025-12-01",
+					"monthly": 15650
+				},
+				{
+					"region": "IV-A-RETAIL-SMALL",
+					"from": "2026-04-01",
+					"monthly": 13250.33
+				},
+				{
+					"region": "IV-A-RETAIL-SMALL",
+					"from": "2025-12-01",
+					"monthly": 12650.42
+				},
+				{
+					"region": "IV-B",
+					"from": "2026-01-01",
+					"monthly": 11867.92
+				},
+				{
+					"region": "IV-B",
+					"from": "2025-12-01",
+					"monthly": 11215.83
+				},
+				{
+					"region": "IV-B-SMALL",
+					"from": "2026-01-01",
+					"monthly": 11867.92
+				},
+				{
+					"region": "IV-B-SMALL",
+					"from": "2025-12-01",
+					"monthly": 10537.67
+				},
+				{
+					"region": "IX-HIGH",
+					"from": "2026-06-01",
+					"monthly": 12102.67
+				},
+				{
+					"region": "IX-HIGH",
+					"from": "2026-01-01",
+					"monthly": 11450.58
+				},
+				{
+					"region": "IX-HIGH",
+					"from": "2025-12-01",
+					"monthly": 10798.5
+				},
+				{
+					"region": "IX-LOW",
+					"from": "2026-06-01",
+					"monthly": 11763.58
+				},
+				{
+					"region": "IX-LOW",
+					"from": "2026-01-01",
+					"monthly": 11111.5
+				},
+				{
+					"region": "IX-LOW",
+					"from": "2025-12-01",
+					"monthly": 10459.42
+				},
+				{
+					"region": "NCR",
+					"from": "2026-09-26",
+					"monthly": 19692.92
+				},
+				{
+					"region": "NCR",
+					"from": "2025-12-01",
+					"monthly": 18127.92
+				},
+				{
+					"region": "NCR-AGRI-SMALL",
+					"from": "2026-09-26",
+					"monthly": 18727.83
+				},
+				{
+					"region": "NCR-AGRI-SMALL",
+					"from": "2025-12-01",
+					"monthly": 17162.83
+				},
+				{
+					"region": "V",
+					"from": "2026-12-01",
+					"monthly": 12520
+				},
+				{
+					"region": "V",
+					"from": "2026-04-08",
+					"monthly": 11867.92
+				},
+				{
+					"region": "V",
+					"from": "2025-12-01",
+					"monthly": 11346.25
+				},
+				{
+					"region": "VI-AGRI",
+					"from": "2025-12-01",
+					"monthly": 13563.33
+				},
+				{
+					"region": "VI-NONAGRI-10ORLESS",
+					"from": "2025-12-01",
+					"monthly": 13693.75
+				},
+				{
+					"region": "VI-NONAGRI-11PLUS",
+					"from": "2025-12-01",
+					"monthly": 14345.83
+				},
+				{
+					"region": "VII-A",
+					"from": "2026-10-14",
+					"monthly": 15180.5
+				},
+				{
+					"region": "VII-A",
+					"from": "2025-12-01",
+					"monthly": 14085
+				},
+				{
+					"region": "VII-B",
+					"from": "2026-10-14",
+					"monthly": 14137.17
+				},
+				{
+					"region": "VII-B",
+					"from": "2025-12-01",
+					"monthly": 13041.67
+				},
+				{
+					"region": "VIII-HIGH",
+					"from": "2026-06-01",
+					"monthly": 12259.17
+				},
+				{
+					"region": "VIII-HIGH",
+					"from": "2025-12-08",
+					"monthly": 11789.67
+				},
+				{
+					"region": "VIII-HIGH",
+					"from": "2025-12-01",
+					"monthly": 11346.25
+				},
+				{
+					"region": "VIII-LOW",
+					"from": "2026-06-01",
+					"monthly": 11476.67
+				},
+				{
+					"region": "VIII-LOW",
+					"from": "2025-12-08",
+					"monthly": 11007.17
+				},
+				{
+					"region": "VIII-LOW",
+					"from": "2025-12-01",
+					"monthly": 10563.75
+				},
+				{
+					"region": "X-CAT-I",
+					"from": "2026-05-01",
+					"monthly": 13041.67
+				},
+				{
+					"region": "X-CAT-I",
+					"from": "2026-01-16",
+					"monthly": 12676.5
+				},
+				{
+					"region": "X-CAT-I",
+					"from": "2025-12-01",
+					"monthly": 12024.42
+				},
+				{
+					"region": "X-CAT-II",
+					"from": "2026-05-01",
+					"monthly": 12650.42
+				},
+				{
+					"region": "X-CAT-II",
+					"from": "2026-01-16",
+					"monthly": 12285.25
+				},
+				{
+					"region": "X-CAT-II",
+					"from": "2025-12-01",
+					"monthly": 11633.17
+				},
+				{
+					"region": "XI-AGRI",
+					"from": "2026-09-01",
+					"monthly": 13693.75
+				},
+				{
+					"region": "XI-AGRI",
+					"from": "2026-03-13",
+					"monthly": 13432.92
+				},
+				{
+					"region": "XI-AGRI",
+					"from": "2025-12-01",
+					"monthly": 13172.08
+				},
+				{
+					"region": "XI-NONAGRI",
+					"from": "2026-09-01",
+					"monthly": 14085
+				},
+				{
+					"region": "XI-NONAGRI",
+					"from": "2026-03-13",
+					"monthly": 13693.75
+				},
+				{
+					"region": "XI-NONAGRI",
+					"from": "2025-12-01",
+					"monthly": 13302.5
+				},
+				{
+					"region": "XII-AGRI",
+					"from": "2025-12-15",
+					"monthly": 11554.92
+				},
+				{
+					"region": "XII-AGRI",
+					"from": "2025-12-01",
+					"monthly": 11294.08
+				},
+				{
+					"region": "XII-NONAGRI",
+					"from": "2025-12-15",
+					"monthly": 11998.33
+				},
+				{
+					"region": "XII-NONAGRI",
+					"from": "2025-12-01",
+					"monthly": 11737.5
+				},
+				{
+					"region": "XIII",
+					"from": "2026-05-01",
+					"monthly": 12389.58
+				},
+				{
+					"region": "XIII",
+					"from": "2026-01-03",
+					"monthly": 11867.92
+				},
+				{
+					"region": "XIII",
+					"from": "2025-12-01",
+					"monthly": 11346.25
+				}
+			],
+			"minimum_wage_domestic": [
+				{
+					"region": "BARMM",
+					"from": "2026-01-08",
+					"monthly": 5500
+				},
+				{
+					"region": "BARMM",
+					"from": "2025-12-01",
+					"monthly": 5000
+				},
+				{
+					"region": "CAR",
+					"from": "2025-12-30",
+					"monthly": 6600
+				},
+				{
+					"region": "CAR",
+					"from": "2025-12-01",
+					"monthly": 6000
+				},
+				{
+					"region": "I",
+					"from": "2025-12-01",
+					"monthly": 6700
+				},
+				{
+					"region": "II",
+					"from": "2025-12-01",
+					"monthly": 6500
+				},
+				{
+					"region": "III",
+					"from": "2025-12-01",
+					"monthly": 6500
+				},
+				{
+					"region": "IV-A",
+					"from": "2025-12-01",
+					"monthly": 6750
+				},
+				{
+					"region": "IV-B",
+					"from": "2026-01-01",
+					"monthly": 7000
+				},
+				{
+					"region": "IV-B",
+					"from": "2025-12-01",
+					"monthly": 6500
+				},
+				{
+					"region": "IX",
+					"from": "2026-05-20",
+					"monthly": 6000
+				},
+				{
+					"region": "IX",
+					"from": "2025-12-01",
+					"monthly": 5500
+				},
+				{
+					"region": "IX-OTHER",
+					"from": "2026-05-20",
+					"monthly": 5500
+				},
+				{
+					"region": "IX-OTHER",
+					"from": "2025-12-01",
+					"monthly": 5000
+				},
+				{
+					"region": "IX-SULU-1ST",
+					"from": "2026-05-20",
+					"monthly": 6000
+				},
+				{
+					"region": "IX-SULU-1ST",
+					"from": "2025-12-01",
+					"monthly": 5000
+				},
+				{
+					"region": "NCR",
+					"from": "2026-02-07",
+					"monthly": 7800
+				},
+				{
+					"region": "NCR",
+					"from": "2025-12-01",
+					"monthly": 7000
+				},
+				{
+					"region": "V",
+					"from": "2025-12-01",
+					"monthly": 6000
+				},
+				{
+					"region": "VI",
+					"from": "2025-12-01",
+					"monthly": 6500
+				},
+				{
+					"region": "VII",
+					"from": "2026-10-14",
+					"monthly": 7500
+				},
+				{
+					"region": "VII",
+					"from": "2025-12-01",
+					"monthly": 7000
+				},
+				{
+					"region": "VIII",
+					"from": "2025-12-08",
+					"monthly": 6400
+				},
+				{
+					"region": "VIII",
+					"from": "2025-12-01",
+					"monthly": 6000
+				},
+				{
+					"region": "VIII-OTHER",
+					"from": "2025-12-08",
+					"monthly": 5800
+				},
+				{
+					"region": "VIII-OTHER",
+					"from": "2025-12-01",
+					"monthly": 5500
+				},
+				{
+					"region": "X",
+					"from": "2026-01-16",
+					"monthly": 6500
+				},
+				{
+					"region": "X",
+					"from": "2025-12-01",
+					"monthly": 6000
+				},
+				{
+					"region": "XI",
+					"from": "2026-03-13",
+					"monthly": 6500
+				},
+				{
+					"region": "XI",
+					"from": "2025-12-01",
+					"monthly": 6000
+				},
+				{
+					"region": "XI-OTHER",
+					"from": "2026-03-13",
+					"monthly": 6500
+				},
+				{
+					"region": "XI-OTHER",
+					"from": "2025-12-01",
+					"monthly": 5000
+				},
+				{
+					"region": "XII",
+					"from": "2025-12-01",
+					"monthly": 6000
+				},
+				{
+					"region": "XIII",
+					"from": "2026-01-03",
+					"monthly": 6500
+				},
+				{
+					"region": "XIII",
+					"from": "2025-12-01",
+					"monthly": 6000
+				}
+			],
+			"month_balance": [
+				"ORDINARY_WAGES",
+				"SSS.employee",
+				"SSS.employer",
+				"SSS_MPF.employee",
+				"SSS_MPF.employer",
+				"HDMF.employee",
+				"HDMF.employer"
+			]
 		},
 		"status": "SEALED"
 	}

@@ -112,11 +112,9 @@
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
 		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\tget(ctx.entry, 'final_pay_due_on', null) !== null;",
-		"validate": "const due = get(ctx.entry, 'final_pay_due_on', null);\nconst end = get(get(ctx.entry, 'effective_range', {}), 'to', null);\nif (end === null) return false;\nif (!(due >= end)) return false;\nreturn due <= add_days(end, ctx.lookup.maximum_days);",
+		"validate": "const due = get(ctx.entry, 'final_pay_due_on', null);\nconst end = get(get(ctx.entry, 'effective_range', {}), 'to', null);\nif (end === null) return false;\nif (!(due >= end)) return false;\nreturn due <= add_days(end, ctx.lookup.final_pay_maximum_days);",
 		"order": 27,
-		"lookup": {
-			"maximum_days": 30
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "DOLE Labor Advisory No. 06-20: final pay shall be paid within thirty calendar days from the date of separation, unless a more favourable company policy or individual/CBA agreement provides a shorter period."
@@ -217,25 +215,9 @@
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
 		"order": 25,
-		"reads": {
-			"statutory_contribution_catalog": {
-				"where": {
-					"code": {
-						"eq": "WTAX"
-					},
-					"settings_id": {
-						"eq": "ctx.entry.input_schema_version_id"
-					}
-				},
-				"fields": ["lookup"],
-				"limit": 1
-			}
-		},
 		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT';",
-		"validate": "const wageRows = ctx.reads.statutory_contribution_catalog || [];\nconst wtax = wageRows.length > 0 ? wageRows[0].lookup : null;\nif (wtax == null) return true;\nconst employer = get(ctx.subject, 'employer.entity_extension_data', {});\nif (get(employer, 'bmbe_certificate_of_authority', false) === true) return true;\nif (get(employer, 'minimum_wage_exemption_approved', false) === true) return true;\nconst terms = get(ctx.entry, 'terms', {});\nconst facts = get(ctx.subject, 'employment.employee_extension_data', {});\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(get(terms, 'statutory_work_category', ''));\nconst region = get(facts, 'work_region', get(employer, 'region', ''));\nif (region === '') return true;\nconst table = domestic ? wtax.minimum_wage_domestic : wtax.minimum_wage_by_region;\nconst rates = (table || []).filter((entry) => entry.region === region && entry.from <= get(ctx.entry, 'effective_range.from', '9999-12-31'));\nif (rates.length === 0) return false;\nconst latest = rates.toSorted((a, b) => (a.from < b.from ? 1 : -1))[0];\nconst floor = Number(latest.monthly);\nconst annualDays = Number(get(wtax, 'annual_paid_days', 313));\nconst hours = Number(get(terms, 'normal_hours_per_day', get(wtax, 'normal_daily_hours', 8)));\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst daily = unit === 'DAILY'\n\t? amount\n\t: unit === 'HOURLY'\n\t\t? amount * hours\n\t\t: amount * 12 / annualDays;\nreturn daily + 0.005 >= floor * 12 / annualDays;",
-		"lookup": {
-			"job_natures": ["AGRI", "NONAGRI", "RETAIL", "DOMESTIC"]
-		},
+		"validate": "const employer = get(ctx.subject, 'employer.entity_extension_data', {});\nif (get(employer, 'bmbe_certificate_of_authority', false) === true) return true;\nif (get(employer, 'minimum_wage_exemption_approved', false) === true) return true;\nconst terms = get(ctx.entry, 'terms', {});\nconst facts = get(ctx.subject, 'employment.employee_extension_data', {});\nconst domestic = get(terms, 'statutory_work_category', '') === 'DOMESTIC';\nconst region = get(facts, 'work_region', get(employer, 'region', ''));\nif (region === '') return true;\nconst table = domestic ? ctx.lookup.minimum_wage_domestic : ctx.lookup.minimum_wage_by_region;\nconst start = get(ctx.entry, 'effective_range.from', '9999-12-31');\nconst rates = table.filter((entry) => entry.region === region && entry.from <= start);\nif (rates.length === 0) return false;\nconst floor = Number(rates.toSorted((a, b) => (a.from < b.from ? 1 : -1))[0].monthly);\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nif (domestic && unit === 'MONTHLY') return amount + 0.005 >= floor;\nconst hours = Number(get(terms, 'normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nconst contractDays = Number(get(facts, 'days_per_year', ctx.lookup.days_per_year));\nconst daily = unit === 'DAILY'\n\t? amount\n\t: unit === 'HOURLY'\n\t\t? amount * hours\n\t\t: (amount * ctx.lookup.months_per_year) / contractDays;\nreturn daily + 0.005 >= (floor * ctx.lookup.months_per_year) / ctx.lookup.days_per_year;",
+		"lookup": {},
 		"references": [
 			{
 				"title": "RA 6727 s.2 and the Regional Tripartite Wages and Productivity Board wage orders: the daily minimum wage depends on the region and the establishment's agriculture/non-agriculture/retail classification; domestic workers have a separate wage table. DOLE/BWC wage order summaries, read 2026-10-31."

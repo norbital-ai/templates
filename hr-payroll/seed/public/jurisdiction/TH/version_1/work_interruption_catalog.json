@@ -2,9 +2,7 @@
 	{
 		"code": "TEMPORARY_CESSATION",
 		"name": "Temporary cessation of all or part of the business for a cause other than force majeure — at least 75% of the working-day wage for the whole period",
-		"lookup": {
-			"minimum_pay_fraction": 0.75
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.75 para 2",
