@@ -1,0 +1,84 @@
+[
+	{
+		"code": "OVERTIME",
+		"name": "Overtime on a working day (1.5x)",
+		"lookup": {
+			"monthly_divisor": 30,
+			"normal_hours_per_day": 8,
+			"hazardous_normal_hours_per_day": 7,
+			"multiple": 1.5
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) ss.61, 65, 68",
+				"locator": "ss.61, 65, 68",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Working-day overtime is at least 1.5 times the hourly wage; the monthly hourly wage is the monthly wage divided by 30 times the normal hours a day; s.65(2)-(8) work is paid 1 time; a s.65(1) manager gets none."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "d4afc6a2-96a9-5deb-b6fb-a122917084ab",
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '') !== 'MANAGER' &&\n\tNumber(get(ctx.run, 'source_manifest.overtime.OVERTIME', 0)) > 0\n);",
+		"conversion": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst basis = get(terms, 'rate.unit', 'MONTHLY');\nconst work = get(terms, 'statutory_work_category', '');\nconst overtime_category = get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours =\n\tnormal != null\n\t\t? Number(normal)\n\t\t: work === 'HAZARDOUS'\n\t\t\t? Number(ctx.lookup.hazardous_normal_hours_per_day)\n\t\t\t: Number(ctx.lookup.normal_hours_per_day);\nconst unit_wage =\n\tbasis === 'PIECE' || basis === 'HOURLY'\n\t\t? Number(get(terms, 'rate.amount', 0))\n\t\t: basis === 'DAILY'\n\t\t\t? Number(get(terms, 'rate.amount', 0)) / day_hours\n\t\t\t: Number(ctx.base_pay) / (Number(ctx.lookup.monthly_divisor) * day_hours);\nconst multiple =\n\tovertime_category === 'SECTION_65_OTHER' ? 1 : Number(ctx.lookup.multiple);\nconst quantity = Number(get(ctx.run, 'source_manifest.overtime.OVERTIME', 0));\nreturn unit_wage * multiple * quantity;",
+		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "6c4c9ff9-446a-5492-be86-668b4303d7de",
+		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253"
+	},
+	{
+		"code": "HOLIDAY_WORK",
+		"name": "Holiday work in normal hours",
+		"lookup": {
+			"monthly_divisor": 30,
+			"normal_hours_per_day": 8,
+			"hazardous_normal_hours_per_day": 7,
+			"paid_multiple": 1,
+			"unpaid_multiple": 2
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) ss.62, 66",
+				"locator": "ss.62, 66",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Holiday work in normal hours is at least 1 time the hourly wage when the holiday is paid and 2 times when it is unpaid; a s.65(1) manager gets none unless agreed."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "d4afc6a2-96a9-5deb-b6fb-a122917084ab",
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '') !== 'MANAGER' &&\n\tNumber(get(ctx.run, 'source_manifest.overtime.HOLIDAY_WORK_PAID', 0)) +\n\t\tNumber(get(ctx.run, 'source_manifest.overtime.HOLIDAY_WORK_UNPAID', 0)) >\n\t\t0\n);",
+		"conversion": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst basis = get(terms, 'rate.unit', 'MONTHLY');\nconst work = get(terms, 'statutory_work_category', '');\nconst overtime_category = get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours =\n\tnormal != null\n\t\t? Number(normal)\n\t\t: work === 'HAZARDOUS'\n\t\t\t? Number(ctx.lookup.hazardous_normal_hours_per_day)\n\t\t\t: Number(ctx.lookup.normal_hours_per_day);\nconst unit_wage =\n\tbasis === 'PIECE' || basis === 'HOURLY'\n\t\t? Number(get(terms, 'rate.amount', 0))\n\t\t: basis === 'DAILY'\n\t\t\t? Number(get(terms, 'rate.amount', 0)) / day_hours\n\t\t\t: Number(ctx.base_pay) / (Number(ctx.lookup.monthly_divisor) * day_hours);\nconst paid = Number(get(ctx.run, 'source_manifest.overtime.HOLIDAY_WORK_PAID', 0));\nconst unpaid = Number(get(ctx.run, 'source_manifest.overtime.HOLIDAY_WORK_UNPAID', 0));\nreturn (\n\tunit_wage *\n\t(Number(ctx.lookup.paid_multiple) * paid + Number(ctx.lookup.unpaid_multiple) * unpaid)\n);",
+		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "750d0b67-7860-5c3f-9096-691ee75a6cab",
+		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253"
+	},
+	{
+		"code": "HOLIDAY_OVERTIME",
+		"name": "Overtime on a holiday (3x)",
+		"lookup": {
+			"monthly_divisor": 30,
+			"normal_hours_per_day": 8,
+			"hazardous_normal_hours_per_day": 7,
+			"multiple": 3
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) ss.63, 65",
+				"locator": "ss.63, 65",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Overtime on a holiday is at least 3 times the hourly wage; s.65(2)-(8) work is paid 1 time; a s.65(1) manager gets none."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "d4afc6a2-96a9-5deb-b6fb-a122917084ab",
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '') !== 'MANAGER' &&\n\tNumber(get(ctx.run, 'source_manifest.overtime.HOLIDAY_OVERTIME', 0)) > 0\n);",
+		"conversion": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst basis = get(terms, 'rate.unit', 'MONTHLY');\nconst work = get(terms, 'statutory_work_category', '');\nconst overtime_category = get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours =\n\tnormal != null\n\t\t? Number(normal)\n\t\t: work === 'HAZARDOUS'\n\t\t\t? Number(ctx.lookup.hazardous_normal_hours_per_day)\n\t\t\t: Number(ctx.lookup.normal_hours_per_day);\nconst unit_wage =\n\tbasis === 'PIECE' || basis === 'HOURLY'\n\t\t? Number(get(terms, 'rate.amount', 0))\n\t\t: basis === 'DAILY'\n\t\t\t? Number(get(terms, 'rate.amount', 0)) / day_hours\n\t\t\t: Number(ctx.base_pay) / (Number(ctx.lookup.monthly_divisor) * day_hours);\nconst multiple =\n\tovertime_category === 'SECTION_65_OTHER' ? 1 : Number(ctx.lookup.multiple);\nconst quantity = Number(get(ctx.run, 'source_manifest.overtime.HOLIDAY_OVERTIME', 0));\nreturn unit_wage * multiple * quantity;",
+		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "f26943c7-df30-54f5-9cb9-8383388dd125",
+		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253"
+	}
+]

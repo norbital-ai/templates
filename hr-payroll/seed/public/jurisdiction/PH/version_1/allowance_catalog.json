@@ -1,0 +1,212 @@
+[
+	{
+		"code": "DEPENDANT_MEDICAL_ALLOWANCE",
+		"name": "Medical cash allowance to dependants",
+		"lookup": {
+			"allowance": "DEPENDANT_MEDICAL_ALLOWANCE"
+		},
+		"references": [
+			{
+				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 11-2018 (and RR 4-2025 for uniforms and achievement awards, from 30 January 2025) (c): medical cash allowance to dependants to ₱1,500 a semester (₱250 a month): a de minimis benefit to the semester ceiling (January–June, July–December), the excess inside the ₱90,000 exclusion — the WTAX part `DEP_MEDICAL`. The per-month figure is the semester's sixth, so the semester ceiling governs either cadence."
+			}
+		],
+		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"incurred_on": "// js\nreturn ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": false,
+		"id": "7661b424-b2db-5021-90ae-f9d5dfe809e6",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "LAUNDRY_ALLOWANCE",
+		"name": "Laundry allowance",
+		"lookup": {
+			"allowance": "LAUNDRY_ALLOWANCE"
+		},
+		"references": [
+			{
+				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 11-2018 (and RR 4-2025 for uniforms and achievement awards, from 30 January 2025) (g): laundry allowance to ₱300 a month: a de minimis benefit to the ceiling in each calendar month, the excess inside the ₱90,000 exclusion — the WTAX part `LAUNDRY`."
+			}
+		],
+		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"incurred_on": "// js\nreturn ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": false,
+		"id": "3ab8e154-dc5f-5250-b870-060d48bb7b43",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "allowance",
+		"name": "Allowance",
+		"references": [
+			{
+				"title": "Labor Code art.100; contract terms.allowances or company policy/CBA: a non-statutory allowance, not diminished unilaterally."
+			}
+		],
+		"lookup": {
+			"allowance": "allowance"
+		},
+		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"incurred_on": "// js\nreturn ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": false,
+		"id": "c67c0762-0a22-5f40-8057-0f77978a8da5",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "communication",
+		"name": "Communication allowance",
+		"references": [
+			{
+				"title": "Labor Code art.100; contract terms.allowances or company policy/CBA: a non-statutory allowance, not diminished unilaterally."
+			}
+		],
+		"lookup": {
+			"allowance": "communication"
+		},
+		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"incurred_on": "// js\nreturn ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": false,
+		"id": "a9e21a86-84c4-506d-94eb-b10932aeb788",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "corporate_duty_allowance",
+		"name": "Corporate duty allowance",
+		"references": [
+			{
+				"title": "Labor Code art.100; contract terms.allowances or company policy/CBA: a non-statutory allowance, not diminished unilaterally."
+			}
+		],
+		"lookup": {
+			"allowance": "corporate_duty_allowance"
+		},
+		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"incurred_on": "// js\nreturn ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": false,
+		"id": "6366e929-b9f0-58db-a1d4-ceb8ad897734",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "duty_allowance",
+		"name": "Duty allowance",
+		"references": [
+			{
+				"title": "Labor Code art.100; contract terms.allowances or company policy/CBA: a non-statutory allowance, not diminished unilaterally."
+			}
+		],
+		"lookup": {
+			"allowance": "duty_allowance"
+		},
+		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"incurred_on": "// js\nreturn ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": false,
+		"id": "36e55dc0-7cb1-5523-9819-f7ee7bf3b7c4",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "leader",
+		"name": "Leader allowance",
+		"references": [
+			{
+				"title": "Labor Code art.100; contract terms.allowances or company policy/CBA: a non-statutory allowance, not diminished unilaterally."
+			}
+		],
+		"lookup": {
+			"allowance": "leader"
+		},
+		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"incurred_on": "// js\nreturn ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": false,
+		"id": "245c52b3-5650-5db6-a8aa-23ff53dbfcad",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "meal",
+		"name": "Meal allowance (rice subsidy)",
+		"lookup": {
+			"allowance": "meal"
+		},
+		"references": [
+			{
+				"title": "BIR RR 2-98 s.2.78.1(A)(3)(d) as amended by RR 11-2018: rice subsidy is de minimis to PHP2,000 a month; the excess is an 'other benefit' within the PHP90,000 exclusion. Labor Code art.100."
+			}
+		],
+		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"incurred_on": "// js\nreturn ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": false,
+		"id": "276d0110-c24f-5d67-a9ce-2d8a0f1993dc",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "position",
+		"name": "Position allowance",
+		"references": [
+			{
+				"title": "Labor Code art.100; contract terms.allowances or company policy/CBA: a non-statutory allowance, not diminished unilaterally."
+			}
+		],
+		"lookup": {
+			"allowance": "position"
+		},
+		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"incurred_on": "// js\nreturn ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": false,
+		"id": "eabcc59a-5dfe-5fee-bfa0-3447033b9568",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "transport",
+		"name": "Transport allowance",
+		"references": [
+			{
+				"title": "Labor Code art.100; contract terms.allowances or company policy/CBA: a non-statutory allowance, not diminished unilaterally."
+			}
+		],
+		"lookup": {
+			"allowance": "transport"
+		},
+		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"incurred_on": "// js\nreturn ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": false,
+		"id": "b888f604-43ea-5094-816e-75386808fe70",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	}
+]

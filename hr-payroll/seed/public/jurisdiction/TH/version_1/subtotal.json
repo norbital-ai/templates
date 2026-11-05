@@ -1,0 +1,44 @@
+[
+	{
+		"code": "BASIC",
+		"name": "Basic salary (เงินเดือน)",
+		"previous_id": null,
+		"id": "0a186425-7d3f-5a3f-8f27-f01adf180580",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
+	},
+	{
+		"code": "ORDINARY_WAGES",
+		"name": "Ordinary wages (ค่าจ้าง)",
+		"previous_id": "0a186425-7d3f-5a3f-8f27-f01adf180580",
+		"id": "ff8280f4-0b59-5c0a-8e77-ca50e9faf9e1",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
+	},
+	{
+		"code": "ADDITIONAL_WAGES",
+		"name": "Additional wages (ค่าจ้างเพิ่มเติม)",
+		"previous_id": "ff8280f4-0b59-5c0a-8e77-ca50e9faf9e1",
+		"id": "74a71221-01eb-5c93-9f98-d6bd608229a3",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
+	},
+	{
+		"code": "GROSS",
+		"name": "Gross earnings (รายได้รวม)",
+		"previous_id": "74a71221-01eb-5c93-9f98-d6bd608229a3",
+		"id": "f95be3e4-1845-5e8a-ab05-961f9a8e243c",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
+	},
+	{
+		"code": "NET",
+		"name": "Net pay (ยอดจ่ายสุทธิ)",
+		"previous_id": "e712ea85-0cb5-50c2-8dbf-e8afd0faaadf",
+		"id": "b8b56286-1ac1-59e4-a6e0-492607ab62fe",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
+	},
+	{
+		"code": "FINAL_PAY",
+		"name": "Final pay and non-wage settlements",
+		"previous_id": "f95be3e4-1845-5e8a-ab05-961f9a8e243c",
+		"id": "e712ea85-0cb5-50c2-8dbf-e8afd0faaadf",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
+	}
+]

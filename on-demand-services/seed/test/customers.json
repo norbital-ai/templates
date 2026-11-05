@@ -1,0 +1,13 @@
+[
+	{
+		"id": "0d5000ff-0000-4000-8000-000000000004",
+		"name": "Fixture Customer One",
+		"phone": "+6580000001",
+		"address": "1 Example Avenue, Singapore 400001",
+		"location": {
+			"lat": 1.3236,
+			"lng": 103.9273
+		},
+		"area": "east"
+	}
+]

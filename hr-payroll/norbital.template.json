@@ -1,0 +1,16 @@
+{
+	"schemaVersion": 1,
+	"key": "norbital_hr",
+	"name": "HR & Payroll",
+	"industry": "Human resources",
+	"description": "Multi-country HR and payroll: sealed jurisdiction data, an append-only ledger, a linear subtotal chain and statutory obligations.",
+	"visibility": "public",
+	"counts": {
+		"models": 36,
+		"apps": 7,
+		"automations": 3
+	},
+	"tags": ["HR", "Finance", "Approvals"],
+	"name_zh": "HR 与薪资",
+	"description_zh": "多国 HR 与薪资：封存的辖区数据、只追加的流水账、线性小计链和法定合规义务。"
+}

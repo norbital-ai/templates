@@ -1,0 +1,22 @@
+[
+	{
+		"code": "STAFF_LOAN",
+		"name": "Staff loan",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "7a37f23f-2e98-5a92-8d71-5d6cf73f701c",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.63(1)(e), art.65",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
+				"quote": "Pemotongan Upah untuk utang atau cicilan utang Pekerja/Buruh dilakukan berdasarkan perjanjian, paling banyak 50% dari setiap pembayaran Upah.",
+				"effective_from": "2021-02-02"
+			}
+		]
+	}
+]

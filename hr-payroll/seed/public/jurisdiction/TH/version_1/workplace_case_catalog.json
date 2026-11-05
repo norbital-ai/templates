@@ -1,0 +1,1312 @@
+[
+	{
+		"code": "PERSONAL_DATA_BREACH",
+		"name": "Personal data breach (PDPA s.37(4))",
+		"off_cycle_eligible": false,
+		"lookup": {},
+		"events": {},
+		"subtotal_id": null,
+		"id": "02ee7e54-6b87-5ed5-9361-8643cc01950f",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
+		"references": [
+			{
+				"title": "Personal Data Protection Act B.E. 2562 (2019) s.37(4)",
+				"locator": "s.37(4)",
+				"url": "https://www.mdes.go.th/uploads/tinymce/source/%E0%B8%AA%E0%B8%84%E0%B8%AA/Personal%20Data%20Protection%20Act%202019.pdf",
+				"quote": "A personal data breach must be notified to the Office of the Personal Data Protection Committee without delay and within 72 hours of awareness."
+			}
+		]
+	},
+	{
+		"code": "PERSONAL_DATA_TRANSFER_ABROAD",
+		"name": "Personal data to be sent or transferred abroad (PDPA s.28)",
+		"off_cycle_eligible": false,
+		"lookup": {},
+		"events": {},
+		"subtotal_id": null,
+		"id": "591be7cc-65af-5363-8865-bd5f83ae8de7",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
+		"references": [
+			{
+				"title": "Personal Data Protection Act B.E. 2562 (2019) s.28",
+				"locator": "s.28",
+				"url": "https://www.mdes.go.th/uploads/tinymce/source/%E0%B8%AA%E0%B8%84%E0%B8%AA/Personal%20Data%20Protection%20Act%202019.pdf",
+				"quote": "A transfer of personal data to a foreign country requires the protection standard and safeguards the Act prescribes."
+			}
+		]
+	},
+	{
+		"code": "WORKPLACE_RELOCATION",
+		"name": "Workplace relocation planned",
+		"off_cycle_eligible": false,
+		"lookup": {},
+		"events": {},
+		"subtotal_id": null,
+		"id": "e3729276-1359-526d-ae1a-ea25976105c9",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.120 para 1 (as replaced by Act No. 7 B.E. 2562)",
+				"locator": "s.120 para 1",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf",
+				"quote": "The employer posts the relocation notice at the workplace at least 30 days before the move."
+			}
+		]
+	},
+	{
+		"code": "RELOCATION_EMPLOYEE_REFUSAL",
+		"name": "Employee declines relocation",
+		"off_cycle_eligible": false,
+		"lookup": {},
+		"events": {},
+		"subtotal_id": null,
+		"id": "4b40b81b-30c7-5732-9ab4-0ee32a15e9c5",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.120 para 3 (as replaced by Act No. 7 B.E. 2562)",
+				"locator": "s.120 para 3",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf",
+				"quote": "An employee whose ordinary living is substantially affected may refuse the relocation in writing."
+			}
+		]
+	},
+	{
+		"code": "RELOCATION_EMPLOYER_OBJECTION",
+		"name": "Employee relocation refusal disputed (open on written-notice receipt)",
+		"off_cycle_eligible": false,
+		"lookup": {},
+		"events": {},
+		"subtotal_id": null,
+		"id": "d17d4462-c825-5903-b589-27baee196edc",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.120 para 5 (as replaced by Act No. 7 B.E. 2562)",
+				"locator": "s.120 para 5",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf",
+				"quote": "A disputed refusal is petitioned to the Labour Welfare Committee within 30 days of the refusal."
+			}
+		]
+	},
+	{
+		"code": "RELOCATION_BOARD_ORDER",
+		"name": "Relocation committee order received",
+		"off_cycle_eligible": false,
+		"lookup": {},
+		"events": {},
+		"subtotal_id": null,
+		"id": "c3be1182-a9e9-5c7d-b99e-c825d2ca1e3f",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.120/1 (as amended by Act No. 7 B.E. 2562)",
+				"locator": "s.120/1",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf",
+				"quote": "The Labour Welfare Committee orders the employer to pay compensation or the employee to work at the new place; a court challenge is filed within 30 days."
+			}
+		]
+	},
+	{
+		"code": "SKILL_DEVELOPMENT_COURSE_COMPLETED",
+		"name": "Qualifying employee training completed (open on actual course completion)",
+		"off_cycle_eligible": false,
+		"lookup": {},
+		"events": {},
+		"subtotal_id": null,
+		"id": "518412dc-1efc-518b-9a76-102ffba5cf48",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
+		"references": [
+			{
+				"title": "Skill Development Promotion Committee notice of 21 September 2016, clause 4",
+				"locator": "cl.4",
+				"url": "https://www.dsd.go.th/sdpaa/Region/Download_Doc/13824",
+				"quote": "An application for approval of an employee upskilling or retraining course and its costs is filed within 60 days after completion and no later than 15 January of the following year."
+			}
+		]
+	},
+	{
+		"code": "DEDUCTION_LIMIT_CONSENT",
+		"name": "Employee’s prior written consent to specified deductions",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"input_schema": {
+				"type": "object",
+				"properties": {
+					"effective_from": {
+						"type": "string",
+						"format": "date",
+						"title": "Requested effective first day"
+					},
+					"effective_to": {
+						"type": "string",
+						"format": "date",
+						"title": "Requested effective last day"
+					},
+					"signed_on": {
+						"type": "string",
+						"format": "date"
+					},
+					"currency": {
+						"type": "string",
+						"minLength": 1
+					},
+					"deductions": {
+						"type": "array",
+						"minItems": 1,
+						"items": {
+							"type": "object",
+							"properties": {
+								"code": {
+									"type": "string",
+									"enum": ["WELFARE_LOAN", "PVD"]
+								},
+								"maximum_amount": {
+									"type": "number",
+									"exclusiveMinimum": 0
+								}
+							},
+							"additionalProperties": false,
+							"required": ["code", "maximum_amount"]
+						}
+					}
+				},
+				"additionalProperties": false,
+				"required": ["effective_from", "effective_to", "signed_on", "currency", "deductions"],
+				"description": "The actual signed consent states each deduction, its amount limit and applicable payment interval. It does not authorise every deduction forever; reference and written evidence identify the signed document. Close on withdrawal."
+			}
+		},
+		"events": {},
+		"subtotal_id": null,
+		"id": "8ff7e463-a8f1-50ea-b984-9555640c6703",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.76",
+				"locator": "s.76",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "A deduction above the statutory limit needs the employee's prior written consent, naming the deduction and its amount or limit."
+			}
+		]
+	},
+	{
+		"code": "SECURITY_DEPOSIT_RECEIVED",
+		"name": "Actual security money received from the employee",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"input_schema": {
+				"type": "object",
+				"properties": {
+					"amount": {
+						"type": "number",
+						"exclusiveMinimum": 0
+					},
+					"currency": {
+						"type": "string",
+						"minLength": 1
+					},
+					"receipt_reference": {
+						"type": "string",
+						"minLength": 1
+					}
+				},
+				"additionalProperties": false,
+				"required": ["amount", "currency", "receipt_reference"],
+				"description": "The actual receipt and currency, not a payroll-standing boolean. Keep open while money remains held; close only on actual full return. Return obligations identify all source receipts and require interest review."
+			}
+		},
+		"events": {},
+		"subtotal_id": null,
+		"id": "f556c69e-78e9-59b1-a181-3978f89baadb",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.10",
+				"locator": "s.10",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Security money may be taken only for work, in the amounts and by the keeping method the Minister's notification allows."
+			}
+		]
+	},
+	{
+		"code": "CROSS_BORDER_WORK_RECORD",
+		"name": "Actual overseas work dates and country",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"input_schema": {
+				"type": "object",
+				"properties": {
+					"period": {
+						"$ref": "#/$defs/period"
+					},
+					"country": {
+						"$ref": "#/$defs/country"
+					},
+					"work_days": {
+						"type": "array",
+						"minItems": 1,
+						"items": {
+							"type": "object",
+							"properties": {
+								"date": {
+									"type": "string",
+									"format": "date",
+									"title": "Actual work date"
+								},
+								"hours": {
+									"type": "number",
+									"exclusiveMinimum": 0,
+									"title": "Actual worked hours"
+								}
+							},
+							"additionalProperties": false,
+							"required": ["date"]
+						},
+						"title": "Actual worked dates",
+						"description": "Only dates actually worked in the stated country. Supply actual hours when the external source records them; absent hours stay unknown and may not become a full day. Do not copy hours already held in native roster records."
+					}
+				},
+				"additionalProperties": false,
+				"required": ["period", "country", "work_days"],
+				"description": "One continuous actual overseas work record for one employee/country, supported by the original timesheet or equivalent factual record. A planned posting letter alone does not prove actual work or presence. Native roster/source records retain ownership of dates/hours already recorded there.",
+				"$defs": {
+					"country": {
+						"type": "string",
+						"enum": [
+							"AF",
+							"AX",
+							"AL",
+							"DZ",
+							"AS",
+							"AD",
+							"AO",
+							"AI",
+							"AQ",
+							"AG",
+							"AR",
+							"AM",
+							"AW",
+							"AU",
+							"AT",
+							"AZ",
+							"BS",
+							"BH",
+							"BD",
+							"BB",
+							"BY",
+							"BE",
+							"BZ",
+							"BJ",
+							"BM",
+							"BT",
+							"BO",
+							"BQ",
+							"BA",
+							"BW",
+							"BV",
+							"BR",
+							"IO",
+							"VG",
+							"BN",
+							"BG",
+							"BF",
+							"BI",
+							"KH",
+							"CM",
+							"CA",
+							"CV",
+							"KY",
+							"CF",
+							"TD",
+							"CL",
+							"CN",
+							"CX",
+							"CC",
+							"CO",
+							"KM",
+							"CD",
+							"CG",
+							"CK",
+							"CR",
+							"CI",
+							"HR",
+							"CU",
+							"CW",
+							"CY",
+							"CZ",
+							"DK",
+							"DJ",
+							"DM",
+							"DO",
+							"EC",
+							"EG",
+							"SV",
+							"GQ",
+							"ER",
+							"EE",
+							"ET",
+							"FO",
+							"FK",
+							"FJ",
+							"FI",
+							"FR",
+							"GF",
+							"PF",
+							"TF",
+							"GA",
+							"GM",
+							"GE",
+							"DE",
+							"GH",
+							"GI",
+							"GR",
+							"GL",
+							"GD",
+							"GP",
+							"GU",
+							"GT",
+							"GG",
+							"GN",
+							"GW",
+							"GY",
+							"HT",
+							"HM",
+							"VA",
+							"HN",
+							"HK",
+							"HU",
+							"IS",
+							"IN",
+							"ID",
+							"IR",
+							"IQ",
+							"IE",
+							"IM",
+							"IL",
+							"IT",
+							"JM",
+							"JP",
+							"JE",
+							"JO",
+							"KZ",
+							"KE",
+							"KI",
+							"KP",
+							"KR",
+							"KW",
+							"KG",
+							"LA",
+							"LV",
+							"LB",
+							"LS",
+							"LR",
+							"LY",
+							"LI",
+							"LT",
+							"LU",
+							"MO",
+							"MG",
+							"MW",
+							"MY",
+							"MV",
+							"ML",
+							"MT",
+							"MH",
+							"MQ",
+							"MR",
+							"MU",
+							"YT",
+							"MX",
+							"FM",
+							"MD",
+							"MC",
+							"MN",
+							"ME",
+							"MS",
+							"MA",
+							"MZ",
+							"MM",
+							"NA",
+							"NR",
+							"NP",
+							"NL",
+							"NC",
+							"NZ",
+							"NI",
+							"NE",
+							"NG",
+							"NU",
+							"NF",
+							"MK",
+							"MP",
+							"NO",
+							"OM",
+							"PK",
+							"PW",
+							"PS",
+							"PA",
+							"PG",
+							"PY",
+							"PE",
+							"PH",
+							"PN",
+							"PL",
+							"PT",
+							"PR",
+							"QA",
+							"RE",
+							"RO",
+							"RU",
+							"RW",
+							"BL",
+							"SH",
+							"KN",
+							"LC",
+							"MF",
+							"PM",
+							"VC",
+							"WS",
+							"SM",
+							"ST",
+							"SA",
+							"SN",
+							"RS",
+							"SC",
+							"SL",
+							"SG",
+							"SX",
+							"SK",
+							"SI",
+							"SB",
+							"SO",
+							"ZA",
+							"GS",
+							"SS",
+							"ES",
+							"LK",
+							"SD",
+							"SR",
+							"SJ",
+							"SZ",
+							"SE",
+							"CH",
+							"SY",
+							"TW",
+							"TJ",
+							"TZ",
+							"TH",
+							"TL",
+							"TG",
+							"TK",
+							"TO",
+							"TT",
+							"TN",
+							"TR",
+							"TM",
+							"TC",
+							"TV",
+							"UG",
+							"UA",
+							"AE",
+							"GB",
+							"US",
+							"UM",
+							"VI",
+							"UY",
+							"UZ",
+							"VU",
+							"VE",
+							"VN",
+							"WF",
+							"EH",
+							"YE",
+							"ZM",
+							"ZW"
+						],
+						"x-norbital": {
+							"datatype": "country"
+						},
+						"title": "Actual country"
+					},
+					"period": {
+						"type": "object",
+						"properties": {
+							"from": {
+								"type": "string",
+								"format": "date",
+								"title": "Actual first day"
+							},
+							"to": {
+								"type": "string",
+								"format": "date",
+								"title": "Actual last day"
+							}
+						},
+						"additionalProperties": false,
+						"required": ["from", "to"],
+						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
+					}
+				}
+			}
+		},
+		"events": {},
+		"subtotal_id": null,
+		"id": "48b726db-65aa-5284-ac6d-83b7517f9b80",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) ss.5, 70",
+				"locator": "ss.5, 70",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Wages are money paid for work in normal working time; the employer keeps the wage record that evidences the actual work dates and place."
+			}
+		]
+	},
+	{
+		"code": "EXTERNAL_WAGE_RECORD",
+		"name": "Original external wage payment or cost allocation",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"input_schema": {
+				"type": "object",
+				"properties": {
+					"record_type": {
+						"type": "string",
+						"enum": ["PAYMENT", "COST_ALLOCATION"],
+						"title": "Original record type"
+					},
+					"original_payment_reference": {
+						"type": "string",
+						"minLength": 1,
+						"title": "Original wage payment reference",
+						"description": "For PAYMENT, the unique actual payment/source reference. For COST_ALLOCATION, the original payment to which the actual recharge/allocation relates."
+					},
+					"earned_period": {
+						"$ref": "#/$defs/period"
+					},
+					"component_code": {
+						"type": "string",
+						"minLength": 1,
+						"title": "Original wage/benefit component code"
+					},
+					"amount": {
+						"type": "number",
+						"title": "Original amount",
+						"description": "The actual signed source amount. Record original payments and source-documented corrections separately; never enter a calculated domestic share or percentage."
+					},
+					"currency": {
+						"type": "string",
+						"pattern": "^[A-Z]{3}$",
+						"title": "Original currency",
+						"description": "The actual original ISO4217 source currency. Do not convert it into payroll currency while capturing the record."
+					},
+					"payer": {
+						"$ref": "#/$defs/party"
+					},
+					"service_beneficiary": {
+						"$ref": "#/$defs/party"
+					},
+					"cost_bearer": {
+						"$ref": "#/$defs/party"
+					},
+					"reverses_reference": {
+						"type": "string",
+						"minLength": 1,
+						"title": "Original record being corrected/reversed"
+					}
+				},
+				"additionalProperties": false,
+				"required": [
+					"record_type",
+					"original_payment_reference",
+					"earned_period",
+					"component_code",
+					"amount",
+					"currency",
+					"payer",
+					"service_beneficiary"
+				],
+				"description": "One actual source payment/component or actual issued cost allocation. opened_on is the actual paid date for PAYMENT, or actual allocation-issued date for COST_ALLOCATION; allocation is never payment proof. Payer is who paid the original remuneration, service beneficiary is the entity receiving the work, and cost bearer is the entity charged the actual allocated amount. The employee is the native case employment. Current-workspace payslips and same-employer prior_payroll records must not be duplicated here.",
+				"$defs": {
+					"country": {
+						"type": "string",
+						"enum": [
+							"AF",
+							"AX",
+							"AL",
+							"DZ",
+							"AS",
+							"AD",
+							"AO",
+							"AI",
+							"AQ",
+							"AG",
+							"AR",
+							"AM",
+							"AW",
+							"AU",
+							"AT",
+							"AZ",
+							"BS",
+							"BH",
+							"BD",
+							"BB",
+							"BY",
+							"BE",
+							"BZ",
+							"BJ",
+							"BM",
+							"BT",
+							"BO",
+							"BQ",
+							"BA",
+							"BW",
+							"BV",
+							"BR",
+							"IO",
+							"VG",
+							"BN",
+							"BG",
+							"BF",
+							"BI",
+							"KH",
+							"CM",
+							"CA",
+							"CV",
+							"KY",
+							"CF",
+							"TD",
+							"CL",
+							"CN",
+							"CX",
+							"CC",
+							"CO",
+							"KM",
+							"CD",
+							"CG",
+							"CK",
+							"CR",
+							"CI",
+							"HR",
+							"CU",
+							"CW",
+							"CY",
+							"CZ",
+							"DK",
+							"DJ",
+							"DM",
+							"DO",
+							"EC",
+							"EG",
+							"SV",
+							"GQ",
+							"ER",
+							"EE",
+							"ET",
+							"FO",
+							"FK",
+							"FJ",
+							"FI",
+							"FR",
+							"GF",
+							"PF",
+							"TF",
+							"GA",
+							"GM",
+							"GE",
+							"DE",
+							"GH",
+							"GI",
+							"GR",
+							"GL",
+							"GD",
+							"GP",
+							"GU",
+							"GT",
+							"GG",
+							"GN",
+							"GW",
+							"GY",
+							"HT",
+							"HM",
+							"VA",
+							"HN",
+							"HK",
+							"HU",
+							"IS",
+							"IN",
+							"ID",
+							"IR",
+							"IQ",
+							"IE",
+							"IM",
+							"IL",
+							"IT",
+							"JM",
+							"JP",
+							"JE",
+							"JO",
+							"KZ",
+							"KE",
+							"KI",
+							"KP",
+							"KR",
+							"KW",
+							"KG",
+							"LA",
+							"LV",
+							"LB",
+							"LS",
+							"LR",
+							"LY",
+							"LI",
+							"LT",
+							"LU",
+							"MO",
+							"MG",
+							"MW",
+							"MY",
+							"MV",
+							"ML",
+							"MT",
+							"MH",
+							"MQ",
+							"MR",
+							"MU",
+							"YT",
+							"MX",
+							"FM",
+							"MD",
+							"MC",
+							"MN",
+							"ME",
+							"MS",
+							"MA",
+							"MZ",
+							"MM",
+							"NA",
+							"NR",
+							"NP",
+							"NL",
+							"NC",
+							"NZ",
+							"NI",
+							"NE",
+							"NG",
+							"NU",
+							"NF",
+							"MK",
+							"MP",
+							"NO",
+							"OM",
+							"PK",
+							"PW",
+							"PS",
+							"PA",
+							"PG",
+							"PY",
+							"PE",
+							"PH",
+							"PN",
+							"PL",
+							"PT",
+							"PR",
+							"QA",
+							"RE",
+							"RO",
+							"RU",
+							"RW",
+							"BL",
+							"SH",
+							"KN",
+							"LC",
+							"MF",
+							"PM",
+							"VC",
+							"WS",
+							"SM",
+							"ST",
+							"SA",
+							"SN",
+							"RS",
+							"SC",
+							"SL",
+							"SG",
+							"SX",
+							"SK",
+							"SI",
+							"SB",
+							"SO",
+							"ZA",
+							"GS",
+							"SS",
+							"ES",
+							"LK",
+							"SD",
+							"SR",
+							"SJ",
+							"SZ",
+							"SE",
+							"CH",
+							"SY",
+							"TW",
+							"TJ",
+							"TZ",
+							"TH",
+							"TL",
+							"TG",
+							"TK",
+							"TO",
+							"TT",
+							"TN",
+							"TR",
+							"TM",
+							"TC",
+							"TV",
+							"UG",
+							"UA",
+							"AE",
+							"GB",
+							"US",
+							"UM",
+							"VI",
+							"UY",
+							"UZ",
+							"VU",
+							"VE",
+							"VN",
+							"WF",
+							"EH",
+							"YE",
+							"ZM",
+							"ZW"
+						],
+						"x-norbital": {
+							"datatype": "country"
+						},
+						"title": "Actual country"
+					},
+					"period": {
+						"type": "object",
+						"properties": {
+							"from": {
+								"type": "string",
+								"format": "date",
+								"title": "Actual first day"
+							},
+							"to": {
+								"type": "string",
+								"format": "date",
+								"title": "Actual last day"
+							}
+						},
+						"additionalProperties": false,
+						"required": ["from", "to"],
+						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
+					},
+					"party": {
+						"type": "object",
+						"properties": {
+							"registered_name": {
+								"type": "string",
+								"minLength": 1,
+								"title": "Registered entity name"
+							},
+							"country": {
+								"$ref": "#/$defs/country"
+							},
+							"registration_reference": {
+								"type": "string",
+								"minLength": 1,
+								"title": "Actual entity registration or source identifier"
+							}
+						},
+						"additionalProperties": false,
+						"required": ["registered_name", "country", "registration_reference"],
+						"description": "The real legal entity named on the source document. This is not the employee; the native case employment identifies the employee. Do not invent a native entity row for an outside organisation."
+					}
+				},
+				"allOf": [
+					{
+						"if": {
+							"properties": {
+								"record_type": {
+									"const": "COST_ALLOCATION"
+								}
+							},
+							"required": ["record_type"]
+						},
+						"then": {
+							"required": ["cost_bearer"]
+						}
+					},
+					{
+						"if": {
+							"properties": {
+								"amount": {
+									"exclusiveMaximum": 0
+								}
+							},
+							"required": ["amount"]
+						},
+						"then": {
+							"required": ["reverses_reference"]
+						}
+					}
+				]
+			}
+		},
+		"events": {},
+		"subtotal_id": null,
+		"id": "05471b2a-e8b9-5559-a605-a191839804e3",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
+		"references": [
+			{
+				"title": "Revenue Code s.40(1); Labour Protection Act B.E. 2541 (1998) s.5",
+				"locator": "Revenue Code s.40(1); LPA s.5",
+				"url": "https://www.rd.go.th/59670.html",
+				"quote": "Employment income includes wages and other benefits paid for work; the record evidences the actual payer and the cost allocation."
+			}
+		]
+	},
+	{
+		"code": "BENEFIT_SERVICE_RECORD",
+		"name": "Actual service attributable to a benefit award",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"input_schema": {
+				"type": "object",
+				"properties": {
+					"benefit_reference": {
+						"type": "string",
+						"minLength": 1,
+						"title": "Actual benefit/award reference"
+					},
+					"service_period": {
+						"$ref": "#/$defs/period"
+					},
+					"country": {
+						"$ref": "#/$defs/country"
+					},
+					"service_employer": {
+						"$ref": "#/$defs/party"
+					}
+				},
+				"additionalProperties": false,
+				"required": ["benefit_reference", "service_period", "country", "service_employer"],
+				"description": "One actual continuous service period attributable to the named benefit/retirement award, in its actual service country and legal employer. Record every source-supported period for that award, including external prior service; do not substitute all employment history or a domestic-service percentage. Gaps and missing source periods remain unknown rather than zero. opened_on is the actual statement/certificate issue date.",
+				"$defs": {
+					"country": {
+						"type": "string",
+						"enum": [
+							"AF",
+							"AX",
+							"AL",
+							"DZ",
+							"AS",
+							"AD",
+							"AO",
+							"AI",
+							"AQ",
+							"AG",
+							"AR",
+							"AM",
+							"AW",
+							"AU",
+							"AT",
+							"AZ",
+							"BS",
+							"BH",
+							"BD",
+							"BB",
+							"BY",
+							"BE",
+							"BZ",
+							"BJ",
+							"BM",
+							"BT",
+							"BO",
+							"BQ",
+							"BA",
+							"BW",
+							"BV",
+							"BR",
+							"IO",
+							"VG",
+							"BN",
+							"BG",
+							"BF",
+							"BI",
+							"KH",
+							"CM",
+							"CA",
+							"CV",
+							"KY",
+							"CF",
+							"TD",
+							"CL",
+							"CN",
+							"CX",
+							"CC",
+							"CO",
+							"KM",
+							"CD",
+							"CG",
+							"CK",
+							"CR",
+							"CI",
+							"HR",
+							"CU",
+							"CW",
+							"CY",
+							"CZ",
+							"DK",
+							"DJ",
+							"DM",
+							"DO",
+							"EC",
+							"EG",
+							"SV",
+							"GQ",
+							"ER",
+							"EE",
+							"ET",
+							"FO",
+							"FK",
+							"FJ",
+							"FI",
+							"FR",
+							"GF",
+							"PF",
+							"TF",
+							"GA",
+							"GM",
+							"GE",
+							"DE",
+							"GH",
+							"GI",
+							"GR",
+							"GL",
+							"GD",
+							"GP",
+							"GU",
+							"GT",
+							"GG",
+							"GN",
+							"GW",
+							"GY",
+							"HT",
+							"HM",
+							"VA",
+							"HN",
+							"HK",
+							"HU",
+							"IS",
+							"IN",
+							"ID",
+							"IR",
+							"IQ",
+							"IE",
+							"IM",
+							"IL",
+							"IT",
+							"JM",
+							"JP",
+							"JE",
+							"JO",
+							"KZ",
+							"KE",
+							"KI",
+							"KP",
+							"KR",
+							"KW",
+							"KG",
+							"LA",
+							"LV",
+							"LB",
+							"LS",
+							"LR",
+							"LY",
+							"LI",
+							"LT",
+							"LU",
+							"MO",
+							"MG",
+							"MW",
+							"MY",
+							"MV",
+							"ML",
+							"MT",
+							"MH",
+							"MQ",
+							"MR",
+							"MU",
+							"YT",
+							"MX",
+							"FM",
+							"MD",
+							"MC",
+							"MN",
+							"ME",
+							"MS",
+							"MA",
+							"MZ",
+							"MM",
+							"NA",
+							"NR",
+							"NP",
+							"NL",
+							"NC",
+							"NZ",
+							"NI",
+							"NE",
+							"NG",
+							"NU",
+							"NF",
+							"MK",
+							"MP",
+							"NO",
+							"OM",
+							"PK",
+							"PW",
+							"PS",
+							"PA",
+							"PG",
+							"PY",
+							"PE",
+							"PH",
+							"PN",
+							"PL",
+							"PT",
+							"PR",
+							"QA",
+							"RE",
+							"RO",
+							"RU",
+							"RW",
+							"BL",
+							"SH",
+							"KN",
+							"LC",
+							"MF",
+							"PM",
+							"VC",
+							"WS",
+							"SM",
+							"ST",
+							"SA",
+							"SN",
+							"RS",
+							"SC",
+							"SL",
+							"SG",
+							"SX",
+							"SK",
+							"SI",
+							"SB",
+							"SO",
+							"ZA",
+							"GS",
+							"SS",
+							"ES",
+							"LK",
+							"SD",
+							"SR",
+							"SJ",
+							"SZ",
+							"SE",
+							"CH",
+							"SY",
+							"TW",
+							"TJ",
+							"TZ",
+							"TH",
+							"TL",
+							"TG",
+							"TK",
+							"TO",
+							"TT",
+							"TN",
+							"TR",
+							"TM",
+							"TC",
+							"TV",
+							"UG",
+							"UA",
+							"AE",
+							"GB",
+							"US",
+							"UM",
+							"VI",
+							"UY",
+							"UZ",
+							"VU",
+							"VE",
+							"VN",
+							"WF",
+							"EH",
+							"YE",
+							"ZM",
+							"ZW"
+						],
+						"x-norbital": {
+							"datatype": "country"
+						},
+						"title": "Actual country"
+					},
+					"period": {
+						"type": "object",
+						"properties": {
+							"from": {
+								"type": "string",
+								"format": "date",
+								"title": "Actual first day"
+							},
+							"to": {
+								"type": "string",
+								"format": "date",
+								"title": "Actual last day"
+							}
+						},
+						"additionalProperties": false,
+						"required": ["from", "to"],
+						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
+					},
+					"party": {
+						"type": "object",
+						"properties": {
+							"registered_name": {
+								"type": "string",
+								"minLength": 1,
+								"title": "Registered entity name"
+							},
+							"country": {
+								"$ref": "#/$defs/country"
+							},
+							"registration_reference": {
+								"type": "string",
+								"minLength": 1,
+								"title": "Actual entity registration or source identifier"
+							}
+						},
+						"additionalProperties": false,
+						"required": ["registered_name", "country", "registration_reference"],
+						"description": "The real legal entity named on the source document. This is not the employee; the native case employment identifies the employee. Do not invent a native entity row for an outside organisation."
+					}
+				}
+			}
+		},
+		"events": {},
+		"subtotal_id": null,
+		"id": "77c2381a-71e9-5e0e-aa47-11ca6d264d96",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.118",
+				"locator": "s.118",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Severance is measured by continuous service; the record evidences the service behind a benefit award."
+			}
+		]
+	}
+]

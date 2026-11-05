@@ -1,0 +1,108 @@
+[
+	{
+		"code": "CHILDCARE_ALLOWANCE",
+		"name": "Child care allowance (children aged 12 and under)",
+		"lookup": {
+			"allowance": "CHILDCARE_ALLOWANCE"
+		},
+		"references": [
+			{
+				"title": "LHDN Specification for MTD Calculations Using Computerised Calculation 2026 (https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf), E(9), pp.20–22, read 28 September 2026 item ii: child care allowance for children up to 12 years of age, received by the employee or paid directly to the child care centre, is exempt up to RM3,000 a year (raised from the RM2,400 of LHDN Public Ruling 5/2019 Perquisites from Employment (https://www.hasil.gov.my/wp-content/uploads/PR_05_2019_2.pdf) para 7.2.4). PCB.assessed_on and PCB.ordinary_on subtract annual_exempt(…, 3,000); the rest is normal remuneration. EPF Act 1991 s.2 “wages” (AGC text as at 1 July 2022) includes any bonus, commission or allowance and excludes any travelling allowance; KWSP employer FAQ (Mandatory Contribution, Q8 “Components of Wage”: salary, bonus, allowance, commission, incentives; Q11 “Non-Wages”: travelling allowance or the value of any travelling concession; read 28 September 2026 in the browser): an allowance is EPF wages. Act 4 s.2(24) and Act 800 s.2 include any allowance paid in money and exclude none of this kind: SOCSO, EIS and SKBBK wages. Act 612 s.2 “wages” (AGC reprint 2017): basic salary and fixed allowances or other emoluments of a like nature paid in cash, excluding (b) any travelling allowance, (c) special expenses and (e) any bonus or commission: a fixed cash allowance is HRD wages. Employment Act 1955 s.2 “wages” (AGC reprint as at 1 August 2023): basic wages and all other payments in cash payable for work done under the contract, excluding (c) any travelling allowance or the value of any travelling concession: a cash payment under the contract, so wages. The RM3,000 limit has applied since YA2024 (Income Tax (Exemption) (Amendment) Order 2023, P.U.(A) 399/2023, raising the RM2,400), so every version from December 2025 carries it. Sub-monthly settlement (2026-10-08): a fixed allowance is monthly wages under EA s.18A — the whole month ÷ the parts, a part month the employed days ÷ the month's calendar days, the last part settling the month less what the earlier parts paid."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "975adb31-a659-575b-befe-42549bfe0051",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst start = get(ctx.subject.employment, 'effective_range.from', coverage.from);\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst from = coverage.from > start ? coverage.from : start;\nconst to = end === null || coverage.to < end ? coverage.to : end;\nif (from > to) return 0;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(from, to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "644a6916-b721-5342-8d29-2e27707ec52f",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+	},
+	{
+		"code": "MEAL_ALLOWANCE",
+		"name": "Meal allowance (regular, same rate for all)",
+		"lookup": {
+			"allowance": "MEAL_ALLOWANCE"
+		},
+		"references": [
+			{
+				"title": "LHDN Specification for MTD Calculations Using Computerised Calculation 2026 (https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf), E(9), pp.20–22, read 28 September 2026 item vii and LHDN Public Ruling 5/2019 Perquisites from Employment (https://www.hasil.gov.my/wp-content/uploads/PR_05_2019_2.pdf) para 7.2.3 (p.22, Example 19: RM250 a month exempt): a meal allowance received on a regular basis at the same rate to all employees is exempt from tax, so this class counts toward no PCB base. EPF Act 1991 s.2 “wages” (AGC text as at 1 July 2022) includes any bonus, commission or allowance and excludes any travelling allowance; KWSP employer FAQ (Mandatory Contribution, Q8 “Components of Wage”: salary, bonus, allowance, commission, incentives; Q11 “Non-Wages”: travelling allowance or the value of any travelling concession; read 28 September 2026 in the browser): an allowance is EPF wages. Act 4 s.2(24) and Act 800 s.2 include any allowance paid in money; a cash meal allowance is not a special expense of the employment: SOCSO, EIS and SKBBK wages. Act 612 s.2 “wages” (AGC reprint 2017): basic salary and fixed allowances or other emoluments of a like nature paid in cash, excluding (b) any travelling allowance, (c) special expenses and (e) any bonus or commission: a fixed cash allowance is HRD wages. Employment Act 1955 s.2 “wages” (AGC reprint as at 1 August 2023): basic wages and all other payments in cash payable for work done under the contract, excluding (c) any travelling allowance or the value of any travelling concession: a cash payment, not the in-kind “supply of any food” of exclusion (a), so wages. Owner rule 2026-09-28: the law is silent on a regular meal allowance under Act 4 s.2(24)(c); default — not a special expense (it does not arise from the nature of the work), so wages; lawful because it charges the contribution. An overtime or outstation meal allowance at an internal-circular rate is not this class. Sub-monthly settlement (2026-10-08): a fixed allowance is monthly wages under EA s.18A — the whole month ÷ the parts, a part month the employed days ÷ the month's calendar days, the last part settling the month less what the earlier parts paid."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "975adb31-a659-575b-befe-42549bfe0051",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst start = get(ctx.subject.employment, 'effective_range.from', coverage.from);\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst from = coverage.from > start ? coverage.from : start;\nconst to = end === null || coverage.to < end ? coverage.to : end;\nif (from > to) return 0;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(from, to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "4112b555-a41b-5df3-8574-1ff936d48d55",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+	},
+	{
+		"code": "ONCALL",
+		"name": "On-call allowance",
+		"lookup": {
+			"allowance": "ONCALL"
+		},
+		"references": [
+			{
+				"title": "Encoded 2026-10-07 (round 7): a fixed monthly on-call allowance on the contract is normal remuneration (MTD Specification 2026 D, Y1, https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf) and ordinary EPF wages. Sub-monthly settlement (2026-10-08): a fixed allowance is monthly wages under EA s.18A — the whole month ÷ the parts, a part month the employed days ÷ the month's calendar days, the last part settling the month less what the earlier parts paid.",
+				"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "975adb31-a659-575b-befe-42549bfe0051",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst start = get(ctx.subject.employment, 'effective_range.from', coverage.from);\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst from = coverage.from > start ? coverage.from : start;\nconst to = end === null || coverage.to < end ? coverage.to : end;\nif (from > to) return 0;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(from, to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "20312666-aa80-50f0-b2fe-5a427c8bd3d4",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+	},
+	{
+		"code": "PARKING_ALLOWANCE",
+		"name": "Parking allowance",
+		"lookup": {
+			"allowance": "PARKING_ALLOWANCE"
+		},
+		"references": [
+			{
+				"title": "LHDN Specification for MTD Calculations Using Computerised Calculation 2026 (https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf), E(9), pp.20–22, read 28 September 2026 item vi and LHDN Public Ruling 5/2019 Perquisites from Employment (https://www.hasil.gov.my/wp-content/uploads/PR_05_2019_2.pdf) para 7.2.2 (pp.21–22, Example 18: RM180 a month exempt): a parking rate or parking allowance, including a rate paid by the employer directly to the operator, is exempt from tax, so this class counts toward no PCB base. EPF Act 1991 s.2 “wages” (AGC text as at 1 July 2022) includes any bonus, commission or allowance and excludes any travelling allowance; KWSP employer FAQ (Mandatory Contribution, Q8 “Components of Wage”: salary, bonus, allowance, commission, incentives; Q11 “Non-Wages”: travelling allowance or the value of any travelling concession; read 28 September 2026 in the browser): an allowance is EPF wages. Act 4 s.2(24) and Act 800 s.2 include any allowance paid in money. Owner rule 2026-09-28: the law is silent on whether a parking allowance is a sum to defray “special expenses entailed … by the nature of his employment” (s.2(24)(c)); default — it is not (parking at the workplace attends every employment, not this one’s nature), so SOCSO, EIS and SKBBK wages; lawful because it charges the contribution. Act 612 s.2 “wages” (AGC reprint 2017): basic salary and fixed allowances or other emoluments of a like nature paid in cash, excluding (b) any travelling allowance, (c) special expenses and (e) any bonus or commission: a fixed cash allowance is HRD wages. Employment Act 1955 s.2 “wages” (AGC reprint as at 1 August 2023): basic wages and all other payments in cash payable for work done under the contract, excluding (c) any travelling allowance or the value of any travelling concession: a cash payment under the contract, so wages. Sub-monthly settlement (2026-10-08): a fixed allowance is monthly wages under EA s.18A — the whole month ÷ the parts, a part month the employed days ÷ the month's calendar days, the last part settling the month less what the earlier parts paid."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "975adb31-a659-575b-befe-42549bfe0051",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst start = get(ctx.subject.employment, 'effective_range.from', coverage.from);\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst from = coverage.from > start ? coverage.from : start;\nconst to = end === null || coverage.to < end ? coverage.to : end;\nif (from > to) return 0;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(from, to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "ad3e1aaa-657d-5335-9634-cbfb06d11de1",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+	},
+	{
+		"code": "SUA",
+		"name": "Scale-up allowance",
+		"lookup": {
+			"allowance": "SUA"
+		},
+		"references": [
+			{
+				"title": "Sub-monthly settlement (2026-10-08): a fixed allowance is monthly wages under EA s.18A — the whole month ÷ the parts, a part month the employed days ÷ the month's calendar days, the last part settling the month less what the earlier parts paid."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "975adb31-a659-575b-befe-42549bfe0051",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst start = get(ctx.subject.employment, 'effective_range.from', coverage.from);\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst from = coverage.from > start ? coverage.from : start;\nconst to = end === null || coverage.to < end ? coverage.to : end;\nif (from > to) return 0;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(from, to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "3a71f236-a421-5630-93cd-df4cc1679b94",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+	}
+]

@@ -1,0 +1,44 @@
+[
+	{
+		"code": "SWAB_TEST_REIMBURSEMENT",
+		"name": "Swab test reimbursement",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
+		"eligibility": "const ended = get(ctx.subject.employment, 'effective_range.to', null);\nreturn (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\t(ended == null || ctx.entry.incurred_on <= ended)\n);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "81ea63c7-2eb2-5e9b-904c-23e626c32d41",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"references": [
+			{
+				"title": "Employment agreement or company regulation",
+				"locator": "reimbursement policy",
+				"quote": "A work-related medical test is reimbursed at its evidenced cost; it is not wages."
+			}
+		]
+	},
+	{
+		"code": "MEDICAL_CLAIM",
+		"name": "Medical claim",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "7522be16-e31f-539d-8d13-6e3053c85f33",
+		"eligibility": "const ended = get(ctx.subject.employment, 'effective_range.to', null);\nreturn (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\t(ended == null || ctx.entry.incurred_on <= ended)\n);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "2e14aee3-497c-509e-85a9-8b6c28359728",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"references": [
+			{
+				"title": "Employment agreement or company regulation",
+				"locator": "medical entitlement",
+				"quote": "A medical claim is paid at its evidenced cost within the entitlement the employer sets; paid through payroll it is part of gross pay."
+			}
+		]
+	}
+]

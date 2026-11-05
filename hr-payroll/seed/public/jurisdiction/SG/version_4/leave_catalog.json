@@ -1,0 +1,558 @@
+[
+	{
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"lookup": {
+			"eligibility_months": 3,
+			"first_year_days": 7,
+			"first_year_months": 12,
+			"first_year_proration": "COMPLETED_MONTHS",
+			"first_year_rounding": "HALF_DAY_UP",
+			"service_bands": [
+				{
+					"service_months": 12,
+					"days": 8
+				},
+				{
+					"service_months": 24,
+					"days": 9
+				},
+				{
+					"service_months": 36,
+					"days": 10
+				},
+				{
+					"service_months": 48,
+					"days": 11
+				},
+				{
+					"service_months": 60,
+					"days": 12
+				},
+				{
+					"service_months": 72,
+					"days": 13
+				},
+				{
+					"service_months": 84,
+					"days": 14
+				}
+			],
+			"carry_months": 12,
+			"carry_max_days": 14,
+			"part4_salary_ceiling_manual": 4500,
+			"part4_salary_ceiling_non_manual": 2600,
+			"encash_on_exit": {
+				"allowed": true,
+				"refused_on": ["MISCONDUCT_DISMISSAL"]
+			},
+			"encash_divisor": 26
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": "abb4fd9f-2ad5-5f92-b6c8-01c3fe2325b3",
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.88A — 7 days rising to 14 with service after 3 months; a leaving year is prorated to completed months",
+				"locator": "s.88A",
+				"url": "https://www.mom.gov.sg/employment-practices/leave/annual-leave/eligibility-and-entitlement",
+				"effective_from": "2027-01-01"
+			},
+			{
+				"title": "Employment Act 1968 s.88A(3) — unused annual leave is paid on termination except misconduct; MOM termination guidance",
+				"locator": "s.88A(3)",
+				"url": "https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice",
+				"effective_from": "2026-10-01"
+			}
+		],
+		"id": "21cf365f-8cc3-59b9-ade4-0b5ab10e22b5",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
+		"conversion": "// js\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst monthly = unit === 'DAILY' ? amount * 26 : unit === 'HOURLY' ? amount * get(terms, 'normal_hours_per_day', 8) * 26 : amount;\nconst days = Number(get(ctx.entry, 'quantity', 0));\nreturn (monthly / Number(get(ctx.lookup, 'encash_divisor', 26))) * days;"
+	},
+	{
+		"code": "SICK_LEAVE",
+		"name": "Outpatient sick leave",
+		"lookup": {
+			"eligibility_months": 3,
+			"window_months": 12,
+			"initial_period_months": 6,
+			"service_bands": [
+				{
+					"service_months": 3,
+					"days": 5
+				},
+				{
+					"service_months": 4,
+					"days": 8
+				},
+				{
+					"service_months": 5,
+					"days": 11
+				},
+				{
+					"service_months": 6,
+					"days": 14
+				}
+			],
+			"consumes_pool": "HOSPITALIZATION_LEAVE"
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.89(1)(a),(2) — 5/8/11/14 days outpatient sick leave at 3/4/5/6 completed months",
+				"locator": "s.89(1)(a),(2)",
+				"url": "https://www.mom.gov.sg/employment-practices/leave/sick-leave/eligibility-and-entitlement",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"id": "81f498fc-76d7-5d16-9ad2-2daaf9bb9c83",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "HOSPITALIZATION_LEAVE",
+		"name": "Hospitalization leave",
+		"lookup": {
+			"eligibility_months": 3,
+			"window_months": 12,
+			"initial_period_months": 6,
+			"service_bands": [
+				{
+					"service_months": 3,
+					"days": 15
+				},
+				{
+					"service_months": 4,
+					"days": 30
+				},
+				{
+					"service_months": 5,
+					"days": 45
+				},
+				{
+					"service_months": 6,
+					"days": 60
+				}
+			],
+			"shared_with": ["SICK_LEAVE"]
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.89(1)(b),(2) — 15/30/45/60 days hospitalisation leave at 3/4/5/6 completed months",
+				"locator": "s.89(1)(b),(2)",
+				"url": "https://www.mom.gov.sg/employment-practices/leave/sick-leave/eligibility-and-entitlement",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"id": "781d2395-5128-5162-bf1b-5f2b477ce319",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"lookup": {
+			"eligibility_months": 3,
+			"cdca_weeks": 16,
+			"ea_weeks": 12,
+			"ea_paid_weeks": 8,
+			"ea_unpaid_weeks": 4,
+			"citizenship_window_months": 12,
+			"days_per_week_default": 7
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 s.9 — 16 weeks government-paid maternity leave for a qualifying citizen child",
+				"locator": "s.9",
+				"url": "https://www.profamilyleave.msf.gov.sg/schemes/maternity-leave",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"id": "34be099e-0ece-55f6-b9fd-be933331742d",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"lookup": {
+			"eligibility_months": 3,
+			"weeks_from_2025_04_01": 4,
+			"weeks_before_2025_04_01": 2,
+			"citizenship_window_months": 12,
+			"days_per_week_default": 7
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'MALE' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 ss.12H–12J — 4 weeks government-paid paternity leave for births from 1 April 2025 (2 weeks before)",
+				"locator": "ss.12H–12J",
+				"url": "https://www.profamilyleave.msf.gov.sg/schemes/paternity-leave",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"id": "3cffd666-c0d4-5d8c-88a1-4163bfbc2983",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "CHILDCARE_LEAVE",
+		"name": "Childcare leave",
+		"lookup": {
+			"eligibility_months": 3,
+			"child_age_limit": 7,
+			"gpcl_days_per_year": 6,
+			"ea_days_per_year": 2,
+			"gpcl_lifetime_days_per_child": 42,
+			"ea_lifetime_days_per_child": 14
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 s.12B; Employment Act 1968 s.87A — 6 GPCL days plus 2 EA days a year for a child under 7",
+				"locator": "s.12B; s.87A",
+				"url": "https://www.profamilyleave.msf.gov.sg/schemes/childcare-leave",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"id": "c1775bc4-693d-5a7b-b32c-2047d23bc6af",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "UNPAID_INFANT_CARE_LEAVE",
+		"name": "Unpaid infant care leave",
+		"lookup": {
+			"eligibility_months": 3,
+			"child_age_limit": 2,
+			"days_per_year": 12,
+			"lifetime_days_per_child": 24
+		},
+		"pay_treatment": "UNPAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 s.12D — 12 days unpaid infant care leave a year per parent of a citizen child under 2",
+				"locator": "s.12D",
+				"url": "https://sso.agc.gov.sg/Act/CDCSA2001",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"id": "0df1479b-c088-5b86-8f9b-aa100013bd2a",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "ADOPTION_LEAVE",
+		"name": "Adoption leave",
+		"lookup": {
+			"eligibility_months": 3,
+			"weeks": 12,
+			"child_age_months": 12,
+			"days_per_week_default": 7,
+			"pr_branch_from": "2025-04-01"
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 s.12AA — 12 weeks government-paid adoption leave for a child under 12 months",
+				"locator": "s.12AA",
+				"url": "https://www.profamilyleave.msf.gov.sg/schemes/adoption-leave",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"id": "82a26bb6-920a-5a3b-8824-e6bfe2d6719d",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "SHARED_PARENTAL_LEAVE",
+		"name": "Shared parental leave",
+		"lookup": {
+			"scheme_from": "2025-04-01",
+			"eligibility_months": 3,
+			"pool_weeks_from_2026_04_01": 10,
+			"pool_weeks_from_2025_04_01": 6,
+			"sharing_default_divisor": 2,
+			"days_per_week_default": 7
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 ss.12DA–12DD and Second Schedule — 6 weeks from 1 April 2025 and 10 weeks for children born from 1 April 2026",
+				"locator": "ss.12DA–12DD; Second Schedule",
+				"url": "https://www.profamilyleave.msf.gov.sg/schemes/shared-parental-leave",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"id": "b34e8f01-8c98-5487-85dd-93a2c6280f44",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "NS_LEAVE",
+		"name": "National service leave",
+		"lookup": {
+			"paid_when_entity_direct_scheme": true
+		},
+		"pay_treatment": "UNPAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Enlistment Act 1970 ss.13,31; Employment Act 1968 s.20A(1)(d) — NS absence is unpaid unless the employer continues full salary under the MINDEF/MHA DIRECT scheme",
+				"locator": "DIRECT scheme",
+				"url": "https://www.ns.gov.sg/web/profiles/employer/nsmen-payment/payment-methods",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"id": "bdc7a030-5b6c-5b05-8eba-ebc330a74b4b",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"lookup": {},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Employment Act 1968 s.88(1)(a),(1)(c),(4A) — a substituted day off in lieu of a public holiday",
+				"locator": "s.88",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"id": "7bc6f926-4063-52fc-9c12-fc811581633a",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"lookup": {},
+		"pay_treatment": "UNPAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Employment Act 1968 s.20A(1)(c) — a day of no-pay leave is a day off the month’s working days",
+				"locator": "s.20A(1)(c)",
+				"url": "https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"id": "4ca40a49-ea75-5239-9497-9113700197ac",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "ANNUAL_LEAVE_PART_TIME",
+		"name": "Annual leave (part-time, hours)",
+		"lookup": {
+			"eligibility_months": 3,
+			"first_year_days": 7,
+			"first_year_months": 12,
+			"first_year_proration": "COMPLETED_MONTHS",
+			"service_bands": [
+				{
+					"service_months": 12,
+					"days": 8
+				},
+				{
+					"service_months": 24,
+					"days": 9
+				},
+				{
+					"service_months": 36,
+					"days": 10
+				},
+				{
+					"service_months": 48,
+					"days": 11
+				},
+				{
+					"service_months": 60,
+					"days": 12
+				},
+				{
+					"service_months": 72,
+					"days": 13
+				},
+				{
+					"service_months": 84,
+					"days": 14
+				}
+			],
+			"basis": "CONTRACTED_HOURS",
+			"entitlement_unit": "HOUR",
+			"full_time_weekly_hours_default": 44,
+			"full_time_hours_per_day_default": 8,
+			"carry_months": 12,
+			"carry_max_days": 14,
+			"part4_salary_ceiling_manual": 4500,
+			"part4_salary_ceiling_non_manual": 2600
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"references": [
+			{
+				"title": "Employment (Part-Time Employees) Regulations regs.2,7 — annual leave in hours based on the comparable full-time schedule",
+				"locator": "regs.2,7",
+				"url": "https://www.mom.gov.sg/employment-practices/part-time-employment/leave",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"id": "43e31cee-7f29-5b94-86b6-341043cee546",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "SICK_LEAVE_PART_TIME",
+		"name": "Outpatient sick leave (part-time)",
+		"lookup": {
+			"eligibility_months": 3,
+			"window_months": 12,
+			"initial_period_months": 6,
+			"service_bands": [
+				{
+					"service_months": 3,
+					"days": 5
+				},
+				{
+					"service_months": 4,
+					"days": 8
+				},
+				{
+					"service_months": 5,
+					"days": 11
+				},
+				{
+					"service_months": 6,
+					"days": 14
+				}
+			],
+			"consumes_pool": "HOSPITALIZATION_LEAVE_PART_TIME",
+			"basis": "CONTRACTED_HOURS",
+			"entitlement_unit": "HOUR",
+			"full_time_weekly_hours_default": 44,
+			"full_time_hours_per_day_default": 8
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.89(1)(a),(2); Employment (Part-Time Employees) Regulations reg.7 — part-time sick leave prorated to contracted hours",
+				"locator": "s.89; reg.7",
+				"url": "https://www.mom.gov.sg/employment-practices/leave/sick-leave/eligibility-and-entitlement",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"id": "1320a640-d860-5943-a854-a51e24eb7474",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "HOSPITALIZATION_LEAVE_PART_TIME",
+		"name": "Hospitalization leave (part-time)",
+		"lookup": {
+			"eligibility_months": 3,
+			"window_months": 12,
+			"initial_period_months": 6,
+			"service_bands": [
+				{
+					"service_months": 3,
+					"days": 15
+				},
+				{
+					"service_months": 4,
+					"days": 30
+				},
+				{
+					"service_months": 5,
+					"days": 45
+				},
+				{
+					"service_months": 6,
+					"days": 60
+				}
+			],
+			"shared_with": ["SICK_LEAVE_PART_TIME"],
+			"basis": "CONTRACTED_HOURS",
+			"entitlement_unit": "HOUR",
+			"full_time_weekly_hours_default": 44,
+			"full_time_hours_per_day_default": 8
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.89(1)(b),(2); Employment (Part-Time Employees) Regulations reg.7 — part-time hospitalisation leave prorated to contracted hours",
+				"locator": "s.89; reg.7",
+				"url": "https://www.mom.gov.sg/employment-practices/leave/sick-leave/eligibility-and-entitlement",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"id": "2edf58bf-675e-54d9-8697-d3fd9a850ba0",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "WORK_INJURY_MEDICAL_LEAVE",
+		"name": "Work injury outpatient medical leave (WICA)",
+		"lookup": {
+			"claim_window_days": 365
+		},
+		"pay_treatment": "UNPAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Work Injury Compensation Act 2019 First Schedule para.4(1) — medical leave wages at the pre-accident average monthly earnings",
+				"locator": "First Schedule para.4(1)",
+				"url": "https://sso.agc.gov.sg/Act/WICA2019",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"id": "506f36b7-5d11-57f5-86dc-6be30ab53808",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "WORK_INJURY_HOSPITALISATION_LEAVE",
+		"name": "Work injury hospitalisation leave (WICA)",
+		"lookup": {
+			"claim_window_days": 365
+		},
+		"pay_treatment": "UNPAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Work Injury Compensation Act 2019 First Schedule para.4(1) — hospitalisation leave wages at the pre-accident average monthly earnings",
+				"locator": "First Schedule para.4(1)",
+				"url": "https://sso.agc.gov.sg/Act/WICA2019",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"id": "2a7a4d00-8374-580a-ba75-62d0007cec70",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	}
+]

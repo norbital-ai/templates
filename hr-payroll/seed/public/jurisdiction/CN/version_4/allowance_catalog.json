@@ -1,0 +1,154 @@
+[
+	{
+		"code": "CHILDCARE_SUBSIDY",
+		"name": "Childcare subsidy (托儿补助费)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "国税发〔1994〕89号 第二条: 托儿补助费不征税, 不属于工资、薪金性质的补贴."
+			}
+		],
+		"eligibility": "return true;",
+		"conversion": "return get(ctx.subject.employment.terms, 'allowances.CHILDCARE_SUBSIDY.amount', 0);",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": true,
+		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"id": "f599cc60-ef48-515f-83ac-8edf00869e9b",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	},
+	{
+		"code": "FIXED_ALLOWANCE",
+		"name": "Fixed allowance (固定津贴补贴)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "国家统计局《关于工资总额组成的规定》第四条、第八条: 津贴和补贴属于工资总额; 个人所得税法实施条例 第六条第一项."
+			}
+		],
+		"eligibility": "return true;",
+		"conversion": "return get(ctx.subject.employment.terms, 'allowances.FIXED_ALLOWANCE.amount', 0);",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": true,
+		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"id": "68215c38-1749-5e5c-bb8f-6682e76fa726",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	},
+	{
+		"code": "FOREIGN_CHILD_EDUCATION_ALLOWANCE",
+		"name": "Expatriate children-education allowance (外籍个人子女教育费)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "财政部 税务总局公告2023年第29号: 外籍个人符合居民条件的, 子女教育费等津补贴可选择免税, 至2027-12-31; 否则并入工资计税."
+			}
+		],
+		"eligibility": "return true;",
+		"conversion": "return get(ctx.subject.employment.terms, 'allowances.FOREIGN_CHILD_EDUCATION_ALLOWANCE.amount', 0);",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": true,
+		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"id": "67e7afaf-ccf9-5753-8b67-1cfaf4c7a82f",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	},
+	{
+		"code": "FOREIGN_HOUSING_ALLOWANCE",
+		"name": "Expatriate housing allowance (外籍个人住房补贴)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "财政部 税务总局公告2023年第29号: 外籍个人符合居民条件的, 住房补贴等津补贴可选择免税, 至2027-12-31; 否则并入工资计税."
+			}
+		],
+		"eligibility": "return true;",
+		"conversion": "return get(ctx.subject.employment.terms, 'allowances.FOREIGN_HOUSING_ALLOWANCE.amount', 0);",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": true,
+		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"id": "9e718c1e-b1c2-55cb-841c-8c882e5ee3c9",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	},
+	{
+		"code": "FOREIGN_LANGUAGE_ALLOWANCE",
+		"name": "Expatriate language-training allowance (外籍个人语言训练费)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "财政部 税务总局公告2023年第29号: 外籍个人符合居民条件的, 语言训练费等津补贴可选择免税, 至2027-12-31; 否则并入工资计税."
+			}
+		],
+		"eligibility": "return true;",
+		"conversion": "return get(ctx.subject.employment.terms, 'allowances.FOREIGN_LANGUAGE_ALLOWANCE.amount', 0);",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": true,
+		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"id": "4c6389d8-57eb-5b8b-be53-06a9bdcd9e6b",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	},
+	{
+		"code": "MEAL_SUBSIDY_OUT",
+		"name": "Missed-meal subsidy (误餐补助)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "国税发〔1994〕89号 第二条; 财税字〔1995〕82号: 实际误餐补助不征税; 以误餐补助名义发放的固定补贴属于工资、薪金."
+			}
+		],
+		"eligibility": "return true;",
+		"conversion": "return get(ctx.subject.employment.terms, 'allowances.MEAL_SUBSIDY_OUT.amount', 0);",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": true,
+		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"id": "d587b294-1f34-5699-96f2-98963a565089",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	},
+	{
+		"code": "ONLY_CHILD_ALLOWANCE",
+		"name": "Only-child allowance (独生子女补贴)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "国税发〔1994〕89号 第二条: 独生子女补贴不征税; 国家统计局《关于工资总额组成的规定》第十一条."
+			}
+		],
+		"eligibility": "return true;",
+		"conversion": "return get(ctx.subject.employment.terms, 'allowances.ONLY_CHILD_ALLOWANCE.amount', 0);",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": true,
+		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"id": "26cd3aa3-795d-5891-866b-e05327216028",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	},
+	{
+		"code": "TRAVEL_ALLOWANCE",
+		"name": "Business-travel allowance (差旅费津贴)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "国税发〔1994〕89号 第二条: 差旅费津贴不征税; 以差旅费名义发放的固定补贴属于工资、薪金."
+			}
+		],
+		"eligibility": "return true;",
+		"conversion": "return get(ctx.subject.employment.terms, 'allowances.TRAVEL_ALLOWANCE.amount', 0);",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": true,
+		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"id": "802d2797-8514-534f-88f2-71a5145453b9",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	}
+]

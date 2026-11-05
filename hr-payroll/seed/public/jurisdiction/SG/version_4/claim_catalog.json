@@ -1,0 +1,267 @@
+[
+	{
+		"code": "MEDICAL_TREATMENT_REIMBURSEMENT",
+		"name": "Qualified medical, dental or TCM reimbursement",
+		"lookup": {},
+		"references": [
+			{
+				"title": "CPF Act 1953 s.2(1); CPF (Wages — Excluded Payments) Notification 2019 paras.2–3 — medical expense reimbursement is not wages",
+				"locator": "s.2(1); Notification paras.2–3",
+				"url": "https://sso.agc.gov.sg/Act/CPFA1953",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "7c2e6dcb-2421-544e-be9c-edd698275a8c",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "MEDICAL_CONSULTATION_FEE",
+		"name": "Medical consultation fee for certified sick leave",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.89(7A) — the employer bears or reimburses the medical examination fee for certified sick leave",
+				"locator": "s.89(7A)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "edc51801-3b44-56b0-82ae-76c605304f10",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "PER_DIEM_OFFICIAL_REIMBURSEMENT",
+		"name": "Per diem reimbursement of actual official expenses",
+		"lookup": {},
+		"references": [
+			{
+				"title": "CPF Board, Per-diem payments — an official expense reimbursement up to actual expenditure is not wages",
+				"locator": "Per-diem",
+				"url": "https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-on-per-diem-payments",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "71d6e91a-6630-56c3-9cea-ef7154de1881",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "ADOPTION_REIMBURSEMENT",
+		"name": "Government-paid adoption leave reimbursement",
+		"lookup": {
+			"weekly_limit": 2500,
+			"higher_child_total": 30000,
+			"standard_child_total": 20000,
+			"minimum_service_months": 3,
+			"origin_leave_codes": ["ADOPTION_LEAVE"],
+			"statutory_origin_codes": ["S12AA_1_A", "S12AA_1_B", "S12AA_1_C_I", "S12AA_1_C_II"]
+		},
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 ss.12AA,12DA; MSF ProFamily Leave — adoption leave reimbursement up to $2,500 a week including CPF",
+				"locator": "ss.12AA,12DA",
+				"url": "https://www.profamilyleave.msf.gov.sg/schemes/adoption-leave",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'DAY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn (\n\tctx.entry.quantity *\n\tctx.lookup.weekly_limit /\n\tNumber(get(ctx.subject.employment.terms, 'normal_days_per_week', 5))\n);",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYER",
+		"id": "79827df2-27f7-5d48-bd74-9723dff14b05",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "GPML_REIMBURSEMENT",
+		"name": "Government-paid maternity leave reimbursement",
+		"lookup": {
+			"weekly_limit": 2500,
+			"higher_child_total": 40000,
+			"standard_child_total": 20000,
+			"minimum_service_months": 3,
+			"origin_leave_codes": ["MATERNITY_LEAVE"],
+			"statutory_origin_codes": [
+				"S9_1_A",
+				"S9_1_B",
+				"S9_1_C_I",
+				"S9_1_C_II",
+				"S9_1A_I_A_AB_FLEXIBLE",
+				"S9_1A_I_A_AB",
+				"S9_1A_I_B_BB_FLEXIBLE",
+				"S9_1A_I_B_BB",
+				"S9_1A_I_C_FLEXIBLE",
+				"S9_1A_I_C",
+				"S9_1A_II_A_AB_FLEXIBLE",
+				"S9_1A_II_A_AB",
+				"S9_1A_II_B_FLEXIBLE",
+				"S9_1A_II_B",
+				"S9_1A_III_A_AB_FLEXIBLE",
+				"S9_1A_III_A_AB",
+				"S9_1A_III_B_BB_FLEXIBLE",
+				"S9_1A_III_B_BB",
+				"S9_1A_III_C_FLEXIBLE",
+				"S9_1A_III_C",
+				"S9_1A_IV_A_AB_FLEXIBLE",
+				"S9_1A_IV_A_AB",
+				"S9_1A_IV_B_FLEXIBLE",
+				"S9_1A_IV_B",
+				"S9_1A_IVA_A_FLEXIBLE",
+				"S9_1A_IVA_A",
+				"S9_1A_V_A_AB",
+				"S9_1A_V_B_BB",
+				"S9_1A_VI_A_AB",
+				"S9_1A_VI_B_BB",
+				"S9_1B_I",
+				"S9_1B_II_A",
+				"S9_1B_II_B",
+				"S9_1B_III"
+			]
+		},
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 s.9; MSF ProFamily Leave — maternity leave reimbursement up to $2,500 a week including CPF",
+				"locator": "s.9",
+				"url": "https://www.profamilyleave.msf.gov.sg/schemes/maternity-leave",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'DAY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn (\n\tctx.entry.quantity *\n\tctx.lookup.weekly_limit /\n\tNumber(get(ctx.subject.employment.terms, 'normal_days_per_week', 5))\n);",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYER",
+		"id": "788032b3-5ef7-50f6-8ce3-59beca740e9f",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "GPPL_REIMBURSEMENT",
+		"name": "Government-paid paternity leave reimbursement",
+		"lookup": {
+			"weekly_limit": 2500,
+			"total_limit": 10000,
+			"minimum_service_months": 3,
+			"origin_leave_codes": ["PATERNITY_LEAVE"],
+			"statutory_origin_codes": ["S12H_1_A_I", "S12H_1_A_II", "S12H_1_B_II_A", "S12H_1_B_II_B"]
+		},
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 ss.12H–12J; MSF ProFamily Leave — paternity leave reimbursement up to $2,500 a week including CPF",
+				"locator": "ss.12H–12J",
+				"url": "https://www.profamilyleave.msf.gov.sg/schemes/paternity-leave",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'DAY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn (\n\tctx.entry.quantity *\n\tctx.lookup.weekly_limit /\n\tNumber(get(ctx.subject.employment.terms, 'normal_days_per_week', 5))\n);",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYER",
+		"id": "9df34748-176d-56a7-8cff-40d4b455732f",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "WICA_MEDICAL",
+		"name": "WICA medical insurer recovery",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Work Injury Compensation Act 2019 ss.2,3,7–12,17 and First Schedule paras.4,6 — medical leave wages and insurer recovery",
+				"locator": "First Schedule paras.4,6",
+				"url": "https://sso.agc.gov.sg/Act/WICA2019",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYER",
+		"id": "be8a029c-c207-5957-ba6e-407f29707e84",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "GPSPL_REIMBURSEMENT",
+		"name": "Government-paid shared parental leave reimbursement",
+		"lookup": {
+			"weekly_limit": 2500,
+			"minimum_service_months": 3,
+			"origin_leave_codes": ["SHARED_PARENTAL_LEAVE"],
+			"statutory_origin_codes": ["GOVERNMENT_PAID_SHARED_PARENTAL_LEAVE"]
+		},
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 ss.12DA–12DD; MSF ProFamily Leave — shared parental leave reimbursement up to $2,500 a week including CPF",
+				"locator": "ss.12DA–12DD",
+				"url": "https://www.profamilyleave.msf.gov.sg/schemes/shared-parental-leave",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'DAY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn (\n\tctx.entry.quantity *\n\tctx.lookup.weekly_limit /\n\tNumber(get(ctx.subject.employment.terms, 'normal_days_per_week', 5))\n);",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYER",
+		"id": "3ec3f40e-4252-5e3d-a547-6bbc0639fddd",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "GPCL_REIMBURSEMENT",
+		"name": "Government-paid childcare leave reimbursement",
+		"lookup": {
+			"minimum_service_months": 3,
+			"origin_leave_codes": ["CHILDCARE_LEAVE"],
+			"statutory_origin_codes": ["GOVERNMENT_PAID_CHILDCARE_LEAVE"],
+			"daily_limit": 500,
+			"standard_child_total": 1500,
+			"extended_child_total": 1000
+		},
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 s.12B; MSF ProFamily Leave — GPCL reimbursed up to $500 a day including CPF",
+				"locator": "s.12B",
+				"url": "https://www.profamilyleave.msf.gov.sg/schemes/childcare-leave",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'DAY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity * ctx.lookup.daily_limit;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYER",
+		"id": "fda58323-f185-5928-87aa-68dba64dfb1c",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	}
+]

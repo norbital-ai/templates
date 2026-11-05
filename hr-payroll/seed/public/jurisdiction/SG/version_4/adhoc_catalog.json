@@ -1,0 +1,536 @@
+[
+	{
+		"code": "bonus",
+		"name": "Bonus",
+		"lookup": {},
+		"references": [
+			{
+				"title": "CPF Act 1953 First Schedule — a bonus is an Additional Wage charged under the Additional Wage ceiling",
+				"locator": "First Schedule",
+				"url": "https://sso.agc.gov.sg/Act/CPFA1953",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7d653d26-e890-5ffa-a47a-b434e3698f51",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "8cad3f3b-5183-5d8b-87b0-e904d1e32ce7",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "SALARY_IN_LIEU_OF_NOTICE",
+		"name": "Salary in lieu of notice",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment Act 1968 ss.10,11,23 — salary in lieu of notice is the gross salary for the unserved notice",
+				"locator": "ss.10,11,23",
+				"url": "https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3532253a-5b19-5b6e-9c6f-d460cad41973",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "c5b139bb-9038-5e5d-bf6c-fec8356abe21",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "RETRENCHMENT_BENEFIT",
+		"name": "Retrenchment benefit",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.45 — no statutory retrenchment benefit below 2 years’ service; longer service is contractual or negotiated",
+				"locator": "s.45",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3532253a-5b19-5b6e-9c6f-d460cad41973",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "b417dbd9-33db-55cf-adb3-5686d05ac78f",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "DAMAGE_RECOVERY",
+		"name": "Damage or loss recovery",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.29 — recovery of actual loss after inquiry, limited to one quarter of a month’s salary",
+				"locator": "s.29",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0 && ctx.subject.employment.terms.work_classification !== 'NON_EA';",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "3f917ec9-626d-52cc-8b6e-ab1080b8d4f8",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "ACCOMMODATION_RECOVERY",
+		"name": "Accommodation recovery",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.30 — deduction for accommodation supplied and accepted, within its value",
+				"locator": "s.30",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0 && ctx.subject.employment.terms.work_classification !== 'NON_EA';",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "7915adf0-30ae-5a7b-b996-e33a8c1455c0",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "AMENITIES_RECOVERY",
+		"name": "Amenities or services recovery",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.30 — deduction for amenities or services authorised by the Commissioner, within their value",
+				"locator": "s.30",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0 && ctx.subject.employment.terms.work_classification !== 'NON_EA';",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "0aca7abf-2932-5f2c-8b4f-093cc4c272b8",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "COOPERATIVE_DUES",
+		"name": "Registered co-operative dues",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment Act 1968 ss.27(1)(j),32(1) — consented registered co-operative dues are outside the 50% deduction cap",
+				"locator": "ss.27(1)(j),32(1)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0 && ctx.subject.employment.terms.work_classification !== 'NON_EA';",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "997091a5-64c3-59ff-a4cc-45fe0b3b0e3f",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "APPROVED_DAMAGE_RECOVERY",
+		"name": "Commissioner-approved damage recovery",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.29(1) — the quarter-month limit may be exceeded with the Commissioner’s permission",
+				"locator": "s.29(1)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0 && ctx.subject.employment.terms.work_classification !== 'NON_EA';",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "5e7c3a90-0a1e-5a3f-a535-6b186954d99b",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "ORDINARY_BACKPAY",
+		"name": "Ordinary wage backpayment",
+		"lookup": {},
+		"references": [
+			{
+				"title": "CPF Act 1953 First Schedule — wages for one month payable by the 14th of the next month are Ordinary Wages",
+				"locator": "First Schedule",
+				"url": "https://www.cpf.gov.sg/employer/employer-obligations/what-constitutes-wages-for-cpf-contributions",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "4844d09b-7208-540c-8c2a-a5ca29d1af21",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "60e42815-d538-5914-b195-e25de8281e6f",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "ADDITIONAL_BACKPAY",
+		"name": "Additional wage backpayment",
+		"lookup": {},
+		"references": [
+			{
+				"title": "CPF Act 1953 First Schedule — wages not meeting the Ordinary Wage timing test are Additional Wages",
+				"locator": "First Schedule",
+				"url": "https://www.cpf.gov.sg/employer/employer-obligations/what-constitutes-wages-for-cpf-contributions",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7d653d26-e890-5ffa-a47a-b434e3698f51",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "2afb57ea-ebd3-55c1-8319-f841c9bea51b",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "PRIOR_WAGE_CASH_REPAYMENT",
+		"name": "Prior wage cash repayment",
+		"lookup": {},
+		"references": [
+			{
+				"title": "CPF Board, Applying for refund of CPF contributions — prior wage repayment and contribution refund are separate actions",
+				"locator": "Refund",
+				"url": "https://www.cpf.gov.sg/employer/compliance-and-rectifications/applying-for-refund-of-cpf-contributions",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "c08d78ba-e176-5c28-8fc2-dcde7be62d57",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "EMPLOYMENT_ASSISTANCE_PAYMENT",
+		"name": "Employment Assistance Payment",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Retirement and Re-employment Act 1993 s.7C; MOM, Re-employment — EAP of 3.5 months’ salary, minimum $6,250, maximum $14,750",
+				"locator": "s.7C",
+				"url": "https://www.mom.gov.sg/employment-practices/re-employment",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3532253a-5b19-5b6e-9c6f-d460cad41973",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "12fc21cf-737b-5e7c-a49d-6c49bf2ace88",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "DIRECTOR_GENERAL_MEETING_FEE",
+		"name": "Director fee voted at general meeting",
+		"lookup": {},
+		"references": [
+			{
+				"title": "CPF Board, Who should receive CPF contributions — directors’ fees voted at a general meeting are not wages",
+				"locator": "Company directors",
+				"url": "https://www.cpf.gov.sg/employer/employer-obligations/who-should-receive-cpf-contributions",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3532253a-5b19-5b6e-9c6f-d460cad41973",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "addb8138-b666-5989-8718-33fc665886a5",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "CPF_MISSED_SHARE_RECOVERY",
+		"name": "Permitted recovery of missed employee CPF share",
+		"lookup": {},
+		"references": [
+			{
+				"title": "CPF Act 1953 s.7(3)–(4); CPF Board, Recovering the employee’s share — a missed employee CPF share may be recovered from later wages",
+				"locator": "s.7(3)–(4)",
+				"url": "https://www.cpf.gov.sg/service/article/how-do-i-recover-the-employee-s-share-of-cpf-contributions",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "96b18772-c718-536f-892e-9078d2381a0e",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "NOTICE_BREACH_COMPENSATION_RECOVERY",
+		"name": "Actual notice breach compensation recovery",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment Act 1968 ss.10,11,23 — actual notice and unserved notice determine notice-pay liability",
+				"locator": "ss.10,11,23",
+				"url": "https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "960165c0-7eb8-5bfe-bee6-4a16a462f704",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "FOOD_ABSENCE_COST",
+		"name": "Actual food supplied during unauthorized absence",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment Act 1968 ss.27(1)(a),28(3) — a deduction for absence may recover the cost of food supplied during it",
+				"locator": "ss.27(1)(a),28(3)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0 && ctx.subject.employment.terms.work_classification !== 'NON_EA';",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "219c0d5f-4142-5ee1-af83-97daacd85d65",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "CONSENT_EMPLOYEE_BENEFIT",
+		"name": "Actual employee-benefit purchase with withdrawable written consent",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.27(1)(e),(i) — a deduction for amenities, services or another benefit requires the employee’s written consent",
+				"locator": "s.27(1)(e),(i)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0 && ctx.subject.employment.terms.work_classification !== 'NON_EA';",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "4b04d543-988f-5c17-8d58-431e2eff641c",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "NS_MAKEUP_PAY",
+		"name": "NS make-up pay (CPF base only)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Enlistment Act 1970; CPF Board, NS make-up pay — CPF is payable on make-up pay as if NS had not interrupted work",
+				"locator": "NS make-up pay",
+				"url": "https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-on-the-national-service-ns-make-up-pay-when-i-am-away-from-work-for-ns-training",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": null,
+		"eligibility": "// js\nreturn ['CITIZEN', 'PERMANENT_RESIDENT'].includes(ctx.subject.employment.terms.residency_status);",
+		"id": "69509852-6254-5e1f-99d8-eea2dbd23a47",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "NR_PUBLIC_ENTERTAINER_FEE",
+		"name": "Public entertainer fee (artiste, musician, sportsman)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.45; IRAS — gross public-entertainer fees are subject to 15% withholding",
+				"locator": "s.45",
+				"url": "https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-public-entertainer-(artiste-musician-sportsman-etc-)/tax-obligations-of-non-resident-public-entertainer",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3532253a-5b19-5b6e-9c6f-d460cad41973",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "97f04bab-ae21-5ae2-bce6-d16f9e241061",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "BIK_PLACE_OF_RESIDENCE",
+		"name": "Benefit in kind: place of residence (Appendix 8A item 2f)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.10(1)(b); IRAS, Form IR8A and Appendix 8A notes — place-of-residence benefit is reportable employment income",
+				"locator": "Appendix 8A item 2f",
+				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": null,
+		"id": "fe909a8e-693b-53c5-86af-11f4ee7c5466",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "BIK_UTILITIES_HOUSEKEEPING",
+		"name": "Benefit in kind: utilities and housekeeping (Appendix 8A item 2j)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.10(1)(b); IRAS, Form IR8A and Appendix 8A notes — utilities and housekeeping benefit is reportable employment income",
+				"locator": "Appendix 8A item 2j",
+				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": null,
+		"id": "9cef8018-a83b-5449-8b5f-acb892ac0649",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "BIK_HOTEL_ACCOMMODATION",
+		"name": "Benefit in kind: hotel accommodation (Appendix 8A item 3c)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.10(1)(b); IRAS, Form IR8A and Appendix 8A notes — hotel accommodation benefit is reportable employment income",
+				"locator": "Appendix 8A item 3c",
+				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": null,
+		"id": "2d73303b-33f8-5049-a807-960fb7f1c994",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "BIK_CAR",
+		"name": "Benefit in kind: car (Appendix 8A item 4i)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.10(1)(b); IRAS, Form IR8A and Appendix 8A notes — car benefit is reportable employment income",
+				"locator": "Appendix 8A item 4i",
+				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": null,
+		"id": "7a34a7b3-0658-5852-ae11-3680c1b2fe0c",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "BIK_OTHER",
+		"name": "Benefit in kind: other (Appendix 8A item 4a–4h, 4j)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.10(1)(b); IRAS, Form IR8A and Appendix 8A notes — other benefits-in-kind are reportable employment income",
+				"locator": "Appendix 8A item 4",
+				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": null,
+		"id": "8fd4c028-6d6c-5c6b-a02e-cc31e5b31784",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "SHARE_PLAN_GAIN",
+		"name": "ESOP / ESOW gain (Appendix 8B, Form IR8A item d7)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.10(1)(b),(6); IRAS, Appendix 8B notes — ESOP/ESOW gain is reportable employment income",
+				"locator": "Appendix 8B",
+				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-appendix-8b-for-ya2027.pdf",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": null,
+		"id": "d01123f0-c676-545c-a9e1-eb9e0f9200a0",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "SHARE_PLAN_DEEMED_GAIN",
+		"name": "ESOP / ESOW deemed-exercise gain at tax clearance (IR21)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.10(7); IRAS, Form IR21 — an unexercised ESOP/ESOW is deemed exercised on tax clearance",
+				"locator": "s.10(7)",
+				"url": "https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": null,
+		"eligibility": "// js\nreturn ctx.subject.employment.terms.residency_status !== 'CITIZEN' && ctx.subject.employment.effective_range.to != null;",
+		"id": "49e35d83-48f8-52a3-9989-7b3b80000b36",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	}
+]

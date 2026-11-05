@@ -1,0 +1,1978 @@
+[
+	{
+		"code": "BPJS_KETENAGAKERJAAN_REMITTANCE",
+		"name": "BPJS Ketenagakerjaan contributions (JHT, JKK, JKM, JP)",
+		"lookup": {
+			"scheme_codes": ["JHT", "JP", "JKK", "JKM"],
+			"date_offset_days": 15
+		},
+		"references": [
+			{
+				"title": "PP 44/2015 arts.21–22(1) (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf); PP 46/2015 (JHT billed with them)"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"ledger_entry": {
+				"where": {
+					"account": {
+						"eq": "statutory_contribution"
+					},
+					"effective_on": {
+						"eq": {
+							"var": "ctx.entry.pay_date"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const codes = ctx.lookup.scheme_codes;\nreturn ctx.reads.ledger_entry.some(\n  (l) =>\n    l.source_id != null &&\n    l.source_id.model === 'payroll_run' &&\n    l.source_id.id === ctx.entry.id &&\n    l.amount > 0 &&\n    codes.some((c) => l.code.startsWith(c + '.')),\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_REMITTANCE', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'BPJS Ketenagakerjaan contributions (JHT, JKK, JKM, JP)',\n  due_on: add_working_days(add_days(ctx.entry.salary_coverage.to, ctx.lookup.date_offset_days - 1), 1, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
+		"id": "ff595d2d-37c4-54b6-b311-ae71e9f62b58",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "BPJS_KESEHATAN_REMITTANCE",
+		"name": "BPJS Kesehatan contribution",
+		"lookup": {
+			"scheme_codes": ["KESEHATAN"],
+			"date_offset_days": 9
+		},
+		"references": [
+			{
+				"title": "Perpres 82/2018 arts.39(1), 42 as amended by Perpres 64/2020 and 59/2024",
+				"url": "https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"ledger_entry": {
+				"where": {
+					"account": {
+						"eq": "statutory_contribution"
+					},
+					"effective_on": {
+						"eq": {
+							"var": "ctx.entry.pay_date"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const codes = ctx.lookup.scheme_codes;\nreturn ctx.reads.ledger_entry.some(\n  (l) =>\n    l.source_id != null &&\n    l.source_id.model === 'payroll_run' &&\n    l.source_id.id === ctx.entry.id &&\n    l.amount > 0 &&\n    codes.some((c) => l.code.startsWith(c + '.')),\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'BPJS_KESEHATAN_REMITTANCE', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'BPJS Kesehatan contribution',\n  due_on: add_working_days(add_days(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_days - 1), 1, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
+		"id": "c6a40f87-c312-5576-be93-2dc5105db824",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PPH21_PAYMENT",
+		"name": "PPh 21/26 deposit",
+		"lookup": {
+			"scheme_codes": [
+				"PPH21",
+				"PPH21_BUKAN_PEGAWAI",
+				"PPH21_DTP",
+				"PPH21_FINAL_SEVERANCE",
+				"PPH21_FINAL_PENSION",
+				"PPH26",
+				"PPH21_BENEFIT_NONFINAL"
+			],
+			"date_offset_days": 15
+		},
+		"references": [
+			{
+				"title": "PMK 81/2024 art.94(2); PMK 105/2025 art.5(1)–(2), PMK 10/2025 art.5(1)–(2) (DTP paid in cash to the worker, not deposited)",
+				"url": "https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"ledger_entry": {
+				"where": {
+					"account": {
+						"eq": "statutory_contribution"
+					},
+					"effective_on": {
+						"eq": {
+							"var": "ctx.entry.pay_date"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const codes = ctx.lookup.scheme_codes;\nreturn ctx.reads.ledger_entry.some(\n  (l) =>\n    l.source_id != null &&\n    l.source_id.model === 'payroll_run' &&\n    l.source_id.id === ctx.entry.id &&\n    l.amount > 0 &&\n    codes.some((c) => l.code.startsWith(c + '.')),\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'PPH21_PAYMENT', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'PPh 21/26 deposit',\n  due_on: add_working_days(add_days(ctx.entry.salary_coverage.to, ctx.lookup.date_offset_days - 1), 1, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
+		"id": "405248b2-762c-522d-be96-8547a7c8f1c5",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "DKPTKA_PAYMENT",
+		"name": "DKPTKA foreign-worker compensation fund",
+		"lookup": {
+			"scheme_codes": ["DKPTKA"]
+		},
+		"references": [
+			{
+				"title": "PP 34/2021 arts.1 angka 7, 6–7; USD 100 per position per month, paid in advance (Kemnaker PNBP tariff, as PP 34/2021 applies it; secondary)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP342021.pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"ledger_entry": {
+				"where": {
+					"account": {
+						"eq": "statutory_contribution"
+					},
+					"effective_on": {
+						"eq": {
+							"var": "ctx.entry.pay_date"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const codes = ctx.lookup.scheme_codes;\nreturn ctx.reads.ledger_entry.some(\n  (l) =>\n    l.source_id != null &&\n    l.source_id.model === 'payroll_run' &&\n    l.source_id.id === ctx.entry.id &&\n    l.amount > 0 &&\n    codes.some((c) => l.code.startsWith(c + '.')),\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'DKPTKA_PAYMENT', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'DKPTKA foreign-worker compensation fund',\n  due_on: ctx.entry.salary_coverage.from,\n  occurrence_key: key,\n}];",
+		"id": "c86b1fe6-e312-593f-a48f-8a38fb384495",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PPH21_SPT_MASA",
+		"name": "SPT Masa PPh 21/26",
+		"lookup": {
+			"date_offset_days": 20
+		},
+		"references": [
+			{
+				"title": "UU KUP",
+				"locator": "art.3(3)(a) and art.7(1)"
+			},
+			{
+				"title": "PMK 81/2024"
+			},
+			{
+				"title": "PER-11/PJ/2025",
+				"url": "https://jdih.kemenkeu.go.id/dok/per-11pj2025"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'PPH21_SPT_MASA', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'SPT Masa PPh 21/26',\n  due_on: add_working_days(add_days(ctx.entry.salary_coverage.to, ctx.lookup.date_offset_days - 1), 1, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
+		"id": "ff9e733d-946d-50cf-bd29-c6e06c4c7157",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PPH21_BPA1_YEAR_END",
+		"name": "Bukti potong 1721-A1 (BPA1) for the tax year",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PER-11/PJ/2025",
+				"locator": "art.7(2)",
+				"url": "https://jdih.kemenkeu.go.id/dok/per-11pj2025"
+			},
+			{
+				"title": "PMK 168/2023",
+				"locator": "art.13"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return ctx.entry.period.endsWith('-12');",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'PPH21_BPA1_YEAR_END', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Bukti potong 1721-A1 (BPA1) for the tax year',\n  due_on: month_end(add_months(ctx.entry.salary_coverage.from, 1)),\n  occurrence_key: key,\n}];",
+		"id": "6a361e62-9d0c-5c65-af12-4323f0f261c0",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PTKP_STATUS_ANNUAL",
+		"name": "PTKP status as at 1 January",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PMK 168/2023",
+				"locator": "art.9"
+			},
+			{
+				"title": "UU PPh",
+				"locator": "art.7(2)"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return ctx.entry.period.endsWith('-01');",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'PTKP_STATUS_ANNUAL', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'PTKP status as at 1 January',\n  due_on: ctx.entry.salary_coverage.from,\n  occurrence_key: key,\n}];",
+		"id": "4a0609f7-1acb-52d8-a565-920140be539e",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "MINIMUM_WAGE_COMPLIANCE",
+		"name": "New provincial and city minimum wages in force",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PP 36/2021 arts.23(3), 25 as amended by PP 51/2023 and PP 49/2025",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/2025pp049.pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return ctx.entry.period.endsWith('-01');",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'MINIMUM_WAGE_COMPLIANCE', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'New provincial and city minimum wages in force',\n  due_on: ctx.entry.salary_coverage.from,\n  occurrence_key: key,\n}];",
+		"id": "23cd8e9c-5921-57e6-b183-6a310f920902",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PAYSLIP_ISSUE",
+		"name": "Wage slip",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.53(2)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "return ctx.entry.state === 'PAID';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = first(ctx.reads.payroll_run);\nif (run == null) return [];\nconst key = occurrence_key(['ID', 'PAYSLIP_ISSUE', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: 'Wage slip',\n  due_on: run.pay_date,\n  occurrence_key: key,\n}];",
+		"id": "8f16b743-b688-5663-bce7-81d810aab585",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "BPJS_KETENAGAKERJAAN_REGISTRATION",
+		"name": "BPJS Ketenagakerjaan registration of a new worker",
+		"lookup": {
+			"work_months_threshold": 6,
+			"date_offset_days": 30
+		},
+		"references": [
+			{
+				"title": "PP 45/2015",
+				"locator": "art.4(1)–(2)",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf"
+			},
+			{
+				"title": "PP 44/2015",
+				"locator": "arts.6–7",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			},
+			{
+				"title": "UU 24/2011",
+				"locator": "art.15(1)"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nreturn ctx.entry.status === 'SEALED' && (planned == null || planned >= ctx.lookup.work_months_threshold);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_REGISTRATION', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS Ketenagakerjaan registration of a new worker',\n  due_on: add_days(ctx.entry.effective_range.from, ctx.lookup.date_offset_days),\n  occurrence_key: key,\n}];",
+		"id": "d144e319-ecd1-57fe-9be5-0931a3b02650",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "BPJS_KESEHATAN_REGISTRATION",
+		"name": "BPJS Kesehatan registration of a new worker",
+		"lookup": {
+			"work_months_threshold": 6
+		},
+		"references": [
+			{
+				"title": "Perpres 82/2018 arts.13–14, 17 as amended",
+				"url": "https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nreturn ctx.entry.status === 'SEALED' && (planned == null || planned >= ctx.lookup.work_months_threshold);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'BPJS_KESEHATAN_REGISTRATION', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS Kesehatan registration of a new worker',\n  due_on: ctx.entry.effective_range.from,\n  occurrence_key: key,\n}];",
+		"id": "5453bccb-ef5f-56b7-8689-3b2dd8ccf929",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PTKP_STATUS_AT_HIRE",
+		"name": "PTKP status and tax identity of a new employee",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PMK 168/2023",
+				"locator": "art.9"
+			},
+			{
+				"title": "UU PPh",
+				"locator": "art.21(5a)"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return ctx.entry.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'PTKP_STATUS_AT_HIRE', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'PTKP status and tax identity of a new employee',\n  due_on: ctx.entry.effective_range.from,\n  occurrence_key: key,\n}];",
+		"id": "b2e0f68f-d3cd-53ec-9eaf-2703194f81c1",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PKWT_REGISTRATION",
+		"name": "PKWT registration with the ministry",
+		"lookup": {
+			"working_day_offset": 3
+		},
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.14",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.signed_contract_period != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'PKWT_REGISTRATION', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'PKWT registration with the ministry',\n  due_on: add_working_days(ctx.entry.effective_range.from, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
+		"id": "e6451136-4a62-53b6-b696-31a2a22f96ff",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "FOREIGN_WORKER_RPTKA_DKPTKA",
+		"name": "RPTKA approval and DKPTKA payment for a foreign worker",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PP 34/2021",
+				"locator": "arts.1 angka 7, 23",
+				"url": "https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const term = get(ctx.entry, 'employee_extension_data', {});\nreturn ctx.entry.status === 'SEALED' && get(term, 'indonesia_work_months_planned', null) != null && get(term, 'dkptka_exempt', false) !== true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'FOREIGN_WORKER_RPTKA_DKPTKA', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'RPTKA approval and DKPTKA payment for a foreign worker',\n  due_on: ctx.entry.effective_range.from,\n  occurrence_key: key,\n}];",
+		"id": "6e3e0d6e-8d46-5780-9ba0-5a51913cc7b6",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PPH21_BPA1_EXIT",
+		"name": "Bukti potong 1721-A1 (BPA1) for a leaver",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PER-11/PJ/2025",
+				"locator": "art.7(2)",
+				"url": "https://jdih.kemenkeu.go.id/dok/per-11pj2025"
+			},
+			{
+				"title": "PMK 168/2023",
+				"locator": "art.13"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const exit = get(ctx.entry, 'employee_extension_data', {});\nreturn (ctx.entry.status === 'SEALED' || ctx.entry.status === 'VOID') &&\n  exit.termination_cause != null &&\n  ctx.entry.effective_range.to != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'PPH21_BPA1_EXIT', ctx.entry.entity_id, ctx.entry.id, ctx.entry.effective_range.to]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'Bukti potong 1721-A1 (BPA1) for a leaver',\n  due_on: month_end(add_months(ctx.entry.effective_range.to, 1)),\n  occurrence_key: key,\n}];",
+		"id": "773cd97b-9bf6-5eb5-a6c7-6e707a7bc39a",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "JKP_PHK_NOTIFICATION",
+		"name": "Termination notice to BPJS Ketenagakerjaan (JKP)",
+		"lookup": {
+			"employee_age_years_threshold": 54,
+			"working_day_offset": 7
+		},
+		"references": [
+			{
+				"title": "Permenaker 2/2025",
+				"locator": "art.9",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/2025pmnaker002.pdf"
+			},
+			{
+				"title": "PP 37/2021 art.20 as amended by PP 6/2025"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const exit = get(ctx.entry, 'employee_extension_data', {});\nconst term = get(ctx.entry, 'employee_extension_data', {});\nconst birth = get(ctx.entry, 'payroll.date_of_birth', null);\nconst cause = exit.termination_cause;\nif (!((ctx.entry.status === 'SEALED' || ctx.entry.status === 'VOID') && cause != null && ctx.entry.effective_range.to != null)) return false;\nif (get(term, 'indonesia_work_months_planned', null) != null) return false;\nif (['VOLUNTARY_RESIGNATION', 'RETIREMENT', 'DEATH', 'LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY'].includes(cause)) return false;\nif (birth == null || birth === '') return true;\nreturn age_on(birth, ctx.entry.effective_range.from) < ctx.lookup.employee_age_years_threshold;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'JKP_PHK_NOTIFICATION', ctx.entry.entity_id, ctx.entry.id, ctx.entry.effective_range.to]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'Termination notice to BPJS Ketenagakerjaan (JKP)',\n  due_on: add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
+		"id": "012603c1-9171-5329-ba97-38eb5aebd72b",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "TERMINATION_REPORT",
+		"name": "Report of a termination of employment",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.38",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const exit = get(ctx.entry, 'employee_extension_data', {});\nconst cause = exit.termination_cause;\nreturn (ctx.entry.status === 'SEALED' || ctx.entry.status === 'VOID') &&\n  cause != null &&\n  ctx.entry.effective_range.to != null &&\n  !['VOLUNTARY_RESIGNATION', 'DEATH'].includes(cause);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'TERMINATION_REPORT', ctx.entry.entity_id, ctx.entry.id, ctx.entry.effective_range.to]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'Report of a termination of employment',\n  due_on: ctx.entry.effective_range.to,\n  occurrence_key: key,\n}];",
+		"id": "73f02ac0-1099-5f68-96cc-7dbb326a62b9",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "WLKP_ESTABLISHMENT_REPORT",
+		"name": "Compulsory employment report (WLKP) on establishment",
+		"lookup": {
+			"date_offset_days": 30
+		},
+		"references": [
+			{
+				"title": "UU 7/1981",
+				"locator": "arts.6, 8",
+				"url": "https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981"
+			},
+			{
+				"title": "Permenaker 18/2017 as amended by Permenaker 4/2019"
+			}
+		],
+		"source_collection": "entity_profile_version",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return ctx.entry.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'WLKP_ESTABLISHMENT_REPORT', ctx.entry.entity_id, 'ESTABLISHMENT', ctx.entry.effective_range.from]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Compulsory employment report (WLKP) on establishment',\n  due_on: add_days(ctx.entry.effective_range.from, ctx.lookup.date_offset_days),\n  occurrence_key: key,\n}];",
+		"id": "152d0a58-8d00-5b07-8922-e97eb060e3a0",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "WLKP_ANNUAL_REPORT",
+		"name": "Annual compulsory employment report (WLKP)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "UU 7/1981 art.8(1): the report is repeated every year; Permenaker 18/2017 as amended by Permenaker 4/2019",
+				"url": "https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const profile = first(\n  ctx.reads.entity_profile_version.filter(\n    (v) =>\n      v.status === 'SEALED' &&\n      v.effective_range.from <= ctx.entry.salary_coverage.to &&\n      (v.effective_range.to == null || v.effective_range.to >= ctx.entry.salary_coverage.from),\n  ),\n);\nif (profile == null) return false;\nconst reported = get(profile, 'entity_extension_data.wlkp_first_reported_on', null);\nif (reported == null) return false;\nconst months = calendar_completed_months(reported, ctx.entry.salary_coverage.to);\nreturn months >= 12 && months % 12 === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'WLKP_ANNUAL_REPORT', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Annual compulsory employment report (WLKP)',\n  due_on: ctx.entry.salary_coverage.from,\n  occurrence_key: key,\n}];",
+		"id": "478f126e-77ba-5700-a351-a28e63c989a0",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "WORK_ACCIDENT_REPORT",
+		"name": "Work accident report to BPJS Ketenagakerjaan (stage I)",
+		"lookup": {
+			"date_offset_days": 2
+		},
+		"references": [
+			{
+				"title": "PP 44/2015",
+				"locator": "art.43",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			},
+			{
+				"title": "UU 24/2011",
+				"locator": "art.15"
+			}
+		],
+		"source_collection": "leave_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"leave_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "const catalog = first(ctx.reads.leave_catalog);\nreturn catalog != null && catalog.code === 'WORK_ACCIDENT_LEAVE';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'WORK_ACCIDENT_REPORT', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employment_id: ctx.entry.employment_id,\n  title: 'Work accident report to BPJS Ketenagakerjaan (stage I)',\n  due_on: add_days(ctx.entry.days[0].date, ctx.lookup.date_offset_days),\n  occurrence_key: key,\n}];",
+		"id": "c95cbf8e-f80c-5d04-b1f6-6c987e61a6c2",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "COMPANY_REGULATION_RENEWAL",
+		"name": "Renewal of the company regulations (Peraturan Perusahaan)",
+		"lookup": {
+			"employee_count_threshold": 10
+		},
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "arts.108(1), 111(3)",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			},
+			{
+				"title": "Permenaker 28/2014"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"employee_contract": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const profile = first(\n  ctx.reads.entity_profile_version.filter(\n    (v) =>\n      v.status === 'SEALED' &&\n      v.effective_range.from <= ctx.entry.salary_coverage.to &&\n      (v.effective_range.to == null || v.effective_range.to >= ctx.entry.salary_coverage.from),\n  ),\n);\nconst validUntil = profile == null ? null : get(profile, 'entity_extension_data.company_regulation_valid_until', null);\nconst headcount = ctx.reads.employee_contract.filter(\n  (c) =>\n    c.status === 'SEALED' &&\n    get(c, 'engagement', null) !== 'PAYEE' &&\n    c.effective_range.from <= ctx.entry.salary_coverage.to &&\n    (c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from),\n).length;\nif (validUntil == null ||\n  validUntil < ctx.entry.salary_coverage.from ||\n  validUntil > ctx.entry.salary_coverage.to ||\n  headcount < ctx.lookup.employee_count_threshold) return [];\nconst key = occurrence_key(['ID', 'COMPANY_REGULATION_RENEWAL', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Renewal of the company regulations (Peraturan Perusahaan)',\n  due_on: validUntil,\n  occurrence_key: key,\n}];",
+		"id": "23718c30-3d77-5ba2-9f94-63cd33747d0e",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "THR_PAYMENT",
+		"name": "THR before the religious holiday",
+		"lookup": {
+			"advance_notice_days": 7,
+			"date_offset_months": 12,
+			"holiday_names": [
+				"Idul Fitri",
+				"Idulfitri",
+				"Eid al-Fitr",
+				"Natal",
+				"Kelahiran Yesus Kristus",
+				"Christmas",
+				"Nyepi",
+				"Waisak",
+				"Vesak",
+				"Imlek",
+				"Chinese New Year"
+			]
+		},
+		"references": [
+			{
+				"title": "Permenaker 6/2016",
+				"locator": "arts.1(2), 2, 5(1), 5(4), 10",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf"
+			},
+			{
+				"title": "PP 36/2021",
+				"locator": "art.62"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const notice = ctx.lookup.advance_notice_days;\nconst matched = ctx.reads.holiday.filter(\n  (h) =>\n    h.date >= ctx.entry.salary_coverage.from &&\n    h.date <= add_months(ctx.entry.salary_coverage.to, ctx.lookup.date_offset_months) &&\n    ctx.lookup.holiday_names.some((n) => h.name.includes(n)) &&\n    add_days(h.date, -notice) >= ctx.entry.salary_coverage.from &&\n    add_days(h.date, -notice) <= ctx.entry.salary_coverage.to,\n);\nif (matched.length === 0) return [];\nconst key = occurrence_key(['ID', 'THR_PAYMENT', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'THR before the religious holiday',\n  due_on: add_days(first(matched).date, -notice),\n  occurrence_key: key,\n}];",
+		"id": "094334a7-e378-51fe-b411-a1e107644303",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PPH21_BUKTI_POTONG",
+		"name": "Monthly PPh 21/26 withholding slips",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PMK 168/2023",
+				"locator": "arts.19(2)–(3), 20(1)(b), 20(3)",
+				"url": "https://jdih.kemenkeu.go.id/dok/pmk-168-tahun-2023"
+			},
+			{
+				"title": "PER-11/PJ/2025"
+			},
+			{
+				"title": "PMK 105/2025",
+				"locator": "art.5(3)"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'PPH21_BUKTI_POTONG', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Monthly PPh 21/26 withholding slips',\n  due_on: month_end(ctx.entry.salary_coverage.from),\n  occurrence_key: key,\n}];",
+		"id": "cef3c0cc-c54e-53ca-91e7-aae7a34658cf",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "LATE_WAGE_FINE",
+		"name": "Late wage: fine owed to the worker",
+		"lookup": {
+			"date_offset_days": 3
+		},
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "arts.55(1), 61(1)–(2)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "const run = first(ctx.reads.payroll_run);\nreturn ctx.entry.state === 'PAID' &&\n  run != null &&\n  run.pay_due_date != null &&\n  run.pay_date != null &&\n  run.pay_date >= add_days(run.pay_due_date, ctx.lookup.date_offset_days);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = first(ctx.reads.payroll_run);\nconst key = occurrence_key(['ID', 'LATE_WAGE_FINE', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: 'Late wage: fine owed to the worker',\n  due_on: run.pay_date,\n  occurrence_key: key,\n}];",
+		"id": "c597a8e6-05d1-5fbe-b125-dc09a0e216ac",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "LATE_THR_FINE",
+		"name": "Late THR: 5% fine",
+		"lookup": {
+			"advance_notice_days": 7,
+			"holiday_names": [
+				"Idul Fitri",
+				"Idulfitri",
+				"Eid al-Fitr",
+				"Natal",
+				"Kelahiran Yesus Kristus",
+				"Christmas",
+				"Nyepi",
+				"Waisak",
+				"Vesak",
+				"Imlek",
+				"Chinese New Year"
+			]
+		},
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.62"
+			},
+			{
+				"title": "Permenaker 6/2016",
+				"locator": "arts.5(4), 10(1)–(2)"
+			}
+		],
+		"source_collection": "adhoc_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"adhoc_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"limit": 1
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const catalog = first(ctx.reads.adhoc_catalog);\nif (catalog == null || !['THR', 'THR_HOLIDAY'].includes(catalog.code)) return false;\nconst holiday = ctx.reads.holiday\n  .filter(\n    (h) =>\n      h.date <= ctx.entry.incurred_on &&\n      h.date >= add_days(ctx.entry.incurred_on, -60) &&\n      ctx.lookup.holiday_names.some((n) => h.name.includes(n)),\n  )\n  .toSorted((a, b) => (a.date < b.date ? 1 : -1))[0];\nreturn holiday != null && ctx.entry.incurred_on > add_days(holiday.date, -ctx.lookup.advance_notice_days);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'LATE_THR_FINE', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employment_id: ctx.entry.employment_id,\n  title: 'Late THR: 5% fine',\n  due_on: ctx.entry.incurred_on,\n  occurrence_key: key,\n}];",
+		"id": "75ddb419-69eb-5dd6-9dfd-dc96b93a6057",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PKWT_TERM_END_COMPENSATION",
+		"name": "PKWT period ended: pay its compensation",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "arts.15(2), 15(4), 16",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return (ctx.entry.status === 'SEALED' || ctx.entry.status === 'VOID') &&\n  ctx.entry.signed_contract_period != null &&\n  ctx.entry.signed_contract_period.to != null &&\n  ctx.entry.effective_range.to != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'PKWT_TERM_END_COMPENSATION', ctx.entry.entity_id, ctx.entry.id, ctx.entry.effective_range.to]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'PKWT period ended: pay its compensation',\n  due_on: ctx.entry.effective_range.to,\n  occurrence_key: key,\n}];",
+		"id": "e100562c-4c65-59e0-8f87-7c63e3dfaa0c",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "FOREIGN_WORKER_COMPANION_TRAINING",
+		"name": "Foreign worker: companion, training and Indonesian language",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PP 34/2021",
+				"locator": "art.7(1)–(3)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP342021.pdf"
+			},
+			{
+				"title": "UU 13/2003 art.45 as amended by UU 6/2023"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const term = get(ctx.entry, 'employee_extension_data', {});\nreturn ctx.entry.status === 'SEALED' && get(term, 'indonesia_work_months_planned', null) != null && get(term, 'dkptka_exempt', false) !== true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'FOREIGN_WORKER_COMPANION_TRAINING', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'Foreign worker: companion, training and Indonesian language',\n  due_on: ctx.entry.effective_range.from,\n  occurrence_key: key,\n}];",
+		"id": "5c0d4f20-c10c-53ca-b2df-560224cd0815",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "DISABILITY_QUOTA_REVIEW",
+		"name": "Disability employment quota (1%)",
+		"lookup": {
+			"employee_count_threshold": 100
+		},
+		"references": [
+			{
+				"title": "UU 8/2016",
+				"locator": "art.53(2)",
+				"url": "https://peraturan.bpk.go.id/Details/37251/uu-no-8-tahun-2016"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"employee_contract": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "if (!ctx.entry.period.endsWith('-01')) return false;\nconst headcount = ctx.reads.employee_contract.filter(\n  (c) =>\n    c.status === 'SEALED' &&\n    get(c, 'engagement', null) !== 'PAYEE' &&\n    c.effective_range.from <= ctx.entry.salary_coverage.to &&\n    (c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from),\n).length;\nreturn headcount >= ctx.lookup.employee_count_threshold;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'DISABILITY_QUOTA_REVIEW', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Disability employment quota (1%)',\n  due_on: ctx.entry.salary_coverage.to,\n  occurrence_key: key,\n}];",
+		"id": "85477bbe-8e45-55d2-a7b5-97d049d677cf",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "LKS_BIPARTIT_FORMATION",
+		"name": "Bipartite cooperation body (LKS Bipartit)",
+		"lookup": {
+			"employee_count_threshold": 50
+		},
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "art.106(1)",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"employee_contract": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const profile = first(\n  ctx.reads.entity_profile_version.filter(\n    (v) =>\n      v.status === 'SEALED' &&\n      v.effective_range.from <= ctx.entry.salary_coverage.to &&\n      (v.effective_range.to == null || v.effective_range.to >= ctx.entry.salary_coverage.from),\n  ),\n);\nif (profile == null || get(profile, 'entity_extension_data.lks_bipartit_formed_on', null) != null) return [];\nconst headcount = ctx.reads.employee_contract.filter(\n  (c) =>\n    c.status === 'SEALED' &&\n    get(c, 'engagement', null) !== 'PAYEE' &&\n    c.effective_range.from <= ctx.entry.salary_coverage.to &&\n    (c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from),\n).length;\nif (headcount < ctx.lookup.employee_count_threshold) return [];\nconst key = occurrence_key(['ID', 'LKS_BIPARTIT_FORMATION', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Bipartite cooperation body (LKS Bipartit)',\n  due_on: ctx.entry.salary_coverage.to,\n  occurrence_key: key,\n}];",
+		"id": "ea8eed58-3617-5bca-9494-6438dd709e45",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "K3_SMK3_P2K3",
+		"name": "Occupational safety: SMK3 and P2K3",
+		"lookup": {
+			"employee_count_threshold": 100
+		},
+		"references": [
+			{
+				"title": "UU 1/1970",
+				"locator": "art.10"
+			},
+			{
+				"title": "PP 50/2012",
+				"locator": "art.5(2)",
+				"url": "https://peraturan.bpk.go.id/Details/5245/pp-no-50-tahun-2012"
+			},
+			{
+				"title": "Permenaker PER.04/MEN/1987",
+				"locator": "art.2"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"employee_contract": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "if (!ctx.entry.period.endsWith('-01')) return [];\nconst profile = first(\n  ctx.reads.entity_profile_version.filter(\n    (v) =>\n      v.status === 'SEALED' &&\n      v.effective_range.from <= ctx.entry.salary_coverage.to &&\n      (v.effective_range.to == null || v.effective_range.to >= ctx.entry.salary_coverage.from),\n  ),\n);\nconst headcount = ctx.reads.employee_contract.filter(\n  (c) =>\n    c.status === 'SEALED' &&\n    get(c, 'engagement', null) !== 'PAYEE' &&\n    c.effective_range.from <= ctx.entry.salary_coverage.to &&\n    (c.effective_range.to == null || c.effective_range.to >= ctx.entry.salary_coverage.from),\n).length;\nconst highHazard = profile != null && get(profile, 'entity_extension_data.k3_high_hazard', false) === true;\nif (headcount < ctx.lookup.employee_count_threshold && !highHazard) return [];\nconst key = occurrence_key(['ID', 'K3_SMK3_P2K3', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Occupational safety: SMK3 and P2K3',\n  due_on: ctx.entry.salary_coverage.to,\n  occurrence_key: key,\n}];",
+		"id": "2eec97bd-9246-5722-b0f9-de3ea73d9c49",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "WORKER_HEALTH_EXAMINATION",
+		"name": "Periodic health examination of workers",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Permenakertrans PER.02/MEN/1980, official Kemnaker-hosted text read 2026-10-10: https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf arts.2, 3(2)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return ctx.entry.period.endsWith('-01');",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'WORKER_HEALTH_EXAMINATION', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Periodic health examination of workers',\n  due_on: ctx.entry.salary_coverage.to,\n  occurrence_key: key,\n}];",
+		"id": "a5920197-2fe1-5f2f-923d-d43de0de0086",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "WAGE_STRUCTURE_SCALE",
+		"name": "Wage structure and scale",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "arts.20–22",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return ctx.entry.period.endsWith('-01');",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'WAGE_STRUCTURE_SCALE', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'Wage structure and scale',\n  due_on: ctx.entry.salary_coverage.to,\n  occurrence_key: key,\n}];",
+		"id": "5ccb8d22-b58a-501b-97ea-30100409b0c5",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "WAGE_SCALE_NOTICE_AT_HIRE",
+		"name": "Notify a new worker of their wage scale",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.21(2)–(3)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return ctx.entry.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'WAGE_SCALE_NOTICE_AT_HIRE', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'Notify a new worker of their wage scale',\n  due_on: ctx.entry.effective_range.from,\n  occurrence_key: key,\n}];",
+		"id": "9a88e62f-d032-5e89-89bd-551239e21704",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "BPJS_KETENAGAKERJAAN_WAGE_CHANGE",
+		"name": "BPJS_KETENAGAKERJAAN_WAGE_CHANGE",
+		"lookup": {
+			"work_months_threshold": 6,
+			"working_day_offset": 7
+		},
+		"references": [
+			{
+				"title": "PP 44/2015",
+				"locator": "art.9(3)",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"employee_contract": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "ctx.entry.employee_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const term = get(ctx.entry, 'employee_extension_data', {});\nif (ctx.entry.status !== 'SEALED') return false;\nif (get(term, 'indonesia_work_months_planned', null) != null && get(term, 'indonesia_work_months_planned', null) < ctx.lookup.work_months_threshold) return false;\nconst previous = first(\n  ctx.reads.employee_contract\n    .filter(\n      (c) =>\n        c.id !== ctx.entry.id &&\n        c.status === 'SEALED' &&\n        c.effective_range.from < ctx.entry.effective_range.from,\n    )\n    .toSorted((a, b) => (a.effective_range.from < b.effective_range.from ? 1 : -1)),\n);\nif (previous == null) return false;\nconst before = get(previous, 'terms.rate.amount', null);\nconst after = get(ctx.entry, 'terms.rate.amount', null);\nreturn before != null && after != null && before !== after;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_WAGE_CHANGE', ctx.entry.entity_id, ctx.entry.employee_id, ctx.entry.effective_range.from, get(ctx.entry, 'terms.rate.amount', null)]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS_KETENAGAKERJAAN_WAGE_CHANGE',\n  due_on: add_working_days(ctx.entry.effective_range.from, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
+		"id": "459104e7-66f7-5c44-9ca1-58023ccc4bf5",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "BPJS_KETENAGAKERJAAN_EXIT_REPORT",
+		"name": "BPJS_KETENAGAKERJAAN_EXIT_REPORT",
+		"lookup": {
+			"work_months_threshold": 6,
+			"working_day_offset": 7
+		},
+		"references": [
+			{
+				"title": "PP 44/2015",
+				"locator": "art.9(3)",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const exit = get(ctx.entry, 'employee_extension_data', {});\nconst term = get(ctx.entry, 'employee_extension_data', {});\nif (!((ctx.entry.status === 'SEALED' || ctx.entry.status === 'VOID') && exit.termination_cause != null && ctx.entry.effective_range.to != null)) return false;\nreturn get(term, 'indonesia_work_months_planned', null) == null || get(term, 'indonesia_work_months_planned', null) >= ctx.lookup.work_months_threshold;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_EXIT_REPORT', ctx.entry.entity_id, ctx.entry.id, ctx.entry.effective_range.to]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS_KETENAGAKERJAAN_EXIT_REPORT',\n  due_on: add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
+		"id": "df094a9f-be04-5ab1-bedc-92f466b4c2a3",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "BPJS_KETENAGAKERJAAN_ENTITY_CHANGE",
+		"name": "BPJS_KETENAGAKERJAAN_ENTITY_CHANGE",
+		"lookup": {
+			"working_day_offset": 7
+		},
+		"references": [
+			{
+				"title": "PP 44/2015",
+				"locator": "art.9(3)",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			}
+		],
+		"source_collection": "entity_profile_version",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst previous = ctx.reads.entity_profile_version\n  .filter((v) => v.id !== ctx.entry.id && v.status === 'SEALED' && v.effective_range.from < ctx.entry.effective_range.from)\n  .toSorted((a, b) => (a.effective_range.from < b.effective_range.from ? 1 : -1))[0];\nif (previous == null) return false;\nreturn previous.name !== ctx.entry.name ||\n  get(previous, 'registered_address', null) !== get(ctx.entry, 'registered_address', null);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_ENTITY_CHANGE', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'BPJS_KETENAGAKERJAAN_ENTITY_CHANGE',\n  due_on: add_working_days(ctx.entry.effective_range.from, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
+		"id": "ed73e1bd-1dad-5155-96b2-53ad906df2b6",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "TAX_RECORDS_RETENTION",
+		"name": "TAX_RECORDS_RETENTION",
+		"lookup": {},
+		"references": [
+			{
+				"title": "UU 6/1983 as amended by UU 28/2007 (KUP)",
+				"locator": "art.28(11)",
+				"url": "https://www.pajak.go.id/id/undang-undang-nomor-28-tahun-2007"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return ctx.entry.period.endsWith('-01');",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'TAX_RECORDS_RETENTION', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'TAX_RECORDS_RETENTION',\n  due_on: month_end(ctx.entry.salary_coverage.from),\n  occurrence_key: key,\n}];",
+		"id": "df7c91bf-eac8-55c1-ac74-033da9b5e001",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PDP_BREACH_NOTICE",
+		"name": "PDP_BREACH_NOTICE",
+		"lookup": {
+			"date_offset_days": 3
+		},
+		"references": [
+			{
+				"title": "UU 27/2022 (Pelindungan Data Pribadi)",
+				"locator": "art.46(1)–(2)",
+				"url": "https://peraturan.bpk.go.id/Download/224884/UU%20Nomor%2027%20Tahun%202022.pdf"
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return ctx.entry.kind === 'PERSONAL_DATA_BREACH';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'PDP_BREACH_NOTICE', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'PDP_BREACH_NOTICE',\n  due_on: add_days(ctx.entry.opened_on, ctx.lookup.date_offset_days),\n  occurrence_key: key,\n}];",
+		"id": "5a13127d-ef26-5608-8161-60fc4d3a3865",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PDP_SUBJECT_REQUEST",
+		"name": "PDP_SUBJECT_REQUEST",
+		"lookup": {
+			"date_offset_days": 3
+		},
+		"references": [
+			{
+				"title": "UU 27/2022",
+				"locator": "arts.30(1)–(2), 32(2), 40(2), 41(1)",
+				"url": "https://peraturan.bpk.go.id/Download/224884/UU%20Nomor%2027%20Tahun%202022.pdf"
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return [\n  'PERSONAL_DATA_ACCESS_REQUEST',\n  'PERSONAL_DATA_CORRECTION_REQUEST',\n  'PERSONAL_DATA_CONSENT_WITHDRAWAL',\n  'PERSONAL_DATA_RESTRICTION_REQUEST',\n].includes(ctx.entry.kind);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'PDP_SUBJECT_REQUEST', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'PDP_SUBJECT_REQUEST',\n  due_on: add_days(ctx.entry.opened_on, ctx.lookup.date_offset_days),\n  occurrence_key: key,\n}];",
+		"id": "70e2288a-cf19-5d6e-be98-707482fbbe16",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE",
+		"name": "BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE",
+		"lookup": {
+			"work_months_threshold": 6,
+			"working_day_offset": 7
+		},
+		"references": [
+			{
+				"title": "PP 44/2015",
+				"locator": "art.9(1)–(2)",
+				"url": "https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"employee_contract": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "ctx.entry.employee_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const term = get(ctx.entry, 'employee_extension_data', {});\nif (ctx.entry.status !== 'SEALED') return false;\nif (get(term, 'indonesia_work_months_planned', null) != null && get(term, 'indonesia_work_months_planned', null) < ctx.lookup.work_months_threshold) return false;\nconst previous = first(\n  ctx.reads.employee_contract\n    .filter(\n      (c) =>\n        c.id !== ctx.entry.id &&\n        c.status === 'SEALED' &&\n        c.effective_range.from < ctx.entry.effective_range.from,\n    )\n    .toSorted((a, b) => (a.effective_range.from < b.effective_range.from ? 1 : -1)),\n);\nif (previous == null) return false;\nconst beforeMarital = get(previous, 'payroll.marital_status', null);\nconst afterMarital = get(ctx.entry, 'payroll.marital_status', null);\nconst beforeDependents = get(previous, 'employee_extension_data.dependents_count', null);\nconst afterDependents = get(ctx.entry, 'employee_extension_data.dependents_count', null);\nreturn beforeMarital !== afterMarital || beforeDependents !== afterDependents;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE', ctx.entry.entity_id, ctx.entry.employee_id, ctx.entry.effective_range.from, get(ctx.entry, 'payroll.marital_status', null), get(ctx.entry, 'employee_extension_data.dependents_count', null)]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE',\n  due_on: add_working_days(ctx.entry.effective_range.from, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
+		"id": "e599318f-9547-58f2-895b-1ed33596605f",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PERSONAL_DATA_DISPOSAL",
+		"name": "PERSONAL_DATA_DISPOSAL",
+		"lookup": {
+			"annual_due_month_day": "-12-31",
+			"retention_years": 10
+		},
+		"references": [
+			{
+				"title": "UU 27/2022",
+				"locator": "arts.42(1)(a), 44(1)(a), 45",
+				"url": "https://peraturan.bpk.go.id/Download/224884/UU%20Nomor%2027%20Tahun%202022.pdf"
+			},
+			{
+				"title": "UU KUP",
+				"locator": "art.28(11)"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const exit = get(ctx.entry, 'employee_extension_data', {});\nreturn (ctx.entry.status === 'SEALED' || ctx.entry.status === 'VOID') &&\n  exit.termination_cause != null &&\n  ctx.entry.effective_range.to != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'PERSONAL_DATA_DISPOSAL', ctx.entry.entity_id, ctx.entry.id, ctx.entry.effective_range.to]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'PERSONAL_DATA_DISPOSAL',\n  due_on: add_years(ctx.entry.effective_range.to.substring(0, 4) + ctx.lookup.annual_due_month_day, ctx.lookup.retention_years),\n  occurrence_key: key,\n}];",
+		"id": "df69d127-4433-587b-a90b-ebda877d5458",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PRE_EMPLOYMENT_HEALTH_EXAMINATION",
+		"name": "PRE_EMPLOYMENT_HEALTH_EXAMINATION",
+		"lookup": {
+			"advance_notice_months": 3
+		},
+		"references": [
+			{
+				"title": "Permenakertrans PER.02/MEN/1980, official Kemnaker-hosted text read 2026-10-10: https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf art.2(2), (7)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst exam = get(ctx.entry, 'employee_extension_data.pre_employment_exam_on', null);\nconst accepted = get(ctx.entry, 'employee_extension_data.pre_employment_exam_accepted', null);\nif (exam == null || exam === '' || accepted !== true) return true;\nconst from = ctx.entry.effective_range.from;\nreturn !(exam >= add_months(from, -ctx.lookup.advance_notice_months) && exam <= from);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'PRE_EMPLOYMENT_HEALTH_EXAMINATION', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'PRE_EMPLOYMENT_HEALTH_EXAMINATION',\n  due_on: ctx.entry.effective_range.from,\n  occurrence_key: key,\n}];",
+		"id": "5f426941-552d-543d-b3c8-f206e1c6f446",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "WORKER_HEALTH_EXAMINATION_REPORT",
+		"name": "WORKER_HEALTH_EXAMINATION_REPORT",
+		"lookup": {
+			"date_offset_months": 2
+		},
+		"references": [
+			{
+				"title": "Permenakertrans PER.02/MEN/1980, official Kemnaker-hosted text read 2026-10-10: https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf art.6(2)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf"
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "return ctx.entry.kind === 'WORKER_HEALTH_EXAMINATION_COMPLETED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = occurrence_key(['ID', 'WORKER_HEALTH_EXAMINATION_REPORT', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'WORKER_HEALTH_EXAMINATION_REPORT',\n  due_on: add_months(ctx.entry.opened_on, ctx.lookup.date_offset_months),\n  occurrence_key: key,\n}];",
+		"id": "c322e5db-9dd4-5301-8ace-d79544b6d203",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	}
+]

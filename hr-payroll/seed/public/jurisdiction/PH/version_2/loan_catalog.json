@@ -1,0 +1,82 @@
+[
+	{
+		"code": "LOAN_RECOVERY_SSS_SALARY",
+		"name": "SSS salary loan recovery",
+		"references": [
+			{
+				"title": "RA 11199 (Social Security Act of 2018), SSS Salary Loan Program: the employer deducts and remits the member's monthly amortisation."
+			}
+		],
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "520e3e0e-5bf6-5ef6-a772-fdb5f58c8692",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "LOAN_RECOVERY_PAGIBIG_SALARY",
+		"name": "Pag-IBIG salary loan recovery",
+		"references": [
+			{
+				"title": "RA 9679; HDMF IRR on loan amortisation: the employer deducts the member's Pag-IBIG loan amortisation from wages and remits it."
+			}
+		],
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "93ac064e-c377-543c-b9d1-0a388f9fbeb3",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "LOAN_RECOVERY_PAGIBIG_CALAMITY",
+		"name": "Pag-IBIG calamity loan recovery",
+		"references": [
+			{
+				"title": "RA 9679; HDMF calamity-loan rules: the employer deducts the member's calamity-loan amortisation from wages and remits it."
+			}
+		],
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "3b400656-9d6b-5498-9586-51da9205498d",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "LOAN_RECOVERY_COMPANY",
+		"name": "Company loan recovery",
+		"references": [
+			{
+				"title": "Labor Code art.113(c): a loan may be deducted from wages only with the employee's written authorisation."
+			}
+		],
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "07dbbfd8-6a32-5164-ae6a-746e46c4ea5c",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "COMPANY",
+		"name": "Company loan",
+		"references": [
+			{
+				"title": "Labor Code art.113(c): a loan may be deducted from wages only with the employee's written authorisation."
+			}
+		],
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "ff751a3f-9a2c-5620-820a-b1ef2878647a",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	}
+]

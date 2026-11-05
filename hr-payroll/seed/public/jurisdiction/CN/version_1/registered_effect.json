@@ -1,0 +1,1744 @@
+[
+	{
+		"code": "SI_MONTHLY_PAYMENT",
+		"name": "Social insurance monthly declaration and payment",
+		"lookup": {
+			"title": "Social insurance monthly declaration and payment",
+			"due_day": {
+				"SH": 15,
+				"KM": 20
+			}
+		},
+		"references": [
+			{
+				"title": "社会保险法 第六十条第一款; 社会保险费征缴暂行条例 第十条. SH: 国家税务总局上海市税务局等五部门公告2023年第2号 (自2023年12月1日): \"用人单位应当于每月15日前自行向税务部门申报缴纳社会保险费\" https://shanghai.chinatax.gov.cn/zcfw/zcfgk/sbf/202311/t469352.html. KM: 国家税务总局云南省税务局公告2023年第5号 (自2023年7月1日): 用人单位应当于每月20日前申报应缴费额并缴纳社会保险费 https://zc.51shebao.com/detail/795061."
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'SI_MONTHLY_PAYMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nif (get(ctx.lookup.due_day, region, null) == null) return [];\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(run.salary_coverage.from, Number(get(ctx.lookup.due_day, region, 1)) - 1),\n  occurrence_key: 'SI_MONTHLY_PAYMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"id": "0053f2d7-169d-539d-a267-38346f597be0",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "HPF_MONTHLY_REMITTANCE",
+		"name": "Housing provident fund monthly remittance",
+		"lookup": {
+			"title": "Housing provident fund monthly remittance",
+			"due_days": 5
+		},
+		"references": [
+			{
+				"title": "住房公积金管理条例 第十九条第一款: 职工个人缴存的住房公积金, 由所在单位每月从其工资中代扣代缴; 单位应当于每月发放职工工资之日起5日内将单位缴存的和为职工代缴的住房公积金汇缴到住房公积金专户内."
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'HPF_MONTHLY_REMITTANCE:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(run.salary_coverage.from, ctx.lookup.due_days),\n  occurrence_key: 'HPF_MONTHLY_REMITTANCE:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"id": "33b9df3e-3f49-53cd-966c-dd301449480c",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "IIT_MONTHLY_DECLARATION",
+		"name": "IIT withholding declaration and payment",
+		"lookup": {
+			"title": "IIT withholding declaration and payment",
+			"due_days": 14,
+			"filing_dates": {
+				"2025-12": "2025-12-15",
+				"2026-01": "2026-01-20",
+				"2026-02": "2026-02-24",
+				"2026-03": "2026-03-16",
+				"2026-04": "2026-04-20",
+				"2026-05": "2026-05-22",
+				"2026-06": "2026-06-15",
+				"2026-07": "2026-07-15",
+				"2026-08": "2026-08-17",
+				"2026-09": "2026-09-15",
+				"2026-10": "2026-10-26",
+				"2026-11": "2026-11-16",
+				"2026-12": "2026-12-15"
+			}
+		},
+		"references": [
+			{
+				"title": "个人所得税法 第十四条第一款 (次月十五日内缴入国库并报送扣缴申报表); 个人所得税扣缴申报管理办法(试行) 第六条 (按月预扣, 所属期为支付月份); 税收征收管理法实施细则 第一百零九条 (期限的最后一日是法定休假日的, 以休假日期满的次日为期限的最后一日; 在期限内有连续3日以上法定休假日的, 按休假日天数顺延); 国家税务总局办公厅《关于明确2026年度申报纳税期限的通知》(税总办征科函〔2025〕64号).",
+				"url": "https://fgk.chinatax.gov.cn/zcfgk/c102424/c5245729/content.html"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'IIT_MONTHLY_DECLARATION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: (ctx.lookup.filing_dates ?? {})[run.salary_coverage.from.slice(0, 7)] ?? add_days(run.salary_coverage.from, ctx.lookup.due_days),\n  occurrence_key: 'IIT_MONTHLY_DECLARATION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"id": "5d2417d3-ce4d-50a4-a6ea-064730721e21",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "UNION_FUND_REMITTANCE",
+		"name": "Union fund monthly remittance",
+		"lookup": {
+			"title": "Union fund monthly remittance",
+			"due_day": {
+				"SH": 15,
+				"KM": null
+			},
+			"preparatory": {
+				"SH": "ORGANISATION",
+				"KM": "NO_UNION"
+			}
+		},
+		"references": [
+			{
+				"title": "上海市工会条例 (2002年修正) 第四十一条: 建立工会的企业、事业单位、机关应当于每月十五日前按照上月全部职工工资总额的百分之二向工会拨缴当月的工会经费; 成立工会筹备组织的, 自成立工会筹备组织之日起按前款规定拨缴 https://www.shanghai.gov.cn/nw5652/20200905/0001-5652_362.html. 云南省实施《中华人民共和国工会法》办法 (2022年11月30日修订) 第二十七条: 建立工会组织的用人单位按月依照上月全部职工工资总额的百分之二向工会拨缴经费 https://www.ynrd.gov.cn/html/2022/sssjrdcwhdsswuchy_1130/19708.html. Owner ruling (2026-10-07, binding): the Kunming union fund stays a monthly remittance; paying monthly is never late against the quarterly collection windows (4/7/10/12月 1-15日) that the secondary copies of 云工通〔2021〕1号 state."
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'UNION_FUND_REMITTANCE:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst union = get(ext, 'union_established', false) === true ||\n  (get(ctx.lookup.preparatory, region, '') === 'ORGANISATION' && get(ext, 'union_preparatory', false) === true);\nif (!union) return [];\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: get(ctx.lookup.due_day, region, null) == null\n  ? month_end(add_months(month_start(run.salary_coverage.from), 1))\n  : add_days(month_start(add_months(run.salary_coverage.from, 1)), Number(get(ctx.lookup.due_day, region, 1)) - 1),\n  occurrence_key: 'UNION_FUND_REMITTANCE:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"id": "80ff6f9d-947d-5986-92b0-b0998a214f96",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "UNION_PREPARATORY_FUND",
+		"name": "Union preparatory fund quarterly declaration (Kunming, no union)",
+		"lookup": {
+			"title": "Union preparatory fund quarterly declaration (Kunming, no union)",
+			"cutoff_month": 10,
+			"annual_due_suffix": "-12-15",
+			"quarter_months": 3,
+			"due_days": 14,
+			"preparatory": {
+				"SH": "ORGANISATION",
+				"KM": "NO_UNION"
+			}
+		},
+		"references": [
+			{
+				"title": "云南省总工会关于税务机关代收工会经费和建会筹备金有关事项的通知 (云工通〔2021〕1号) 一: 缴费单位应于季度终了后次月15日内到主管税务机关申报缴纳工会经费和建会筹备金, 第一征期4月1日—15日, 第二征期7月1日—15日, 第三征期10月1日—15日, 第四征期提前至每年12月1日—15日 https://www.ynjc.gov.cn/jcqzfxxgk/zhxx2708/20210709/1268119.html (Read 2026-10-08); 国家税务总局云南省税务局关于切换工会经费和建会筹备金征收渠道的通告 (2021年8月26日): 在每年固定的四个征期内申报缴纳, 非征期内不再受理申报 https://www.hhlx.gov.cn/info/3201/277421.htm (Read 2026-10-08); 中国工会章程 第三十八条第二款 (2%). A unit with a union stays on the monthly UNION_FUND_REMITTANCE (owner ruling 2026-10-07)."
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'UNION_PREPARATORY_FUND:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nif (get(ctx.lookup.preparatory, region, '') !== 'NO_UNION') return [];\nif (get(ext, 'union_established', false) === true) return [];\nconst month = Number(run.salary_coverage.from.slice(5, 7));\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: month >= ctx.lookup.cutoff_month\n  ? run.salary_coverage.from.slice(0, 4) + ctx.lookup.annual_due_suffix\n  : add_days(add_months(month_start(run.salary_coverage.from), (Math.trunc((month - 1) / ctx.lookup.quarter_months) + 1) * ctx.lookup.quarter_months - month + 1), ctx.lookup.due_days),\n  occurrence_key: 'UNION_PREPARATORY_FUND:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"id": "a78fe282-3070-5018-9510-a3f6b6002575",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "DISABLED_EMPLOYMENT_FUND_PAYMENT",
+		"name": "Disabled persons' employment security fund",
+		"lookup": {
+			"title": "Disabled persons' employment security fund",
+			"month_by_region": {
+				"SH": "10",
+				"KM": "11"
+			}
+		},
+		"references": [
+			{
+				"title": "残疾人就业保障金征收使用管理办法 (财税〔2015〕72号) 第八条、第九条; 残疾人就业保障金征收使用管理办法 (财税〔2015〕72号) 第八条、第九条; 财政部公告2023年第98号 (至2027年12月31日: 1%以上按50%, 1%以下按90%; 30人以下暂免); 云南省 残疾人按比例就业 联网认证 and 申报缴纳.",
+				"url": "https://www.hhgj.gov.cn/info/6711/587781.htm"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'DISABLED_EMPLOYMENT_FUND_PAYMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nif (get(ctx.lookup.month_by_region, region, null) !== run.salary_coverage.from.slice(5, 7)) return [];\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: month_end(run.salary_coverage.from),\n  occurrence_key: 'DISABLED_EMPLOYMENT_FUND_PAYMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"id": "b8f9f669-b345-55ae-b0cd-439c8f642bf9",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "IIT_INCOME_STATEMENT",
+		"name": "Annual income and withholding statement to employees",
+		"lookup": {
+			"title": "Annual income and withholding statement to employees",
+			"offset_months": 1,
+			"month": "01"
+		},
+		"references": [
+			{
+				"title": "国家税务总局《个人所得税扣缴申报管理办法(试行)》(公告2018年第61号) 第十三条: 支付工资、薪金所得的扣缴义务人应当于年度终了后两个月内, 向纳税人提供其个人所得和已扣缴税款等信息."
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const run = ctx.entry;\nif (run == null) return false;\nif (run.salary_coverage.from.slice(5, 7) !== ctx.lookup.month) return false;\nconst key = 'IIT_INCOME_STATEMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: month_end(add_months(run.salary_coverage.from, ctx.lookup.offset_months)),\n  occurrence_key: 'IIT_INCOME_STATEMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"id": "6baf8e7b-d2bf-500f-bef0-0fb55cd7ed2f",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "IIT_ANNUAL_RECONCILIATION",
+		"name": "IIT annual reconciliation (综合所得汇算清缴)",
+		"lookup": {
+			"title": "IIT annual reconciliation (综合所得汇算清缴)",
+			"offset_months": 3,
+			"month": "03"
+		},
+		"references": [
+			{
+				"title": "个人所得税法 第十一条第一款: 居民个人取得综合所得, 按年计算个人所得税; 有扣缴义务人的, 由扣缴义务人按月或者按次预扣预缴税款; 需要办理汇算清缴的, 应当在取得所得的次年三月一日至六月三十日内办理汇算清缴; 第十二条. 国家税务总局《个人所得税综合所得汇算清缴管理办法》(国家税务总局令第57号, 2025年2月26日施行) 第五条 (三月一日至六月三十日), 第十四条第二项 (单位代为办理须经纳税人确认, 未确认的单位不得代为办理), 第十六条 (资料留存5年)."
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const run = ctx.entry;\nif (run == null) return false;\nif (run.salary_coverage.from.slice(5, 7) !== ctx.lookup.month) return false;\nconst key = 'IIT_ANNUAL_RECONCILIATION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: month_end(add_months(run.salary_coverage.from, ctx.lookup.offset_months)),\n  occurrence_key: 'IIT_ANNUAL_RECONCILIATION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"id": "72a74b6e-8bb1-5c64-b54f-f1698520ce67",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "SI_REGISTRATION",
+		"name": "Social insurance registration of a new employee",
+		"lookup": {
+			"title": "Social insurance registration of a new employee",
+			"due_days": 30
+		},
+		"references": [
+			{
+				"title": "社会保险法 第五十八条第一款: 用人单位应当自用工之日起三十日内为其职工向社会保险经办机构申请办理社会保险登记."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'SI_REGISTRATION:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'SI_REGISTRATION:' + row.id\n}];",
+		"id": "cda9a8c5-bab4-507a-bd3e-740eaeeea341",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "HPF_DEPOSIT_REGISTRATION",
+		"name": "Housing provident fund deposit registration",
+		"lookup": {
+			"title": "Housing provident fund deposit registration",
+			"due_days": 30
+		},
+		"references": [
+			{
+				"title": "住房公积金管理条例 第十五条第一款: 单位录用职工的, 应当自录用之日起30日内向住房公积金管理中心办理缴存登记, 并办理职工住房公积金账户的设立或者转移手续."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'HPF_DEPOSIT_REGISTRATION:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'HPF_DEPOSIT_REGISTRATION:' + row.id\n}];",
+		"id": "f58aee2b-517a-5396-b23f-4faf0866e6aa",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "LABOUR_CONTRACT",
+		"name": "Written labour contract",
+		"lookup": {
+			"title": "Written labour contract"
+		},
+		"references": [
+			{
+				"title": "劳动合同法 第十条第二款: 已建立劳动关系, 未同时订立书面劳动合同的, 应当自用工之日起一个月内订立书面劳动合同; 第八十二条第一款."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'LABOUR_CONTRACT:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_months(row.effective_range.from, 1),\n  occurrence_key: 'LABOUR_CONTRACT:' + row.id\n}];",
+		"id": "25215d0e-87e9-51cc-881c-4d6df3ff7c47",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "EMPLOYEE_ROSTER",
+		"name": "Employee roster entry (职工名册)",
+		"lookup": {
+			"title": "Employee roster entry (职工名册)"
+		},
+		"references": [
+			{
+				"title": "劳动合同法 第七条: 用人单位自用工之日起即与劳动者建立劳动关系; 用人单位应当建立职工名册备查; 劳动合同法实施条例 第八条 (名册内容)."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'EMPLOYEE_ROSTER:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.from,\n  occurrence_key: 'EMPLOYEE_ROSTER:' + row.id\n}];",
+		"id": "dc3e8312-7098-58d1-bd2e-26ee7d7aa6e2",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "TERMINATION_CERTIFICATE",
+		"name": "Termination certificate",
+		"lookup": {
+			"title": "Termination certificate"
+		},
+		"references": [
+			{
+				"title": "劳动合同法 第五十条第一款: 用人单位应当在解除或者终止劳动合同时出具解除或者终止劳动合同的证明; 劳动合同法实施条例 第二十四条 (证明内容)."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'VOID' || row.effective_range.to == null) return false;\nconst key = 'TERMINATION_CERTIFICATE:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.to,\n  occurrence_key: 'TERMINATION_CERTIFICATE:' + row.id + ':exit:' + row.effective_range.to\n}];",
+		"id": "fa9871a9-6c81-5955-a0a0-0829f60818aa",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "SI_FILE_TRANSFER",
+		"name": "Personnel file and social insurance transfer",
+		"lookup": {
+			"title": "Personnel file and social insurance transfer",
+			"due_days": 15
+		},
+		"references": [
+			{
+				"title": "劳动合同法 第五十条第一款: 并在十五日内为劳动者办理档案和社会保险关系转移手续."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'VOID' || row.effective_range.to == null) return false;\nconst key = 'SI_FILE_TRANSFER:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.to, ctx.lookup.due_days),\n  occurrence_key: 'SI_FILE_TRANSFER:' + row.id + ':exit:' + row.effective_range.to\n}];",
+		"id": "2f1a8aac-a874-55f8-8735-09e0de8b281b",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "HPF_CHANGE_REGISTRATION",
+		"name": "Housing provident fund change registration on exit",
+		"lookup": {
+			"title": "Housing provident fund change registration on exit",
+			"due_days": 30
+		},
+		"references": [
+			{
+				"title": "住房公积金管理条例 第十五条第二款: 单位与职工终止劳动关系的, 单位应当自劳动关系终止之日起30日内向住房公积金管理中心办理变更登记, 并办理职工住房公积金账户转移或者封存手续."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'VOID' || row.effective_range.to == null) return false;\nconst key = 'HPF_CHANGE_REGISTRATION:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.to, ctx.lookup.due_days),\n  occurrence_key: 'HPF_CHANGE_REGISTRATION:' + row.id + ':exit:' + row.effective_range.to\n}];",
+		"id": "64ffeba4-2f3f-5a9f-bc0f-424185481e2c",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "FINAL_WAGES",
+		"name": "Final wages",
+		"lookup": {
+			"title": "Final wages",
+			"working_days": {
+				"SH": 0,
+				"KM": 5
+			}
+		},
+		"references": [
+			{
+				"title": "工资支付暂行规定 第九条: 劳动关系双方依法解除或终止劳动合同时, 用人单位应在解除或终止劳动合同时一次付清劳动者工资. KM: 昆明市工资支付条例 (2019年9月1日施行) 第十三条: \"自劳动关系终止或者解除之日起5个工作日内一次性付清劳动者工资\". SH: 上海市企业工资支付办法 (沪人社规〔2026〕10号) 第七条, on termination.",
+				"url": "https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=67457"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "subject.employer.entity_id"
+						}
+					}
+				},
+				"fields": ["date"],
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'VOID' || row.effective_range.to == null) return false;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst working = Number(get(ctx.lookup.working_days, region, 0));\nconst key = 'FINAL_WAGES:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst working = Number(get(ctx.lookup.working_days, region, 0));\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: working > 0\n  ? add_working_days(row.effective_range.to, working, ctx.reads.holiday ?? [], [0, 6])\n  : row.effective_range.to,\n  occurrence_key: 'FINAL_WAGES:' + row.id + ':exit:' + row.effective_range.to\n}];",
+		"id": "5baccbaa-40f3-5a65-a75c-4aa74bcf28e7",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "TERMINATED_CONTRACT_RETENTION",
+		"name": "Retention of the terminated labour contract",
+		"lookup": {
+			"title": "Retention of the terminated labour contract",
+			"retention_years": 2
+		},
+		"references": [
+			{
+				"title": "劳动合同法 第五十条第三款: 用人单位对已经解除或者终止的劳动合同的文本, 至少保存二年备查."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'VOID' || row.effective_range.to == null) return false;\nconst key = 'TERMINATED_CONTRACT_RETENTION:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_years(row.effective_range.to, ctx.lookup.retention_years),\n  occurrence_key: 'TERMINATED_CONTRACT_RETENTION:' + row.id + ':exit:' + row.effective_range.to\n}];",
+		"id": "f3af3c94-3c71-501c-860a-6a4eb648cd84",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "ECONOMIC_LAYOFF_REPORT",
+		"name": "Economic layoff: explanation to the union or all staff and report to the labour authority",
+		"lookup": {
+			"title": "Economic layoff: explanation to the union or all staff and report to the labour authority",
+			"advance_days": 30,
+			"batch_threshold": 20,
+			"headcount_share": 0.1
+		},
+		"references": [
+			{
+				"title": "劳动合同法 第四十一条第一款: 需要裁减人员二十人以上或者裁减不足二十人但占企业职工总数百分之十以上的, 用人单位提前三十日向工会或者全体职工说明情况, 听取工会或者职工的意见后, 裁减人员方案经向劳动行政部门报告, 可以裁减人员."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'VOID' || row.effective_range.to == null) return false;\nconst batch = Number(get(row.employee_extension_data, 'exit_facts.layoff_batch_size', 0));\nconst headcount = Number(get(ctx.subject.employer, 'entity_extension_data.prior_year_average_headcount', 0));\nif (!(batch >= ctx.lookup.batch_threshold || (headcount > 0 && batch >= headcount * ctx.lookup.headcount_share))) return false;\nconst key = 'ECONOMIC_LAYOFF_REPORT:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.to, -ctx.lookup.advance_days),\n  occurrence_key: 'ECONOMIC_LAYOFF_REPORT:' + row.id + ':exit:' + row.effective_range.to\n}];",
+		"id": "990fac6e-fa0a-5562-932b-9bd1603b7418",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "SI_BASE_ANNUAL_DECLARATION",
+		"name": "Annual contribution-wage declaration",
+		"lookup": {
+			"title": "Annual contribution-wage declaration",
+			"declaration": {
+				"SH": {
+					"month": "05",
+					"due_day": 25
+				},
+				"KM": {
+					"month": "12",
+					"due_day": 31
+				}
+			}
+		},
+		"references": [
+			{
+				"title": "国家税务总局上海市税务局通告2026年第1号《关于开展2026社保年度用人单位社会保险缴费工资申报工作的通告》: 申报时间2026年5月1日至2026年6月25日; 申报职工上一自然年度的月平均工资 https://shanghai.chinatax.gov.cn/zcfw/zcfgk/sbf/202604/t480144.html. KM: 国家税务总局云南省税务局 (云南税务 WeChat account, 2026-01-08) 《“社保费管理客户端”年度缴费工资申报操作指引——企业申报操作篇》: 企业2026年度社保费缴费工资集中申报截止时间为1月31日; 自2026年1月起, 企业缴费工资申报实现“一次申报、五险并用” https://mp.weixin.qq.com/s?__biz=MzA5NjY5OTEzNQ==&mid=2652065121&idx=1&sn=17e0daa2e4587ecf31522fb0cdce28fa; 国家税务总局西双版纳州税务局 (西双版纳税务, 2026-01-09) 《关于2026年用人单位社会保险费缴费工资申报的提示》: 2026年1月1日至1月31日为用人单位社会保险费缴费工资集中申报期; 各险种新申报缴费工资自2026年1月开始执行; 以职工本人上年度月平均工资据实申报 https://mp.weixin.qq.com/s?__biz=MzI5MTI4NDU3OQ==&mid=2247539265&idx=1&sn=11392640847f8a342c8ba029ee49ccba (both read 2026-10-08). The 2026 Kunming medical notice (禄劝县医疗保障局 2026-09-16, 2026年度昆明市职工医疗保险有关基数执行标准通知) moves only the base limits (4403–22017 from September 2026) and sets no declaration window."
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'SI_BASE_ANNUAL_DECLARATION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst declaration = get(ctx.lookup.declaration, region, null);\nif (declaration == null || get(declaration, 'month', null) !== run.salary_coverage.from.slice(5, 7)) return [];\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(month_start(add_months(run.salary_coverage.from, 1)), Number(get(declaration, 'due_day', 1)) - 1),\n  occurrence_key: 'SI_BASE_ANNUAL_DECLARATION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"id": "1c588f60-64e6-54c3-9716-6ce97a3f8df8",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "EMPLOYMENT_REGISTRATION",
+		"name": "Employment registration of a new hire",
+		"lookup": {
+			"title": "Employment registration of a new hire",
+			"due_days": 30
+		},
+		"references": [
+			{
+				"title": "就业服务与就业管理规定 第六十二条第一款: 用人单位招用人员后, 应当于录用之日起30日内办理登记手续 (北京市人力资源和社会保障局2024年清单引用条文)",
+				"url": "https://rsj.beijing.gov.cn/xxgk/2024zcwj/202406/W020240617387510280074.docx"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'EMPLOYMENT_REGISTRATION:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'EMPLOYMENT_REGISTRATION:' + row.id\n}];",
+		"id": "737d7590-8ef5-585a-a89b-95fb5b84b8c9",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "EMPLOYMENT_DEREGISTRATION",
+		"name": "Employment deregistration on exit",
+		"lookup": {
+			"title": "Employment deregistration on exit",
+			"due_days": 15
+		},
+		"references": [
+			{
+				"title": "就业服务与就业管理规定 第六十二条第一款: 用人单位与职工终止或者解除劳动关系后, 应当于15日内办理登记手续."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'VOID' || row.effective_range.to == null) return false;\nconst key = 'EMPLOYMENT_DEREGISTRATION:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.to, ctx.lookup.due_days),\n  occurrence_key: 'EMPLOYMENT_DEREGISTRATION:' + row.id + ':exit:' + row.effective_range.to\n}];",
+		"id": "e80719fc-3e1b-5cbb-bdfd-acb877e0a33c",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "WORK_INJURY_RECOGNITION",
+		"name": "Work-injury recognition application",
+		"lookup": {
+			"title": "Work-injury recognition application",
+			"catalog_codes": ["WORK_INJURY_LEAVE"],
+			"due_days": 30
+		},
+		"references": [
+			{
+				"title": "工伤保险条例 第十七条第一款: 职工发生事故伤害或者按照职业病防治法规定被诊断、鉴定为职业病, 所在单位应当自事故伤害发生之日或者被诊断、鉴定为职业病之日起30日内, 向统筹地区社会保险行政部门提出工伤认定申请."
+			}
+		],
+		"source_collection": "leave_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.employment_id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"leave_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["code"],
+				"limit": 1
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || !Array.isArray(row.days) || row.days.length === 0) return false;\nconst catalog = first(ctx.reads.leave_catalog ?? []);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(String(get(catalog, 'code', '')))) return false;\nconst key = 'WORK_INJURY_RECOGNITION:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employment_id: row.employment_id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.days[0].date, ctx.lookup.due_days),\n  occurrence_key: 'WORK_INJURY_RECOGNITION:' + row.id\n}];",
+		"id": "1eefc32d-cd7e-55f2-b3d5-ebe1b921b6bd",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "SI_UNIT_REGISTRATION",
+		"name": "Employer social insurance registration",
+		"lookup": {
+			"title": "Employer social insurance registration",
+			"due_days": 30
+		},
+		"references": [
+			{
+				"title": "社会保险法 第五十七条第一款: 用人单位应当自成立之日起三十日内凭营业执照、登记证书或者单位印章, 向当地社会保险经办机构申请办理社会保险登记."
+			}
+		],
+		"source_collection": "entity_profile_version",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"fields": ["entity_id", "effective_range", "status"],
+				"limit": 100
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst earlier = (ctx.reads.entity_profile_version ?? []).some((version) =>\n  version.id !== row.id && version.status === 'SEALED' &&\n  version.effective_range.from < row.effective_range.from\n);\nif (earlier) return false;\nconst key = 'SI_UNIT_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'SI_UNIT_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from\n}];",
+		"id": "9a2b97f0-9c59-5e8e-8c8a-8a9a38281394",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "SI_UNIT_CHANGE_REGISTRATION",
+		"name": "Employer social insurance change registration",
+		"lookup": {
+			"title": "Employer social insurance change registration",
+			"due_days": 30
+		},
+		"references": [
+			{
+				"title": "社会保险法 第五十七条第二款: 用人单位的社会保险登记事项发生变更或者用人单位依法终止的, 应当自变更或者终止之日起三十日内, 到社会保险经办机构办理变更或者注销社会保险登记.",
+				"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
+			}
+		],
+		"source_collection": "entity_profile_version",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"fields": ["entity_id", "effective_range", "status"],
+				"limit": 100
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst earlier = (ctx.reads.entity_profile_version ?? []).some((version) =>\n  version.id !== row.id && version.status === 'SEALED' &&\n  version.effective_range.from < row.effective_range.from\n);\nif (!earlier) return false;\nconst key = 'SI_UNIT_CHANGE_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'SI_UNIT_CHANGE_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from\n}];",
+		"id": "5c6080c4-6251-5815-9d48-6008fbf2d880",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "HPF_UNIT_REGISTRATION",
+		"name": "Employer housing provident fund registration",
+		"lookup": {
+			"title": "Employer housing provident fund registration",
+			"due_days": 30
+		},
+		"references": [
+			{
+				"title": "住房公积金管理条例 第十四条第一款: 新设立的单位应当自设立之日起30日内向住房公积金管理中心办理住房公积金缴存登记, 并自登记之日起20日内, 为本单位职工办理住房公积金账户设立手续."
+			}
+		],
+		"source_collection": "entity_profile_version",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"fields": ["entity_id", "effective_range", "status"],
+				"limit": 100
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst earlier = (ctx.reads.entity_profile_version ?? []).some((version) =>\n  version.id !== row.id && version.status === 'SEALED' &&\n  version.effective_range.from < row.effective_range.from\n);\nif (earlier) return false;\nconst key = 'HPF_UNIT_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n  occurrence_key: 'HPF_UNIT_REGISTRATION:' + row.entity_id + ':' + row.effective_range.from\n}];",
+		"id": "59a31f2f-6bcb-5c2a-ae84-84fba4ea341f",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "WRITTEN_CONTRACT_OVERDUE",
+		"name": "No written labour contract one month after hire (double wages)",
+		"lookup": {
+			"title": "No written labour contract one month after hire (double wages)"
+		},
+		"references": [
+			{
+				"title": "劳动合同法 第十条第二款 (自用工之日起一个月内订立书面劳动合同); 第八十二条第一款: 用人单位自用工之日起超过一个月不满一年未与劳动者订立书面劳动合同的, 应当向劳动者每月支付二倍的工资; 劳动合同法实施条例 第六条."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nif (get(row.terms, 'signed_on', null) != null) return false;\nconst key = 'WRITTEN_CONTRACT_OVERDUE:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_months(row.effective_range.from, 1),\n  occurrence_key: 'WRITTEN_CONTRACT_OVERDUE:' + row.id\n}];",
+		"id": "e7672e90-55a9-5345-a86f-4a371c4e13c9",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "DEEMED_OPEN_ENDED_CONTRACT",
+		"name": "No written contract after one year: deemed open-ended",
+		"lookup": {
+			"title": "No written contract after one year: deemed open-ended",
+			"offset_years": 1
+		},
+		"references": [
+			{
+				"title": "劳动合同法 第十四条第三款: 用人单位自用工之日起满一年不与劳动者订立书面劳动合同的, 视为用人单位与劳动者已订立无固定期限劳动合同; 劳动合同法实施条例 第七条."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nif (get(row.terms, 'signed_on', null) != null) return false;\nconst key = 'DEEMED_OPEN_ENDED_CONTRACT:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_years(row.effective_range.from, ctx.lookup.offset_years),\n  occurrence_key: 'DEEMED_OPEN_ENDED_CONTRACT:' + row.id\n}];",
+		"id": "7647a31a-92c3-510c-a186-b9570de56dcb",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "WAGE_STATEMENT",
+		"name": "Payslip to each employee",
+		"lookup": {
+			"title": "Payslip to each employee"
+		},
+		"references": [
+			{
+				"title": "工资支付暂行规定 第六条第三款: 用人单位在支付工资时应向劳动者提供一份其个人的工资清单; 昆明市工资支付条例 第十二条; 上海市企业工资支付办法 第五条."
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'WAGE_STATEMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: run.pay_date,\n  occurrence_key: 'WAGE_STATEMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"id": "6b336a1c-00fb-516a-8644-a3018c791e89",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "WAGE_RECORDS_RETENTION",
+		"name": "Wage payment records kept",
+		"lookup": {
+			"title": "Wage payment records kept",
+			"retention_years": 2,
+			"migrant_years": 3
+		},
+		"references": [
+			{
+				"title": "工资支付暂行规定 第六条第二款: 书面记录支付劳动者工资的数额、时间、领取者的姓名以及签字, 并保存两年以上备查; 保障农民工工资支付条例 (国务院令第724号) 第十五条: 工资支付台账应当至少保存3年.",
+				"url": "https://www.gov.cn/zhengce/content/2020-01/07/content_5467278.htm"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'WAGE_RECORDS_RETENTION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = ctx.entry;\nconst migrant = get(ctx.subject.employer, 'entity_extension_data.employs_migrant_workers', false) === true;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_years(run.salary_coverage.to, migrant ? ctx.lookup.migrant_years : ctx.lookup.retention_years),\n  occurrence_key: 'WAGE_RECORDS_RETENTION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"id": "3bd2e977-4d0f-5dca-9dd5-c29e0d682cfa",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "HPF_BASE_ANNUAL_ADJUSTMENT",
+		"name": "Housing provident fund annual base adjustment",
+		"lookup": {
+			"title": "Housing provident fund annual base adjustment",
+			"due_days": 5,
+			"month_by_region": {
+				"SH": "07",
+				"KM": "01"
+			}
+		},
+		"references": [
+			{
+				"title": "住房公积金管理条例 第十六条: 职工住房公积金的月缴存额为职工本人上一年度月平均工资乘以职工住房公积金缴存比例; 上海 2026年度 基数调整自2026年7月开始 (沪公积金 2026年度通知); 昆明 缴存年度为1月1日至12月31日 (昆明市住房公积金管理中心 2026-01-04 通告)."
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'HPF_BASE_ANNUAL_ADJUSTMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nif (get(ctx.lookup.month_by_region, region, null) !== run.salary_coverage.from.slice(5, 7)) return [];\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(run.pay_date, ctx.lookup.due_days),\n  occurrence_key: 'HPF_BASE_ANNUAL_ADJUSTMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"id": "a606b333-0035-579f-92ec-fb9aaca98c58",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "SAD_RECORD_RETENTION",
+		"name": "Special-deduction information forms kept 5 years",
+		"lookup": {
+			"title": "Special-deduction information forms kept 5 years",
+			"retention_years": 5,
+			"month": "01"
+		},
+		"references": [
+			{
+				"title": "个人所得税专项附加扣除操作办法（试行）(国家税务总局公告2022年第7号) 第二十四条: 纳税人报送给扣缴义务人的《扣除信息表》, 扣缴义务人应当自预扣预缴年度的次年起留存五年."
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const run = ctx.entry;\nif (run == null) return false;\nif (run.salary_coverage.from.slice(5, 7) !== ctx.lookup.month) return false;\nconst key = 'SAD_RECORD_RETENTION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_days(add_years(run.salary_coverage.from, ctx.lookup.retention_years), -1),\n  occurrence_key: 'SAD_RECORD_RETENTION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"id": "998bab26-60b6-5725-b8ed-9f62107ff928",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "IIT_RECONCILIATION_RECORDS",
+		"name": "Reconciliation records kept 5 years",
+		"lookup": {
+			"title": "Reconciliation records kept 5 years",
+			"retention_years": 5,
+			"month": "06"
+		},
+		"references": [
+			{
+				"title": "个人所得税综合所得汇算清缴管理办法 (国家税务总局令第57号) 第十四条第二项 (单位代为办理须经纳税人确认), 第十六条第三款 (信息资料自汇算清缴期结束之日起留存5年)"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const run = ctx.entry;\nif (run == null) return false;\nif (run.salary_coverage.from.slice(5, 7) !== ctx.lookup.month) return false;\nconst key = 'IIT_RECONCILIATION_RECORDS:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: add_years(month_end(run.salary_coverage.from), ctx.lookup.retention_years),\n  occurrence_key: 'IIT_RECONCILIATION_RECORDS:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"id": "b1fbb246-f71b-5430-b486-8e72061efcd4",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "DISABLED_EMPLOYMENT_FUND",
+		"name": "Disabled persons' employment security fund declaration",
+		"lookup": {
+			"title": "Disabled persons' employment security fund declaration",
+			"month_by_region": {
+				"SH": "10",
+				"KM": "11"
+			},
+			"employee_count_threshold": 30
+		},
+		"references": [
+			{
+				"title": "残疾人就业保障金征收使用管理办法 (财税〔2015〕72号) 第八条、第九条 (比例1.5%); 财政部《关于延续实施残疾人就业保障金优惠政策的公告》(财政部公告2023年第98号: 至2027年12月31日, 安排比例1%以上按50%缴纳, 1%以下按90%缴纳; 在职职工总数30人以下的企业暂免); 上海市残疾人就业保障金征收使用管理实施办法; 国家税务总局上海市税务局《2025年度残疾人就业保障金缴费指南》(申报至2026年10月31日; 工资高于社平工资2倍的按2倍) https://shanghai.chinatax.gov.cn/tax/xwdt/ztzl/zcgll/cjrbzj/jfzy/202608/t481322.html. 残疾人就业保障金征收使用管理办法 (财税〔2015〕72号); 财政部公告2023年第98号; 云南省 2025年度 残疾人按比例就业情况联网认证 3月1日至10月31日, 9月至11月申报缴纳 (个旧市人民政府通告) https://www.hhgj.gov.cn/info/6711/587781.htm."
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'DISABLED_EMPLOYMENT_FUND:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nif (get(ctx.lookup.month_by_region, region, null) !== run.salary_coverage.from.slice(5, 7)) return [];\nconst headcount = Number(get(ext, 'prior_year_average_headcount', 0));\nif (!(headcount > ctx.lookup.employee_count_threshold)) return [];\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: month_end(run.salary_coverage.from),\n  occurrence_key: 'DISABLED_EMPLOYMENT_FUND:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"id": "9f673f31-6356-5cf6-bd6a-bd857b229cdf",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "PERSONAL_DATA_DISPOSAL",
+		"name": "Delete a former employee's personal information",
+		"lookup": {
+			"title": "Delete a former employee's personal information",
+			"retention_years": 10
+		},
+		"references": [
+			{
+				"title": "Personal data of a former employee is kept to the end of the 10th year after the exit year — the longest retention of the records that need it: 税收征收管理法实施细则 第二十九条 (账簿、记账凭证、报表、完税凭证…其他有关涉税资料应当保存10年) https://fgk.chinatax.gov.cn/zcfgk/c100010/c5195082/content.html. Shorter: 劳动合同法 第五十条 (contract text 2 years), 保障农民工工资支付条例 第十五条 (wage ledger 3), 专项附加扣除 records 5. The payroll vouchers are accounting archives kept 30 years from the end of their year (会计档案管理办法 第十四条, ACCOUNTING_VOUCHER_RETENTION): the payslips keep their amounts after the personal data is deleted. 个人信息保护法 第十九条 (最短时间), 第四十七条 (保存期限届满应当删除) https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'VOID' || row.effective_range.to == null) return false;\nconst key = 'PERSONAL_DATA_DISPOSAL:' + row.id + ':exit:' + row.effective_range.to;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: String(Number(row.effective_range.to.slice(0, 4)) + ctx.lookup.retention_years) + '-12-31',\n  occurrence_key: 'PERSONAL_DATA_DISPOSAL:' + row.id + ':exit:' + row.effective_range.to\n}];",
+		"id": "5c267d9b-06d7-5248-a71d-c6016980813c",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "PI_PROCESSING_NOTICE",
+		"name": "Personal-information notice to the new employee",
+		"lookup": {
+			"title": "Personal-information notice to the new employee"
+		},
+		"references": [
+			{
+				"title": "个人信息保护法 第十七条、第三十条; 第十三条第一款第(二)项 (人力资源管理所必需的处理不需同意, 但告知不免除).",
+				"url": "https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'PI_PROCESSING_NOTICE:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.from,\n  occurrence_key: 'PI_PROCESSING_NOTICE:' + row.id\n}];",
+		"id": "d8f0c123-8b54-5dfc-b80a-7cf8d0781b7b",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "SENSITIVE_PI_CONSENT",
+		"name": "Separate consent and impact assessment for sensitive personal information",
+		"lookup": {
+			"title": "Separate consent and impact assessment for sensitive personal information"
+		},
+		"references": [
+			{
+				"title": "个人信息保护法 第二十八条 (医疗健康、金融账户、不满十四周岁未成年人的个人信息为敏感个人信息), 第二十九条 (单独同意), 第五十五条第(一)项 (事前个人信息保护影响评估)",
+				"url": "https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'SENSITIVE_PI_CONSENT:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.from,\n  occurrence_key: 'SENSITIVE_PI_CONSENT:' + row.id\n}];",
+		"id": "2503a60d-505c-54c2-8704-0065a814a682",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "SENSITIVE_PI_CONSENT_MEDICAL",
+		"name": "Separate consent for a medical certificate",
+		"lookup": {
+			"title": "Separate consent for a medical certificate",
+			"catalog_codes": ["SICK_LEAVE", "WORK_INJURY_LEAVE", "MATERNITY_LEAVE"]
+		},
+		"references": [
+			{
+				"title": "个人信息保护法",
+				"locator": "第二十八条、第二十九条",
+				"url": "https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm"
+			}
+		],
+		"source_collection": "leave_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.employment_id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"leave_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["code"],
+				"limit": 1
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || !Array.isArray(row.days) || row.days.length === 0) return false;\nconst catalog = first(ctx.reads.leave_catalog ?? []);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(String(get(catalog, 'code', '')))) return false;\nconst key = 'SENSITIVE_PI_CONSENT_MEDICAL:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employment_id: row.employment_id,\n  title: ctx.lookup.title,\n  due_on: row.days[0].date,\n  occurrence_key: 'SENSITIVE_PI_CONSENT_MEDICAL:' + row.id\n}];",
+		"id": "0127d18a-dd1a-5ce2-8cdf-ecedf641a9a3",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "CROSS_BORDER_HR_TRANSFER",
+		"name": "Notice and separate consent for an HR transfer abroad",
+		"lookup": {
+			"title": "Notice and separate consent for an HR transfer abroad"
+		},
+		"references": [
+			{
+				"title": "促进和规范数据跨境流动规定 (2024) 第五条第(二)项, 第十条",
+				"url": "https://www.cac.gov.cn/2024-03/22/c_1712776611775634.htm"
+			},
+			{
+				"title": "个人信息保护法 第三十八条、第三十九条、第五十五条第(四)项",
+				"url": "https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm"
+			}
+		],
+		"source_collection": "entity_profile_version",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"fields": ["entity_id", "effective_range", "status"],
+				"limit": 100
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst earlier = (ctx.reads.entity_profile_version ?? []).some((version) =>\n  version.id !== row.id && version.status === 'SEALED' &&\n  version.effective_range.from < row.effective_range.from\n);\nif (!earlier) return false;\nif (get(row.entity_extension_data, 'transfers_hr_data_abroad', false) !== true) return false;\nconst key = 'CROSS_BORDER_HR_TRANSFER:' + row.entity_id + ':' + row.effective_range.from;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.from,\n  occurrence_key: 'CROSS_BORDER_HR_TRANSFER:' + row.entity_id + ':' + row.effective_range.from\n}];",
+		"id": "8a1c2523-e785-595f-bf57-a24dc9c1c3a7",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "PI_COMPLIANCE_AUDIT",
+		"name": "Periodic personal-information compliance audit",
+		"lookup": {
+			"title": "Periodic personal-information compliance audit",
+			"month": "12"
+		},
+		"references": [
+			{
+				"title": "个人信息保护法 第五十四条: 个人信息处理者应当定期对其处理个人信息遵守法律、行政法规的情况进行合规审计 https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm; 个人信息保护合规审计管理办法 (自2025年5月1日, 国家网信办答记者问) https://www.cac.gov.cn/2025-02/14/c_1741232791991016.htm."
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const run = ctx.entry;\nif (run == null) return false;\nif (run.salary_coverage.from.slice(5, 7) !== ctx.lookup.month) return false;\nconst key = 'PI_COMPLIANCE_AUDIT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: month_end(run.salary_coverage.from),\n  occurrence_key: 'PI_COMPLIANCE_AUDIT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"id": "34bf4caa-cde8-5ed6-9b97-5e8f80155d09",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "JUVENILE_WORKER_REGISTRATION",
+		"name": "Register a juvenile worker and the pre-job health check",
+		"lookup": {
+			"title": "Register a juvenile worker and the pre-job health check",
+			"min_age": 16,
+			"max_age": 18
+		},
+		"references": [
+			{
+				"title": "未成年工特殊保护规定 (劳部发〔1994〕498号) 第二条, 第六条第(一)项, 第九条"
+			},
+			{
+				"title": "劳动法",
+				"locator": "第五十八条、第六十五条",
+				"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst born = get(row.payroll, 'date_of_birth', null);\nif (born == null || born === '') return false;\nconst age = age_on(born, row.effective_range.from);\nif (age < ctx.lookup.min_age || age >= ctx.lookup.max_age) return false;\nconst key = 'JUVENILE_WORKER_REGISTRATION:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: row.effective_range.from,\n  occurrence_key: 'JUVENILE_WORKER_REGISTRATION:' + row.id\n}];",
+		"id": "e91c1c3e-1f54-5588-966c-a12a9066ecc9",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "JUVENILE_WORKER_ANNUAL_CHECK",
+		"name": "Juvenile worker health check after a year of work",
+		"lookup": {
+			"title": "Juvenile worker health check after a year of work",
+			"offset_years": 1,
+			"max_age": 18
+		},
+		"references": [
+			{
+				"title": "未成年工特殊保护规定 第六条第(二)项",
+				"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst born = get(row.payroll, 'date_of_birth', null);\nif (born == null || born === '') return false;\nif (age_on(born, add_years(row.effective_range.from, ctx.lookup.offset_years)) >= ctx.lookup.max_age) return false;\nconst key = 'JUVENILE_WORKER_ANNUAL_CHECK:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_years(row.effective_range.from, ctx.lookup.offset_years),\n  occurrence_key: 'JUVENILE_WORKER_ANNUAL_CHECK:' + row.id\n}];",
+		"id": "e0528aad-a1bc-50b7-9861-ff3cacbaafee",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "OPEN_ENDED_CONTRACT_RIGHT",
+		"name": "Open-ended contract on the employee's request after 10 years",
+		"lookup": {
+			"title": "Open-ended contract on the employee's request after 10 years",
+			"offset_years": 10
+		},
+		"references": [
+			{
+				"title": "劳动合同法 第十四条第二款第(一)项",
+				"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"employment_id": {
+						"eq": {
+							"var": "entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "const row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nif (row.effective_range.to == null) return false;\nconst key = 'OPEN_ENDED_CONTRACT_RIGHT:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employee_id: row.employee_id,\n  employment_id: row.id,\n  title: ctx.lookup.title,\n  due_on: add_years(row.effective_range.from, ctx.lookup.offset_years),\n  occurrence_key: 'OPEN_ENDED_CONTRACT_RIGHT:' + row.id\n}];",
+		"id": "2d036b1b-d196-5309-9c13-7bfafc4c0240",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "SI_LATE_SURCHARGE",
+		"name": "Social insurance paid late: the 0.05% daily surcharge",
+		"lookup": {
+			"title": "Social insurance paid late: the 0.05% daily surcharge"
+		},
+		"references": [
+			{
+				"title": "社会保险法 第八十六条: 自欠缴之日起, 按日加收万分之五的滞纳金; 社会保险费征缴暂行条例 第二十条.",
+				"url": "https://yjglt.yn.gov.cn/html/2024/yunnanshengwenjian_0507/28616.html"
+			}
+		],
+		"source_collection": "obligation",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const task = ctx.entry;\nif (task == null || task.state !== 'FULFILLED' || task.due_on == null || task.fulfilled_on == null) return false;\nif (!String(task.occurrence_key ?? '').startsWith('SI_MONTHLY_PAYMENT:')) return false;\nif (task.fulfilled_on <= task.due_on) return false;\nconst key = 'SI_LATE_SURCHARGE:' + task.id;\nreturn !ctx.reads.obligation.some((item) => item.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const task = ctx.entry;\nreturn [{\n  entity_id: task.entity_id,\n  title: ctx.lookup.title,\n  due_on: task.fulfilled_on,\n  occurrence_key: 'SI_LATE_SURCHARGE:' + task.id\n}];",
+		"id": "1bfcbcca-eef1-555f-b8a0-7f4b919679e1",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "ACCOUNTING_VOUCHER_RETENTION",
+		"name": "Keep the year's payroll vouchers 30 years",
+		"lookup": {
+			"title": "Keep the year's payroll vouchers 30 years",
+			"retention_years": 30,
+			"month": "12"
+		},
+		"references": [
+			{
+				"title": "会计档案管理办法 (财政部 国家档案局令第79号) 第十四条 and 附表 (会计凭证 30年)",
+				"url": "https://www.gov.cn/zhengce/2015-12/11/content_5717189.htm"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"state": {
+						"eq": "OPEN"
+					},
+					"entity_id": {
+						"eq": {
+							"var": "entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			}
+		},
+		"condition": "const run = ctx.entry;\nif (run == null) return false;\nif (run.salary_coverage.from.slice(5, 7) !== ctx.lookup.month) return false;\nconst key = 'ACCOUNTING_VOUCHER_RETENTION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: String(Number(run.salary_coverage.from.slice(0, 4)) + ctx.lookup.retention_years) + '-12-31',\n  occurrence_key: 'ACCOUNTING_VOUCHER_RETENTION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
+		"id": "0e4d826c-50c1-5e6e-bd8e-c803212ed1ac",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	}
+]

@@ -1,0 +1,339 @@
+[
+	{
+		"id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"code": "PH",
+		"name": "Philippines — 6 January 2026 (RR 29-2025)",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": null
+		},
+		"currency": "PHP",
+		"timezone": "Asia/Manila",
+		"tax_year_start_month": 1,
+		"employee_extension_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "PH employee extension data",
+			"description": "Additional compliance data on the sealed contract: person and withholding elections, contract compliance and departure. Shared salary, allowances, work classifications, dates and work arrangements are native terms and contract fields.",
+			"additionalProperties": false,
+			"properties": {
+				"cumulative_average_required_year": {
+					"type": "integer",
+					"minimum": 2023,
+					"title": "Cumulative-average withholding required for year",
+					"description": "HR-reviewed calendar year in which RR11-2018 s.2.79(B)(5)(a) requires cumulative-average withholding. Once applicable, the method continues through that calendar year. Known current/historical triggers require review without this flag."
+				},
+				"cumulative_average_reviewed_period": {
+					"type": "string",
+					"title": "Reviewed cumulative-average payroll period",
+					"description": "Original exact salary payroll-period key for a reviewed cash-basis calculation. The signed liability is current payment-month-to-date; missing or stale review cannot authorize unsupported periods/history."
+				},
+				"cumulative_average_month_liability": {
+					"type": "number",
+					"title": "Reviewed month-to-date cumulative-average withholding",
+					"description": "Signed current calendar-month withholding liability through the reviewed payroll period, computed externally using the actual covered payroll-period count, current/prior-employer taxable pay and prior withholding. Exclude earlier-calendar-month withholding. The engine subtracts earlier slips of this same month. This is an explicit reviewed input, not automatic statutory cumulative-average calculation."
+				},
+				"cumulative_average_review_reference": {
+					"type": "string",
+					"title": "Cumulative-average review evidence",
+					"description": "Reference to the reviewed computation and evidence of actual covered periods, prior-employer periods/pay/tax and continuing applicability."
+				},
+				"previous_employer_taxable_compensation": {
+					"type": "number",
+					"minimum": 0,
+					"title": "Previous employer’s taxable compensation this year",
+					"description": "Customer input from the previous employer’s BIR Form 2316 (RR 2-98 s.2.79(B)(5)(b) Step 2): added to the year-end annualisation. Its presence also disqualifies substituted filing."
+				},
+				"previous_employer_tax_withheld": {
+					"type": "number",
+					"minimum": 0,
+					"title": "Tax withheld by the previous employer this year",
+					"description": "Customer input from the previous employer’s 2316: credited in the annualisation."
+				},
+				"night_work_alternative_until": {
+					"type": "string",
+					"format": "date",
+					"title": "Alternative to night work until",
+					"description": "Customer input: the last day of an additional period, during pregnancy or after the post-childbirth period, for which a medical certificate states that an alternative to night work is necessary for the health of the mother or child (Labor Code art.158(b) as inserted by RA 10151)."
+				},
+				"retirement_plan_exemption_availed": {
+					"type": "boolean",
+					"default": false,
+					"title": "RA 4917 retirement exemption already availed",
+					"description": "Customer input: the employee already received a tax-exempt retirement benefit under a private plan (NIRC s.32(B)(6)(a): the exemption is availed of only once)."
+				},
+				"previous_employer_year": {
+					"type": "integer",
+					"minimum": 1900,
+					"title": "Year of previous-employer2316 facts",
+					"description": "Calendar cash year of reported taxable compensation and withholding; stale prior-year values are excluded."
+				},
+				"previous_employer_pay_frequency": {
+					"type": "string",
+					"enum": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY"],
+					"title": "Previous-employer payroll frequency",
+					"description": "Original frequency evidenced by payroll records, not inferred from employment dates."
+				},
+				"previous_employer_payroll_periods": {
+					"type": "integer",
+					"minimum": 0,
+					"title": "Actual prior payroll periods covered",
+					"description": "Actual count to which the prior2316 taxable compensation relates. Automatic cumulative derivation supports same-frequency MONTHLY only; mixed frequencies require dated calculation review."
+				},
+				"previous_employer_review_reference": {
+					"type": "string",
+					"title": "Previous-employer period/pay/tax evidence",
+					"description": "Original2316 and payroll-period records supporting reported taxable compensation, tax and actual period count."
+				},
+				"statutory": {
+					"type": "object",
+					"title": "Statutory declarations",
+					"additionalProperties": false,
+					"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
+					"properties": {
+						"SSS": {
+							"type": "object",
+							"title": "Social Security System",
+							"additionalProperties": false,
+							"properties": {
+								"elections": {
+									"type": "object",
+									"title": "Declared inputs",
+									"properties": {
+										"covered_before_60": {
+											"type": "boolean",
+											"default": false,
+											"title": "SSS member covered before sixty",
+											"description": "SSS standing election (RA 11199 s.9(a)), an override: coverage past sixty is derived from the employment — hired before sixty, or an SSS charge on this payroll in the twelve months before; set this when the member was first covered before sixty through an earlier employer. Nothing is charged from sixty-five (s.12-B)."
+										},
+										"exempt_by_totalisation": {
+											"type": "boolean",
+											"default": false,
+											"title": "Exempt from SSS under a social security agreement",
+											"description": "SSS standing election (customer input): a foreign employee covered by their own system under a Philippine bilateral social security agreement."
+										}
+									},
+									"additionalProperties": false
+								}
+							}
+						},
+						"WTAX": {
+							"type": "object",
+							"title": "Withholding tax on compensation",
+							"additionalProperties": false,
+							"properties": {
+								"elections": {
+									"type": "object",
+									"title": "Declared inputs",
+									"additionalProperties": false,
+									"properties": {
+										"treaty_exempt": {
+											"type": "boolean",
+											"default": false,
+											"title": "Exempt under an income-tax treaty",
+											"description": "Customer input. A resident or non-resident alien whom an applicable Philippine tax treaty relieves from withholding on this compensation."
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"thirteenth_integrated_components": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"uniqueItems": true,
+					"title": "Components integrated into basic salary",
+					"description": "Component codes expressly part of basic salary under individual/CBA agreement or established company practice. Original captured classification governs each earning, supported by integration_reference."
+				},
+				"integration_reference": {
+					"type": "string",
+					"title": "Basic-salary integration evidence",
+					"description": "Agreement/CBA/practice evidence for thirteenth_integrated_components."
+				},
+				"days_per_year": {
+					"type": "integer",
+					"enum": [253, 261, 305, 313, 365],
+					"default": 313,
+					"title": "Days-per-year factor",
+					"description": "The factor that turns the monthly basic into a daily rate (DOLE Handbook 2024 ch.2 §D–E): 365 when rest days, special days and regular holidays are paid; 313 on a six-day week; 261 on a five-day week; 305 / 253 where the special days are unpaid. Read by every day- and hour-rated line, retirement pay, the kasambahay pay, the WTAX leave ceiling and the minimum-wage-earner floor. Unrecorded is 313."
+				},
+				"work_region": {
+					"type": "string",
+					"title": "Workplace minimum-wage region key",
+					"description": "Customer input. The key of the minimum-wage table for the workplace when it differs from the employer region: a `minimum_wage_by_region` key, or a `minimum_wage_domestic` key for a household employer. Unrecorded, the employer region governs."
+				},
+				"ebet_program": {
+					"type": "string",
+					"enum": ["GENERAL", "APPRENTICESHIP", "UPSKILLING"],
+					"title": "Registered EBET programme",
+					"description": "Customer input. RA 12063 (Enterprise-Based Education and Training Framework Act) s.4: the programme an INTERN or APPRENTICE contract is enrolled in — general training (an allowance, no wage floor, s.13(a)), apprenticeship (75% of the floor, s.13(b)), upskilling (the full wage, s.12)."
+				},
+				"mine_worker": {
+					"type": "string",
+					"enum": ["UNDERGROUND", "SURFACE"],
+					"title": "Mine worker",
+					"description": "Customer input. RA 8558 / RA 10757: retirement from fifty, compulsory at sixty."
+				},
+				"wage_payment_place": {
+					"type": "string",
+					"enum": [
+						"AT_OR_NEAR_WORKPLACE",
+						"ELSEWHERE_EMERGENCY",
+						"ELSEWHERE_FREE_TRANSPORT",
+						"ELSEWHERE_ANALOGOUS",
+						"BAR_CLUB_OR_GAMING_PLACE"
+					],
+					"title": "Wage payment place",
+					"description": "Customer input. Omnibus Rules Book III Rule VIII s.4: at or near the place of undertaking; elsewhere only when peace and order or a calamity prevents it, the employer gives free transport both ways, or in analogous circumstances (the collecting time is hours worked); never in a bar, club, drinking, massage, dance or gaming place unless the employee works there."
+				},
+				"employed_at_payment_place": {
+					"type": "boolean",
+					"title": "Employee works at the bar, club or gaming place",
+					"description": "Customer input. Omnibus Rules Book III Rule VIII s.4(d): the exception for persons employed in those places."
+				},
+				"solo_parent": {
+					"type": "boolean",
+					"description": "A solo parent who presented a valid Solo Parent ID card (RA 8972 as amended by RA 11861 ss.8, 15, 20): solo parent leave and the extra 15 days of maternity leave read it. Absent means not a solo parent."
+				},
+				"termination_cause": {
+					"type": "string",
+					"enum": [
+						"LABOR_SAVING_DEVICES",
+						"REDUNDANCY",
+						"RETRENCHMENT",
+						"CLOSURE_NOT_DUE_TO_SERIOUS_LOSSES",
+						"CLOSURE_DUE_TO_SERIOUS_LOSSES",
+						"DISEASE",
+						"SECURITY_GUARD_NO_ASSIGNMENT",
+						"CONTRACTOR_NO_ASSIGNMENT",
+						"IMPOSSIBLE_REINSTATEMENT",
+						"SUSPENSION_OVER_SIX_MONTHS"
+					],
+					"description": "Labor Code arts.298–299 and DOLE Handbook 2024 ch.14 §C (customer input): the authorised cause. Labour-saving devices, redundancy and an impossible reinstatement pay a month a year; retrenchment, a closure not due to serious losses, disease, a security guard without assignment for six months (DO 150-16) and a contractor’s worker without assignment for three months (DO 174-17 s.13) half a month a year, at least a month; a closure due to serious losses pays none. A bona fide suspension of operations past six months (art.301; DO 215-20) is retrenchment pay, half a month a year."
+				},
+				"terminated_for_disease": {
+					"type": "boolean",
+					"description": "Labor Code art.299: separation pay of one month or half a month a year, whichever is greater."
+				},
+				"kasambahay_unjust_dismissal": {
+					"type": "boolean",
+					"description": "RA 10361 s.32: fifteen days’ pay as indemnity."
+				},
+				"kasambahay_unjustified_departure": {
+					"type": "boolean",
+					"description": "RA 10361 s.32: up to fifteen days’ unpaid salary forfeited."
+				}
+			}
+		},
+		"entity_extension_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "PH entity extension data",
+			"description": "entity_extension_data. `region` names the workplace key in the WTAX minimum-wage tables: a `minimum_wage_by_region` key, or a `minimum_wage_domestic` key for a household employer.",
+			"additionalProperties": false,
+			"properties": {
+				"region": {
+					"type": "string",
+					"title": "Wage-order region key",
+					"description": "Customer input. The minimum-wage table key for the workplace: a `minimum_wage_by_region` key, or a `minimum_wage_domestic` key for a household employer. Unrecorded, the minimum-wage-earner exemption cannot apply."
+				},
+				"small_establishment": {
+					"type": "boolean",
+					"title": "Regularly fewer than ten employees",
+					"description": "Labor Code art.95(b); Omnibus Rules Book III Rule V s.1(e): outside service incentive leave."
+				},
+				"retirement_exempt_establishment": {
+					"type": "boolean",
+					"title": "Retail, service or agricultural establishment of ten or fewer",
+					"description": "Labor Code art.302 (RA 7641): outside retirement pay."
+				},
+				"bmbe_certificate_of_authority": {
+					"type": "boolean",
+					"default": false,
+					"title": "Certified BMBE",
+					"description": "RA 9178 s.8: a Barangay Micro Business Enterprise with a current Certificate of Authority is exempt from the Minimum Wage Law, so its non-household employees are not minimum wage earners for WTAX."
+				},
+				"bir_rdo_code": {
+					"type": "string",
+					"title": "BIR Revenue District Office"
+				},
+				"hdmf_remittance_group": {
+					"type": "integer",
+					"enum": [1, 2, 3, 4],
+					"title": "Pag-IBIG remittance group",
+					"description": "HDMF Circular 275 §E.2: the first letter of the employer’s registered name picks the window in the month after the period — 1 = A–D (10th–14th), 2 = E–L (15th–19th), 3 = M–Q (20th–24th), 4 = R–Z or a numeral (25th to month-end). Unrecorded, the earliest window governs."
+				},
+				"nsd_small_retail_exempt": {
+					"type": "boolean",
+					"default": false,
+					"title": "Retail or service establishment of five workers or fewer",
+					"description": "DOLE Handbook 2024 ch.5 §B.2 (Labor Code art.86; Omnibus Rules Book III Rule II s.1): outside the night-shift differential. Unrecorded, the differential is paid."
+				},
+				"minimum_wage_exemption_approved": {
+					"type": "boolean",
+					"default": false,
+					"title": "Exempted from the wage order by the regional board",
+					"description": "RA 6727 s.4(c): an establishment the regional wages board exempted from the wage order in force. Unrecorded, no exemption."
+				},
+				"retail_or_service_establishment": {
+					"type": "boolean",
+					"default": false,
+					"title": "Retail or service establishment",
+					"description": "Customer input. With the entity’s headcount: holiday pay excludes one regularly employing fewer than ten (Omnibus Rules Book III Rule IV s.1(b)), the night-shift differential one of five or fewer."
+				},
+				"maternity_differential_exempt": {
+					"type": "boolean",
+					"default": false,
+					"title": "Exempt from the maternity salary differential",
+					"description": "Customer input. RA 11210 s.5(c) and IRR Rule VI: distressed, retail/service of ten or fewer, micro business, or already paying the equivalent."
+				},
+				"collects_service_charges": {
+					"type": "boolean",
+					"default": false,
+					"title": "Collects service charges",
+					"description": "Customer input. Labor Code art.96 as amended by RA 11360: hotels, restaurants and similar establishments."
+				},
+				"wage_payment_conditions_met": {
+					"type": "boolean",
+					"title": "Cheque or bank payment conditions met",
+					"description": "Customer input, one per establishment. Omnibus Rules Book III Rule VIII s.2: payment of wages by cheque, money order, bank transfer or e-wallet is customary since the Code took effect or stipulated in a CBA, or all hold — an encashment facility within one kilometre of the workplace, no pecuniary benefit to the employer, reasonable paid time to withdraw, and the employees’ written consent."
+				},
+				"bir_qualified_retirement_plan": {
+					"type": "boolean",
+					"default": false,
+					"title": "BIR-qualified retirement plan",
+					"description": "Customer input: the employer maintains a reasonable private benefit plan the BIR has approved as tax-qualified (NIRC s.32(B)(6)(a), RA 4917)."
+				},
+				"processes_sensitive_pi_1000": {
+					"type": "boolean",
+					"title": "Processes sensitive personal information of 1,000 or more individuals",
+					"description": "Customer input (NPC Circular 2022-04 s.5): mandatory NPC registration below 250 employees."
+				},
+				"npc_registered_on": {
+					"type": "string",
+					"format": "date",
+					"title": "NPC registration date",
+					"description": "Customer input: the issue date of the current NPC Certificate of Registration (NPC Circular 2022-04 s.18: valid one year, renewed in the thirty days before it expires)."
+				},
+				"npc_processing_likely_risk": {
+					"type": "boolean",
+					"title": "NPC processing likely poses risk to data subjects",
+					"description": "Qualified external review under NPC Circular2022-04 s.5: processing likely poses risk to rights and freedoms; includes non-payroll data subjects and operations."
+				},
+				"npc_automated_decisions_or_profiling": {
+					"type": "boolean",
+					"title": "Uses automated decision-making or profiling",
+					"description": "Actual processing qualification under NPC Circular2022-04 s.5(A), not whether payroll merely uses formula calculations. Register and notify the qualifying processing even below population thresholds."
+				}
+			}
+		},
+		"lookup": {
+			"rounding": "HALF_UP",
+			"rounding_scale": 2
+		},
+		"status": "SEALED"
+	}
+]

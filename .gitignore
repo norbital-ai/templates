@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output. Migrations are authored and stay tracked.
+**/build/
+**/.svelte-kit/
+**/.norbital/
+*.tsbuildinfo
+
+# Package-manager lockfiles other than the committed bun lockfiles
+**/package-lock.json
+**/yarn.lock
+
+# Tool caches and reports
+.turbo/
+**/.svelte-check/
+.tmp/
+/dist/
+coverage/
+test-results/
+.vite/
+.vitest/
+.vitest-attachments/
+.impeccable/
+
+# Environment and local files
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+*.log
+vite.config.*.timestamp-*

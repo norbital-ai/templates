@@ -1,0 +1,40 @@
+[
+	{
+		"code": "EXPENSE_REIMBURSEMENT",
+		"name": "立替経費精算 (expense reimbursement)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "A reimbursement of a business expense the employee paid is not remuneration (健康保険法 art.3(5): 労働の対償), not a wage and not salary income; it is paid outside gross pay against receipts."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "9a9b279d-f9f4-5374-ab58-4f4c32560a1f",
+		"eligibility": "// js\nconst ended = ctx.subject.employment.effective_range?.to;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
+		"conversion": "// js\nreturn ctx.entry.unit === 'MONEY' ? ctx.entry.quantity : 0;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "f557dae5-ed15-595e-960f-5a9591007b5f",
+		"settings_id": "9a8f3abb-412b-568c-b068-065d6033be69"
+	},
+	{
+		"code": "BUSINESS_TRAVEL",
+		"name": "出張旅費 (business travel expenses)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "所得税法 art.9(1)(iv): travel expenses for business travel within what is ordinarily necessary are not taxable; not remuneration or wages."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "9a9b279d-f9f4-5374-ab58-4f4c32560a1f",
+		"eligibility": "// js\nconst ended = ctx.subject.employment.effective_range?.to;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
+		"conversion": "// js\nreturn ctx.entry.unit === 'MONEY' ? ctx.entry.quantity : 0;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "5d1264ce-f96b-5285-bc6f-96cbbf0c94ef",
+		"settings_id": "9a8f3abb-412b-568c-b068-065d6033be69"
+	}
+]

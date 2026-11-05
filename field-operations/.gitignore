@@ -1,0 +1,9 @@
+node_modules/
+
+# Generated workspace state; never committed.
+.norbital/
+
+.pi/
+.svelte-check/
+.tmp/
+.vite/

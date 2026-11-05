@@ -1,0 +1,704 @@
+[
+	{
+		"code": "bonus",
+		"name": "獎金 (bonus)",
+		"description": "The entry quantity is the bonus paid. Whether it is work remuneration or a nonregular award stays with the payroll source and the income-tax and health-insurance schemes; the payment itself is a gross earning.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "健保法 §31(1): a bonus from the employer counts toward the supplementary premium above four times the insured amount; 所得稅法 §14: taxable salary income, so it is withheld (INCOME_TAX_BONUS / INCOME_TAX_NON_RESIDENT) and enters the unit’s §34 salary total (全民健康保險法 §34: 每月支付之薪資所得總額, 所得稅格式代號 50 — bonuses included)."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "ad234c0a-bb0a-551b-8dd9-90cea9bff8cc",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "d0a559ac-4720-5f11-b293-d60850ecf142",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "SEVERANCE_PAY",
+		"name": "資遣費 (severance pay)",
+		"description": "The entry quantity is the average monthly wage under LSA §2(4). Old-system service before 1 July 2005 pays one month per year and the remainder under the new system half a month per year, capped at six months; a recorded old-system service figure in the employment's extension data replaces the pre-Act default.",
+		"lookup": {
+			"calendar_days": 30,
+			"months_per_year": 12,
+			"new_months_per_year": 0.5,
+			"new_cap_months": 6,
+			"old_months_per_year": 1,
+			"old_system_cutoff": "2005-07-01",
+			"grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20"]
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §17(1)(2) with §2: one month's average wage for each year of the old-system service, half a month for the new system, capped at six months.",
+				"locator": "§17",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=17"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "1282c61e-b91a-5bdd-a294-2ef28db6765b",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "const ground = get(\n\tctx.subject.employment,\n\t'employee_extension_data.exit_facts.lsa_termination_ground',\n\tnull\n);\nreturn (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.lookup.grounds.includes(ground) &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst end = ctx.entry.incurred_on;\nconst months = calendar_completed_months(start, add_days(end, 1));\nconst tail = calendar_distance_days(add_months(start, months), add_days(end, 1));\nconst total = months + tail / ctx.lookup.calendar_days;\nconst cutoff = ctx.lookup.old_system_cutoff;\nconst cutoffEnd = add_days(cutoff, -1);\nconst oldEnd = end < cutoffEnd ? end : cutoffEnd;\nconst oldMonths = start <= oldEnd\n\t? calendar_completed_months(start, add_days(oldEnd, 1)) +\n\t\tcalendar_distance_days(add_months(start, calendar_completed_months(start, add_days(oldEnd, 1))), add_days(oldEnd, 1)) /\n\t\t\tctx.lookup.calendar_days\n\t: 0;\nconst recorded = get(ctx.subject.employment, 'employee_extension_data.exit_facts.old_system_service_months', null);\nconst old = start <= cutoffEnd ? Math.min(total, recorded == null ? oldMonths : recorded) : 0;\nconst fresh = Math.max(0, total - old);\nreturn (\n\tctx.entry.quantity *\n\t((Math.ceil(old) * ctx.lookup.old_months_per_year) / ctx.lookup.months_per_year +\n\t\tMath.min(ctx.lookup.new_cap_months, (fresh * ctx.lookup.new_months_per_year) / ctx.lookup.months_per_year))\n);",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "87f296de-9b6b-53e2-bbb1-43b0d226d15f",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "NOTICE_PAY",
+		"name": "預告期間工資 (notice pay)",
+		"description": "The entry quantity is the average daily wage under LSA §2(4). The statutory notice period steps with completed service; the employment model holds no served-notice evidence, so the catalogue pays the statutory period in full and the payroll source records any notice actually given.",
+		"lookup": {
+			"calendar_days": 30,
+			"service_bands": [
+				{
+					"months": 3,
+					"days": 10
+				},
+				{
+					"months": 12,
+					"days": 20
+				},
+				{
+					"months": 36,
+					"days": 30
+				}
+			],
+			"grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_20"]
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §16(1): ten days of notice after three months, twenty after one year, thirty after three years, paid as wages in lieu.",
+				"locator": "§16",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "1282c61e-b91a-5bdd-a294-2ef28db6765b",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "const ground = get(\n\tctx.subject.employment,\n\t'employee_extension_data.exit_facts.lsa_termination_ground',\n\tnull\n);\nreturn (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.lookup.grounds.includes(ground) &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "const months = calendar_completed_months(\n\tctx.subject.employment.effective_range.from,\n\tadd_days(ctx.entry.incurred_on, 1)\n);\nconst band = ctx.lookup.service_bands.filter((row) => months >= row.months).at(-1);\nconst daily = Math.max(ctx.entry.quantity, ctx.base_pay / ctx.lookup.calendar_days);\nreturn daily * (band == null ? 0 : band.days);",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "4b751923-7e32-5a0b-832b-bf43f440564d",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "RETIREMENT_PAY",
+		"name": "舊制退休金 (old-system retirement pay)",
+		"description": "The entry quantity is the average monthly wage. Old-system service pays two months per year for the first fifteen years and one thereafter, capped at forty-five months; the statutory age and service bands select the entitlement and a duty-caused disability carries the statutory uplift.",
+		"lookup": {
+			"calendar_days": 30,
+			"old_system_cutoff": "2005-07-01",
+			"first_years": 15,
+			"first_rate": 2,
+			"later_rate": 1,
+			"cap_months": 45,
+			"tail_threshold_months": 6,
+			"long_tail_years": 1,
+			"short_tail_years": 0.5,
+			"duty_disability_uplift": 1.2,
+			"eligibility": [
+				{
+					"months": 180,
+					"age": 55
+				},
+				{
+					"months": 120,
+					"age": 60
+				},
+				{
+					"months": 0,
+					"age": 65
+				},
+				{
+					"months": 300,
+					"age": null
+				}
+			],
+			"months_per_year": 12
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §55(1)(1)–(2): two months' average wages for each of the first fifteen years of old-system service, one for each year after, capped at forty-five months.",
+				"locator": "§55",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "1282c61e-b91a-5bdd-a294-2ef28db6765b",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "const birth = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nif (birth == null) return false;\nconst age = age_on(birth, ctx.entry.incurred_on);\nconst months = calendar_completed_months(\n\tctx.subject.employment.effective_range.from,\n\tadd_days(ctx.entry.incurred_on, 1)\n);\nconst disability = get(ctx.subject.employment, 'employee_extension_data.exit_facts.retirement_disability', false) === true;\nreturn (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from &&\n\t(disability ||\n\t\tctx.lookup.eligibility.some(\n\t\t\t(band) => months >= band.months && (band.age == null || age >= band.age)\n\t\t))\n);",
+		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst end = ctx.entry.incurred_on < ctx.lookup.old_system_cutoff\n\t? ctx.entry.incurred_on\n\t: add_days(ctx.lookup.old_system_cutoff, -1);\nconst months = calendar_completed_months(start, add_days(end, 1));\nconst tail = calendar_distance_days(add_months(start, months), add_days(end, 1));\nconst total = months + tail / ctx.lookup.calendar_days;\nconst recorded = get(ctx.subject.employment, 'employee_extension_data.exit_facts.old_system_service_months', null);\nconst old = start < ctx.lookup.old_system_cutoff ? Math.min(total, recorded == null ? total : recorded) : 0;\nconst years = Math.floor(old / ctx.lookup.months_per_year);\nconst remainder = old - years * ctx.lookup.months_per_year;\nconst credited =\n\tyears +\n\t(remainder === 0\n\t\t? 0\n\t\t: remainder < ctx.lookup.tail_threshold_months\n\t\t\t? ctx.lookup.short_tail_years\n\t\t\t: ctx.lookup.long_tail_years);\nconst units = Math.min(\n\tctx.lookup.cap_months,\n\tMath.min(ctx.lookup.first_years, credited) * ctx.lookup.first_rate +\n\t\tMath.max(0, credited - ctx.lookup.first_years) * ctx.lookup.later_rate\n);\nconst uplift = get(ctx.subject.employment, 'employee_extension_data.exit_facts.retirement_disability_duty_caused', false) === true\n\t? ctx.lookup.duty_disability_uplift\n\t: 1;\nreturn ctx.entry.quantity * units * uplift;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "24029441-ef35-5734-ace0-276ad308bb68",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_INJURY_OFFSET",
+		"name": "職業災害補償抵充 (§59 insurance offset)",
+		"description": "The entry quantity is the insurer benefit the employer elects to offset against its §59 compensation for the same accident. A net-pay deduction that leaves every wage and insured base untouched.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "勞動基準法 §59 proviso: compensation already paid by labour or occupational-accident insurance from the employer's premiums, or under another law, is deducted.",
+				"locator": "§59",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3f8e6aad-4ec5-5a63-a17d-a89b1c038288",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "c79e1ebd-e950-575b-a5bc-755d5e3e262d",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "COURT_GARNISHMENT",
+		"name": "法院扣押薪資 (court wage garnishment)",
+		"description": "The entry quantity is the amount the served attachment order fixes for the period. A net-pay deduction; the order's one-third ceiling and the debtor's reserved living costs bind the court, not this catalogue.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "強制執行法 §115-1: 對於薪資或其他繼續性給付之債權所為強制執行…其效力及於扣押後應受及增加之給付; the attachment order on 自然人因提供勞務而獲得之繼續性報酬債權 不得逾各期給付數額三分之一, unless the execution court, weighing both sides' circumstances, departs from that ratio while reserving the debtor's 生活費用; under a 移轉命令 the employer (third-party garnishee) pays the attached portion to the creditor, otherwise as the order directs. §115-1 predates every version. The one-third ceiling binds the court's order, not the employer: the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: law silent on how the garnishee books the deduction; default a net-pay deduction after every statutory line, touching no wage, insured, pension or tax base — lawful because the attached claim is the worker's wage itself, so tax and insurance stay on the whole wage (所得稅法 §14, 勞保條例 §14). Remittance to the creditor or court is an external payment.",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3f8e6aad-4ec5-5a63-a17d-a89b1c038288",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "cae2074c-a8d1-5c0f-adce-9c0523297ec1",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_INJURY_MEDICAL",
+		"name": "職業災害醫療費用補償 (§59(1) medical costs)",
+		"description": "The entry quantity is the necessary medical cost incurred and evidenced by its receipt.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(1): the employer bears the necessary medical expenses of an occupational injury or disease.",
+				"locator": "§59(1)(1)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "a6fb827a-b3fd-5f77-8814-82bd4deb9c23",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_INJURY_LUMP_SUM",
+		"name": "職業災害四十個月平均工資 (§59(2) proviso lump sum)",
+		"description": "The entry quantity is the average monthly wage. §59(2) proviso pays forty months where treatment exceeds two years, original capacity is lost and no disability benefit is due; an insurer benefit is offset through OCC_INJURY_OFFSET.",
+		"lookup": {
+			"months": 40
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(2): the employer may settle the occupational-injury compensation in one lump sum of forty months' average wages.",
+				"locator": "§59(2)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.months;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "869ab688-d337-56a4-b5dc-59a0354e0895",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_DISABILITY_G01",
+		"name": "職業災害失能補償 第1等級 (§59(3) disability, grade 1)",
+		"description": "The entry quantity is the average daily wage. Grade 1 disability under §59(3) pays 1800 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
+		"lookup": {
+			"days": 1800
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(2) with 勞工保險失能給付標準 §5: disability compensation pays the listed days of the average wage for the assessed grade.",
+				"locator": "§59(1)(2)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "105d364a-4c83-5d25-8069-9932ee9a1ac8",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_DISABILITY_G02",
+		"name": "職業災害失能補償 第2等級 (§59(3) disability, grade 2)",
+		"description": "The entry quantity is the average daily wage. Grade 2 disability under §59(3) pays 1500 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
+		"lookup": {
+			"days": 1500
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(2) with 勞工保險失能給付標準 §5: disability compensation pays the listed days of the average wage for the assessed grade.",
+				"locator": "§59(1)(2)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "d4860299-466e-520e-9a87-121491ac3bbe",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_DISABILITY_G03",
+		"name": "職業災害失能補償 第3等級 (§59(3) disability, grade 3)",
+		"description": "The entry quantity is the average daily wage. Grade 3 disability under §59(3) pays 1260 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
+		"lookup": {
+			"days": 1260
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(2) with 勞工保險失能給付標準 §5: disability compensation pays the listed days of the average wage for the assessed grade.",
+				"locator": "§59(1)(2)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "8ea1dc4c-25d3-5eb1-b2bd-9bd2f9f8ea66",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_DISABILITY_G04",
+		"name": "職業災害失能補償 第4等級 (§59(3) disability, grade 4)",
+		"description": "The entry quantity is the average daily wage. Grade 4 disability under §59(3) pays 1110 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
+		"lookup": {
+			"days": 1110
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(2) with 勞工保險失能給付標準 §5: disability compensation pays the listed days of the average wage for the assessed grade.",
+				"locator": "§59(1)(2)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "d7979bab-46ed-5eed-885e-f1fa395f38ac",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_DISABILITY_G05",
+		"name": "職業災害失能補償 第5等級 (§59(3) disability, grade 5)",
+		"description": "The entry quantity is the average daily wage. Grade 5 disability under §59(3) pays 960 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
+		"lookup": {
+			"days": 960
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(2) with 勞工保險失能給付標準 §5: disability compensation pays the listed days of the average wage for the assessed grade.",
+				"locator": "§59(1)(2)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "3f819501-2350-501b-aca0-c0653483493a",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_DISABILITY_G06",
+		"name": "職業災害失能補償 第6等級 (§59(3) disability, grade 6)",
+		"description": "The entry quantity is the average daily wage. Grade 6 disability under §59(3) pays 810 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
+		"lookup": {
+			"days": 810
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(2) with 勞工保險失能給付標準 §5: disability compensation pays the listed days of the average wage for the assessed grade.",
+				"locator": "§59(1)(2)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "79370ac2-b59b-566c-9526-0230ef766e24",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_DISABILITY_G07",
+		"name": "職業災害失能補償 第7等級 (§59(3) disability, grade 7)",
+		"description": "The entry quantity is the average daily wage. Grade 7 disability under §59(3) pays 660 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
+		"lookup": {
+			"days": 660
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(2) with 勞工保險失能給付標準 §5: disability compensation pays the listed days of the average wage for the assessed grade.",
+				"locator": "§59(1)(2)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "98547a60-33a6-512c-bbbf-8d4d25040404",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_DISABILITY_G08",
+		"name": "職業災害失能補償 第8等級 (§59(3) disability, grade 8)",
+		"description": "The entry quantity is the average daily wage. Grade 8 disability under §59(3) pays 540 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
+		"lookup": {
+			"days": 540
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(2) with 勞工保險失能給付標準 §5: disability compensation pays the listed days of the average wage for the assessed grade.",
+				"locator": "§59(1)(2)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "665c7973-e36f-5921-beef-3b71f763f16a",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_DISABILITY_G09",
+		"name": "職業災害失能補償 第9等級 (§59(3) disability, grade 9)",
+		"description": "The entry quantity is the average daily wage. Grade 9 disability under §59(3) pays 420 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
+		"lookup": {
+			"days": 420
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(2) with 勞工保險失能給付標準 §5: disability compensation pays the listed days of the average wage for the assessed grade.",
+				"locator": "§59(1)(2)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "cca4b317-ee2c-57f8-a03b-509bfa398f8c",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_DISABILITY_G10",
+		"name": "職業災害失能補償 第10等級 (§59(3) disability, grade 10)",
+		"description": "The entry quantity is the average daily wage. Grade 10 disability under §59(3) pays 330 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
+		"lookup": {
+			"days": 330
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(2) with 勞工保險失能給付標準 §5: disability compensation pays the listed days of the average wage for the assessed grade.",
+				"locator": "§59(1)(2)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "b8423587-896a-5378-abdf-2aedc693ca61",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_DISABILITY_G11",
+		"name": "職業災害失能補償 第11等級 (§59(3) disability, grade 11)",
+		"description": "The entry quantity is the average daily wage. Grade 11 disability under §59(3) pays 240 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
+		"lookup": {
+			"days": 240
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(2) with 勞工保險失能給付標準 §5: disability compensation pays the listed days of the average wage for the assessed grade.",
+				"locator": "§59(1)(2)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "d8a80300-f2a4-563d-9926-dba4eac12584",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_DISABILITY_G12",
+		"name": "職業災害失能補償 第12等級 (§59(3) disability, grade 12)",
+		"description": "The entry quantity is the average daily wage. Grade 12 disability under §59(3) pays 150 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
+		"lookup": {
+			"days": 150
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(2) with 勞工保險失能給付標準 §5: disability compensation pays the listed days of the average wage for the assessed grade.",
+				"locator": "§59(1)(2)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "ffcf6e26-43ba-52d1-9f98-6dc835ba08c2",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_DISABILITY_G13",
+		"name": "職業災害失能補償 第13等級 (§59(3) disability, grade 13)",
+		"description": "The entry quantity is the average daily wage. Grade 13 disability under §59(3) pays 90 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
+		"lookup": {
+			"days": 90
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(2) with 勞工保險失能給付標準 §5: disability compensation pays the listed days of the average wage for the assessed grade.",
+				"locator": "§59(1)(2)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "a84ae84e-aee9-5efa-9cdf-7ccabaf14083",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_DISABILITY_G14",
+		"name": "職業災害失能補償 第14等級 (§59(3) disability, grade 14)",
+		"description": "The entry quantity is the average daily wage. Grade 14 disability under §59(3) pays 60 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
+		"lookup": {
+			"days": 60
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(2) with 勞工保險失能給付標準 §5: disability compensation pays the listed days of the average wage for the assessed grade.",
+				"locator": "§59(1)(2)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "4913efa5-588c-595f-8671-b62fd8a1be3c",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_DISABILITY_G15",
+		"name": "職業災害失能補償 第15等級 (§59(3) disability, grade 15)",
+		"description": "The entry quantity is the average daily wage. Grade 15 disability under §59(3) pays 45 days of that wage; an insurer disability benefit is offset through OCC_INJURY_OFFSET.",
+		"lookup": {
+			"days": 45
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(2) with 勞工保險失能給付標準 §5: disability compensation pays the listed days of the average wage for the assessed grade.",
+				"locator": "§59(1)(2)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.days;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "eb923284-3b01-5e3f-9742-4f87815b1520",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_DEATH_FUNERAL",
+		"name": "職業災害喪葬費 (§59(4) funeral costs)",
+		"description": "The entry quantity is the average monthly wage. §59(4) pays five months for the necessary funeral costs of an occupational death.",
+		"lookup": {
+			"months": 5
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(4): five months' average wages for funeral expenses.",
+				"locator": "§59(1)(4)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "const death = get(\n\tctx.subject.employment,\n\t'employee_extension_data.exit_facts.occupational_death',\n\tfalse\n);\nreturn (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tdeath === true &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.months;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "2efc3c76-df1e-5b8d-b6b2-4c4f04e884c3",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "OCC_DEATH_COMPENSATION",
+		"name": "職業災害死亡補償 (§59(4) death compensation)",
+		"description": "The entry quantity is the average monthly wage. §59(4) pays forty months as death compensation for an occupational death.",
+		"lookup": {
+			"months": 40
+		},
+		"references": [
+			{
+				"title": "勞動基準法 §59(1)(4): forty months' average wages as death compensation.",
+				"locator": "§59(1)(4)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "const death = get(\n\tctx.subject.employment,\n\t'employee_extension_data.exit_facts.occupational_death',\n\tfalse\n);\nreturn (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tdeath === true &&\n\tctx.entry.incurred_on >= ctx.subject.employment.effective_range.from\n);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.months;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "10205e79-296d-5e24-b513-0cf6ce43d90f",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "FOOD_LODGING",
+		"name": "膳宿費 (migrant worker food and lodging)",
+		"description": "The entry quantity is the monthly food-and-lodging charge. The agreed monthly cap recorded in the employment's extension data limits it.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "雇主聘僱外國人許可及管理辦法 and the 外國人入國工作費用及工資切結書: food and lodging may be deducted from a migrant worker’s wage only as the signed declaration states; the FOOD_LODGING_CAP validation refuses a month above employee.facts.food_lodging_monthly_cap (the declared amount)."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3f8e6aad-4ec5-5a63-a17d-a89b1c038288",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "const cap = get(ctx.subject.employment, 'employee_extension_data.facts.food_lodging_monthly_cap', null);\nreturn (\n\tcap != null &&\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.quantity <= cap\n);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "7130762f-a62c-5bf8-919e-c7ec6d0607dd",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "NON_COMPETE_COMPENSATION",
+		"name": "離職後競業禁止補償 (non-compete compensation, monthly after exit)",
+		"description": "The entry quantity is the monthly compensation agreed for the post-exit restriction, payable after the contract ends and within the two-year statutory restriction period.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "勞動基準法 §9-1(1)(4), (2): a post-employment non-compete needs reasonable compensation and lasts at most two years.",
+				"locator": "§9-1",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=9-1"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "const end = get(ctx.subject.employment.effective_range, 'to', null);\nreturn (\n\tend != null &&\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on > end &&\n\tctx.entry.incurred_on <= add_years(end, ctx.lookup.restriction_years)\n);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "9d2ddd9b-6220-5922-af27-0f0ec79e719e",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
+		"code": "NON_COMPETE_LUMP_SUM",
+		"name": "離職後競業禁止補償一次給付 (non-compete compensation, one sum after exit)",
+		"description": "The entry quantity is the one-sum compensation agreed for the post-exit restriction, payable after the contract ends.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "勞動基準法 §9-1(1)(4), (2): a post-employment non-compete needs reasonable compensation and lasts at most two years.",
+				"locator": "§9-1",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=9-1"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7f26b4d6-07cd-54a0-869e-7877f81c667c",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "const end = get(ctx.subject.employment.effective_range, 'to', null);\nreturn (\n\tend != null &&\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on > end\n);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "af3217b0-853b-53e8-8192-cfef26aba2c3",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	}
+]

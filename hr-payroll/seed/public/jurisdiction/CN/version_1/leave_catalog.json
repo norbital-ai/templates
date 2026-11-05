@@ -1,0 +1,712 @@
+[
+	{
+		"code": "ANNUAL_LEAVE",
+		"name": "带薪年休假 (paid annual leave)",
+		"description": "Statutory5/10/15-day grant and365-day joining/leaving proration. A matching terms.facts.annual_leave_year_reviews row is required; it records current and following-year disqualification under 实施办法第八条. Preserve already-consumed signed ledger units so a later disqualification never makes the ledger negative. Year-end: extra200% pays unwaived/undeferred units. A valid personal written refusal consumes its reviewed current-year units with a negative ADJUSTMENT and no cash; agreed work-need deferral credits one explicit CARRY_FORWARD movement on1January. Automatic carry is disabled, so old carried units cannot defer twice. Retain review rows for prior years. https://rsj.sh.gov.cn/trlzyhshbzbgz_17256/20200617/t0035_1388390.html Initial qualification with zero recorded prior service uses the first anniversary as the proration start, not1January. Cumulative prior-service months alone do not establish uninterrupted external service.",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"qualifying_service_months": 12,
+			"service_bands": [
+				{
+					"service_months": 12,
+					"days": 5
+				},
+				{
+					"service_months": 120,
+					"days": 10
+				},
+				{
+					"service_months": 240,
+					"days": 15
+				}
+			],
+			"first_year_proration_days": 365,
+			"carry_forward_years": 1,
+			"carry_limit_days": 0,
+			"sick_leave_disqualification_days": [
+				{
+					"service_months": 12,
+					"days": 60
+				},
+				{
+					"service_months": 120,
+					"days": 90
+				},
+				{
+					"service_months": 240,
+					"days": 120
+				}
+			],
+			"paid_personal_leave_disqualification_days": 20,
+			"school_vacation_offset": true,
+			"monthly_divisor_days": 21.75,
+			"encashment_factor": 2
+		},
+		"references": [
+			{
+				"title": "职工带薪年休假条例 第二条、第三条: 累计工作满1年不满10年5天, 满10年不满20年10天, 满20年15天; 国家法定休假日、休息日不计入."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": null,
+		"id": "cc989a06-8eb6-5a3d-acb0-e253d36b8a57",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "SICK_LEAVE",
+		"name": "病假 / 医疗期 (sick leave and medical treatment period)",
+		"description": "Shanghai: the 沪劳保发〔1995〕83号 scale by service and absence month, at least 80% of the minimum wage. Kunming: 80% of the class minimum wage unless the employer records more. One `facts.event_id` per illness.",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"minimum_wage_floor_share": 0.8,
+			"medical_period_max_months": 24,
+			"shanghai_scale_first_months": 6,
+			"shanghai_scale_first": [
+				{
+					"completed_months": 23,
+					"share": 0.6
+				},
+				{
+					"completed_months": 47,
+					"share": 0.7
+				},
+				{
+					"completed_months": 71,
+					"share": 0.8
+				},
+				{
+					"completed_months": 95,
+					"share": 0.9
+				},
+				{
+					"completed_months": null,
+					"share": 1
+				}
+			],
+			"shanghai_scale_later": [
+				{
+					"completed_months": 11,
+					"share": 0.4
+				},
+				{
+					"completed_months": 35,
+					"share": 0.5
+				},
+				{
+					"completed_months": null,
+					"share": 0.6
+				}
+			]
+		},
+		"references": [
+			{
+				"title": "劳部发〔1994〕479号 第三条 (医疗期); 劳部发〔1995〕309号 第59条 (病假工资不低于最低工资80%); 上海沪劳保发〔1995〕83号 病假工资阶梯; 昆明市工资支付条例 第二十七条."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "3fd23bfd-0eb0-566a-bb4a-2f299dba6471",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "MATERNITY_LEAVE",
+		"name": "产假 (statutory maternity leave)",
+		"description": "Fund-paid (生育津贴): the employer does not pay salary for the days; where the allowance is lower than the salary the city rules decide any top-up (not priced). Metered per birth (`facts.event_id`): 98 days, +15 for a difficult birth (`facts.difficult_birth`), +15 for each further baby (`facts.babies`); a miscarriage (`facts.miscarriage_months`) 15 days under 4 months, 42 from 4.",
+		"pay_treatment": "UNPAID",
+		"lookup": {
+			"fund_paid": true,
+			"grant_days": 98,
+			"difficult_birth_extra_days": 15,
+			"additional_baby_extra_days": 15,
+			"miscarriage_month_threshold": 4,
+			"miscarriage_under_threshold_days": 15,
+			"miscarriage_from_threshold_days": 42
+		},
+		"references": [
+			{
+				"title": "女职工劳动保护特别规定 第七条、第八条: 98天产假, 难产+15天, 多胞胎每多1个+15天; 未满4个月流产15天, 满4个月42天; 生育津贴由基金按单位上年度月平均工资支付."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "03373f88-c8c9-5d27-b4a1-2c70dd318185",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "MATERNITY_EXTENSION",
+		"name": "延长产假 (city extension of maternity leave)",
+		"description": "60 days on top of MATERNITY_LEAVE (158 in all), with the same fund-paid treatment. | 60 days on top of MATERNITY_LEAVE (158 in all). Fund-paid with the maternity allowance.",
+		"pay_treatment": "UNPAID",
+		"lookup": {
+			"fund_paid": true,
+			"days_by_region": [
+				{
+					"region": "SH",
+					"days": 60
+				},
+				{
+					"region": "KM",
+					"days": 60
+				}
+			],
+			"miscarriage_days": 0
+		},
+		"references": [
+			{
+				"title": "上海市人口与计划生育条例 第三十一条; 云南省人口与计划生育条例 第十八条: 符合规定生育的女方延长生育假60天, 与产假合并连续使用, 享受产假同等待遇."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "2434a6c6-1d73-5c0c-8076-b1b7f47e52c6",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "PATERNITY_LEAVE",
+		"name": "陪产假 / 护理假 (paternity leave)",
+		"description": "10 days, taken within the mother's maternity leave, at the normal wage. | 30 days; paid (第三十五条).",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"days_by_region": [
+				{
+					"region": "SH",
+					"days": 10
+				},
+				{
+					"region": "KM",
+					"days": 30
+				}
+			]
+		},
+		"references": [
+			{
+				"title": "上海市人口与计划生育条例 第三十一条 (陪产假10天); 云南省人口与计划生育条例 第十八条 (护理假30天), 按正常出勤工资发给."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "282dc3bd-9d12-550e-bbc2-65c48e929ab2",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "MARRIAGE_LEAVE",
+		"name": "婚假 (national marriage leave, 3 days)",
+		"description": "Up to 3 days at full pay.",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"grant_days": 3
+		},
+		"references": [
+			{
+				"title": "(80)劳总薪字29号 第一条: 婚丧假1至3天, 工资照发."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "37091bfd-77aa-59b9-9030-111d1346abb4",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "MARRIAGE_EXTENSION",
+		"name": "婚假延长 (city extension of marriage leave)",
+		"description": "7 days after MARRIAGE_LEAVE, full pay. | 15 days after MARRIAGE_LEAVE; paid (第三十五条).",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"days_by_region": [
+				{
+					"region": "SH",
+					"days": 7
+				},
+				{
+					"region": "KM",
+					"days": 15
+				}
+			]
+		},
+		"references": [
+			{
+				"title": "上海市人口与计划生育条例 第三十一条 (增加婚假7天); 云南省人口与计划生育条例 第十八条 (增加婚假15天), 享受婚假同等待遇."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "bbf95523-1564-56be-abea-7cbcce06ba7a",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "CHILDCARE_LEAVE",
+		"name": "育儿假 (childcare leave, children under 3)",
+		"description": "5 days a year for each parent for each child under 3, metered per calendar year (the regulation counts each child's year from its birth). | 10 days a year (15 with two or more children under 3); the yearly count is not metered; paid (第三十五条).",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"child_age_limit_years": 3,
+			"per_child_days_by_region": [
+				{
+					"region": "SH",
+					"days": 5
+				}
+			],
+			"days_by_children_by_region": [
+				{
+					"region": "KM",
+					"children": 0,
+					"days": 0
+				},
+				{
+					"region": "KM",
+					"children": 1,
+					"days": 10
+				},
+				{
+					"region": "KM",
+					"children": 2,
+					"days": 15
+				}
+			]
+		},
+		"references": [
+			{
+				"title": "上海市人口与计划生育条例 第三十一条 (每个子女每年5天); 云南省人口与计划生育条例 第十八条 (每年10天, 两个以上不满3周岁子女再增加5天), 按正常出勤工资发给."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "d119fffe-741e-5c68-94b3-95c975fc348f",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "PRENATAL_CHECKUP",
+		"name": "产前检查 (prenatal check-ups in working time)",
+		"description": "Counted as working time, full pay.",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"counts_as_work_time": true
+		},
+		"references": [
+			{
+				"title": "女职工劳动保护特别规定 第六条第三款: 产前检查时间计入劳动时间."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "07fae2d3-787b-51b7-a697-1b119fd1df57",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "BEREAVEMENT_LEAVE",
+		"name": "丧假 (bereavement leave)",
+		"description": "Up to 3 days at full pay.",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"grant_days": 3
+		},
+		"references": [
+			{
+				"title": "(80)劳总薪字29号 第一条: 直系亲属死亡, 酌情给予1至3天丧假, 工资照发."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "2277b0e8-feb6-5fd9-9def-4b570469d582",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "UNPAID_LEAVE",
+		"name": "事假 (unpaid personal leave by agreement)",
+		"description": "Unpaid; priced as no-pay days by the NO_PAY_LEAVE work line.",
+		"pay_treatment": "UNPAID",
+		"lookup": {},
+		"references": [
+			{
+				"title": "工资支付暂行规定 第十一条、第十二条: 仅法定休假和假期支付工资; 事假由双方约定, 无薪."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "a65fef81-60f1-550f-8ced-67379df79e94",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "PERSONAL_LEAVE_PAID",
+		"name": "事假 (personal leave on full pay under the employer's rules)",
+		"description": "Personal leave the employer pays in full; 20 days or more in a calendar year forfeit that year's annual leave (ANNUAL_LEAVE).",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"annual_leave_disqualifying_days": 20
+		},
+		"references": [
+			{
+				"title": "职工带薪年休假条例 第四条(二): 请事假累计20天以上且单位不扣工资的, 不享受当年年休假."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "980a0568-8689-57ed-b451-80e1c63c7f3b",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "WORK_INJURY_LEAVE",
+		"name": "停工留薪期 (paid leave for a work injury)",
+		"description": "Paid in full by the employer; record the accident date as `facts.accident_date` and one `facts.event_id` per injury. Creating the entry raises the 30-day recognition task.",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"max_months": 12,
+			"recognition_application_days": 30
+		},
+		"references": [
+			{
+				"title": "工伤保险条例 第三十三条: 停工留薪期内原工资福利待遇不变, 由单位按月支付, 一般不超过12个月; 第十七条: 30日内申请工伤认定."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "2529a1ff-45c7-5a59-9ad7-2d6f5ede423e",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "SOCIAL_ACTIVITY",
+		"name": "依法参加社会活动 (statutory social activities)",
+		"description": "Paid as normal work.",
+		"pay_treatment": "PAID",
+		"lookup": {},
+		"references": [
+			{
+				"title": "工资支付暂行规定 第十条: 依法参加社会活动期间视同正常劳动支付工资; 昆明市工资支付条例 第二十三条."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "83606de1-5337-5c44-ac02-499ada53e5ce",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "NURSING_BREAK",
+		"name": "哺乳时间 (nursing break, 1 hour a day)",
+		"description": "Counted as working time, recorded in hours.",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"daily_hours": 1,
+			"extra_hours_per_additional_baby": 1,
+			"child_age_limit_years": 1
+		},
+		"references": [
+			{
+				"title": "女职工劳动保护特别规定 第九条第二款: 每天1小时哺乳时间, 多胞胎每多1个婴儿每天增加1小时."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "fbe5b8d3-8a6a-5d1f-ae7b-7b90cdbde8f3",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "PRENATAL_LEAVE",
+		"name": "产前假 (antenatal leave, where the city grants it)",
+		"description": "At most 2.5 months (76 days) per pregnancy (`facts.event_id`); paid at 80% (SICK_PAY_REDUCTION deducts the rest).",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"paid_share_by_region": [
+				{
+					"region": "SH",
+					"share": 0.8
+				}
+			],
+			"days_by_region": [
+				{
+					"region": "SH",
+					"days": 76
+				}
+			]
+		},
+		"references": [
+			{
+				"title": "上海市女职工劳动保护办法 第十二条、第十八条: 妊娠7个月以上可申请产前假2个半月, 工资按80%发给."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "ad73c5f2-cc7e-5a5b-a7a4-0e787fcb7cb7",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "NURSING_LEAVE",
+		"name": "哺乳假 (nursing leave, where the city grants it)",
+		"description": "At most 6.5 months (198 days) per birth; paid at 80%.",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"paid_share_by_region": [
+				{
+					"region": "SH",
+					"share": 0.8
+				}
+			],
+			"days_by_region": [
+				{
+					"region": "SH",
+					"days": 198
+				}
+			]
+		},
+		"references": [
+			{
+				"title": "上海市女职工劳动保护办法 第十六条、第十八条: 哺乳假6个半月, 工资按80%发给."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "b543750b-b581-5443-943f-cddce2d822a2",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "MENSTRUAL_LEAVE",
+		"name": "经期休假 (menstrual-period leave, where the city grants it)",
+		"description": "Per menstrual period (`facts.event_id`), at full pay. Shanghai: 1 day of 公假 for a woman in the work the 办法 lists (`facts.protected_work`), unless the employer moves her to other work for the period. Kunming: 1–2 days for diagnosed severe dysmenorrhoea (`facts.severe_dysmenorrhea_diagnosed`); the Yunnan rule does not state the pay — seeded at full pay, unverified.",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"days_by_region": [
+				{
+					"region": "SH",
+					"days": 1
+				},
+				{
+					"region": "KM",
+					"days": 2
+				}
+			],
+			"requires_by_region": [
+				{
+					"region": "SH",
+					"requires": "PROTECTED_WORK"
+				},
+				{
+					"region": "KM",
+					"requires": "DIAGNOSIS"
+				}
+			]
+		},
+		"references": [
+			{
+				"title": "上海市女职工劳动保护办法 第八条 (保护作业1天公假); 云南省女职工劳动保护特别规定 第九条第三项 (重度痛经确诊后1至2天), 工资照发."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "f832012f-8366-5963-a47c-4325d9d03d7f",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "FAMILY_PLANNING_LEAVE",
+		"name": "计划生育手术假 (family-planning surgery leave)",
+		"description": "Days by `facts.surgery_type` per event; full pay. | Days by `facts.surgery_type` per event; paid by the fund's maternity allowance.",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"paid_share_by_region": [
+				{
+					"region": "SH",
+					"share": 1
+				},
+				{
+					"region": "KM",
+					"share": 0
+				}
+			],
+			"days_by_surgery_by_region": [
+				{
+					"region": "SH",
+					"surgery": "IUD_INSERTION",
+					"days": 2
+				},
+				{
+					"region": "SH",
+					"surgery": "IUD_REMOVAL",
+					"days": 2
+				},
+				{
+					"region": "SH",
+					"surgery": "VASECTOMY",
+					"days": 7
+				},
+				{
+					"region": "SH",
+					"surgery": "TUBAL_LIGATION",
+					"days": 30
+				},
+				{
+					"region": "SH",
+					"surgery": "ABORTION_UNDER_13W",
+					"days": 21
+				},
+				{
+					"region": "SH",
+					"surgery": "ABORTION_13W_PLUS",
+					"days": 30
+				},
+				{
+					"region": "SH",
+					"surgery": "IMPLANT_INSERTION",
+					"days": 5
+				},
+				{
+					"region": "SH",
+					"surgery": "IMPLANT_REMOVAL",
+					"days": 3
+				},
+				{
+					"region": "KM",
+					"surgery": "IUD_INSERTION",
+					"days": 7
+				},
+				{
+					"region": "KM",
+					"surgery": "IUD_REMOVAL",
+					"days": 7
+				},
+				{
+					"region": "KM",
+					"surgery": "TUBAL_LIGATION",
+					"days": 30
+				},
+				{
+					"region": "KM",
+					"surgery": "VASECTOMY",
+					"days": 15
+				},
+				{
+					"region": "KM",
+					"surgery": "TUBAL_RECANALIZATION",
+					"days": 30
+				},
+				{
+					"region": "KM",
+					"surgery": "VAS_RECANALIZATION",
+					"days": 15
+				}
+			]
+		},
+		"references": [
+			{
+				"title": "上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号) 第十九条; 昆明市医保局生育保险政策: 按手术类型给假, 上海按正常出勤工资, 昆明由生育津贴支付."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "948f0a5c-c9ca-5b64-a69d-badb34d66583",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "ELDER_CARE_LEAVE",
+		"name": "独生子女护理假 / 照护假 (parent-care leave)",
+		"description": "5 working days a year, 7 for an only child (`employee.facts.only_child`); paid as normal attendance here (the regulation's pay wording was not read). | 20 days a year for an only child, 10 otherwise; full pay.",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"days_by_region": [
+				{
+					"region": "SH",
+					"days": 5,
+					"only_child_days": 7
+				},
+				{
+					"region": "KM",
+					"days": 10,
+					"only_child_days": 20
+				}
+			]
+		},
+		"references": [
+			{
+				"title": "上海市老年人权益保障条例 (2025年修正): 每年5个工作日, 独生子女7个; 云南省老年人权益保障条例 第二十四条: 独生子女20天, 非独生子女10天, 工资照发."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "6a05dc6e-9580-5359-a375-b80158db9657",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "HOME_LEAVE_SPOUSE",
+		"name": "探亲假 — 探望配偶 (home-visit leave, spouse)",
+		"description": "30 calendar days a year (rest days and holidays inside), plus the travel days granted; full standard wage; state-owned units only, after a year with the employer.",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"service_months": 12,
+			"rolling_months": 12,
+			"grant_days": 30,
+			"state_owned_employer": true
+		},
+		"references": [
+			{
+				"title": "国发〔1981〕36号 第三条、第五条: 探望配偶每年一次30天, 路程假另给, 按本人标准工资发给."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "401bbca3-72fe-548b-ab10-4b8b1d137660",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "HOME_LEAVE_PARENTS",
+		"name": "探亲假 — 未婚职工探望父母 (home-visit leave, unmarried, parents)",
+		"description": "20 calendar days a year plus the travel days granted; none while a two-year 45-day visit falls in the last 24 months.",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"service_months": 12,
+			"rolling_months": 12,
+			"grant_days": 20,
+			"state_owned_employer": true,
+			"marital_status": "UNMARRIED"
+		},
+		"references": [
+			{
+				"title": "国发〔1981〕36号 第三条、第五条: 未婚职工探望父母每年一次20天, 路程假另给, 按本人标准工资发给."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "e2c9b48e-a272-56c3-80a6-eb4b4060f9f3",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "HOME_LEAVE_PARENTS_BIENNIAL",
+		"name": "探亲假 — 未婚职工两年一次探望父母 (home-visit leave, unmarried, parents, every two years)",
+		"description": "45 calendar days once in 24 months, in place of the yearly 20 (the unit could not grant it, or the employee chose a two-year visit); none after a yearly visit in the last 12 months.",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"service_months": 12,
+			"rolling_months": 24,
+			"grant_days": 45,
+			"state_owned_employer": true,
+			"marital_status": "UNMARRIED"
+		},
+		"references": [
+			{
+				"title": "国发〔1981〕36号 第三条、第五条: 未婚职工探望父母可两年一次45天, 路程假另给, 按本人标准工资发给."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "4a28d569-4f73-5d1b-b5bd-5b8ff6fd3763",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "HOME_LEAVE_PARENTS_MARRIED",
+		"name": "探亲假 — 已婚职工探望父母 (home-visit leave, married, parents)",
+		"description": "20 calendar days once in 48 months plus the travel days granted.",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"service_months": 12,
+			"rolling_months": 48,
+			"grant_days": 20,
+			"state_owned_employer": true,
+			"marital_status": "MARRIED"
+		},
+		"references": [
+			{
+				"title": "国发〔1981〕36号 第三条、第五条: 已婚职工探望父母每四年一次20天, 路程假另给, 按本人标准工资发给."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "21f2c03f-94be-550f-8de2-164003b4a062",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	}
+]

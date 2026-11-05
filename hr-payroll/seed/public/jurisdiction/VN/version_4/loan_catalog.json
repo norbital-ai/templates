@@ -1,0 +1,20 @@
+[
+	{
+		"code": "SALARY_ADVANCE",
+		"name": "Tạm ứng tiền lương (salary advance)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": "590c3572-ed5d-522c-af48-b37da2dcfb3c",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "b6a33fe4-6041-50f7-bc14-315f45ed2d4d",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14",
+				"locator": "art.101",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		]
+	}
+]

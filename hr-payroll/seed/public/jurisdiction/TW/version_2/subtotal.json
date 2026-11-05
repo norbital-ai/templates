@@ -1,0 +1,51 @@
+[
+	{
+		"code": "BASIC",
+		"name": "Basic salary (基本工資)",
+		"previous_id": null,
+		"id": "9024327e-547e-5973-8c32-11057843bae1",
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+	},
+	{
+		"code": "ORDINARY_WAGES",
+		"name": "Ordinary wages (經常性給與)",
+		"previous_id": "9024327e-547e-5973-8c32-11057843bae1",
+		"id": "77c1fabe-b4d5-50e2-8538-b8bf3be14b12",
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+	},
+	{
+		"code": "ADDITIONAL_WAGES",
+		"name": "Additional wages (含獎金的應發工資)",
+		"previous_id": "77c1fabe-b4d5-50e2-8538-b8bf3be14b12",
+		"id": "0cd81926-2972-5b54-9613-04a63bad9e09",
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+	},
+	{
+		"code": "GROSS",
+		"name": "Gross earnings (應發工資)",
+		"previous_id": "0cd81926-2972-5b54-9613-04a63bad9e09",
+		"id": "88fcbfe1-135e-5c0d-a3c6-e91a5d0d094a",
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+	},
+	{
+		"code": "RETIREMENT",
+		"name": "Retirement and severance (退休金及資遣費)",
+		"previous_id": "88fcbfe1-135e-5c0d-a3c6-e91a5d0d094a",
+		"id": "d6a4c059-1651-5252-b8cd-d4db5547f9c6",
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+	},
+	{
+		"code": "NET",
+		"name": "Net pay (實發工資)",
+		"previous_id": "31e732f5-b36c-5aef-800a-a95e28ecf995",
+		"id": "d198c3c1-45e9-5452-90ff-ba16fac3fea7",
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+	},
+	{
+		"code": "FINAL_PAY",
+		"name": "Final pay and non-wage settlements",
+		"previous_id": "d6a4c059-1651-5252-b8cd-d4db5547f9c6",
+		"id": "31e732f5-b36c-5aef-800a-a95e28ecf995",
+		"settings_id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"
+	}
+]

@@ -1,0 +1,447 @@
+[
+	{
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (Nghỉ hằng năm)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"carry_windows": 2,
+			"grant": {
+				"value_1": 16,
+				"value_2": 18,
+				"value_3": 14,
+				"value_4": 12,
+				"value_5": 60
+			},
+			"carry_limit": {
+				"value_1": 0
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Decree 145/2020 arts.65-66: exact countable annual-leave service includes protected absences with distinct calendar-month caps. Aggregated attendance cannot reconstruct those caps. A dated annual_leave_service_review supplies countable months; missing/stale review refuses a request and final settlement. No unsupported worked-days approximation remains. The review date must equal the accrual/request date. For a combining agreement, carry_previous_year_days and carry_second_previous_year_days give the reviewed opening balances; the old recursive attendance-based carry approximation is disabled.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2020/12/32732/33806-1-20201203-1204145-2020-nd-cp.pdf"
+			},
+			{
+				"title": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer. art.113(1) twelve, fourteen (arduous, a minor, a person with a disability: `terms.facts.disabled`) or sixteen (especially arduous) days, and art.114 one more for every five years of service with no ceiling (`days` as a number over the person)."
+			}
+		],
+		"id": "560b7161-8b8e-5407-8da2-75084820b702",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (Nghỉ ốm đau)",
+		"pay_treatment": "UNPAID",
+		"lookup": {
+			"grant": {
+				"value_1": 15,
+				"value_2": 30,
+				"value_3": 40,
+				"value_4": 60,
+				"value_5": 10
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day. the bands count years of social-insurance contribution (Law 41/2024 art.43; `facts.SI.since_months`); the days are paid by the fund at 75% of the last contribution salary, not by the employer (`paid_by: FUND`). Law on Social Insurance 2024 art.43(1)(b): the longer bands are for work that is arduous, toxic or dangerous, or especially so (`classification in [ARDUOUS, ESPECIALLY_ARDUOUS]`). An unrecorded si_contribution_years is read as under 15 years: the 30-day band (40 arduous), the least the law grants, until the years are recorded."
+			}
+		],
+		"id": "2d53db70-fd5c-55a2-89cf-524b3cd081c9",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave (Nghỉ thai sản)",
+		"pay_treatment": "UNPAID",
+		"lookup": {
+			"eligibility": {
+				"value_1": 22
+			},
+			"grant": {
+				"value_1": 31,
+				"value_2": 6,
+				"value_3": 6
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months from 1 July 2026 only where the mother had exactly one living biological child at this birth (Population Law 113/2025 art.14(1)(a), Decree 168/2026 art.2(1)(a); `children.natural_surviving_before(event.date) == 1`; complete dated child history is required), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (recorded default). Engine (round 7): calendar days of six months from the first leave day, one month more per further child of the birth, seven months for a second child (entry fact second_child: the mother had exactly one living biological child) (entry facts event_id, children_born); an adoption runs to the child's six months (Law 41/2024 art.56); a man takes it for an adoption, after the mother's death or as the commissioning father (Law 41/2024 arts.53, 56–57; entry fact maternity_case). A second-child birth of twins or more adds the multiple-birth month on top of the seven: Labour Code art.139(1) as amended by Population Law 113/2025/QH15 art.29(1) (“sinh đôi trở lên thì tính từ con thứ hai trở đi, cứ mỗi con, người mẹ được nghỉ thêm 01 tháng”), eight months for second-child twins (Ministry of Home Affairs answer, https://lsvn.vn/bo-noi-vu-giai-dap-ve-truong-hop-duoc-nghi-thai-san-8-thang-a178778.html).",
+				"url": "https://lsvn.vn/bo-noi-vu-giai-dap-ve-truong-hop-duoc-nghi-thai-san-8-thang-a178778.html"
+			}
+		],
+		"id": "84c50a70-0fb3-5e8a-a594-cced5e8e1e97",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave (Nghỉ khi vợ sinh con)",
+		"pay_treatment": "UNPAID",
+		"lookup": {
+			"eligibility": {
+				"value_1": 22,
+				"value_2": 59
+			},
+			"grant": {
+				"value_1": 2,
+				"value_2": 14,
+				"value_3": 3,
+				"value_4": 10,
+				"value_5": 7,
+				"value_6": 5
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Law 41/2024 art.53(2)-(3): five working days; seven for surgery or birth before 32 weeks; twins ten plus three per further child, or fourteen plus three per further child for surgery. The start of the final leave segment must be within 60 days after birth; full benefit-file review remains required.",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
+			},
+			{
+				"title": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth. five working days per birth, seven for a caesarean or a birth before 32 weeks, ten for twins and fourteen for twins by caesarean (Law 41/2024 art.53(2); `event.kind`); paid by the fund (`paid_by: FUND`). From 1 July 2026, Decree 168/2026/NĐ-CP art.2(1)(b) grants ten working days for a second child where the wife had exactly one prior living biological child; the wife’s event-specific count is required for single births, while multiple-birth grants remain higher. Official Gazette.",
+				"url": "https://congbao.chinhphu.vn/van-ban/nghi-dinh-so-168-2026-nd-cp-469560/65154.htm"
+			},
+			{
+				"title": "Law 41/2024 art.53(3), effective 1 July 2025. Every paternity segment must START within the first 60 calendar days, counting the birth/event day as day 1; it may finish later. Exact official BHXH HCMC example published 10 February 2026: birth 10 September 2025 permits starts through 8 November inclusive; 9 November is too late. Eligibility requires the documented benefit_event_on and unique event_id, and checks every entry.from against event+59, not its end date. For qualifying pregnancy loss under art.52(2), record the documented loss event date.",
+				"url": "https://chinhsachonline.chinhphu.vn/vo-sinh-con-chong-duoc-nghi-che-do-the-nao-84217.htm"
+			}
+		],
+		"id": "e5dcab84-9b14-58a9-b88a-c7b01f9b94bf",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave (Nghỉ việc riêng — kết hôn)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"grant": {
+				"value_1": 3
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Labour Code 2019 art.115(1)(a) — three days of paid leave on the employee's own marriage. a grant per event, not per year (art.115: `event.kind`, `event.relationship`)."
+			}
+		],
+		"id": "51d2b4a9-dc53-5fea-8c8a-c18138a2ef41",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "CHILD_MARRIAGE_LEAVE",
+		"name": "Child's marriage leave (Nghỉ việc riêng — con kết hôn)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"grant": {
+				"value_1": 1
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Labour Code 2019 art.115(1)(a) — one day of paid leave on the marriage of the employee's natural or adopted child. a grant per event, not per year (art.115: `event.kind`, `event.relationship`)."
+			}
+		],
+		"id": "7aa3e85f-b2fd-5a6c-b3dd-f6eb472e45b9",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "BEREAVEMENT_LEAVE",
+		"name": "Bereavement leave (Nghỉ việc riêng — tang)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"grant": {
+				"value_1": 3
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Labour Code 2019 art.115(1)(b) — three days of paid leave on the death of a natural or adoptive parent, a parent-in-law, a spouse or a child. a grant per event, not per year (art.115: `event.kind`, `event.relationship`)."
+			}
+		],
+		"id": "77bff16f-0c26-562d-a5a6-7627202868bf",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "BEREAVEMENT_LEAVE_UNPAID",
+		"name": "Unpaid personal leave (Nghỉ không hưởng lương — Điều 115(2))",
+		"pay_treatment": "UNPAID",
+		"lookup": {
+			"grant": {
+				"value_1": 1
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Labour Code 2019 art.115(2) — one day of unpaid leave, on notice to the employer, on the death of a grandparent or a sibling, on a parent's marriage or on a sibling's marriage. a grant per event, not per year (art.115: `event.kind`, `event.relationship`)."
+			}
+		],
+		"id": "7c259c0d-070d-5e1b-83a7-aabf1d2fc156",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "UNPAID_LEAVE",
+		"name": "Nghỉ không hưởng lương theo thỏa thuận (unpaid leave by agreement)",
+		"pay_treatment": "UNPAID",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.115(3) (Official Gazette 993+994 p.50, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf): beyond the art.115(1)–(2) days, the worker may agree with the employer to take unpaid leave; the law sets no length. The days are unpaid (deducted at the working-day rate, work_rules.proration) and each wholly unpaid working day counts toward the 14-day SI/HI/UI month (Law 41/2024/QH15 arts.33(5), 34(3); Law 74/2025/QH15 art.33(4)). Added 2026-09-30: a missing row of unchanged law, fixed in place in every version.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "d3fe9df5-107e-5d73-9957-3822ef6c152b",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "PUBLIC_HOLIDAY",
+		"name": "Public holidays (Nghỉ lễ, tết)",
+		"pay_treatment": "PAID",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Labour Code 2019 art.112(1) — eleven days of paid public holiday a year: New Year's Day, five days of Lunar New Year, Hung Kings Commemoration Day, Reunification Day, International Labour Day and two days of National Day. Twelve from 1 July 2026: Nghị quyết 28/2026/QH16 điều 2 (passed 24 April 2026, in force 1 July 2026) makes 24 November each year Ngày Văn hóa Việt Nam — \"người lao động được nghỉ làm việc và hưởng nguyên lương\", the same formula art.112(1) uses. The resolution stands alone and does NOT amend art.112(1), which still reads eleven; the amendment that would insert it into the Code is a separate draft not yet passed, so both instruments are cited and the count is theirs together."
+			}
+		],
+		"id": "275579f8-01a0-5cc7-9e87-cc628d17c159",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"pay_treatment": "PAID",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"id": "1bc9900c-e735-592f-97a3-9d73cba24362",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14",
+				"locator": "art.112(3)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		]
+	},
+	{
+		"code": "FOREIGN_NATIONAL_LEAVE",
+		"name": "Foreign employee national days (Tết cổ truyền và Quốc khánh của nước họ)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"grant": {
+				"value_1": 2
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Labour Code 2019 art.112(2) — \"Lao động là người nước ngoài làm việc tại Việt Nam ngoài các ngày nghỉ theo quy định tại khoản 1 Điều này còn được nghỉ thêm 01 ngày Tết cổ truyền dân tộc và 01 ngày Quốc khánh của nước họ.\" Two further paid days on top of art.112(1), for a foreign employee only. Seeded as an entitlement of two paid days, which is the whole of it: an event-driven head states a count and the employee takes it when the event falls, exactly as MARRIAGE_LEAVE states three days without a marriage calendar. Nothing here waits on the employee's own country's dates."
+			}
+		],
+		"id": "b6014b05-6a0c-5d71-8b9e-dc16b8eb4840",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "STOPPAGE_WORKER_FAULT",
+		"name": "Work stoppage — the worker’s own fault (Ngừng việc do lỗi của người lao động)",
+		"pay_treatment": "UNPAID",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Labour Code 2019 art.99(2): the worker at fault is not paid. an unpaid day (`paid_share = 0`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): only stoppage not caused by the worker is counted service for severance and annual leave."
+			}
+		],
+		"id": "2a0e9638-b38a-5244-a546-01aeeac61934",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "CHILD_SICK_CARE",
+		"name": "Care of a sick child under 7",
+		"pay_treatment": "UNPAID",
+		"lookup": {
+			"eligibility": {
+				"value_1": 7
+			},
+			"grant": {
+				"value_1": 3,
+				"value_2": 20,
+				"value_3": 15
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Law 41/2024/QH15 art.44: caring for a sick child, at most 20 days a year for a child under 3 and 15 days for a child from 3 to under 7, per child; paid by the SI fund. Entry facts child_id, child_birthdate.",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
+			}
+		],
+		"id": "e4991d46-d3d1-522e-af17-807b865ba1f9",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "PRENATAL_CHECKUP",
+		"name": "Prenatal check-ups",
+		"pay_treatment": "UNPAID",
+		"lookup": {
+			"eligibility": {
+				"value_1": 5,
+				"value_2": 2
+			},
+			"grant": {
+				"value_1": 5,
+				"value_2": 2,
+				"value_3": 3,
+				"value_4": 4,
+				"value_5": 2,
+				"value_6": 10
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Law 41/2024/QH15 art.51",
+				"locator": "art.51",
+				"effective_from": "2025-07-01"
+			}
+		],
+		"id": "d8362e74-6f8d-5eda-bdf3-45028a1deec0",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "MISCARRIAGE_LEAVE",
+		"name": "Miscarriage, abortion or stillbirth",
+		"pay_treatment": "UNPAID",
+		"lookup": {
+			"eligibility": {
+				"value_1": 22
+			},
+			"grant": {
+				"value_1": 22,
+				"value_2": 50,
+				"value_3": 13,
+				"value_4": 40,
+				"value_5": 5,
+				"value_6": 20,
+				"value_7": 10
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Law 41/2024 art.52(2): loss at or beyond 22 weeks with art.50 qualification takes childbirth maternity/paternity leave. Use MATERNITY_LEAVE with maternity_case PREGNANCY_LOSS_AT_22_WEEKS and documented childbirth_benefit_qualified; this ordinary maximum applies only when qualification is explicitly false.",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
+			},
+			{
+				"title": "Law 41/2024 arts.52(3), 57(2), 46(1), 60(1): these continuous benefit-leave durations include weekly rest and public holidays; use calendar days, not working days.",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
+			},
+			{
+				"title": "Law 41/2024/QH15 art.52: 10 days under 5 weeks' gestation, 20 from 5 to under 13, 40 from 13 to under 22, 50 from 22 weeks, rest days included (entry fact gestation_weeks); SI fund.",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
+			}
+		],
+		"id": "eea0a32c-229e-5e2a-b908-60338e46703c",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "CONTRACEPTION_LEAVE",
+		"name": "Contraception measures",
+		"pay_treatment": "UNPAID",
+		"lookup": {
+			"grant": {
+				"value_1": 15,
+				"value_2": 7
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Law 41/2024 art.57: medically prescribed intrauterine device leave up to seven calendar days and sterilisation up to fifteen calendar days, including rest days and public holidays.",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
+			}
+		],
+		"id": "e788e048-b92e-5e25-ad65-935cad2ea822",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "CONVALESCENCE_LEAVE",
+		"name": "Convalescence after sickness or maternity",
+		"pay_treatment": "UNPAID",
+		"lookup": {
+			"grant": {
+				"value_1": 10,
+				"value_2": 7,
+				"value_3": 5
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Law 41/2024 arts.46 and 60: medically justified recovery within the statutory period, at most ten, seven or five continuous calendar days according to the relevant illness/birth/surgery case; SI fund. Rest days and public holidays count. The original references to article 61 were incorrect.",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
+			}
+		],
+		"id": "eb89e97d-dd1c-5c55-a6d2-c6d16eb4d800",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "OCCUPATIONAL_ACCIDENT_LEAVE",
+		"name": "Treatment of an occupational accident or disease",
+		"pay_treatment": "PAID",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.38(3): the employer pays the full contract wage during treatment."
+			}
+		],
+		"id": "20ca6a19-f761-52f0-8b2d-5e6d336eddbe",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "SUSPENSION_PENDING_DISCIPLINE",
+		"name": "Suspension pending discipline",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"grant": {
+				"value_1": 90,
+				"value_2": 15
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"references": [
+			{
+				"title": "Labour Code 2019 art.128(1)–(2): at most 15 days, 90 in special cases (entry fact special_case); 50% of the wage is advanced (work line SUSPENSION_ADVANCE).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "a8d1d4e9-da01-598b-9257-f179a298f04a",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	}
+]

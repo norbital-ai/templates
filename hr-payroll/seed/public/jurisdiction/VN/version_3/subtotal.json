@@ -1,0 +1,51 @@
+[
+	{
+		"code": "BASIC",
+		"name": "Basic salary (Lương cơ bản)",
+		"previous_id": null,
+		"id": "6551221c-17b5-51d8-8392-678affa5a17d",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "ORDINARY_WAGES",
+		"name": "Ordinary wages (Tiền lương thông thường)",
+		"previous_id": "6551221c-17b5-51d8-8392-678affa5a17d",
+		"id": "b6527447-b4e7-5b31-92fa-e7c38a0fbfbb",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "ADDITIONAL_WAGES",
+		"name": "Ordinary pay and bonus (Tiền lương và tiền thưởng)",
+		"previous_id": "b6527447-b4e7-5b31-92fa-e7c38a0fbfbb",
+		"id": "f5e78984-9f4b-5754-8d7f-c9946f427b41",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "GROSS",
+		"name": "Gross earnings (Tổng thu nhập trước khấu trừ)",
+		"previous_id": "f5e78984-9f4b-5754-8d7f-c9946f427b41",
+		"id": "2553237e-044b-5405-8a15-245e1f831b87",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "NET",
+		"name": "Net pay (Thực lĩnh)",
+		"previous_id": "5b43f0d1-25bb-50de-b8dd-00ab6f58af82",
+		"id": "36d140c0-a6cf-58a0-8c59-7c42de45b237",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"id": "2bf81fff-3f16-57ff-9c6f-b2c71d03e85a",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d",
+		"code": "EMPLOYER_COST",
+		"name": "Employer cost",
+		"previous_id": "36d140c0-a6cf-58a0-8c59-7c42de45b237"
+	},
+	{
+		"code": "FINAL_PAY",
+		"name": "Final pay and non-wage settlements",
+		"previous_id": "2553237e-044b-5405-8a15-245e1f831b87",
+		"id": "5b43f0d1-25bb-50de-b8dd-00ab6f58af82",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	}
+]

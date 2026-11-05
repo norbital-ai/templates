@@ -1,0 +1,123 @@
+name: CI
+run-name: ${{ inputs.template && format('CI ({0})', inputs.template) || 'CI' }}
+
+# One workflow, one build per template: the repository's static checks, then each template's install, `bolt check`,
+# ONE `bolt build` and `bolt test` against that build, whose release (bundle, source, seed, each by digest) uploads to R2 under
+# `releases/` on `main`. Nothing reaches a tenant until `env deploy promote --release=<bundle digest>` names it.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      template:
+        description: 'Optional template directory; blank checks all templates'
+        required: false
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# `packages: read` lets every template resolve the published `@norbital-ai/*` versions its own
+# manifest pins. Templates are not workspace members and link nothing locally, so the registry is
+# the only place these come from — here exactly as in a tenant sandbox.
+permissions:
+  contents: read
+  packages: read
+
+env:
+  NORBITAL_PACKAGE_REGISTRY: ${{ vars.NORBITAL_PACKAGE_REGISTRY || 'https://npm.pkg.github.com' }}
+  NODE_AUTH_TOKEN: ${{ secrets.NPM_REGISTRY_TOKEN || secrets.GITHUB_TOKEN }}
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    outputs:
+      templates: ${{ steps.templates.outputs.templates }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          registry-url: https://npm.pkg.github.com
+          scope: '@norbital-ai'
+      # bun reads only a project .npmrc, not the one setup-node writes; it holds the registry token for this step
+      - name: Install repository tooling
+        run: |
+          printf '@norbital-ai:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n' "$NODE_AUTH_TOKEN" > .npmrc
+          bun install --frozen-lockfile --ignore-scripts
+          rm .npmrc
+      - name: Static checks
+        env:
+          TEMPLATE: ${{ inputs.template }}
+        run: |
+          if [ -n "$TEMPLATE" ]; then
+            node_modules/.bin/bolt templates check --filter "$TEMPLATE"
+            node_modules/.bin/prettier --check -- "$TEMPLATE"
+            node_modules/.bin/bolt templates lock --check --filter "$TEMPLATE"
+          else
+            bun run check:static
+          fi
+      - name: List templates
+        id: templates
+        env:
+          TEMPLATE: ${{ inputs.template }}
+        run: |
+          if [ -n "$TEMPLATE" ]; then
+            echo "templates=$(jq -cn --arg template "$TEMPLATE" '[$template]')" >> "$GITHUB_OUTPUT"
+          else
+            echo "templates=$(ls -d */norbital.template.json | cut -d/ -f1 | jq -R . | jq -cs .)" >> "$GITHUB_OUTPUT"
+          fi
+
+  template:
+    needs: static
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        template: ${{ fromJson(needs.static.outputs.templates) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          registry-url: https://npm.pkg.github.com
+          scope: '@norbital-ai'
+      # a template holds no .npmrc (bolt check refuses one): the token lives only for the install
+      - name: Install
+        working-directory: ${{ matrix.template }}
+        run: |
+          printf '@norbital-ai:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n' "$NODE_AUTH_TOKEN" > .npmrc
+          bun install --frozen-lockfile
+          rm .npmrc
+      - name: bolt check
+        working-directory: ${{ matrix.template }}
+        run: bun x bolt check .
+      # the one build: its bundle and public seed pack are what the tests read and what the release uploads
+      - name: bolt build
+        working-directory: ${{ matrix.template }}
+        run: bun x bolt build .
+      - name: bolt test
+        working-directory: ${{ matrix.template }}
+        run: bun x bolt test .
+      - name: Pack the release
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: '"${{ matrix.template }}/node_modules/.bin/bolt" templates publish --filter "${{ matrix.template }}" --out "$RUNNER_TEMP/releases"'
+      # every object is named by its digest: an upload never replaces a different release
+      - name: Upload to R2
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+          R2_RELEASE_BUCKETS: ${{ vars.R2_RELEASE_BUCKETS }}
+        run: |
+          for bucket in $R2_RELEASE_BUCKETS; do
+            aws s3 sync "$RUNNER_TEMP/releases" "s3://$bucket/releases/" --endpoint-url "$R2_ENDPOINT" --size-only
+          done
+          cat "$RUNNER_TEMP"/releases/template/*/*.json

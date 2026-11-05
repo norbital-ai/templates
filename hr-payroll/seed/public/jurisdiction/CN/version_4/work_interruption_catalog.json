@@ -1,0 +1,102 @@
+[
+	{
+		"code": "STOPPAGE_EMPLOYER",
+		"name": "停工停产 (stoppage for the employer's operational reasons)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {
+			"attendance": {
+				"counts_as_attended": true,
+				"scheduled": true
+			},
+			"payment": {
+				"first_pay_cycle": "CONTRACT_STANDARD",
+				"after_first_cycle_worked": "NOT_BELOW_LOCAL_MINIMUM_WAGE",
+				"after_first_cycle_not_worked": "LIVING_ALLOWANCE"
+			}
+		},
+		"references": [
+			{
+				"title": "工资支付暂行规定 第十二条: 一个工资支付周期内按合同标准支付; 超过后提供正常劳动的不低于当地最低工资, 未提供劳动的按国家有关规定 (生活费)."
+			}
+		],
+		"id": "6c8e3f4f-c7b1-56c6-96a3-5285fed0ebca",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	},
+	{
+		"code": "FORCE_MAJEURE",
+		"name": "不可抗力停工 (natural disaster or accident)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {
+			"attendance": {
+				"counts_as_attended": true,
+				"scheduled": true
+			},
+			"payment": {
+				"first_pay_cycle": "CONTRACT_STANDARD",
+				"after_first_cycle_worked": "NOT_BELOW_LOCAL_MINIMUM_WAGE",
+				"after_first_cycle_not_worked": "LIVING_ALLOWANCE"
+			}
+		},
+		"references": [
+			{
+				"title": "工资支付暂行规定 第十二条: 非因劳动者原因停工, 一个工资支付周期内按合同标准支付; 超过后按提供劳动与否分别适用最低工资或生活费."
+			}
+		],
+		"id": "539b51fa-6ecb-58d4-8b66-188fdd05e4b3",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	},
+	{
+		"code": "GOVERNMENT_ORDER",
+		"name": "政府措施停工 (shutdown ordered by a government measure)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {
+			"attendance": {
+				"counts_as_attended": true,
+				"scheduled": true
+			},
+			"payment": {
+				"first_pay_cycle": "CONTRACT_STANDARD",
+				"after_first_cycle_worked": "NOT_BELOW_LOCAL_MINIMUM_WAGE",
+				"after_first_cycle_not_worked": "LIVING_ALLOWANCE"
+			}
+		},
+		"references": [
+			{
+				"title": "工资支付暂行规定 第十二条: 政府措施导致停工, 一个工资支付周期内按合同标准支付; 超过后按提供劳动与否分别适用最低工资或生活费."
+			}
+		],
+		"id": "8f2e3607-7e62-5428-abad-ae63366d1c89",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	},
+	{
+		"code": "EMPLOYEE_CAUSED",
+		"name": "劳动者原因停工 (stoppage caused by the employees)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {
+			"attendance": {
+				"counts_as_attended": false,
+				"scheduled": true
+			},
+			"payment": {
+				"first_pay_cycle": "NONE",
+				"after_first_cycle_worked": "NONE",
+				"after_first_cycle_not_worked": "NONE"
+			}
+		},
+		"references": [
+			{
+				"title": "劳动法 第五十条; 工资支付暂行规定 第十二条 a contrario: 劳动者原因造成的停工不属于该条, 不支付工资."
+			}
+		],
+		"id": "994fc3af-4b92-5cc7-b18d-7985df19e208",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	}
+]

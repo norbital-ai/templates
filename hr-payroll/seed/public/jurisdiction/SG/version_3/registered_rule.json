@@ -1,0 +1,1388 @@
+[
+	{
+		"code": "IR21_FINAL_PAY_HOLD",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 0,
+		"condition": "const employment = get(get(ctx, 'subject', {}), 'employment', {});\nreturn (\n\tget(employment, 'final_pay_due_on', null) != null &&\n\tget(get(employment, 'terms', {}), 'residency_status', '') !== 'CITIZEN'\n);",
+		"validate": "const extension = get(get(get(ctx, 'subject', {}), 'employment', {}), 'employee_extension_data', {});\nreturn (\n\tget(extension, 'exit_facts.ir21_clearance_on', null) != null ||\n\tget(extension, 'exit_facts.ir21_exemption', null) != null\n);",
+		"lookup": {},
+		"references": [
+			{
+				"title": "IRAS Tax Clearance for Employees (verified 2026-10-31)",
+				"url": "https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/tax-clearance-for-employees",
+				"quote": "IRAS Tax Clearance for Employees (verified 2026-10-31): withhold all monies from awareness of impending cessation, irrespective of notice length. A recorded future exit establishes awareness; do not wait for the final salary period. https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/tax-clearance-for-employees"
+			}
+		],
+		"id": "21beca8e-867a-5810-8393-1202e17c2701",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "DEDUCTION_LIMIT",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 1,
+		"reads": {
+			"pay_lines": "Signed payroll line amounts for the salary period, keyed by producer or catalogue code; deductions are negative."
+		},
+		"validate": "const lines = get(get(ctx, 'reads', {}), 'pay_lines', null);\nif (lines === null) return false;\nconst statutory = sum(\n\t['CPF', 'CDAC', 'ECF', 'MBMF', 'SINDA', 'SDL'].map((code) =>\n\t\tNumber(get(get(get(ctx, 'statutory', {}), code, {}), 'employee', 0))\n\t)\n);\nconst excluded = sum(\n\tget(ctx.lookup, 'excluded_codes', []).map((code) => -Number(get(lines, code, 0)))\n);\nreturn (\n\tNumber(get(ctx.entry, 'total_deductions', 0)) - statutory - excluded <=\n\tget(ctx.lookup, 'share', 0.5) * Number(get(ctx.entry, 'gross_earnings', 0))\n);",
+		"lookup": {
+			"share": 0.5,
+			"excluded_codes": [
+				"SALARY_ADVANCE",
+				"FESTIVE_ADVANCE",
+				"SALARY_OVERPAYMENT",
+				"UNEARNED_BENEFIT_RECOVERY",
+				"TRAVEL_ADVANCE",
+				"COOPERATIVE_DUES"
+			]
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.32(1)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr32-",
+				"quote": "Employment Act 1968 s.32(1): all deductions in one salary period other than under s.27(1)(a) (absence), (f) (advances, loans, overpayments) and (j) (co-operative society) must not exceed 50% of the salary payable for the period; s.32(2): not on the last salary on termination. CPF and fund deductions count. Reads PAYROLL deduction_ceiling.share. https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr32-"
+			}
+		],
+		"id": "3f564c28-3e54-5f42-8add-8f1282a20add",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "OVERTIME_MONTHLY_LIMIT",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 2,
+		"reads": {
+			"overtime_hours": "Recorded overtime hours in the salary month."
+		},
+		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nreturn (\n\tget(ctx.lookup, 'part_iv_categories', []).includes(category) &&\n\tNumber(get(ctx, 'base_pay', 0)) <= ceiling &&\n\t(engagements === null ||\n\t\tengagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', '')))\n);",
+		"validate": "const hours = get(get(ctx, 'reads', {}), 'overtime_hours', null);\nreturn hours === null || Number(hours) <= get(ctx.lookup, 'monthly_hours', 72);",
+		"lookup": {
+			"monthly_hours": 72,
+			"part_iv_categories": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
+			"manual_monthly_ceiling": 4500,
+			"nonmanual_monthly_ceiling": 2600,
+			"covered_engagements": ["EMPLOYEE", "PART_TIME", "INTERN", "APPRENTICE"]
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.38(5)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"quote": "Employment Act 1968 s.38(5): an employee covered by Part 4 may not work overtime of more than 72 hours a month, save under a Commissioner exemption (s.41A). https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"id": "dafea499-294c-55bf-815b-2d4209224153",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "DAMAGE_DEDUCTION_LIMIT",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 3,
+		"reads": {
+			"pay_lines": "Signed payroll line amounts for the salary period, keyed by producer or catalogue code; deductions are negative."
+		},
+		"validate": "const lines = get(get(ctx, 'reads', {}), 'pay_lines', null);\nif (lines === null) return false;\nconst recovered = -Number(get(lines, get(ctx.lookup, 'code', 'DAMAGE_RECOVERY'), 0));\nreturn (\n\trecovered <=\n\tget(ctx.lookup, 'gross_multiplier', 0.25) * Number(get(ctx.entry, 'gross_earnings', 0))\n);",
+		"lookup": {
+			"code": "DAMAGE_RECOVERY",
+			"gross_multiplier": 0.25
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.29(1)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"quote": "Employment Act 1968 s.29(1). https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"id": "1a25323b-8c80-5886-b488-6efd3fe90410",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "ACCOMMODATION_DEDUCTION_LIMIT",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 4,
+		"reads": {
+			"pay_lines": "Signed payroll line amounts for the salary period, keyed by producer or catalogue code; deductions are negative."
+		},
+		"validate": "const lines = get(get(ctx, 'reads', {}), 'pay_lines', null);\nif (lines === null) return false;\nconst recovered = sum(\n\tget(ctx.lookup, 'codes', []).map((code) => -Number(get(lines, code, 0)))\n);\nreturn (\n\trecovered <=\n\tget(ctx.lookup, 'gross_multiplier', 0.25) * Number(get(ctx.entry, 'gross_earnings', 0))\n);",
+		"lookup": {
+			"codes": ["ACCOMMODATION_RECOVERY", "AMENITIES_RECOVERY"],
+			"gross_multiplier": 0.25
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.30(2)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"quote": "Employment Act 1968 s.30(2). https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"id": "0516b18b-a363-5b2a-a63f-33848c616c23",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "INSTALMENT_LIMIT",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 5,
+		"reads": {
+			"pay_lines": "Signed payroll line amounts for the salary period, keyed by producer or catalogue code; deductions are negative."
+		},
+		"validate": "const lines = get(get(ctx, 'reads', {}), 'pay_lines', null);\nif (lines === null) return false;\nreturn get(ctx.lookup, 'instalment_codes', []).every(\n\t(code) =>\n\t\t-Number(get(lines, code, 0)) <=\n\t\tget(ctx.lookup, 'share', 0.25) * Number(get(ctx.entry, 'gross_earnings', 0))\n);",
+		"lookup": {
+			"share": 0.25,
+			"instalment_codes": ["SALARY_ADVANCE", "FESTIVE_ADVANCE", "TRAVEL_ADVANCE"]
+		},
+		"references": [
+			{
+				"title": "Employment Act s.31(3)–(5); actual parameters define the advance/loan codes and instalment share. Ov",
+				"url": "https://www.mom.gov.sg/employment-practices/salary/salary-deductions",
+				"quote": "Employment Act s.31(3)–(5); actual parameters define the advance/loan codes and instalment share. Overpayment and unearned-benefit recovery are outside this instalment cap. https://www.mom.gov.sg/employment-practices/salary/salary-deductions"
+			}
+		],
+		"id": "4db82fa2-5c64-55c7-8ca2-bb83bf8b38c7",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "MOM_DECLARED_SALARY",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 6,
+		"condition": "return (\n\tget(\n\t\tget(get(ctx, 'subject', {}), 'employment.employee_extension_data', {}),\n\t\t'term_facts.mom_declared_monthly_salary',\n\t\tnull\n\t) != null\n);",
+		"validate": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst declared = Number(\n\tget(\n\t\tget(get(ctx, 'subject', {}), 'employment.employee_extension_data', {}),\n\t\t'term_facts.mom_declared_monthly_salary',\n\t\t0\n\t)\n);\nconst fixed = sum(\n\tObject.values(get(terms, 'allowances', {})).map((allowance) =>\n\t\tNumber(get(allowance, 'amount', 0))\n\t)\n);\nreturn Number(get(ctx, 'base_pay', 0)) + fixed >= declared;",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule conditions; MOM, Empl",
+				"url": "https://www.mom.gov.sg/passes-and-permits/employment-pass/conditions",
+				"quote": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule conditions; MOM, Employment Pass conditions (https://www.mom.gov.sg/passes-and-permits/employment-pass/conditions). Customer input: terms.facts.mom_declared_monthly_salary."
+			}
+		],
+		"id": "b3def69a-5092-5d42-b5f9-979ec215aaa2",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "PWM_WAGE_FLOOR",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 7,
+		"condition": "const role = get(\n\tget(ctx.lookup, 'roles', {}),\n\tString(get(get(get(ctx, 'subject', {}), 'employment.employee_extension_data', {}), 'term_facts.pwm_role', '')),\n\tnull\n);\nreturn role !== null;",
+		"validate": "const role = get(\n\tget(ctx.lookup, 'roles', {}),\n\tString(get(get(get(ctx, 'subject', {}), 'employment.employee_extension_data', {}), 'term_facts.pwm_role', '')),\n\tnull\n);\nif (role === null) return true;\nconst wage =\n\tget(role, 'base', '') === 'BASIC'\n\t\t? Number(get(ctx, 'base_pay', 0))\n\t\t: Number(get(ctx.entry, 'gross_earnings', 0));\nreturn wage >= Number(get(role, 'monthly_floor', 0));",
+		"lookup": {
+			"roles": {
+				"ADMIN_ASSISTANT": {
+					"sector": "ADMINISTRATOR_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2170,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+				},
+				"ADMIN_EXECUTIVE": {
+					"sector": "ADMINISTRATOR_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2760,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+				},
+				"ADMIN_SUPERVISOR": {
+					"sector": "ADMINISTRATOR_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3340,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+				},
+				"CLEAN_CONSERVANCY_GENERAL": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2495,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_CONSERVANCY_MULTI_SKILLED": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2700,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_CONSERVANCY_SUPERVISOR": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2870,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_CONSERVANCY_TRUCK_DRIVER": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 3040,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_FNB_DISHWASHER": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2495,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_FNB_GENERAL": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2080,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_FNB_MULTI_SKILLED": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2700,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_FNB_SUPERVISOR": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2870,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_FNB_TABLE_TOP": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2180,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_OFFICE_GENERAL": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2080,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_OFFICE_MULTI_SKILLED": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2700,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_OFFICE_OUTDOOR": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2495,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"CLEAN_OFFICE_SUPERVISOR": {
+					"sector": "CLEANING",
+					"base": "BASIC",
+					"monthly_floor": 2870,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+				},
+				"FOOD_FS_COOK": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2520,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+				},
+				"FOOD_FS_KITCHEN_ASSISTANT": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2320,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+				},
+				"FOOD_FS_WAITER": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2320,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+				},
+				"FOOD_FS_WAITER_SUPERVISOR": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2875,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+				},
+				"FOOD_QS_COOK": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2470,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+				},
+				"FOOD_QS_KITCHEN_ASSISTANT": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2295,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+				},
+				"FOOD_QS_STALL_ASSISTANT": {
+					"sector": "FOOD_SERVICES",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2220,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+				},
+				"LANDSCAPE_ASSISTANT_SUPERVISOR": {
+					"sector": "LANDSCAPE",
+					"base": "BASIC",
+					"monthly_floor": 2685,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+				},
+				"LANDSCAPE_SUPERVISOR": {
+					"sector": "LANDSCAPE",
+					"base": "BASIC",
+					"monthly_floor": 3060,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+				},
+				"LANDSCAPE_TECHNICIAN": {
+					"sector": "LANDSCAPE",
+					"base": "BASIC",
+					"monthly_floor": 2490,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+				},
+				"LANDSCAPE_WORKER": {
+					"sector": "LANDSCAPE",
+					"base": "BASIC",
+					"monthly_floor": 2095,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+				},
+				"LIFT_ASSISTANT_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 2750,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+				},
+				"LIFT_PRINCIPAL_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 3720,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+				},
+				"LIFT_SENIOR_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 3420,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+				},
+				"LIFT_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 3090,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+				},
+				"LIFT_SUPERVISOR": {
+					"sector": "LIFT_ESCALATOR",
+					"base": "BASIC",
+					"monthly_floor": 3660,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+				},
+				"RETAIL_ASSISTANT": {
+					"sector": "RETAIL",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2305,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector",
+					"steps": [
+						{
+							"from": "2026-09-01",
+							"monthly_floor": 2435
+						}
+					]
+				},
+				"RETAIL_ASSISTANT_SUPERVISOR": {
+					"sector": "RETAIL",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2790,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector",
+					"steps": [
+						{
+							"from": "2026-09-01",
+							"monthly_floor": 2950
+						}
+					]
+				},
+				"RETAIL_SENIOR_ASSISTANT": {
+					"sector": "RETAIL",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2535,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector",
+					"steps": [
+						{
+							"from": "2026-09-01",
+							"monthly_floor": 2680
+						}
+					]
+				},
+				"SECURITY_INHOUSE_OFFICER": {
+					"sector": "SECURITY",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2475,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+				},
+				"SECURITY_INHOUSE_SENIOR_OFFICER": {
+					"sector": "SECURITY",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2675,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+				},
+				"SECURITY_INHOUSE_SUPERVISOR": {
+					"sector": "SECURITY",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2905,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+				},
+				"SECURITY_OUTSOURCED_OFFICER": {
+					"sector": "SECURITY",
+					"base": "BASIC",
+					"monthly_floor": 3090,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+				},
+				"SECURITY_OUTSOURCED_SENIOR_OFFICER": {
+					"sector": "SECURITY",
+					"base": "BASIC",
+					"monthly_floor": 3390,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+				},
+				"SECURITY_OUTSOURCED_SENIOR_SUPERVISOR": {
+					"sector": "SECURITY",
+					"base": "BASIC",
+					"monthly_floor": 3990,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+				},
+				"SECURITY_OUTSOURCED_SUPERVISOR": {
+					"sector": "SECURITY",
+					"base": "BASIC",
+					"monthly_floor": 3690,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+				},
+				"WASTE_COLLECTION_CREW": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2840,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_COLLECTION_DRIVER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3240,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_COLLECTION_HOOKLIFT_DRIVER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3340,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_COLLECTION_SENIOR_CREW": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3040,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_COLLECTION_SENIOR_DRIVER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3540,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_COLLECTION_SUPERVISOR": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3490,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_COLLECTION_TEAM_LEAD": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3240,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_MRF_PLANT_SUPERVISOR": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3340,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_MRF_SENIOR_SORTER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2940,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_MRF_SORTER": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2740,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"WASTE_MRF_TEAM_LEAD": {
+					"sector": "WASTE_MANAGEMENT",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 3140,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+				},
+				"DRIVER_GROUP_A_LEVEL_1": {
+					"sector": "DRIVER_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2370,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+				},
+				"DRIVER_GROUP_A_LEVEL_2": {
+					"sector": "DRIVER_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2485,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+				},
+				"DRIVER_GROUP_B_LEVEL_1": {
+					"sector": "DRIVER_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2505,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+				},
+				"DRIVER_GROUP_B_LEVEL_2": {
+					"sector": "DRIVER_OPW",
+					"base": "GROSS_EX_OT",
+					"monthly_floor": 2555,
+					"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+				}
+			}
+		},
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower Act work-pass conditions (Progressive Wage Mark / PWM); Environmental",
+				"quote": "Employment of Foreign Manpower Act work-pass conditions (Progressive Wage Mark / PWM); Environmental Public Health Act (cleaning), Private Security Industry Act (security); MOM PWM pages. Reads PAYROLL pwm_wages. Customer input: terms.facts.pwm_role. A role’s optional steps ([{ from, monthly_floor }], newest first) replace its floor from each step’s day within the version (the July cleaning and landscape steps, the January security step)."
+			}
+		],
+		"id": "ba27dc15-9993-5026-8f2b-c9f0e9aac8f5",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "LQS_WAGE_FLOOR",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 8,
+		"reads": {
+			"workforce": "The employer work-pass population covering the salary month."
+		},
+		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nreturn (\n\tget(ctx.lookup, 'local_residencies', []).includes(get(terms, 'residency_status', '')) &&\n\tget(get(get(ctx, 'subject', {}), 'employment.employee_extension_data', {}), 'term_facts.pwm_role', '') === ''\n);",
+		"validate": "const workforce = get(get(ctx, 'reads', {}), 'workforce', null);\nif (workforce === null) return false;\nconst declared = get(workforce, 'authorisations', []).some((authorisation) =>\n\tget(ctx.lookup, 'work_pass_categories', []).includes(\n\t\tget(authorisation, 'category', '')\n\t)\n);\nreturn (\n\tget(workforce, 'complete', false) === true &&\n\tdeclared &&\n\tNumber(get(ctx.entry, 'gross_earnings', 0)) >= get(ctx.lookup, 'monthly_floor', 1600)\n);",
+		"lookup": {
+			"local_residencies": ["CITIZEN", "PERMANENT_RESIDENT"],
+			"work_pass_categories": ["WORK_PERMIT", "S_PASS", "EMPLOYMENT_PASS"],
+			"monthly_floor": 1800,
+			"hourly_floor": 10.5,
+			"full_time_minimum_hours": 35
+		},
+		"id": "2d91c791-05e6-538c-9ebc-3aad62ea33f2",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "DAILY_HOURS_LIMIT",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 9,
+		"reads": {
+			"worked_days": "Recorded work days for the salary month with their hours."
+		},
+		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nreturn (\n\tget(ctx.lookup, 'part_iv_categories', []).includes(category) &&\n\tNumber(get(ctx, 'base_pay', 0)) <= ceiling &&\n\t(engagements === null ||\n\t\tengagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', '')))\n);",
+		"validate": "const days = get(get(ctx, 'reads', {}), 'worked_days', null);\nreturn (\n\tdays === null ||\n\tdays.every((day) => Number(get(day, 'hours', 0)) <= get(ctx.lookup, 'daily_hours', 12))\n);",
+		"lookup": {
+			"daily_hours": 12,
+			"part_iv_categories": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
+			"manual_monthly_ceiling": 4500,
+			"nonmanual_monthly_ceiling": 2600,
+			"covered_engagements": ["EMPLOYEE", "PART_TIME", "INTERN", "APPRENTICE"]
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.38(8)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"quote": "Employment Act 1968 s.38(8). https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"id": "a6cda5dd-d98a-542f-ba92-5ba3f3810945",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "WEEKLY_REST_DAY",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 10,
+		"reads": {
+			"consecutive_worked_days": "Worked days in the run of days ending with the salary period."
+		},
+		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nreturn (\n\tget(ctx.lookup, 'part_iv_categories', []).includes(category) &&\n\tNumber(get(ctx, 'base_pay', 0)) <= ceiling &&\n\t(engagements === null ||\n\t\tengagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', '')))\n);",
+		"validate": "const consecutive = get(get(ctx, 'reads', {}), 'consecutive_worked_days', null);\nreturn consecutive === null || Number(consecutive) < get(ctx.lookup, 'consecutive_days', 7);",
+		"lookup": {
+			"consecutive_days": 7,
+			"part_iv_categories": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
+			"manual_monthly_ceiling": 4500,
+			"nonmanual_monthly_ceiling": 2600,
+			"covered_engagements": ["EMPLOYEE", "PART_TIME", "INTERN", "APPRENTICE"]
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.36(1) (AGC, read 2026-10-07)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"quote": "Employment Act 1968 s.36(1) (AGC, read 2026-10-07). https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"id": "d883f60f-cd88-5bcb-9e7f-ebe0e0655195",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "IR21_ADDITIONAL_PAYMENT_HOLD",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 11,
+		"condition": "const extension = get(get(get(ctx, 'subject', {}), 'employment', {}), 'employee_extension_data', {});\nreturn (\n\tget(extension, 'exit_facts.ir21_clearance_on', null) != null &&\n\tget(extension, 'exit_facts.ir21_exemption', null) == null\n);",
+		"validate": "const extension = get(get(get(ctx, 'subject', {}), 'employment', {}), 'employee_extension_data', {});\nconst month = String(get(get(ctx, 'run', {}), 'period.from', '')).substring(0, 7);\nreturn (\n\tget(extension, 'exit_facts.ir21_additional_clearance_on', null) != null &&\n\tget(extension, 'exit_facts.ir21_additional_cleared_month', '') === month &&\n\tNumber(get(ctx.entry, 'gross_earnings', 0)) <=\n\t\tNumber(get(extension, 'exit_facts.ir21_additional_cleared_month_gross', 0))\n);",
+		"lookup": {},
+		"references": [
+			{
+				"title": "IRAS, Tax clearance for employees, \"When There is Additional Income Payable to Your Employee\" (read ",
+				"url": "https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/tax-clearance-for-employees",
+				"quote": "IRAS, Tax clearance for employees, \"When There is Additional Income Payable to Your Employee\" (read 2026-10-07): file an Additional/Amended Form IR21 to seek further tax clearance before releasing the additional income; do not report it in the next IR8A/AIS. IRAS, Getting tax clearance: a step-by-step guide, Step 5: after an Amended/Additional IR21 do not release the withheld monies until its Clearance Directive. Income Tax Act 1947 s.68(7). A payment after clearance is a slip of a period after the exit, or a slip after an earlier one in the exit period (an off-cycle run after the final pay). Ceiling: one recorded clearance releases every later payment. https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/tax-clearance-for-employees"
+			}
+		],
+		"id": "8601b03b-1ea0-5c4a-8206-0c75b238cac4",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "PWM_BONUS",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 12,
+		"reads": {
+			"year_bonus": "Bonus paid to the employee in the calendar year to date."
+		},
+		"condition": "const role = get(\n\tget(ctx.lookup, 'roles', {}),\n\tString(get(get(get(ctx, 'subject', {}), 'employment.employee_extension_data', {}), 'term_facts.pwm_role', '')),\n\tnull\n);\nconst terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nreturn (\n\trole !== null &&\n\tget(ctx.lookup, 'sectors', []).includes(get(role, 'sector', '')) &&\n\tget(ctx.lookup, 'local_residencies', []).includes(get(terms, 'residency_status', '')) &&\n\tString(get(get(ctx, 'run', {}), 'period.to', '')).endsWith(get(ctx.lookup, 'annual_due_suffix', '-12-31'))\n);",
+		"validate": "const employment = get(get(ctx, 'subject', {}), 'employment', {});\nconst since = get(employment, 'effective_range.from', null);\nconst bonus = Number(get(get(ctx, 'reads', {}), 'year_bonus', 0));\nconst basic = Number(get(ctx, 'base_pay', 0));\nconst due =\n\tbasic *\n\tget(ctx.lookup, 'months_per_year', 12) /\n\tget(ctx.lookup, 'weeks_per_year', 52) *\n\tget(ctx.lookup, 'bonus_weeks', 2);\nreturn (\n\tsince !== null &&\n\tcalendar_completed_months(String(since), String(get(get(ctx, 'run', {}), 'period.to', ''))) >=\n\t\tget(ctx.lookup, 'service_months', 12) &&\n\tbonus >= due\n);",
+		"lookup": {
+			"sectors": ["CLEANING", "LANDSCAPE"],
+			"local_residencies": ["CITIZEN", "PERMANENT_RESIDENT"],
+			"annual_due_suffix": "-12-31",
+			"service_months": 12,
+			"months_per_year": 12,
+			"weeks_per_year": 52,
+			"bonus_weeks": 2,
+			"roles": {
+				"ADMIN_ASSISTANT": {
+					"sector": "ADMINISTRATOR_OPW"
+				},
+				"ADMIN_EXECUTIVE": {
+					"sector": "ADMINISTRATOR_OPW"
+				},
+				"ADMIN_SUPERVISOR": {
+					"sector": "ADMINISTRATOR_OPW"
+				},
+				"CLEAN_CONSERVANCY_GENERAL": {
+					"sector": "CLEANING"
+				},
+				"CLEAN_CONSERVANCY_MULTI_SKILLED": {
+					"sector": "CLEANING"
+				},
+				"CLEAN_CONSERVANCY_SUPERVISOR": {
+					"sector": "CLEANING"
+				},
+				"CLEAN_CONSERVANCY_TRUCK_DRIVER": {
+					"sector": "CLEANING"
+				},
+				"CLEAN_FNB_DISHWASHER": {
+					"sector": "CLEANING"
+				},
+				"CLEAN_FNB_GENERAL": {
+					"sector": "CLEANING"
+				},
+				"CLEAN_FNB_MULTI_SKILLED": {
+					"sector": "CLEANING"
+				},
+				"CLEAN_FNB_SUPERVISOR": {
+					"sector": "CLEANING"
+				},
+				"CLEAN_FNB_TABLE_TOP": {
+					"sector": "CLEANING"
+				},
+				"CLEAN_OFFICE_GENERAL": {
+					"sector": "CLEANING"
+				},
+				"CLEAN_OFFICE_MULTI_SKILLED": {
+					"sector": "CLEANING"
+				},
+				"CLEAN_OFFICE_OUTDOOR": {
+					"sector": "CLEANING"
+				},
+				"CLEAN_OFFICE_SUPERVISOR": {
+					"sector": "CLEANING"
+				},
+				"FOOD_FS_COOK": {
+					"sector": "FOOD_SERVICES"
+				},
+				"FOOD_FS_KITCHEN_ASSISTANT": {
+					"sector": "FOOD_SERVICES"
+				},
+				"FOOD_FS_WAITER": {
+					"sector": "FOOD_SERVICES"
+				},
+				"FOOD_FS_WAITER_SUPERVISOR": {
+					"sector": "FOOD_SERVICES"
+				},
+				"FOOD_QS_COOK": {
+					"sector": "FOOD_SERVICES"
+				},
+				"FOOD_QS_KITCHEN_ASSISTANT": {
+					"sector": "FOOD_SERVICES"
+				},
+				"FOOD_QS_STALL_ASSISTANT": {
+					"sector": "FOOD_SERVICES"
+				},
+				"LANDSCAPE_ASSISTANT_SUPERVISOR": {
+					"sector": "LANDSCAPE"
+				},
+				"LANDSCAPE_SUPERVISOR": {
+					"sector": "LANDSCAPE"
+				},
+				"LANDSCAPE_TECHNICIAN": {
+					"sector": "LANDSCAPE"
+				},
+				"LANDSCAPE_WORKER": {
+					"sector": "LANDSCAPE"
+				},
+				"LIFT_ASSISTANT_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR"
+				},
+				"LIFT_PRINCIPAL_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR"
+				},
+				"LIFT_SENIOR_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR"
+				},
+				"LIFT_SPECIALIST": {
+					"sector": "LIFT_ESCALATOR"
+				},
+				"LIFT_SUPERVISOR": {
+					"sector": "LIFT_ESCALATOR"
+				},
+				"RETAIL_ASSISTANT": {
+					"sector": "RETAIL"
+				},
+				"RETAIL_ASSISTANT_SUPERVISOR": {
+					"sector": "RETAIL"
+				},
+				"RETAIL_SENIOR_ASSISTANT": {
+					"sector": "RETAIL"
+				},
+				"SECURITY_INHOUSE_OFFICER": {
+					"sector": "SECURITY"
+				},
+				"SECURITY_INHOUSE_SENIOR_OFFICER": {
+					"sector": "SECURITY"
+				},
+				"SECURITY_INHOUSE_SUPERVISOR": {
+					"sector": "SECURITY"
+				},
+				"SECURITY_OUTSOURCED_OFFICER": {
+					"sector": "SECURITY"
+				},
+				"SECURITY_OUTSOURCED_SENIOR_OFFICER": {
+					"sector": "SECURITY"
+				},
+				"SECURITY_OUTSOURCED_SENIOR_SUPERVISOR": {
+					"sector": "SECURITY"
+				},
+				"SECURITY_OUTSOURCED_SUPERVISOR": {
+					"sector": "SECURITY"
+				},
+				"WASTE_COLLECTION_CREW": {
+					"sector": "WASTE_MANAGEMENT"
+				},
+				"WASTE_COLLECTION_DRIVER": {
+					"sector": "WASTE_MANAGEMENT"
+				},
+				"WASTE_COLLECTION_HOOKLIFT_DRIVER": {
+					"sector": "WASTE_MANAGEMENT"
+				},
+				"WASTE_COLLECTION_SENIOR_CREW": {
+					"sector": "WASTE_MANAGEMENT"
+				},
+				"WASTE_COLLECTION_SENIOR_DRIVER": {
+					"sector": "WASTE_MANAGEMENT"
+				},
+				"WASTE_COLLECTION_SUPERVISOR": {
+					"sector": "WASTE_MANAGEMENT"
+				},
+				"WASTE_COLLECTION_TEAM_LEAD": {
+					"sector": "WASTE_MANAGEMENT"
+				},
+				"WASTE_MRF_PLANT_SUPERVISOR": {
+					"sector": "WASTE_MANAGEMENT"
+				},
+				"WASTE_MRF_SENIOR_SORTER": {
+					"sector": "WASTE_MANAGEMENT"
+				},
+				"WASTE_MRF_SORTER": {
+					"sector": "WASTE_MANAGEMENT"
+				},
+				"WASTE_MRF_TEAM_LEAD": {
+					"sector": "WASTE_MANAGEMENT"
+				},
+				"DRIVER_GROUP_A_LEVEL_1": {
+					"sector": "DRIVER_OPW"
+				},
+				"DRIVER_GROUP_A_LEVEL_2": {
+					"sector": "DRIVER_OPW"
+				},
+				"DRIVER_GROUP_B_LEVEL_1": {
+					"sector": "DRIVER_OPW"
+				},
+				"DRIVER_GROUP_B_LEVEL_2": {
+					"sector": "DRIVER_OPW"
+				}
+			}
+		},
+		"references": [
+			{
+				"title": "Cleaning: Order by the Commissioner for Labour under Environmental Public Health Act 1987 s.80H(2), ",
+				"url": "https://www.mom.gov.sg/-/media/mom/documents/employment-practices/pwm/order-by-commissioner-for-labour-under-section-80h2.pdf",
+				"quote": "Cleaning: Order by the Commissioner for Labour under Environmental Public Health Act 1987 s.80H(2), para 1.5 (https://www.mom.gov.sg/-/media/mom/documents/employment-practices/pwm/order-by-commissioner-for-labour-under-section-80h2.pdf): a Citizen or SPR cleaner with 12 continuous months with the business at its cut-off date is paid at least two weeks of basic monthly wage (monthly basic × 12 ÷ 52 × 2) a year, once or twice a calendar year, in CPF-attracting bonuses. Landscape: Addendum to the Tripartite Cluster for Landscape Industry report on the PWM Bonus, 3 July 2019 (https://www.mom.gov.sg/-/media/mom/documents/employment-practices/pwm/addendum-to-tcl-report-progressive-wage-model-bonus---3-july-2019.pdf), an NParks Landscape Company Register condition: the same quantum and service. Read 2026-10-07. Checked on the last slip of the calendar year against the year’s bonus lines; the pro-rated leaver bonus (change of service provider, retirement, medical board-out) is HR’s."
+			},
+			{
+				"title": "Cleaning: Order by the Commissioner for Labour under Environmental Public Health Act 1987 s.80H(2), ",
+				"url": "https://www.mom.gov.sg/-/media/mom/documents/employment-practices/pwm/addendum-to-tcl-report-progressive-wage-model-bonus---3-july-2019.pdf",
+				"quote": "Cleaning: Order by the Commissioner for Labour under Environmental Public Health Act 1987 s.80H(2), para 1.5 (https://www.mom.gov.sg/-/media/mom/documents/employment-practices/pwm/order-by-commissioner-for-labour-under-section-80h2.pdf): a Citizen or SPR cleaner with 12 continuous months with the business at its cut-off date is paid at least two weeks of basic monthly wage (monthly basic × 12 ÷ 52 × 2) a year, once or twice a calendar year, in CPF-attracting bonuses. Landscape: Addendum to the Tripartite Cluster for Landscape Industry report on the PWM Bonus, 3 July 2019 (https://www.mom.gov.sg/-/media/mom/documents/employment-practices/pwm/addendum-to-tcl-report-progressive-wage-model-bonus---3-july-2019.pdf), an NParks Landscape Company Register condition: the same quantum and service. Read 2026-10-07. Checked on the last slip of the calendar year against the year’s bonus lines; the pro-rated leaver bonus (change of service provider, retirement, medical board-out) is HR’s."
+			}
+		],
+		"id": "4abb5af5-9099-54b4-829c-71456f6f72a5",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "ROSTER_DAILY_12_HOURS",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"order": 13,
+		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nreturn (\n\tget(ctx.lookup, 'part_iv_categories', []).includes(category) &&\n\tNumber(get(ctx, 'base_pay', 0)) <= ceiling &&\n\t(engagements === null ||\n\t\tengagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', '')))\n);",
+		"validate": "const intervals = get(ctx.entry, 'actual_worked_intervals', []);\nreturn interval_minutes(intervals) <= get(ctx.lookup, 'daily_hours', 12) * 60;",
+		"lookup": {
+			"daily_hours": 12,
+			"roster_warnings": {
+				"daily_hours": 12,
+				"daily_overtime_hours": 3,
+				"monthly_overtime_hours": 72,
+				"consecutive_days": 6,
+				"weekly_rest_days": 1
+			},
+			"part_iv_categories": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
+			"manual_monthly_ceiling": 4500,
+			"nonmanual_monthly_ceiling": 2600,
+			"covered_engagements": ["EMPLOYEE", "PART_TIME", "INTERN", "APPRENTICE"]
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.38(8), read 2026-10-07",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr38-",
+				"quote": "Employment Act 1968 s.38(8) (https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr38-), read 2026-10-07: never more than 12 hours in a day save an accident, work essential to the community, defence or security, urgent work to machinery or plant, or an unforeseeable interruption. A warning: the emergency is a fact the sheet does not carry."
+			}
+		],
+		"id": "711b84dc-0505-54c0-af85-8feae8b084d9",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "ROSTER_CONSECUTIVE_HOURS",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"order": 14,
+		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nreturn (\n\tget(ctx.lookup, 'part_iv_categories', []).includes(category) &&\n\tNumber(get(ctx, 'base_pay', 0)) <= ceiling &&\n\t(engagements === null ||\n\t\tengagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', '')))\n);",
+		"validate": "const intervals = get(ctx.entry, 'actual_worked_intervals', []);\nreturn intervals.every(\n\t(interval) =>\n\t\telapsed_minutes(interval.start, interval.end) <=\n\t\t\tget(ctx.lookup, 'consecutive_hours', 6) * 60 ||\n\t\tsum(\n\t\t\tget(interval, 'breaks', []).map((pause) => elapsed_minutes(pause.start, pause.end))\n\t\t) >=\n\t\t\tget(ctx.lookup, 'meal_break_minutes', 45)\n);",
+		"lookup": {
+			"consecutive_hours": 6,
+			"meal_break_minutes": 45,
+			"part_iv_categories": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
+			"manual_monthly_ceiling": 4500,
+			"nonmanual_monthly_ceiling": 2600,
+			"covered_engagements": ["EMPLOYEE", "PART_TIME", "INTERN", "APPRENTICE"]
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.38(1)(a), (c), read 2026-10-07. A warning",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr38-",
+				"quote": "Employment Act 1968 s.38(1)(a), (c) (https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr38-), read 2026-10-07. A warning: work that must be carried on continuously may run 8 consecutive hours including at least 45 minutes for a meal."
+			}
+		],
+		"id": "7b59f531-20da-5efc-a6d5-57945b75a5e6",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "ROSTER_WEEKLY_REST_DAY",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"order": 15,
+		"reads": {
+			"consecutive_worked_days": "Worked days in the run of days ending with this roster day."
+		},
+		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nreturn (\n\tget(ctx.lookup, 'part_iv_categories', []).includes(category) &&\n\tNumber(get(ctx, 'base_pay', 0)) <= ceiling &&\n\t(engagements === null ||\n\t\tengagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', '')))\n);",
+		"validate": "const consecutive = get(get(ctx, 'reads', {}), 'consecutive_worked_days', null);\nreturn consecutive === null || Number(consecutive) < get(ctx.lookup, 'consecutive_days', 7);",
+		"lookup": {
+			"consecutive_days": 7,
+			"part_iv_categories": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
+			"manual_monthly_ceiling": 4500,
+			"nonmanual_monthly_ceiling": 2600,
+			"covered_engagements": ["EMPLOYEE", "PART_TIME", "INTERN", "APPRENTICE"]
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 ss.36(1), 37, read 2026-10-07. A warning",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr36-,pr37-",
+				"quote": "Employment Act 1968 ss.36(1), 37 (https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr36-,pr37-), read 2026-10-07. A warning: rest-day work is lawful when paid at the s.37 rates."
+			}
+		],
+		"id": "00c12b30-b933-5492-bd9a-1f649ffb4064",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "ROSTER_YOUNG_NIGHT_WORK",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"order": 16,
+		"condition": "const born = get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', null);\nconst date = get(ctx.entry, 'work_date', null);\nif (born === null || date === null) return false;\nconst manual = get(ctx.lookup, 'manual_categories', []).includes(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'statutory_work_category', '')\n);\nreturn manual && age_on(String(born), String(date)) < get(ctx.lookup, 'young_age', 16);",
+		"validate": "const intervals = get(ctx.entry, 'actual_worked_intervals', []);\nreturn (\n\tclock_window_minutes(\n\t\tintervals,\n\t\tget(ctx.lookup, 'timezone', 'Asia/Singapore'),\n\t\t'23:00',\n\t\t'06:00'\n\t) === 0\n);",
+		"lookup": {
+			"young_age": 16,
+			"manual_categories": ["MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
+			"timezone": "Asia/Singapore"
+		},
+		"references": [
+			{
+				"title": "MOM, Employing young persons and children, read 2026-10-07, on the Employment (Children and Young Pe",
+				"url": "https://www.mom.gov.sg/employment-practices/young-persons-and-children",
+				"quote": "MOM, Employing young persons and children (https://www.mom.gov.sg/employment-practices/young-persons-and-children), read 2026-10-07, on the Employment (Children and Young Persons) Regulations made under Employment Act 1968 ss.70, 73 (child: under 15; young person: 15, s.67A). The prohibition admits no exception, so the schedule must be fixed: refused."
+			}
+		],
+		"id": "20d2abd9-9c70-54a9-a4b7-15ea1646405b",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "ROSTER_YOUNG_DAILY_HOURS",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"order": 17,
+		"condition": "const born = get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', null);\nconst date = get(ctx.entry, 'work_date', null);\nif (born === null || date === null) return false;\nconst manual = get(ctx.lookup, 'manual_categories', []).includes(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'statutory_work_category', '')\n);\nreturn manual && age_on(String(born), String(date)) < get(ctx.lookup, 'young_age', 16);",
+		"validate": "const elapsed =\n\tinterval_minutes(get(ctx.entry, 'actual_worked_intervals', [])) / 60;\nconst born = String(get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', ''));\nconst date = String(get(ctx.entry, 'work_date', ''));\nif (born === '' || date === '') return true;\nconst age = age_on(born, date);\nconst limit =\n\tage < get(ctx.lookup, 'child_age', 15)\n\t\t? get(ctx.lookup, 'child_hours', 6)\n\t\t: get(ctx.lookup, 'young_hours', 7);\nreturn elapsed <= limit;",
+		"lookup": {
+			"young_age": 16,
+			"child_age": 15,
+			"child_hours": 6,
+			"young_hours": 7,
+			"manual_categories": ["MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"]
+		},
+		"references": [
+			{
+				"title": "MOM, Employing young persons and children, read 2026-10-07, on the Employment (Children and Young Pe",
+				"url": "https://www.mom.gov.sg/employment-practices/young-persons-and-children",
+				"quote": "MOM, Employing young persons and children (https://www.mom.gov.sg/employment-practices/young-persons-and-children), read 2026-10-07, on the Employment (Children and Young Persons) Regulations made under Employment Act 1968 ss.70, 73 (child: under 15; young person: 15, s.67A). Refused: no exception. School hours are not on the sheet, so only the recorded work is counted."
+			}
+		],
+		"id": "c28206a4-918d-5eea-8e3a-dcb295ae4920",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "ROSTER_YOUNG_REST_DAY",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"order": 18,
+		"reads": {
+			"day_type": "The shift day type recorded for this roster day."
+		},
+		"condition": "const born = get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', null);\nconst date = get(ctx.entry, 'work_date', null);\nif (born === null || date === null) return false;\nconst manual = get(ctx.lookup, 'manual_categories', []).includes(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'statutory_work_category', '')\n);\nreturn (\n\tmanual &&\n\tage_on(String(born), String(date)) < get(ctx.lookup, 'young_age', 16) &&\n\tget(get(ctx, 'reads', {}), 'day_type', '') === 'REST'\n);",
+		"validate": "return get(get(ctx, 'reads', {}), 'commissioner_permission', null) != null;",
+		"lookup": {
+			"young_age": 16,
+			"manual_categories": ["MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"]
+		},
+		"references": [
+			{
+				"title": "MOM, Employing young persons and children, read 2026-10-07, on the Employment (Children and Young Pe",
+				"url": "https://www.mom.gov.sg/employment-practices/young-persons-and-children",
+				"quote": "MOM, Employing young persons and children (https://www.mom.gov.sg/employment-practices/young-persons-and-children), read 2026-10-07, on the Employment (Children and Young Persons) Regulations made under Employment Act 1968 ss.70, 73 (child: under 15; young person: 15, s.67A). A warning: the permission is a fact the sheet does not carry."
+			}
+		],
+		"id": "ebb2ac5f-559d-58ab-80ce-9d3de1edffa3",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "ROSTER_YOUNG_BREAK",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"order": 19,
+		"condition": "const born = get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', null);\nconst date = get(ctx.entry, 'work_date', null);\nif (born === null || date === null) return false;\nconst manual = get(ctx.lookup, 'manual_categories', []).includes(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'statutory_work_category', '')\n);\nreturn manual && age_on(String(born), String(date)) < get(ctx.lookup, 'young_age', 16);",
+		"validate": "const born = String(get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', ''));\nconst date = String(get(ctx.entry, 'work_date', ''));\nif (born === '' || date === '') return true;\nconst age = age_on(born, date);\nconst limit =\n\tage < get(ctx.lookup, 'child_age', 15)\n\t\t? get(ctx.lookup, 'child_continuous_hours', 3)\n\t\t: get(ctx.lookup, 'young_continuous_hours', 4);\nreturn get(ctx.entry, 'actual_worked_intervals', []).every(\n\t(interval) =>\n\t\telapsed_minutes(interval.start, interval.end) <= limit * 60 ||\n\t\tsum(\n\t\t\tget(interval, 'breaks', []).map((pause) => elapsed_minutes(pause.start, pause.end))\n\t\t) >=\n\t\t\tget(ctx.lookup, 'break_minutes', 30)\n);",
+		"lookup": {
+			"young_age": 16,
+			"child_age": 15,
+			"child_continuous_hours": 3,
+			"young_continuous_hours": 4,
+			"break_minutes": 30,
+			"manual_categories": ["MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"]
+		},
+		"references": [
+			{
+				"title": "MOM, Employing young persons and children, read 2026-10-07, on the Employment (Children and Young Pe",
+				"url": "https://www.mom.gov.sg/employment-practices/young-persons-and-children",
+				"quote": "MOM, Employing young persons and children (https://www.mom.gov.sg/employment-practices/young-persons-and-children), read 2026-10-07, on the Employment (Children and Young Persons) Regulations made under Employment Act 1968 ss.70, 73 (child: under 15; young person: 15, s.67A). The maximum accumulated worked hours resets only after a break of at least 30 minutes. Shorter gaps do not reset it; overlapping or duplicated recorded intervals are counted once. School hours remain separately relevant to the daily cap."
+			}
+		],
+		"id": "e103472a-1b47-5760-bf34-ac1c6a130626",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "REST_DAY_NORMAL_HOURS_MISSING",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 21,
+		"reads": {
+			"rest_day_worked": "Whether the salary period records rest-day work."
+		},
+		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nreturn (\n\tget(ctx.lookup, 'part_iv_categories', []).includes(category) &&\n\tNumber(get(ctx, 'base_pay', 0)) <= ceiling &&\n\t(engagements === null ||\n\t\tengagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', '')))\n);",
+		"validate": "const worked = get(get(ctx, 'reads', {}), 'rest_day_worked', false);\nif (worked !== true) return true;\nreturn get(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'normal_hours_per_day', null) != null;",
+		"lookup": {
+			"part_iv_categories": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
+			"manual_monthly_ceiling": 4500,
+			"nonmanual_monthly_ceiling": 2600,
+			"covered_engagements": ["EMPLOYEE", "PART_TIME", "INTERN", "APPRENTICE"]
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.37(2)–(3)",
+				"quote": "Employment Act 1968 s.37(2)–(3): half or more of the normal daily hours decides the rest-day pay; the slip is held rather than paying nothing."
+			}
+		],
+		"id": "ae90483a-a7f0-5f07-b20e-dc39af08be5a",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "PART_TIME_HOLIDAY_HOURS_MISSING",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 22,
+		"reads": {
+			"holiday_worked_days": "Public-holiday days worked in the salary period."
+		},
+		"condition": "return get(get(ctx, 'subject', {}), 'employment.engagement', '') === 'PART_TIME';",
+		"validate": "const days = get(get(ctx, 'reads', {}), 'holiday_worked_days', null);\nif (days === null) return false;\nif (Number(days) === 0) return true;\nreturn get(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'normal_hours_per_week', null) != null;",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment (Part-Time Employees) Regulations",
+				"quote": "Employment (Part-Time Employees) Regulations: holiday work is paid at the hourly basic rate from the contracted hours; the slip is held rather than paying nothing."
+			}
+		],
+		"id": "3a469c11-7fb8-50c3-bf09-27a70d78b699",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "PAYROLL_RUN_KINDS",
+		"target_collection": "payroll_run",
+		"events": ["create"],
+		"order": 24,
+		"validate": "return get(ctx.lookup, 'kinds', []).includes(get(ctx.entry, 'kind', ''));",
+		"lookup": {
+			"kinds": ["REGULAR", "OFF_CYCLE"]
+		},
+		"id": "a4766c50-0f19-5ff5-8e88-4f1d07592e55",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "DAILY_RATE_WORKING_WEEK_MISSING",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 25,
+		"reads": {
+			"pay_lines": "Signed payroll line amounts for the salary period, keyed by producer or catalogue code; deductions are negative."
+		},
+		"condition": "const lines = get(get(ctx, 'reads', {}), 'pay_lines', null);\nif (lines === null) return false;\nreturn [\n\t'REST_DAY_WORK',\n\t'HOLIDAY_WORK',\n\t'ENCASHMENT',\n\t'HOLIDAY_ON_OFF_DAY',\n\t'HOLIDAY_ADJACENT_ABSENCE',\n\t'HOLIDAY_IN_NO_PAY_LEAVE',\n\t'SALARY_IN_LIEU_OF_NOTICE'\n].some((code) => Number(get(lines, code, 0)) !== 0);",
+		"validate": "return get(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'normal_days_per_week', null) != null;",
+		"lookup": {},
+		"references": [
+			{
+				"title": "MOM daily basic/gross = 12 × monthly basic/gross ÷ (52 × average required days per week), verified 2",
+				"url": "https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary",
+				"quote": "MOM daily basic/gross = 12 × monthly basic/gross ÷ (52 × average required days per week), verified 2026-10-31. https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary"
+			}
+		],
+		"id": "e609651d-7633-5c62-8d85-e6fc465e496c",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "PART_TIME_LEAVE_INPUTS_REQUIRED",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 26,
+		"reads": {
+			"leave_rows": "Leave rows taken in the salary period."
+		},
+		"condition": "const rows = get(get(ctx, 'reads', {}), 'leave_rows', null);\nreturn (\n\tget(get(ctx, 'subject', {}), 'employment.engagement', '') === 'PART_TIME' &&\n\trows !== null &&\n\trows.length > 0\n);",
+		"validate": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst extension = get(get(ctx, 'subject', {}), 'employment.employee_extension_data', {});\nconst comparable =\n\tget(extension, 'term_facts.comparable_full_time_hours_per_day', null) != null &&\n\tget(extension, 'term_facts.comparable_full_time_hours_per_week', null) != null;\nconst declared = get(extension, 'facts.no_similar_full_time_employee', false) === true;\nreturn (\n\tget(terms, 'normal_hours_per_week', null) != null &&\n\tget(terms, 'normal_days_per_week', null) != null &&\n\t(comparable || declared)\n);",
+		"lookup": {},
+		"id": "86436fd3-e8f9-585d-8add-3233d3c992cc",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "PART_TIME_ONGOING_ENCASHMENT_LIMIT",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 27,
+		"reads": {
+			"part_time_encashment_days": "Part-time annual-leave days cashed out in the period."
+		},
+		"condition": "return Number(get(get(ctx, 'reads', {}), 'part_time_encashment_days', 0)) > 0;",
+		"validate": "return false;",
+		"lookup": {},
+		"id": "ca49be90-ed2b-5ebf-81b2-117a03905130",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "WICA_AME_EVIDENCE_REQUIRED",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 28,
+		"reads": {
+			"wica_leave_rows": "Work-injury leave rows paid in the salary period."
+		},
+		"condition": "const rows = get(get(ctx, 'reads', {}), 'wica_leave_rows', null);\nreturn rows !== null && rows.length > 0;",
+		"validate": "const rows = get(get(ctx, 'reads', {}), 'wica_leave_rows', []);\nreturn rows.every((row) => {\n\tconst inputs = get(row, 'inputs', {});\n\tconst accident = String(get(inputs, 'wica_accident_on', ''));\n\tif (accident === '') return false;\n\treturn (\n\t\tString(get(row, 'from', '')) >= accident &&\n\t\tString(get(row, 'to', '')) < add_years(accident, get(ctx.lookup, 'years', 1)) &&\n\t\tget(inputs, 'wica_average_monthly_earnings', null) != null &&\n\t\tget(inputs, 'wica_working_days_per_week', null) != null &&\n\t\tget(inputs, 'wica_ame_evidence', '') !== ''\n\t);\n});",
+		"lookup": {
+			"years": 1
+		},
+		"id": "cc6f0e9a-149f-519e-a435-f73c62664311",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "IR21_DEPARTURE_PAY_HOLD",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 29,
+		"reads": {
+			"open_departure_cases": "Open employer-notified overseas departure cases for the employee."
+		},
+		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst cases = get(get(ctx, 'reads', {}), 'open_departure_cases', null);\nreturn (\n\tget(terms, 'residency_status', '') !== 'CITIZEN' &&\n\tcases !== null &&\n\tcases.length > 0\n);",
+		"validate": "const extension = get(get(get(ctx, 'subject', {}), 'employment', {}), 'employee_extension_data', {});\nif (get(extension, 'facts.ir21_departure_exemption_evidence', '') !== '') return true;\nconst cleared = get(extension, 'facts.ir21_departure_clearance_through', null);\nreturn (\n\tcleared != null &&\n\tString(get(get(ctx, 'run', {}), 'period.to', '')) <= String(cleared) &&\n\tget(extension, 'facts.ir21_departure_clearance_evidence', '') !== ''\n);",
+		"lookup": {},
+		"id": "75c7423f-4e76-5962-80d9-9da22fd9b026",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "STATUTORY_GROSS_ALLOWANCE_REVIEW",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 30,
+		"reads": {
+			"pay_lines": "Signed payroll line amounts for the salary period, keyed by producer or catalogue code; deductions are negative."
+		},
+		"condition": "const lines = get(get(ctx, 'reads', {}), 'pay_lines', null);\nif (lines === null) return false;\nreturn [\n\t'ENCASHMENT',\n\t'PT_ANNUAL_LEAVE_ENCASHMENT',\n\t'NO_PAY_LEAVE',\n\t'HOLIDAY_ON_OFF_DAY',\n\t'HOLIDAY_ADJACENT_ABSENCE',\n\t'HOLIDAY_IN_NO_PAY_LEAVE',\n\t'SALARY_IN_LIEU_OF_NOTICE'\n].some((code) => Number(get(lines, code, 0)) !== 0);",
+		"validate": "const allowances = Object.values(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'allowances', {})\n);\nreturn allowances.every(\n\t(allowance) =>\n\t\tget(ctx.lookup, 'allowance_purposes', []).includes(get(allowance, 'purpose', '')) &&\n\t\t(get(ctx.lookup, 'fixed_purposes', []).includes(get(allowance, 'purpose', '')) ||\n\t\t\tget(allowance, 'variability', '') === 'FIXED')\n);",
+		"lookup": {
+			"allowance_purposes": [
+				"FOOD",
+				"HOUSING",
+				"TRAVEL",
+				"EXPENSE_REIMBURSEMENT",
+				"PRODUCTIVITY_INCENTIVE",
+				"SHIFT",
+				"LOCATION",
+				"OTHER"
+			],
+			"fixed_purposes": [
+				"FOOD",
+				"HOUSING",
+				"TRAVEL",
+				"EXPENSE_REIMBURSEMENT",
+				"PRODUCTIVITY_INCENTIVE"
+			]
+		},
+		"id": "f645ecac-a156-5a24-8677-4b3a1885eab9",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "UNPAID_QUALIFYING_SERVICE_REVIEW",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 31,
+		"reads": {
+			"excluded_service_intervals": "Approved dated unpaid intervals excluded from qualifying service."
+		},
+		"condition": "return (\n\tget(\n\t\tget(get(ctx, 'subject', {}), 'employment.employee_extension_data', {}),\n\t\t'term_facts.annual_leave_unpaid_service_policy',\n\t\t''\n\t) === 'EXCLUDE_REQUIRES_REVIEW'\n);",
+		"validate": "return get(get(ctx, 'reads', {}), 'excluded_service_intervals', null) !== null;",
+		"lookup": {},
+		"references": [
+			{
+				"title": "EA88A(4): disregard employee-requested approved unpaid absence",
+				"url": "https://sso.agc.gov.sg/Act/CDCSA2001?ProvIds=pr12D-&ViewType=Advance&WiAl=1",
+				"quote": "EA88A(4): disregard employee-requested approved unpaid absence. CDCA12D(9): unpaid infant-care leave counts as service despite EA. Do not infer exclusion from paid_share=0 or working-day debit alone. https://sso.agc.gov.sg/Act/CDCSA2001?ProvIds=pr12D-&ViewType=Advance&WiAl=1"
+			}
+		],
+		"id": "3234fd5a-6a63-5982-9aeb-7f0ae856da3e",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "MIXED_LEAVE_YEAR_REVIEW",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 32,
+		"reads": {
+			"leave_year_agreement": "Dated agreement on leave treatment for a mixed full-time and part-time leave year."
+		},
+		"condition": "return (\n\tget(\n\t\tget(get(ctx, 'subject', {}), 'employment.employee_extension_data', {}),\n\t\t'term_facts.leave_year_employment_basis',\n\t\t''\n\t) === 'MIXED_REQUIRES_REVIEW'\n);",
+		"validate": "return get(get(ctx, 'reads', {}), 'leave_year_agreement', null) !== null;",
+		"lookup": {},
+		"references": [
+			{
+				"title": "MOM official FAQ, verified 2026-10-31",
+				"url": "https://www.mom.gov.sg/faq/part-time-employment/how-should-i-compute-my-ee-leave-if-convert-from-ft-to-pte-or-vice-versa",
+				"quote": "MOM official FAQ, verified 2026-10-31: Employment Act provides no FT/PT conversion calculation; employer and employee agree. Dated contract segments alone do not establish that agreement. https://www.mom.gov.sg/faq/part-time-employment/how-should-i-compute-my-ee-leave-if-convert-from-ft-to-pte-or-vice-versa"
+			}
+		],
+		"id": "4730a98c-f1a0-580c-9542-da429dd9acc8",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "PART_TIME_INCOMPLETE_MONTH_REVIEW",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 33,
+		"reads": {
+			"part_time_allocation": "Dated part-time salary basis and paid hours for the incomplete month."
+		},
+		"condition": "const incomplete = get(get(ctx, 'reads', {}), 'incomplete_month', false);\nreturn get(get(ctx, 'subject', {}), 'employment.engagement', '') === 'PART_TIME' && incomplete === true;",
+		"validate": "return get(get(ctx, 'reads', {}), 'part_time_allocation', null) !== null;",
+		"lookup": {},
+		"id": "03eff682-fa6d-5088-9250-7d98c880eac0",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "PART_TIME_HOURLY_ALLOWANCE_REVIEW",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 34,
+		"condition": "const allowances = Object.values(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'allowances', {})\n);\nreturn allowances.some(\n\t(allowance) =>\n\t\tget(ctx.lookup, 'codes', []).includes(get(allowance, 'code', '')) &&\n\t\tNumber(get(allowance, 'amount', 0)) > 0\n);",
+		"validate": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst extension = get(get(ctx, 'subject', {}), 'employment.employee_extension_data', {});\nconst days = Number(get(terms, 'normal_days_per_week', 0));\nconst hours = Number(get(terms, 'normal_hours_per_week', 0));\nconst prohibited =\n\tdays >= get(ctx.lookup, 'days_threshold', 5) &&\n\thours >= get(ctx.lookup, 'hours_threshold', 30) &&\n\thours <= get(ctx.lookup, 'hours_threshold_ceiling', 34);\nreturn (\n\t!prohibited &&\n\tget(extension, 'facts.part_time_annual_encashment_agreed', false) === true &&\n\tget(extension, 'facts.pt_leave_hourly_uplift_evidence', '') !== ''\n);",
+		"lookup": {
+			"codes": ["PT_ANNUAL_HOURLY_OW", "PT_ANNUAL_HOURLY_AW"],
+			"days_threshold": 5,
+			"hours_threshold": 30,
+			"hours_threshold_ceiling": 34
+		},
+		"id": "007b9e93-ab54-58b4-acfb-779e6e1470f3",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "PART_TIME_REST_DAY_NORMAL_HOURS_REQUIRED",
+		"target_collection": "payslip",
+		"events": ["create"],
+		"order": 35,
+		"reads": {
+			"rest_day_worked": "Whether the salary period records rest-day work."
+		},
+		"condition": "const worked = get(get(ctx, 'reads', {}), 'rest_day_worked', false);\nreturn get(get(ctx, 'subject', {}), 'employment.engagement', '') === 'PART_TIME' && worked === true;",
+		"validate": "return get(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'normal_hours_per_day', null) != null;",
+		"lookup": {},
+		"id": "4dc64f87-37b0-520e-a04f-91abcf2107f2",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "CONTRACT_CATEGORIES",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"order": 36,
+		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst pass = get(terms, 'work_authorisation_category', '');\nconst classification = get(terms, 'work_classification', '');\nreturn get(ctx.lookup, 'residency_statuses', []).includes(get(terms, 'residency_status', '')) &&\n\t(pass === '' || get(ctx.lookup, 'work_pass_categories', []).includes(pass)) &&\n\t(classification === '' || get(ctx.lookup, 'work_classifications', []).includes(classification));",
+		"lookup": {
+			"residency_statuses": ["CITIZEN", "PERMANENT_RESIDENT", "FOREIGNER"],
+			"work_classifications": ["EA_COVERED", "NON_EA", "ORDINARY", "MANAGERIAL"],
+			"work_pass_categories": ["WORK_PERMIT", "S_PASS", "EMPLOYMENT_PASS"]
+		},
+		"id": "f5a1ff0a-ad38-5ff3-b756-79e4d2691dca",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "RESIDENCY_SINCE_REQUIRED",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"order": 37,
+		"validate": "const terms = get(ctx.entry, 'terms', {});\nreturn (\n\tget(terms, 'residency_status', '') !== 'PERMANENT_RESIDENT' ||\n\tget(get(ctx.entry, 'employee_extension_data', {}), 'facts.residency_since', '') !== ''\n);",
+		"lookup": {},
+		"id": "9953358b-2e0c-5036-9131-b6cdbe79a7fe",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "SHARED_STRUCTURED_EMPLOYEE_INPUTS",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"order": 38,
+		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst extension = get(ctx.entry, 'employee_extension_data', {});\nconst limits = get(ctx.lookup, 'terms', {});\nreturn Object.keys(limits).every((key) => {\n\tconst rule = limits[key];\n\tconst value = get(terms, key, get(extension, key, null));\n\tif (value == null) return get(rule, 'required', false) !== true;\n\tconst number = Number(value);\n\treturn (\n\t\t(get(rule, 'integer', false) !== true || number === Math.trunc(number)) &&\n\t\t(get(rule, 'exclusive_minimum', null) === null ||\n\t\t\tnumber > get(rule, 'exclusive_minimum', 0)) &&\n\t\t(get(rule, 'minimum', null) === null || number >= get(rule, 'minimum', 0)) &&\n\t\t(get(rule, 'maximum', null) === null || number <= get(rule, 'maximum', 0))\n\t);\n});",
+		"lookup": {
+			"terms": {
+				"normal_hours_per_day": {
+					"exclusive_minimum": 0,
+					"maximum": 24
+				},
+				"normal_hours_per_week": {
+					"exclusive_minimum": 0
+				},
+				"normal_days_per_week": {
+					"exclusive_minimum": 0,
+					"maximum": 7
+				},
+				"term_facts.comparable_full_time_hours_per_day": {
+					"exclusive_minimum": 0,
+					"maximum": 24
+				},
+				"term_facts.comparable_full_time_hours_per_week": {
+					"exclusive_minimum": 0,
+					"maximum": 168
+				}
+			}
+		},
+		"id": "632c4286-39b0-51b0-b8f3-1b67717deb99",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "SHARED_STRUCTURED_ENTITY_INPUTS",
+		"target_collection": "entity_profile_version",
+		"events": ["create", "update"],
+		"order": 39,
+		"validate": "const extension = get(ctx.entry, 'entity_extension_data', {});\nconst limits = get(ctx.lookup, 'entity', {});\nreturn Object.keys(limits).every((key) => {\n\tconst rule = limits[key];\n\tconst value = get(extension, key, null);\n\tif (value == null) return get(rule, 'required', false) !== true;\n\tif (typeof value === 'string') return value !== '';\n\tconst number = Number(value);\n\treturn (\n\t\t(get(rule, 'integer', false) !== true || number === Math.trunc(number)) &&\n\t\t(get(rule, 'exclusive_minimum', null) === null ||\n\t\t\tnumber > get(rule, 'exclusive_minimum', 0)) &&\n\t\t(get(rule, 'maximum', null) === null || number <= get(rule, 'maximum', 0))\n\t);\n});",
+		"lookup": {
+			"entity": {
+				"registration_number": {
+					"required": true
+				},
+				"normal_hours_per_week": {
+					"exclusive_minimum": 0,
+					"maximum": 168
+				}
+			}
+		},
+		"id": "04370bc5-b18b-5355-8767-8e6870e80f40",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "BUSINESS_CASE_SUBJECT_AND_REFERENCE",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"order": 41,
+		"condition": "return get(ctx.lookup, 'kinds', []).includes(get(ctx.entry, 'kind', ''));",
+		"validate": "const inputs = get(ctx.entry, 'inputs', {});\nreturn get(ctx.entry, 'employment_id', null) != null && get(inputs, 'reference', '') !== '';",
+		"lookup": {
+			"kinds": ["RETRENCHMENT_EMPLOYEE_NOTICE", "OVERSEAS_DEPARTURE_NOTICE"]
+		},
+		"id": "334036d2-bea2-5bd3-bc3f-01e1a3494227",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "BUSINESS_CASE_DOCUMENT_REQUIRED",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"order": 42,
+		"condition": "return get(ctx.lookup, 'kinds', []).includes(get(ctx.entry, 'kind', ''));",
+		"validate": "return get(ctx.entry, 'evidence_file', null) != null;",
+		"lookup": {
+			"kinds": ["RETRENCHMENT_EMPLOYEE_NOTICE"]
+		},
+		"id": "b6a6b1a7-0901-5524-a392-6165ea994b2b",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "DEPARTURE_CASE_ACTUAL_SCHEDULE",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"order": 43,
+		"condition": "return get(ctx.entry, 'kind', '') === 'OVERSEAS_DEPARTURE_NOTICE';",
+		"validate": "const scheduled = get(ctx.entry, 'scheduled_on', null);\nconst expected = get(get(ctx.entry, 'inputs', {}), 'expected_return_on', null);\nreturn (\n\tscheduled != null &&\n\tscheduled !== '' &&\n\t(expected == null || expected === '' || String(expected) >= String(scheduled))\n);",
+		"lookup": {},
+		"id": "f5ec2e0a-6fd0-54e4-a9f0-ef983295478b",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	}
+]

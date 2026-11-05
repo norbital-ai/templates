@@ -1,0 +1,2296 @@
+[
+	{
+		"code": "retract-exit-effects",
+		"name": "Review the duties of a changed exit",
+		"lookup": {
+			"title": "Review the duties raised by the changed exit"
+		},
+		"references": [],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// A changed exit date raises the review again; the duties themselves are keyed by employment, not by exit facts.\nconst key = 'retract-exit-effects:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "80277f31-fdd4-562a-84d1-c5a2c2e39fac",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "encash-leave-on-exit",
+		"name": "Pay untaken leave with the final settlement",
+		"lookup": {
+			"title": "Pay the untaken leave with the final settlement"
+		},
+		"references": [],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'encash-leave-on-exit:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.final_pay_due_on,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "11284d9b-e199-50ec-9869-2262c001e626",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "SI_HI_UI_MONTHLY_REMITTANCE",
+		"name": "Remit the employee and employer SI, HI and UI shares",
+		"lookup": {
+			"title": "Remit the SI, HI and UI shares for the contribution month"
+		},
+		"references": [
+			{
+				"title": "Law 41/2024/QH15",
+				"locator": "arts.13(4), 34(4)(a), 40(1)",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
+			},
+			{
+				"title": "Law 38/2013/QH13",
+				"locator": "art.57"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'SI_HI_UI_MONTHLY_REMITTANCE:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: month_end(add_months(ctx.entry.salary_coverage.from, 1)),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "f5bbfacb-06c9-52a3-a9ee-a3fd7c24b2a0",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "PIT_WITHHOLDING_DECLARATION",
+		"name": "Declare and pay the withheld salary PIT",
+		"lookup": {
+			"title": "Declare and pay the withheld salary PIT",
+			"quarter_months": 3,
+			"day_of_month": 20
+		},
+		"references": [
+			{
+				"title": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) (monthly by the 20th of the next month; quarterly by the last day of the first month of the next quarter), art.55(1) (payment by the filing deadline), art.59 (late-payment interest 0.03% a day); Decree 126/2020/NĐ-CP arts.8(1), 9 (monthly, or quarterly for an employer eligible to file VAT quarterly)"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				}
+			}
+		},
+		"condition": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nreturn true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nconst key = 'PIT_WITHHOLDING_DECLARATION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: get(first(ctx.reads.entity_profile_version), 'entity_extension_data.pit_quarterly_filer', false) === true\n\t\t\t\t\t? month_end(add_months(month_start(ctx.entry.salary_coverage.from), ctx.lookup.quarter_months - ((Number(ctx.entry.salary_coverage.from.substring(5, 7)) - 1) % 3)))\n\t\t\t\t\t: add_days(ctx.entry.salary_coverage.to, ctx.lookup.day_of_month),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "844d0a9e-08c2-5c5b-b7d5-cd164a6f7559",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "UNION_FEE_REMITTANCE",
+		"name": "Pay the trade union fee",
+		"lookup": {
+			"title": "Pay the trade union fee"
+		},
+		"references": [
+			{
+				"title": "Law on Trade Unions 50/2024/QH15",
+				"locator": "art.29(1)(b), (2)",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm"
+			},
+			{
+				"title": "Decree 191/2013/NĐ-CP",
+				"locator": "arts.5–6"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'UNION_FEE_REMITTANCE:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: month_end(add_months(ctx.entry.salary_coverage.from, 1)),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "9d80945b-05de-5f75-906b-1521521b0585",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "UNION_DUES_TRANSFER",
+		"name": "Transfer the deducted union dues",
+		"lookup": {
+			"title": "Transfer the deducted union dues to the grassroots union"
+		},
+		"references": [
+			{
+				"title": "Law on Trade Unions 50/2024/QH15",
+				"locator": "art.29(1)(a)",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm"
+			},
+			{
+				"title": "Quyết định 61/QĐ-TLĐ, in force 1 July 2025",
+				"url": "https://pbgdpl.cantho.gov.vn/quyet-dinh-61qd-tld-ve-dieu-chinh-giam-muc-dong-doan-phi-cong-doan"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'UNION_DUES_TRANSFER:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.pay_date,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "8c6c503e-0dd7-5f74-ab95-148e3bd79509",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "encash-leave-at-window-end",
+		"name": "Encash leave lapsing at the carry window",
+		"lookup": {
+			"title": "Encash the leave lapsing at the carry window",
+			"carry_windows": 2
+		},
+		"references": [],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'encash-leave-at-window-end:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "95ee7138-fac8-5e7e-91ce-1818c21fe3f0",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "SI_HI_UI_REGISTRATION",
+		"name": "Register the employee for SI, HI and UI",
+		"lookup": {
+			"title": "Register the employee for compulsory SI, HI and UI",
+			"day_offset": 30
+		},
+		"references": [
+			{
+				"title": "Law on Social Insurance 41/2024/QH15",
+				"locator": "arts.13(1), 28(1)",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
+			},
+			{
+				"title": "Law on Employment 38/2013/QH13 art.44 (UI registered with SI)"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'SI_HI_UI_REGISTRATION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.day_offset),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "47fe039f-d793-50f8-80f2-485ba28c5a29",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "SI_HI_UI_CHANGE_DECLARATION",
+		"name": "Declare changes to the SI, HI and UI registration",
+		"lookup": {
+			"title": "Declare the changes to the SI, HI and UI registration"
+		},
+		"references": [
+			{
+				"title": "Law 41/2024/QH15",
+				"locator": "arts.29(1), 33(5), 34(3)",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'SI_HI_UI_CHANGE_DECLARATION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: month_end(add_months(ctx.entry.salary_coverage.from, 1)),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "ef50cc84-cf75-5fd4-a825-46267a22a32d",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "SI_BENEFIT_CLAIMS",
+		"name": "Submit the SI benefit claim",
+		"lookup": {
+			"title": "Submit the SI benefit claim within seven working days of complete-file receipt",
+			"working_days": 7,
+			"benefit_catalogs": [
+				"SICK_LEAVE",
+				"MATERNITY_LEAVE",
+				"PATERNITY_LEAVE",
+				"CHILD_SICK_CARE",
+				"PRENATAL_CHECKUP",
+				"MISCARRIAGE_LEAVE",
+				"CONTRACEPTION_LEAVE",
+				"CONVALESCENCE_LEAVE"
+			]
+		},
+		"references": [
+			{
+				"title": "Law 41/2024/QH15",
+				"locator": "arts.13(2), 48(1)–(2), 62(1)",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
+			}
+		],
+		"source_collection": "leave_catalog_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				}
+			},
+			"leave_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "const catalog = first(get(ctx, 'reads.leave_catalog', []));\nreturn (\n\tcatalog != null &&\n\tctx.lookup.benefit_catalogs.includes(catalog.code) &&\n\t['APPROVED', 'FULFILLED'].includes(ctx.entry.status)\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// The entry records no receipt date; the documented leave end bounds the seven-working-day window.\nconst last = ctx.entry.days.reduce((day, slot) => (slot.date > day ? slot.date : day), '');\nconst key = 'SI_BENEFIT_CLAIMS:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployment_id: ctx.entry.employment_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_working_days(last, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "28d22e52-abaa-5aad-b82b-c2c9ab5676be",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "INSURANCE_EQUIVALENT_PAYMENT",
+		"name": "Pay the insurance-equivalent amount",
+		"lookup": {
+			"title": "Pay the insurance-equivalent amount with the wage"
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.168(3)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'INSURANCE_EQUIVALENT_PAYMENT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.pay_date,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "7360d639-c409-558e-b4e4-e40a95a02c16",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "LABOUR_CONTRACT",
+		"name": "Conclude the written labour contract",
+		"lookup": {
+			"title": "Conclude the written labour contract before work starts"
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "arts.13(2), 14(1), 21(1)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'LABOUR_CONTRACT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.from,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "86beace0-5a30-5200-aa0e-0db93d18fbaf",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "LABOUR_MANAGEMENT_BOOK",
+		"name": "Keep the labour management book",
+		"lookup": {
+			"title": "Enter the employee in the labour management book"
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.12(1)"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP",
+				"locator": "art.3",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'LABOUR_MANAGEMENT_BOOK:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.from,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "4de9b8e6-b39e-5a5e-bd6a-514873f2cbd1",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "LABOUR_USE_REPORT",
+		"name": "Report the use of labour",
+		"lookup": {
+			"title": "Report the use of labour to the provincial labour authority",
+			"day_offset": 4
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.12(2)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP",
+				"locator": "art.4(1)–(2)",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.period.substring(5, 7) === '05' || ctx.entry.period.substring(5, 7) === '11';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'LABOUR_USE_REPORT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.salary_coverage.to, ctx.lookup.day_offset),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "d5e5b3fc-24a7-572c-b461-fa84de46dcdc",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "INTERNAL_LABOUR_RULES",
+		"name": "Issue and register the internal labour rules",
+		"lookup": {
+			"title": "Issue and register the internal labour rules",
+			"employee_count_threshold": 10
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "arts.118, 119(1)–(2)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'INTERNAL_LABOUR_RULES:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "f8fa92e3-21cb-5f0c-b633-677dd7b85417",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "WAGE_SCALE_AND_NORMS",
+		"name": "Build and publish the wage scale and labour norms",
+		"lookup": {
+			"title": "Build, consult on and publish the wage scale and labour norms"
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.93",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'WAGE_SCALE_AND_NORMS:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "8cdd9842-ee69-52a8-846f-eb92f637833a",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "MINIMUM_WAGE",
+		"name": "Pay at least the regional minimum wage",
+		"lookup": {
+			"title": "Confirm the wage agreement and payment meet the regional minimum wage"
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.91"
+			},
+			{
+				"title": "Decree 74/2024/NĐ-CP (Region I–IV 4,960,000 / 4,410,000 / 3,860,000 / 3,450,000 a month; 23,800 / 21,200 / 18,600 / 16,600 an hour)",
+				"url": "https://vanban.chinhphu.vn/?pageid=27160&docid=210536"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'MINIMUM_WAGE:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "cd1a930a-6df6-565f-8d80-9776068f365e",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "WAGE_PAYMENT_TIMING",
+		"name": "Pay wages in full and on time",
+		"lookup": {
+			"title": "Pay the wages in full on the agreed periodic date"
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "arts.94(1), 97",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'WAGE_PAYMENT_TIMING:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.pay_date,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "fbcdaeb9-976c-5f07-8e98-e197fdd082ef",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "WAGE_STATEMENT",
+		"name": "Give each employee a wage statement",
+		"lookup": {
+			"title": "Give each employee a wage statement at the payment"
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.95(3)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'WAGE_STATEMENT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.pay_date,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "8bc941a1-1607-5742-aee1-fad897e98168",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "WAGE_DEDUCTION_LIMIT",
+		"name": "Keep wage deductions within the statutory limit",
+		"lookup": {
+			"title": "Keep the damage-compensation deduction within 30% of the paid wage",
+			"limit_percent": 30
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "arts.102, 129",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'WAGE_DEDUCTION_LIMIT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.pay_date,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "73d7cb5f-e78a-57dc-9691-489f5c125516",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "OVERTIME_CONSENT_AND_LIMITS",
+		"name": "Keep overtime consented and within its limits",
+		"lookup": {
+			"title": "Keep overtime consented and within its daily, monthly and yearly limits",
+			"monthly_hours": 40,
+			"yearly_hours": 200,
+			"yearly_hours_extended": 300
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.107(2)–(4)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP",
+				"locator": "arts.59–62",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'OVERTIME_CONSENT_AND_LIMITS:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "635ae3aa-a539-51fd-af1e-c337e305f0cf",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "NIGHT_OVERTIME_STATEMENT",
+		"name": "Keep the night and overtime statement",
+		"lookup": {
+			"title": "Keep the night and overtime hours and their pay with the payroll records"
+		},
+		"references": [
+			{
+				"title": "Circular 111/2013/TT-BTC art.3(1)(i): the income payer keeps a statement (bảng kê) of night and overtime hours and the pay for them"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'NIGHT_OVERTIME_STATEMENT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "9b943e32-5235-565c-8c9c-8f2ee8a640d3",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "ANNUAL_LEAVE_SCHEDULE",
+		"name": "Set and notify the annual leave schedule",
+		"lookup": {
+			"title": "Set and notify the annual leave schedule"
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.113(3)–(4)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP",
+				"locator": "art.67",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.period.substring(5, 7) === '01';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'ANNUAL_LEAVE_SCHEDULE:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "1d5e760e-e5f3-5fc3-9279-fe89ee2f0e4f",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "WORKPLACE_DIALOGUE",
+		"name": "Hold workplace dialogue",
+		"lookup": {
+			"title": "Hold the yearly workplace dialogue"
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.63(2)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'WORKPLACE_DIALOGUE:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "782f5033-b4c0-5794-a7c6-4478eb3b5768",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "TERMINATION_NOTICE",
+		"name": "Give notice of the contract end",
+		"lookup": {
+			"title": "Give written notice of the end of the labour contract",
+			"indefinite_days": 45,
+			"term_30_days": 30,
+			"short_term_days": 3,
+			"special_role_days": 120
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019 arts.36(2), 45(1) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.7 (special roles: 120 days / a quarter of the term) https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf p.6"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const term = get(ctx.entry, 'signed_contract_period', null);\nconst months = term != null ? calendar_completed_months(term.from, term.to) : null;\nconst agreed = get(ctx.entry.terms, 'notice_period.value', null);\nconst special = get(ctx.entry.employee_extension_data, 'term_facts.special_role_notice', false) === true;\nconst notice =\n\tagreed != null\n\t\t? Number(agreed)\n\t\t: get(ctx.entry.employee_extension_data, 'exit_facts.long_illness', false) === true\n\t\t\t? ctx.lookup.short_term_days\n\t\t\t: special\n\t\t\t\t? months == null || months >= 12\n\t\t\t\t\t? ctx.lookup.special_role_days\n\t\t\t\t\t: Math.ceil(calendar_distance_days(term.from, term.to) / 4)\n\t\t\t\t: months == null || months >= 36\n\t\t\t\t\t? ctx.lookup.indefinite_days\n\t\t\t\t\t: months >= 12\n\t\t\t\t\t\t? ctx.lookup.term_30_days\n\t\t\t\t\t\t: ctx.lookup.short_term_days;\nconst key = 'TERMINATION_NOTICE:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: notice === ctx.lookup.short_term_days\n\t\t\t\t\t? add_working_days(ctx.entry.effective_range.to, -notice, get(ctx, 'reads.holiday', []).map((h) => h.date), [0])\n\t\t\t\t\t: add_days(ctx.entry.effective_range.to, -notice),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "ada3252d-9484-5ad6-a85a-95ef4bab8307",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "RESTRUCTURING_LABOUR_PLAN",
+		"name": "Confirm the labour-use plan for this departure",
+		"lookup": {
+			"title": "Confirm whether this departure needs a labour-use plan",
+			"day_offset": 30
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "arts.42(3)–(6), 44",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// The contract records no exit ground; confirm the ground before relying on the thirty-day plan.\nconst key = 'RESTRUCTURING_LABOUR_PLAN:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.effective_range.to, -ctx.lookup.day_offset),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "bbb5aaa7-3c59-547c-9152-1c2bf770fa57",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "FINAL_SETTLEMENT",
+		"name": "Settle the final amounts due",
+		"lookup": {
+			"title": "Settle the final wages, untaken leave and allowances",
+			"working_days": 14,
+			"extended_days": 30
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "arts.46, 47, 48(1)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP",
+				"locator": "art.8",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'FINAL_SETTLEMENT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: get(ctx.entry.employee_extension_data, 'exit_facts.final_settlement_extended', false) === true\n\t\t\t\t\t? add_days(ctx.entry.effective_range.to, ctx.lookup.extended_days)\n\t\t\t\t\t: add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "b7f056f3-3760-503a-96fa-ae293e6b8710",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "SI_CONFIRMATION_ON_TERMINATION",
+		"name": "Confirm the SI periods and return the SI book",
+		"lookup": {
+			"title": "Confirm the SI and UI periods and return the SI book",
+			"working_days": 14,
+			"extended_days": 30
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.48(3)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Law 41/2024/QH15",
+				"locator": "art.13(3)",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'SI_CONFIRMATION_ON_TERMINATION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: get(ctx.entry.employee_extension_data, 'exit_facts.final_settlement_extended', false) === true\n\t\t\t\t\t? add_days(ctx.entry.effective_range.to, ctx.lookup.extended_days)\n\t\t\t\t\t: add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "b06feb8d-e263-5f65-8d5f-c1944eaa3679",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "PIT_TAX_REGISTRATION",
+		"name": "Register the employee's tax code",
+		"lookup": {
+			"title": "Register the employee's tax code",
+			"day_offset": 10
+		},
+		"references": [
+			{
+				"title": "Law 38/2019/QH14 art.33: the income payer registers tax on behalf of an employee (and the dependants the employee declares) within 10 working days of the obligation arising; Circular 86/2024/TT-BTC: the personal identification number is the tax code from 1 July 2025"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'PIT_TAX_REGISTRATION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.day_offset),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "d3f1b517-602a-5988-b864-147f647b7d42",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "PIT_SHORT_CONTRACT_COMMITMENT",
+		"name": "Keep the short-contract PIT commitment form",
+		"lookup": {
+			"title": "Keep the 08/CK-TNCN commitment that suspends the 10% withholding"
+		},
+		"references": [
+			{
+				"title": "Circular 111/2013/TT-BTC",
+				"locator": "art.25(1)(i)"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'PIT_SHORT_CONTRACT_COMMITMENT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.pay_date,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "24234509-37c6-566b-8cac-d57a630e196e",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "PIT_ANNUAL_FINALISATION",
+		"name": "File the annual PIT finalisation",
+		"lookup": {
+			"title": "File the annual PIT finalisation with its schedules",
+			"month_offset": 3
+		},
+		"references": [
+			{
+				"title": "Law 38/2019/QH14 art.44(2)(a): an organisation's annual finalisation by the last day of the third month after the calendar year; Decree 126/2020/NĐ-CP art.8(6)(d): finalisation on behalf of an employee on a contract of three months or more who authorises it"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'PIT_ANNUAL_FINALISATION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.month_offset)),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "5317b110-5bdb-5883-baf8-45371b02b078",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "PIT_WITHHOLDING_CERTIFICATE",
+		"name": "Issue the PIT withholding certificate",
+		"lookup": {
+			"title": "Issue the PIT withholding certificate for the tax withheld"
+		},
+		"references": [
+			{
+				"title": "Decree 123/2020/NĐ-CP arts.31–32 as amended by Decree 70/2025/NĐ-CP (electronic withholding certificates)"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'PIT_WITHHOLDING_CERTIFICATE:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "9b6e5854-151a-5337-a874-d29054dd56d6",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "FOREIGN_WORK_PERMIT",
+		"name": "Obtain the work authorisation before work starts",
+		"lookup": {
+			"title": "Obtain the work authorisation before the foreign employee starts work"
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019",
+				"locator": "arts.151–155",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 219/2025/NĐ-CP (in force 7 August 2025)",
+				"url": "https://vanban.chinhphu.vn/?pageid=27160&docid=214840"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst key = 'FOREIGN_WORK_PERMIT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.from,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "314bd0e3-cd71-5674-9fe3-c6f2c60f72dc",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "WORK_PERMIT_EXTENSION",
+		"name": "Apply to extend the work authorisation",
+		"lookup": {
+			"title": "Apply to extend the work authorisation",
+			"commencement": "2026-12-05",
+			"advance_days": 45,
+			"due_days": 10
+		},
+		"references": [
+			{
+				"title": "Decree 219/2025/NĐ-CP arts.27(1), 28(1), 29 (in force 7 August 2025), Official Gazette Công báo 1073+1074 of 20 August 2025",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2025/8/45798/58141-1-20251073-1074219-2025-nd-cp.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["daily"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.event.day < ctx.lookup.commencement &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null &&\n\tctx.event.day === add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_days)\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// The contract term bounds the authorisation; the record carries no permit expiry.\nconst key = 'WORK_PERMIT_EXTENSION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.effective_range.to, -ctx.lookup.due_days),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "915f64be-92c2-5050-aed9-1e63358a36ba",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "WORK_PERMIT_RETURN",
+		"name": "Return the work authorisation on termination",
+		"lookup": {
+			"title": "Return the work authorisation with its invalidation report",
+			"commencement": "2026-12-05",
+			"working_days": 10,
+			"calendar_days": 15
+		},
+		"references": [
+			{
+				"title": "Decree 219/2025/NĐ-CP",
+				"locator": "arts.30(1), 31(1)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2025/8/45798/58141-1-20251073-1074219-2025-nd-cp.pdf"
+			},
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.156(2)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 393/2026, effective 5 December 2026",
+				"locator": "arts31(1),32(1); LabourCode156(2)",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.effective_range.to >= ctx.lookup.commencement &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'WORK_PERMIT_RETURN:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.to >= ctx.lookup.commencement\n\t\t\t\t\t? add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6])\n\t\t\t\t\t: add_days(ctx.entry.effective_range.to, ctx.lookup.calendar_days),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "9d9fb5e7-c5ce-5ea3-959d-10edca3a4a10",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "OCCUPATIONAL_HEALTH_CHECK",
+		"name": "Arrange the periodic health checks",
+		"lookup": {
+			"title": "Arrange the periodic occupational health checks"
+		},
+		"references": [
+			{
+				"title": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.21(1); art.21(2): workers in jobs exposed to occupational disease are also examined for it (Decree 44/2016/NĐ-CP)."
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				}
+			}
+		},
+		"condition": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nreturn ctx.entry.period.substring(5, 7) === '12' || (get(profile, 'entity_extension_data.six_monthly_health_checks', false) === true && ctx.entry.period.substring(5, 7) === '06');",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.entry.pay_date && (version.effective_range.to == null || version.effective_range.to >= ctx.entry.pay_date));\nconst key = 'OCCUPATIONAL_HEALTH_CHECK:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "9bda60e2-551b-581d-9df4-a49ef57a181f",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "OCCUPATIONAL_ACCIDENT_REPORT",
+		"name": "Report occupational accidents",
+		"lookup": {
+			"title": "Report occupational accidents for the half-year",
+			"june_day_offset": 4,
+			"december_day_offset": 9
+		},
+		"references": [
+			{
+				"title": "Law on Occupational Safety and Hygiene 84/2015/QH13",
+				"locator": "art.36"
+			},
+			{
+				"title": "Decree 39/2016/NĐ-CP art.24(1) (Công báo 397+398 of 21 June 2016)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2016/5/19831/14231-1-392016nd-cp14302pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.period.substring(5, 7) === '06' || ctx.entry.period.substring(5, 7) === '12';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'OCCUPATIONAL_ACCIDENT_REPORT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.period.substring(5, 7) === '06'\n\t\t\t\t\t? add_days(ctx.entry.salary_coverage.to, ctx.lookup.june_day_offset)\n\t\t\t\t\t: add_days(ctx.entry.salary_coverage.to, ctx.lookup.december_day_offset),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "7b40f4dc-298b-53b4-8195-0065a0637a6a",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "OSH_ANNUAL_REPORT",
+		"name": "Report the occupational safety and hygiene work",
+		"lookup": {
+			"title": "Report the annual occupational safety and hygiene work",
+			"day_offset": 9
+		},
+		"references": [
+			{
+				"title": "Circular 07/2016/TT-BLĐTBXH art.10(1)–(2) (Công báo 797+798 of 8 July 2016)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2016/5/20377/14868-1-072016tt-bldtbxh14949pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'OSH_ANNUAL_REPORT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.salary_coverage.to, ctx.lookup.day_offset),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "cef0ca22-f4d5-5303-91b8-68c639c14d49",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "RECORD_RETENTION",
+		"name": "Retain the payroll records",
+		"lookup": {
+			"title": "Archive the payroll records for their retention period",
+			"retention_months": 12
+		},
+		"references": [
+			{
+				"title": "Accounting Law 88/2015/QH13 art.41(3),(5)(a)-(b); Decree 174/2016/NĐ-CP arts.12(1)-(2), 13(1), 15(1); Decree 13/2023/NĐ-CP on personal data protection"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'RECORD_RETENTION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_months(ctx.entry.salary_coverage.to, ctx.lookup.retention_months),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "8fbdb0b9-c1a8-510b-ba31-ef44162a3645",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "DPD_CONSENT_AND_NOTICE",
+		"name": "Obtain consent and give the processing notice",
+		"lookup": {
+			"title": "Obtain the data-processing consent and give the processing notice"
+		},
+		"references": [
+			{
+				"title": "Decree 13/2023/NĐ-CP on personal data protection arts.9, 11, 13, 17 (in force 1 July 2023, art.43)",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'DPD_CONSENT_AND_NOTICE:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.from,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "45c1a426-e8f1-5418-9afe-6db26ae4ea2b",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "DPD_DELETION_ON_REQUEST",
+		"name": "Delete the personal data on a valid request",
+		"lookup": {
+			"title": "Delete the employee personal data unless a law requires keeping it"
+		},
+		"references": [
+			{
+				"title": "Decree 13/2023/NĐ-CP",
+				"locator": "art.16",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'DPD_DELETION_ON_REQUEST:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "befb1dcc-344d-5502-accf-b662f6675a8f",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "DPD_IMPACT_ASSESSMENT",
+		"name": "File the processing impact assessment",
+		"lookup": {
+			"title": "Prepare and file the personal data processing impact assessment",
+			"day_offset": 60
+		},
+		"references": [
+			{
+				"title": "Decree 13/2023/NĐ-CP",
+				"locator": "arts.24, 25",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'DPD_IMPACT_ASSESSMENT:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.day_offset),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "2bd27475-58e7-56f3-99f8-0e442229f53b",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "DPD_BREACH_NOTIFICATION",
+		"name": "Notify the personal data breach",
+		"lookup": {
+			"title": "Notify the personal data breach to the authority",
+			"day_offset": 3
+		},
+		"references": [
+			{
+				"title": "Decree 13/2023/NĐ-CP",
+				"locator": "art.23",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm"
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.kind === 'PERSONAL_DATA_BREACH';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'DPD_BREACH_NOTIFICATION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.opened_on, ctx.lookup.day_offset),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "450a93ec-7de1-50ef-b9d6-42e9f522521d",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "DPD_SENSITIVE_DATA_PERSONNEL",
+		"name": "Designate the data protection personnel",
+		"lookup": {
+			"title": "Designate the personnel responsible for sensitive personal data"
+		},
+		"references": [
+			{
+				"title": "Decree 13/2023/NĐ-CP",
+				"locator": "arts.28, 43(2)",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'DPD_SENSITIVE_DATA_PERSONNEL:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.salary_coverage.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "98b327e2-0db7-5a6f-8e60-a87f3635cfc5",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "LABOUR_USE_DECLARATION",
+		"name": "Declare the start of operations",
+		"lookup": {
+			"title": "Declare the use of labour within 30 days of starting operations",
+			"day_offset": 30
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.12(2): within 30 days of starting operations; Decree 145/2020/NĐ-CP art.4(1)."
+			}
+		],
+		"source_collection": "entity_profile_version",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// The employer version carries no operations-start date; its own start bounds the thirty-day filing.\nconst key = 'LABOUR_USE_DECLARATION:' + ctx.entry.entity_id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.day_offset),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "a7d624b7-c598-55ee-a493-af76e3334175",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "FOREIGN_EXIT_PIT_FINALISATION",
+		"name": "Finalise PIT before the foreign employee leaves",
+		"lookup": {
+			"title": "Finalise PIT before the foreign employee leaves Vietnam"
+		},
+		"references": [
+			{
+				"title": "Circular 111/2013/TT-BTC art.25(1)(c) and Decree 126/2020/NĐ-CP art.8(6)(d): a foreigner ending the contract finalises before exit."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst key = 'FOREIGN_EXIT_PIT_FINALISATION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.to,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "52065a41-bbe9-5ada-9404-9025c0638257",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "OSH_INDUCTION_TRAINING",
+		"name": "Train the new worker in occupational safety",
+		"lookup": {
+			"title": "Train the new worker in occupational safety and hygiene before the work"
+		},
+		"references": [
+			{
+				"title": "Law on Occupational Safety and Hygiene 84/2015/QH13 art.14(2)–(3): the employer trains workers in OSH on recruitment and before assigning a job; Decree 44/2016/NĐ-CP."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return ctx.entry.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'OSH_INDUCTION_TRAINING:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.from,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "9c61826e-006b-57b1-999d-ffe86775d6fd",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "SI_BENEFIT_FILE_RECEIPT_REVIEW",
+		"name": "Obtain the SI benefit file and record its receipt",
+		"lookup": {
+			"title": "Obtain the SI benefit file and record the complete-file receipt date",
+			"benefit_catalogs": [
+				"SICK_LEAVE",
+				"MATERNITY_LEAVE",
+				"PATERNITY_LEAVE",
+				"CHILD_SICK_CARE",
+				"PRENATAL_CHECKUP",
+				"MISCARRIAGE_LEAVE",
+				"CONTRACEPTION_LEAVE",
+				"CONVALESCENCE_LEAVE"
+			]
+		},
+		"references": [
+			{
+				"title": "Law 41/2024/QH15",
+				"locator": "arts.13(2), 48(1)–(2), 62(1)",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm"
+			}
+		],
+		"source_collection": "leave_catalog_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"leave_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "const catalog = first(get(ctx, 'reads.leave_catalog', []));\nreturn (\n\tcatalog != null &&\n\tctx.lookup.benefit_catalogs.includes(catalog.code) &&\n\tctx.entry.evidence_file == null\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const last = ctx.entry.days.reduce((day, slot) => (slot.date > day ? slot.date : day), '');\nconst key = 'SI_BENEFIT_FILE_RECEIPT_REVIEW:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployment_id: ctx.entry.employment_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: last,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "c5b5ac8c-1488-53dc-9c87-61cf14da5994",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "FOREIGN_WORKER_NEW_DECREE_REVIEW",
+		"name": "Record the work authorisation route",
+		"lookup": {
+			"title": "Record the actual permit or exemption route for this employee",
+			"commencement": "2026-12-05"
+		},
+		"references": [
+			{
+				"title": "Decree 393/2026/NĐ-CP, issued 20 October, effective 5 December 2026",
+				"url": "https://vanban.chinhphu.vn/?classid=1&docid=220059&pageid=27160&typegroupid=4"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null &&\n\tctx.entry.effective_range.from >= ctx.lookup.commencement\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'FOREIGN_WORKER_NEW_DECREE_REVIEW:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.entry.effective_range.from,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "51f41bbc-d852-5456-af0b-5992c585d009",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "FOREIGN_WORKER_NEW_DECREE_TRANSITION",
+		"name": "Establish the transitional treatment at 5 December 2026",
+		"lookup": {
+			"title": "Establish the work-authorisation transition for this employee",
+			"commencement": "2026-12-05"
+		},
+		"references": [
+			{
+				"title": "Decree 393/2026 transition",
+				"locator": "art35(1)-(2)",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["daily"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.event.day === ctx.lookup.commencement &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'FOREIGN_WORKER_NEW_DECREE_TRANSITION:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.event.day,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "533328f8-86a4-5ff7-8e16-7e4ae259acdf",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "WORK_PERMIT_TRANSITION_REVIEW",
+		"name": "Review the transitional work-authorisation deadline",
+		"lookup": {
+			"title": "Review the transitional work-authorisation deadline",
+			"commencement": "2026-12-05",
+			"advance_days": 45
+		},
+		"references": [
+			{
+				"title": "Decree 219/2025/NĐ-CP arts.27(1), 28(1), 29 (in force 7 August 2025), Official Gazette Công báo 1073+1074 of 20 August 2025",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2025/8/45798/58141-1-20251073-1074219-2025-nd-cp.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["daily"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.event.day < ctx.lookup.commencement &&\n\tctx.event.day >= add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_days) &&\n\tget(ctx.entry, 'terms.work_authorisation_category', null) != null\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst key = 'WORK_PERMIT_TRANSITION_REVIEW:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.event.day,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "5f3c4b6e-4c33-5aa4-9c8d-afaffc2dc6d1",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "WORK_PERMIT_RETURN_TRANSITION_REVIEW",
+		"name": "Review the transitional return deadline",
+		"lookup": {
+			"title": "Establish the transitional return deadline for the work authorisation",
+			"commencement": "2026-12-05",
+			"calendar_days": 15
+		},
+		"references": [
+			{
+				"title": "Decree 219/2025/NĐ-CP",
+				"locator": "arts.30(1), 31(1)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2025/8/45798/58141-1-20251073-1074219-2025-nd-cp.pdf"
+			},
+			{
+				"title": "Labour Code 2019",
+				"locator": "art.156(2)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.entry.final_pay_due_on != null &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null &&\n\tctx.entry.effective_range.to < ctx.lookup.commencement &&\n\tadd_days(ctx.entry.effective_range.to, ctx.lookup.calendar_days) >= ctx.lookup.commencement\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst key = 'WORK_PERMIT_RETURN_TRANSITION_REVIEW:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_days(ctx.entry.effective_range.to, ctx.lookup.calendar_days),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "7fe3b50f-579b-5e6d-960e-0d93757d2620",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "WORK_AUTHORISATION_APPLICATION_393",
+		"name": "Submit the initial work authorisation application",
+		"lookup": {
+			"title": "Submit the work authorisation application",
+			"commencement": "2026-12-05",
+			"working_days": 10
+		},
+		"references": [
+			{
+				"title": "Decree 393/2026, effective 5 December 2026; signed text read 2026-10-31",
+				"locator": "arts10(1),23(1),(4),35(2)",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "const kind = get(ctx.entry, 'terms.work_authorisation_category', null);\nreturn (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.from >= ctx.lookup.commencement &&\n\t['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(kind) &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_application_submitted_on', null) == null\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'WORK_AUTHORISATION_APPLICATION_393:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_working_days(ctx.entry.effective_range.from, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "08613982-7e96-5af0-8954-aede26e4b234",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "WORK_AUTHORISATION_EXEMPT_NOTICE_393",
+		"name": "Notify the exemption route before work starts",
+		"lookup": {
+			"title": "Notify the competent authority of the exempt work",
+			"commencement": "2026-12-05",
+			"working_days": 3
+		},
+		"references": [
+			{
+				"title": "Decree 393/2026, effective 5 December 2026; signed text read 2026-10-31",
+				"locator": "art10(4)",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.from >= ctx.lookup.commencement &&\n\tget(ctx.entry, 'terms.work_authorisation_category', null) === 'EXEMPT_NOTIFICATION'\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'WORK_AUTHORISATION_EXEMPT_NOTICE_393:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_working_days(ctx.entry.effective_range.from, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "3425c0e8-9473-5c7d-a5f8-1256e76db3c0",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "WORK_AUTHORISATION_EXTENSION_393",
+		"name": "Submit the work authorisation extension application",
+		"lookup": {
+			"title": "Submit the work authorisation extension application",
+			"commencement": "2026-12-05",
+			"advance_days": 90,
+			"working_days": 10
+		},
+		"references": [
+			{
+				"title": "Decree 393/2026, effective 5 December 2026; signed text read 2026-10-31",
+				"locator": "arts17(1),29(1),30",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["daily"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "const kind = get(ctx.entry, 'terms.work_authorisation_category', null);\nreturn (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.event.day >= ctx.lookup.commencement &&\n\t['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(kind) &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_extension_count', null) === 0 &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_application_submitted_on', null) == null &&\n\tctx.event.day >= add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_days)\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// The contract term bounds the authorisation; the record carries no permit expiry.\nconst key = 'WORK_AUTHORISATION_EXTENSION_393:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_working_days(ctx.entry.effective_range.to, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "bbe5de51-740b-512a-875b-181457977f84",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "WORK_AUTHORISATION_FRESH_ISSUE_393",
+		"name": "Submit the fresh work authorisation application",
+		"lookup": {
+			"title": "Submit the fresh work authorisation application",
+			"commencement": "2026-12-05",
+			"advance_days": 60,
+			"working_days": 10
+		},
+		"references": [
+			{
+				"title": "Decree 393/2026, effective 5 December 2026; signed text read 2026-10-31",
+				"locator": "arts9(8),21(3)",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["daily"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "const kind = get(ctx.entry, 'terms.work_authorisation_category', null);\nconst count = get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_extension_count', null);\nreturn (\n\tctx.entry.status === 'SEALED' &&\n\tctx.entry.effective_range.to != null &&\n\tctx.event.day >= ctx.lookup.commencement &&\n\t['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(kind) &&\n\tcount != null &&\n\tcount >= 1 &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_application_submitted_on', null) == null &&\n\tctx.event.day >= add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_days)\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// The contract term bounds the authorisation; the record carries no permit expiry.\nconst key = 'WORK_AUTHORISATION_FRESH_ISSUE_393:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_working_days(ctx.entry.effective_range.to, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "e6eb981e-4893-5484-bc93-5c7d9500536e",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "WORK_AUTHORISATION_LOCATION_NOTICE_393",
+		"name": "Notify the change of work location",
+		"lookup": {
+			"title": "Notify both authorities of the new work location",
+			"commencement": "2026-12-05",
+			"working_days": 3
+		},
+		"references": [
+			{
+				"title": "Decree 393/2026, effective 5 December 2026; signed text read 2026-10-31",
+				"locator": "arts10(5),23(5)",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "const changedOn = get(ctx.entry.employee_extension_data, 'term_facts.work_location_change_on', null);\nreturn (\n\tctx.entry.status === 'SEALED' &&\n\tchangedOn != null &&\n\tchangedOn >= ctx.lookup.commencement &&\n\t['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(get(ctx.entry, 'terms.work_authorisation_category', null))\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'WORK_AUTHORISATION_LOCATION_NOTICE_393:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_working_days(get(ctx.entry.employee_extension_data, 'term_facts.work_location_change_on', null), -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "90d975e7-e737-55f3-ac48-62217203efa4",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "WORK_AUTHORISATION_INVALIDATION_RETURN_393",
+		"name": "Return the invalidated work authorisation",
+		"lookup": {
+			"title": "Return the work authorisation with the invalidation report",
+			"commencement": "2026-12-05",
+			"working_days": 10
+		},
+		"references": [
+			{
+				"title": "Decree 393/2026, effective 5 December 2026; signed text read 2026-10-31",
+				"locator": "arts31(1),32(1),33(1)-(3),34(1)",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "const invalidatedOn = get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_invalidated_on', null);\nreturn (\n\tctx.entry.status === 'SEALED' &&\n\tinvalidatedOn != null &&\n\tinvalidatedOn >= ctx.lookup.commencement &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_invalidation_ground', null) != null\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'WORK_AUTHORISATION_INVALIDATION_RETURN_393:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: add_working_days(get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_invalidated_on', null), ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "e1cd48d2-4afb-572a-a305-fc738c2cb441",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "FOREIGN_WORKER_REPORT_393",
+		"name": "Report the foreign-worker use",
+		"lookup": {
+			"title": "Report the foreign-worker use to the provincial labour authority",
+			"commencement": "2026-12-05",
+			"half_year_due": ["-06-04", "-12-04"]
+		},
+		"references": [
+			{
+				"title": "Decree 393/2026, effective 5 December 2026; signed text read 2026-10-31",
+				"locator": "art37(6)(dd)",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["daily"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				}
+			}
+		},
+		"condition": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.event.day && (version.effective_range.to == null || version.effective_range.to >= ctx.event.day));\nreturn (\n\tctx.entry.status === 'SEALED' &&\n\tctx.event.day >= ctx.lookup.commencement &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null &&\n\t!(get(profile, 'entity_extension_data.foreign_worker_database_available', false) === true)\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.event.day && (version.effective_range.to == null || version.effective_range.to >= ctx.event.day));\nconst day = ctx.event.day;\nconst year = day.substring(0, 4);\nconst due = day.substring(5, 10) <= '06-04' ? year + ctx.lookup.half_year_due[0] : year + ctx.lookup.half_year_due[1];\nconst key = 'FOREIGN_WORKER_REPORT_393:' + ctx.entry.entity_id + ':' + due;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: due,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "317c9a1b-e7ad-5bd3-a850-9a27bf232c36",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	},
+	{
+		"code": "WORK_AUTHORISATION_EXPIRY_INPUTS_393",
+		"name": "Record the work authorisation route and extension count",
+		"lookup": {
+			"title": "Record the actual authorisation route and documentary extension count",
+			"commencement": "2026-12-05"
+		},
+		"references": [
+			{
+				"title": "Decree 393/2026, effective 5 December 2026",
+				"locator": "arts9(8),17(1),21(3),29(1),30,35",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["daily"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"limit": 1000
+			}
+		},
+		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tctx.event.day >= ctx.lookup.commencement &&\n\tget(ctx.entry, 'terms.work_authorisation_category', null) != null &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_extension_count', null) == null\n);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "const key = 'WORK_AUTHORISATION_EXPIRY_INPUTS_393:' + ctx.entry.id;\nreturn get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)\n\t? []\n\t: [\n\t\t\t{\n\t\t\t\tentity_id: ctx.entry.entity_id,\n\t\t\t\temployee_id: ctx.entry.employee_id,\n\t\t\t\temployment_id: ctx.entry.id,\n\t\t\t\ttitle: ctx.lookup.title,\n\t\t\t\tdue_on: ctx.event.day,\n\t\t\t\toccurrence_key: key\n\t\t\t}\n\t\t];",
+		"id": "30c49f8d-b2f3-5ea4-a030-da8e9e22aef3",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573"
+	}
+]

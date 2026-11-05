@@ -1,0 +1,495 @@
+[
+	{
+		"code": "LI",
+		"name": "Labor Insurance (勞工保險)",
+		"kind": "CONTRIBUTION",
+		"lookup": {
+			"rate": 0.115,
+			"rate_outside_ei": 0.125,
+			"employee_share": 0.2,
+			"employer_share": 0.7,
+			"maximum_ordinary_coverage_age_years": 65
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"employer_cost_subtotal_id": "71903ccb-7b38-5e4f-90d8-c8d2e7621fd2",
+		"eligibility": "return true;",
+		"employee_amount": "// 勞工保險條例 §13–15: 20% of the ordinary-risk premium on the insured grade, less any disability subsidy.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst wage = Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst insured = Number(get(facts, 'statutory.LI.elections.insured_amount', wage));\nconst born = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nconst age = born == null || born === '' ? 0 : age_on(born, ctx.run.salary_coverage.to);\nconst continued = get(facts, 'statutory.LI.elections.continued_after_65', false) === true;\nconst covered = get(ctx.subject.employer, 'entity_extension_data.li_no_insurance_unit', false) !== true &&\n  (age < ctx.lookup.maximum_ordinary_coverage_age_years || continued);\nconst subsidy = Number(get(facts, 'statutory.LI.elections.disability_subsidy', 0)) / 100;\nreturn covered ? round(insured * ctx.lookup.rate * ctx.lookup.employee_share * (1 - subsidy), 1, 'HALF_UP') : 0;",
+		"employer_amount": "// 勞工保險條例 §13(2): 70% employer share, at the higher ordinary-risk rate outside employment insurance.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst wage = Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst insured = Number(get(facts, 'statutory.LI.elections.insured_amount', wage));\nconst born = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nconst age = born == null || born === '' ? 0 : age_on(born, ctx.run.salary_coverage.to);\nconst continued = get(facts, 'statutory.LI.elections.continued_after_65', false) === true;\nconst covered = get(ctx.subject.employer, 'entity_extension_data.li_no_insurance_unit', false) !== true &&\n  (age < ctx.lookup.maximum_ordinary_coverage_age_years || continued);\nconst rate = Number(get(ctx.statutory, 'EI.employee', 0)) > 0 ? ctx.lookup.rate : ctx.lookup.rate_outside_ei;\nreturn covered ? round(insured * rate * ctx.lookup.employer_share, 1, 'HALF_UP') : 0;",
+		"references": [
+			{
+				"title": "勞工保險條例",
+				"locator": "§6、§8、§9、§13–15",
+				"quote": "Ordinary-risk premium rate 12.5%, 11.5% for a worker covered by employment insurance under 65, shared 20% employee, 70% employer and 10% government. Insured on the grade of the contract's monthly wage (base salary with its fixed allowances), or the declared insured amount — never re-graded from a month's reduced pay; notified adjustments take effect on the first of the following month. Variable wages use an independently recorded three-month-average declaration. Registered continuing cover remains chargeable after age 65. Nothing in a unit of fewer than five workers that never entered compulsory cover (§6, §8)."
+			}
+		],
+		"depends_on": ["EI"],
+		"id": "0dbdabe8-3e5f-5570-9a82-03ab9751f8f5",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "WAGE_ARREARS_FUND",
+		"name": "積欠工資墊償基金 (wage arrears payment fund)",
+		"kind": "CONTRIBUTION",
+		"lookup": {
+			"employer_rate": 0.00025
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"employer_cost_subtotal_id": "71903ccb-7b38-5e4f-90d8-c8d2e7621fd2",
+		"eligibility": "return true;",
+		"employee_amount": "return 0;",
+		"employer_amount": "// 勞動基準法 §28(2): the 0.025% wage-arrears levy on the insured wage, employer only.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst wage = Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst insured = Number(get(facts, 'statutory.LI.elections.insured_amount', wage));\nreturn round(insured * ctx.lookup.employer_rate, 1, 'HALF_UP');",
+		"references": [
+			{
+				"title": "勞動基準法",
+				"locator": "§28",
+				"quote": "Wage arrears fund: 0.025% of the unit's total 墊償提繳薪資 — each worker's LI-equivalent insured salary prorated by covered days on a 30-day month, 育嬰留職停薪 days left out, including workers covered only by employment or occupational accident insurance — rounded once to the nearest whole dollar at company level."
+			}
+		],
+		"id": "b9981814-701c-5c3b-9d75-2e5d5b394d36",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "EI",
+		"name": "Employment Insurance (就業保險)",
+		"kind": "CONTRIBUTION",
+		"lookup": {
+			"rate": 0.01,
+			"employee_share": 0.2,
+			"employer_share": 0.7,
+			"maximum_coverage_age_years": 65,
+			"foreign_professional_covered": true
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"employer_cost_subtotal_id": "71903ccb-7b38-5e4f-90d8-c8d2e7621fd2",
+		"eligibility": "return true;",
+		"employee_amount": "// 就業保險法 §8, §40–41: 1% of the insured grade, 20% employee, before age 65.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst wage = Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst insured = Number(get(facts, 'statutory.LI.elections.insured_amount', wage));\nconst born = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nconst age = born == null || born === '' ? 0 : age_on(born, ctx.run.salary_coverage.to);\nconst residency = get(ctx.subject.employment, 'terms.residency_status', 'CITIZEN');\nconst covered = age < ctx.lookup.maximum_coverage_age_years &&\n  (residency === 'CITIZEN' || get(facts, 'foreign_spouse_of_national', false) === true ||\n    (ctx.lookup.foreign_professional_covered === true && residency === 'PERMANENT_RESIDENT' && get(facts, 'foreign_professional', false) === true));\nconst subsidy = Number(get(facts, 'statutory.LI.elections.disability_subsidy', 0)) / 100;\nreturn covered ? round(insured * ctx.lookup.rate * ctx.lookup.employee_share * (1 - subsidy), 1, 'HALF_UP') : 0;",
+		"employer_amount": "// 就業保險法 §8, §40–41: 1% of the insured grade, 70% employer, before age 65.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst wage = Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst insured = Number(get(facts, 'statutory.LI.elections.insured_amount', wage));\nconst born = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nconst age = born == null || born === '' ? 0 : age_on(born, ctx.run.salary_coverage.to);\nconst residency = get(ctx.subject.employment, 'terms.residency_status', 'CITIZEN');\nconst covered = age < ctx.lookup.maximum_coverage_age_years &&\n  (residency === 'CITIZEN' || get(facts, 'foreign_spouse_of_national', false) === true ||\n    (ctx.lookup.foreign_professional_covered === true && residency === 'PERMANENT_RESIDENT' && get(facts, 'foreign_professional', false) === true));\nreturn covered ? round(insured * ctx.lookup.rate * ctx.lookup.employer_share, 1, 'HALF_UP') : 0;",
+		"references": [
+			{
+				"title": "就業保險法",
+				"locator": "§5、§8、§40",
+				"quote": "1% premium shared 20% worker, 70% employer and 10% government. Covered: nationals, foreign spouses of nationals and permanent-resident foreign professionals (from 2026), under 65 (§5); cover ends the day before the 65th birthday. Priced on the wage's LI grade, prorated by covered days and left out on 育嬰留職停薪 days, as LI (§40). Coverage cannot precede the fifteenth birthday (§5); apply the later of declared cover and birthday."
+			}
+		],
+		"id": "c9158c9a-a029-5c17-8e96-368e24222e0a",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "NHI",
+		"name": "National Health Insurance (全民健康保險)",
+		"kind": "CONTRIBUTION",
+		"lookup": {
+			"rate": 0.0517,
+			"employee_share": 0.3,
+			"employer_share": 0.6,
+			"maximum_employee_dependants": 3,
+			"average_dependants": 1.56
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"employer_cost_subtotal_id": "71903ccb-7b38-5e4f-90d8-c8d2e7621fd2",
+		"eligibility": "return true;",
+		"employee_amount": "// 全民健康保險法 §18, §27, §29: 30% employee share, subsidised on the worker's own share, plus one full share for each of up to three dependants.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst wage = Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst insured = Number(get(facts, 'statutory.NHI.elections.insured_amount', wage));\nconst elsewhere = get(facts, 'statutory.NHI.elections.insured_elsewhere', false) === true;\nconst exit = get(ctx.subject.employment, 'effective_range.to', '');\nconst covered = !elsewhere && (exit == null || exit === '' || exit >= ctx.run.salary_coverage.to);\nconst dependants = Math.min(ctx.lookup.maximum_employee_dependants, Number(get(facts, 'statutory.NHI.elections.enrolled_dependants', 0)));\nconst subsidy = Number(get(facts, 'statutory.LI.elections.disability_subsidy', 0)) / 100;\nconst own = insured * ctx.lookup.rate * ctx.lookup.employee_share;\nreturn covered ? round(own * (1 - subsidy) + own * dependants, 1, 'HALF_UP') : 0;",
+		"employer_amount": "// 全民健康保險法 §18, §27: 60% employer share on the insured amount, times the announced 1.56 average dependant factor.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst wage = Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst insured = Number(get(facts, 'statutory.NHI.elections.insured_amount', wage));\nconst elsewhere = get(facts, 'statutory.NHI.elections.insured_elsewhere', false) === true;\nconst exit = get(ctx.subject.employment, 'effective_range.to', '');\nconst covered = !elsewhere && (exit == null || exit === '' || exit >= ctx.run.salary_coverage.to);\nreturn covered ? round(insured * ctx.lookup.rate * ctx.lookup.employer_share * ctx.lookup.average_dependants, 1, 'HALF_UP') : 0;",
+		"references": [
+			{
+				"title": "全民健康保險法; 施行細則",
+				"locator": "§18、§27、§29、§30; 細則§52",
+				"quote": "Regular premiums use the declared insured amount at the month-end insuring unit: charged for the whole month by the unit insuring the worker on its last day (NHIA 保險費計收: 當月最末日在保) — nothing in a month the worker left before its last day, a whole month for a joiner. Employee pays 30% of the 5.17% premium for self and up to three enrolled dependants; published whole-dollar per-person premiums apply. Employer pays 60% with the published 1.56 average dependant factor."
+			}
+		],
+		"id": "9052624b-3ab5-5e2d-9ec0-6296c475e124",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "NHI_SUPPLEMENT",
+		"name": "健保補充保險費 (NHI supplementary premium)",
+		"kind": "CONTRIBUTION",
+		"lookup": {
+			"rate": 0.0211,
+			"payment_ceiling": 10000000,
+			"bonus_salary_multiple": 4
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"employer_cost_subtotal_id": "71903ccb-7b38-5e4f-90d8-c8d2e7621fd2",
+		"eligibility": "return true;",
+		"employee_amount": "// 全民健康保險法 §31: 2.11% on each bonus payment above four times the insured amount, capped at NT$10,000,000.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst bonus = get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0);\nconst insured = Number(get(facts, 'statutory.NHI.elections.insured_amount', get(ctx.subtotals, 'ORDINARY_WAGES', 0)));\nconst excess = Math.max(0, bonus - ctx.lookup.bonus_salary_multiple * insured);\nreturn round(Math.min(excess, ctx.lookup.payment_ceiling) * ctx.lookup.rate, 1, 'HALF_UP');",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "全民健康保險法",
+				"locator": "§31",
+				"quote": "Bonuses exceeding four times the current insured amount (the year's bonuses above four times the insured grade) attract a 2.11% supplementary premium, limited to the current payment and NT$10 million of assessable bonus per payment. After departure, retain the insured amount at withdrawal. The regular month-end premium being zero does not remove this threshold. Round once to whole NT dollars."
+			}
+		],
+		"id": "d341043e-e601-5337-8053-bb37c0d43848",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "NHI_PART_TIME",
+		"name": "健保補充保險費—兼職薪資所得 (NHI supplementary premium on part-time salary)",
+		"kind": "CONTRIBUTION",
+		"lookup": {
+			"rate": 0.0211,
+			"payment_ceiling": 10000000,
+			"part_time_payment_threshold": 29500
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"employer_cost_subtotal_id": "71903ccb-7b38-5e4f-90d8-c8d2e7621fd2",
+		"eligibility": "return true;",
+		"employee_amount": "// 全民健康保險法 §31(1)(2): 2.11% on a salary payment to a worker insured elsewhere, charged whole from the minimum wage.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst exempt = get(facts, 'statutory.NHI_PART_TIME.elections.exempt', false) === true;\nconst elsewhere = get(facts, 'statutory.NHI.elections.insured_elsewhere', false) === true;\nconst payment = get(ctx.subtotals, 'ORDINARY_WAGES', 0);\nreturn elsewhere && !exempt && payment >= ctx.lookup.part_time_payment_threshold\n  ? round(Math.min(payment, ctx.lookup.payment_ceiling) * ctx.lookup.rate, 1, 'HALF_UP')\n  : 0;",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "全民健康保險法",
+				"locator": "§31(1)(2)",
+				"quote": "Salary income (薪資所得, 所得稅格式代號 50) paid to a person who is not insured through this unit (兼職薪資所得) attracts the 2.11% supplementary premium, withheld at payment by the payer (§31(1) 扣費義務人). Each payment (the slip's salary income as one payment, with the exempt NT$3,000 of a meal allowance and overtime within the 勞基法§32 limits left out of 所得稅法§14 薪資所得; each bonus or leave-pay line as its own) is charged whole when it reaches the NT$29,500 minimum wage, at most NT$10,000,000 a payment. Non-compete compensation paid after the exit is salary to a person no longer insured through this unit, so it is charged whatever the NHI election (owner ruling: salary income). A worker insured through this unit is outside this premium."
+			},
+			{
+				"title": "全民健康保險署 二代健保補充保險費簡介 (115.01.05 版)",
+				"url": "https://www.nhi.gov.tw/ch/dl-26429-47de962ef1464d8f91828d4421028290-1.pdf",
+				"effective_from": "2021-01-01",
+				"quote": "The rate is 2.11% from 1 January 2021; from 1 September 2014 a single payment below the basic (minimum) wage is not withheld on, so a payment at or above the NT$29,500 minimum wage is charged whole; a single payment is assessed on at most NT$10,000,000; 第2類 insureds' salary income and persons with no NHI eligibility or 第5類 insureds are exempt."
+			}
+		],
+		"id": "f88cede6-e96c-53ae-abe0-2a8a5ababc39",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "LABOR_PENSION",
+		"name": "Labor Pension (勞工退休金, new system)",
+		"kind": "CONTRIBUTION",
+		"lookup": {
+			"employer_rate": 6,
+			"foreign_professional_covered": true
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"employer_cost_subtotal_id": "71903ccb-7b38-5e4f-90d8-c8d2e7621fd2",
+		"eligibility": "return true;",
+		"employee_amount": "// 勞工退休金條例 §14(3): the worker's voluntary contribution, up to 6% of the monthly contribution wage.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst wage = Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst insured = Number(get(facts, 'statutory.LABOR_PENSION.elections.insured_amount', wage));\nconst residency = get(ctx.subject.employment, 'terms.residency_status', 'CITIZEN');\nconst covered = residency === 'CITIZEN' || residency === 'PERMANENT_RESIDENT' || get(facts, 'foreign_spouse_of_national', false) === true ||\n  (ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true);\nconst newSystem = get(facts, 'statutory.LABOR_PENSION.elections.pension_system', 'NEW') !== 'LSA';\nconst rate = Number(get(facts, 'statutory.LABOR_PENSION.elections.voluntary_rate', 0)) / 100;\nreturn covered && newSystem ? round(insured * rate, 1, 'HALF_UP') : 0;",
+		"employer_amount": "// 勞工退休金條例 §14(1): the employer's declared contribution, not below 6% of the monthly contribution wage.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst wage = Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst insured = Number(get(facts, 'statutory.LABOR_PENSION.elections.insured_amount', wage));\nconst residency = get(ctx.subject.employment, 'terms.residency_status', 'CITIZEN');\nconst covered = residency === 'CITIZEN' || residency === 'PERMANENT_RESIDENT' || get(facts, 'foreign_spouse_of_national', false) === true ||\n  (ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true);\nconst newSystem = get(facts, 'statutory.LABOR_PENSION.elections.pension_system', 'NEW') !== 'LSA';\nconst rate = Number(get(facts, 'statutory.LABOR_PENSION.elections.employer_rate', ctx.lookup.employer_rate)) / 100;\nreturn covered && newSystem ? round(insured * rate, 1, 'HALF_UP') : 0;",
+		"references": [
+			{
+				"title": "勞工退休金條例",
+				"locator": "§7–9、§14、§15、§18",
+				"quote": "The employer contributes at least 6% of the declared monthly contribution wage (§14(1) 不得低於 6%, so a higher declared rate is priced as declared; default 6). Covered: nationals, permanent residents and foreign spouses and, from 2026, foreign professionals; a national continuously employed by the same unit before 1 July 2005 may retain the LSA old pension system under §8–9, with the 2005 election or deemed continuation and same-unit history evidenced by the nonregistration declaration; the LSA §56 employer reserve still applies. An employee may voluntarily contribute up to 6% (§14(3): 每月工資百分之六範圍內; the default is none). Contribution wage is the 月提繳工資分級表 grade; contributed from the day of joining to the day of leaving by days on a 30-day month (§16), stopped on 育嬰留職停薪 days (§20); rounded after proration. A February departure on the last day completes 30 contribution days."
+			}
+		],
+		"id": "1d6aa144-fe67-5b34-a8bf-0c51c8af72ea",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "OCC_INJURY",
+		"name": "Occupational Accident Insurance (勞工職業災害保險)",
+		"kind": "CONTRIBUTION",
+		"lookup": {
+			"default_rate_percent": 0.2,
+			"commuting_rate_percent": 0.07,
+			"industry_rate_percent": {
+				"1": 0.25,
+				"2": 0.21,
+				"3": 0.96,
+				"4": 0.22,
+				"5": 0.21,
+				"6": 0.17,
+				"7": 0.15,
+				"8": 0.2,
+				"9": 0.43,
+				"10": 0.39,
+				"11": 0.21,
+				"12": 0.22,
+				"13": 0.26,
+				"14": 0.4,
+				"15": 0.43,
+				"16": 0.34,
+				"17": 0.27,
+				"18": 0.12,
+				"19": 0.26,
+				"20": 0.26,
+				"21": 0.2,
+				"22": 0.28,
+				"23": 0.39,
+				"24": 0.25,
+				"25": 0.57,
+				"26": 0.37,
+				"27": 0.45,
+				"28": 0.53,
+				"29": 0.44,
+				"30": 0.19,
+				"31": 0.17,
+				"32": 0.39,
+				"33": 0.87,
+				"34": 0.21,
+				"35": 0.17,
+				"36": 0.23,
+				"37": 0.21,
+				"38": 0.2,
+				"39": 0.19,
+				"40": 0.13,
+				"41": 0.13,
+				"42": 0.12,
+				"43": 0.12,
+				"44": 0.16,
+				"45": 0.15,
+				"46": 0.13,
+				"47": 0.14,
+				"48": 0.25,
+				"49": 0.19,
+				"50": 0.12,
+				"51": 0.12,
+				"52": 0.16,
+				"53": 0.14,
+				"54": 0.25,
+				"55": 0.19
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"employer_cost_subtotal_id": "71903ccb-7b38-5e4f-90d8-c8d2e7621fd2",
+		"eligibility": "return true;",
+		"employee_amount": "return 0;",
+		"employer_amount": "// 勞工職業災害保險及保護法 §16–17: the insured grade times the notified experience rate, or the industry rate plus the 0.07% commuting rate.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst wage = Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst insured = Number(get(facts, 'statutory.OCC_INJURY.elections.insured_amount', wage));\nconst experience = get(entity, 'occ_experience_rate_percent', null);\nconst risk = get(entity, 'risk_class', null);\nconst industry = risk == null ? null : get(ctx.lookup.industry_rate_percent, String(risk), null);\nconst base = Number(industry == null ? ctx.lookup.default_rate_percent : industry);\nconst rate = experience != null ? Number(experience) : base + ctx.lookup.commuting_rate_percent;\nreturn round(insured * rate / 100, 1, 'HALF_UP');",
+		"references": [
+			{
+				"title": "勞工職業災害保險及保護法; 施行細則",
+				"locator": "§16、§17、§19; 細則§2、§26、§28",
+				"quote": "The employer pays the declared insured grade (勞工職業災害保險投保薪資分級表, 29,500–72,800) multiplied by the applicable industry rate plus 0.07% commuting rate (災保費率: 行業別 + 0.07% 上下班, 勞動部 113-11-07 公告, from 2025-01-01) and covered days divided by 30, for every worker regardless of age or nationality; 育嬰留職停薪 days left out (性別平等工作法§16(2)). Round once to whole NT dollars after day proration. An experience-rated unit (§16(4) 實績費率: the Bureau notifies the unit's own rate each year) records the notified total rate, commuting rate included; otherwise the industry table rate applies.",
+				"effective_from": "2025-01-01"
+			}
+		],
+		"id": "2cfe9180-b202-57ad-b560-4bea96b4aae6",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "INCOME_TAX",
+		"name": "Resident income tax withholding (薪資所得扣繳)",
+		"kind": "TAX",
+		"lookup": {
+			"rate": 0.05,
+			"minimum_withholding": 2000,
+			"annual_exemption_per_person": 101000,
+			"annual_standard_deduction": 272000,
+			"annual_salary_deduction": 227000,
+			"monthly_salary_rounding_threshold": 500000,
+			"monthly_salary_rounding_step": 500,
+			"bands": [
+				{
+					"up_to": 610000,
+					"rate": 0.05
+				},
+				{
+					"up_to": 1380000,
+					"rate": 0.12
+				},
+				{
+					"up_to": 2770000,
+					"rate": 0.2
+				},
+				{
+					"up_to": 5190000,
+					"rate": 0.3
+				},
+				{
+					"up_to": null,
+					"rate": 0.4
+				}
+			]
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"employer_cost_subtotal_id": "71903ccb-7b38-5e4f-90d8-c8d2e7621fd2",
+		"eligibility": "return true;",
+		"employee_amount": "// 薪資所得扣繳辦法 §6–7: without a 免稅額申報表 the resident salary bears 5% of the whole month, withheld above NT$2,000; with one, annualise the month, deduct the exemptions and the standard and salary deductions, apply the 所得稅法 §5 ladder and withhold a twelfth.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst review = get(facts, 'statutory.INCOME_TAX.elections.tax_residency_reviews.' + payDate.substring(0, 4), null);\nconst resident = review !== null && get(review, 'resident_from', null) !== null && get(review, 'resident_from', '') <= payDate;\nconst wage = Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0) - Number(get(ctx.statutory, 'LABOR_PENSION.employee', 0)));\nconst exemptions = get(facts, 'statutory.INCOME_TAX.elections.exemptions', null);\nif (exemptions == null) {\n  const flat = round(wage * ctx.lookup.rate, 1, 'DOWN');\n  return resident && flat > ctx.lookup.minimum_withholding ? flat : 0;\n}\nconst stepped = wage <= ctx.lookup.monthly_salary_rounding_threshold\n  ? round(wage, ctx.lookup.monthly_salary_rounding_step, 'UP') - ctx.lookup.monthly_salary_rounding_step\n  : wage;\nconst annual = 12 * stepped;\nconst deduction = ctx.lookup.annual_exemption_per_person * (1 + Math.max(0, Number(exemptions)))\n  + ctx.lookup.annual_standard_deduction\n  + Math.min(ctx.lookup.annual_salary_deduction, annual);\nconst scale = wage <= ctx.lookup.monthly_salary_rounding_threshold ? 10 : 1;\nconst tax = round(ladder(Math.max(0, annual - deduction), ctx.lookup.bands) / 12, scale, 'DOWN');\nreturn resident && tax > ctx.lookup.minimum_withholding ? tax : 0;",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "所得稅法; 各類所得扣繳率標準; 薪資所得扣繳辦法",
+				"locator": "所得稅法§88; 扣繳率標準§2; 扣繳辦法§6–7",
+				"quote": "Resident regular salary is assessed on the full month's payments, separately from non-monthly bonus payments. With a declared 免稅額申報表 (spouse/dependant count) the 115年度 薪資所得扣繳稅額表 applies (財政部 114年12月4日 台財稅字第11404675280號函): NT$101,000 personal exemption, NT$272,000 married standard deduction and NT$227,000 salary deduction. 500-dollar rows to 500,000, tax truncated to NT$10, nothing at 2,000 or less; salaries above NT$500,000 or more than eleven spouse/dependant exemptions use the annualised formula in 說明(三), truncated to NT$1. Without the declaration, 5% (art.6), truncated to whole NT dollars before applying the NT$2,000 exemption; NT$40,020 is the first whole-dollar salary requiring withholding. A 兼職所得 salary is withheld 5% when it reaches the NT$90,501 起扣標準 (§7), the exempt overtime and the exempt NT$3,000 of a meal allowance left out (所得稅法§14)."
+			}
+		],
+		"depends_on": ["LABOR_PENSION"],
+		"id": "5d402042-266f-500c-b8fa-f8020751eacc",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "INCOME_TAX_NON_RESIDENT",
+		"name": "Individual Income Tax withholding, non-resident (非居住者薪資扣繳)",
+		"kind": "TAX",
+		"lookup": {
+			"rate": 0.18,
+			"lower_rate": 0.06,
+			"lower_rate_salary_ceiling": 44250
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"employer_cost_subtotal_id": "71903ccb-7b38-5e4f-90d8-c8d2e7621fd2",
+		"eligibility": "return true;",
+		"employee_amount": "// 各類所得扣繳率標準 §3(1): 18% of the reviewed non-resident's whole salary, or 6% at or below 1.5 times the minimum wage.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst review = get(facts, 'statutory.INCOME_TAX.elections.tax_residency_reviews.' + payDate.substring(0, 4), null);\nconst unreviewed = review === null || get(review, 'basis', '') !== 'NON_RESIDENT' || get(review, 'resident_from', null) !== null;\nconst wage = Math.max(0, get(ctx.subtotals, 'ADDITIONAL_WAGES', 0));\nconst rate = wage <= ctx.lookup.lower_rate_salary_ceiling ? ctx.lookup.lower_rate : ctx.lookup.rate;\nreturn !unreviewed && wage > 0 ? round(wage * rate, 1, 'HALF_UP') : 0;",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "所得稅法; 各類所得扣繳率標準",
+				"locator": "所得稅法§88; 扣繳率標準§3(1)(1)、§3(2)",
+				"quote": "Non-resident salary, including taxable allowances and bonuses, is assessed monthly on the month's whole salary (全月給付總額) at 6% when it does not exceed 1.5 times the applicable minimum wage (NT$42,885 on 28,590; NT$44,250 on 29,500); otherwise 18%; truncated. The resident NT$2,000 exemption does not apply. Tax residence is the reviewed payment-year decision captured in INCOME_TAX elections.tax_residency_reviews; citizenship and the legacy residency_since field do not decide PIT. A mid-month transition after resident_from is refused for offline settlement rather than refunding earlier nonresident withholding."
+			}
+		],
+		"id": "4ca215f4-88af-52eb-8cd7-0cf429b8c8bb",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "NHI_SUPPLEMENT_EMPLOYER",
+		"name": "健保補充保費（雇主）",
+		"kind": "CONTRIBUTION",
+		"lookup": {
+			"rate": 0.0211
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"employer_cost_subtotal_id": "71903ccb-7b38-5e4f-90d8-c8d2e7621fd2",
+		"eligibility": "return true;",
+		"employee_amount": "return 0;",
+		"employer_amount": "// 全民健康保險法 §34: the employer's 2.11% supplementary premium on the pay above the insured amount.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst wage = Math.max(0, get(ctx.subtotals, 'GROSS', 0));\nconst insured = Number(get(facts, 'statutory.NHI.elections.insured_amount', wage));\nreturn round(Math.max(0, wage - insured) * ctx.lookup.rate, 1, 'HALF_UP');",
+		"references": [
+			{
+				"title": "全民健康保險法",
+				"locator": "§34",
+				"url": "https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html",
+				"quote": "The insuring unit pays 2.11% of the excess of the month's total salary income paid (薪資所得, 所得稅格式代號 50) over the total insured amounts of its insured, netted across the establishment, not person by person; never negative."
+			}
+		],
+		"id": "cccc6831-2b3a-5c7c-8429-98a4192eabb6",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "LABOR_PENSION_RESERVE",
+		"name": "勞工退休準備金（舊制）",
+		"kind": "CONTRIBUTION",
+		"lookup": {
+			"default_rate_percent": 2
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"employer_cost_subtotal_id": "71903ccb-7b38-5e4f-90d8-c8d2e7621fd2",
+		"eligibility": "return true;",
+		"employee_amount": "return 0;",
+		"employer_amount": "// 勞動基準法 §56(1): 2%–15% of the wages of the workers still on the old pension system, at the rate the entity declares.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst wage = Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst pension = get(facts, 'statutory.LABOR_PENSION.elections.pension_system', 'NEW');\nconst residency = get(ctx.subject.employment, 'terms.residency_status', 'CITIZEN');\nconst pensionCovered = residency === 'CITIZEN' || residency === 'PERMANENT_RESIDENT' || get(facts, 'foreign_spouse_of_national', false) === true;\nconst rate = Number(get(entity, 'pension_reserve_rate', ctx.lookup.default_rate_percent)) / 100;\nreturn pension === 'LSA' || !pensionCovered ? round(wage * rate, 1, 'HALF_UP') : 0;",
+		"references": [
+			{
+				"title": "勞動基準法",
+				"locator": "§56(1)",
+				"quote": "雇主應依勞工每月薪資總額百分之二至百分之十五範圍內按月提撥勞工退休準備金 — a monthly appropriation, at the rate the entity declares (2–15%), of the total wages of the workers on the LSA (old) pension system: nationals in service before 1 July 2005 who kept it (勞退條例§8–9) and foreign workers outside 勞退條例§7 (migrant workers, and foreign professionals who kept the LSA pension under 外國專業人才延攬及僱用法§24). Paid into the Bank of Taiwan account."
+			},
+			{
+				"title": "勞動部 114年10月14日勞動福3字第1140153402A號令",
+				"url": "https://www.mol.gov.tw/1607/28690/2282/2302/86592/86636/post",
+				"effective_from": "2026-04-01",
+				"quote": "From 1 April 2026 an employer may leave a blue-collar migrant worker with under ten years at the unit out of the 薪資總額 (可不計入, may); unrecorded, they stay in."
+			}
+		],
+		"id": "1753c5af-1321-56c4-b58b-4dfc2399acdc",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "INCOME_TAX_BONUS",
+		"name": "Income tax — bonus withholding",
+		"kind": "TAX",
+		"lookup": {
+			"rate": 0.05,
+			"bonus_withholding_threshold": 90501
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"employer_cost_subtotal_id": "71903ccb-7b38-5e4f-90d8-c8d2e7621fd2",
+		"eligibility": "return true;",
+		"employee_amount": "// 薪資所得扣繳辦法 §7: 5% on a non-monthly bonus payment at or above the 起扣標準.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst review = get(facts, 'statutory.INCOME_TAX.elections.tax_residency_reviews.' + payDate.substring(0, 4), null);\nconst resident = review !== null && get(review, 'resident_from', null) !== null && get(review, 'resident_from', '') <= payDate;\nconst bonus = get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0);\nreturn resident && bonus >= ctx.lookup.bonus_withholding_threshold ? round(bonus * ctx.lookup.rate, 1, 'HALF_UP') : 0;",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "薪資所得扣繳辦法",
+				"locator": "§6–7",
+				"quote": "Non-monthly resident salary payments (a bonus or leave-pay line) are withheld separately at 5% of the payment when it reaches the applicable no-dependant salary-table threshold (NT$88,501 in 114年度, NT$90,501 in 115年度); smaller payments are exempt — per payment, not per month. A 兼職所得 worker's bonus is withheld here too."
+			}
+		],
+		"id": "9562f8af-476e-5876-b7c1-3c3c19b8ffab",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "SEVERANCE_TAX",
+		"name": "Resident retirement and severance withholding (居住者退職所得扣繳)",
+		"kind": "TAX",
+		"lookup": {
+			"rate": 0.06,
+			"exemption_per_service_year": 206000
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"employer_cost_subtotal_id": "71903ccb-7b38-5e4f-90d8-c8d2e7621fd2",
+		"eligibility": "return true;",
+		"employee_amount": "// 所得稅法 §14(1)(9) with 各類所得扣繳率標準 §2: 6% withheld on the exit pay above the per-service-year exemption; a tail under six months counts as half a year.\nconst pay = Math.max(0, get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0));\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst start = get(ctx.subject.employment, 'effective_range.from', ctx.run.salary_coverage.from);\nconst months = calendar_completed_months(start, payDate);\nconst years = Math.floor(months / 12) + (months % 12 === 0 ? 0 : months % 12 < 6 ? 0.5 : 1);\nconst exempt = ctx.lookup.exemption_per_service_year * years;\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst review = get(facts, 'statutory.INCOME_TAX.elections.tax_residency_reviews.' + payDate.substring(0, 4), null);\nconst resident = review !== null && get(review, 'resident_from', null) !== null && get(review, 'resident_from', '') <= payDate;\nreturn resident && pay > exempt ? round((pay - exempt) * ctx.lookup.rate, 1, 'HALF_UP') : 0;",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "所得稅法; 各類所得扣繳率標準",
+				"locator": "所得稅法§14(1)(9)、§88; 扣繳率標準§2",
+				"quote": "資遣費 and 退休金 are 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident, truncated. The half-taxable band is the employee's annual return, not the withholding. A 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局)."
+			}
+		],
+		"id": "6b7ee310-12d9-5aba-87c4-97002aca3b40",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "WELFARE_FUND",
+		"name": "職工福利金（薪津扣繳）",
+		"kind": "CONTRIBUTION",
+		"lookup": {
+			"employee_rate": 0.005
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"employer_cost_subtotal_id": "71903ccb-7b38-5e4f-90d8-c8d2e7621fd2",
+		"eligibility": "return true;",
+		"employee_amount": "// 職工福利金條例 §2(1)(3): 0.5% of the wage, deducted from the worker, where the entity has a welfare committee.\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst wage = Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nreturn get(entity, 'welfare_committee_established', false) === true ? round(wage * ctx.lookup.employee_rate, 1, 'HALF_UP') : 0;",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "職工福利金條例",
+				"locator": "§2(1)(3)",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0040001&flno=2",
+				"quote": "每月於每個職員工人薪津內各扣百分之○‧五 — a 0.5% worker deduction paid into the entity's 職工福利金, withheld only where the entity has established the welfare committee (§1 obliges every enterprise to 提撥 and 辦理職工福利事業). Last amended 2015-07-01. The employer's own §2(1)(1)(2)(4) appropriations (capital, 0.05–0.15% of monthly revenue, 20–40% of scrap sales) are entity-level and outside payroll. Owner rule 2026-09-28: 薪津 is the month’s salary and the allowances paid with it, not a bonus outside those classes, so this scheme reads the ORDINARY_WAGES checkpoint, never ADDITIONAL_WAGES."
+			}
+		],
+		"id": "65cab914-8d4e-5c98-ba49-8600b244e387",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "SEVERANCE_TAX_NON_RESIDENT",
+		"name": "Nonresident retirement and severance withholding (非居住者退職所得扣繳)",
+		"kind": "TAX",
+		"lookup": {
+			"rate": 0.18,
+			"exemption_per_service_year": 206000
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"employer_cost_subtotal_id": "71903ccb-7b38-5e4f-90d8-c8d2e7621fd2",
+		"eligibility": "return true;",
+		"employee_amount": "// 所得稅法 §14(1)(9) with 各類所得扣繳率標準 §2: 18% withheld on the exit pay above the per-service-year exemption; a tail under six months counts as half a year.\nconst pay = Math.max(0, get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0));\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst start = get(ctx.subject.employment, 'effective_range.from', ctx.run.salary_coverage.from);\nconst months = calendar_completed_months(start, payDate);\nconst years = Math.floor(months / 12) + (months % 12 === 0 ? 0 : months % 12 < 6 ? 0.5 : 1);\nconst exempt = ctx.lookup.exemption_per_service_year * years;\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst review = get(facts, 'statutory.INCOME_TAX.elections.tax_residency_reviews.' + payDate.substring(0, 4), null);\nconst resident = review !== null && get(review, 'resident_from', null) !== null && get(review, 'resident_from', '') <= payDate;\nreturn !resident && pay > exempt ? round((pay - exempt) * ctx.lookup.rate, 1, 'HALF_UP') : 0;",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "所得稅法; 各類所得扣繳率標準",
+				"locator": "所得稅法§14(1)(9)、§88; 扣繳率標準§2",
+				"quote": "資遣費 and 退休金 are 退職所得, withheld at the source on the excess over the 定額免稅 — 6% for a resident, 18% for a non-resident, truncated. The half-taxable band is the employee's annual return, not the withholding. A 年資 tail of under six months counts as half a year, six months or more as one year (高雄國稅局)."
+			}
+		],
+		"id": "7504cf5f-6b12-58e6-8814-84617c6cc540",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	}
+]

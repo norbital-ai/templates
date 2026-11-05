@@ -1,0 +1,352 @@
+[
+	{
+		"code": "ECONOMIC_COMPENSATION",
+		"name": "经济补偿 (economic compensation on termination)",
+		"description": "The entry quantity is the average monthly wage over the 12 months before termination. Service is measured from the contract start to the incurred date: a full year pays one month, six months or more pays one, and under six months pays half; the total is capped at 12 years.",
+		"lookup": {
+			"months_per_year": 12,
+			"full_year_min_months": 6,
+			"max_years": 12
+		},
+		"references": [
+			{
+				"title": "劳动合同法 第四十六条、第四十七条; 实施条例 第二十七条: 每满一年一个月工资, 六个月以上不满一年按一年, 不满六个月半个月; 高于当地上年度职工月平均工资三倍的按三倍, 年限最高12年."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3af39890-ea2d-50fa-b162-5bf005191740",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0 && ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
+		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst months = calendar_completed_months(start, ctx.entry.incurred_on);\nconst years = Math.trunc(months / ctx.lookup.months_per_year);\nconst remainder = months % ctx.lookup.months_per_year;\nconst counted = Math.min(\n\tctx.lookup.max_years,\n\tyears +\n\t\t(remainder >= ctx.lookup.full_year_min_months\n\t\t\t? 1\n\t\t\t: remainder > 0\n\t\t\t\t? 0.5\n\t\t\t\t: 0)\n);\nreturn ctx.entry.quantity * counted;\n",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "bcc52caf-1c07-50fd-ade1-d78edae1a0be",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	},
+	{
+		"code": "PAY_IN_LIEU_OF_NOTICE",
+		"name": "代通知金 (one month's wage in lieu of notice)",
+		"description": "The entry quantity is the employee's wage for the previous month, paid instead of 30 days' notice.",
+		"lookup": {
+			"months": 1
+		},
+		"references": [
+			{
+				"title": "劳动合同法 第四十条; 实施条例 第二十条: 额外支付一个月工资, 按劳动者上一个月的工资标准确定."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3af39890-ea2d-50fa-b162-5bf005191740",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "a75d1574-3df6-5f49-aa5f-b0d6d938e5d8",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	},
+	{
+		"code": "ANNUAL_BONUS",
+		"name": "全年一次性奖金 (annual one-time bonus)",
+		"description": "The entry quantity is the annual one-time bonus awarded for the year. Current calculation uses Method B: the bonus is added once to cumulative comprehensive income and taxed by the annual ladder. Method A (separate annual-bonus taxation: divide the bonus by 12, apply the monthly rate table and quick deduction, then multiply by the bonus) is not modelled; it needs a dedicated annual-bonus checkpoint and an employee election.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "国税发〔2005〕9号 第一条; 财政部 税务总局公告2023年第30号: 全年一次性奖金可单独计税, 至2027-12-31."
+			},
+			{
+				"title": "Calculation note: Method B is implemented; Method A is available under 财税〔2018〕164号 and 财政部 税务总局公告2023年第30号 (extended to 2027-12-31) but is not modelled by this catalogue."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "181dfe68-45c9-59e3-9cc5-d8fe97e324b2",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "4be8125a-27f7-540c-8d47-9140990fc986",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	},
+	{
+		"code": "BONUS",
+		"name": "奖金 (other bonus)",
+		"description": "The entry quantity is the bonus paid with the month.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "国家统计局《关于工资总额组成的规定》第七条; 个人所得税法 第二条: 奖金属于工资、薪金所得."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "181dfe68-45c9-59e3-9cc5-d8fe97e324b2",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "d4157f11-d895-5019-b874-4e384a4993e0",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	},
+	{
+		"code": "DAMAGE_COMPENSATION_DEDUCTION",
+		"name": "赔偿经济损失扣款 (deduction for damage the employee caused)",
+		"description": "The entry quantity is the assessed economic loss. The deduction is capped at 20% of the contract monthly wage and must leave the local minimum wage (工资支付暂行规定 第十六条).",
+		"lookup": {
+			"max_share_of_wage": 0.2,
+			"minimum_wage": [
+				{
+					"region": "SH",
+					"zone": "1",
+					"monthly": 2740,
+					"hourly": 25
+				},
+				{
+					"region": "KM",
+					"zone": "1",
+					"monthly": 2170,
+					"hourly": 21
+				},
+				{
+					"region": "KM",
+					"zone": "2",
+					"monthly": 2020,
+					"hourly": 20
+				},
+				{
+					"region": "KM",
+					"zone": "3",
+					"monthly": 1870,
+					"hourly": 19
+				}
+			]
+		},
+		"references": [
+			{
+				"title": "工资支付暂行规定 第十六条: 每月扣除不超过当月工资20%, 且扣除后不低于当地最低工资; 上海 沪人社综发〔2016〕29号 第二十二条."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c3890fcd-4799-5bbf-94de-776d861ade65",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "const wage = get(ctx.subject.employment, 'terms.rate.amount');\nif (wage == null) return ctx.entry.quantity;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst zone = String(get(ext, 'wage_zone', '1'));\nconst table = (ctx.lookup.minimum_wage || []).find((row) => row.region === region && row.zone === zone);\nconst floor = Number(get(table, 'monthly', 0));\nconst cap = Math.min(wage * ctx.lookup.max_share_of_wage, Math.max(0, wage - floor));\nreturn Math.min(ctx.entry.quantity, cap);",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "b8f8859e-a3f0-5949-af3e-d4788e82e8de",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	},
+	{
+		"code": "UNLAWFUL_TERMINATION_COMPENSATION",
+		"name": "违法解除赔偿金 (2N, unlawful termination)",
+		"description": "The entry quantity is the average monthly wage. Compensation is twice the 经济补偿 count over the whole period of service, capped at 12 years.",
+		"lookup": {
+			"months_per_year": 12,
+			"full_year_min_months": 6,
+			"max_years": 12,
+			"multiple": 2
+		},
+		"references": [
+			{
+				"title": "劳动合同法 第四十八条、第八十七条; 实施条例 第二十五条: 按经济补偿标准的二倍支付, 不再支付经济补偿."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3af39890-ea2d-50fa-b162-5bf005191740",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0 && ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
+		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst months = calendar_completed_months(start, ctx.entry.incurred_on);\nconst years = Math.trunc(months / ctx.lookup.months_per_year);\nconst remainder = months % ctx.lookup.months_per_year;\nconst counted = Math.min(\n\tctx.lookup.max_years,\n\tyears +\n\t\t(remainder >= ctx.lookup.full_year_min_months\n\t\t\t? 1\n\t\t\t: remainder > 0\n\t\t\t\t? 0.5\n\t\t\t\t: 0)\n);\nreturn ctx.entry.quantity * counted * ctx.lookup.multiple;\n",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "83bef1c5-ac35-56c0-bf41-28566889c22f",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	},
+	{
+		"code": "MATERNITY_ALLOWANCE_PASSTHROUGH",
+		"name": "生育津贴代发 (fund maternity allowance paid through the employer)",
+		"description": "The entry quantity is the maternity allowance the fund pays through the employer. Female employees only.",
+		"lookup": {
+			"funded_by": "MATERNITY_INSURANCE_FUND"
+		},
+		"references": [
+			{
+				"title": "财税〔2008〕8号: 生育津贴、生育医疗费免征个人所得税."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3af39890-ea2d-50fa-b162-5bf005191740",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0 && get(ctx.subject.employment, 'payroll.gender') === 'FEMALE';",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "c7e8ae1c-5673-5288-8d62-5d6572796fdd",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	},
+	{
+		"code": "EQUITY_INCENTIVE",
+		"name": "股权激励所得 (stock options, restricted shares)",
+		"description": "The entry quantity is the value of the equity incentive. It is taxable under the separate equity method, not monthly cumulative withholding, and is not paid in cash; the catalogue therefore records the value with no pay line and no monthly IIT base.",
+		"lookup": {
+			"display_only": true
+		},
+		"references": [
+			{
+				"title": "财税〔2018〕164号 二(一); 财政部 税务总局公告2023年第25号: 股权激励单独适用综合所得税率表, 至2027-12-31."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "b1aa7a07-8873-5ee5-9dad-d06e915dcf27",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	},
+	{
+		"code": "EARLY_RETIREMENT_LUMP_SUM",
+		"name": "提前退休一次性补贴 (early-retirement lump sum)",
+		"description": "The entry quantity is the lump sum paid on early retirement.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "财税〔2018〕164号 五(二): 提前退休一次性补贴按至法定退休年龄实际年度数分摊, 单独适用综合所得税率表."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3af39890-ea2d-50fa-b162-5bf005191740",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "77bbe72b-e613-5556-88d5-38361c6b3d09",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	},
+	{
+		"code": "WAGE_ARREARS_PENALTY",
+		"name": "欠薪加付赔偿金 (labour-bureau ordered arrears penalty)",
+		"description": "The entry quantity is the assessed additional compensation the labour bureau ordered: 50% to 100% of the unpaid sum (劳动合同法 第八十五条).",
+		"lookup": {},
+		"references": [
+			{
+				"title": "劳动合同法 第八十五条: 逾期不支付, 按应付金额50%以上100%以下加付赔偿金."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3af39890-ea2d-50fa-b162-5bf005191740",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "d9e2d961-d2a9-5a3b-84e6-763503f0bc06",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	},
+	{
+		"code": "WORK_INJURY_DISABILITY_SUBSIDY",
+		"name": "一次性伤残就业补助金 (grades 5–10, months by city)",
+		"description": "The entry quantity is the one-off disability subsidy the authority assesses. `lookup` retains the Shanghai and Kunming months by disability grade and the near-retirement adjustments.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "工伤保险条例 第三十六条、第三十七条; 沪府令第93号 第四十条、第四十一条 (18/15/12/9/6/3个月, 临近退休每年减20%); 云政发〔2011〕255号 第三十六至三十八条 (33/29/22/18/13/7个月)."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3af39890-ea2d-50fa-b162-5bf005191740",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "2468b070-1160-5a9a-a9f6-464efa77543d",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	},
+	{
+		"code": "MATERNITY_TOPUP",
+		"name": "生育津贴差额补足 (maternity top-up)",
+		"description": "The entry quantity is the shortfall between the pre-leave wage and the maternity allowance received. Female employees only.",
+		"lookup": {
+			"days_per_month": 30
+		},
+		"references": [
+			{
+				"title": "女职工劳动保护特别规定 第八条; 妇女权益保障法 第四十八条; 沪府发〔2013〕5号: 生育津贴低于产假前工资的差额由单位补足."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "5431b266-4a96-5e83-9f6d-41c78c237e9b",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0 && get(ctx.subject.employment, 'payroll.gender') === 'FEMALE';",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "86770065-4efe-53a6-b973-5ed692f6b56c",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	},
+	{
+		"code": "INTERNAL_RETIREMENT_LUMP_SUM",
+		"name": "内部退养一次性补贴 (internal-retirement lump sum)",
+		"description": "The entry quantity is the lump sum paid on internal retirement.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "财税〔2018〕164号 五(三); 国税发〔1999〕58号: 内部退养一次性补贴按至法定退休年龄月份平均, 与当月工资合并确定税率."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3af39890-ea2d-50fa-b162-5bf005191740",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "0a6505d8-a82b-5cb8-a899-c65e227421a0",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	},
+	{
+		"code": "NON_COMPETE_COMPENSATION",
+		"name": "竞业限制经济补偿 (non-compete compensation, monthly after exit)",
+		"description": "The entry quantity is the monthly non-compete compensation. It is payable only after the contract ends and for at most two years.",
+		"lookup": {
+			"max_years": 2
+		},
+		"references": [
+			{
+				"title": "劳动合同法 第二十三条、第二十四条; 法释〔2020〕26号 第三十六条: 竞业限制期限不超过二年, 未约定补偿的按前十二个月平均工资30%按月支付."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3af39890-ea2d-50fa-b162-5bf005191740",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "const end = get(ctx.subject.employment.effective_range, 'to');\nreturn (\n\tctx.entry.quantity > 0 &&\n\tend != null &&\n\tctx.entry.incurred_on > end &&\n\tctx.entry.incurred_on <= add_years(end, ctx.lookup.max_years)\n);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "3aa3edfe-d97b-5947-9c84-34134c87dd05",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	},
+	{
+		"code": "WORK_INJURY_DISABILITY_ALLOWANCE",
+		"name": "伤残津贴 (grade 5–6, employer-paid monthly)",
+		"description": "The entry quantity is the monthly disability allowance the employer assesses. `lookup` retains the grade 5 and 6 statutory shares of the employee wage.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "工伤保险条例 第三十六条第一款第(二)项: 五级70%、六级60%, 低于当地最低工资标准的补足差额."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3af39890-ea2d-50fa-b162-5bf005191740",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "40869587-1d6f-5c62-9c18-754d77e52913",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	}
+]

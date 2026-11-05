@@ -1,0 +1,545 @@
+[
+	{
+		"code": "MINIMUM_WAGE_MONTHLY",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"monthly_wage": 1700
+		},
+		"references": [
+			{
+				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] paras 2–5",
+				"locator": "RM1,700 a month for a monthly-rated employee; domestic servants and apprentices are outside the Order.",
+				"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
+			}
+		],
+		"validate": "// Minimum Wages Order 2024: a monthly-rated employee earns at least RM1,700 a month.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null || get(rate, 'unit', null) !== 'MONTHLY') return true;\nif (['PART_TIME', 'APPRENTICE', 'PAYEE'].includes(get(ctx.entry, 'engagement', 'EMPLOYEE'))) return true;\nif (get(ctx.entry, 'terms.statutory_work_category', null) === 'TASK_BASIS') return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nif (get(facts, 'industrial_training_student', false) === true) return true;\nreturn get(rate, 'amount', 0) >= ctx.lookup.monthly_wage;",
+		"order": 0,
+		"id": "3aa9eb4e-a300-5cc2-ab62-e8f81379cd48",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "MINIMUM_WAGE_HOURLY_PART_TIME",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"hourly_wage": 8.72,
+			"months_per_year": 12,
+			"weeks_per_year": 52
+		},
+		"references": [
+			{
+				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] para 2",
+				"locator": "RM8.72 an hour, including a part-time employee's rate derived from the agreed month, week or day.",
+				"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
+			},
+			{
+				"title": "Employment (Part-Time Employees) Regulations 2010 [P.U.(A) 302/2010]",
+				"locator": "the part-time hourly rate is the agreed rate divided by the agreed normal hours.",
+				"url": "https://lom.agc.gov.my/"
+			}
+		],
+		"validate": "// A part-time rate is reduced to its hourly equivalent and held to the hourly floor.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (get(ctx.entry, 'engagement', 'EMPLOYEE') !== 'PART_TIME' || rate == null) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nif (get(facts, 'industrial_training_student', false) === true) return true;\nconst unit = get(rate, 'unit', null);\nconst amount = get(rate, 'amount', 0);\nconst week = Number(get(ctx.entry, 'terms.normal_hours_per_week', 0));\nconst day = Number(get(ctx.entry, 'terms.normal_hours_per_day', 0));\nconst hourly =\n  unit === 'MONTHLY' && week > 0 ? (amount * ctx.lookup.months_per_year) / (ctx.lookup.weeks_per_year * week)\n  : unit === 'WEEKLY' && week > 0 ? amount / week\n  : unit === 'DAILY' && day > 0 ? amount / day\n  : unit === 'HOURLY' ? amount\n  : null;\nreturn hourly == null || hourly >= ctx.lookup.hourly_wage;",
+		"order": 1,
+		"id": "53c27598-4f74-5d0d-9939-c240eff6bccc",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "LABOUR_ORDINANCE_TERRITORY",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"excluded": ["SABAH", "SARAWAK"]
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 (Act 265) First Schedule",
+				"locator": "the Act governs Peninsular Malaysia and Labuan.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			},
+			{
+				"title": "Labour Ordinance (Sabah) Cap. 67; Labour Ordinance (Sarawak) Cap. 76",
+				"locator": "a Sabah or Sarawak worksite is governed by its own Ordinance, which this lineage does not encode.",
+				"url": "https://lom.agc.gov.my/"
+			}
+		],
+		"validate": "// A Sabah or Sarawak worksite belongs to a Labour Ordinance lineage, not the Employment Act.\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nconst region = get(ctx.entry, 'terms.work_region', get(facts, 'work_region', get(facts, 'worksite_state', null)));\nreturn region == null || !ctx.lookup.excluded.includes(region);",
+		"order": 4,
+		"id": "3e440178-2a10-509e-981c-10d5930ade74",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "NORMAL_HOURS_WEEK",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"normal_hours_per_week": 45
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 s.60A(1)(d)",
+				"locator": "the normal hours of work may not exceed 45 in one week.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			},
+			{
+				"title": "Employment Act 1955 s.60C(1)",
+				"locator": "shift work may average the normal hours over three weeks.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"validate": "// EA s.60A(1)(d): normal hours are at most 45 a week; shift work averages over three weeks.\nconst hours = get(ctx.entry, 'terms.normal_hours_per_week', null);\nif (hours == null) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nif (get(facts, 'shift_work', false) === true) return true;\nreturn hours <= ctx.lookup.normal_hours_per_week;",
+		"order": 9,
+		"id": "aac95df6-8aaa-5bed-8f08-cf6fa2f8e508",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "MINIMUM_WAGE_DAILY",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"daily_four_day_week": 98.08,
+			"daily_five_day_week": 78.46,
+			"daily_six_day_week": 65.38
+		},
+		"references": [
+			{
+				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] para 4",
+				"locator": "RM98.08, RM78.46 and RM65.38 a day for a four-, five- and six-day week.",
+				"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
+			}
+		],
+		"validate": "// The daily floor follows the agreed number of working days a week.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null || get(rate, 'unit', null) !== 'DAILY') return true;\nif (['APPRENTICE', 'PAYEE'].includes(get(ctx.entry, 'engagement', 'EMPLOYEE'))) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nif (get(facts, 'industrial_training_student', false) === true) return true;\nconst days = Number(get(ctx.entry, 'terms.normal_days_per_week', 6));\nconst floor =\n  days <= 4 ? ctx.lookup.daily_four_day_week\n  : days === 5 ? ctx.lookup.daily_five_day_week\n  : ctx.lookup.daily_six_day_week;\nreturn get(rate, 'amount', 0) >= floor;",
+		"order": 12,
+		"id": "7bad882c-5954-5184-b7c5-86ef8d1bd88b",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "MINIMUM_WAGE_WEEKLY",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"daily_four_day_week": 98.08,
+			"daily_five_day_week": 78.46,
+			"daily_six_day_week": 65.38
+		},
+		"references": [
+			{
+				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] para 4",
+				"locator": "a weekly rate is at least the daily minimum for the working days a week times those days.",
+				"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
+			}
+		],
+		"validate": "// A weekly rate is at least the daily floor times the agreed working days a week.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null || get(rate, 'unit', null) !== 'WEEKLY') return true;\nif (['APPRENTICE', 'PAYEE', 'PART_TIME'].includes(get(ctx.entry, 'engagement', 'EMPLOYEE'))) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nif (get(facts, 'industrial_training_student', false) === true) return true;\nconst days = Number(get(ctx.entry, 'terms.normal_days_per_week', 6));\nconst floor =\n  days <= 4 ? ctx.lookup.daily_four_day_week\n  : days === 5 ? ctx.lookup.daily_five_day_week\n  : ctx.lookup.daily_six_day_week;\nreturn get(rate, 'amount', 0) >= floor * days;",
+		"order": 13,
+		"id": "6edcdaa7-3175-566b-b944-73593fd5e1d7",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "MINIMUM_WAGE_HOURLY",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"hourly_wage": 8.72
+		},
+		"references": [
+			{
+				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] para 2",
+				"locator": "RM8.72 an hour.",
+				"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
+			}
+		],
+		"validate": "// An hourly rate is at least RM8.72.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null || get(rate, 'unit', null) !== 'HOURLY') return true;\nif (['APPRENTICE', 'PAYEE'].includes(get(ctx.entry, 'engagement', 'EMPLOYEE'))) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nif (get(facts, 'industrial_training_student', false) === true) return true;\nreturn get(rate, 'amount', 0) >= ctx.lookup.hourly_wage;",
+		"order": 14,
+		"id": "94039dac-5fa2-5d14-9b50-6515ce125470",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "WAGE_PAYMENT_METHOD",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"bank_methods": ["BANK"],
+			"approval_fact": "wage_payment_dg_approval"
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 (Act 265)",
+				"locator": "s.25A",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
+				"quote": "Wages are paid through a bank account opened in the employee's name unless the employee makes a written request for another method; payment in cash or by cheque needs the Director General's approval.",
+				"effective_from": "2023-01-01"
+			}
+		],
+		"validate": "// EA s.25A: wages go through the employee's bank account; another method needs the written request and, for cash or cheque, the Director General's approval.\nconst method = get(ctx.entry, 'terms.wage_payment_method', null);\nif (method == null || ctx.lookup.bank_methods.includes(method)) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nconst approval = get(facts, ctx.lookup.approval_fact, '');\nreturn typeof approval === 'string' && approval !== '';",
+		"order": 15,
+		"id": "16492fca-a61e-5ab8-be93-0f8eaa806cf7",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "WAGE_PERIOD",
+		"target_collection": "entity_profile_version",
+		"events": ["create", "update"],
+		"lookup": {
+			"maximum_months": 1
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 s.18",
+				"locator": "a wage period may not exceed one month.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"validate": "// EA s.18: the employer's payment schedule may not span more than one month.\nconst schedule = get(ctx.entry, 'payment_schedule', null);\nif (schedule == null || get(schedule, 'frequency', null) !== 'INTEGER_MONTHS') return true;\nreturn Number(get(schedule, 'month_interval', 1)) <= ctx.lookup.maximum_months;",
+		"order": 16,
+		"id": "e91fac81-cc06-5670-8850-8c0178a40da1",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "ROSTER_CONTINUOUS_HOURS",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"lookup": {
+			"elapsed_minutes": 300,
+			"break_minutes": 30
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 s.60A(1)(a)",
+				"locator": "no more than five consecutive hours without a period of leisure of at least thirty minutes.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"validate": "// EA s.60A(1)(a): planned overtime beyond five continuous hours needs a thirty-minute break.\nconst planned = get(ctx.entry, 'planned_overtime_intervals', []);\nif (planned.length !== 1) return true;\nconst breaks = interval_minutes(flatten(planned.map((i) => get(i, 'breaks', []))));\nreturn !(interval_minutes(planned) > ctx.lookup.elapsed_minutes && breaks < ctx.lookup.break_minutes);",
+		"order": 18,
+		"id": "041bdf10-4cb2-591e-9be3-1412bfd36166",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "ROSTER_DAILY_TOTAL",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"lookup": {
+			"minutes_per_day": 720,
+			"normal_minutes_per_day": 480,
+			"roster_warnings": {
+				"daily_hours": 12,
+				"daily_overtime_hours": 4,
+				"monthly_overtime_hours": 104,
+				"consecutive_days": 6,
+				"weekly_rest_days": 1
+			}
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 s.60A(7) and s.60C(2)",
+				"locator": "outside the listed emergencies, no employee works more than twelve hours in one day, overtime included.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"validate": "// EA s.60A(7): planned overtime may not push the day past twelve hours.\nconst limit = ctx.lookup.minutes_per_day - ctx.lookup.normal_minutes_per_day;\nreturn interval_minutes(get(ctx.entry, 'planned_overtime_intervals', [])) <= limit;",
+		"order": 22,
+		"id": "f9d138ec-a7f2-5edb-a41d-2ea443785259",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "CHILD_EMPLOYMENT",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"maximum_age": 15,
+			"permitted_kinds": [
+				"LIGHT_FAMILY",
+				"LICENSED_ENTERTAINMENT",
+				"SCHOOL_APPROVED",
+				"APPROVED_APPRENTICESHIP"
+			]
+		},
+		"references": [
+			{
+				"title": "Children and Young Persons (Employment) Act 1966 (Act 350) s.2(2)",
+				"locator": "a child under fifteen may work only in light family work, licensed public entertainment, school-approved work or an approved apprenticeship.",
+				"url": "https://lom.agc.gov.my/"
+			}
+		],
+		"validate": "// Act 350 s.2(2): a child under fifteen needs a permitted employment category.\nconst born = get(ctx.entry, 'payroll.date_of_birth', null);\nconst from = get(ctx.entry, 'effective_range.from', null);\nif (born == null || from == null) return true;\nif (age_on(born, from) >= ctx.lookup.maximum_age) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nreturn ctx.lookup.permitted_kinds.includes(get(facts, 'minor_employment_kind', null));",
+		"order": 25,
+		"id": "ca753544-6865-5222-80a6-1cdc4c7af1ad",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "CHILD_LIGHT_WORK_AGE",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"minimum_age": 13,
+			"kind": "LIGHT_FAMILY"
+		},
+		"references": [
+			{
+				"title": "Children and Young Persons (Employment) Act 1966 (Act 350) s.2(2A)",
+				"locator": "light work in a family undertaking requires age thirteen or above.",
+				"url": "https://lom.agc.gov.my/"
+			}
+		],
+		"validate": "// Act 350 s.2(2A): light family work requires age thirteen or above.\nconst born = get(ctx.entry, 'payroll.date_of_birth', null);\nconst from = get(ctx.entry, 'effective_range.from', null);\nif (born == null || from == null) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nif (get(facts, 'minor_employment_kind', null) !== ctx.lookup.kind) return true;\nreturn age_on(born, from) >= ctx.lookup.minimum_age;",
+		"order": 27,
+		"id": "2c709cfd-aebb-54f4-ab67-5be4ad42f11a",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "MINOR_HAZARDOUS_WORK",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"maximum_age": 18,
+			"child_age": 15
+		},
+		"references": [
+			{
+				"title": "Children and Young Persons (Employment) Act 1966 (Act 350) s.2(1A)–(1B), Fourth Schedule",
+				"locator": "hazardous work is prohibited for a child; a young person needs personal supervision and an apprenticeship or vocational training.",
+				"url": "https://lom.agc.gov.my/"
+			}
+		],
+		"validate": "// Act 350 s.2(1A)-(1B): hazardous work is closed to children and supervised for young persons.\nconst born = get(ctx.entry, 'payroll.date_of_birth', null);\nconst from = get(ctx.entry, 'effective_range.from', null);\nif (born == null || from == null) return true;\nconst age = age_on(born, from);\nif (age >= ctx.lookup.maximum_age) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nif (get(facts, 'hazardous_work', false) !== true) return true;\nif (age < ctx.lookup.child_age) return false;\nreturn get(facts, 'hazardous_work_personal_supervision', false) === true && get(facts, 'hazardous_work_training', false) === true;",
+		"order": 28,
+		"id": "152ddfaa-9dff-5207-a380-463dd78d4ef2",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "MINOR_PROHIBITED_EMPLOYMENT",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"maximum_age": 18
+		},
+		"references": [
+			{
+				"title": "Children and Young Persons (Employment) Act 1966 (Act 350) s.2(2B), Fifth Schedule",
+				"locator": "Fifth Schedule employment is prohibited for every person under eighteen; training does not exempt it.",
+				"url": "https://lom.agc.gov.my/"
+			}
+		],
+		"validate": "// Act 350 s.2(2B): Fifth Schedule employment is closed to every person under eighteen.\nconst born = get(ctx.entry, 'payroll.date_of_birth', null);\nconst from = get(ctx.entry, 'effective_range.from', null);\nif (born == null || from == null) return true;\nif (age_on(born, from) >= ctx.lookup.maximum_age) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nreturn get(facts, 'prohibited_minor_employment', false) !== true;",
+		"order": 29,
+		"id": "8bbe9529-c896-524b-bea1-e0b4f43a2f69",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "PAYROLL_RUN_KINDS",
+		"target_collection": "payroll_run",
+		"events": ["create"],
+		"lookup": {
+			"kinds": ["REGULAR", "OFF_CYCLE"]
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 s.19",
+				"locator": "wages are paid for the completed wage period; the lineage admits regular and off-cycle runs.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"validate": "// The jurisdiction admits regular and off-cycle payroll runs.\nreturn ctx.lookup.kinds.includes(get(ctx.entry, 'kind', null));",
+		"order": 32,
+		"id": "6f2f6659-5669-5122-9812-402c4a61ff8e",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "CONTRACT_CATEGORIES",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"categories": {
+				"statutory_work_category": [
+					"MANUAL_LABOUR",
+					"MANUAL_LABOUR_SUPERVISOR",
+					"NON_MANUAL",
+					"TASK_BASIS",
+					"VEHICLE_OPERATOR",
+					"VESSEL_CREW"
+				],
+				"residency_status": ["CITIZEN", "PERMANENT_RESIDENT", "FOREIGNER"]
+			}
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 First Schedule (as amended by Act A1651, 1 January 2023)",
+				"locator": "the statutory work category fixes coverage and the overtime, rest-day and holiday premia.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"validate": "// The jurisdiction admits only these contract categories.\nconst categories = ctx.lookup.categories;\nconst category = get(ctx.entry, 'terms.statutory_work_category', null);\nif (category != null && !categories.statutory_work_category.includes(category)) return false;\nconst residency = get(ctx.entry, 'terms.residency_status', null);\nif (residency != null && !categories.residency_status.includes(residency)) return false;\nreturn true;",
+		"order": 35,
+		"id": "22b79c8a-3b99-57f0-9903-0987ca740c63",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "SHARED_CONTRACT_TERMS",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"limits": {
+				"normal_hours_per_day_maximum": 9,
+				"normal_hours_per_week_minimum": 1,
+				"normal_days_per_week_minimum": 1,
+				"normal_days_per_week_maximum": 7
+			}
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 s.60A(1)(b), (d) and s.60I(1)(b)",
+				"locator": "the agreed normal hours and days price the hourly and daily rates.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"validate": "// The agreed rate and normal working time must meet this version's contract limits.\nconst limits = ctx.lookup.limits;\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate != null && get(rate, 'amount', 0) < 0) return false;\nconst day = get(ctx.entry, 'terms.normal_hours_per_day', null);\nif (day != null && !(day > 0 && day <= limits.normal_hours_per_day_maximum)) return false;\nconst week = get(ctx.entry, 'terms.normal_hours_per_week', null);\nif (week != null && week < limits.normal_hours_per_week_minimum) return false;\nconst days = get(ctx.entry, 'terms.normal_days_per_week', null);\nif (days != null && (days !== Math.trunc(days) || days < limits.normal_days_per_week_minimum || days > limits.normal_days_per_week_maximum)) return false;\nreturn true;",
+		"order": 36,
+		"id": "bf5df5cb-15fc-5842-af00-648b1c7a62b1",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "SHARED_STRUCTURED_EMPLOYEE_INPUTS",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"work_regions": [
+				"JOHOR",
+				"KEDAH",
+				"KELANTAN",
+				"MELAKA",
+				"NEGERI_SEMBILAN",
+				"PAHANG",
+				"PERAK",
+				"PERLIS",
+				"PULAU_PINANG",
+				"SELANGOR",
+				"TERENGGANU",
+				"KUALA_LUMPUR",
+				"PUTRAJAYA",
+				"LABUAN",
+				"SABAH",
+				"SARAWAK"
+			],
+			"annual_leave_carry_minimum": 0
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 First Schedule",
+				"locator": "the recorded worksite region must be one this lineage governs.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			},
+			{
+				"title": "Agreed annual-leave carry",
+				"locator": "the contract may not agree a negative carry limit."
+			}
+		],
+		"validate": "// The extension inputs are checked against this version's declared bounds.\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nconst region = get(ctx.entry, 'terms.work_region', get(facts, 'work_region', get(facts, 'worksite_state', null)));\nif (region != null && !ctx.lookup.work_regions.includes(region)) return false;\nconst carry = get(ctx.entry, 'terms.annual_leave_carry_limit_days', null);\nif (carry != null && carry < ctx.lookup.annual_leave_carry_minimum) return false;\nreturn true;",
+		"order": 37,
+		"id": "0f00bc07-1344-563f-8474-d29ee031abd9",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "HRD_LIABILITY_EVENT_DATE_REQUIRED",
+		"target_collection": "entity_profile_version",
+		"events": ["create", "update"],
+		"lookup": {
+			"compulsory_class": "COMPULSORY"
+		},
+		"references": [
+			{
+				"title": "Pembangunan Sumber Manusia Berhad Act 2001 (Act 612) s.4 and First Schedule",
+				"locator": "a compulsory employer's registration liability runs from the actual date it began.",
+				"url": "https://lom.agc.gov.my/"
+			}
+		],
+		"validate": "// PSMB Act 2001: a sealed compulsory registration records when its liability began.\nif (get(ctx.entry, 'status', 'DRAFT') !== 'SEALED') return true;\nconst facts = get(ctx.entry, 'entity_extension_data', {});\nif (get(facts, 'hrd_registration_class', null) !== ctx.lookup.compulsory_class) return true;\nreturn typeof get(facts, 'hrd_registration_liability_on', null) === 'string' && get(facts, 'hrd_registration_liability_on', '') !== '';",
+		"order": 39,
+		"id": "bb2d23d5-a54d-59ad-9de3-4e9739552239",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "BUSINESS_CASE_SUBJECT_AND_REFERENCE",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"lookup": {
+			"kinds": [
+				"EMPLOYEE_DEATH_NOTICE",
+				"OVERSEAS_DEPARTURE_NOTICE",
+				"NON_BANK_WAGE_PAYMENT_REQUEST"
+			]
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 s.25A",
+				"locator": "a non-bank wage request is the employee's signed writing, not an employer note.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			},
+			{
+				"title": "Income Tax Act 1967 (Act 53) s.83(4)",
+				"locator": "a departure from Malaysia needs the actual expected departure and its CP21 review.",
+				"url": "https://lom.agc.gov.my/"
+			}
+		],
+		"validate": "// These cases must name the actual employment and carry their source document.\nif (!ctx.lookup.kinds.includes(get(ctx.entry, 'kind', null))) return true;\nreturn get(ctx.entry, 'employment_id', null) != null && get(ctx.entry, 'evidence_file', null) != null;",
+		"order": 40,
+		"id": "828f6cfb-2f68-5899-9d76-3b79553a795d",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "BUSINESS_CASE_SIGNED_CONSENT",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"lookup": {
+			"kind": "NON_BANK_WAGE_PAYMENT_REQUEST"
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 s.25A(1)",
+				"locator": "cash or cheque payment needs the employee's written request, signed before it takes effect.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"validate": "// EA s.25A(1): the employee's request is signed, on file, and not after the employer recorded it.\nif (get(ctx.entry, 'kind', null) !== ctx.lookup.kind) return true;\nconst signed = get(ctx.entry, 'inputs.signed_on', null);\nif (signed == null || get(ctx.entry, 'evidence_file', null) == null) return false;\nreturn signed <= get(ctx.entry, 'opened_on', '9999-12-31');",
+		"order": 41,
+		"id": "4a650b31-a99c-5c15-848d-bc2800600f7c",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "DEPARTURE_CASE_ACTUAL_SCHEDULE",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"lookup": {
+			"kind": "OVERSEAS_DEPARTURE_NOTICE"
+		},
+		"references": [
+			{
+				"title": "Income Tax Act 1967 (Act 53) s.83(4)–(5)",
+				"locator": "the employer gives CP21 notice before the actual departure; a known ordered return date cannot precede it.",
+				"url": "https://lom.agc.gov.my/"
+			}
+		],
+		"validate": "// The departure case records the actual expected date and any later ordered return.\nif (get(ctx.entry, 'kind', null) !== ctx.lookup.kind) return true;\nconst scheduled = get(ctx.entry, 'scheduled_on', null);\nif (scheduled == null) return false;\nconst back = get(ctx.entry, 'inputs.expected_return_on', null);\nreturn back == null || back >= scheduled;",
+		"order": 42,
+		"id": "e90a998e-d89d-5248-9ddd-f7ac47e26c7f",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "DEATH_NOTICE_ACTUAL_RECEIPT",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"lookup": {
+			"kind": "EMPLOYEE_DEATH_NOTICE"
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 s.19–21",
+				"locator": "the employer's notice of the employee's death starts the final-wage duty; it cannot precede the recorded death.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"validate": "// The employer's actual receipt cannot precede the recorded death.\nif (get(ctx.entry, 'kind', null) !== ctx.lookup.kind) return true;\nconst death = get(ctx.entry, 'inputs.death_on', null);\nif (death == null) return true;\nreturn death <= get(ctx.entry, 'opened_on', '9999-12-31');",
+		"order": 43,
+		"id": "49378d2e-aa57-5ec4-bdcc-46a0ffa62883",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	}
+]

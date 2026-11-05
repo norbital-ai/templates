@@ -1,0 +1,402 @@
+[
+	{
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"service_bands": [],
+			"grant": {
+				"value_1": 12,
+				"value_2": 6,
+				"value_3": 0.01
+			},
+			"paid_share": {
+				"value_1": 1
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) ss.30, 56, 67",
+				"locator": "ss.30, 56, 67",
+				"url": "https://faolex.fao.org/docs/pdf/tha220781.pdf",
+				"quote": "At least 12 working days of annual leave a year after one year of service; current-year leave is pro-rated on qualifying termination and accumulated leave is paid on either-party termination."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "7361fd4d-7c1a-56e5-b7c1-78c216df2cac",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (ลาป่วย)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"service_bands": [],
+			"grant": {
+				"value_1": 30
+			},
+			"paid_share": {
+				"value_1": 1
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) ss.32, 57",
+				"locator": "ss.32, 57",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Sick leave is for actual illness; wages are owed for up to 30 working days a year."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "5fae6e57-5ca2-5097-978b-cad4e5737e96",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "SICK_LEAVE_UNPAID",
+		"name": "Sick leave beyond 30 paid days",
+		"pay_treatment": "UNPAID",
+		"lookup": {
+			"paid_share": {
+				"value_1": 0
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) ss.32, 57",
+				"locator": "ss.32, 57",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Sick leave beyond 30 paid working days a year is unpaid."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "7c6026c1-e8fd-5bdb-a1d9-f1c814b8fa15",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "PERSONAL_BUSINESS_LEAVE",
+		"name": "Personal business leave (ลากิจ)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"service_bands": [],
+			"grant": {
+				"value_1": 3
+			},
+			"paid_share": {
+				"value_1": 1
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) ss.34, 57/1",
+				"locator": "ss.34, 57/1",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "At least 3 working days a year for necessary business; wages are owed for up to 3 days."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "bb7e6634-0ec0-556c-b5ba-29aa81ac378b",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "STERILISATION_LEAVE",
+		"name": "Sterilisation leave (ลาเพื่อทำหมัน)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"paid_share": {
+				"value_1": 1
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) ss.33, 57",
+				"locator": "ss.33, 57",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Leave is allowed for sterilisation and the period a physician certifies, with wages."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "ecd608e7-6f21-5bd5-a311-9bd86f09079d",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "MILITARY_LEAVE",
+		"name": "Military service leave (ลารับราชการทหาร)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"service_bands": [],
+			"grant": {
+				"value_1": 60
+			},
+			"paid_share": {
+				"value_1": 1
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) ss.35, 58",
+				"locator": "ss.35, 58",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Leave is allowed for military inspection, call-up or training, with wages for up to 60 days a year."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "985f7bbf-162d-5051-bb74-d5279e91c8fe",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "TRAINING_LEAVE",
+		"name": "Training leave (ลาฝึกอบรม)",
+		"pay_treatment": "UNPAID",
+		"lookup": {
+			"paid_share": {
+				"value_1": 0
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.36",
+				"locator": "s.36",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Training or development leave is allowed under the Ministerial Regulation; the Act does not require wages."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "fb1baa53-394a-5726-a305-bb3eedd6ea67",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "YOUNG_WORKER_TRAINING_LEAVE",
+		"name": "Training or meeting leave for an employee under 18 (ลาของลูกจ้างซึ่งเป็นเด็ก)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"service_bands": [],
+			"eligibility": {
+				"value_1": 18
+			},
+			"grant": {
+				"value_1": 30
+			},
+			"paid_share": {
+				"value_1": 1
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.52",
+				"locator": "s.52",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "An employee under 18 may take up to 30 days a year for approved training, meetings or courses, with wages."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "77af258e-94ce-5a19-bea4-aff57d1ce5e5",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave, employer-paid days (ลาคลอด)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"service_bands": [],
+			"grant": {
+				"value_1": 60
+			},
+			"paid_share": {
+				"value_1": 1
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act (No. 9) B.E. 2568 s.41 para 1 and s.59",
+				"locator": "s.41 para 1; s.59",
+				"url": "https://ratchakitcha.soc.go.th/documents/89818.pdf",
+				"quote": "Up to 120 days of maternity leave per pregnancy including holidays; wages for up to 60 days. In force 7 December 2025."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "3ac38f3f-3115-55ef-b0ae-1622abe45c7d",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "MATERNITY_LEAVE_SSO",
+		"name": "Maternity leave, days without employer pay",
+		"pay_treatment": "UNPAID",
+		"lookup": {
+			"service_bands": [],
+			"grant": {
+				"value_1": 60
+			},
+			"paid_share": {
+				"value_1": 0
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act (No. 9) B.E. 2568 s.41; Social Security Act B.E. 2533 (1990) s.67",
+				"locator": "LPA s.41; SSA s.67",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/03/SOCIAL_SECURITY_ACT_2533_SSO_1.pdf",
+				"quote": "120 days of maternity leave less 60 employer-paid days; the Social Security Fund pays a maternity benefit at 50 percent of wages for 90 days."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "bc0d413f-0cc7-50f0-9c89-3b70108d4d20",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "PUBLIC_HOLIDAY",
+		"name": "Traditional holidays (วันหยุดตามประเพณี)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"paid_share": {
+				"value_1": 1
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) ss.29, 56(2)",
+				"locator": "ss.29, 56(2)",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "At least 13 traditional holidays a year, announced in advance, with wages."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "45cd7793-8f88-5e3c-a9d8-ad09efecd556",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave by agreement",
+		"pay_treatment": "UNPAID",
+		"lookup": {
+			"paid_share": {
+				"value_1": 0
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) ss.5, 70",
+				"locator": "ss.5, 70",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Wages are owed for work and the paid leave the Act lists; other leave agreed with the employer is unpaid."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "28366b63-4f57-5d30-bcd9-e5deba42ea16",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "CHILD_CARE_LEAVE",
+		"name": "Child-care leave after maternity (ลาเพื่อดูแลบุตร)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"service_bands": [],
+			"grant": {
+				"value_1": 15
+			},
+			"paid_share": {
+				"value_1": 0.5
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act (No. 9) B.E. 2568 s.41 para 4 and s.59/1",
+				"locator": "s.41 para 4; s.59/1",
+				"url": "https://ratchakitcha.soc.go.th/documents/89818.pdf",
+				"quote": "Up to 15 further consecutive days after maternity leave where the child is ill, at risk, abnormal or disabled, on a medical certificate; wages at 50 percent."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "8d207ade-9b6f-5a28-bdb8-57ae1594248d",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "PATERNITY_LEAVE",
+		"name": "Leave to support a spouse at childbirth (ลาไปช่วยเหลือคู่สมรส)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"service_bands": [],
+			"eligibility": {
+				"value_1": 90
+			},
+			"grant": {
+				"value_1": 15
+			},
+			"paid_share": {
+				"value_1": 1
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act (No. 9) B.E. 2568 s.41/1 and s.59/2",
+				"locator": "s.41/1; s.59/2",
+				"url": "https://ratchakitcha.soc.go.th/documents/89818.pdf",
+				"quote": "Up to 15 days of leave to support a spouse who gives birth, before or within 90 days after the birth, with wages."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "249c5e13-9e73-5bbd-9127-b04d7f6b20b1",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "WORK_INJURY_LEAVE",
+		"name": "Work-injury absence (WCF compensation)",
+		"pay_treatment": "UNPAID",
+		"lookup": {
+			"paid_share": {
+				"value_1": 0
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.32 para 3; Workmen's Compensation Act B.E. 2537 s.18(1)",
+				"locator": "LPA s.32 para 3; WCA s.18(1)",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/03/WORKMEN_COMPENSATION_ACT_2537_SSO_2.pdf",
+				"quote": "A work injury or work illness is not sick leave; the Workmen's Compensation Fund pays 70 percent of the monthly wage while the employee cannot work."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "1b33b755-4862-55f8-91cc-0522cefcd7be",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "SUSPENSION",
+		"name": "Suspension pending investigation (at least 50% pay)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"service_bands": [],
+			"grant": {
+				"value_1": 7
+			},
+			"paid_share": {
+				"value_1": 0.5
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) ss.116-117",
+				"locator": "ss.116-117",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Suspension pending an investigation is at most 7 days and paid at not less than 50 percent of the working-day wage; a cleared employee gets the full wage plus 15 percent a year interest."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "99741238-6cc9-58da-8ef4-385558b4c29e",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	}
+]

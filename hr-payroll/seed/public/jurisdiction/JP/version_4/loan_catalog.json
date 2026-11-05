@@ -1,0 +1,59 @@
+[
+	{
+		"code": "SALARY_ADVANCE",
+		"name": "給与の前払 (salary advance recovery)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "労働基準法 art.24(1) proviso: a deduction from wages other than taxes and social insurance needs a written agreement with the majority union or representative (賃金控除協定; company.facts.wage_deduction_agreement); art.25: an advance of wages already earned for an emergency must be paid on request."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": "48c41808-ab65-5da4-86ad-e3293e904fbe",
+		"eligibility": "// js\nreturn get(ctx.subject.employer, 'entity_extension_data.wage_deduction_agreement', false) === true;",
+		"conversion": "// js\nreturn ctx.entry.amount;",
+		"incurred_on": "// js\nreturn ctx.entry.paid_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "d370bde2-2979-5525-a4f1-95a22c78e3f2",
+		"settings_id": "0f253ec0-1e08-58b4-bc1e-a877d3c07fc5"
+	},
+	{
+		"code": "STAFF_LOAN",
+		"name": "社内貸付金 (staff loan repayment)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "労働基準法 art.24(1) proviso (賃金控除協定 required) and art.17: a loan may not be set off against wages as a condition of work (前借金相殺の禁止); recovery by deduction is only the employee's voluntary repayment under the agreement."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": "48c41808-ab65-5da4-86ad-e3293e904fbe",
+		"eligibility": "// js\nreturn get(ctx.subject.employer, 'entity_extension_data.wage_deduction_agreement', false) === true;",
+		"conversion": "// js\nreturn ctx.entry.amount;",
+		"incurred_on": "// js\nreturn ctx.entry.paid_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "9dccfb4b-4a00-5aa8-ae08-43e57c1b5cc8",
+		"settings_id": "0f253ec0-1e08-58b4-bc1e-a877d3c07fc5"
+	},
+	{
+		"code": "EMERGENCY_ADVANCE",
+		"name": "非常時払 (emergency payment of earned wages)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "労働基準法 art.25 with 施行規則 art.9: for childbirth, illness, disaster, marriage, death or an unavoidable trip of the worker or a dependant, the wages already earned are paid on request before the pay day; the advance is settled from that pay (task EMERGENCY_PAYMENT)."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": "48c41808-ab65-5da4-86ad-e3293e904fbe",
+		"eligibility": "// js\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.amount;",
+		"incurred_on": "// js\nreturn ctx.entry.paid_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "b1f9e22d-2a96-5734-b031-1b58beb7220c",
+		"settings_id": "0f253ec0-1e08-58b4-bc1e-a877d3c07fc5"
+	}
+]

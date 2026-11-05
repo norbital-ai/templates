@@ -1,0 +1,78 @@
+[
+	{
+		"code": "LOAN_RECOVERY_AIR_TICKET",
+		"name": "Air ticket loan recovery",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": "4b6a5f8a-f4fc-521f-a73e-498c3e2d3341",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "71d45c27-02cb-5881-8fb9-b94cd1e8c4a3",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5",
+		"references": [
+			{
+				"title": "Employment Act 1955 (Act 265)",
+				"locator": "s.22 (advances); s.24(2) (permitted recoveries)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
+				"quote": "An advance of wages may be recovered from wages only as the Act permits: s.22 governs advances to employees and s.24(2) the recoveries an employer may make. The recovery is the approved repayment amount; the approved-purpose list is this employer's policy for advances above one month's wages."
+			}
+		]
+	},
+	{
+		"code": "LOAN_RECOVERY_FESTIVE_ADVANCE",
+		"name": "Hari Raya (festive) advance recovery",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": "4b6a5f8a-f4fc-521f-a73e-498c3e2d3341",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "6db83005-0c5e-5768-96d9-c4efcfb67246",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5",
+		"references": [
+			{
+				"title": "Employment Act 1955 (Act 265)",
+				"locator": "s.22 (advances); s.24(2) (permitted recoveries)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
+				"quote": "An advance of wages may be recovered from wages only as the Act permits: s.22 governs advances to employees and s.24(2) the recoveries an employer may make. The recovery is the approved repayment amount; the approved-purpose list is this employer's policy for advances above one month's wages."
+			}
+		]
+	},
+	{
+		"code": "AIR_TICKET_DEDUCTION",
+		"name": "Air ticket deduction",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": "4b6a5f8a-f4fc-521f-a73e-498c3e2d3341",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "360c42db-0b40-5027-93ad-a5edef271abb",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5",
+		"references": [
+			{
+				"title": "Employment Act 1955 (Act 265)",
+				"locator": "s.22 (advances); s.24(2) (permitted recoveries)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
+				"quote": "An advance of wages may be recovered from wages only as the Act permits: s.22 governs advances to employees and s.24(2) the recoveries an employer may make. The recovery is the approved repayment amount; the approved-purpose list is this employer's policy for advances above one month's wages."
+			}
+		]
+	},
+	{
+		"code": "APPROVED_HOUSING_LOAN",
+		"name": "Housing loan with Director General approval",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": "4b6a5f8a-f4fc-521f-a73e-498c3e2d3341",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "532ca205-8a88-5a89-a89a-2c3ad282bc7b",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5",
+		"references": [
+			{
+				"title": "Employment Act 1955 (Act 265)",
+				"locator": "s.22 (advances); s.24(2) (permitted recoveries)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
+				"quote": "An advance of wages may be recovered from wages only as the Act permits: s.22 governs advances to employees and s.24(2) the recoveries an employer may make. The recovery is the approved repayment amount; the approved-purpose list is this employer's policy for advances above one month's wages."
+			}
+		]
+	}
+]

@@ -1,0 +1,815 @@
+[
+	{
+		"code": "MY",
+		"name": "Malaysia — 1 January 2026",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"currency": "MYR",
+		"timezone": "Asia/Kuala_Lumpur",
+		"tax_year_start_month": 1,
+		"employee_extension_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "MY employee extension data",
+			"additionalProperties": false,
+			"properties": {
+				"facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored as employee_extension_data.facts on the sealed contract; the CEL root `employment.employee_extension_data.facts`. Person columns (gender, marital_status, date_of_birth, identity_number) and the agreed salary, hours and allowances are native fields, not inputs here.",
+					"properties": {
+						"controls_employer": {
+							"type": "boolean",
+							"default": false,
+							"title": "Controls the employer (no perquisite exemptions)",
+							"description": "LHDN PR 5/2019 para 7.5 and MTD Specification 2026 E(9): the exempt allowances and awards do not apply to an employee with control over the employer."
+						},
+						"organisation_management": {
+							"type": "boolean",
+							"default": false,
+							"title": "Organisation management (C.P.8D status 1)",
+							"description": "LHDN C.P.8D field 5 status 1: a company director, cooperative board member, principal officer of a society, LLP partner, or manager, principal officer, resident director, partner or officer of a Labuan entity."
+						},
+						"paternity_confinements": {
+							"type": "array",
+							"title": "Verified paternity confinement history",
+							"description": "One record per confinement, including earlier employers/spouses. Match event_id to the leave entry facts.event_id. Record the actual lifetime ordinal and evidence that s60FA notification requirements were met; unknown history must be resolved before statutory leave.",
+							"items": {
+								"type": "object",
+								"additionalProperties": false,
+								"required": ["event_id", "lifetime_number", "notification_requirement_met"],
+								"properties": {
+									"event_id": {
+										"type": "string",
+										"minLength": 1
+									},
+									"lifetime_number": {
+										"type": "integer",
+										"minimum": 1
+									},
+									"notification_requirement_met": {
+										"type": "boolean"
+									},
+									"evidence_reference": {
+										"type": "string"
+									}
+								}
+							}
+						},
+						"statutory": {
+							"type": "object",
+							"title": "Statutory declarations",
+							"additionalProperties": false,
+							"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
+							"properties": {
+								"EPF": {
+									"type": "object",
+									"title": "Employees Provident Fund",
+									"additionalProperties": false,
+									"properties": {
+										"elections": {
+											"type": "object",
+											"title": "Declared inputs",
+											"properties": {
+												"domestic_servant_notice_given": {
+													"type": "boolean",
+													"default": false,
+													"title": "EPF: domestic servant gave notice to be a member",
+													"description": "EPF standing only. ACT 452 First Schedule paras (2)–(3): a domestic servant is a member only after one month’s notice in the prescribed form to the Board and the employer."
+												},
+												"elected_before_1998": {
+													"type": "boolean",
+													"default": false,
+													"title": "EPF: elected to contribute before 1 August 1998",
+													"description": "EPF standing only. ACT 452 Third Schedule Part A para 1(c) and Part C para 1(c): a non-citizen who elected to contribute before 1 August 1998 contributes at the Part A rates below 60 and Part C from 60, not Part F."
+												},
+												"employee_rate": {
+													"type": "number",
+													"minimum": 0,
+													"maximum": 1,
+													"title": "EPF: elected employee rate (Form KWSP 17A (Khas))",
+													"description": "EPF standing only. A share above the Third Schedule the employee elected; never below it."
+												},
+												"pending_wages_month": {
+													"type": "string",
+													"pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+													"title": "Month of reviewed pending contributory wages"
+												},
+												"pending_wages_reference": {
+													"type": "string",
+													"minLength": 1,
+													"title": "Pending contributory-wage assessment evidence"
+												},
+												"epf_verification_reference": {
+													"type": "string",
+													"title": "EPF: KWSP calculation confirmation",
+													"description": "Reference to the authority’s confirmation of both employee and employer shares for this wage amount.",
+													"minLength": 1
+												},
+												"epf_verified_assessed_wages": {
+													"type": "number",
+													"title": "EPF: wages covered by the authority verification",
+													"description": "Exact month-to-date assessed EPF wages covered by the KWSP confirmation; must equal the current scheme assessment. Settle pending normal wages first or combine the payroll when a split requires authority confirmation.",
+													"minimum": 0
+												},
+												"epf_verified_employee": {
+													"type": "number",
+													"title": "EPF: authority-verified employee contribution",
+													"description": "Actual employee share confirmed by KWSP for the stated wages and month; not a guessed percentage split.",
+													"minimum": 0
+												},
+												"epf_verified_employer": {
+													"type": "number",
+													"title": "EPF: authority-verified employer contribution",
+													"description": "Actual employer share confirmed by KWSP for the stated wages and month; retain the confirmation.",
+													"minimum": 0
+												},
+												"epf_verified_month": {
+													"type": "string",
+													"title": "EPF: month of authority-verified contribution",
+													"description": "YYYY-MM of the KWSP-assessed contribution where bonus, percentage or foreign-worker rounding leaves the employee/employer allocation unproven.",
+													"minLength": 1,
+													"pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+												},
+												"pending_contributory_wages": {
+													"type": "number",
+													"minimum": 0,
+													"title": "Actual normal contributory wages still payable this month",
+													"description": "For this EPF/SOCSO/EIS/SKBBK scheme only, verified actual normal contributory wages still to be paid in a before-salary settlement. Reflect joining/leaving, unpaid leave and this scheme’s wage exclusions; enter0 explicitly if none. Never infer it from a full contractual salary."
+												}
+											},
+											"additionalProperties": false
+										}
+									}
+								},
+								"EPF_PR": {
+									"type": "object",
+									"title": "Employees Provident Fund (permanent residents aged 60 and above)",
+									"additionalProperties": false,
+									"properties": {
+										"elections": {
+											"type": "object",
+											"title": "Declared inputs",
+											"properties": {
+												"pending_wages_month": {
+													"type": "string",
+													"pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+													"title": "Month of reviewed pending contributory wages"
+												},
+												"pending_wages_reference": {
+													"type": "string",
+													"minLength": 1,
+													"title": "Pending contributory-wage assessment evidence"
+												},
+												"epf_verification_reference": {
+													"type": "string",
+													"title": "EPF: KWSP calculation confirmation",
+													"description": "Reference to the authority’s confirmation of both employee and employer shares for this wage amount.",
+													"minLength": 1
+												},
+												"epf_verified_assessed_wages": {
+													"type": "number",
+													"title": "EPF: wages covered by the authority verification",
+													"description": "Exact month-to-date assessed EPF wages covered by the KWSP confirmation; must equal the current scheme assessment. Settle pending normal wages first or combine the payroll when a split requires authority confirmation.",
+													"minimum": 0
+												},
+												"epf_verified_employee": {
+													"type": "number",
+													"title": "EPF: authority-verified employee contribution",
+													"description": "Actual employee share confirmed by KWSP for the stated wages and month; not a guessed percentage split.",
+													"minimum": 0
+												},
+												"epf_verified_employer": {
+													"type": "number",
+													"title": "EPF: authority-verified employer contribution",
+													"description": "Actual employer share confirmed by KWSP for the stated wages and month; retain the confirmation.",
+													"minimum": 0
+												},
+												"epf_verified_month": {
+													"type": "string",
+													"title": "EPF: month of authority-verified contribution",
+													"description": "YYYY-MM of the KWSP-assessed contribution where bonus, percentage or foreign-worker rounding leaves the employee/employer allocation unproven.",
+													"minLength": 1,
+													"pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+												},
+												"pending_contributory_wages": {
+													"type": "number",
+													"minimum": 0,
+													"title": "Actual normal contributory wages still payable this month",
+													"description": "For this EPF/SOCSO/EIS/SKBBK scheme only, verified actual normal contributory wages still to be paid in a before-salary settlement. Reflect joining/leaving, unpaid leave and this scheme’s wage exclusions; enter0 explicitly if none. Never infer it from a full contractual salary."
+												}
+											},
+											"additionalProperties": false
+										}
+									}
+								},
+								"EPF_NON_CITIZEN": {
+									"type": "object",
+									"title": "Employees Provident Fund (non-citizen employees)",
+									"additionalProperties": false,
+									"properties": {
+										"elections": {
+											"type": "object",
+											"title": "Declared inputs",
+											"properties": {
+												"pending_wages_month": {
+													"type": "string",
+													"pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+													"title": "Month of reviewed pending contributory wages"
+												},
+												"pending_wages_reference": {
+													"type": "string",
+													"minLength": 1,
+													"title": "Pending contributory-wage assessment evidence"
+												},
+												"board_approved_other_scheme": {
+													"type": "boolean",
+													"default": false,
+													"title": "EPF: Board approved another provident scheme",
+													"description": "EPF_NON_CITIZEN standing only. ACT 452 First Schedule para (8): a person domiciled outside Malaysia with the Board’s prior written approval to participate in another scheme is not an employee."
+												},
+												"epf_verification_reference": {
+													"type": "string",
+													"title": "EPF: KWSP calculation confirmation",
+													"description": "Reference to the authority’s confirmation of both employee and employer shares for this wage amount.",
+													"minLength": 1
+												},
+												"epf_verified_assessed_wages": {
+													"type": "number",
+													"title": "EPF: wages covered by the authority verification",
+													"description": "Exact month-to-date assessed EPF wages covered by the KWSP confirmation; must equal the current scheme assessment. Settle pending normal wages first or combine the payroll when a split requires authority confirmation.",
+													"minimum": 0
+												},
+												"epf_verified_employee": {
+													"type": "number",
+													"title": "EPF: authority-verified employee contribution",
+													"description": "Actual employee share confirmed by KWSP for the stated wages and month; not a guessed percentage split.",
+													"minimum": 0
+												},
+												"epf_verified_employer": {
+													"type": "number",
+													"title": "EPF: authority-verified employer contribution",
+													"description": "Actual employer share confirmed by KWSP for the stated wages and month; retain the confirmation.",
+													"minimum": 0
+												},
+												"epf_verified_month": {
+													"type": "string",
+													"title": "EPF: month of authority-verified contribution",
+													"description": "YYYY-MM of the KWSP-assessed contribution where bonus, percentage or foreign-worker rounding leaves the employee/employer allocation unproven.",
+													"minLength": 1,
+													"pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+												},
+												"pending_contributory_wages": {
+													"type": "number",
+													"minimum": 0,
+													"title": "Actual normal contributory wages still payable this month",
+													"description": "For this EPF/SOCSO/EIS/SKBBK scheme only, verified actual normal contributory wages still to be paid in a before-salary settlement. Reflect joining/leaving, unpaid leave and this scheme’s wage exclusions; enter0 explicitly if none. Never infer it from a full contractual salary."
+												}
+											},
+											"additionalProperties": false
+										}
+									}
+								},
+								"SOCSO": {
+									"type": "object",
+									"title": "Social Security Organisation (PERKESO)",
+									"additionalProperties": false,
+									"properties": {
+										"elections": {
+											"type": "object",
+											"title": "Declared inputs",
+											"properties": {
+												"pending_wages_month": {
+													"type": "string",
+													"pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+													"title": "Month of reviewed pending contributory wages"
+												},
+												"pending_wages_reference": {
+													"type": "string",
+													"minLength": 1,
+													"title": "Pending contributory-wage assessment evidence"
+												},
+												"first_insured_at_55_or_more": {
+													"type": "boolean",
+													"default": false,
+													"title": "SOCSO: first insured at 55 or more",
+													"description": "SOCSO standing only. Act 4 First Schedule para 12(i): no contribution was payable for the employee before 55, so the employee is in the Second Category (employment injury only)."
+												},
+												"pending_contributory_wages": {
+													"type": "number",
+													"minimum": 0,
+													"title": "Actual normal contributory wages still payable this month",
+													"description": "For this EPF/SOCSO/EIS/SKBBK scheme only, verified actual normal contributory wages still to be paid in a before-salary settlement. Reflect joining/leaving, unpaid leave and this scheme’s wage exclusions; enter0 explicitly if none. Never infer it from a full contractual salary."
+												}
+											},
+											"additionalProperties": false
+										}
+									}
+								},
+								"EIS": {
+									"type": "object",
+									"title": "Employment Insurance System",
+									"additionalProperties": false,
+									"properties": {
+										"elections": {
+											"type": "object",
+											"title": "Declared inputs",
+											"properties": {
+												"pending_wages_month": {
+													"type": "string",
+													"pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+													"title": "Month of reviewed pending contributory wages"
+												},
+												"pending_wages_reference": {
+													"type": "string",
+													"minLength": 1,
+													"title": "Pending contributory-wage assessment evidence"
+												},
+												"first_insured_at_57_or_more": {
+													"type": "boolean",
+													"default": false,
+													"title": "EIS: first insured at 57 or more",
+													"description": "EIS standing only. Act 800 First Schedule para 9: no contribution was payable for the employee before 57, so from 57 the employee is outside EIS."
+												},
+												"mykas_resident": {
+													"type": "boolean",
+													"default": false,
+													"title": "EIS: resident non-citizen with MyKAS or similar card",
+													"description": "EIS standing only. Act 800 First Schedule para 10(a)–(c): a foreign employee with a permanent-resident, MyKAS or similar identity card under the National Registration Regulations 1990 is covered."
+												},
+												"pending_contributory_wages": {
+													"type": "number",
+													"minimum": 0,
+													"title": "Actual normal contributory wages still payable this month",
+													"description": "For this EPF/SOCSO/EIS/SKBBK scheme only, verified actual normal contributory wages still to be paid in a before-salary settlement. Reflect joining/leaving, unpaid leave and this scheme’s wage exclusions; enter0 explicitly if none. Never infer it from a full contractual salary."
+												}
+											},
+											"additionalProperties": false
+										}
+									}
+								},
+								"PCB": {
+									"type": "object",
+									"title": "Monthly Tax Deduction (Potongan Cukai Bulanan)",
+									"additionalProperties": false,
+									"properties": {
+										"elections": {
+											"type": "object",
+											"title": "Declared inputs",
+											"properties": {
+												"pcb_epf_allocation_reference": {
+													"type": "string",
+													"minLength": 1,
+													"title": "PCB: EPF ordinary/additional allocation evidence",
+													"description": "Reference to the payroll/EPF assessment supporting the reviewed normal and total employee contributions; required for pending salary."
+												},
+												"pcb_epf_month": {
+													"type": "string",
+													"pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+													"title": "PCB: month of reviewed EPF allocation",
+													"description": "Month of the evidenced K1/Kt allocation for salary still to be paid. Required only where automatic total employee EPF cannot identify the ordinary share."
+												},
+												"tp1_declaration_month": {
+													"type": "string",
+													"title": "PCB: TP1 claim month (YYYY-MM)",
+													"description": "Month to which the current and accumulated TP1 claim amounts apply. Payroll refuses stale nonzero declarations; update the actual prior/current figures for the next month.",
+													"pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+												},
+												"tp1_review_reference": {
+													"type": "string",
+													"minLength": 1,
+													"title": "PCB: signed TP1 and category-limit review reference",
+													"description": "Evidence of this month’s signed TP1 and review of each statutory category cap, including claims at previous employers. The numeric totals are verified allowable claims, not unchecked expenditure."
+												},
+												"tp3_prior_exempt_remuneration": {
+													"type": "number",
+													"minimum": 0,
+													"title": "PCB: TP3 prior tax-exempt remuneration (information)",
+													"description": "TP3 C2 tax-exempt allowances, perquisites and benefits for reconciliation. Not included in tp3_prior_remuneration; retain the TP3 document and exemption breakdown."
+												},
+												"tp3_review_reference": {
+													"type": "string",
+													"minLength": 1,
+													"title": "PCB: signed TP3 reconciliation reference",
+													"description": "Reference to the signed TP3 and reconciliation of taxable/exempt remuneration, EPF, rebates and prior category deductions. Retain7 years."
+												},
+												"children_disabled_tertiary": {
+													"type": "integer",
+													"minimum": 0,
+													"default": 0,
+													"title": "RM16,000: a disabled child in diploma or degree study",
+													"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+												},
+												"children_disabled_tertiary_half": {
+													"type": "integer",
+													"minimum": 0,
+													"default": 0,
+													"title": "RM16,000: a disabled child in diploma or degree study — half share",
+													"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+												},
+												"children_tertiary_or_disabled": {
+													"type": "integer",
+													"minimum": 0,
+													"default": 0,
+													"title": "RM8,000: 18 and over in diploma or degree study, or a disabled child",
+													"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+												},
+												"children_tertiary_or_disabled_half": {
+													"type": "integer",
+													"minimum": 0,
+													"default": 0,
+													"title": "RM8,000: 18 and over in diploma or degree study, or a disabled child — half share",
+													"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+												},
+												"children_under_18_or_studying": {
+													"type": "integer",
+													"minimum": 0,
+													"default": 0,
+													"title": "RM2,000: under 18, or 18 and over in full-time A-level/matriculation study",
+													"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+												},
+												"children_under_18_or_studying_half": {
+													"type": "integer",
+													"minimum": 0,
+													"default": 0,
+													"title": "RM2,000: under 18, or 18 and over in full-time A-level/matriculation study — half share",
+													"description": "Income Tax Act 1967 s.48 as declared for MTD (Specification 2026 D, Q × C): the count of qualifying children at this relief amount; a `_half` count is a child whose relief is shared under s.48(4). Family records alone grant no relief."
+												},
+												"pcb_approval_first_year": {
+													"type": "integer",
+													"minimum": 1900,
+													"maximum": 2100,
+													"title": "PCB: first approved year of assessment"
+												},
+												"pcb_approval_last_year": {
+													"type": "integer",
+													"minimum": 1900,
+													"maximum": 2100,
+													"title": "PCB: last approved year of assessment"
+												},
+												"pcb_epf_normal_month": {
+													"type": "number",
+													"minimum": 0,
+													"title": "PCB: reviewed employee EPF on normal remuneration (K1)",
+													"description": "Actual/verified expected employee EPF for this month’s normal remuneration, including EPF on tax-exempt cash allowances.0 for an excluded employee. Retain the allocation evidence; the combined contribution remains the statutory scheme’s amount."
+												},
+												"pcb_epf_total_month": {
+													"type": "number",
+													"minimum": 0,
+													"title": "PCB: reviewed employee EPF on all monthly remuneration",
+													"description": "Employee EPF on normal plus additional remuneration including salary still to be paid. Must equal the actual month contribution once normal salary has been paid. Annual RM4,000 relief cap still applies."
+												},
+												"pcb_pending_normal_remuneration": {
+													"type": "number",
+													"minimum": 0,
+													"title": "PCB: taxable normal remuneration still to be paid this month",
+													"description": "MTD E8 Y1: actual expected TAXABLE normal remuneration still to be paid before the monthly salary run. Excludes exempt meal/parking/childcare; enter0 explicitly if no normal remuneration is due. Required in a before-salary settlement."
+												},
+												"pcb_tax_profile": {
+													"type": "string",
+													"enum": ["STANDARD", "REP", "KNOWLEDGE_WORKER", "C_SUITE"],
+													"default": "STANDARD",
+													"title": "PCB: approved tax profile",
+													"description": "MTD Specification 2026 sections 3–5: REP (Returning Expert Programme) and KNOWLEDGE_WORKER (specified region) at 15% with the RM400 rebates; C_SUITE (non-citizen in an approved company) at 15%."
+												},
+												"socso_eis_relief": {
+													"type": "boolean",
+													"default": false,
+													"title": "PCB: claim SOCSO and EIS contributions as TP1 relief",
+													"description": "Form TP1 2026 item C14 (Income Tax Act 1967 s.46(1)(n); MTD Specification 2026 D.2(ii) item k): the employee claims the SOCSO, EIS and LINDUNG 24 Jam (SKBBK) employee contributions deducted this year as LP1, up to RM350 a year; the relief follows the contributions this payroll actually charged. Payroll never relieves them unclaimed, so the default is false; do not also include them in tp1_monthly_deductions."
+												},
+												"spouse_disabled": {
+													"type": "boolean",
+													"default": false,
+													"title": "Disabled spouse (certified)",
+													"description": "Income Tax Act 1967 s.47(1)(b)/(2): the further RM6,000 is for a disabled spouse living together, certified by the Department of Social Welfare. Without a declared certification there is no deduction, so the default is false."
+												},
+												"tax_residency": {
+													"type": "string",
+													"enum": ["RESIDENT", "NON_RESIDENT"],
+													"title": "MTD tax residence",
+													"description": "Income Tax Act 1967 s.7: residence for the basis year. Unrecorded, a citizen or permanent resident is charged as resident and a FOREIGNER as non-resident at 30% (s.107(2); MTD Specification 2026 D(a))."
+												},
+												"tp1_accumulated_deductions": {
+													"type": "number",
+													"minimum": 0,
+													"title": "PCB: actual prior TP1 deductions this year (ΣLP)",
+													"description": "Actual allowable claims from this employment before the declaration month. Enter 0 explicitly if none. Previous-employer amounts belong to tp3_prior_deductions. Respect each deduction category’s remaining annual limit."
+												},
+												"tp1_monthly_deductions": {
+													"type": "number",
+													"minimum": 0,
+													"default": 0,
+													"title": "PCB: TP1 deductions for the month (LP1)",
+													"description": "Actual allowable TP1 deductions claimed for the stated declaration month (LP1), excluding separately claimed SOCSO/EIS and rebates. Enter actual earlier-year claims in tp1_accumulated_deductions; never multiply this amount by the month number."
+												},
+												"tp1_zakat_current": {
+													"type": "number",
+													"minimum": 0,
+													"title": "PCB: employee-paid TP1 rebate this month",
+													"description": "Actual zakat paid directly by the employee, and qualifying departure-levy rebate, claimed through TP1 in tp1_declaration_month. Excludes the ZAKAT payroll deduction and TP3 previous-employer rebate."
+												},
+												"tp1_zakat_prior": {
+													"type": "number",
+													"minimum": 0,
+													"title": "PCB: actual earlier employee-paid TP1 rebates this year",
+													"description": "Actual previous-month TP1 zakat/departure-levy rebates in this employment, excluding payroll ZAKAT deductions and tp3_prior_zakat. Must be updated with tp1_declaration_month."
+												},
+												"tp3_prior_deductions": {
+													"type": "number",
+													"minimum": 0,
+													"title": "PCB: TP3 actual prior allowable deductions",
+													"description": "Section D actual allowable deductions claimed with previous employers in the stated tp3_year, subject to each applicable annual limit. Exclude EPF already entered as tp3_prior_epf."
+												},
+												"tp3_prior_epf": {
+													"type": "number",
+													"minimum": 0,
+													"default": 0,
+													"title": "PCB: TP3 earlier EPF this year",
+													"description": "Form TP3: EPF contributions on that remuneration (part of K)."
+												},
+												"tp3_prior_mtd": {
+													"type": "number",
+													"minimum": 0,
+													"default": 0,
+													"title": "PCB: TP3 earlier MTD this year",
+													"description": "Form TP3: MTD deducted by previous employers in the current year (part of X)."
+												},
+												"tp3_prior_remuneration": {
+													"type": "number",
+													"minimum": 0,
+													"default": 0,
+													"title": "PCB: TP3 earlier remuneration this year",
+													"description": "Taxable gross normal and additional remuneration from previous employers in tp3_year, AFTER the applicable exemptions; excludes the separately recorded tp3_prior_exempt_remuneration. Retain Form TP3 C1/C2 reconciliation."
+												},
+												"tp3_prior_zakat": {
+													"type": "number",
+													"minimum": 0,
+													"title": "PCB: TP3 prior zakat and qualifying departure-levy rebate",
+													"description": "TP3 C4 actual previous-employer zakat and qualifying departure-levy rebate for tp3_year. Excludes CP38 and tax instalments."
+												},
+												"tp3_year": {
+													"type": "integer",
+													"minimum": 2025,
+													"maximum": 2100,
+													"title": "PCB: tax year of TP3 previous-employer amounts",
+													"description": "The calendar tax year of the TP3 figures. They affect this year only and never roll into the next tax year."
+												},
+												"spouse_without_income": {
+													"type": "boolean",
+													"default": false,
+													"title": "Spouse without income",
+													"description": "Income Tax Act 1967 s.47(1)(a): RM4,000 for a spouse with no total income, and the s.6A(2)(b) RM400 rebate when chargeable income is RM35,000 or less."
+												}
+											},
+											"additionalProperties": false
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"term_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"title": "Contract compliance details",
+					"properties": {
+						"overtime_by_contract": {
+							"type": "boolean",
+							"default": false,
+							"title": "Statutory premia by contract",
+							"description": "First Schedule para 1A takes ss.60(3), 60A(3), 60D(3) from a non-manual employee above RM4,000; true where the contract grants them anyway."
+						},
+						"shift_work": {
+							"type": "boolean",
+							"default": false,
+							"title": "Shift work",
+							"description": "EA s.60C: normal hours averaged over three weeks."
+						},
+						"wage_payment_dg_approval": {
+							"type": "string",
+							"title": "Director General's approval reference (s.25A(2))"
+						},
+						"employer_provided_accommodation": {
+							"type": "boolean",
+							"default": false,
+							"title": "Housed by the employer (Act 446)"
+						},
+						"industrial_training_student": {
+							"type": "boolean",
+							"default": false,
+							"title": "Industrial-training student without a contract of service",
+							"description": "EPF Act 1991 s.2, Employees’ Social Security Act 1969 s.2(5) and Employment Insurance System Act 2017 s.2: a person not employed under a contract of service or apprenticeship is not an employee — no EPF, SOCSO, SKBBK or EIS. Reported as status 5 (Pelatih Industri) in the C.P.8D."
+						},
+						"contractual_epf_employer_rate": {
+							"type": "number",
+							"minimum": 0,
+							"maximum": 1,
+							"title": "Contractual employer EPF rate (above the Third Schedule)"
+						},
+						"payee_role": {
+							"type": "string",
+							"enum": ["AGENT", "DEALER", "DISTRIBUTOR", "OTHER"],
+							"title": "Payee role",
+							"description": "On a PAYEE engagement: AGENT, DEALER or DISTRIBUTOR authorised by the company (ITA s.83A(4)) raises the yearly CP58 statement; OTHER does not."
+						},
+						"minor_employment_kind": {
+							"type": "string",
+							"title": "Employment category for a child",
+							"enum": [
+								"LIGHT_FAMILY",
+								"LICENSED_ENTERTAINMENT",
+								"SCHOOL_APPROVED",
+								"APPROVED_APPRENTICESHIP",
+								"OTHER"
+							],
+							"description": "Act 350 s.2(2): light work in a family undertaking; public entertainment licensed by the Director General; work approved by the government for a school or training institution; apprenticeship approved by the Director General. Declare OTHER for work outside these permitted categories."
+						},
+						"hazardous_work": {
+							"type": "boolean",
+							"title": "Fourth Schedule hazardous work",
+							"description": "Whether the work falls within Act 350 Fourth Schedule machinery, hazardous environment, construction, timber, offshore or near-water work."
+						},
+						"hazardous_work_personal_supervision": {
+							"type": "boolean",
+							"title": "Personal supervision for hazardous training",
+							"description": "A young person is personally supervised during hazardous work under s.2(1B)."
+						},
+						"hazardous_work_training": {
+							"type": "boolean",
+							"title": "Hazardous work under apprenticeship or vocational training",
+							"description": "A young person is performing hazardous work under an apprenticeship contract or undergoing vocational training (s.2(1B))."
+						},
+						"prohibited_minor_employment": {
+							"type": "boolean",
+							"title": "Fifth Schedule prohibited employment",
+							"description": "Whether work involves prostitution, social escorts/hostesses, alcoholic-beverage production or trade, gambling/lotteries, massage/reflexology, pornography, or prohibited drugs/substances (Act 350 Fifth Schedule)."
+						},
+						"receiving_pension": {
+							"type": "boolean",
+							"description": "A certified invalid receiving an invalidity pension: SOCSO charges the employment injury scheme only (Act 4 First Schedule para 12)."
+						},
+						"disabled": {
+							"type": "boolean",
+							"description": "A disabled individual registered with JKM: the RM7,000 disabled-individual relief in PCB (Income Tax Act 1967 s.46(1)(e))."
+						},
+						"cp21_required": {
+							"type": "boolean",
+							"title": "CP21 required after reviewing the departure",
+							"description": "True for a taxable employee leaving for more than three months, unless a documented statutory/Director General exception applies. False only after that review."
+						},
+						"parking_actual_monthly_cost": {
+							"type": "number",
+							"minimum": 0,
+							"title": "Documented actual monthly parking cost",
+							"description": "Documented actual monthly parking expenditure supporting PARKING_ALLOWANCE. The exempt class must not exceed this cost; split a higher cash allowance into qualifying parking and taxable SUA. Use a dated term for changed cost/allowances."
+						}
+					}
+				},
+				"exit_facts": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Stored as employee_extension_data.exit_facts on the sealed contract; the CEL root `employment.employee_extension_data.exit_facts`.",
+					"properties": {
+						"terminated_without_notice": {
+							"type": "boolean",
+							"title": "Left without notice",
+							"description": "The employee ended the contract without notice under Employment Act 1955 s.13(1)-(2) or s.14(3); the final wages are then due by the third day after (s.21(2))."
+						},
+						"leaving_malaysia": {
+							"type": "boolean",
+							"title": "Leaving Malaysia for more than three months",
+							"description": "Income Tax Act 1967 s.83(4): the employer gives CP21 notice and withholds money payable under s.83(5)."
+						},
+						"misconduct_dismissal": {
+							"type": "boolean",
+							"title": "Dismissed for misconduct",
+							"description": "Dismissed for misconduct after due inquiry. Statutory consequences apply only where the relevant provision covers the worker; domestic service is excluded from s.14; s.57 and Part XVA have distinct grounds. For covered workers s.60E(3A) also governs untaken annual leave."
+						},
+						"notice_approved_apprenticeship": {
+							"type": "boolean",
+							"title": "Approved and filed apprenticeship contract",
+							"description": "True only for an apprenticeship contract in a form approved by the Director General AND a copy filed with the Director General (EA s.17A). A trainee/intern label is insufficient. Sections 10–16 then do not apply; separate contractual rights still require assessment."
+						},
+						"notice_exception": {
+							"type": "string",
+							"enum": [
+								"NONE",
+								"OTHER_PARTY_WILFUL_BREACH",
+								"IMMEDIATE_DANGER",
+								"DOMESTIC_INCONSISTENT_CONDUCT",
+								"HARASSMENT_DISMISSAL"
+							],
+							"title": "Ground permitting termination without notice indemnity",
+							"description": "NONE for ordinary notice. OTHER_PARTY_WILFUL_BREACH: s.13(2). IMMEDIATE_DANGER: employee/dependants immediately threatened by violence/disease not undertaken under the contract, s.14(3), outside domestic service. DOMESTIC_INCONSISTENT_CONDUCT: the other party's conduct contrary to the domestic-service contract, s.57. Due-inquiry misconduct is recorded separately. HARASSMENT_DISMISSAL: employer dismissal after its inquiry proves sexual harassment, s.81C(a)(i); Part XVA also applies to domestic employees and approved apprentices. This is not a complainant departure under s.81E."
+						},
+						"notice_structural_ground": {
+							"type": "string",
+							"enum": [
+								"NONE",
+								"BUSINESS_CLOSURE",
+								"WORKPLACE_CLOSURE",
+								"REDUCED_WORK",
+								"REDUCED_LOCAL_WORK",
+								"TRANSFER_REFUSAL_NOT_REQUIRED",
+								"OWNERSHIP_CHANGE"
+							],
+							"title": "Section 12(3) termination ground",
+							"description": "The specified closure/reduction/ownership grounds and refusal of a transfer the contract does not require preserve the 4/6/8-week floor even where the written contract is shorter. Redundancy/retrenchment labels also retain that floor."
+						},
+						"notice_exception_reference": {
+							"type": "string",
+							"title": "Notice exception or approval evidence reference",
+							"description": "Reference to the breach/danger/inquiry or proven sexual-harassment dismissal record, domestic contract conduct, apprenticeship approval and filed copy, or the section 12(3) cause. Preserve the underlying evidence."
+						},
+						"pregnant_or_pregnancy_illness": {
+							"type": "boolean",
+							"default": false,
+							"title": "Pregnant or ill from the pregnancy at notice (EA s.41A)"
+						},
+						"annual_leave_on_exit": {
+							"type": "string",
+							"enum": ["ENCASH", "DO_NOT_ENCASH"],
+							"title": "Untaken annual leave at exit",
+							"description": "Overrides the exit ground's default (exit_grounds encash_annual_leave): ENCASH pays the untaken annual leave in the final pay, DO_NOT_ENCASH does not. Leave it empty to follow the ground. Employment Act 1955 s.60E(3A) entitles a covered employee to it on every termination except dismissal for misconduct under s.14(1)(a)."
+						}
+					},
+					"title": "Departure compliance details"
+				}
+			},
+			"description": "Additional local compliance data on the sealed contract, stored as employee_extension_data. facts carries payroll facts; term_facts carries agreed-term facts; exit_facts carries departure facts. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
+		},
+		"entity_extension_schema": {
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"title": "MY entity extension data",
+			"additionalProperties": false,
+			"description": "Additional employer compliance data on the sealed employer version, stored as entity_extension_data; the CEL root `employer.entity_extension_data`.",
+			"properties": {
+				"hrd_scope": {
+					"type": "string",
+					"enum": ["PART_I", "PART_II_NGO", "OUT_OF_SCOPE"],
+					"title": "HRD employer scope",
+					"description": "Part I industry, listed Part II NGO activity, or excluded employer under the effective First Schedule."
+				},
+				"hrd_registration_class": {
+					"type": "string",
+					"enum": ["COMPULSORY", "OPTIONAL", "NOT_REGISTERED", "DEREGISTERED"],
+					"title": "HRD employer registration class",
+					"description": "Employer-level HRD Corp standing, retained after a headcount fall until approved deregistration."
+				},
+				"hrd_form2_count": {
+					"type": "integer",
+					"minimum": 0,
+					"title": "HRD Form 2 Malaysian employee count",
+					"description": "The Malaysian employee count declared to HRD Corp for this levy month; exclude persons outside Act 612 s.2. The count is dated with the employer version."
+				},
+				"hrd_optional_last_high_year": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 9999,
+					"title": "Last optional HRD high-rate year",
+					"description": "Calendar year in which an optional registrant most recently exceeded its Part II class maximum; 0 if never."
+				},
+				"hrd_education_schedule_code": {
+					"type": "string",
+					"enum": [
+						"NONE",
+						"85102",
+						"85104",
+						"85212",
+						"85222",
+						"85302",
+						"8541",
+						"8542",
+						"8549",
+						"85500"
+					],
+					"title": "2026 HRD education exemption schedule code",
+					"description": "P.U. (A) 13/2026 Schedule MSIC code or listed 8541/8542/8549 group; NONE when the registered education industry is not scheduled. Verify against the employer's HRD registration."
+				},
+				"pdpa_dpo_required": {
+					"type": "boolean",
+					"default": false,
+					"title": "Data protection officer required (PDPA s.12A)",
+					"description": "True where the entity processes personal data of more than 20,000 data subjects, sensitive personal data including financial information of more than 10,000, or carries on regular and systematic monitoring (Commissioner's DPO Guideline para 4.2, under Personal Data Protection Act 2010 s.12A)."
+				},
+				"hrd_registration_liability_on": {
+					"type": "string",
+					"format": "date",
+					"title": "HRD compulsory registration liability began on",
+					"description": "The actual date this employer first met the applicable compulsory PSMB coverage conditions, supported by the real workforce/sector history or an authority determination. This is not incorporation or first employment by default."
+				}
+			}
+		},
+		"lookup": {
+			"rounding": "HALF_UP",
+			"rounding_scale": 2
+		},
+		"status": "SEALED",
+		"id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19"
+	}
+]

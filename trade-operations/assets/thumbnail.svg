@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+<title id="title">Trade Operations</title><desc id="desc">Order-centered trading and manufacturing commerce with sealed contracts and pricing.</desc>
+<rect width="1600" height="900" fill="#f2f1ed"/>
+<text x="100" y="190" fill="#26251e" font-family="system-ui,sans-serif" font-size="76" font-weight="600">Trade Operations</text>
+<text x="104" y="250" fill="#615d59" font-family="system-ui,sans-serif" font-size="29">Trading · Distribution · Manufacturing</text>
+<rect x="100" y="340" width="1400" height="450" rx="12" fill="#fff" stroke="#d8d6cf" stroke-width="2"/>
+<rect x="100" y="340" width="1400" height="84" rx="12" fill="#26251e"/>
+<text x="140" y="394" fill="#fff" font-family="system-ui,sans-serif" font-size="29" font-weight="600">SO-2026-0042</text>
+<text x="1090" y="394" fill="#fff" font-family="system-ui,sans-serif" font-size="24">Contract &amp; pricing sealed</text>
+<g font-family="system-ui,sans-serif" font-size="25" fill="#615d59"><text x="140" y="485">Product</text><text x="660" y="485">Quantity</text><text x="1030" y="485">Unit price</text><text x="1310" y="485">Total</text></g>
+<path d="M140 515H1460M140 600H1460M140 685H1460" stroke="#d8d6cf" stroke-width="2"/>
+<g font-family="system-ui,sans-serif" font-size="29" fill="#26251e"><text x="140" y="568">Resin A</text><text x="660" y="568">10,000 kg</text><text x="1030" y="568">SGD 2.00</text><text x="1280" y="568">21,800.00</text><text x="140" y="655">One order. Every document.</text></g>
+<g font-family="system-ui,sans-serif" font-size="23" fill="#aa481b"><text x="140" y="744">Quotation versions</text><text x="450" y="744">Contract</text><text x="690" y="744">Delivery</text><text x="940" y="744">Billing</text><text x="1180" y="744">Payments</text></g>
+</svg>

@@ -1,0 +1,1896 @@
+[
+	{
+		"code": "JHT",
+		"name": "BPJS Ketenagakerjaan — Jaminan Hari Tua (old-age savings)",
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"employer_cost_subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"employee_rate": 0.02,
+			"employer_rate": 0.037,
+			"foreign_employee_minimum_months": 6,
+			"whole_unit": 1
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst facts = get(employment, 'employee_extension_data', {});\nconst nationality = get(facts, 'nationality', 'ID');\nconst planned = get(facts, 'indonesia_work_months_planned', null);\nconst foreign = nationality !== '' && nationality !== 'ID';\nconst short = foreign && planned != null && Number(planned) < Number(ctx.lookup.foreign_employee_minimum_months);\nreturn employment.engagement !== 'PAYEE' && !short && ctx.subtotals.ORDINARY_WAGES > 0;",
+		"employee_amount": "const terms = get(ctx.subject.employment, 'terms', {});\nconst fixed = sum(\n\tObject.values(get(terms, 'allowances', {}))\n\t\t.filter((allowance) => get(allowance, 'variability', '') === 'FIXED')\n\t\t.map((allowance) => Number(get(allowance, 'amount', 0)))\n);\nconst ordinary = Math.max(0, Number(get(ctx.subtotals, 'BASIC', 0)) + fixed);\nreturn round(ordinary * Number(ctx.lookup.employee_rate), Number(ctx.lookup.whole_unit), 'HALF_UP');",
+		"employer_amount": "const terms = get(ctx.subject.employment, 'terms', {});\nconst fixed = sum(\n\tObject.values(get(terms, 'allowances', {}))\n\t\t.filter((allowance) => get(allowance, 'variability', '') === 'FIXED')\n\t\t.map((allowance) => Number(get(allowance, 'amount', 0)))\n);\nconst ordinary = Math.max(0, Number(get(ctx.subtotals, 'BASIC', 0)) + fixed);\nreturn round(ordinary * Number(ctx.lookup.employer_rate), Number(ctx.lookup.whole_unit), 'HALF_UP');",
+		"references": [
+			{
+				"title": "PP 46/2015",
+				"locator": "art.16, art.17(1)–(5), art.2(1), art.4(2)–(3), art.9(2), art.11(4)",
+				"quote": "JHT is 5.7% of the monthly wage, 2% from the employee and 3.7% from the employer (art.16). Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not. Wages paid by the day make a month of the day's wage × 25, whatever days were paid (art.17(3)). Piece-rate worker: assessed on the average paid wage of the 3 preceding months, 12 where the work depends on the weather; only months of this employment count; the first month uses the current paid wage. The employer registers every worker for JHT (art.2(1)); the contribution runs from the day the worker starts (art.9(2)); a negligent employer pays the contribution it owed (art.11(4)). A worker outside an employment relationship is a non-wage-earning participant who registers and pays for himself (art.4(2)–(3))."
+			},
+			{
+				"title": "PP 44/2015",
+				"locator": "art.19(1)–(5), art.5(2)–(3), art.11(1)",
+				"quote": "Owner rule 2026-11-04: the base is the ordinary wages the contribution month actually pays — upah pokok plus tunjangan tetap (art.19(1)–(2)) as the run pays them — never the contract's monthly rate and never the gross checkpoint: a joiner, a leaver and a month with unpaid days are charged on what the run pays. A THR (Permenaker 6/2016 art.2–3) and a bonus are neither upah pokok nor tunjangan tetap, so they are outside the contribution wage. The row departs from art.19(3)'s day-wage × 25 conversion: the day's paid wage of the run is the base, so a partial or off-cycle month is not grossed up. Art.19(3)–(5) name only daily, piece and weather-bound piece wages; the law is silent on an hourly-paid worker (default: the wage paid for the month's hours). Piece-rate worker: assessed on the average paid wage of the 3 preceding months, 12 where the work depends on the weather; only months of this employment count; the first month uses the current paid wage. A recipient paid outside an employment relationship (PMK 168/2023 bukan pegawai: NON_EMPLOYEE, IRREGULAR_COMMISSIONER, ACTIVITY_PARTICIPANT; a former employee; a pension withdrawal) is a non-wage-earning participant who registers and pays for himself (art.5(2)–(3), art.11(1)), so charged nothing as a worker of this employer."
+			},
+			{
+				"title": "PP 45/2015",
+				"locator": "art.29(1)",
+				"quote": "Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not."
+			},
+			{
+				"title": "Perpres 82/2018",
+				"locator": "art.32, art.13(1)",
+				"quote": "Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not. Art.13(1) binds the employer only for its Pekerja."
+			},
+			{
+				"title": "UU 24/2011 (BPJS)",
+				"locator": "art.14, art.15(1), art.19(1)–(2)",
+				"quote": "The employer must register its workers and collect and pay the contribution (art.15(1), art.19(1)–(2)); a missing registration does not waive the charge. A foreign worker joins BPJS when working in Indonesia for 6 months or more (art.14)."
+			},
+			{
+				"title": "PP 34/2021",
+				"locator": "art.8",
+				"quote": "A foreign worker planned for less than 6 months in Indonesia is insured privately (art.8(2)) and charged nothing here."
+			}
+		],
+		"id": "2f7bbf53-fabb-55bf-8855-53c7b05e5e63",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "JP",
+		"name": "BPJS Ketenagakerjaan — Jaminan Pensiun (pension)",
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"employer_cost_subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"employee_rate": 0.01,
+			"employer_rate": 0.02,
+			"monthly_salary_ceiling": 10547400,
+			"ordinary_retirement_age_years": 59,
+			"maximum_continued_coverage_age_years": 62,
+			"whole_unit": 1
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nif (employment.engagement === 'PAYEE') return false;\nif (get(terms, 'residency_status', '') !== 'CITIZEN') return false;\nconst birth = get(employment, 'payroll.date_of_birth', null);\nif (birth == null) return true;\nconst age = age_on(birth, add_days(ctx.run.salary_coverage.from, -1));\nif (age < Number(ctx.lookup.ordinary_retirement_age_years)) return true;\nconst facts = get(employment, 'employee_extension_data', {});\nreturn age < Number(ctx.lookup.maximum_continued_coverage_age_years) &&\n\tget(facts, 'jp_continue_after_pension_age', false) === true;",
+		"employee_amount": "return round((() => {\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst fixed = sum(\n\tObject.values(get(terms, 'allowances', {}))\n\t\t.filter((allowance) => get(allowance, 'variability', '') === 'FIXED')\n\t\t.map((allowance) => Number(get(allowance, 'amount', 0)))\n);\nconst basic = Number(get(ctx.subtotals, 'BASIC', 0));\nconst wage = basic + fixed;\nreturn Math.min(Math.max(0, wage), Number(ctx.lookup.monthly_salary_ceiling));\n})() * Number(ctx.lookup.employee_rate), Number(ctx.lookup.whole_unit), 'HALF_UP');",
+		"employer_amount": "return round((() => {\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst fixed = sum(\n\tObject.values(get(terms, 'allowances', {}))\n\t\t.filter((allowance) => get(allowance, 'variability', '') === 'FIXED')\n\t\t.map((allowance) => Number(get(allowance, 'amount', 0)))\n);\nconst basic = Number(get(ctx.subtotals, 'BASIC', 0));\nconst wage = basic + fixed;\nreturn Math.min(Math.max(0, wage), Number(ctx.lookup.monthly_salary_ceiling));\n})() * Number(ctx.lookup.employer_rate), Number(ctx.lookup.whole_unit), 'HALF_UP');",
+		"references": [
+			{
+				"title": "PP 45/2015",
+				"locator": "art.28, art.29, art.15, art.4(1)–(2), art.5(4)–(5), art.3(1), art.6",
+				"quote": "JP is 3% of the monthly wage, 1% from the employee and 2% from the employer, charged on wage up to an annually adjusted ceiling (art.28–29). Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not. Each contribution month is priced on its own wage (\"pada bulan yang bersangkutan\", art.29(1)), so a deferred earlier month paid as back pay is capped at the ceiling on its own beside this month's wage. Pension age is 56, 57 from 1 January 2019 and one year more every three years — 59 from 1 January 2025 to 31 December 2027 (art.15(1)–(3)); a participant still employed may choose to take the pension when work stops, at most three years after pension age (art.15(4)); contributions stop at 59 unless that choice is recorded (to 62). Registration of every worker is mandatory within 30 days of starting work (art.4(1)–(2)); art.5(5) obliges the negligent employer to collect and pay both the worker's and its own contributions besides the art.5(4) sanction; art.3(1) dates the start of benefit protection and art.6 adds the employer's own liability for the benefit meanwhile — neither removes the contribution. JP covers Indonesian nationals only; a foreign national cannot be registered for JP (BPJS Ketenagakerjaan). Existing PP45/2015 art.15(4) and Permenaker29/2015 art.3 allow a confirmed still-employed participant to defer benefits and continue contributions for at most three years beyond pension age; this election is supported in every 2025–2026 seed version. A THR (Permenaker 6/2016 art.2–3) and a bonus are neither upah pokok nor tunjangan tetap, so they are outside the JP wage; the row reads the ordinary pay this run actually pays, not a contract rate."
+			},
+			{
+				"title": "PP 44/2015",
+				"locator": "art.19(2)",
+				"quote": "Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not."
+			},
+			{
+				"title": "PP 46/2015",
+				"locator": "art.17(1)",
+				"quote": "Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not."
+			},
+			{
+				"title": "Perpres 82/2018",
+				"locator": "art.32, art.13(1)",
+				"quote": "Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not. Art.13(1) binds the employer only for its Pekerja."
+			},
+			{
+				"title": "SE BPJS Ketenagakerjaan",
+				"locator": "No. B/1226/022026, 25 February 2026",
+				"effective_from": "2026-03-01",
+				"quote": "The JP ceiling is 11,086,300 from 1 March 2026 (the PP 45/2015 art.29(3) uplift by 2025 GDP growth of 5.11%)."
+			}
+		],
+		"id": "b582e5f4-cbfd-5832-80a9-d47155813e54",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "JKK",
+		"name": "BPJS Ketenagakerjaan — Jaminan Kecelakaan Kerja (work accident)",
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"employer_cost_subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"risk_rates": {
+				"I": 0.0024,
+				"II": 0.0054,
+				"III": 0.0089,
+				"IV": 0.0127,
+				"V": 0.0174
+			},
+			"default_highest_risk_rate": 0.0174,
+			"foreign_employee_minimum_months": 6,
+			"whole_unit": 1,
+			"reduced_risk_rates": {
+				"I": 0.0012,
+				"II": 0.0027,
+				"III": 0.00445,
+				"IV": 0.00635,
+				"V": 0.0087
+			},
+			"labour_intensive_industries": [
+				"FOOD_BEVERAGE_TOBACCO",
+				"TEXTILE_GARMENT",
+				"LEATHER_GOODS",
+				"FOOTWEAR",
+				"CHILDREN_TOYS",
+				"FURNITURE"
+			],
+			"labour_intensive_minimum_headcount": 50,
+			"reduced_through": "2026-01"
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst facts = get(employment, 'employee_extension_data', {});\nconst nationality = get(facts, 'nationality', 'ID');\nconst planned = get(facts, 'indonesia_work_months_planned', null);\nconst foreign = nationality !== '' && nationality !== 'ID';\nconst short = foreign && planned != null && Number(planned) < Number(ctx.lookup.foreign_employee_minimum_months);\nif (employment.engagement === 'PAYEE' || short || !(ctx.subtotals.ORDINARY_WAGES > 0)) return false;\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst unit = get(get(terms, 'rate', {}), 'unit', '');\nconst construction = get(entity, 'construction_services', false) === true &&\n\t(get(employment, 'engagement', '') === 'CONTRACTOR' || unit === 'DAILY' ||\n\t\t['PIECE_RATE', 'TASK_BASIS'].includes(get(terms, 'statutory_work_category', '')));\nreturn construction || get(ctx.lookup.risk_rates, get(entity, 'risk_class', ''), null) != null;",
+		"employee_amount": "return 0;",
+		"employer_amount": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst category = get(terms, 'statutory_work_category', '');\nconst construction = get(entity, 'construction_services', false) === true &&\n\t(get(employment, 'engagement', '') === 'CONTRACTOR' ||\n\t\tget(get(terms, 'rate', {}), 'unit', '') === 'DAILY' ||\n\t\t['PIECE_RATE', 'TASK_BASIS'].includes(category));\nconst fixed = sum(\n\tObject.values(get(terms, 'allowances', {}))\n\t\t.filter((allowance) => get(allowance, 'variability', '') === 'FIXED')\n\t\t.map((allowance) => Number(get(allowance, 'amount', 0)))\n);\nconst base = Math.max(0, Number(get(ctx.subtotals, 'BASIC', 0)) + fixed);\nif (construction) return base * Number(ctx.lookup.default_highest_risk_rate);\nconst intensive = ctx.lookup.labour_intensive_industries.includes(get(entity, 'jkk_labour_intensive_industry', '')) &&\n\tNumber(get(entity, 'headcount', 0)) >= Number(ctx.lookup.labour_intensive_minimum_headcount) &&\n\tctx.run.salary_coverage.from.slice(0, 7) <= ctx.lookup.reduced_through;\nconst rates = intensive ? ctx.lookup.reduced_risk_rates : ctx.lookup.risk_rates;\nreturn base * Number(get(rates, get(entity, 'risk_class', ''), 0));",
+		"references": [
+			{
+				"title": "PP 44/2015",
+				"locator": "art.16(1), Lampiran I, art.19(1)–(2), art.19(4)–(5), art.54",
+				"quote": "Employer-only JKK by the employer's work-risk group: I very low 0.24%, II low 0.54%, III medium 0.89%, IV high 1.27%, V very high 1.74% of the monthly wage (art.16(1), Lampiran I). The base is the ordinary pay the contribution month actually pays — upah pokok plus tunjangan tetap, with no contract-rate fallback — so a daily worker's month is the wage paid for its days, without the art.19(3) day-wage × 25 conversion. A THR (Permenaker 6/2016 art.2–3) and a bonus are neither upah pokok nor tunjangan tetap and are outside the contribution wage. Piece-rate worker: assessed on the average paid wage of the 3 preceding months, 12 where the work depends on the weather; only months of this employment count; the first month uses the current paid wage. Art.54(1): a construction-services employer pays JKK of 1.74% of the monthly wage for its daily (harian lepas), piece or task (borongan) and fixed-term (PKWT) workers whose wage is known, whatever its risk group; art.54(2)'s contract-value scale applies only where the wage is unknown, which a payslip never is."
+			},
+			{
+				"title": "PP 46/2015",
+				"locator": "art.17(4)–(5)",
+				"quote": "Piece-rate worker: assessed on the average paid wage of the 3 preceding months, 12 where the work depends on the weather; only months of this employment count; the first month uses the current paid wage."
+			},
+			{
+				"title": "PP 37/2021 as amended by PP 6/2025",
+				"locator": "art.11",
+				"quote": "0.14% of the wage is recomposed from the JKK contribution to JKP — an internal allocation, not a cut in the employer's bill."
+			},
+			{
+				"title": "PP 7/2025 as extended by PP 36/2025",
+				"locator": "art.10A",
+				"quote": "The discount ended with the January 2026 wage month, before this version.",
+				"effective_from": "2026-02-01"
+			},
+			{
+				"title": "UU 24/2011 (BPJS)",
+				"locator": "art.14, art.15(1), art.19(1)–(2)",
+				"quote": "The employer must register its workers and collect and pay the contribution (art.15(1), art.19(1)–(2)); a missing registration does not waive the charge. A foreign worker joins BPJS when working in Indonesia for 6 months or more (art.14)."
+			},
+			{
+				"title": "PP 34/2021",
+				"locator": "art.8",
+				"quote": "A foreign worker planned for less than 6 months in Indonesia is insured privately (art.8(2)) and charged nothing here."
+			}
+		],
+		"id": "a702fb2c-a78a-5670-8422-7b1c271f0cb9",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "JKM",
+		"name": "BPJS Ketenagakerjaan — Jaminan Kematian (death)",
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"employer_cost_subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"employer_rate": 0.003,
+			"foreign_employee_minimum_months": 6,
+			"whole_unit": 1
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst facts = get(employment, 'employee_extension_data', {});\nconst nationality = get(facts, 'nationality', 'ID');\nconst planned = get(facts, 'indonesia_work_months_planned', null);\nconst foreign = nationality !== '' && nationality !== 'ID';\nconst short = foreign && planned != null && Number(planned) < Number(ctx.lookup.foreign_employee_minimum_months);\nreturn employment.engagement !== 'PAYEE' && !short && ctx.subtotals.ORDINARY_WAGES > 0;",
+		"employee_amount": "return 0;",
+		"employer_amount": "const terms = get(ctx.subject.employment, 'terms', {});\nconst fixed = sum(\n\tObject.values(get(terms, 'allowances', {}))\n\t\t.filter((allowance) => get(allowance, 'variability', '') === 'FIXED')\n\t\t.map((allowance) => Number(get(allowance, 'amount', 0)))\n);\nconst ordinary = Math.max(0, Number(get(ctx.subtotals, 'BASIC', 0)) + fixed);\nreturn round(ordinary * Number(ctx.lookup.employer_rate), Number(ctx.lookup.whole_unit), 'HALF_UP');",
+		"references": [
+			{
+				"title": "PP 44/2015",
+				"locator": "art.18(1), art.19(1)–(5), art.4(1), art.8(2)–(3), art.10(4), art.5(2)–(3), art.11(1)",
+				"quote": "JKM is an employer-only premium of 0.30% of the monthly wage (art.18(1)); art.34 is the JKM benefit schedule, not the rate. Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not. Wages paid by the day make a month of the day's wage × 25, whatever days were paid (art.19(3)). Owner rule 2026-11-04: the base is the ordinary wages the contribution month actually pays — upah pokok plus tunjangan tetap (art.19(1)–(2)) as the run pays them — never the contract's monthly rate and never the gross checkpoint: a joiner, a leaver and a month with unpaid days are charged on what the run pays. A THR (Permenaker 6/2016 art.2–3) and a bonus are neither upah pokok nor tunjangan tetap, so they are outside the contribution wage. The row departs from art.19(3)'s day-wage × 25 conversion: the day's paid wage of the run is the base, so a partial or off-cycle month is not grossed up. Art.19(3)–(5) name only daily, piece and weather-bound piece wages; the law is silent on an hourly-paid worker (default: the wage paid for the month's hours). Piece-rate worker: assessed on the average paid wage of the 3 preceding months, 12 where the work depends on the weather; only months of this employment count; the first month uses the current paid wage. The employer registers every worker for JKK and JKM (art.4(1)); the contribution runs from the day the worker starts and the benefit stays on an employer that has not reported and paid (art.8(2)–(3)); a negligent employer pays the contribution it owed (art.10(4)). A recipient paid outside an employment relationship (PMK 168/2023 bukan pegawai: NON_EMPLOYEE, IRREGULAR_COMMISSIONER, ACTIVITY_PARTICIPANT; a former employee; a pension withdrawal) is a non-wage-earning participant who registers and pays for himself (art.5(2)–(3), art.11(1)), so charged nothing as a worker of this employer."
+			},
+			{
+				"title": "PP 49/2023",
+				"locator": "art.18A",
+				"effective_from": "2023-10-06",
+				"quote": "Recomposed 0.10 points of the JKM rate into JKP from 6 October 2023."
+			},
+			{
+				"title": "PP 6/2025",
+				"locator": "art.11",
+				"effective_from": "2025-02-07",
+				"quote": "In force 7 February 2025: ended the JKM recomposition and moved JKP's remaining funding wholly onto JKK, so the JKM rate is 0.30% again."
+			},
+			{
+				"title": "PP 45/2015",
+				"locator": "art.29(1)",
+				"quote": "Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not."
+			},
+			{
+				"title": "PP 46/2015",
+				"locator": "art.17(1), art.17(4)–(5)",
+				"quote": "Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not. Piece-rate worker: assessed on the average paid wage of the 3 preceding months, 12 where the work depends on the weather; only months of this employment count; the first month uses the current paid wage."
+			},
+			{
+				"title": "Perpres 82/2018",
+				"locator": "art.32, art.13(1)",
+				"quote": "Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not. Art.13(1) binds the employer only for its Pekerja."
+			},
+			{
+				"title": "UU 24/2011 (BPJS)",
+				"locator": "art.14, art.15(1), art.19(1)–(2)",
+				"quote": "The employer must register its workers and collect and pay the contribution (art.15(1), art.19(1)–(2)); a missing registration does not waive the charge. A foreign worker joins BPJS when working in Indonesia for 6 months or more (art.14)."
+			},
+			{
+				"title": "PP 34/2021",
+				"locator": "art.8",
+				"quote": "A foreign worker planned for less than 6 months in Indonesia is insured privately (art.8(2)) and charged nothing here."
+			}
+		],
+		"id": "9032eae7-5e42-5f6d-b2d5-b99a58dc6006",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "KESEHATAN",
+		"name": "BPJS Kesehatan (health insurance)",
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"employer_cost_subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"employee_rate": 0.01,
+			"employer_rate": 0.04,
+			"monthly_salary_ceiling": 12000000,
+			"foreign_employee_minimum_months": 6,
+			"whole_unit": 1,
+			"region_minimum_wages": {
+				"Provinsi Aceh/Kabupaten Aceh Barat": 3932552,
+				"Provinsi Aceh/Kabupaten Aceh Barat Daya": 3932552,
+				"Provinsi Aceh/Kabupaten Aceh Besar": 3932552,
+				"Provinsi Aceh/Kabupaten Aceh Jaya": 3932552,
+				"Provinsi Aceh/Kabupaten Aceh Selatan": 3932552,
+				"Provinsi Aceh/Kabupaten Aceh Singkil": 3932552,
+				"Provinsi Aceh/Kabupaten Aceh Tamiang": 3978204,
+				"Provinsi Aceh/Kabupaten Aceh Tengah": 3932552,
+				"Provinsi Aceh/Kabupaten Aceh Tenggara": 3932552,
+				"Provinsi Aceh/Kabupaten Aceh Timur": 3932552,
+				"Provinsi Aceh/Kabupaten Aceh Utara": 3932552,
+				"Provinsi Aceh/Kabupaten Bener Meriah": 3932552,
+				"Provinsi Aceh/Kabupaten Bireuen": 3932552,
+				"Provinsi Aceh/Kabupaten Gayo Lues": 3932552,
+				"Provinsi Aceh/Kabupaten Nagan Raya": 3932552,
+				"Provinsi Aceh/Kabupaten Pidie": 3932552,
+				"Provinsi Aceh/Kabupaten Pidie Jaya": 3932552,
+				"Provinsi Aceh/Kabupaten Simeulue": 3932552,
+				"Provinsi Aceh/Kota Banda Aceh": 4162965,
+				"Provinsi Aceh/Kota Langsa": 3932552,
+				"Provinsi Aceh/Kota Lhokseumawe": 3932552,
+				"Provinsi Aceh/Kota Sabang": 3932552,
+				"Provinsi Aceh/Kota Subulussalam": 3932552,
+				"Provinsi Bali/Kabupaten Badung": 3791002.57,
+				"Provinsi Bali/Kabupaten Bangli": 3207459,
+				"Provinsi Bali/Kabupaten Buleleng": 3207459,
+				"Provinsi Bali/Kabupaten Gianyar": 3316798.48,
+				"Provinsi Bali/Kabupaten Jembrana": 3207459,
+				"Provinsi Bali/Kabupaten Karangasem": 3207459,
+				"Provinsi Bali/Kabupaten Klungkung": 3207459,
+				"Provinsi Bali/Kabupaten Tabanan": 3287678.87,
+				"Provinsi Bali/Kota Denpasar": 3499878.78,
+				"Provinsi Banten/Kabupaten Lebak": 3330010.62,
+				"Provinsi Banten/Kabupaten Pandeglang": 3360078.06,
+				"Provinsi Banten/Kabupaten Serang": 5178521.19,
+				"Provinsi Banten/Kabupaten Tangerang": 5210377,
+				"Provinsi Banten/Kota Cilegon": 5469922.59,
+				"Provinsi Banten/Kota Serang": 4665927.94,
+				"Provinsi Banten/Kota Tangerang": 5399405.69,
+				"Provinsi Banten/Kota Tangerang Selatan": 5247870,
+				"Provinsi Bengkulu/Kabupaten Bengkulu Selatan": 2827250.9,
+				"Provinsi Bengkulu/Kabupaten Bengkulu Tengah": 2945142.2,
+				"Provinsi Bengkulu/Kabupaten Bengkulu Utara": 2906158.92,
+				"Provinsi Bengkulu/Kabupaten Kaur": 2827250.9,
+				"Provinsi Bengkulu/Kabupaten Kepahiang": 2827250.9,
+				"Provinsi Bengkulu/Kabupaten Lebong": 2827250.9,
+				"Provinsi Bengkulu/Kabupaten Mukomuko": 3217086,
+				"Provinsi Bengkulu/Kabupaten Rejang Lebong": 2841749.59,
+				"Provinsi Bengkulu/Kabupaten Seluma": 2827250.9,
+				"Provinsi Bengkulu/Kota Bengkulu": 3089218.66,
+				"Provinsi DI Yogyakarta/Kabupaten Bantul": 2509001,
+				"Provinsi DI Yogyakarta/Kabupaten Gunungkidul": 2468378,
+				"Provinsi DI Yogyakarta/Kabupaten Kulon Progo": 2504520,
+				"Provinsi DI Yogyakarta/Kabupaten Sleman": 2624387,
+				"Provinsi DI Yogyakarta/Kota Yogyakarta": 2827593,
+				"Provinsi DKI Jakarta": 5729876,
+				"Provinsi Gorontalo/Kabupaten Boalemo": 3405144,
+				"Provinsi Gorontalo/Kabupaten Bone Bolango": 3405144,
+				"Provinsi Gorontalo/Kabupaten Gorontalo": 3405144,
+				"Provinsi Gorontalo/Kabupaten Gorontalo Utara": 3405144,
+				"Provinsi Gorontalo/Kabupaten Pohuwato": 3405144,
+				"Provinsi Gorontalo/Kota Gorontalo": 3405144,
+				"Provinsi Jambi/Kabupaten Batanghari": 3471497,
+				"Provinsi Jambi/Kabupaten Bungo": 3471497,
+				"Provinsi Jambi/Kabupaten Kerinci": 3471497,
+				"Provinsi Jambi/Kabupaten Merangin": 3471497,
+				"Provinsi Jambi/Kabupaten Muaro Jambi": 3651917,
+				"Provinsi Jambi/Kabupaten Sarolangun": 3533562,
+				"Provinsi Jambi/Kabupaten Tanjung Jabung Barat": 3551430,
+				"Provinsi Jambi/Kabupaten Tanjung Jabung Timur": 3486521,
+				"Provinsi Jambi/Kabupaten Tebo": 3471497,
+				"Provinsi Jambi/Kota Jambi": 3868963,
+				"Provinsi Jambi/Kota Sungai Penuh": 3471497,
+				"Provinsi Jawa Barat/Kabupaten Bandung": 3972202,
+				"Provinsi Jawa Barat/Kabupaten Bandung Barat": 3984711,
+				"Provinsi Jawa Barat/Kabupaten Bekasi": 5938885,
+				"Provinsi Jawa Barat/Kabupaten Bogor": 5161769,
+				"Provinsi Jawa Barat/Kabupaten Ciamis": 2373644,
+				"Provinsi Jawa Barat/Kabupaten Cianjur": 3316191,
+				"Provinsi Jawa Barat/Kabupaten Cirebon": 2880798,
+				"Provinsi Jawa Barat/Kabupaten Garut": 2472227,
+				"Provinsi Jawa Barat/Kabupaten Indramayu": 2910254,
+				"Provinsi Jawa Barat/Kabupaten Karawang": 5886853,
+				"Provinsi Jawa Barat/Kabupaten Kuningan": 2369380,
+				"Provinsi Jawa Barat/Kabupaten Majalengka": 2595368,
+				"Provinsi Jawa Barat/Kabupaten Pangandaran": 2351250,
+				"Provinsi Jawa Barat/Kabupaten Purwakarta": 5052856,
+				"Provinsi Jawa Barat/Kabupaten Subang": 3737482,
+				"Provinsi Jawa Barat/Kabupaten Sukabumi": 3831926,
+				"Provinsi Jawa Barat/Kabupaten Sumedang": 3949856,
+				"Provinsi Jawa Barat/Kabupaten Tasikmalaya": 2871874,
+				"Provinsi Jawa Barat/Kota Bandung": 4737678,
+				"Provinsi Jawa Barat/Kota Banjar": 2361241,
+				"Provinsi Jawa Barat/Kota Bekasi": 5999443,
+				"Provinsi Jawa Barat/Kota Bogor": 5437203,
+				"Provinsi Jawa Barat/Kota Cimahi": 4090568,
+				"Provinsi Jawa Barat/Kota Cirebon": 2878646,
+				"Provinsi Jawa Barat/Kota Depok": 5522662,
+				"Provinsi Jawa Barat/Kota Sukabumi": 3192807,
+				"Provinsi Jawa Barat/Kota Tasikmalaya": 2980336,
+				"Provinsi Jawa Tengah/Kabupaten Banjarnegara": 2327813.08,
+				"Provinsi Jawa Tengah/Kabupaten Banyumas": 2474598.99,
+				"Provinsi Jawa Tengah/Kabupaten Batang": 2708520,
+				"Provinsi Jawa Tengah/Kabupaten Blora": 2345695,
+				"Provinsi Jawa Tengah/Kabupaten Boyolali": 2537949,
+				"Provinsi Jawa Tengah/Kabupaten Brebes": 2400350.47,
+				"Provinsi Jawa Tengah/Kabupaten Cilacap": 2773184,
+				"Provinsi Jawa Tengah/Kabupaten Demak": 3122805,
+				"Provinsi Jawa Tengah/Kabupaten Grobogan": 2399186,
+				"Provinsi Jawa Tengah/Kabupaten Jepara": 2756501,
+				"Provinsi Jawa Tengah/Kabupaten Karanganyar": 2592154.06,
+				"Provinsi Jawa Tengah/Kabupaten Kebumen": 2400000,
+				"Provinsi Jawa Tengah/Kabupaten Kendal": 2992994,
+				"Provinsi Jawa Tengah/Kabupaten Klaten": 2538691,
+				"Provinsi Jawa Tengah/Kabupaten Kudus": 2818585,
+				"Provinsi Jawa Tengah/Kabupaten Magelang": 2607790,
+				"Provinsi Jawa Tengah/Kabupaten Pati": 2485000,
+				"Provinsi Jawa Tengah/Kabupaten Pekalongan": 2633700,
+				"Provinsi Jawa Tengah/Kabupaten Pemalang": 2433254,
+				"Provinsi Jawa Tengah/Kabupaten Purbalingga": 2474721.94,
+				"Provinsi Jawa Tengah/Kabupaten Purworejo": 2401961.91,
+				"Provinsi Jawa Tengah/Kabupaten Rembang": 2386305,
+				"Provinsi Jawa Tengah/Kabupaten Semarang": 2940088,
+				"Provinsi Jawa Tengah/Kabupaten Sragen": 2337700,
+				"Provinsi Jawa Tengah/Kabupaten Sukoharjo": 2500000,
+				"Provinsi Jawa Tengah/Kabupaten Tegal": 2484162,
+				"Provinsi Jawa Tengah/Kabupaten Temanggung": 2397000,
+				"Provinsi Jawa Tengah/Kabupaten Wonogiri": 2335126,
+				"Provinsi Jawa Tengah/Kabupaten Wonosobo": 2455038.01,
+				"Provinsi Jawa Tengah/Kota Magelang": 2429285,
+				"Provinsi Jawa Tengah/Kota Pekalongan": 2700926,
+				"Provinsi Jawa Tengah/Kota Salatiga": 2698273.24,
+				"Provinsi Jawa Tengah/Kota Semarang": 3701709,
+				"Provinsi Jawa Tengah/Kota Surakarta": 2570000,
+				"Provinsi Jawa Tengah/Kota Tegal": 2526510,
+				"Provinsi Jawa Timur/Kabupaten Bangkalan": 2550274,
+				"Provinsi Jawa Timur/Kabupaten Banyuwangi": 2989145,
+				"Provinsi Jawa Timur/Kabupaten Blitar": 2567744,
+				"Provinsi Jawa Timur/Kabupaten Bojonegoro": 2685983,
+				"Provinsi Jawa Timur/Kabupaten Bondowoso": 2496886,
+				"Provinsi Jawa Timur/Kabupaten Gresik": 5195401,
+				"Provinsi Jawa Timur/Kabupaten Jember": 3012197,
+				"Provinsi Jawa Timur/Kabupaten Jombang": 3320770,
+				"Provinsi Jawa Timur/Kabupaten Kediri": 2651603,
+				"Provinsi Jawa Timur/Kabupaten Lamongan": 3196328,
+				"Provinsi Jawa Timur/Kabupaten Lumajang": 2578320,
+				"Provinsi Jawa Timur/Kabupaten Madiun": 2553221,
+				"Provinsi Jawa Timur/Kabupaten Magetan": 2553866,
+				"Provinsi Jawa Timur/Kabupaten Malang": 3802862,
+				"Provinsi Jawa Timur/Kabupaten Mojokerto": 5176101,
+				"Provinsi Jawa Timur/Kabupaten Nganjuk": 2564627,
+				"Provinsi Jawa Timur/Kabupaten Ngawi": 2556815,
+				"Provinsi Jawa Timur/Kabupaten Pacitan": 2514892,
+				"Provinsi Jawa Timur/Kabupaten Pamekasan": 2528004,
+				"Provinsi Jawa Timur/Kabupaten Pasuruan": 5187681,
+				"Provinsi Jawa Timur/Kabupaten Ponorogo": 2549876,
+				"Provinsi Jawa Timur/Kabupaten Probolinggo": 3164526,
+				"Provinsi Jawa Timur/Kabupaten Sampang": 2484443,
+				"Provinsi Jawa Timur/Kabupaten Sidoarjo": 5191541,
+				"Provinsi Jawa Timur/Kabupaten Situbondo": 2483962,
+				"Provinsi Jawa Timur/Kabupaten Sumenep": 2553688,
+				"Provinsi Jawa Timur/Kabupaten Trenggalek": 2530313,
+				"Provinsi Jawa Timur/Kabupaten Tuban": 3229092,
+				"Provinsi Jawa Timur/Kabupaten Tulungagung": 2628190,
+				"Provinsi Jawa Timur/Kota Batu": 3562484,
+				"Provinsi Jawa Timur/Kota Blitar": 2639518,
+				"Provinsi Jawa Timur/Kota Kediri": 2742806,
+				"Provinsi Jawa Timur/Kota Madiun": 2588794,
+				"Provinsi Jawa Timur/Kota Malang": 3736101,
+				"Provinsi Jawa Timur/Kota Mojokerto": 3208556,
+				"Provinsi Jawa Timur/Kota Pasuruan": 3555301,
+				"Provinsi Jawa Timur/Kota Probolinggo": 3045172,
+				"Provinsi Jawa Timur/Kota Surabaya": 5288796,
+				"Provinsi Kalimantan Barat/Kabupaten Bengkayang": 3252580,
+				"Provinsi Kalimantan Barat/Kabupaten Kapuas Hulu": 3106259,
+				"Provinsi Kalimantan Barat/Kabupaten Kayong Utara": 3370586,
+				"Provinsi Kalimantan Barat/Kabupaten Ketapang": 3561801,
+				"Provinsi Kalimantan Barat/Kabupaten Kubu Raya": 3100000,
+				"Provinsi Kalimantan Barat/Kabupaten Landak": 3211256,
+				"Provinsi Kalimantan Barat/Kabupaten Melawi": 3109431,
+				"Provinsi Kalimantan Barat/Kabupaten Mempawah": 3220801,
+				"Provinsi Kalimantan Barat/Kabupaten Sambas": 3202663,
+				"Provinsi Kalimantan Barat/Kabupaten Sanggau": 3121747,
+				"Provinsi Kalimantan Barat/Kabupaten Sekadau": 3054552,
+				"Provinsi Kalimantan Barat/Kabupaten Sintang": 3187965,
+				"Provinsi Kalimantan Barat/Kota Pontianak": 3205220,
+				"Provinsi Kalimantan Barat/Kota Singkawang": 3247387,
+				"Provinsi Kalimantan Selatan/Kabupaten Balangan": 3725000,
+				"Provinsi Kalimantan Selatan/Kabupaten Banjar": 3725000,
+				"Provinsi Kalimantan Selatan/Kabupaten Barito Kuala": 3725000,
+				"Provinsi Kalimantan Selatan/Kabupaten Hulu Sungai Selatan": 3725000,
+				"Provinsi Kalimantan Selatan/Kabupaten Hulu Sungai Tengah": 3725000,
+				"Provinsi Kalimantan Selatan/Kabupaten Hulu Sungai Utara": 3725000,
+				"Provinsi Kalimantan Selatan/Kabupaten Kotabaru": 3904645,
+				"Provinsi Kalimantan Selatan/Kabupaten Tabalong": 3827935,
+				"Provinsi Kalimantan Selatan/Kabupaten Tanah Bumbu": 3736000,
+				"Provinsi Kalimantan Selatan/Kabupaten Tanah Laut": 3725000,
+				"Provinsi Kalimantan Selatan/Kabupaten Tapin": 3725000,
+				"Provinsi Kalimantan Selatan/Kota Banjarbaru": 3843037.66,
+				"Provinsi Kalimantan Selatan/Kota Banjarmasin": 3855894,
+				"Provinsi Kalimantan Tengah/Kabupaten Barito Selatan": 4045059,
+				"Provinsi Kalimantan Tengah/Kabupaten Barito Timur": 3716006,
+				"Provinsi Kalimantan Tengah/Kabupaten Barito Utara": 4093071.54,
+				"Provinsi Kalimantan Tengah/Kabupaten Gunung Mas": 3770716.78,
+				"Provinsi Kalimantan Tengah/Kabupaten Kapuas": 3710096.5,
+				"Provinsi Kalimantan Tengah/Kabupaten Katingan": 3729766.91,
+				"Provinsi Kalimantan Tengah/Kabupaten Kotawaringin Barat": 3909005.9,
+				"Provinsi Kalimantan Tengah/Kabupaten Kotawaringin Timur": 3756643.61,
+				"Provinsi Kalimantan Tengah/Kabupaten Lamandau": 3938998,
+				"Provinsi Kalimantan Tengah/Kabupaten Murung Raya": 3998046,
+				"Provinsi Kalimantan Tengah/Kabupaten Pulang Pisau": 3701205,
+				"Provinsi Kalimantan Tengah/Kabupaten Seruyan": 4051079.97,
+				"Provinsi Kalimantan Tengah/Kabupaten Sukamara": 3912098.21,
+				"Provinsi Kalimantan Tengah/Kota Palangka Raya": 3724677.99,
+				"Provinsi Kalimantan Timur/Kabupaten Berau": 4391337.55,
+				"Provinsi Kalimantan Timur/Kabupaten Kutai Barat": 4231617.4,
+				"Provinsi Kalimantan Timur/Kabupaten Kutai Kartanegara": 3991797,
+				"Provinsi Kalimantan Timur/Kabupaten Kutai Timur": 4067436,
+				"Provinsi Kalimantan Timur/Kabupaten Mahakam Ulu": 3762431,
+				"Provinsi Kalimantan Timur/Kabupaten Paser": 3776998.06,
+				"Provinsi Kalimantan Timur/Kabupaten Penajam Paser Utara": 4181134,
+				"Provinsi Kalimantan Timur/Kota Balikpapan": 3856694.43,
+				"Provinsi Kalimantan Timur/Kota Bontang": 3799480,
+				"Provinsi Kalimantan Timur/Kota Samarinda": 3983882,
+				"Provinsi Kalimantan Utara/Kabupaten Bulungan": 3900396,
+				"Provinsi Kalimantan Utara/Kabupaten Malinau": 4040073,
+				"Provinsi Kalimantan Utara/Kabupaten Nunukan": 3845251,
+				"Provinsi Kalimantan Utara/Kabupaten Tana Tidung": 3870800,
+				"Provinsi Kalimantan Utara/Kota Tarakan": 4742169,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Bangka": 4035000,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Bangka Barat": 4035000,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Bangka Selatan": 4035000,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Bangka Tengah": 4035000,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Belitung": 4035000,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Belitung Timur": 4035000,
+				"Provinsi Kepulauan Bangka Belitung/Kota Pangkalpinang": 4035000,
+				"Provinsi Kepulauan Riau/Kabupaten Bintan": 4583221,
+				"Provinsi Kepulauan Riau/Kabupaten Karimun": 4241935,
+				"Provinsi Kepulauan Riau/Kabupaten Kepulauan Anambas": 4279851,
+				"Provinsi Kepulauan Riau/Kabupaten Lingga": 3879520,
+				"Provinsi Kepulauan Riau/Kabupaten Natuna": 3879520,
+				"Provinsi Kepulauan Riau/Kota Batam": 5357982,
+				"Provinsi Kepulauan Riau/Kota Tanjungpinang": 3879520,
+				"Provinsi Lampung/Kabupaten Lampung Barat": 3047734,
+				"Provinsi Lampung/Kabupaten Lampung Selatan": 3219609,
+				"Provinsi Lampung/Kabupaten Lampung Tengah": 3047734,
+				"Provinsi Lampung/Kabupaten Lampung Timur": 3047734,
+				"Provinsi Lampung/Kabupaten Lampung Utara": 3047734,
+				"Provinsi Lampung/Kabupaten Mesuji": 3227333,
+				"Provinsi Lampung/Kabupaten Pesawaran": 3047734,
+				"Provinsi Lampung/Kabupaten Pesisir Barat": 3047734,
+				"Provinsi Lampung/Kabupaten Pringsewu": 3047734,
+				"Provinsi Lampung/Kabupaten Tanggamus": 3047734,
+				"Provinsi Lampung/Kabupaten Tulang Bawang": 3047734,
+				"Provinsi Lampung/Kabupaten Tulang Bawang Barat": 3047734,
+				"Provinsi Lampung/Kabupaten Way Kanan": 3215764,
+				"Provinsi Lampung/Kota Bandar Lampung": 3491889,
+				"Provinsi Lampung/Kota Metro": 3050498,
+				"Provinsi Maluku Utara/Kabupaten Halmahera Barat": 3510240,
+				"Provinsi Maluku Utara/Kabupaten Halmahera Selatan": 3510240,
+				"Provinsi Maluku Utara/Kabupaten Halmahera Tengah": 3510240,
+				"Provinsi Maluku Utara/Kabupaten Halmahera Timur": 3510240,
+				"Provinsi Maluku Utara/Kabupaten Halmahera Utara": 3510240,
+				"Provinsi Maluku Utara/Kabupaten Kepulauan Sula": 3510240,
+				"Provinsi Maluku Utara/Kabupaten Pulau Morotai": 3510240,
+				"Provinsi Maluku Utara/Kabupaten Pulau Taliabu": 3510240,
+				"Provinsi Maluku Utara/Kota Ternate": 3599562,
+				"Provinsi Maluku Utara/Kota Tidore Kepulauan": 3510240,
+				"Provinsi Maluku/Kabupaten Buru": 3334490,
+				"Provinsi Maluku/Kabupaten Buru Selatan": 3334490,
+				"Provinsi Maluku/Kabupaten Kepulauan Aru": 3334490,
+				"Provinsi Maluku/Kabupaten Kepulauan Tanimbar": 3334490,
+				"Provinsi Maluku/Kabupaten Maluku Barat Daya": 3334490,
+				"Provinsi Maluku/Kabupaten Maluku Tengah": 3334490,
+				"Provinsi Maluku/Kabupaten Maluku Tenggara": 3334490,
+				"Provinsi Maluku/Kabupaten Seram Bagian Barat": 3334490,
+				"Provinsi Maluku/Kabupaten Seram Bagian Timur": 3334490,
+				"Provinsi Maluku/Kota Ambon": 3381225,
+				"Provinsi Maluku/Kota Tual": 3334490,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Bima": 2767580,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Dompu": 2751290,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Lombok Barat": 2712254,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Lombok Tengah": 2741526,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Lombok Timur": 2744628,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Lombok Utara": 2758221,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Sumbawa": 2747478,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Sumbawa Barat": 3136468,
+				"Provinsi Nusa Tenggara Barat/Kota Bima": 2831163,
+				"Provinsi Nusa Tenggara Barat/Kota Mataram": 3019015,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Alor": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Belu": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Ende": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Flores Timur": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Kupang": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Lembata": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Malaka": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Manggarai": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Manggarai Barat": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Manggarai Timur": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Nagekeo": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Ngada": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Rote Ndao": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sabu Raijua": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sikka": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sumba Barat": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sumba Barat Daya": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sumba Tengah": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sumba Timur": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Timor Tengah Selatan": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Timor Tengah Utara": 2455898,
+				"Provinsi Nusa Tenggara Timur/Kota Kupang": 2532853,
+				"Provinsi Papua Barat Daya/Kabupaten Maybrat": 3766000,
+				"Provinsi Papua Barat Daya/Kabupaten Raja Ampat": 3766000,
+				"Provinsi Papua Barat Daya/Kabupaten Sorong": 3766000,
+				"Provinsi Papua Barat Daya/Kabupaten Sorong Selatan": 3766000,
+				"Provinsi Papua Barat Daya/Kabupaten Tambrauw": 3766000,
+				"Provinsi Papua Barat Daya/Kota Sorong": 3766000,
+				"Provinsi Papua Barat/Kabupaten Fakfak": 3841000,
+				"Provinsi Papua Barat/Kabupaten Kaimana": 3841000,
+				"Provinsi Papua Barat/Kabupaten Manokwari": 3841000,
+				"Provinsi Papua Barat/Kabupaten Manokwari Selatan": 3841000,
+				"Provinsi Papua Barat/Kabupaten Pegunungan Arfak": 3841000,
+				"Provinsi Papua Barat/Kabupaten Teluk Bintuni": 3841000,
+				"Provinsi Papua Barat/Kabupaten Teluk Wondama": 3841000,
+				"Provinsi Papua Pegunungan/Kabupaten Jayawijaya": 4508714,
+				"Provinsi Papua Pegunungan/Kabupaten Lanny Jaya": 4508714,
+				"Provinsi Papua Pegunungan/Kabupaten Mamberamo Tengah": 4508714,
+				"Provinsi Papua Pegunungan/Kabupaten Nduga": 4508714,
+				"Provinsi Papua Pegunungan/Kabupaten Pegunungan Bintang": 4508714,
+				"Provinsi Papua Pegunungan/Kabupaten Tolikara": 4508714,
+				"Provinsi Papua Pegunungan/Kabupaten Yahukimo": 4508714,
+				"Provinsi Papua Pegunungan/Kabupaten Yalimo": 4508714,
+				"Provinsi Papua Selatan/Kabupaten Asmat": 4508100,
+				"Provinsi Papua Selatan/Kabupaten Boven Digoel": 4508100,
+				"Provinsi Papua Selatan/Kabupaten Mappi": 4508100,
+				"Provinsi Papua Selatan/Kabupaten Merauke": 4508100,
+				"Provinsi Papua Tengah/Kabupaten Deiyai": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Dogiyai": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Intan Jaya": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Mimika": 5005678,
+				"Provinsi Papua Tengah/Kabupaten Nabire": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Paniai": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Puncak": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Puncak Jaya": 4285848,
+				"Provinsi Papua/Kabupaten Biak Numfor": 4436283,
+				"Provinsi Papua/Kabupaten Jayapura": 4436283,
+				"Provinsi Papua/Kabupaten Keerom": 4436283,
+				"Provinsi Papua/Kabupaten Kepulauan Yapen": 4436283,
+				"Provinsi Papua/Kabupaten Mamberamo Raya": 4436283,
+				"Provinsi Papua/Kabupaten Sarmi": 4436283,
+				"Provinsi Papua/Kabupaten Supiori": 4436283,
+				"Provinsi Papua/Kabupaten Waropen": 4436283,
+				"Provinsi Papua/Kota Jayapura": 4436283,
+				"Provinsi Riau/Kabupaten Bengkalis": 4155317.75,
+				"Provinsi Riau/Kabupaten Indragiri Hilir": 3780495.85,
+				"Provinsi Riau/Kabupaten Indragiri Hulu": 3988406.31,
+				"Provinsi Riau/Kabupaten Kampar": 3898260.7,
+				"Provinsi Riau/Kabupaten Kepulauan Meranti": 3780495.85,
+				"Provinsi Riau/Kabupaten Kuantan Singingi": 3949466.98,
+				"Provinsi Riau/Kabupaten Pelalawan": 3894260.58,
+				"Provinsi Riau/Kabupaten Rokan Hilir": 3783052.9,
+				"Provinsi Riau/Kabupaten Rokan Hulu": 3819353.01,
+				"Provinsi Riau/Kabupaten Siak": 4001327.33,
+				"Provinsi Riau/Kota Dumai": 4431174.69,
+				"Provinsi Riau/Kota Pekanbaru": 3998179.46,
+				"Provinsi Sulawesi Barat/Kabupaten Majene": 3315934,
+				"Provinsi Sulawesi Barat/Kabupaten Mamasa": 3315934,
+				"Provinsi Sulawesi Barat/Kabupaten Mamuju": 3363847,
+				"Provinsi Sulawesi Barat/Kabupaten Mamuju Tengah": 3315934,
+				"Provinsi Sulawesi Barat/Kabupaten Pasangkayu": 3564798,
+				"Provinsi Sulawesi Barat/Kabupaten Polewali Mandar": 3327886,
+				"Provinsi Sulawesi Selatan/Kabupaten Bantaeng": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Barru": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Bone": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Bulukumba": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Enrekang": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Gowa": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Jeneponto": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Kepulauan Selayar": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Luwu": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Luwu Timur": 3961166,
+				"Provinsi Sulawesi Selatan/Kabupaten Luwu Utara": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Maros": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Pangkajene dan Kepulauan": 4032248,
+				"Provinsi Sulawesi Selatan/Kabupaten Pinrang": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Sidenreng Rappang": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Sinjai": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Soppeng": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Takalar": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Tana Toraja": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Toraja Utara": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kabupaten Wajo": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kota Makassar": 4148179,
+				"Provinsi Sulawesi Selatan/Kota Palopo": 3921088.79,
+				"Provinsi Sulawesi Selatan/Kota Parepare": 3921088.79,
+				"Provinsi Sulawesi Tengah/Kabupaten Banggai": 3179565,
+				"Provinsi Sulawesi Tengah/Kabupaten Banggai Kepulauan": 3179565,
+				"Provinsi Sulawesi Tengah/Kabupaten Banggai Laut": 3179565,
+				"Provinsi Sulawesi Tengah/Kabupaten Buol": 3198109,
+				"Provinsi Sulawesi Tengah/Kabupaten Donggala": 3179565,
+				"Provinsi Sulawesi Tengah/Kabupaten Morowali": 4223000,
+				"Provinsi Sulawesi Tengah/Kabupaten Morowali Utara": 4408209,
+				"Provinsi Sulawesi Tengah/Kabupaten Parigi Moutong": 3179565,
+				"Provinsi Sulawesi Tengah/Kabupaten Poso": 3268227,
+				"Provinsi Sulawesi Tengah/Kabupaten Sigi": 3179565,
+				"Provinsi Sulawesi Tengah/Kabupaten Tojo Una-Una": 3179565,
+				"Provinsi Sulawesi Tengah/Kabupaten Tolitoli": 3179565,
+				"Provinsi Sulawesi Tengah/Kota Palu": 3619466.72,
+				"Provinsi Sulawesi Tenggara/Kabupaten Bombana": 3306496.18,
+				"Provinsi Sulawesi Tenggara/Kabupaten Buton": 3306496.18,
+				"Provinsi Sulawesi Tenggara/Kabupaten Buton Selatan": 3306496.18,
+				"Provinsi Sulawesi Tenggara/Kabupaten Buton Tengah": 3306496.18,
+				"Provinsi Sulawesi Tenggara/Kabupaten Buton Utara": 3306496.18,
+				"Provinsi Sulawesi Tenggara/Kabupaten Kolaka": 3688130.26,
+				"Provinsi Sulawesi Tenggara/Kabupaten Kolaka Timur": 3306496.18,
+				"Provinsi Sulawesi Tenggara/Kabupaten Kolaka Utara": 3306496.18,
+				"Provinsi Sulawesi Tenggara/Kabupaten Konawe": 3306496.18,
+				"Provinsi Sulawesi Tenggara/Kabupaten Konawe Kepulauan": 3306496.18,
+				"Provinsi Sulawesi Tenggara/Kabupaten Konawe Selatan": 3306496.18,
+				"Provinsi Sulawesi Tenggara/Kabupaten Konawe Utara": 3510506,
+				"Provinsi Sulawesi Tenggara/Kabupaten Muna": 3306496.18,
+				"Provinsi Sulawesi Tenggara/Kabupaten Muna Barat": 3306496.18,
+				"Provinsi Sulawesi Tenggara/Kabupaten Wakatobi": 3306496.18,
+				"Provinsi Sulawesi Tenggara/Kota Baubau": 3306496.18,
+				"Provinsi Sulawesi Tenggara/Kota Kendari": 3516070,
+				"Provinsi Sulawesi Utara/Kabupaten Bolaang Mongondow": 4002630,
+				"Provinsi Sulawesi Utara/Kabupaten Bolaang Mongondow Selatan": 4002630,
+				"Provinsi Sulawesi Utara/Kabupaten Bolaang Mongondow Timur": 4002630,
+				"Provinsi Sulawesi Utara/Kabupaten Bolaang Mongondow Utara": 4002630,
+				"Provinsi Sulawesi Utara/Kabupaten Kepulauan Sangihe": 4002630,
+				"Provinsi Sulawesi Utara/Kabupaten Kepulauan Siau Tagulandang Biaro": 4002630,
+				"Provinsi Sulawesi Utara/Kabupaten Kepulauan Talaud": 4002630,
+				"Provinsi Sulawesi Utara/Kabupaten Minahasa": 4002630,
+				"Provinsi Sulawesi Utara/Kabupaten Minahasa Selatan": 4002630,
+				"Provinsi Sulawesi Utara/Kabupaten Minahasa Tenggara": 4002630,
+				"Provinsi Sulawesi Utara/Kabupaten Minahasa Utara": 4002630,
+				"Provinsi Sulawesi Utara/Kota Bitung": 4002630,
+				"Provinsi Sulawesi Utara/Kota Kotamobagu": 4002630,
+				"Provinsi Sulawesi Utara/Kota Manado": 4022017,
+				"Provinsi Sulawesi Utara/Kota Tomohon": 4002630,
+				"Provinsi Sumatera Barat/Kabupaten Agam": 3182955,
+				"Provinsi Sumatera Barat/Kabupaten Dharmasraya": 3182955,
+				"Provinsi Sumatera Barat/Kabupaten Kepulauan Mentawai": 3182955,
+				"Provinsi Sumatera Barat/Kabupaten Lima Puluh Kota": 3182955,
+				"Provinsi Sumatera Barat/Kabupaten Padang Pariaman": 3182955,
+				"Provinsi Sumatera Barat/Kabupaten Pasaman": 3182955,
+				"Provinsi Sumatera Barat/Kabupaten Pasaman Barat": 3182955,
+				"Provinsi Sumatera Barat/Kabupaten Pesisir Selatan": 3182955,
+				"Provinsi Sumatera Barat/Kabupaten Sijunjung": 3182955,
+				"Provinsi Sumatera Barat/Kabupaten Solok": 3182955,
+				"Provinsi Sumatera Barat/Kabupaten Solok Selatan": 3182955,
+				"Provinsi Sumatera Barat/Kabupaten Tanah Datar": 3182955,
+				"Provinsi Sumatera Barat/Kota Bukittinggi": 3182955,
+				"Provinsi Sumatera Barat/Kota Padang": 3182955,
+				"Provinsi Sumatera Barat/Kota Padang Panjang": 3182955,
+				"Provinsi Sumatera Barat/Kota Pariaman": 3182955,
+				"Provinsi Sumatera Barat/Kota Payakumbuh": 3182955,
+				"Provinsi Sumatera Barat/Kota Sawahlunto": 3182955,
+				"Provinsi Sumatera Barat/Kota Solok": 3182955,
+				"Provinsi Sumatera Selatan/Kabupaten Banyuasin": 3976492,
+				"Provinsi Sumatera Selatan/Kabupaten Empat Lawang": 3942963,
+				"Provinsi Sumatera Selatan/Kabupaten Lahat": 4041420,
+				"Provinsi Sumatera Selatan/Kabupaten Muara Enim": 4178363,
+				"Provinsi Sumatera Selatan/Kabupaten Musi Banyuasin": 4039054,
+				"Provinsi Sumatera Selatan/Kabupaten Musi Rawas": 4058812,
+				"Provinsi Sumatera Selatan/Kabupaten Musi Rawas Utara": 4047385,
+				"Provinsi Sumatera Selatan/Kabupaten Ogan Ilir": 3942963,
+				"Provinsi Sumatera Selatan/Kabupaten Ogan Komering Ilir": 3942963,
+				"Provinsi Sumatera Selatan/Kabupaten Ogan Komering Ulu": 3942963,
+				"Provinsi Sumatera Selatan/Kabupaten Ogan Komering Ulu Selatan": 3942963,
+				"Provinsi Sumatera Selatan/Kabupaten Ogan Komering Ulu Timur": 3993676,
+				"Provinsi Sumatera Selatan/Kabupaten Penukal Abab Lematang Ilir": 3942963,
+				"Provinsi Sumatera Selatan/Kota Lubuklinggau": 3942963,
+				"Provinsi Sumatera Selatan/Kota Pagar Alam": 3942963,
+				"Provinsi Sumatera Selatan/Kota Palembang": 4192837,
+				"Provinsi Sumatera Selatan/Kota Prabumulih": 3942963,
+				"Provinsi Sumatera Utara/Kabupaten Asahan": 3531361,
+				"Provinsi Sumatera Utara/Kabupaten Batu Bara": 3970000,
+				"Provinsi Sumatera Utara/Kabupaten Dairi": 3228971,
+				"Provinsi Sumatera Utara/Kabupaten Deli Serdang": 4041543,
+				"Provinsi Sumatera Utara/Kabupaten Humbang Hasundutan": 3228971,
+				"Provinsi Sumatera Utara/Kabupaten Karo": 3843153,
+				"Provinsi Sumatera Utara/Kabupaten Labuhanbatu": 3748181,
+				"Provinsi Sumatera Utara/Kabupaten Labuhanbatu Selatan": 3690000,
+				"Provinsi Sumatera Utara/Kabupaten Labuhanbatu Utara": 3603415,
+				"Provinsi Sumatera Utara/Kabupaten Langkat": 3402892,
+				"Provinsi Sumatera Utara/Kabupaten Mandailing Natal": 3355900,
+				"Provinsi Sumatera Utara/Kabupaten Nias": 3228971,
+				"Provinsi Sumatera Utara/Kabupaten Nias Barat": 3228971,
+				"Provinsi Sumatera Utara/Kabupaten Nias Selatan": 3228971,
+				"Provinsi Sumatera Utara/Kabupaten Nias Utara": 3228971,
+				"Provinsi Sumatera Utara/Kabupaten Padang Lawas": 3478237.41,
+				"Provinsi Sumatera Utara/Kabupaten Padang Lawas Utara": 3228971,
+				"Provinsi Sumatera Utara/Kabupaten Pakpak Bharat": 3228971,
+				"Provinsi Sumatera Utara/Kabupaten Samosir": 3228971,
+				"Provinsi Sumatera Utara/Kabupaten Serdang Bedagai": 3605983,
+				"Provinsi Sumatera Utara/Kabupaten Simalungun": 3351403,
+				"Provinsi Sumatera Utara/Kabupaten Tapanuli Selatan": 3567941,
+				"Provinsi Sumatera Utara/Kabupaten Tapanuli Tengah": 3509004,
+				"Provinsi Sumatera Utara/Kabupaten Tapanuli Utara": 3307618,
+				"Provinsi Sumatera Utara/Kabupaten Toba": 3404422.49,
+				"Provinsi Sumatera Utara/Kota Binjai": 3367913.55,
+				"Provinsi Sumatera Utara/Kota Gunungsitoli": 3228971,
+				"Provinsi Sumatera Utara/Kota Medan": 4335198,
+				"Provinsi Sumatera Utara/Kota Padangsidimpuan": 3416803,
+				"Provinsi Sumatera Utara/Kota Pematangsiantar": 3228971,
+				"Provinsi Sumatera Utara/Kota Sibolga": 3668667.5,
+				"Provinsi Sumatera Utara/Kota Tanjungbalai": 3496856.58,
+				"Provinsi Sumatera Utara/Kota Tebing Tinggi": 3229957.7
+			}
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst facts = get(employment, 'employee_extension_data', {});\nconst nationality = get(facts, 'nationality', 'ID');\nconst planned = get(facts, 'indonesia_work_months_planned', null);\nconst foreign = nationality !== '' && nationality !== 'ID';\nconst short = foreign && planned != null && Number(planned) < Number(ctx.lookup.foreign_employee_minimum_months);\nreturn employment.engagement !== 'PAYEE' && !short && ctx.subtotals.ORDINARY_WAGES > 0;",
+		"employee_amount": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst facts = get(employment, 'employee_extension_data', {});\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst fixed = sum(\n\tObject.values(get(terms, 'allowances', {}))\n\t\t.filter((allowance) => get(allowance, 'variability', '') === 'FIXED')\n\t\t.map((allowance) => Number(get(allowance, 'amount', 0)))\n);\nconst ordinary = Math.max(0, Number(get(ctx.subtotals, 'BASIC', 0)) + fixed);\nconst region = get(facts, 'work_region', '') || get(entity, 'region', '');\nconst small = get(entity, 'enterprise_size_class', '') === 'MICRO_OR_SMALL';\nconst floor = get(ctx.lookup.region_minimum_wages, region, null);\nconst capped = Math.min(ordinary, Number(ctx.lookup.monthly_salary_ceiling));\nconst base = !small && floor != null ? Math.min(ctx.lookup.monthly_salary_ceiling, Math.max(capped, Number(floor))) : capped;\nconst extra = Number(get(facts, 'kesehatan_extra_members', 0));\nreturn round(base * Number(ctx.lookup.employee_rate), Number(ctx.lookup.whole_unit), 'HALF_UP') * (1 + extra);",
+		"employer_amount": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst facts = get(employment, 'employee_extension_data', {});\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst fixed = sum(\n\tObject.values(get(terms, 'allowances', {}))\n\t\t.filter((allowance) => get(allowance, 'variability', '') === 'FIXED')\n\t\t.map((allowance) => Number(get(allowance, 'amount', 0)))\n);\nconst ordinary = Math.max(0, Number(get(ctx.subtotals, 'BASIC', 0)) + fixed);\nconst region = get(facts, 'work_region', '') || get(entity, 'region', '');\nconst small = get(entity, 'enterprise_size_class', '') === 'MICRO_OR_SMALL';\nconst floor = get(ctx.lookup.region_minimum_wages, region, null);\nconst capped = Math.min(ordinary, Number(ctx.lookup.monthly_salary_ceiling));\nconst base = !small && floor != null ? Math.min(ctx.lookup.monthly_salary_ceiling, Math.max(capped, Number(floor))) : capped;\nreturn round(base * Number(ctx.lookup.employer_rate), Number(ctx.lookup.whole_unit), 'HALF_UP');",
+		"references": [
+			{
+				"title": "Perpres 82/2018",
+				"locator": "art.30 as amended, art.1 angka 2, art.2, art.5(3)–(4), art.13(1), art.13(5), art.14(1), art.32, art.36",
+				"quote": "Kesehatan is 5% of the monthly wage, 1% from the employee and 4% from the employer, charged on wage between a floor and a ceiling (art.30; art.31 was deleted by Perpres 64/2020 and art.30(2) is the direct-payment rule). Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not. A further family member (a fourth child, a parent, a parent-in-law) is enrolled at the worker's election and costs 1% of the (capped) wage each, paid by the worker (art.5(3)–(4), art.30(1)(b), art.36); the regulation states no ceiling on their number. A participant is every person, a foreigner included, who works at least six months in Indonesia (art.1 angka 2; the same six-month reading JHT, JKK and JKM apply, PP 44/2015 art.1 angka 4); a foreigner on a contract shorter than six months is outside Kesehatan (art.2). Art.13(1) obliges the employer to register itself and its workers \"dengan membayar Iuran\", art.13(5) leaves the health benefit on an employer that has not registered and paid, and art.14(1) requires each spouse's employer to register and pay. Owner rule 2026-09-30 (arts.30(1), 32(1)–(2) price \"Gaji atau Upah per bulan\" with the UMK/UMP as its lowest bound and are silent on a part month): the base is the wage paid for the month — basic plus fixed allowances less unpaid days, the same month's-wage reading as JP (PP 45/2015 art.29(1)) — and a month's wage paid below the floor is lifted to the whole floor, not a prorated one; e.g. a joiner on 16 February 2026 at 12,000,000, paid 5,571,428.57 under the DKI UMP 5,729,876: 57,299 / 229,195. Contributions are monthly (art.30, art.32(1) \"per bulan\"), so a deferred earlier month paid as back pay is floored and capped at 12,000,000 on its own beside this month's wage. A THR (Permenaker 6/2016 art.2–3) and a bonus are outside the base: the row reads the ordinary pay the run actually pays, and the gaji pokok plus tunjangan tetap composition it applies is the one art.33 states for state officials, read for a private-sector worker. Perpres 82/2018 itself fixes the rate and, in art.32, the floor and ceiling; a THR is a separate annual payment, not a monthly component, so it stays outside."
+			},
+			{
+				"title": "Perpres 59/2024",
+				"locator": "art.32(1)–(5)",
+				"effective_from": "2024-05-08",
+				"quote": "Third amendment of Perpres 82/2018, in force 8 May 2024, restating the ceiling (12,000,000) and floor: for PPU outside micro/small enterprises the floor is the workplace UMK, with the UMP as fallback (art.32(2)–(3)); art.32(4) excludes micro/small enterprises from that floor; art.32(5) requires a separately determined actuarial floor. The floor is read at the worker's worksite, else the company region."
+			},
+			{
+				"title": "Kepgub Jabar 2026",
+				"quote": "Kabupaten Bekasi UMK, carried beside the UMP."
+			},
+			{
+				"title": "PP 44/2015",
+				"locator": "art.19(2), art.5(2)–(3), art.11(1)",
+				"quote": "Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not. A recipient paid outside an employment relationship (PMK 168/2023 bukan pegawai: NON_EMPLOYEE, IRREGULAR_COMMISSIONER, ACTIVITY_PARTICIPANT; a former employee; a pension withdrawal) is a non-wage-earning participant who registers and pays for himself (art.5(2)–(3), art.11(1)), so charged nothing as a worker of this employer."
+			},
+			{
+				"title": "PP 45/2015",
+				"locator": "art.29(1)",
+				"quote": "Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not."
+			},
+			{
+				"title": "PP 46/2015",
+				"locator": "art.17(1), art.4(2)–(3)",
+				"quote": "Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not."
+			},
+			{
+				"title": "UU 24/2011 (BPJS)",
+				"locator": "art.14, art.15(1), art.19(1)–(2)",
+				"quote": "The employer must register its workers and collect and pay the contribution (art.15(1), art.19(1)–(2)); a missing registration does not waive the charge. A foreign worker planned for less than 6 months in Indonesia is outside JKN (art.14)."
+			}
+		],
+		"id": "1cdac873-6dda-5493-b397-c88ffcc811ae",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "JKP",
+		"name": "BPJS Ketenagakerjaan — Jaminan Kehilangan Pekerjaan (job loss)",
+		"kind": "CONTRIBUTION",
+		"depends_on": ["JKK"],
+		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"employer_cost_subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"off_cycle_eligible": false,
+		"lookup": {},
+		"eligibility": "// JKP's 0.36% is funded by 0.22% government and 0.14% recomposed from JKK; no payroll line.\nreturn false;",
+		"employee_amount": "return 0;",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "PP 37/2021 as amended by PP 6/2025",
+				"locator": "art.11(7)–(8), art.43, art.4, art.I(1)–(2)",
+				"effective_from": "2025-02-07",
+				"quote": "The JKP contribution is 0.36% of the wage capped at Rp5,000,000 (art.11(7)–(8)), of which 0.22% is borne by the Central Government and 0.14% is recomposed out of the JKK contribution the employer already pays (PP 49/2023 art.16A); in force 7 February 2025. Only that recomposed 0.14% is an employer charge: JKK class III 0.75 + JKM 0.30 + JKP 0.14 = 1.19% of wage. JKP has no incremental employer payslip charge; JKK is separately assessed at its full rate. JKP covers an Indonesian worker under 54 at first registration (art.4) who has an employment relationship and the prescribed JKK/JHT/JKM/JKN (and, at medium/large employers, JP) coverage (art.I(1)); a foreign national or a worker already 54 at first registration remains outside JKP. Contribution arrears affect benefit claims but do not establish an exemption from employer registration."
+			},
+			{
+				"title": "PP 49/2023",
+				"locator": "art.16A",
+				"quote": "0.14% of the JKP funding comes from recomposing JKK."
+			},
+			{
+				"title": "PP 44/2015",
+				"locator": "art.19(2)",
+				"quote": "Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not."
+			},
+			{
+				"title": "PP 45/2015",
+				"locator": "art.29(1)",
+				"quote": "Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not."
+			},
+			{
+				"title": "PP 46/2015",
+				"locator": "art.17(1)",
+				"quote": "Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not."
+			},
+			{
+				"title": "Perpres 82/2018",
+				"locator": "art.32",
+				"quote": "Contribution wage is upah pokok plus tunjangan tetap — the standing car, housing and special allowances are in the base; a reimbursement is not."
+			}
+		],
+		"id": "8d28d4aa-f03c-532f-ad6c-9dd3a54c0be9",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "PPH21",
+		"name": "Pajak Penghasilan Pasal 21 (income tax withholding)",
+		"kind": "TAX",
+		"depends_on": ["JHT", "JP", "JKK", "JKM", "KESEHATAN"],
+		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"employer_cost_subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"missing_tax_id_multiplier": 1.2,
+			"maximum_dependants": 3,
+			"employment_expense_share": 0.05,
+			"monthly_employment_expense_limit": 500000,
+			"thousand_units": 1000,
+			"whole_unit": 1,
+			"ptkp_amount": {
+				"TK/0": 54000000,
+				"TK/1": 58500000,
+				"TK/2": 63000000,
+				"TK/3": 67500000,
+				"K/0": 58500000,
+				"K/1": 63000000,
+				"K/2": 67500000,
+				"K/3": 72000000
+			},
+			"ptkp_ter_table": {
+				"TK/0": "1",
+				"TK/1": "1",
+				"TK/2": "2",
+				"TK/3": "2",
+				"K/0": "1",
+				"K/1": "2",
+				"K/2": "2",
+				"K/3": "3"
+			},
+			"ter_1": [
+				{
+					"up_to": 5400000,
+					"rate": 0
+				},
+				{
+					"up_to": 5650000,
+					"rate": 0.0025
+				},
+				{
+					"up_to": 5950000,
+					"rate": 0.005
+				},
+				{
+					"up_to": 6300000,
+					"rate": 0.0075
+				},
+				{
+					"up_to": 6750000,
+					"rate": 0.01
+				},
+				{
+					"up_to": 7500000,
+					"rate": 0.0125
+				},
+				{
+					"up_to": 8550000,
+					"rate": 0.015
+				},
+				{
+					"up_to": 9650000,
+					"rate": 0.0175
+				},
+				{
+					"up_to": 10050000,
+					"rate": 0.02
+				},
+				{
+					"up_to": 10350000,
+					"rate": 0.0225
+				},
+				{
+					"up_to": 10700000,
+					"rate": 0.025
+				},
+				{
+					"up_to": 11050000,
+					"rate": 0.03
+				},
+				{
+					"up_to": 11600000,
+					"rate": 0.035
+				},
+				{
+					"up_to": 12500000,
+					"rate": 0.04
+				},
+				{
+					"up_to": 13750000,
+					"rate": 0.05
+				},
+				{
+					"up_to": 15100000,
+					"rate": 0.06
+				},
+				{
+					"up_to": 16950000,
+					"rate": 0.07
+				},
+				{
+					"up_to": 19750000,
+					"rate": 0.08
+				},
+				{
+					"up_to": 24150000,
+					"rate": 0.09
+				},
+				{
+					"up_to": 26450000,
+					"rate": 0.1
+				},
+				{
+					"up_to": 28000000,
+					"rate": 0.11
+				},
+				{
+					"up_to": 30050000,
+					"rate": 0.12
+				},
+				{
+					"up_to": 32400000,
+					"rate": 0.13
+				},
+				{
+					"up_to": 35400000,
+					"rate": 0.14
+				},
+				{
+					"up_to": 39100000,
+					"rate": 0.15
+				},
+				{
+					"up_to": 43850000,
+					"rate": 0.16
+				},
+				{
+					"up_to": 47800000,
+					"rate": 0.17
+				},
+				{
+					"up_to": 51400000,
+					"rate": 0.18
+				},
+				{
+					"up_to": 56300000,
+					"rate": 0.19
+				},
+				{
+					"up_to": 62200000,
+					"rate": 0.2
+				},
+				{
+					"up_to": 68600000,
+					"rate": 0.21
+				},
+				{
+					"up_to": 77500000,
+					"rate": 0.22
+				},
+				{
+					"up_to": 89000000,
+					"rate": 0.23
+				},
+				{
+					"up_to": 103000000,
+					"rate": 0.24
+				},
+				{
+					"up_to": 125000000,
+					"rate": 0.25
+				},
+				{
+					"up_to": 157000000,
+					"rate": 0.26
+				},
+				{
+					"up_to": 206000000,
+					"rate": 0.27
+				},
+				{
+					"up_to": 337000000,
+					"rate": 0.28
+				},
+				{
+					"up_to": 454000000,
+					"rate": 0.29
+				},
+				{
+					"up_to": 550000000,
+					"rate": 0.3
+				},
+				{
+					"up_to": 695000000,
+					"rate": 0.31
+				},
+				{
+					"up_to": 910000000,
+					"rate": 0.32
+				},
+				{
+					"up_to": 1400000000,
+					"rate": 0.33
+				},
+				{
+					"up_to": null,
+					"rate": 0.34
+				}
+			],
+			"ter_2": [
+				{
+					"up_to": 6200000,
+					"rate": 0
+				},
+				{
+					"up_to": 6500000,
+					"rate": 0.0025
+				},
+				{
+					"up_to": 6850000,
+					"rate": 0.005
+				},
+				{
+					"up_to": 7300000,
+					"rate": 0.0075
+				},
+				{
+					"up_to": 9200000,
+					"rate": 0.01
+				},
+				{
+					"up_to": 10750000,
+					"rate": 0.015
+				},
+				{
+					"up_to": 11250000,
+					"rate": 0.02
+				},
+				{
+					"up_to": 11600000,
+					"rate": 0.025
+				},
+				{
+					"up_to": 12600000,
+					"rate": 0.03
+				},
+				{
+					"up_to": 13600000,
+					"rate": 0.04
+				},
+				{
+					"up_to": 14950000,
+					"rate": 0.05
+				},
+				{
+					"up_to": 16400000,
+					"rate": 0.06
+				},
+				{
+					"up_to": 18450000,
+					"rate": 0.07
+				},
+				{
+					"up_to": 21850000,
+					"rate": 0.08
+				},
+				{
+					"up_to": 26000000,
+					"rate": 0.09
+				},
+				{
+					"up_to": 27700000,
+					"rate": 0.1
+				},
+				{
+					"up_to": 29350000,
+					"rate": 0.11
+				},
+				{
+					"up_to": 31450000,
+					"rate": 0.12
+				},
+				{
+					"up_to": 33950000,
+					"rate": 0.13
+				},
+				{
+					"up_to": 37100000,
+					"rate": 0.14
+				},
+				{
+					"up_to": 41100000,
+					"rate": 0.15
+				},
+				{
+					"up_to": 45800000,
+					"rate": 0.16
+				},
+				{
+					"up_to": 49500000,
+					"rate": 0.17
+				},
+				{
+					"up_to": 53800000,
+					"rate": 0.18
+				},
+				{
+					"up_to": 58500000,
+					"rate": 0.19
+				},
+				{
+					"up_to": 64000000,
+					"rate": 0.2
+				},
+				{
+					"up_to": 71000000,
+					"rate": 0.21
+				},
+				{
+					"up_to": 80000000,
+					"rate": 0.22
+				},
+				{
+					"up_to": 93000000,
+					"rate": 0.23
+				},
+				{
+					"up_to": 109000000,
+					"rate": 0.24
+				},
+				{
+					"up_to": 129000000,
+					"rate": 0.25
+				},
+				{
+					"up_to": 163000000,
+					"rate": 0.26
+				},
+				{
+					"up_to": 211000000,
+					"rate": 0.27
+				},
+				{
+					"up_to": 374000000,
+					"rate": 0.28
+				},
+				{
+					"up_to": 459000000,
+					"rate": 0.29
+				},
+				{
+					"up_to": 555000000,
+					"rate": 0.3
+				},
+				{
+					"up_to": 704000000,
+					"rate": 0.31
+				},
+				{
+					"up_to": 957000000,
+					"rate": 0.32
+				},
+				{
+					"up_to": 1405000000,
+					"rate": 0.33
+				},
+				{
+					"up_to": null,
+					"rate": 0.34
+				}
+			],
+			"ter_3": [
+				{
+					"up_to": 6600000,
+					"rate": 0
+				},
+				{
+					"up_to": 6950000,
+					"rate": 0.0025
+				},
+				{
+					"up_to": 7350000,
+					"rate": 0.005
+				},
+				{
+					"up_to": 7800000,
+					"rate": 0.0075
+				},
+				{
+					"up_to": 8850000,
+					"rate": 0.01
+				},
+				{
+					"up_to": 9800000,
+					"rate": 0.0125
+				},
+				{
+					"up_to": 10950000,
+					"rate": 0.015
+				},
+				{
+					"up_to": 11200000,
+					"rate": 0.0175
+				},
+				{
+					"up_to": 12050000,
+					"rate": 0.02
+				},
+				{
+					"up_to": 12950000,
+					"rate": 0.03
+				},
+				{
+					"up_to": 14150000,
+					"rate": 0.04
+				},
+				{
+					"up_to": 15550000,
+					"rate": 0.05
+				},
+				{
+					"up_to": 17050000,
+					"rate": 0.06
+				},
+				{
+					"up_to": 19500000,
+					"rate": 0.07
+				},
+				{
+					"up_to": 22700000,
+					"rate": 0.08
+				},
+				{
+					"up_to": 26600000,
+					"rate": 0.09
+				},
+				{
+					"up_to": 28100000,
+					"rate": 0.1
+				},
+				{
+					"up_to": 30100000,
+					"rate": 0.11
+				},
+				{
+					"up_to": 32600000,
+					"rate": 0.12
+				},
+				{
+					"up_to": 35400000,
+					"rate": 0.13
+				},
+				{
+					"up_to": 38900000,
+					"rate": 0.14
+				},
+				{
+					"up_to": 43000000,
+					"rate": 0.15
+				},
+				{
+					"up_to": 47400000,
+					"rate": 0.16
+				},
+				{
+					"up_to": 51200000,
+					"rate": 0.17
+				},
+				{
+					"up_to": 55800000,
+					"rate": 0.18
+				},
+				{
+					"up_to": 60400000,
+					"rate": 0.19
+				},
+				{
+					"up_to": 66700000,
+					"rate": 0.2
+				},
+				{
+					"up_to": 74500000,
+					"rate": 0.21
+				},
+				{
+					"up_to": 83200000,
+					"rate": 0.22
+				},
+				{
+					"up_to": 95600000,
+					"rate": 0.23
+				},
+				{
+					"up_to": 110000000,
+					"rate": 0.24
+				},
+				{
+					"up_to": 134000000,
+					"rate": 0.25
+				},
+				{
+					"up_to": 169000000,
+					"rate": 0.26
+				},
+				{
+					"up_to": 221000000,
+					"rate": 0.27
+				},
+				{
+					"up_to": 390000000,
+					"rate": 0.28
+				},
+				{
+					"up_to": 463000000,
+					"rate": 0.29
+				},
+				{
+					"up_to": 561000000,
+					"rate": 0.3
+				},
+				{
+					"up_to": 709000000,
+					"rate": 0.31
+				},
+				{
+					"up_to": 965000000,
+					"rate": 0.32
+				},
+				{
+					"up_to": 1419000000,
+					"rate": 0.33
+				},
+				{
+					"up_to": null,
+					"rate": 0.34
+				}
+			],
+			"annual_ladder": [
+				{
+					"up_to": 60000000,
+					"rate": 0.05
+				},
+				{
+					"up_to": 250000000,
+					"rate": 0.15
+				},
+				{
+					"up_to": 500000000,
+					"rate": 0.25
+				},
+				{
+					"up_to": 5000000000,
+					"rate": 0.3
+				},
+				{
+					"up_to": null,
+					"rate": 0.35
+				}
+			]
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nreturn employment.engagement !== 'PAYEE' &&\n\t['CITIZEN', 'RESIDENT_FOREIGNER'].includes(get(terms, 'residency_status', '')) &&\n\tctx.subtotals.ADDITIONAL_WAGES > 0;",
+		"employee_amount": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst facts = get(employment, 'employee_extension_data', {});\nconst premiums =\n\tNumber(get(ctx.statutory, 'JKK.employer', 0)) +\n\tNumber(get(ctx.statutory, 'JKM.employer', 0)) +\n\tNumber(get(ctx.statutory, 'KESEHATAN.employer', 0));\nconst current = Math.max(0, Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0)) + premiums);\nconst surcharge = get(facts, 'tax_id_validated', true) === false ? Number(ctx.lookup.missing_tax_id_multiplier) : 1;\nconst marital = get(employment, 'payroll.marital_status', 'SINGLE');\nconst gender = get(employment, 'payroll.gender', '');\nconst husband = get(facts, 'husband_no_income_certified', false) === true;\nconst marriedFemale = marital === 'MARRIED' && gender === 'FEMALE' && !husband;\nconst dependents = Math.min(\n\tMath.max(0, Math.trunc(Number(get(facts, 'ptkp_dependents_count', 0)))),\n\tNumber(ctx.lookup.maximum_dependants)\n);\nconst status = (marital === 'MARRIED' && !marriedFemale ? 'K/' : 'TK/') + String(dependents);\nconst ptkp = Number(get(ctx.lookup.ptkp_amount, status, 54000000));\nconst coverage = get(ctx.run, 'salary_coverage', {});\nconst periodStart = String(get(coverage, 'from', ctx.as_of));\nconst periodEnd = String(get(coverage, 'to', ctx.as_of));\nconst taxYear = periodStart.slice(0, 4);\nconst employerId = String(get(ctx.subject.employer, 'entity_id', ''));\nconst year = (get(ctx.history, 'payslips', []) || []).filter((slip) => {\n\tif (String(get(slip, 'period', '')).slice(0, 4) !== taxYear) return false;\n\tconst entity = get(slip, 'entity_id', null);\n\treturn entity == null || String(entity) === employerId;\n});\nconst paid = (key) => year.reduce((total, slip) => total + Number(get(slip, key, 0)), 0);\nconst exit = get(employment, 'effective_range.to', null);\nconst final = periodStart.slice(5, 7) === '12' || (exit != null && exit <= periodEnd);\nif (!final) {\n\tconst table = get(ctx.lookup, 'ter_' + get(ctx.lookup.ptkp_ter_table, status, '1'), []);\n\treturn round(bracket(current, table) * current * surcharge, Number(ctx.lookup.whole_unit), 'HALF_UP');\n}\nconst yearStart = taxYear + '-01-01';\nconst employedFrom = get(employment, 'effective_range.from', yearStart);\nconst taxableFrom = employedFrom > yearStart ? employedFrom : yearStart;\nconst months = Math.min(\n\t12,\n\tMath.max(\n\t\t1,\n\t\t(Number(periodEnd.slice(0, 4)) - Number(taxableFrom.slice(0, 4))) * 12 +\n\t\t\tNumber(periodEnd.slice(5, 7)) -\n\t\t\tNumber(taxableFrom.slice(5, 7)) +\n\t\t\t1\n\t)\n);\nconst annualGross =\n\tpaid('gross_earnings') +\n\tpaid('employer_statutory_schemes.JKK') +\n\tpaid('employer_statutory_schemes.JKM') +\n\tpaid('employer_statutory_schemes.KESEHATAN') +\n\tcurrent;\nconst expense = Math.min(\n\tannualGross * Number(ctx.lookup.employment_expense_share),\n\tNumber(ctx.lookup.monthly_employment_expense_limit) * months\n);\nconst contributions =\n\tpaid('employee_statutory_schemes.JHT') +\n\tpaid('employee_statutory_schemes.JP') +\n\tNumber(get(ctx.statutory, 'JHT.employee', 0)) +\n\tNumber(get(ctx.statutory, 'JP.employee', 0));\nconst taxable = Math.max(0, annualGross - expense - contributions - ptkp);\nconst annual = round(\n\tladder(round(taxable, Number(ctx.lookup.thousand_units), 'DOWN'), ctx.lookup.annual_ladder) * surcharge,\n\tNumber(ctx.lookup.whole_unit),\n\t'HALF_UP'\n);\nreturn Math.max(0, annual - paid('tax_withheld'));",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "PP 58/2023",
+				"locator": "art.2–3, art.3(4)–(6)",
+				"quote": "Monthly TER withholding for permanent employees: category A = PTKP TK/0, TK/1, K/0; B = TK/2, TK/3, K/1, K/2; C = K/3."
+			},
+			{
+				"title": "PMK 168/2023",
+				"locator": "arts.12–13, Lampiran A (tarif efektif rata-rata bulanan)",
+				"url": "https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf",
+				"quote": "For each tax period other than the last, PPh 21 of a permanent employee is the month's gross income (penghasilan bruto: all regular and irregular pay of the month, art.5(1), including the employer-paid JKK, JKM and BPJS Kesehatan premiums; the employer's JHT and JP shares are not income) times the TER rate of the employee's category. Tables as reproduced in the PMK annex, upper bounds inclusive (\"s.d.\"): A (44 brackets, 0% to Rp5,400,000 up to 34% above Rp1,400,000,000), B (40, 0% to Rp6,200,000 up to 34% above Rp1,405,000,000), C (41, 0% to Rp6,600,000 up to 34% above Rp1,419,000,000). The last tax period — December, or the month a permanent employee stops working (art.13) — takes the year's tax at the UU PPh art.17(1)(a) rates on penghasilan kena pajak rounded down to the full thousand: the year's gross less biaya jabatan (5%, at most Rp6,000,000 a year, art.10), less the employee's own JHT and JP contributions, less PTKP; the tax withheld is that tax less the TER already withheld in the year; an excess is returned to the employee in that period (a negative charge). Residents only: CITIZEN and RESIDENT_FOREIGNER; a NON_RESIDENT is taxed under PPh 26."
+			},
+			{
+				"title": "PMK 168/2023",
+				"locator": "arts.1, 5(1), 10(1)(b)–(c), 10(2), 12(2), 15(3), 16(2)(b), Lampiran III.1.5(b)",
+				"quote": "Art.10(2) and the Lampiran worked examples cap biaya jabatan at Rp500,000 for each month worked in the tax year (\"maksimal 4 X Rp500.000,00\" for a September joiner). Art.10(1)(b): the employee's own contribution to an OJK-approved pension fund reduces the year's gross like JHT and JP. Art.10(1)(c): zakat or a compulsory religious contribution paid through the employer is deducted. Art.15(3): where the subjective tax obligation starts after January or ends before December (e.g. a foreigner arriving or leaving Indonesia), the net income is annualised (× 12 / months) and the tax prorated (× months / 12); the month the subject status ends is the last tax period. Art.12(2)(b), 16(2)(b) and Lampiran III.1.5(b): a daily worker above Rp2,500,000 a day is taxed at the art.17(1)(a) rates on 50% of each day's gross. Art.1: a pegawai tetap includes one on a fixed-term contract (PKWT) receiving regular income, who has the December/exit reckoning; a monthly-paid PART_TIME or DAILY worker uses monthly TER without a December reckoning. A DAILY worker records pph21_payment_cadence. MONTHLY uses monthly TER. NON_MONTHLY is allowed only for a native one-day DAILY salary run paid that day, with complete ordinary-day attendance, BASIC equal to agreed daily_wage, only BASIC/OVERTIME cash lines, and no unallocated taxable employer premiums. Its actual wage gross, including overtime, determines 0% through Rp450,000, 0.5% through Rp2,500,000, or art.17 on 50% above. Weekly, unit/task, delayed, off-cycle and mixed-payment allocations remain refused. A married female employee takes TK/0 unless she holds a written local-government statement at least at kecamatan level that her husband has no income. Annual PTKP facts come from a real sealed contract covering 1 January, or arrival-month start for a new resident. Without such contract history, exactly one reviewed historical facts.ptkp_standings declaration must cover that exact legal date; source reference, actual review date and complete historical personal/dependency facts are required. A married female employee explicitly declares the husband-income position; a certified no-income declaration requires the written local-government statement reference. No prehire contract, current-value fallback or derived PTKP opening is invented. Owner rule 2026-10-22: PPh 21 is owed on the month's gross, so a payment made before the month's salary run is withheld at what it adds to the month; the TER rate is a flat rate on the month's whole gross and the December/exit reckoning is progressive, so an off-cycle THR or bonus paid first is withheld at the month's bracket, not at the bracket of the bonus alone."
+			},
+			{
+				"title": "UU 7/2021 (amending UU PPh)",
+				"locator": "art.17(1)(a), art.7(1)",
+				"quote": "Rates: 5% to Rp60,000,000; 15% to Rp250,000,000; 25% to Rp500,000,000; 30% to Rp5,000,000,000; 35% above. PTKP: Rp54,000,000; +Rp4,500,000 married; +Rp4,500,000 per dependant, at most three."
+			},
+			{
+				"title": "PMK 101/2016",
+				"quote": "PTKP amounts (see UU PPh art.7(1) as amended by UU 7/2021)."
+			},
+			{
+				"title": "PMK 250/2008",
+				"quote": "Biaya jabatan 5%, at most Rp6,000,000 a year, as carried into PMK 168/2023."
+			},
+			{
+				"title": "UU 36/2008 (PPh)",
+				"locator": "art.21(5a)",
+				"quote": "A recipient with neither an NPWP nor a NIK validated by DJP is withheld 20% more."
+			},
+			{
+				"title": "PMK 136/2023",
+				"effective_from": "2024-07-01",
+				"quote": "Since 1 July 2024 the validated NIK is the NPWP."
+			},
+			{
+				"title": "PMK 10/2025 and PMK 105/2025",
+				"quote": "PPh 21 DTP (borne by the government) is not part of this scheme; see the PPh 21 DTP scheme."
+			},
+			{
+				"title": "PMK 168/2023 art.9(4)–(5): PTKP is the declared status at calendar-year start, or arrival part-year start for a new resident. Current marital or dependant changes do not alter that year.",
+				"url": "https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf"
+			},
+			{
+				"title": "PMK168/2023 art19(1),(3)",
+				"url": "https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf"
+			},
+			{
+				"title": "PMK 168/2023",
+				"locator": "art.13(1)–(2), art.5(1), art.10(1)(b)",
+				"quote": "The last tax period — December, or the month a permanent employee stops working (art.13) — reckons the year: the year's actual gross less biaya jabatan, the employee's own JHT and JP contributions and PTKP, less the tax already withheld in the tax year. This row reads that year from the payslip history for the tax year — gross_earnings and tax_withheld, the employer's JKK, JKM and BPJS Kesehatan premiums and the employee's JHT and JP, each by scheme — plus this month's ordinary and bonus pay once, so a one-off THR or bonus is counted once in the year it was paid and is never multiplied by the months worked. Months other than the last keep the monthly TER on the month's whole gross (art.12). Two known limits of the stored history: employee_statutory is the run's whole employee contribution (JHT, JP and Kesehatan), so the deduction is 1% of wage wider than art.10(1)(b)'s JHT-and-JP allowance until the payslip stores a per-scheme split; and gross_earnings is the employee's own earnings, so the employer-paid JKK, JKM and Kesehatan premiums (art.5(1)) enter the current month only. The last period's charge is floored at zero because a stored withholding is nonnegative, so an excess is left in the year's withheld tax rather than returned as art.13 requires."
+			}
+		],
+		"id": "d465482b-92bb-56a4-a910-8b0783a9d5db",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "PPH21_DTP",
+		"name": "PPh 21 borne by the government (DTP)",
+		"kind": "TAX",
+		"depends_on": ["PPH21", "JKK", "JKM", "KESEHATAN"],
+		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"employer_cost_subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"tax_year": 2026,
+			"monthly_regular_income_ceiling": 10000000,
+			"daily_average_income_ceiling": 500000,
+			"eligible_klu": [
+				"13111",
+				"13112",
+				"13113",
+				"13121",
+				"13122",
+				"13123",
+				"13131",
+				"13132",
+				"13133",
+				"13134",
+				"13911",
+				"13912",
+				"13913",
+				"13921",
+				"13922",
+				"13923",
+				"13924",
+				"13925",
+				"13926",
+				"13929",
+				"13930",
+				"13941",
+				"13942",
+				"13991",
+				"13992",
+				"13993",
+				"13994",
+				"13995",
+				"13996",
+				"13999",
+				"14111",
+				"14112",
+				"14120",
+				"14131",
+				"14132",
+				"14200",
+				"14301",
+				"14302",
+				"14303",
+				"15111",
+				"15112",
+				"15113",
+				"15114",
+				"15121",
+				"15122",
+				"15123",
+				"15129",
+				"15201",
+				"15202",
+				"15203",
+				"15209",
+				"31001",
+				"31002",
+				"31003",
+				"31004",
+				"31009",
+				"49425",
+				"50113",
+				"50122",
+				"55110",
+				"55120",
+				"55130",
+				"55191",
+				"55192",
+				"55193",
+				"55194",
+				"55199",
+				"55900",
+				"56101",
+				"56102",
+				"56103",
+				"56104",
+				"56109",
+				"56210",
+				"56290",
+				"56301",
+				"56302",
+				"56303",
+				"56304",
+				"56306",
+				"68112",
+				"68120",
+				"70201",
+				"79111",
+				"79119",
+				"79121",
+				"79129",
+				"79911",
+				"79912",
+				"79921",
+				"79922",
+				"79990",
+				"82301",
+				"82302",
+				"90030",
+				"90040",
+				"91022",
+				"91024",
+				"91029",
+				"93111",
+				"93112",
+				"93113",
+				"93114",
+				"93115",
+				"93116",
+				"93119",
+				"93191",
+				"93193",
+				"93195",
+				"93211",
+				"93219",
+				"93221",
+				"93222",
+				"93223",
+				"93224",
+				"93229",
+				"93231",
+				"93239",
+				"93241",
+				"93242",
+				"93243",
+				"93244",
+				"93245",
+				"93246",
+				"93249",
+				"93291",
+				"93292",
+				"93293",
+				"93294",
+				"93299",
+				"96121",
+				"96122",
+				"96129"
+			]
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst facts = get(employment, 'employee_extension_data', {});\nif (employment.engagement === 'PAYEE') return false;\nif (!['CITIZEN', 'RESIDENT_FOREIGNER'].includes(get(terms, 'residency_status', ''))) return false;\nif (get(facts, 'tax_id_validated', false) !== true) return false;\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nif (!ctx.lookup.eligible_klu.includes(get(entity, 'klu', ''))) return false;\nif (Number(ctx.run.salary_coverage.from.slice(0, 4)) !== Number(ctx.lookup.tax_year)) return false;\nconst reference = get(facts, 'pph21_dtp_reference_gross', null);\nconst referenceYear = get(facts, 'pph21_dtp_reference_year', null);\nif (reference == null || Number(referenceYear) !== Number(ctx.lookup.tax_year)) return false;\nconst daily = get(get(terms, 'rate', {}), 'unit', '') === 'DAILY' &&\n\tget(facts, 'pph21_payment_cadence', '') === 'NON_MONTHLY';\nreturn daily\n\t? ctx.subtotals.ORDINARY_WAGES <= Number(ctx.lookup.daily_average_income_ceiling)\n\t: Number(reference) <= Number(ctx.lookup.monthly_regular_income_ceiling);",
+		"employee_amount": "const pph21 = Number(get(ctx.statutory, 'PPH21.employee', 0));\nreturn pph21 === 0 ? 0 : -pph21;",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "PMK 105/2025",
+				"locator": "arts.2–6, Lampiran A (KLU list) and B (worked examples)",
+				"quote": "Official text: jdih.kemenkeu.go.id. The PPh 21 on the whole gross of 2026 of a certain employee of an employer whose main KLU in the DJP database is in Lampiran A (133 codes: footwear, textile and garment, furniture, leather, tourism) is borne by the government for the tax periods January to December 2026 (arts.2–3). The employee holds an NPWP or a DJP-integrated NIK and, if permanent, received fixed and regular gross of at most Rp10,000,000 in January 2026 or in the first month worked in 2026 (art.4(2)); a non-permanent one at most Rp500,000 a day on average or Rp10,000,000 a month when paid monthly (art.4(3) / 4(5)). The tax is still computed and reported on the bukti potong (art.5(3)) and paid to the employee in cash with the wage (art.5(1), \"pada saat pembayaran penghasilan\"); a December excess is not refunded (art.5(5), Lampiran B example 3); the cash is not taxable income (art.5(2)). Final-taxed income is excluded (severance, art.4(6)).",
+				"effective_from": "2026-01-01"
+			}
+		],
+		"id": "ae1356f5-baab-5ae6-81fc-cd31cc78350c",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "PPH21_FINAL_SEVERANCE",
+		"name": "PPh 21 final atas uang pesangon",
+		"kind": "TAX",
+		"depends_on": [],
+		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"employer_cost_subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"missing_tax_id_multiplier": 1.2,
+			"whole_unit": 1,
+			"ladder": [
+				{
+					"up_to": 50000000,
+					"rate": 0
+				},
+				{
+					"up_to": 100000000,
+					"rate": 0.05
+				},
+				{
+					"up_to": 500000000,
+					"rate": 0.15
+				},
+				{
+					"up_to": null,
+					"rate": 0.25
+				}
+			]
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst facts = get(employment, 'employee_extension_data', {});\nif (employment.engagement === 'PAYEE') return false;\nif (!['CITIZEN', 'RESIDENT_FOREIGNER'].includes(get(terms, 'residency_status', ''))) return false;\nif (!['FINAL', 'CORRECTION'].includes(get(ctx.run, 'kind', ''))) return false;\nconst year = Number(String(get(ctx.run, 'pay_date', ctx.as_of)).slice(0, 4));\nconst first = Number(get(facts, 'severance_tax_history.first_payment_year', 0));\nreturn first >= year - 1 && first <= year && ctx.subtotals.GROSS > ctx.subtotals.ADDITIONAL_WAGES;",
+		"employee_amount": "const base = Math.max(0, ctx.subtotals.GROSS - ctx.subtotals.ADDITIONAL_WAGES);\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst surcharge = get(facts, 'tax_id_validated', true) === false ? Number(ctx.lookup.missing_tax_id_multiplier) : 1;\nreturn round(ladder(base, ctx.lookup.ladder) * surcharge, Number(ctx.lookup.whole_unit), 'HALF_UP');",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "PP 68/2009 arts.2(2),5–7: first two calendar years aggregate; year three onward is non-final. Missing or inconsistent benefit-origin/history inputs refuse rather than assume a new exemption.",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm"
+			}
+		],
+		"id": "c4adf60f-8a44-5024-85be-a5b73dab021c",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "PPH21_FINAL_PENSION",
+		"name": "Final PPh 21 on a lump-sum pension, THT or JHT benefit",
+		"kind": "TAX",
+		"depends_on": [],
+		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"employer_cost_subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"missing_tax_id_multiplier": 1.2,
+			"whole_unit": 1,
+			"ladder": [
+				{
+					"up_to": 50000000,
+					"rate": 0
+				},
+				{
+					"up_to": null,
+					"rate": 0.05
+				}
+			]
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst facts = get(employment, 'employee_extension_data', {});\nif (employment.engagement === 'PAYEE') return false;\nif (!['CITIZEN', 'RESIDENT_FOREIGNER'].includes(get(terms, 'residency_status', ''))) return false;\nif (!['FINAL', 'CORRECTION'].includes(get(ctx.run, 'kind', ''))) return false;\nconst year = Number(String(get(ctx.run, 'pay_date', ctx.as_of)).slice(0, 4));\nconst first = Number(get(facts, 'pension_tax_history.first_payment_year', 0));\nreturn first >= year - 1 && first <= year && ctx.subtotals.GROSS > ctx.subtotals.ADDITIONAL_WAGES;",
+		"employee_amount": "const base = Math.max(0, ctx.subtotals.GROSS - ctx.subtotals.ADDITIONAL_WAGES);\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst surcharge = get(facts, 'tax_id_validated', true) === false ? Number(ctx.lookup.missing_tax_id_multiplier) : 1;\nreturn round(ladder(base, ctx.lookup.ladder) * surcharge, Number(ctx.lookup.whole_unit), 'HALF_UP');",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "PP 68/2009 arts.2(2),5–7: first two calendar years aggregate; year three onward is non-final. Missing or inconsistent benefit-origin/history inputs refuse rather than assume a new exemption.",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm"
+			}
+		],
+		"id": "db7e6080-50f3-595d-96da-8ae3205504b5",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "PPH21_BUKAN_PEGAWAI",
+		"name": "PPh 21 on a non-employee (bukan pegawai)",
+		"kind": "TAX",
+		"depends_on": [],
+		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"employer_cost_subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"missing_tax_id_multiplier": 1.2,
+			"taxable_income_share": 0.5,
+			"whole_unit": 1,
+			"ladder": [
+				{
+					"up_to": 60000000,
+					"rate": 0.05
+				},
+				{
+					"up_to": 250000000,
+					"rate": 0.15
+				},
+				{
+					"up_to": 500000000,
+					"rate": 0.25
+				},
+				{
+					"up_to": 5000000000,
+					"rate": 0.3
+				},
+				{
+					"up_to": null,
+					"rate": 0.35
+				}
+			]
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nreturn employment.engagement === 'PAYEE' &&\n\t['CITIZEN', 'RESIDENT_FOREIGNER'].includes(get(terms, 'residency_status', '')) &&\n\tctx.subtotals.ADDITIONAL_WAGES > 0;",
+		"employee_amount": "const facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst surcharge = get(facts, 'tax_id_validated', true) === false ? Number(ctx.lookup.missing_tax_id_multiplier) : 1;\nconst base = ctx.subtotals.ADDITIONAL_WAGES * Number(ctx.lookup.taxable_income_share);\nreturn round(ladder(base, ctx.lookup.ladder) * surcharge, Number(ctx.lookup.whole_unit), 'HALF_UP');",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "PMK 168/2023",
+				"locator": "arts.12(3)–(4), 13",
+				"url": "https://jdih.kemenkeu.go.id/api/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf",
+				"quote": "The PPh 21 of a Bukan Pegawai — an individual paid for services outside employment (expert, consultant, contractor, a commissioner not on the payroll) — is the art.17(1)(a) rates on 50% of the gross of each payment (art.12(3)); the gross is the whole fee, less materials or third-party costs the payee is reimbursed for (art.12(4)(b)). Each payment is taxed on its own (no cumulation). A non-resident payee is PPh 26 instead."
+			},
+			{
+				"title": "UU 36/2008 (PPh)",
+				"locator": "art.21(5a)",
+				"quote": "20% more without a validated tax number."
+			},
+			{
+				"title": "PMK168/2023 art19(1),(3)",
+				"url": "https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf"
+			}
+		],
+		"id": "37b953e7-94ee-5098-ad07-4ad2a64577a4",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "PPH26",
+		"name": "PPh 26 (non-resident withholding)",
+		"kind": "TAX",
+		"depends_on": [],
+		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"employer_cost_subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"ordinary_rate": 0.2,
+			"whole_unit": 1
+		},
+		"eligibility": "return get(get(ctx.subject.employment, 'terms', {}), 'residency_status', '') === 'NON_RESIDENT' &&\n\tctx.subtotals.GROSS > 0;",
+		"employee_amount": "const facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst rate = Number(get(facts, 'pph26_treaty_rate', ctx.lookup.ordinary_rate));\nreturn round(ctx.subtotals.GROSS * rate, Number(ctx.lookup.whole_unit), 'HALF_UP');",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "UU 36/2008 (PPh)",
+				"locator": "art.26(1)(d), art.2(4), art.21(1), art.21(5a)",
+				"quote": "Remuneration for work paid to a non-resident individual (present under 183 days in twelve months, art.2(4)) is withheld at 20% of the gross amount, final, subject to a tax treaty; PPh 21 does not apply. A missing tax registration does not waive withholding: art.21(1) puts the withholding on the payer, and art.21(5a) answers a recipient without an NPWP with a rate 20% higher, not with no tax."
+			},
+			{
+				"title": "PMK 168/2023",
+				"locator": "art.14(1)–(2)",
+				"quote": "20% final, or the treaty rate where the non-resident gives the certificate of domicile."
+			},
+			{
+				"title": "PMK168/2023 art19(1),(3)",
+				"url": "https://jdih.kemenkeu.go.id/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf"
+			}
+		],
+		"id": "f55ed026-5a05-5995-8903-b67a8ff3625e",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "DKPTKA",
+		"name": "DKPTKA foreign-worker compensation (USD 100 a month)",
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"employer_cost_subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"monthly_usd": 100,
+			"whole_unit": 1
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nconst nationality = get(facts, 'nationality', 'ID');\nreturn employment.engagement !== 'PAYEE' &&\n\tnationality !== '' && nationality !== 'ID' &&\n\tget(facts, 'dkptka_exempt', false) !== true;",
+		"employee_amount": "return 0;",
+		"employer_amount": "const rate = get(ctx.subject.employer, 'entity_extension_data.dkptka_usd_idr_rate', null);\nreturn rate == null ? 0 : Number(ctx.lookup.monthly_usd) * Number(rate);",
+		"references": [
+			{
+				"title": "PP 34/2021",
+				"locator": "arts.1 angka 7, 6–7",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP342021.pdf",
+				"quote": "The DKPTKA is the compensation an employer pays for each foreign worker, non-tax state revenue or regional revenue; USD 100 per position per month, paid in advance for the period worked (Kemnaker tariff; secondary). Employer-only. Exempt positions: government bodies, diplomats, and the others the tariff exempts."
+			}
+		],
+		"id": "e2cca72f-7553-5e2a-af42-aa7955b47be8",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "PPH21_BENEFIT_NONFINAL",
+		"name": "PPh21 non-final — benefit instalments in year three and later",
+		"kind": "TAX",
+		"depends_on": ["PPH21", "PPH21_BUKAN_PEGAWAI", "PPH26"],
+		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"employer_cost_subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"missing_tax_id_multiplier": 1.2,
+			"whole_unit": 1,
+			"ladder": [
+				{
+					"up_to": 60000000,
+					"rate": 0.05
+				},
+				{
+					"up_to": 250000000,
+					"rate": 0.15
+				},
+				{
+					"up_to": 500000000,
+					"rate": 0.25
+				},
+				{
+					"up_to": 5000000000,
+					"rate": 0.3
+				},
+				{
+					"up_to": null,
+					"rate": 0.35
+				}
+			]
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst facts = get(employment, 'employee_extension_data', {});\nif (employment.engagement === 'PAYEE') return false;\nif (!['CITIZEN', 'RESIDENT_FOREIGNER'].includes(get(terms, 'residency_status', ''))) return false;\nif (!['FINAL', 'CORRECTION'].includes(get(ctx.run, 'kind', ''))) return false;\nconst severance = Number(get(facts, 'severance_tax_history.first_payment_year', 0));\nconst pension = Number(get(facts, 'pension_tax_history.first_payment_year', 0));\nconst first = Math.max(severance, pension);\nconst year = Number(String(get(ctx.run, 'pay_date', ctx.as_of)).slice(0, 4));\nconst other = Number(get(ctx.statutory, 'PPH21.employee', 0)) +\n\tNumber(get(ctx.statutory, 'PPH21_BUKAN_PEGAWAI.employee', 0)) +\n\tNumber(get(ctx.statutory, 'PPH26.employee', 0));\nreturn first > 0 && first < year - 1 && other === 0 && ctx.subtotals.GROSS > ctx.subtotals.ADDITIONAL_WAGES;",
+		"employee_amount": "const base = Math.max(0, ctx.subtotals.GROSS - ctx.subtotals.ADDITIONAL_WAGES);\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst surcharge = get(facts, 'tax_id_validated', true) === false ? Number(ctx.lookup.missing_tax_id_multiplier) : 1;\nreturn round(ladder(base, ctx.lookup.ladder) * surcharge, Number(ctx.lookup.whole_unit), 'HALF_UP');",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "PP68/2009 art.6; PMK16/PMK.03/2010 art.5",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2010/16~PMK.03~2010Per.htm",
+				"locator": "art.5(1)–(3); benefit first payment year plus two or later",
+				"quote": "Apply one annual progressive ladder to the gross non-final severance and pension/THT/JHT instalments, with no PTKP or employment-expense deduction; invalid NPWP/NIK adds20%. Only native documented origins and due/payment dates in the same tax month are supported. Same-year ordinary employee/nonemployee income, active employment, negative corrections and missing/external opening evidence refuse."
+			},
+			{
+				"title": "PP 68/2009 arts.2(2),5–7: first two calendar years aggregate; year three onward is non-final. Missing or inconsistent benefit-origin/history inputs refuse rather than assume a new exemption.",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm"
+			}
+		],
+		"id": "a53240b5-9f2c-51a1-b4d7-051551b58fbf",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	}
+]

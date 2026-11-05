@@ -1,0 +1,733 @@
+[
+	{
+		"code": "BONUS_THR",
+		"name": "Bonus / THR",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "2b5c8343-b22f-5542-8d00-650ee2697887",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && (end == null || ctx.entry.incurred_on <= end);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "1b54209e-ed9a-5eb6-86fb-13e7c3a2bef0",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"references": [
+			{
+				"title": "Permenaker 6/2016",
+				"locator": "art.2(1), art.3(1)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf",
+				"quote": "THR is owed to a worker with one month's continuous service; one month's wage at twelve months, pro rata below.",
+				"effective_from": "2016-03-08"
+			}
+		]
+	},
+	{
+		"code": "MEDICAL_ALLOWANCE",
+		"name": "Medical allowance",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.7(1), art.7(4)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
+				"quote": "Komponen Upah ditetapkan dalam Perjanjian Kerja, Peraturan Perusahaan, atau Perjanjian Kerja Bersama.",
+				"effective_from": "2021-02-02"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "7522be16-e31f-539d-8d13-6e3053c85f33",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && (end == null || ctx.entry.incurred_on <= end);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "35f3c9bc-215c-59d6-88b5-09e779b156b8",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "CLAWBACK_OVERTIME",
+		"name": "Overtime claw-back",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && (end == null || ctx.entry.incurred_on <= end);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "82662157-d776-5e07-b1de-a7b9fd0d883d",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.63(1)(f), art.65",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
+				"quote": "A wage deduction is permitted only for the listed grounds and at most 50% of each wage payment.",
+				"effective_from": "2021-02-02"
+			}
+		]
+	},
+	{
+		"code": "BACK_PAY_SALARY",
+		"name": "Back pay – salary",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "2b5c8343-b22f-5542-8d00-650ee2697887",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && (end == null || ctx.entry.incurred_on <= end);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "c81b6681-7934-58ff-bc62-ce4ebe8240b5",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.61(2)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
+				"quote": "The wage remains due although it is paid late.",
+				"effective_from": "2021-02-02"
+			}
+		]
+	},
+	{
+		"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYER",
+		"name": "BPJS Kesehatan, termination month (employer share)",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "cac66a04-6e5b-53ff-8d80-f6fdb7520588",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && (end == null || ctx.entry.incurred_on <= end);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYER",
+		"id": "a51c5364-2b4e-57d5-ab68-26fade6f7c29",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"references": [
+			{
+				"title": "Perpres 82/2018",
+				"locator": "art.31(1)-(2), art.32",
+				"url": "https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf",
+				"quote": "Iuran bagi Peserta PPU adalah 5% dari Gaji atau Upah per bulan: 4% dibayar Pemberi Kerja dan 1% dibayar Peserta.",
+				"effective_from": "2018-09-18"
+			}
+		]
+	},
+	{
+		"code": "DEDUCTION",
+		"name": "Deduction",
+		"lookup": {
+			"wage_deduction_ceiling": 0.5
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 arts.58, 63–64: a wage deduction names its kind (`entry.facts.deduction_kind`): fines, damages and wage advances only as the employment agreement, company regulation or collective agreement provides; rent of company property and debts only on a written agreement; payments to a third party only on the worker’s written power of attorney — each by its reference (`entry.facts.basis_reference`); an overpaid wage needs no consent (art.63(4)). Art.65 caps the total at 50% (WAGE_DEDUCTION_CEILING).",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && (end == null || ctx.entry.incurred_on <= end);",
+		"conversion": "return Math.min(ctx.entry.quantity, ctx.base_pay * ctx.lookup.wage_deduction_ceiling);",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "300050ea-c355-5ea1-b1a5-fcaa9bbcb268",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "KESEHATAN_TERMINATION_MONTH_EMPLOYEE",
+		"name": "BPJS Kesehatan, termination month (employee share)",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && (end == null || ctx.entry.incurred_on <= end);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "075c06e8-adca-56ba-8dbd-67ee8ae933d4",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"references": [
+			{
+				"title": "Perpres 82/2018",
+				"locator": "art.31(1)-(2), art.32",
+				"url": "https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf",
+				"quote": "Iuran bagi Peserta PPU adalah 5% dari Gaji atau Upah per bulan: 4% dibayar Pemberi Kerja dan 1% dibayar Peserta.",
+				"effective_from": "2018-09-18"
+			}
+		]
+	},
+	{
+		"code": "RETROACTIVE_PAY",
+		"name": "Retroactive pay",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "2b5c8343-b22f-5542-8d00-650ee2697887",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && (end == null || ctx.entry.incurred_on <= end);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "be7489d5-d84e-5a55-91ca-965d047d856e",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.61(2)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021",
+				"quote": "The wage remains due although it is paid late.",
+				"effective_from": "2021-02-02"
+			}
+		]
+	},
+	{
+		"code": "COMPENSATION",
+		"name": "Compensation",
+		"lookup": {},
+		"references": [
+			{
+				"title": "UU 7/1983 as amended by UU 36/2008 art.4(1)(a): a payment or reward in connection with employment, in any form, is income; PMK 168/2023 art.5(1)(a) and (3): a pegawai’s regular or irregular income in any form is the PPh 21 object (PPh 26 for a non-resident). No art.4(3) exemption covers a cash compensation, so it is taxed as irregular income; it is not upah pokok or a tunjangan tetap, so outside the BPJS wage (PP 44/2015 art.19(2)). A termination payment belongs on the severance rows (PP 68/2009)."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "2b5c8343-b22f-5542-8d00-650ee2697887",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && (end == null || ctx.entry.incurred_on <= end);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "6ae25b5c-52fd-5396-8548-f2ce63ef4ee0",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "THR",
+		"name": "THR (religious holiday allowance)",
+		"lookup": {
+			"calendar_days": 30,
+			"service_months_cap": 12
+		},
+		"references": [
+			{
+				"title": "Permenaker 6/2016 art.2(1): a worker of one month’s continuous service or more is owed THR; art.3(1): one month’s wage (basic plus fixed allowances) at 12 months’ service, pro rata (service ÷ 12) below it; art.3(3): for a worker paid by the day or by output the month’s wage is the average received each month over the last 12 months, or over the months worked when fewer (`entry.facts.average_monthly_wage_12m`; without it the entered amount stands); art.7(1): a PKWTT worker whose employment ends within 30 days before the religious holiday keeps the THR; art.7(3): a PKWT that ends before the holiday does not. `entry.facts.holiday_date` is the holiday (Idul Fitri 1447 H: 21 March 2026, SKB 1497/2/5 of 2025); art.5(4): paid at the latest 7 days before it (LATE_THR_FINE after).",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "2b5c8343-b22f-5542-8d00-650ee2697887",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn (end == null || ctx.entry.incurred_on <= end) && get(get(ctx.subject.employment, 'terms', {}), 'rate.amount', null) != null && calendar_completed_months(ctx.subject.employment.effective_range.from, get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of) >= 1;",
+		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst fixed = Object.values(get(terms, 'allowances', {})).reduce(\n\t(total, allowance) => total + (allowance.variability === 'FIXED' && allowance.amount != null ? allowance.amount : 0),\n\t0\n);\nconst monthly = (rate.unit === 'DAILY' ? rate.amount * ctx.lookup.calendar_days : rate.amount) + fixed;\n\nconst months = Math.min(calendar_completed_months(ctx.subject.employment.effective_range.from, get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of), ctx.lookup.service_months_cap);\nreturn monthly * months / 12;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "d8f1d392-fa65-5229-af03-44e9d7b1fc9a",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "THR_HOLIDAY",
+		"name": "THR (religious holiday, in service)",
+		"lookup": {
+			"calendar_days": 30,
+			"service_months_cap": 12
+		},
+		"references": [
+			{
+				"title": "Permenaker 6/2016 art.2(1): a worker of one month’s continuous service or more is owed THR; art.5(1): once a year, on the worker’s own religious holiday (art.1(2): Idul Fitri, Natal / Kelahiran Yesus Kristus, Nyepi, Waisak, Imlek); art.5(2): each occurrence where the holiday falls twice in a year; art.5(4): paid at the latest seven days before the holiday (THR_PAYMENT duty). art.3(1): one month’s wage at 12 months’ service, pro rata below; art.3(3): the 12-month average for a daily or output-paid worker (`entry.facts.average_monthly_wage_12m`)."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "2b5c8343-b22f-5542-8d00-650ee2697887",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn (end == null || ctx.entry.incurred_on <= end) && get(get(ctx.subject.employment, 'terms', {}), 'rate.amount', null) != null && calendar_completed_months(ctx.subject.employment.effective_range.from, get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of) >= 1;",
+		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst fixed = Object.values(get(terms, 'allowances', {})).reduce(\n\t(total, allowance) => total + (allowance.variability === 'FIXED' && allowance.amount != null ? allowance.amount : 0),\n\t0\n);\nconst monthly = (rate.unit === 'DAILY' ? rate.amount * ctx.lookup.calendar_days : rate.amount) + fixed;\n\nconst months = Math.min(calendar_completed_months(ctx.subject.employment.effective_range.from, get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of), ctx.lookup.service_months_cap);\nreturn monthly * months / 12;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "10a8b15d-8d0f-59d1-a2c4-b7cc8bd22c44",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "PESANGON",
+		"name": "Uang pesangon (severance pay)",
+		"lookup": {
+			"calendar_days": 30,
+			"schedule": [
+				{
+					"up_to": 11,
+					"amount": 1
+				},
+				{
+					"up_to": 23,
+					"amount": 2
+				},
+				{
+					"up_to": 35,
+					"amount": 3
+				},
+				{
+					"up_to": 47,
+					"amount": 4
+				},
+				{
+					"up_to": 59,
+					"amount": 5
+				},
+				{
+					"up_to": 71,
+					"amount": 6
+				},
+				{
+					"up_to": 83,
+					"amount": 7
+				},
+				{
+					"up_to": 95,
+					"amount": 8
+				},
+				{
+					"up_to": null,
+					"amount": 9
+				}
+			],
+			"cause_multiplier": {
+				"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY": 2,
+				"DEATH": 2,
+				"RETIREMENT": 1.75,
+				"FORCE_MAJEURE_NO_CLOSURE": 0.75,
+				"MERGER_CONSOLIDATION_SEPARATION": 1,
+				"ACQUISITION": 1,
+				"EFFICIENCY_PREVENT_LOSS": 1,
+				"CLOSURE_NO_LOSS": 1,
+				"DEBT_SUSPENSION_NO_LOSS": 1,
+				"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT": 1
+			},
+			"pesangon_causes": [
+				"MERGER_CONSOLIDATION_SEPARATION",
+				"ACQUISITION",
+				"ACQUISITION_TERMS_CHANGE_REJECTED",
+				"EFFICIENCY_ACTUAL_LOSS",
+				"EFFICIENCY_PREVENT_LOSS",
+				"CLOSURE_LOSS",
+				"CLOSURE_NO_LOSS",
+				"FORCE_MAJEURE_CLOSURE",
+				"FORCE_MAJEURE_NO_CLOSURE",
+				"DEBT_SUSPENSION_LOSS",
+				"DEBT_SUSPENSION_NO_LOSS",
+				"BANKRUPTCY",
+				"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT",
+				"VIOLATION_AFTER_WARNINGS",
+				"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY",
+				"RETIREMENT",
+				"DEATH"
+			]
+		},
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.40(1)-(2), art.41(1), art.59",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf",
+				"quote": "Pesangon is 1 month of wage below 1 year, rising by one month for each year to 9 months from 8 years; the cause multiplier is in art.41(1); a micro or small enterprise may agree the amount (art.59).",
+				"effective_from": "2021-02-02"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "cac66a04-6e5b-53ff-8d80-f6fdb7520588",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn (end == null || ctx.entry.incurred_on <= end) && get(get(ctx.subject.employment, 'terms', {}), 'rate.amount', null) != null && get(ctx.subject.employment, 'signed_contract_period.to', null) == null && ctx.lookup.pesangon_causes.includes(get(ctx.subject.employment, 'employee_extension_data.termination_cause', null)) && calendar_completed_months(ctx.subject.employment.effective_range.from, get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of) >= 1;",
+		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst fixed = Object.values(get(terms, 'allowances', {})).reduce(\n\t(total, allowance) => total + (allowance.variability === 'FIXED' && allowance.amount != null ? allowance.amount : 0),\n\t0\n);\nconst monthly = (rate.unit === 'DAILY' ? rate.amount * ctx.lookup.calendar_days : rate.amount) + fixed;\n\nconst months = calendar_completed_months(ctx.subject.employment.effective_range.from, get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of);\nconst agreed = get(ctx.subject.employment, 'employee_extension_data.agreed_pesangon_amount', null);\nif (get(ctx.subject.employment, 'employee_extension_data.micro_small_enterprise', false) && agreed != null) return agreed;\nconst cause = String(get(ctx.subject.employment, 'employee_extension_data.termination_cause', null));\nreturn monthly * bracket(months, ctx.lookup.schedule) * get(ctx.lookup.cause_multiplier, cause, 0.5);",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "64c150c8-efe8-597c-b64a-ea6537581397",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "UPMK",
+		"name": "Uang penghargaan masa kerja (service award)",
+		"lookup": {
+			"calendar_days": 30,
+			"schedule": [
+				{
+					"up_to": 35,
+					"amount": 0
+				},
+				{
+					"up_to": 71,
+					"amount": 2
+				},
+				{
+					"up_to": 107,
+					"amount": 3
+				},
+				{
+					"up_to": 143,
+					"amount": 4
+				},
+				{
+					"up_to": 179,
+					"amount": 5
+				},
+				{
+					"up_to": 215,
+					"amount": 6
+				},
+				{
+					"up_to": 251,
+					"amount": 7
+				},
+				{
+					"up_to": 287,
+					"amount": 8
+				},
+				{
+					"up_to": null,
+					"amount": 10
+				}
+			],
+			"upmk_causes": [
+				"MERGER_CONSOLIDATION_SEPARATION",
+				"ACQUISITION",
+				"ACQUISITION_TERMS_CHANGE_REJECTED",
+				"EFFICIENCY_ACTUAL_LOSS",
+				"EFFICIENCY_PREVENT_LOSS",
+				"CLOSURE_LOSS",
+				"CLOSURE_NO_LOSS",
+				"FORCE_MAJEURE_CLOSURE",
+				"FORCE_MAJEURE_NO_CLOSURE",
+				"DEBT_SUSPENSION_LOSS",
+				"DEBT_SUSPENSION_NO_LOSS",
+				"BANKRUPTCY",
+				"EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT",
+				"VIOLATION_AFTER_WARNINGS",
+				"LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY",
+				"RETIREMENT",
+				"DEATH",
+				"DETENTION_NO_LOSS"
+			]
+		},
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.40(1), art.40(2), art.41(1), art.59",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf",
+				"quote": "UPMK is 2 months of wage from 3 years, rising to 10 months from 24 years; the cause multiplier is in art.41(1); a micro or small enterprise may agree the amount (art.59).",
+				"effective_from": "2021-02-02"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "cac66a04-6e5b-53ff-8d80-f6fdb7520588",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn (end == null || ctx.entry.incurred_on <= end) && get(get(ctx.subject.employment, 'terms', {}), 'rate.amount', null) != null && get(ctx.subject.employment, 'signed_contract_period.to', null) == null && ctx.lookup.upmk_causes.includes(get(ctx.subject.employment, 'employee_extension_data.termination_cause', null)) && calendar_completed_months(ctx.subject.employment.effective_range.from, get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of) >= 36;",
+		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst fixed = Object.values(get(terms, 'allowances', {})).reduce(\n\t(total, allowance) => total + (allowance.variability === 'FIXED' && allowance.amount != null ? allowance.amount : 0),\n\t0\n);\nconst monthly = (rate.unit === 'DAILY' ? rate.amount * ctx.lookup.calendar_days : rate.amount) + fixed;\n\nconst months = calendar_completed_months(ctx.subject.employment.effective_range.from, get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of);\nconst agreed = get(ctx.subject.employment, 'employee_extension_data.agreed_upmk_amount', null);\nif (get(ctx.subject.employment, 'employee_extension_data.micro_small_enterprise', false) && agreed != null) return agreed;\nreturn monthly * bracket(months, ctx.lookup.schedule);",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "5cd6da21-bd26-5995-8b2b-523ecc91eff9",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "PKWT_COMPENSATION",
+		"name": "Uang kompensasi PKWT (fixed-term compensation)",
+		"lookup": {
+			"calendar_days": 30
+		},
+		"references": [
+			{
+				"title": "PP 35/2021 arts.15–17: a fixed-term worker who is not a foreign national (art.15(5): “tidak berlaku bagi tenaga kerja asing”, read on `employee.nationality`, not on tax residency) with at least one month of continuous service receives one month of basic wage plus fixed allowances per 12 months served, pro rata, including an early end. Article 16(6) replaces that schedule with the worker-employer agreement for a micro or small enterprise. PP 35/2021 art.15(2) pays the compensation when the PKWT ends, and PP 68/2009 art.1 angka 4 defines uang pesangon as income paid \"dengan nama dan dalam bentuk apapun, sehubungan dengan berakhirnya masa kerja atau terjadi pemutusan hubungan kerja\", so it carries the final PPh 21 severance rates (`PPH21_FINAL_SEVERANCE`) and leaves the TER base; a non-resident's is PPh 26. Kring Pajak (DJP, 7 June 2023) refers compensation paid in connection with the end of service to PP 68/2009 and PMK-16/PMK.03/2010. Art.15(4): when a PKWT is extended the compensation for the period before the extension is paid when that period ends (PKWT_TERM_END_COMPENSATION duty), and the extension’s when it ends: the band prices the months of the term in force (`terms.effective_from` to the exit or the term’s end), one month’s wage per 12 (art.16(1)): “masa kerja/12 × 1 (satu) bulan Upah”, the service counted in completed calendar months and the part month at ÷30 a calendar day (as PKWT_EARLY_TERMINATION), so a term ending part-way through a month is paid for those days."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "cac66a04-6e5b-53ff-8d80-f6fdb7520588",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn (end == null || ctx.entry.incurred_on <= end) && get(get(ctx.subject.employment, 'terms', {}), 'rate.amount', null) != null && get(ctx.subject.employment, 'signed_contract_period.to', null) != null && calendar_completed_months(ctx.subject.employment.effective_range.from, get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of) >= 1 && (get(ctx.subject.employment, \"employee_extension_data.nationality\", \"ID\") === \"ID\");",
+		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst fixed = Object.values(get(terms, 'allowances', {})).reduce(\n\t(total, allowance) => total + (allowance.variability === 'FIXED' && allowance.amount != null ? allowance.amount : 0),\n\t0\n);\nconst monthly = (rate.unit === 'DAILY' ? rate.amount * ctx.lookup.calendar_days : rate.amount) + fixed;\n\nconst end = get(ctx.subject.employment, 'effective_range.to', null) ?? ctx.as_of;\nconst start = ctx.subject.employment.effective_range.from;\nconst completed = calendar_completed_months(start, end);\nconst months = completed + calendar_distance_days(add_months(start, completed), end) / 30;\nreturn monthly * months / 12;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "22bb69f2-cc80-5fbf-a785-2ccd3bbe5230",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "UANG_PISAH",
+		"name": "Uang pisah (contract-defined separation pay)",
+		"lookup": {
+			"separation_pay_causes": [
+				"EMPLOYEE_REQUEST_REJECTED",
+				"VOLUNTARY_RESIGNATION",
+				"UNEXCUSED_ABSENCE",
+				"URGENT_VIOLATION",
+				"DETENTION_CAUSED_LOSS"
+			]
+		},
+		"references": [
+			{
+				"title": "PP 35/2021 arts.49–52 and 54: the listed causes carry separation pay only where and at the amount stated in the employment agreement, company regulation or collective agreement. PP 68/2009 art.1 angka 4 defines uang pesangon as income paid under whatever name and in whatever form in connection with the end of service or termination, so uang pisah carries the final PPh 21 severance rates (`PPH21_FINAL_SEVERANCE`) and is outside the TER base; a non-resident's is PPh 26."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "cac66a04-6e5b-53ff-8d80-f6fdb7520588",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && end != null && ctx.entry.incurred_on === end && get(ctx.subject.employment, 'signed_contract_period.to', null) == null && ctx.lookup.separation_pay_causes.includes(get(ctx.subject.employment, 'employee_extension_data.termination_cause', null));",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "2564b600-79af-5b7b-ae9e-8bb297277941",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "PENSION_OFFSET",
+		"name": "Employer-funded pension offset",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PP 35/2021 art.58: the portion of a pension benefit funded by the employer may count toward pesangon, UPMK and separation-pay obligations only where the employment agreement, company regulation or collective agreement provides it; the employer pays any shortfall."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && end != null && ctx.entry.incurred_on === end && get(ctx.subject.employment, 'signed_contract_period.to', null) == null && get(ctx.subject.employment, 'employee_extension_data.pension_offset_applies', false) === true;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "1105fc4f-347f-54ab-8185-e89cc96b3355",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "UPH_TRAVEL_HOME",
+		"name": "Uang penggantian hak — travel home",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PP 35/2021 art.40(4)(b): on termination the cost or fare home for the worker and family to the place where the worker was accepted for work is paid (customer input: the cost entered; `entry.facts.hired_at_other_place` — the worker was taken on elsewhere). PP 68/2009 art.1 angka 4: uang penggantian hak is part of the final severance base."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "cac66a04-6e5b-53ff-8d80-f6fdb7520588",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && end != null && ctx.entry.incurred_on === end && get(ctx.subject.employment, 'employee_extension_data.hired_at_other_place', false) === true;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "776ac495-0138-59d5-89c4-1afc8afadf29",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "LATE_WAGE_FINE",
+		"name": "Late wage fine (to the worker)",
+		"lookup": {
+			"calendar_days": 30,
+			"grace_days": 3,
+			"first_tier_end": 8,
+			"first_tier_rate": 0.05,
+			"further_tier_rate": 0.01,
+			"ceiling": 0.5
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 art.61(1)–(2): an employer paying the wage late owes a fine counted from the day it was due (`entry.facts.wage_due_on`, `wage_paid_on`, `wage_due_amount`): from the 4th to the 8th day 5% of the wage due for each day late; after the 8th day 1% more for each further day, the month’s fine at most 50%; after a month the highest state-bank interest rate on top (`entry.facts.late_interest_amount`, computed by the employer at that rate). The wage itself stays due (art.61(2)); the fine is income received in connection with the work (PPh 21 additional). Days are counted from the due day as day 1 (“terhitung tanggal seharusnya Upah dibayarkan”, art.61(1)(a)): a wage paid three days after its due day is paid on the 4th day and carries 5%. The record takes this reading, the worker’s, of the counting the regulation leaves open.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "2b5c8343-b22f-5542-8d00-650ee2697887",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn (end == null || ctx.entry.incurred_on <= end) && get(get(ctx.subject.employment, 'terms', {}), 'rate.amount', null) != null && ctx.entry.unit === 'DAY';",
+		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst fixed = Object.values(get(terms, 'allowances', {})).reduce(\n\t(total, allowance) => total + (allowance.variability === 'FIXED' && allowance.amount != null ? allowance.amount : 0),\n\t0\n);\nconst monthly = (rate.unit === 'DAILY' ? rate.amount * ctx.lookup.calendar_days : rate.amount) + fixed;\n\nconst days = ctx.entry.quantity;\nconst late =\n\tMath.max(Math.min(days, ctx.lookup.first_tier_end) - ctx.lookup.grace_days, 0) * ctx.lookup.first_tier_rate +\n\tMath.max(days - ctx.lookup.first_tier_end, 0) * ctx.lookup.further_tier_rate;\nreturn monthly * Math.min(late, ctx.lookup.ceiling);",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "81c1ebb1-1719-5652-b92f-826f53454877",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "LATE_THR_FINE",
+		"name": "Late THR fine (5%, workers’ welfare)",
+		"lookup": {
+			"rate": 0.05
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 art.62(1)–(2); Permenaker 6/2016 art.10(1)–(2): an employer paying THR late owes a fine of 5% of the THR due (`entry.facts.thr_due_amount`), managed and used for the workers’ welfare — an employer cost, not the worker’s pay; the THR stays due."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "2b5c8343-b22f-5542-8d00-650ee2697887",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn (end == null || ctx.entry.incurred_on <= end) && ctx.entry.unit === 'MONEY';",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.rate;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYER",
+		"id": "b19fbd04-2c96-54ed-ba4a-5e2cc73c8942",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "DETENTION_FAMILY_AID",
+		"name": "Aid to a detained worker’s family",
+		"lookup": {
+			"calendar_days": 30,
+			"dependants_share": {
+				"1": 0.25,
+				"2": 0.35,
+				"3": 0.45,
+				"4": 0.5
+			}
+		},
+		"references": [
+			{
+				"title": "PP 35/2021 art.53(1)–(2): a worker detained by the authorities on suspicion of a crime is not paid the wage, but the employer gives the dependants aid — 25% of the wage for one dependant, 35% for two, 45% for three, 50% for four or more (`terms.facts.dependents_count`) — for at most 6 months from the first day of detention: one entry a month, a seventh is refused.",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "2b5c8343-b22f-5542-8d00-650ee2697887",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn (end == null || ctx.entry.incurred_on <= end) && get(get(ctx.subject.employment, 'terms', {}), 'rate.amount', null) != null && get(ctx.subject.employment, 'employee_extension_data.dependents_count', 0) >= 1;",
+		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst fixed = Object.values(get(terms, 'allowances', {})).reduce(\n\t(total, allowance) => total + (allowance.variability === 'FIXED' && allowance.amount != null ? allowance.amount : 0),\n\t0\n);\nconst monthly = (rate.unit === 'DAILY' ? rate.amount * ctx.lookup.calendar_days : rate.amount) + fixed;\n\nconst dependants = Math.min(get(ctx.subject.employment, 'employee_extension_data.dependents_count', 0), 4);\nreturn monthly * get(ctx.lookup.dependants_share, String(dependants), 0);",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "a8821671-bdf2-5f6c-85ef-61d5440cf6e7",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "PENSION_LUMPSUM",
+		"name": "Lump-sum pension, THT or JHT paid by the employer",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PP 68/2009 art.5: the pension benefit, old-age savings or JHT paid at once carries the final PPh 21 of art.5 (PPH21_FINAL_PENSION), outside the TER base."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "cac66a04-6e5b-53ff-8d80-f6fdb7520588",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && (end == null || ctx.entry.incurred_on <= end);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "31078534-6e41-5896-bf19-c1b0c0b2eb47",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "NATURA",
+		"name": "Benefit in kind (natura / kenikmatan)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "UU 36/2008 art.4(1)(a) as amended by UU 7/2021; PMK 66/2023 (official text, jdih.kemenkeu.go.id) arts.3–8 and Lampiran A: a benefit in kind is taxable income of the employee at its value (`entry.amount`), except (`entry.facts.natura_kind`): food and drink at the workplace for all employees (art.5(1)(a)); meal coupons for field staff up to Rp2,000,000 a month, or the workplace meal value if higher (art.5(4)); facilities required for safety at work — uniforms, safety equipment, shuttle transport, crew lodging (art.6); facilities in a DJP-designated remote area (art.8); religious-holiday parcels for all employees (Lampiran A.1); other gifts up to Rp3,000,000 a year (A.2); work equipment such as laptops and phone credit (A.3); medical care for work accidents (A.4); sports facilities up to Rp1,500,000 a year (A.5); communal housing (A.6); individual housing up to Rp2,000,000 a month (A.7); a company car for an employee without equity and with average gross up to Rp100,000,000 a month (A.8, `entry.facts.car_user_qualifies`); employer pension contributions to an OJK-approved fund (A.9); worship facilities (A.10). The excess over a ceiling is taxable (art.7(4)). Not paid in cash: the line is DISPLAY and reaches only the PPh 21 base."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "2b5c8343-b22f-5542-8d00-650ee2697887",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && (end == null || ctx.entry.incurred_on <= end);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "1aa5bf26-ad90-59f7-adca-afa1eb087e23",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "COURT_GARNISHMENT",
+		"name": "Court-ordered wage seizure",
+		"lookup": {
+			"ceiling": 0.2
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 art.51: a seizure of the wage money by a bailiff on a court order may not exceed 20% of the wage payable (GARNISHMENT_CEILING holds the slip above it).",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && (end == null || ctx.entry.incurred_on <= end);",
+		"conversion": "return Math.min(ctx.entry.quantity, ctx.base_pay * ctx.lookup.ceiling);",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "1b0a0b5d-f2c9-5879-a946-e72a283c35c0",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "BANKRUPTCY_ESTATE",
+		"name": "Payment to a bankrupt worker’s estate",
+		"lookup": {
+			"ceiling": 0.25
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 art.50: a bankrupt worker’s wage falls outside the estate except as the judge decides, at most 25% of the wage and payments of the employment (BANKRUPTCY_CEILING).",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && (end == null || ctx.entry.incurred_on <= end);",
+		"conversion": "return Math.min(ctx.entry.quantity, ctx.base_pay * ctx.lookup.ceiling);",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "8eb5f029-6372-5183-96ce-60e89d91614b",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "NON_EMPLOYEE_FEE",
+		"name": "Fee to a non-employee (bukan pegawai)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PMK 168/2023 art.12(3)–(4): a payment for services to an individual outside employment, on a PAYEE engagement; PPh 21 on 50% of each payment (PPH21_BUKAN_PEGAWAI), PPh 26 for a non-resident. One entry per payment, its gross net of reimbursed materials and third-party costs."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "2b5c8343-b22f-5542-8d00-650ee2697887",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && (end == null || ctx.entry.incurred_on <= end) && ctx.subject.employment.engagement === 'PAYEE';",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "895f4b7e-73db-5b5d-97cd-301189f0a4f9",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "PKWT_EARLY_TERMINATION",
+		"name": "Ganti rugi PKWT — the employer ends the PKWT early (UU 13/2003 art.62)",
+		"lookup": {
+			"calendar_days": 30
+		},
+		"references": [
+			{
+				"title": "UU 13/2003 art.62 (kept by UU 6/2023; https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003): a party that ends a fixed-term agreement (PKWT) before its term, other than on the art.61(1) grounds (death, the term or the work ending, a court decision, an event the agreement names), pays the other party damages of the worker’s wage up to the end of the term. Priced here as the monthly wage (basic plus fixed allowances, `terms.monthly_wage`) for each whole month from the day after the exit to the term’s last day (`entry.facts.term_end_date`, else the term’s own end `terms.effective_to`), and the part month at ÷30 a calendar day (the record’s reading). It is owed beside the PP 35/2021 art.15–17 compensation (PKWT_COMPENSATION). Paid by the employer when it ends the employment (exit ground DISMISSAL, REDUNDANCY, RETRENCHMENT or UNILATERAL); as income paid in connection with the end of the work it carries the PP 68/2009 final severance rates (PPH21_FINAL_SEVERANCE), a non-resident’s PPh 26.",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "cac66a04-6e5b-53ff-8d80-f6fdb7520588",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn (end == null || ctx.entry.incurred_on <= end) && get(get(ctx.subject.employment, 'terms', {}), 'rate.amount', null) != null && get(ctx.subject.employment, 'signed_contract_period.to', null) != null && get(ctx.subject.employment, 'effective_range.to', null) != null && ['DISMISSAL', 'REDUNDANCY', 'RETRENCHMENT', 'UNILATERAL'].includes(get(ctx.subject.employment, 'employee_extension_data.exit_ground', null));",
+		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst fixed = Object.values(get(terms, 'allowances', {})).reduce(\n\t(total, allowance) => total + (allowance.variability === 'FIXED' && allowance.amount != null ? allowance.amount : 0),\n\t0\n);\nconst monthly = (rate.unit === 'DAILY' ? rate.amount * ctx.lookup.calendar_days : rate.amount) + fixed;\n\nconst end = ctx.subject.employment.effective_range.to;\nconst termEnd = get(ctx.subject.employment, 'signed_contract_period.to', null);\nconst start = add_days(end, 1);\nconst completed = calendar_completed_months(start, termEnd);\nreturn monthly * (completed + calendar_distance_days(add_months(start, completed), termEnd) / 30);",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "9e8000bb-c70d-52ad-ae8b-435e6a883f43",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "PKWT_EARLY_TERMINATION_BY_WORKER",
+		"name": "Ganti rugi PKWT — the worker ends the PKWT early (UU 13/2003 art.62)",
+		"lookup": {
+			"calendar_days": 30
+		},
+		"references": [
+			{
+				"title": "UU 13/2003 art.62 (kept by UU 6/2023; https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003): a party that ends a fixed-term agreement (PKWT) before its term, other than on the art.61(1) grounds (death, the term or the work ending, a court decision, an event the agreement names), pays the other party damages of the worker’s wage up to the end of the term. Priced here as the monthly wage (basic plus fixed allowances, `terms.monthly_wage`) for each whole month from the day after the exit to the term’s last day (`entry.facts.term_end_date`, else the term’s own end `terms.effective_to`), and the part month at ÷30 a calendar day (the record’s reading). It is owed beside the PP 35/2021 art.15–17 compensation (PKWT_COMPENSATION). Owed by the worker who resigns before the term ends; recovered from the final pay as damages, within the PP 36/2021 art.65 50% deduction ceiling (WAGE_DEDUCTION_CEILING), the rest being a debt outside payroll.",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
+		"eligibility": "const end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn (end == null || ctx.entry.incurred_on <= end) && get(get(ctx.subject.employment, 'terms', {}), 'rate.amount', null) != null && get(ctx.subject.employment, 'signed_contract_period.to', null) != null && get(ctx.subject.employment, 'effective_range.to', null) != null && get(ctx.subject.employment, 'employee_extension_data.exit_ground', null) === 'RESIGNATION';",
+		"conversion": "const terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst fixed = Object.values(get(terms, 'allowances', {})).reduce(\n\t(total, allowance) => total + (allowance.variability === 'FIXED' && allowance.amount != null ? allowance.amount : 0),\n\t0\n);\nconst monthly = (rate.unit === 'DAILY' ? rate.amount * ctx.lookup.calendar_days : rate.amount) + fixed;\n\nconst end = ctx.subject.employment.effective_range.to;\nconst termEnd = get(ctx.subject.employment, 'signed_contract_period.to', null);\nconst start = add_days(end, 1);\nconst completed = calendar_completed_months(start, termEnd);\nreturn monthly * (completed + calendar_distance_days(add_months(start, completed), termEnd) / 30);",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "beb1030e-f848-5984-b0d8-29a8784dcf45",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	}
+]
