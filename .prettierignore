@@ -1,0 +1,35 @@
+# Build & generated artifacts
+**/.svelte-kit/
+**/.svelte-check/
+**/build/
+**/.norbital/
+
+# Store serializes and verifies these migration proofs; retain the generator's bytes.
+**/migrations/snapshot.json
+**/migrations/physical.json
+
+# Tooling / CI
+.turbo/
+.tmp/
+**/test-results/
+**/coverage/
+
+# Dependencies & lockfiles
+**/node_modules/
+**/bun.lock
+**/package-lock.json
+**/yarn.lock
+
+# Env
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+vite.config.js*
+
+# Vendored face-model JSONs for kiosk matching. Not ours to format.
+**/assets/models/

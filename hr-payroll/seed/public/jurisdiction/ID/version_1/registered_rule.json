@@ -1,0 +1,1119 @@
+[
+	{
+		"code": "MINIMUM_WAGE_FLOOR",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				}
+			}
+		},
+		"condition": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nconst small = get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL';\nconst wageEngagements = ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'];\nconst fixed = Object.values(get(ctx.entry, 'terms.allowances', {})).filter((a) => get(a, 'variability', '') === 'FIXED');\nconst monthly = Number(get(rate, 'amount', 0)) + sum(fixed.map((a) => Number(get(a, 'amount', 0))));\nreturn wageEngagements.includes(get(ctx.entry, 'engagement', '')) && get(rate, 'unit', '') === 'MONTHLY' && !small && region !== '' && Object.hasOwn(byRegion, region);\n",
+		"validate": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(ctx.lookup, 'by_region', {});\nconst small = get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL';\nconst wageEngagements = ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'];\nconst fixed = Object.values(get(ctx.entry, 'terms.allowances', {})).filter((a) => get(a, 'variability', '') === 'FIXED');\nconst monthly = Number(get(rate, 'amount', 0)) + sum(fixed.map((a) => Number(get(a, 'amount', 0))));\nreturn monthly >= Number(byRegion[region]);\n",
+		"order": 0,
+		"references": [
+			{
+				"title": "UU 13/2003 art.88E(1)-(2) as amended by UU 6/2023; PP 36/2021 arts.23(1)-(3), 24(1), 25 as amended by PP 51/2023 and PP 49/2025 - the UMK of the worksite, else the UMP; art.23(2): where the wage is basic plus non-fixed allowances the basic alone must reach it (`terms.rate.amount` plus fixed allowances). Art.24(1): the minimum binds a worker with less than one year of service; longer service follows the wage structure and scale (art.24(2)). Micro and small enterprises are outside it (art.36). Daily and hourly wages are DAILY_MINIMUM_WAGE and HOURLY_MINIMUM_WAGE.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			},
+			{
+				"title": "Minimum wages from 1 January 2025 (PP 36/2021 as amended by PP 51/2023; Permenaker 16/2024: 6.5% on 2024). Keys and lookup as in the 2026 versions: every kota and kabupaten is listed at its UMK or at the UMP; the worksite (`employee_extension_data.work_region`), else the company region, by exact key; an absent key or the bare key of a province whose localities are listed refuses. UMPs 2025 as the Kemnaker national list publishes them with their sen (hukumonline, UMP 2025 se-Indonesia): Aceh 3,685,616; Sumatera Utara 2,992,559; Sumatera Barat 2,994,193.47; Riau 3,508,776.22; Jambi 3,234,535; Sumatera Selatan 3,681,571; Bengkulu 2,670,039.39; Lampung 2,893,070; Bangka Belitung 3,876,600; Kepulauan Riau 3,623,654; DKI 5,396,761; DI Yogyakarta 2,264,080.95; Banten 2,905,119.90; Bali 2,996,561; NTB 2,602,931; NTT 2,328,969.69; Kalimantan Barat 2,878,286; Kalimantan Tengah 3,473,621.04; Kalimantan Selatan 3,496,195 (3,282,812.21 × 1.065; one report prints 3,496,150, below that product); Kalimantan Timur 3,579,313.77; Kalimantan Utara 3,580,160; Sulawesi Utara 3,775,425; Sulawesi Tengah 2,915,000; Sulawesi Selatan 3,657,527.37; Sulawesi Tenggara 3,073,551.70; Gorontalo 3,221,731; Sulawesi Barat 3,104,430; Maluku 3,141,700; Maluku Utara 3,408,000; Papua Barat 3,615,000; Papua Barat Daya 3,614,000; Papua, Papua Selatan and Papua Pegunungan 4,285,850; Papua Tengah 4,285,848. UMKs 2025: Jawa Barat 27 (Kep. 561.7/Kep.798-Kesra/2024), Jawa Tengah 35 (Kep. 561/45/2024), Jawa Timur 38 (Kep. 775/2024), Banten eight (Kep. 471/2024), Bali, Lampung, Kepulauan Riau, Riau, DIY as before; and, as each province restated them beside its 2026 decision or in its 2025 decree (secondary: detik, GoodStats, KitaLulus): Aceh — Banda Aceh 3,898,856, Aceh Tamiang 3,717,948; Sumatera Utara 22 UMKs (Kep. 188.44/833/KPTS/2024 for Medan); Jambi four (Kep. 953/Kep.Gub/DISNAKERTRANS-3.3/2024); Sumatera Selatan seven; Bengkulu four (Kep. M.647.DKKTRANS/2024); NTB nine (Lombok Barat at the UMP: the 2,444,067 one report prints is below it); NTT Kota Kupang 2,396,697; Kalimantan Barat eleven (Kep. 908/NAKERTRAN/2024); Kalimantan Tengah 14 (Kep. 188.44/578/2024); Kalimantan Selatan four (Kep. 100.3.3.1/01089/KUM/2024); Kalimantan Timur ten, Mahakam Ulu included; Kalimantan Utara five; Sulawesi Utara Kota Manado 3,824,264 (SK 697/2024); Sulawesi Tengah six; Sulawesi Selatan Makassar 3,880,136; Sulawesi Tenggara three; Sulawesi Barat Mamuju 3,122,680 (SK 1475/2024) and Pasangkayu 3,445,981; Maluku Kota Ambon 3,185,733; Maluku Utara Kota Ternate 3,461,250 (SK 626/KPTS/MU/2024); Papua Tengah Mimika 5,005,678; big-city UMKs Medan 4,014,072, Samarinda 3,724,437.20, Balikpapan 3,701,508, Bontang 3,780,012, Makassar 3,880,136, Palembang 3,916,635. Where two reports disagree the higher figure is seeded (the floor a worker can rely on): Kabupaten Bima 2,662,719, Murung Raya 3,793,932, Kotawaringin Timur 3,559,506.38, Gunung Mas 3,544,506, Tanah Bumbu 3,500,163, Pasangkayu 3,445,981 (one 2025 report lists only Mamuju with a UMK). Kalimantan Selatan UMKs 2025 re-read on Kep. 100.3.3.1/01089/KUM/2024 diktum KEDUA (the Disnakertrans Kalsel scan, 2026-10-08): Tanah Bumbu 3,500,163.21.",
+				"effective_from": "2025-01-01"
+			}
+		],
+		"lookup": {
+			"by_region": {
+				"Provinsi Aceh/Kabupaten Aceh Barat": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Barat Daya": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Besar": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Jaya": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Selatan": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Singkil": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Tamiang": 3717948,
+				"Provinsi Aceh/Kabupaten Aceh Tengah": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Tenggara": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Timur": 3685616,
+				"Provinsi Aceh/Kabupaten Aceh Utara": 3685616,
+				"Provinsi Aceh/Kabupaten Bener Meriah": 3685616,
+				"Provinsi Aceh/Kabupaten Bireuen": 3685616,
+				"Provinsi Aceh/Kabupaten Gayo Lues": 3685616,
+				"Provinsi Aceh/Kabupaten Nagan Raya": 3685616,
+				"Provinsi Aceh/Kabupaten Pidie": 3685616,
+				"Provinsi Aceh/Kabupaten Pidie Jaya": 3685616,
+				"Provinsi Aceh/Kabupaten Simeulue": 3685616,
+				"Provinsi Aceh/Kota Banda Aceh": 3898856,
+				"Provinsi Aceh/Kota Langsa": 3685616,
+				"Provinsi Aceh/Kota Lhokseumawe": 3685616,
+				"Provinsi Aceh/Kota Sabang": 3685616,
+				"Provinsi Aceh/Kota Subulussalam": 3685616,
+				"Provinsi Bali/Kabupaten Badung": 3534338.88,
+				"Provinsi Bali/Kabupaten Bangli": 2996561,
+				"Provinsi Bali/Kabupaten Buleleng": 2996561,
+				"Provinsi Bali/Kabupaten Gianyar": 3119080,
+				"Provinsi Bali/Kabupaten Jembrana": 2996561,
+				"Provinsi Bali/Kabupaten Karangasem": 2996561,
+				"Provinsi Bali/Kabupaten Klungkung": 2996561,
+				"Provinsi Bali/Kabupaten Tabanan": 3102520.45,
+				"Provinsi Bali/Kota Denpasar": 3298116.5,
+				"Provinsi Banten/Kabupaten Lebak": 3172384.39,
+				"Provinsi Banten/Kabupaten Pandeglang": 3206640.32,
+				"Provinsi Banten/Kabupaten Serang": 4857353.01,
+				"Provinsi Banten/Kabupaten Tangerang": 4901117,
+				"Provinsi Banten/Kota Cilegon": 5128084.48,
+				"Provinsi Banten/Kota Serang": 4418261.13,
+				"Provinsi Banten/Kota Tangerang": 5069708.36,
+				"Provinsi Banten/Kota Tangerang Selatan": 4974392.42,
+				"Provinsi Bengkulu/Kabupaten Bengkulu Selatan": 2670039.39,
+				"Provinsi Bengkulu/Kabupaten Bengkulu Tengah": 2816835.35,
+				"Provinsi Bengkulu/Kabupaten Bengkulu Utara": 2754653.52,
+				"Provinsi Bengkulu/Kabupaten Kaur": 2670039.39,
+				"Provinsi Bengkulu/Kabupaten Kepahiang": 2670039.39,
+				"Provinsi Bengkulu/Kabupaten Lebong": 2670039.39,
+				"Provinsi Bengkulu/Kabupaten Mukomuko": 3052118.99,
+				"Provinsi Bengkulu/Kabupaten Rejang Lebong": 2670039.39,
+				"Provinsi Bengkulu/Kabupaten Seluma": 2670039.39,
+				"Provinsi Bengkulu/Kota Bengkulu": 2930669.44,
+				"Provinsi DI Yogyakarta/Kabupaten Bantul": 2360533,
+				"Provinsi DI Yogyakarta/Kabupaten Gunungkidul": 2330263.67,
+				"Provinsi DI Yogyakarta/Kabupaten Kulon Progo": 2351239.85,
+				"Provinsi DI Yogyakarta/Kabupaten Sleman": 2466514.86,
+				"Provinsi DI Yogyakarta/Kota Yogyakarta": 2655041.81,
+				"Provinsi DKI Jakarta": 5396761,
+				"Provinsi Gorontalo/Kabupaten Boalemo": 3221731,
+				"Provinsi Gorontalo/Kabupaten Bone Bolango": 3221731,
+				"Provinsi Gorontalo/Kabupaten Gorontalo": 3221731,
+				"Provinsi Gorontalo/Kabupaten Gorontalo Utara": 3221731,
+				"Provinsi Gorontalo/Kabupaten Pohuwato": 3221731,
+				"Provinsi Gorontalo/Kota Gorontalo": 3221731,
+				"Provinsi Jambi/Kabupaten Batanghari": 3234535,
+				"Provinsi Jambi/Kabupaten Bungo": 3234535,
+				"Provinsi Jambi/Kabupaten Kerinci": 3234535,
+				"Provinsi Jambi/Kabupaten Merangin": 3234535,
+				"Provinsi Jambi/Kabupaten Muaro Jambi": 3378620,
+				"Provinsi Jambi/Kabupaten Sarolangun": 3322266,
+				"Provinsi Jambi/Kabupaten Tanjung Jabung Barat": 3329595,
+				"Provinsi Jambi/Kabupaten Tanjung Jabung Timur": 3234535,
+				"Provinsi Jambi/Kabupaten Tebo": 3234535,
+				"Provinsi Jambi/Kota Jambi": 3607223,
+				"Provinsi Jambi/Kota Sungai Penuh": 3234535,
+				"Provinsi Jawa Barat/Kabupaten Bandung": 3757284.86,
+				"Provinsi Jawa Barat/Kabupaten Bandung Barat": 3736741,
+				"Provinsi Jawa Barat/Kabupaten Bekasi": 5558515.1,
+				"Provinsi Jawa Barat/Kabupaten Bogor": 4877211.17,
+				"Provinsi Jawa Barat/Kabupaten Ciamis": 2225279.16,
+				"Provinsi Jawa Barat/Kabupaten Cianjur": 3104583.63,
+				"Provinsi Jawa Barat/Kabupaten Cirebon": 2681382.45,
+				"Provinsi Jawa Barat/Kabupaten Garut": 2328555.41,
+				"Provinsi Jawa Barat/Kabupaten Indramayu": 2794237,
+				"Provinsi Jawa Barat/Kabupaten Karawang": 5599593.21,
+				"Provinsi Jawa Barat/Kabupaten Kuningan": 2209519.29,
+				"Provinsi Jawa Barat/Kabupaten Majalengka": 2404632.62,
+				"Provinsi Jawa Barat/Kabupaten Pangandaran": 2221724.19,
+				"Provinsi Jawa Barat/Kabupaten Purwakarta": 4792252.92,
+				"Provinsi Jawa Barat/Kabupaten Subang": 3508626.53,
+				"Provinsi Jawa Barat/Kabupaten Sukabumi": 3604482.92,
+				"Provinsi Jawa Barat/Kabupaten Sumedang": 3732088.02,
+				"Provinsi Jawa Barat/Kabupaten Tasikmalaya": 2699992.26,
+				"Provinsi Jawa Barat/Kota Bandung": 4482914.09,
+				"Provinsi Jawa Barat/Kota Banjar": 2204754.48,
+				"Provinsi Jawa Barat/Kota Bekasi": 5690752.95,
+				"Provinsi Jawa Barat/Kota Bogor": 5126897.22,
+				"Provinsi Jawa Barat/Kota Cimahi": 3863692,
+				"Provinsi Jawa Barat/Kota Cirebon": 2697685.47,
+				"Provinsi Jawa Barat/Kota Depok": 5195721.78,
+				"Provinsi Jawa Barat/Kota Sukabumi": 3018634.94,
+				"Provinsi Jawa Barat/Kota Tasikmalaya": 2801962.82,
+				"Provinsi Jawa Tengah/Kabupaten Banjarnegara": 2170475.32,
+				"Provinsi Jawa Tengah/Kabupaten Banyumas": 2338410,
+				"Provinsi Jawa Tengah/Kabupaten Batang": 2534383,
+				"Provinsi Jawa Tengah/Kabupaten Blora": 2238430.85,
+				"Provinsi Jawa Tengah/Kabupaten Boyolali": 2396598,
+				"Provinsi Jawa Tengah/Kabupaten Brebes": 2239801.5,
+				"Provinsi Jawa Tengah/Kabupaten Cilacap": 2640248,
+				"Provinsi Jawa Tengah/Kabupaten Demak": 2940716,
+				"Provinsi Jawa Tengah/Kabupaten Grobogan": 2254090,
+				"Provinsi Jawa Tengah/Kabupaten Jepara": 2610224,
+				"Provinsi Jawa Tengah/Kabupaten Karanganyar": 2437110,
+				"Provinsi Jawa Tengah/Kabupaten Kebumen": 2259873.55,
+				"Provinsi Jawa Tengah/Kabupaten Kendal": 2783455.25,
+				"Provinsi Jawa Tengah/Kabupaten Klaten": 2389872.78,
+				"Provinsi Jawa Tengah/Kabupaten Kudus": 2680485.72,
+				"Provinsi Jawa Tengah/Kabupaten Magelang": 2467488,
+				"Provinsi Jawa Tengah/Kabupaten Pati": 2332350,
+				"Provinsi Jawa Tengah/Kabupaten Pekalongan": 2486653.59,
+				"Provinsi Jawa Tengah/Kabupaten Pemalang": 2296140,
+				"Provinsi Jawa Tengah/Kabupaten Purbalingga": 2338283.12,
+				"Provinsi Jawa Tengah/Kabupaten Purworejo": 2265937.67,
+				"Provinsi Jawa Tengah/Kabupaten Rembang": 2236168.78,
+				"Provinsi Jawa Tengah/Kabupaten Semarang": 2750136,
+				"Provinsi Jawa Tengah/Kabupaten Sragen": 2182200,
+				"Provinsi Jawa Tengah/Kabupaten Sukoharjo": 2359488,
+				"Provinsi Jawa Tengah/Kabupaten Tegal": 2333586.46,
+				"Provinsi Jawa Tengah/Kabupaten Temanggung": 2246850,
+				"Provinsi Jawa Tengah/Kabupaten Wonogiri": 2180587.5,
+				"Provinsi Jawa Tengah/Kabupaten Wonosobo": 2299521.38,
+				"Provinsi Jawa Tengah/Kota Magelang": 2281230,
+				"Provinsi Jawa Tengah/Kota Pekalongan": 2545138,
+				"Provinsi Jawa Tengah/Kota Salatiga": 2533583,
+				"Provinsi Jawa Tengah/Kota Semarang": 3454827,
+				"Provinsi Jawa Tengah/Kota Surakarta": 2416560,
+				"Provinsi Jawa Tengah/Kota Tegal": 2376683.82,
+				"Provinsi Jawa Timur/Kabupaten Bangkalan": 2397550,
+				"Provinsi Jawa Timur/Kabupaten Banyuwangi": 2810139,
+				"Provinsi Jawa Timur/Kabupaten Blitar": 2413974,
+				"Provinsi Jawa Timur/Kabupaten Bojonegoro": 2525132,
+				"Provinsi Jawa Timur/Kabupaten Bondowoso": 2347359,
+				"Provinsi Jawa Timur/Kabupaten Gresik": 4874133,
+				"Provinsi Jawa Timur/Kabupaten Jember": 2838642,
+				"Provinsi Jawa Timur/Kabupaten Jombang": 3137004,
+				"Provinsi Jawa Timur/Kabupaten Kediri": 2492811,
+				"Provinsi Jawa Timur/Kabupaten Lamongan": 3012164,
+				"Provinsi Jawa Timur/Kabupaten Lumajang": 2429764,
+				"Provinsi Jawa Timur/Kabupaten Madiun": 2400321,
+				"Provinsi Jawa Timur/Kabupaten Magetan": 2406719,
+				"Provinsi Jawa Timur/Kabupaten Malang": 3553530,
+				"Provinsi Jawa Timur/Kabupaten Mojokerto": 4856026,
+				"Provinsi Jawa Timur/Kabupaten Nganjuk": 2405255,
+				"Provinsi Jawa Timur/Kabupaten Ngawi": 2397928,
+				"Provinsi Jawa Timur/Kabupaten Pacitan": 2364287,
+				"Provinsi Jawa Timur/Kabupaten Pamekasan": 2376614,
+				"Provinsi Jawa Timur/Kabupaten Pasuruan": 4866890,
+				"Provinsi Jawa Timur/Kabupaten Ponorogo": 2402959,
+				"Provinsi Jawa Timur/Kabupaten Probolinggo": 2989407,
+				"Provinsi Jawa Timur/Kabupaten Sampang": 2335661,
+				"Provinsi Jawa Timur/Kabupaten Sidoarjo": 4870511,
+				"Provinsi Jawa Timur/Kabupaten Situbondo": 2335209,
+				"Provinsi Jawa Timur/Kabupaten Sumenep": 2406551,
+				"Provinsi Jawa Timur/Kabupaten Trenggalek": 2378784,
+				"Provinsi Jawa Timur/Kabupaten Tuban": 3050400,
+				"Provinsi Jawa Timur/Kabupaten Tulungagung": 2470800,
+				"Provinsi Jawa Timur/Kota Batu": 3360466,
+				"Provinsi Jawa Timur/Kota Blitar": 2481450,
+				"Provinsi Jawa Timur/Kota Kediri": 2572361,
+				"Provinsi Jawa Timur/Kota Madiun": 2422105,
+				"Provinsi Jawa Timur/Kota Malang": 3507693,
+				"Provinsi Jawa Timur/Kota Mojokerto": 3031000,
+				"Provinsi Jawa Timur/Kota Pasuruan": 3358557,
+				"Provinsi Jawa Timur/Kota Probolinggo": 2876657,
+				"Provinsi Jawa Timur/Kota Surabaya": 4961753,
+				"Provinsi Kalimantan Barat/Kabupaten Bengkayang": 3062260,
+				"Provinsi Kalimantan Barat/Kabupaten Kapuas Hulu": 2924501,
+				"Provinsi Kalimantan Barat/Kabupaten Kayong Utara": 3220756,
+				"Provinsi Kalimantan Barat/Kabupaten Ketapang": 3396267.26,
+				"Provinsi Kalimantan Barat/Kabupaten Kubu Raya": 2878286,
+				"Provinsi Kalimantan Barat/Kabupaten Landak": 3054906,
+				"Provinsi Kalimantan Barat/Kabupaten Melawi": 2953711.47,
+				"Provinsi Kalimantan Barat/Kabupaten Mempawah": 2878286,
+				"Provinsi Kalimantan Barat/Kabupaten Sambas": 3015520,
+				"Provinsi Kalimantan Barat/Kabupaten Sanggau": 2970885,
+				"Provinsi Kalimantan Barat/Kabupaten Sekadau": 2878286,
+				"Provinsi Kalimantan Barat/Kabupaten Sintang": 3039805,
+				"Provinsi Kalimantan Barat/Kota Pontianak": 3024820,
+				"Provinsi Kalimantan Barat/Kota Singkawang": 3074566,
+				"Provinsi Kalimantan Selatan/Kabupaten Balangan": 3496195,
+				"Provinsi Kalimantan Selatan/Kabupaten Banjar": 3496195,
+				"Provinsi Kalimantan Selatan/Kabupaten Barito Kuala": 3496195,
+				"Provinsi Kalimantan Selatan/Kabupaten Hulu Sungai Selatan": 3496195,
+				"Provinsi Kalimantan Selatan/Kabupaten Hulu Sungai Tengah": 3496195,
+				"Provinsi Kalimantan Selatan/Kabupaten Hulu Sungai Utara": 3496195,
+				"Provinsi Kalimantan Selatan/Kabupaten Kotabaru": 3643004,
+				"Provinsi Kalimantan Selatan/Kabupaten Tabalong": 3592197.46,
+				"Provinsi Kalimantan Selatan/Kabupaten Tanah Bumbu": 3500163.21,
+				"Provinsi Kalimantan Selatan/Kabupaten Tanah Laut": 3496195,
+				"Provinsi Kalimantan Selatan/Kabupaten Tapin": 3496195,
+				"Provinsi Kalimantan Selatan/Kota Banjarbaru": 3496195,
+				"Provinsi Kalimantan Selatan/Kota Banjarmasin": 3599182.13,
+				"Provinsi Kalimantan Tengah/Kabupaten Barito Selatan": 3829097.81,
+				"Provinsi Kalimantan Tengah/Kabupaten Barito Timur": 3498701,
+				"Provinsi Kalimantan Tengah/Kabupaten Barito Utara": 3900362.43,
+				"Provinsi Kalimantan Tengah/Kabupaten Gunung Mas": 3544506,
+				"Provinsi Kalimantan Tengah/Kabupaten Kapuas": 3473710.5,
+				"Provinsi Kalimantan Tengah/Kabupaten Katingan": 3561258.83,
+				"Provinsi Kalimantan Tengah/Kabupaten Kotawaringin Barat": 3700658.81,
+				"Provinsi Kalimantan Tengah/Kabupaten Kotawaringin Timur": 3559506.38,
+				"Provinsi Kalimantan Tengah/Kabupaten Lamandau": 3781317,
+				"Provinsi Kalimantan Tengah/Kabupaten Murung Raya": 3793932,
+				"Provinsi Kalimantan Tengah/Kabupaten Pulang Pisau": 3481226,
+				"Provinsi Kalimantan Tengah/Kabupaten Seruyan": 3870690.32,
+				"Provinsi Kalimantan Tengah/Kabupaten Sukamara": 3716340,
+				"Provinsi Kalimantan Tengah/Kota Palangka Raya": 3525154.26,
+				"Provinsi Kalimantan Timur/Kabupaten Berau": 4081376.31,
+				"Provinsi Kalimantan Timur/Kabupaten Kutai Barat": 3952233,
+				"Provinsi Kalimantan Timur/Kabupaten Kutai Kartanegara": 3766379,
+				"Provinsi Kalimantan Timur/Kabupaten Kutai Timur": 3743820,
+				"Provinsi Kalimantan Timur/Kabupaten Mahakam Ulu": 3953233,
+				"Provinsi Kalimantan Timur/Kabupaten Paser": 3591565.53,
+				"Provinsi Kalimantan Timur/Kabupaten Penajam Paser Utara": 3957345,
+				"Provinsi Kalimantan Timur/Kota Balikpapan": 3701508,
+				"Provinsi Kalimantan Timur/Kota Bontang": 3780012,
+				"Provinsi Kalimantan Timur/Kota Samarinda": 3724437.2,
+				"Provinsi Kalimantan Utara/Kabupaten Bulungan": 3820000,
+				"Provinsi Kalimantan Utara/Kabupaten Malinau": 3841561,
+				"Provinsi Kalimantan Utara/Kabupaten Nunukan": 3652907,
+				"Provinsi Kalimantan Utara/Kabupaten Tana Tidung": 3824598,
+				"Provinsi Kalimantan Utara/Kota Tarakan": 4460405,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Bangka": 3876600,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Bangka Barat": 3876600,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Bangka Selatan": 3876600,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Bangka Tengah": 3876600,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Belitung": 3876600,
+				"Provinsi Kepulauan Bangka Belitung/Kabupaten Belitung Timur": 3876600,
+				"Provinsi Kepulauan Bangka Belitung/Kota Pangkalpinang": 3876600,
+				"Provinsi Kepulauan Riau/Kabupaten Bintan": 4207762,
+				"Provinsi Kepulauan Riau/Kabupaten Karimun": 3956475,
+				"Provinsi Kepulauan Riau/Kabupaten Kepulauan Anambas": 4084919,
+				"Provinsi Kepulauan Riau/Kabupaten Lingga": 3623654,
+				"Provinsi Kepulauan Riau/Kabupaten Natuna": 3628002,
+				"Provinsi Kepulauan Riau/Kota Batam": 4989600,
+				"Provinsi Kepulauan Riau/Kota Tanjungpinang": 3623654,
+				"Provinsi Lampung/Kabupaten Lampung Barat": 2893070,
+				"Provinsi Lampung/Kabupaten Lampung Selatan": 3076990,
+				"Provinsi Lampung/Kabupaten Lampung Tengah": 2893070,
+				"Provinsi Lampung/Kabupaten Lampung Timur": 2893070,
+				"Provinsi Lampung/Kabupaten Lampung Utara": 2893070,
+				"Provinsi Lampung/Kabupaten Mesuji": 3092026,
+				"Provinsi Lampung/Kabupaten Pesawaran": 2893070,
+				"Provinsi Lampung/Kabupaten Pesisir Barat": 2893070,
+				"Provinsi Lampung/Kabupaten Pringsewu": 2893070,
+				"Provinsi Lampung/Kabupaten Tanggamus": 2893070,
+				"Provinsi Lampung/Kabupaten Tulang Bawang": 2893070,
+				"Provinsi Lampung/Kabupaten Tulang Bawang Barat": 2893070,
+				"Provinsi Lampung/Kabupaten Way Kanan": 3072655,
+				"Provinsi Lampung/Kota Bandar Lampung": 3305367,
+				"Provinsi Lampung/Kota Metro": 2903301,
+				"Provinsi Maluku Utara/Kabupaten Halmahera Barat": 3408000,
+				"Provinsi Maluku Utara/Kabupaten Halmahera Selatan": 3408000,
+				"Provinsi Maluku Utara/Kabupaten Halmahera Tengah": 3408000,
+				"Provinsi Maluku Utara/Kabupaten Halmahera Timur": 3408000,
+				"Provinsi Maluku Utara/Kabupaten Halmahera Utara": 3408000,
+				"Provinsi Maluku Utara/Kabupaten Kepulauan Sula": 3408000,
+				"Provinsi Maluku Utara/Kabupaten Pulau Morotai": 3408000,
+				"Provinsi Maluku Utara/Kabupaten Pulau Taliabu": 3408000,
+				"Provinsi Maluku Utara/Kota Ternate": 3461250,
+				"Provinsi Maluku Utara/Kota Tidore Kepulauan": 3408000,
+				"Provinsi Maluku/Kabupaten Buru": 3141700,
+				"Provinsi Maluku/Kabupaten Buru Selatan": 3141700,
+				"Provinsi Maluku/Kabupaten Kepulauan Aru": 3141700,
+				"Provinsi Maluku/Kabupaten Kepulauan Tanimbar": 3141700,
+				"Provinsi Maluku/Kabupaten Maluku Barat Daya": 3141700,
+				"Provinsi Maluku/Kabupaten Maluku Tengah": 3141700,
+				"Provinsi Maluku/Kabupaten Maluku Tenggara": 3141700,
+				"Provinsi Maluku/Kabupaten Seram Bagian Barat": 3141700,
+				"Provinsi Maluku/Kabupaten Seram Bagian Timur": 3141700,
+				"Provinsi Maluku/Kota Ambon": 3185733,
+				"Provinsi Maluku/Kota Tual": 3141700,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Bima": 2662719,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Dompu": 2605734,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Lombok Barat": 2602931,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Lombok Tengah": 2610281,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Lombok Timur": 2608714,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Lombok Utara": 2609826,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Sumbawa": 2627607,
+				"Provinsi Nusa Tenggara Barat/Kabupaten Sumbawa Barat": 2823168,
+				"Provinsi Nusa Tenggara Barat/Kota Bima": 2662719,
+				"Provinsi Nusa Tenggara Barat/Kota Mataram": 2859620,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Alor": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Belu": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Ende": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Flores Timur": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Kupang": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Lembata": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Malaka": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Manggarai": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Manggarai Barat": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Manggarai Timur": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Nagekeo": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Ngada": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Rote Ndao": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sabu Raijua": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sikka": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sumba Barat": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sumba Barat Daya": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sumba Tengah": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Sumba Timur": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Timor Tengah Selatan": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kabupaten Timor Tengah Utara": 2328969.69,
+				"Provinsi Nusa Tenggara Timur/Kota Kupang": 2396697,
+				"Provinsi Papua Barat Daya/Kabupaten Maybrat": 3614000,
+				"Provinsi Papua Barat Daya/Kabupaten Raja Ampat": 3614000,
+				"Provinsi Papua Barat Daya/Kabupaten Sorong": 3614000,
+				"Provinsi Papua Barat Daya/Kabupaten Sorong Selatan": 3614000,
+				"Provinsi Papua Barat Daya/Kabupaten Tambrauw": 3614000,
+				"Provinsi Papua Barat Daya/Kota Sorong": 3614000,
+				"Provinsi Papua Barat/Kabupaten Fakfak": 3615000,
+				"Provinsi Papua Barat/Kabupaten Kaimana": 3615000,
+				"Provinsi Papua Barat/Kabupaten Manokwari": 3615000,
+				"Provinsi Papua Barat/Kabupaten Manokwari Selatan": 3615000,
+				"Provinsi Papua Barat/Kabupaten Pegunungan Arfak": 3615000,
+				"Provinsi Papua Barat/Kabupaten Teluk Bintuni": 3615000,
+				"Provinsi Papua Barat/Kabupaten Teluk Wondama": 3615000,
+				"Provinsi Papua Pegunungan/Kabupaten Jayawijaya": 4285850,
+				"Provinsi Papua Pegunungan/Kabupaten Lanny Jaya": 4285850,
+				"Provinsi Papua Pegunungan/Kabupaten Mamberamo Tengah": 4285850,
+				"Provinsi Papua Pegunungan/Kabupaten Nduga": 4285850,
+				"Provinsi Papua Pegunungan/Kabupaten Pegunungan Bintang": 4285850,
+				"Provinsi Papua Pegunungan/Kabupaten Tolikara": 4285850,
+				"Provinsi Papua Pegunungan/Kabupaten Yahukimo": 4285850,
+				"Provinsi Papua Pegunungan/Kabupaten Yalimo": 4285850,
+				"Provinsi Papua Selatan/Kabupaten Asmat": 4285850,
+				"Provinsi Papua Selatan/Kabupaten Boven Digoel": 4285850,
+				"Provinsi Papua Selatan/Kabupaten Mappi": 4285850,
+				"Provinsi Papua Selatan/Kabupaten Merauke": 4285850,
+				"Provinsi Papua Tengah/Kabupaten Deiyai": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Dogiyai": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Intan Jaya": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Mimika": 5005678,
+				"Provinsi Papua Tengah/Kabupaten Nabire": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Paniai": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Puncak": 4285848,
+				"Provinsi Papua Tengah/Kabupaten Puncak Jaya": 4285848,
+				"Provinsi Papua/Kabupaten Biak Numfor": 4285850,
+				"Provinsi Papua/Kabupaten Jayapura": 4285850,
+				"Provinsi Papua/Kabupaten Keerom": 4285850,
+				"Provinsi Papua/Kabupaten Kepulauan Yapen": 4285850,
+				"Provinsi Papua/Kabupaten Mamberamo Raya": 4285850,
+				"Provinsi Papua/Kabupaten Sarmi": 4285850,
+				"Provinsi Papua/Kabupaten Supiori": 4285850,
+				"Provinsi Papua/Kabupaten Waropen": 4285850,
+				"Provinsi Papua/Kota Jayapura": 4285850,
+				"Provinsi Riau/Kabupaten Bengkalis": 3933620.36,
+				"Provinsi Riau/Kabupaten Indragiri Hilir": 3508776.22,
+				"Provinsi Riau/Kabupaten Indragiri Hulu": 3703206.19,
+				"Provinsi Riau/Kabupaten Kampar": 3634593.72,
+				"Provinsi Riau/Kabupaten Kepulauan Meranti": 3508776.22,
+				"Provinsi Riau/Kabupaten Kuantan Singingi": 3692796.76,
+				"Provinsi Riau/Kabupaten Pelalawan": 3616057.35,
+				"Provinsi Riau/Kabupaten Rokan Hilir": 3548818.47,
+				"Provinsi Riau/Kabupaten Rokan Hulu": 3579380.61,
+				"Provinsi Riau/Kabupaten Siak": 3691216.25,
+				"Provinsi Riau/Kota Dumai": 4118659.61,
+				"Provinsi Riau/Kota Pekanbaru": 3675937.97,
+				"Provinsi Sulawesi Barat/Kabupaten Majene": 3104430,
+				"Provinsi Sulawesi Barat/Kabupaten Mamasa": 3104430,
+				"Provinsi Sulawesi Barat/Kabupaten Mamuju": 3122680,
+				"Provinsi Sulawesi Barat/Kabupaten Mamuju Tengah": 3104430,
+				"Provinsi Sulawesi Barat/Kabupaten Pasangkayu": 3445981,
+				"Provinsi Sulawesi Barat/Kabupaten Polewali Mandar": 3104430,
+				"Provinsi Sulawesi Selatan/Kabupaten Bantaeng": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Barru": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Bone": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Bulukumba": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Enrekang": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Gowa": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Jeneponto": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Kepulauan Selayar": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Luwu": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Luwu Timur": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Luwu Utara": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Maros": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Pangkajene dan Kepulauan": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Pinrang": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Sidenreng Rappang": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Sinjai": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Soppeng": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Takalar": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Tana Toraja": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Toraja Utara": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kabupaten Wajo": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kota Makassar": 3880136,
+				"Provinsi Sulawesi Selatan/Kota Palopo": 3657527.37,
+				"Provinsi Sulawesi Selatan/Kota Parepare": 3657527.37,
+				"Provinsi Sulawesi Tengah/Kabupaten Banggai": 2947722,
+				"Provinsi Sulawesi Tengah/Kabupaten Banggai Kepulauan": 2915000,
+				"Provinsi Sulawesi Tengah/Kabupaten Banggai Laut": 2915000,
+				"Provinsi Sulawesi Tengah/Kabupaten Buol": 3002130,
+				"Provinsi Sulawesi Tengah/Kabupaten Donggala": 2915000,
+				"Provinsi Sulawesi Tengah/Kabupaten Morowali": 3716125,
+				"Provinsi Sulawesi Tengah/Kabupaten Morowali Utara": 3925456,
+				"Provinsi Sulawesi Tengah/Kabupaten Parigi Moutong": 2915000,
+				"Provinsi Sulawesi Tengah/Kabupaten Poso": 3057161,
+				"Provinsi Sulawesi Tengah/Kabupaten Sigi": 2915000,
+				"Provinsi Sulawesi Tengah/Kabupaten Tojo Una-Una": 2915000,
+				"Provinsi Sulawesi Tengah/Kabupaten Tolitoli": 2915000,
+				"Provinsi Sulawesi Tengah/Kota Palu": 3386588,
+				"Provinsi Sulawesi Tenggara/Kabupaten Bombana": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Buton": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Buton Selatan": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Buton Tengah": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Buton Utara": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Kolaka": 3349714.11,
+				"Provinsi Sulawesi Tenggara/Kabupaten Kolaka Timur": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Kolaka Utara": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Konawe": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Konawe Kepulauan": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Konawe Selatan": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Konawe Utara": 3259583,
+				"Provinsi Sulawesi Tenggara/Kabupaten Muna": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Muna Barat": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kabupaten Wakatobi": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kota Baubau": 3073551.7,
+				"Provinsi Sulawesi Tenggara/Kota Kendari": 3314389.8,
+				"Provinsi Sulawesi Utara/Kabupaten Bolaang Mongondow": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Bolaang Mongondow Selatan": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Bolaang Mongondow Timur": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Bolaang Mongondow Utara": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Kepulauan Sangihe": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Kepulauan Siau Tagulandang Biaro": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Kepulauan Talaud": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Minahasa": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Minahasa Selatan": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Minahasa Tenggara": 3775425,
+				"Provinsi Sulawesi Utara/Kabupaten Minahasa Utara": 3775425,
+				"Provinsi Sulawesi Utara/Kota Bitung": 3775425,
+				"Provinsi Sulawesi Utara/Kota Kotamobagu": 3775425,
+				"Provinsi Sulawesi Utara/Kota Manado": 3824264,
+				"Provinsi Sulawesi Utara/Kota Tomohon": 3775425,
+				"Provinsi Sumatera Barat/Kabupaten Agam": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Dharmasraya": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Kepulauan Mentawai": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Lima Puluh Kota": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Padang Pariaman": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Pasaman": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Pasaman Barat": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Pesisir Selatan": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Sijunjung": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Solok": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Solok Selatan": 2994193.47,
+				"Provinsi Sumatera Barat/Kabupaten Tanah Datar": 2994193.47,
+				"Provinsi Sumatera Barat/Kota Bukittinggi": 2994193.47,
+				"Provinsi Sumatera Barat/Kota Padang": 2994193.47,
+				"Provinsi Sumatera Barat/Kota Padang Panjang": 2994193.47,
+				"Provinsi Sumatera Barat/Kota Pariaman": 2994193.47,
+				"Provinsi Sumatera Barat/Kota Payakumbuh": 2994193.47,
+				"Provinsi Sumatera Barat/Kota Sawahlunto": 2994193.47,
+				"Provinsi Sumatera Barat/Kota Solok": 2994193.47,
+				"Provinsi Sumatera Selatan/Kabupaten Banyuasin": 3715028,
+				"Provinsi Sumatera Selatan/Kabupaten Empat Lawang": 3681571,
+				"Provinsi Sumatera Selatan/Kabupaten Lahat": 3681571,
+				"Provinsi Sumatera Selatan/Kabupaten Muara Enim": 3863417,
+				"Provinsi Sumatera Selatan/Kabupaten Musi Banyuasin": 3778348,
+				"Provinsi Sumatera Selatan/Kabupaten Musi Rawas": 3796653,
+				"Provinsi Sumatera Selatan/Kabupaten Musi Rawas Utara": 3796654,
+				"Provinsi Sumatera Selatan/Kabupaten Ogan Ilir": 3681571,
+				"Provinsi Sumatera Selatan/Kabupaten Ogan Komering Ilir": 3681571,
+				"Provinsi Sumatera Selatan/Kabupaten Ogan Komering Ulu": 3681571,
+				"Provinsi Sumatera Selatan/Kabupaten Ogan Komering Ulu Selatan": 3681571,
+				"Provinsi Sumatera Selatan/Kabupaten Ogan Komering Ulu Timur": 3749696,
+				"Provinsi Sumatera Selatan/Kabupaten Penukal Abab Lematang Ilir": 3681571,
+				"Provinsi Sumatera Selatan/Kota Lubuklinggau": 3681571,
+				"Provinsi Sumatera Selatan/Kota Pagar Alam": 3681571,
+				"Provinsi Sumatera Selatan/Kota Palembang": 3916635,
+				"Provinsi Sumatera Selatan/Kota Prabumulih": 3681571,
+				"Provinsi Sumatera Utara/Kabupaten Asahan": 3265908,
+				"Provinsi Sumatera Utara/Kabupaten Batu Bara": 3676000,
+				"Provinsi Sumatera Utara/Kabupaten Dairi": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Deli Serdang": 3732906,
+				"Provinsi Sumatera Utara/Kabupaten Humbang Hasundutan": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Karo": 3577282,
+				"Provinsi Sumatera Utara/Kabupaten Labuhanbatu": 3438181,
+				"Provinsi Sumatera Utara/Kabupaten Labuhanbatu Selatan": 3404984,
+				"Provinsi Sumatera Utara/Kabupaten Labuhanbatu Utara": 3327621,
+				"Provinsi Sumatera Utara/Kabupaten Langkat": 3134660,
+				"Provinsi Sumatera Utara/Kabupaten Mandailing Natal": 3100998,
+				"Provinsi Sumatera Utara/Kabupaten Nias": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Nias Barat": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Nias Selatan": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Nias Utara": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Padang Lawas": 3195910,
+				"Provinsi Sumatera Utara/Kabupaten Padang Lawas Utara": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Pakpak Bharat": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Samosir": 2992559,
+				"Provinsi Sumatera Utara/Kabupaten Serdang Bedagai": 3313500,
+				"Provinsi Sumatera Utara/Kabupaten Simalungun": 3088851,
+				"Provinsi Sumatera Utara/Kabupaten Tapanuli Selatan": 3307324,
+				"Provinsi Sumatera Utara/Kabupaten Tapanuli Tengah": 3242323,
+				"Provinsi Sumatera Utara/Kabupaten Tapanuli Utara": 3017649,
+				"Provinsi Sumatera Utara/Kabupaten Toba": 3151356,
+				"Provinsi Sumatera Utara/Kota Binjai": 3075365,
+				"Provinsi Sumatera Utara/Kota Gunungsitoli": 2992559,
+				"Provinsi Sumatera Utara/Kota Medan": 4014072,
+				"Provinsi Sumatera Utara/Kota Padangsidimpuan": 3168235,
+				"Provinsi Sumatera Utara/Kota Pematangsiantar": 2992559,
+				"Provinsi Sumatera Utara/Kota Sibolga": 3419748,
+				"Provinsi Sumatera Utara/Kota Tanjungbalai": 3244606,
+				"Provinsi Sumatera Utara/Kota Tebing Tinggi": 3006203
+			}
+		},
+		"id": "b46e803e-73c3-5f00-baa0-d0d121094692",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "BASIC_WAGE_SHARE",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst fixed = Object.values(get(ctx.entry, 'terms.allowances', {})).filter((a) => get(a, 'variability', '') === 'FIXED');\nconst monthly = Number(get(rate, 'amount', 0)) + sum(fixed.map((a) => Number(get(a, 'amount', 0))));\nconst wageEngagements = ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'];\nreturn wageEngagements.includes(get(ctx.entry, 'engagement', '')) && get(rate, 'unit', '') === 'MONTHLY' && monthly > 0;\n",
+		"validate": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst fixed = Object.values(get(ctx.entry, 'terms.allowances', {})).filter((a) => get(a, 'variability', '') === 'FIXED');\nconst monthly = Number(get(rate, 'amount', 0)) + sum(fixed.map((a) => Number(get(a, 'amount', 0))));\nconst wageEngagements = ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'];\nreturn Number(get(rate, 'amount', 0)) >= Number(get(ctx.lookup, 'minimum_share', 0.75)) * monthly;\n",
+		"order": 1,
+		"lookup": {
+			"minimum_share": 0.75
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 art.7(2): where the wage is basic plus fixed allowances, the basic wage is at least 75% of the total of basic wage and fixed allowances.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"id": "bc28a258-e778-5d91-b6a7-55e2c788f704",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "SECTOR_MINIMUM_WAGE",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				}
+			}
+		},
+		"condition": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst small = get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL';\nconst wageEngagements = ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'];\nconst fixed = Object.values(get(ctx.entry, 'terms.allowances', {})).filter((a) => get(a, 'variability', '') === 'FIXED');\nconst monthly = Number(get(rate, 'amount', 0)) + sum(fixed.map((a) => Number(get(a, 'amount', 0))));\nconst worksite = get(ctx.entry, 'employee_extension_data.worksite_kbli', '');\nconst facts = get(entity, 'entity_extension_data', {});\nconst job = get(ctx.entry, 'employee_extension_data.umsp_job_category', '');\nconst bySector = get(ctx.lookup, 'by_sector', {});\nconst star = Number(get(facts, 'umsp_hotel_star', 0));\nconst conditionMatches = (row) => {\n    const condition = get(row, 'condition', '');\n    if (condition === '') return true;\n    if (condition === 'HOTEL_STAR_3') return star === Number(get(ctx.lookup, 'hotel_star_3', 3));\n    if (condition === 'HOTEL_STAR_4') return star === Number(get(ctx.lookup, 'hotel_star_4', 4));\n    if (condition === 'HOTEL_STAR_5') return star === Number(get(ctx.lookup, 'hotel_star_5', 5));\n    if (condition === 'HOTEL_4_5') return star >= Number(get(ctx.lookup, 'hotel_stars_4_5_min', 4));\n    if (condition === 'HOTEL_3_5') return star >= Number(get(ctx.lookup, 'hotel_stars_3_5_min', 3));\n    if (condition === 'BANK_PRIVATE_FOREX') return get(facts, 'umsp_bank_category', '') === 'PRIVATE_CONVENTIONAL_FOREX';\n    if (condition === 'BANK_SYARIAH_FOREX') return get(facts, 'umsp_bank_category', '') === 'SYARIAH_FOREX';\n    if (condition === 'RAYON_VISCOSE') return get(facts, 'umsp_rayon_viscose', false) === true;\n    if (condition === 'EXPORT') return get(facts, 'umsp_export_oriented', false) === true;\n    if (condition === 'ASSETS_1T') return get(facts, 'umsp_assets_over_1_trillion', false) === true;\n    if (condition === 'ASTRA') return get(facts, 'umsp_astra_group', false) === true;\n    if (condition === 'FREEPORT_AREA') return get(facts, 'umsp_freeport_area', false) === true;\n    if (condition === 'BUS_DRIVER_MECHANIC') return job === 'BUS_DRIVER_MECHANIC';\n    if (condition === 'CLASS_A_HOSPITAL_CARE') return get(facts, 'umsp_class_a_private_hospital', false) === true && ['NURSING_MIDWIFERY', 'MEDICAL_SUPPORT'].includes(job);\n    return false;\n};\nconst covered = (key) => region === key || region.startsWith(key + '/');\nreturn ['EMPLOYEE', 'CONTRACTOR'].includes(get(ctx.entry, 'engagement', '')) && get(rate, 'unit', '') === 'MONTHLY' && !small && region !== '' && worksite !== '' && Object.keys(bySector).some(covered);\n",
+		"validate": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst small = get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL';\nconst wageEngagements = ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'];\nconst fixed = Object.values(get(ctx.entry, 'terms.allowances', {})).filter((a) => get(a, 'variability', '') === 'FIXED');\nconst monthly = Number(get(rate, 'amount', 0)) + sum(fixed.map((a) => Number(get(a, 'amount', 0))));\nconst worksite = get(ctx.entry, 'employee_extension_data.worksite_kbli', '');\nconst facts = get(entity, 'entity_extension_data', {});\nconst job = get(ctx.entry, 'employee_extension_data.umsp_job_category', '');\nconst bySector = get(ctx.lookup, 'by_sector', {});\nconst star = Number(get(facts, 'umsp_hotel_star', 0));\nconst conditionMatches = (row) => {\n    const condition = get(row, 'condition', '');\n    if (condition === '') return true;\n    if (condition === 'HOTEL_STAR_3') return star === Number(get(ctx.lookup, 'hotel_star_3', 3));\n    if (condition === 'HOTEL_STAR_4') return star === Number(get(ctx.lookup, 'hotel_star_4', 4));\n    if (condition === 'HOTEL_STAR_5') return star === Number(get(ctx.lookup, 'hotel_star_5', 5));\n    if (condition === 'HOTEL_4_5') return star >= Number(get(ctx.lookup, 'hotel_stars_4_5_min', 4));\n    if (condition === 'HOTEL_3_5') return star >= Number(get(ctx.lookup, 'hotel_stars_3_5_min', 3));\n    if (condition === 'BANK_PRIVATE_FOREX') return get(facts, 'umsp_bank_category', '') === 'PRIVATE_CONVENTIONAL_FOREX';\n    if (condition === 'BANK_SYARIAH_FOREX') return get(facts, 'umsp_bank_category', '') === 'SYARIAH_FOREX';\n    if (condition === 'RAYON_VISCOSE') return get(facts, 'umsp_rayon_viscose', false) === true;\n    if (condition === 'EXPORT') return get(facts, 'umsp_export_oriented', false) === true;\n    if (condition === 'ASSETS_1T') return get(facts, 'umsp_assets_over_1_trillion', false) === true;\n    if (condition === 'ASTRA') return get(facts, 'umsp_astra_group', false) === true;\n    if (condition === 'FREEPORT_AREA') return get(facts, 'umsp_freeport_area', false) === true;\n    if (condition === 'BUS_DRIVER_MECHANIC') return job === 'BUS_DRIVER_MECHANIC';\n    if (condition === 'CLASS_A_HOSPITAL_CARE') return get(facts, 'umsp_class_a_private_hospital', false) === true && ['NURSING_MIDWIFERY', 'MEDICAL_SUPPORT'].includes(job);\n    return false;\n};\nconst covered = (key) => region === key || region.startsWith(key + '/');\nreturn !Object.keys(bySector).some((key) => covered(key) && bySector[key].some((row) => worksite.startsWith(get(row, 'kbli', '')) && conditionMatches(row) && monthly < Number(get(row, 'monthly', 0))));\n",
+		"order": 2,
+		"lookup": {
+			"hotel_stars_4_5_min": 4,
+			"hotel_stars_3_5_min": 3,
+			"by_sector": {
+				"Provinsi Papua Tengah/Kabupaten Mimika": [
+					{
+						"kbli": "05",
+						"monthly": 6000000,
+						"condition": ""
+					},
+					{
+						"kbli": "06",
+						"monthly": 6000000,
+						"condition": ""
+					},
+					{
+						"kbli": "07",
+						"monthly": 6000000,
+						"condition": ""
+					},
+					{
+						"kbli": "08",
+						"monthly": 6000000,
+						"condition": ""
+					},
+					{
+						"kbli": "09",
+						"monthly": 6000000,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 5130819,
+						"condition": ""
+					},
+					{
+						"kbli": "42",
+						"monthly": 5130819,
+						"condition": ""
+					},
+					{
+						"kbli": "43",
+						"monthly": 5130819,
+						"condition": ""
+					},
+					{
+						"kbli": "41",
+						"monthly": 6000000,
+						"condition": "FREEPORT_AREA"
+					},
+					{
+						"kbli": "42",
+						"monthly": 6000000,
+						"condition": "FREEPORT_AREA"
+					},
+					{
+						"kbli": "43",
+						"monthly": 6000000,
+						"condition": "FREEPORT_AREA"
+					}
+				],
+				"Provinsi Kalimantan Selatan/Kota Banjarmasin": [
+					{
+						"kbli": "641",
+						"monthly": 3609682.13,
+						"condition": ""
+					},
+					{
+						"kbli": "5511",
+						"monthly": 3603182.13,
+						"condition": ""
+					},
+					{
+						"kbli": "5512",
+						"monthly": 3603182.13,
+						"condition": ""
+					},
+					{
+						"kbli": "16",
+						"monthly": 3601682.13,
+						"condition": ""
+					}
+				],
+				"Provinsi Kalimantan Selatan/Kabupaten Kotabaru": [
+					{
+						"kbli": "05100",
+						"monthly": 3653000,
+						"condition": ""
+					},
+					{
+						"kbli": "1043",
+						"monthly": 3646004,
+						"condition": ""
+					},
+					{
+						"kbli": "01262",
+						"monthly": 3646004,
+						"condition": ""
+					}
+				]
+			}
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 art.35D(1) as amended by PP 49/2025; the sector decrees and KBLI are stated in the second reference. Row conditions are customer inputs: exporter, assets above Rp1 trillion, Astra group, star hotel, bank category, class-A private hospital, rayon-viscose staple fibre, work in the PT Freeport Indonesia area (`entity_extension_data`), and the job category for the DKI bus and hospital rows (`employee_extension_data.umsp_job_category`); the worksite is `employee_extension_data.work_region` or the company region.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			},
+			{
+				"title": "PP 36/2021 art.35D as in force in 2025 and Permenaker 16/2024 art.7: the governor’s sector minimum wages bind workers under one year of service. Version 1 (December 2025) seeds the 2025 decrees read from an official host: Mimika UMSK 2025 (Kep. Gubernur Papua Tengah 258/2024 diktum KESATU, read 2026-10-08 https://jdih.papuatengahprov.go.id/dokumen/view?id=783): mining (divisions 05–09) 6,000,000, construction (41–43) 5,130,819, and a construction company working in the PT Freeport Indonesia area pays the mining rate (entity_extension_data.umsp_freeport_area). The matching rules of the 2026 table apply (a KBLI code or prefix of employee_extension_data.worksite_kbli; a province key covers its localities; micro and small enterprises excluded). Kalimantan Selatan UMSK 2025 (Kep. Gubernur 100.3.3.1/01089/KUM/2024, 18 Dec 2024, from 1 January 2025, diktum KETIGA; the signed scan “KEPGUB UMK DAN UMSK TAHUN 2025” in the Disnakertrans Kalsel download centre, https://disnakertrans.kalselprov.go.id/unduhan?page=2, read 2026-10-08): Banjarmasin banking 3,609,682.13 (KBLI 641), hotels 3,603,182.13 (5511 and 5512: no star floor in 2025), wood 3,601,682.13 (division 16); Kotabaru coal 3,653,000 (05100), palm-oil and cooking-oil industry 3,646,004 (1043), palm plantation 3,646,004 (01262) — the sectors named without KBLI and read as in the 2026 decree. Any other 2025 worksite area warns (VALIDATIONS SECTOR_MINIMUM_WAGE_UNSEEDED, unseeded_sector.outside_tables)."
+			}
+		],
+		"id": "d105de95-5d75-5d8a-9377-10d15ef21468",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "MINIMUM_WAGE_REGION_UNKNOWN",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				}
+			},
+			"registered_rule": {
+				"where": {
+					"code": {
+						"eq": "MINIMUM_WAGE_FLOOR"
+					},
+					"settings_id": {
+						"eq": {
+							"var": "ctx.entry.input_schema_version_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst floor = first(get(ctx, 'reads.registered_rule', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(floor, 'lookup.by_region', get(ctx.lookup, 'by_region', {}));\nconst small = get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL';\nconst wageEngagements = ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'];\nreturn wageEngagements.includes(get(ctx.entry, 'engagement', '')) && !small && Object.keys(byRegion).length > 0;\n",
+		"validate": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst floor = first(get(ctx, 'reads.registered_rule', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(floor, 'lookup.by_region', get(ctx.lookup, 'by_region', {}));\nconst small = get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL';\nconst wageEngagements = ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'];\nconst bareProvince = region !== '' && !region.includes('/') && Object.keys(byRegion).some((key) => key.startsWith(region + '/'));\nreturn region !== '' && Object.hasOwn(byRegion, region) && !bareProvince;\n",
+		"order": 3,
+		"references": [
+			{
+				"title": "UU 13/2003 art.88E(2) as amended by UU 6/2023"
+			},
+			{
+				"title": "PP 36/2021",
+				"locator": "art.25",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			},
+			{
+				"title": "Perpres 82/2018",
+				"locator": "art.32(2)-(3)"
+			}
+		],
+		"id": "da5e1473-174b-5e46-8811-10b3c796d19a",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "DAILY_MINIMUM_WAGE",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				}
+			},
+			"registered_rule": {
+				"where": {
+					"code": {
+						"eq": "MINIMUM_WAGE_FLOOR"
+					},
+					"settings_id": {
+						"eq": {
+							"var": "ctx.entry.input_schema_version_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst floor = first(get(ctx, 'reads.registered_rule', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(floor, 'lookup.by_region', get(ctx.lookup, 'by_region', {}));\nconst small = get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL';\nconst wageEngagements = ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'];\nreturn wageEngagements.includes(get(ctx.entry, 'engagement', '')) && get(rate, 'unit', '') === 'DAILY' && !small && region !== '' && Object.hasOwn(byRegion, region);\n",
+		"validate": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst floor = first(get(ctx, 'reads.registered_rule', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(floor, 'lookup.by_region', get(ctx.lookup, 'by_region', {}));\nconst small = get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL';\nconst wageEngagements = ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'];\nconst days = get(ctx.entry, 'terms.normal_days_per_week', null);\nconst divisor = days != null && Number(days) === Number(get(ctx.lookup, 'six_day_week', 6))\n    ? Number(get(ctx.lookup, 'six_day_divisor', 25))\n    : Number(get(ctx.lookup, 'five_day_divisor', 21));\nreturn days != null && get(rate, 'amount', null) != null && Number(get(rate, 'amount', 0)) >= Number(byRegion[region]) / divisor;\n",
+		"order": 4,
+		"lookup": {
+			"six_day_week": 6,
+			"six_day_divisor": 25,
+			"five_day_divisor": 21
+		},
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "arts.17, 23(3)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			},
+			{
+				"title": "UU 13/2003 art.88E(2) as amended by UU 6/2023"
+			}
+		],
+		"id": "3a3c8a6c-04d0-52f4-a4a6-c991e45c8217",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "HOURLY_MINIMUM_WAGE",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				}
+			},
+			"registered_rule": {
+				"where": {
+					"code": {
+						"eq": "MINIMUM_WAGE_FLOOR"
+					},
+					"settings_id": {
+						"eq": {
+							"var": "ctx.entry.input_schema_version_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst floor = first(get(ctx, 'reads.registered_rule', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(floor, 'lookup.by_region', get(ctx.lookup, 'by_region', {}));\nconst small = get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL';\nconst wageEngagements = ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'];\nreturn wageEngagements.includes(get(ctx.entry, 'engagement', '')) && get(rate, 'unit', '') === 'HOURLY' && !small && region !== '' && Object.hasOwn(byRegion, region);\n",
+		"validate": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst floor = first(get(ctx, 'reads.registered_rule', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(floor, 'lookup.by_region', get(ctx.lookup, 'by_region', {}));\nconst small = get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL';\nconst wageEngagements = ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'];\nreturn get(rate, 'amount', null) != null && Number(get(rate, 'amount', 0)) >= Number(byRegion[region]) / Number(get(ctx.lookup, 'hours_divisor', 126));\n",
+		"order": 5,
+		"lookup": {
+			"hours_divisor": 126
+		},
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "art.16(1)-(4)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"id": "58218079-f7c1-5bd9-a25c-4a34da1bf433",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PKWT_MAXIMUM_TERM",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"employee_contract": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "ctx.entry.employee_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "// js\nreturn ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', '')) && get(ctx.entry, 'signed_contract_period.to', null) != null && get(ctx.entry, 'effective_range.from', '') !== '';",
+		"validate": "// js\nconst from = get(ctx.entry, 'signed_contract_period.from', '');\nconst to = get(ctx.entry, 'signed_contract_period.to', '');\nconst effectiveTo = get(ctx.entry, 'effective_range.to', null);\nconst current = get(ctx.entry, 'effective_range.from', '');\nconst prior = get(ctx, 'reads.employee_contract', []).map((row) => get(row, 'effective_range.from', '')).filter((day) => day !== '');\nconst starts = prior.concat([current]);\nconst start = starts.reduce((left, right) => (left === '' || right < left ? right : left), '');\nconst end = add_days(add_years(start, Number(get(ctx.lookup, 'maximum_years', 5))), -1);\nreturn from !== '' && to !== '' && to <= end && (effectiveTo == null || effectiveTo <= end);\n",
+		"order": 6,
+		"lookup": {
+			"maximum_years": 5
+		},
+		"references": [
+			{
+				"title": "PP 35/2021",
+				"locator": "art.8(1)-(3)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			},
+			{
+				"title": "UU 13/2003 art.59 as amended by UU 6/2023"
+			}
+		],
+		"id": "ae032abe-3e6c-5b17-a199-50e088c509f6",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PROBATION_RULES",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', '')) && get(ctx.entry, 'terms.probation_period', null) != null;",
+		"validate": "// js\nconst from = get(ctx.entry, 'terms.probation_period.from', '');\nconst to = get(ctx.entry, 'terms.probation_period.to', '');\nif (from === '' || to === '') return false;\nif (get(ctx.entry, 'signed_contract_period.to', null) != null) return false;\nreturn to < add_months(from, Number(get(ctx.lookup, 'maximum_months', 3)));\n",
+		"order": 7,
+		"lookup": {
+			"maximum_months": 3
+		},
+		"references": [
+			{
+				"title": "UU 13/2003 arts.58(1)-(2), 60(1)-(2), as amended by UU 6/2023",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
+		"id": "dc942afe-6fa1-5454-af3c-e68b2f6e3f4f",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PKWT_WRITTEN_INDONESIAN",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', '')) && get(ctx.entry, 'signed_contract_period.to', null) != null && get(ctx.entry, 'employee_extension_data.written_in_indonesian', null) != null;",
+		"validate": "// js\nreturn get(ctx.entry, 'employee_extension_data.written_in_indonesian', true) !== false;",
+		"order": 8,
+		"references": [
+			{
+				"title": "UU 13/2003 art.57(1) as amended by UU 6/2023"
+			},
+			{
+				"title": "PP 35/2021",
+				"locator": "arts.2, 11(1)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf"
+			}
+		],
+		"id": "dd07b2de-5988-53e0-be5f-3f77ff90cb9d",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "FOREIGN_WORKER_PERSONNEL_POSITION",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"condition": "// js\nconst residency = get(ctx.entry, 'terms.residency_status', '');\nreturn residency !== '' && residency !== 'CITIZEN' && get(ctx.entry, 'employee_extension_data.personnel_position', null) != null;",
+		"validate": "// js\nreturn get(ctx.entry, 'employee_extension_data.personnel_position', false) !== true;",
+		"order": 9,
+		"references": [
+			{
+				"title": "PP 34/2021",
+				"locator": "art.11(1)",
+				"url": "https://jdih.kemnaker.go.id/asset/data_puu/PP342021.pdf"
+			}
+		],
+		"id": "041e93ed-8eda-581b-8246-fb0664667ee2",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "MINIMUM_AGE",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', '')) && get(ctx.entry, 'payroll.date_of_birth', '') !== '' && get(ctx.entry, 'effective_range.from', '') !== '';",
+		"validate": "// js\nconst born = get(ctx.entry, 'payroll.date_of_birth', '');\nconst start = get(ctx.entry, 'effective_range.from', '');\nreturn age_on(born, start) >= Number(get(ctx.lookup, 'minimum_age_years', 13));\n",
+		"order": 10,
+		"lookup": {
+			"minimum_age_years": 13
+		},
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "arts.68-70",
+				"url": "https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003"
+			}
+		],
+		"id": "c8c038f6-16f9-5e52-8c09-b79bccb3f711",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "PAYROLL_RUN_KINDS",
+		"target_collection": "payroll_run",
+		"events": ["create"],
+		"condition": "// js\nreturn get(ctx.entry, 'kind', null) != null;",
+		"validate": "// js\nreturn get(ctx.lookup, 'kinds', []).includes(get(ctx.entry, 'kind', ''));",
+		"order": 12,
+		"lookup": {
+			"kinds": ["REGULAR", "OFF_CYCLE"]
+		},
+		"id": "cad9c4ec-6eb0-5e61-b629-b13d18fe23b1",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "CONTRACT_CATEGORIES",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"validate": "// js\nconst engagement = get(ctx.entry, 'engagement', '');\nconst category = get(ctx.entry, 'terms.statutory_work_category', '');\nconst residency = get(ctx.entry, 'terms.residency_status', '');\nreturn get(ctx.lookup, 'engagement', []).includes(engagement) && get(ctx.lookup, 'statutory_work_category', []).includes(category) && get(ctx.lookup, 'residency_status', []).includes(residency);\n",
+		"order": 13,
+		"lookup": {
+			"engagement": [
+				"EMPLOYEE",
+				"PART_TIME",
+				"CONTRACTOR",
+				"INTERN",
+				"APPRENTICE",
+				"CONSULTANT",
+				"PAYEE"
+			],
+			"statutory_work_category": ["NON_MANUAL", "PIECE_RATE", "TASK_BASIS", "MANAGERIAL"],
+			"residency_status": ["CITIZEN", "RESIDENT_FOREIGNER", "NON_RESIDENT"]
+		},
+		"id": "23304688-31ce-5c9d-9b3e-5f6d3d6ba989",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "SHARED_CONTRACT_TERMS",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"validate": "// js\nconst amount = get(ctx.entry, 'terms.rate.amount', null);\nif (amount != null && Number(amount) < Number(get(ctx.lookup, 'rate.minimum', 0))) return false;\nconst days = get(ctx.entry, 'terms.normal_days_per_week', null);\nif (days != null && !get(ctx.lookup, 'normal_days_per_week', []).includes(Number(days))) return false;\nconst perDay = get(ctx.entry, 'terms.normal_hours_per_day', null);\nif (perDay != null && (Number(perDay) < Number(get(ctx.lookup, 'normal_hours_per_day.minimum', 0)) || Number(perDay) > Number(get(ctx.lookup, 'normal_hours_per_day.maximum', 24)))) return false;\nconst perWeek = get(ctx.entry, 'terms.normal_hours_per_week', null);\nif (perWeek != null && (Number(perWeek) < Number(get(ctx.lookup, 'normal_hours_per_week.minimum', 0)) || Number(perWeek) > Number(get(ctx.lookup, 'normal_hours_per_week.maximum', 168)))) return false;\nreturn true;\n",
+		"order": 14,
+		"lookup": {
+			"rate": {
+				"minimum": 0
+			},
+			"normal_days_per_week": [5, 6],
+			"normal_hours_per_day": {
+				"minimum": 0,
+				"maximum": 24
+			},
+			"normal_hours_per_week": {
+				"minimum": 0,
+				"maximum": 168
+			}
+		},
+		"id": "b7e9bf0b-e7d9-597e-95d2-f3e48d9ce81c",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "SHARED_STRUCTURED_EMPLOYEE_INPUTS",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"validate": "// js\nconst data = get(ctx.entry, 'employee_extension_data', {});\nconst residency = get(ctx.entry, 'terms.residency_status', '');\nconst wage = ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''));\nconst text = (key) => String(get(data, key, '')).trim();\nif (wage && text(get(ctx.lookup, 'work_region_field', 'work_region')) === '') return false;\nif (get(ctx.lookup, 'foreign_residency', []).includes(residency) && text(get(ctx.lookup, 'passport_field', 'passport_number')) === '') return false;\nif (residency === get(ctx.lookup, 'non_resident', 'NON_RESIDENT') && text(get(ctx.lookup, 'birth_city_field', 'birth_city')) === '') return false;\nreturn true;\n",
+		"order": 15,
+		"lookup": {
+			"work_region_field": "work_region",
+			"passport_field": "passport_number",
+			"birth_city_field": "birth_city",
+			"foreign_residency": ["RESIDENT_FOREIGNER", "NON_RESIDENT"],
+			"non_resident": "NON_RESIDENT"
+		},
+		"id": "07e0b014-e7ff-5d67-8bf6-06837de0e7e3",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "SHARED_STRUCTURED_ENTITY_INPUTS",
+		"target_collection": "entity_profile_version",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn get(ctx.entry, 'status', '') === 'SEALED';",
+		"validate": "// js\nconst data = get(ctx.entry, 'entity_extension_data', {});\nconst bad = (value, bounds) => {\n    if (value == null) return get(bounds, 'required', false) === true;\n    const length = String(value).length;\n    if (get(bounds, 'minLength', null) != null && length < Number(bounds.minLength)) return true;\n    if (get(bounds, 'maxLength', null) != null && length > Number(bounds.maxLength)) return true;\n    if (get(bounds, 'integer', false) === true && Number(value) !== Math.trunc(Number(value))) return true;\n    if (get(bounds, 'minimum', null) != null && Number(value) < Number(bounds.minimum)) return true;\n    if (get(bounds, 'maximum', null) != null && Number(value) > Number(bounds.maximum)) return true;\n    const allowed = get(bounds, 'enum', null);\n    return allowed != null && !allowed.includes(value);\n};\nreturn !Object.keys(ctx.lookup).some((key) => bad(get(data, key, null), get(ctx.lookup, key, {})));\n",
+		"order": 16,
+		"lookup": {
+			"registration_number": {
+				"required": true,
+				"minLength": 1
+			},
+			"tax_registration_number": {
+				"required": true,
+				"minLength": 15,
+				"maxLength": 16
+			}
+		},
+		"id": "ccec13c2-e44b-5c0a-90f1-0361c7e64b62",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "SHARED_ALLOWANCE_CLASSIFICATION",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn Object.keys(get(ctx.entry, 'terms.allowances', {})).length > 0;",
+		"validate": "// js\nconst values = get(ctx.lookup, 'values', ['FIXED', 'VARIABLE']);\nreturn Object.values(get(ctx.entry, 'terms.allowances', {})).every((allowance) => values.includes(get(allowance, 'variability', '')));\n",
+		"order": 17,
+		"lookup": {
+			"values": ["FIXED", "VARIABLE"]
+		},
+		"id": "efa4ebd8-abe4-5887-b195-21744993a04d",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "ESTABLISHMENT_EVENT_DATE_REQUIRED",
+		"target_collection": "entity_profile_version",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn get(ctx.entry, 'status', '') === 'SEALED';",
+		"validate": "// js\nconst data = get(ctx.entry, 'entity_extension_data', {});\nconst triggers = get(ctx.lookup, 'triggers', ['first_employed_on', 'operations_started_on']);\nconst hasTrigger = triggers.some((key) => get(data, key, null) != null);\nreturn !hasTrigger || get(data, get(ctx.lookup, 'required_field', 'established_on'), null) != null;\n",
+		"order": 18,
+		"lookup": {
+			"required_field": "established_on",
+			"triggers": ["first_employed_on", "operations_started_on"]
+		},
+		"id": "99f2b5e0-9ea6-5e8d-883a-b748c37d7638",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "ROSTER_UNDER_13",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"employee_contract": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "// js\nconst contract = first(get(ctx, 'reads.employee_contract', []));\nconst born = get(contract, 'payroll.date_of_birth', '');\nreturn born !== '' && get(ctx.entry, 'work_date', '') !== '';",
+		"validate": "// js\nconst contract = first(get(ctx, 'reads.employee_contract', []));\nconst born = get(contract, 'payroll.date_of_birth', '');\nconst day = get(ctx.entry, 'work_date', '');\nconst minimum = Number(get(ctx.lookup, 'minimum_age_years', 13));\nreturn day === '' || age_on(born, day) >= minimum;",
+		"order": 11,
+		"lookup": {
+			"minimum_age_years": 13,
+			"roster_warnings": {
+				"daily_hours": 8,
+				"daily_overtime_hours": 4,
+				"monthly_overtime_hours": 78,
+				"consecutive_days": 6,
+				"weekly_rest_days": 1
+			}
+		},
+		"references": [
+			{
+				"title": "UU 13/2003 art.68: employers may not employ children; art.69 allows light work from 13 to 15 only. The contract site refuses the same (MINIMUM_AGE).",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm"
+			}
+		],
+		"id": "df91e556-fa33-53c2-abf6-63744785c620",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	}
+]

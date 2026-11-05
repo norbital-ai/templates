@@ -1,0 +1,510 @@
+[
+	{
+		"code": "JOINT_LEAVE",
+		"name": "Joint leave (cuti bersama)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"consumes_code": "ANNUAL_LEAVE"
+		},
+		"references": [
+			{
+				"title": "SKB 3 Menteri No. 1497 Tahun 2025, No. 2 Tahun 2025 and No. 5 Tahun 2025 — 8 cuti bersama days for 2026. For the private sector the SKB is guidance the employer implements, and a cuti bersama day taken is set against the annual leave entitlement. a cuti bersama day taken is set against the annual leave (SKB 3 Menteri; `consumes_code`)."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "5766d44e-d380-5733-b789-153a5c8d355c",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "WORK_FROM_HOME",
+		"name": "Work from home (attendance marker)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"attendance_marker": true
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "c856644d-64d9-5943-89fd-b3d0ae4ce872",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
+		"references": [
+			{
+				"title": "Employment agreement or company regulation",
+				"locator": "workplace arrangement",
+				"quote": "Working from home is an attendance arrangement, not a leave entitlement."
+			}
+		]
+	},
+	{
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"grant_days": 12,
+			"service_months": 12,
+			"carry_limit": 5,
+			"carry_windows": 1
+		},
+		"references": [
+			{
+				"title": "Law 13/2003 Art. 79(3) as amended by Law 6/2023 Window: each year of service (`SERVICE_YEAR`): UU 13/2003 art.79(3) grants 12 days after each 12 months of continuous work. Owner ruling (ID): the balance resets each leave year and at most 5 unused days carry into the next (`carry_forward`), once. On exit the unused, unlapsed balance is paid (PP 35/2021 art.40(4)(a))."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "c4d386e4-b735-5c7b-a7b7-50d095738db0",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"pay_treatment": "UNPAID",
+		"lookup": {
+			"excluded_event_kinds": [
+				"STATE_DUTY",
+				"UNION_DUTY",
+				"COMPANY_TRAINING",
+				"EMPLOYER_IDLE",
+				"SUSPENSION",
+				"BREASTFEEDING",
+				"SICK",
+				"MENSTRUATION",
+				"RELIGIOUS_DUTY"
+			]
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 art.40(1): no wage for a day not worked — except the absences art.40(2)–(5) pays (illness, menstruation, family events, state duty, religious duty, union duty, company training, work withheld by the employer, rest and leave) and a suspension during dismissal (UU 13/2003 art.157A); an unpaid absence recorded with one of those reasons is refused. Breastfeeding time is working time (UU 13/2003 art.83; UU 4/2024 art.4(1)(c)) and is never booked as unpaid.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "47fd8146-bb17-5ab2-beb9-a0f25a153b24",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "MEDICAL_LEAVE",
+		"name": "Medical leave",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"paid_share_month_bands": [
+				{
+					"through_month": 4,
+					"share": 1
+				},
+				{
+					"through_month": 8,
+					"share": 0.75
+				},
+				{
+					"through_month": 12,
+					"share": 0.5
+				},
+				{
+					"through_month": null,
+					"share": 0.25
+				}
+			]
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 arts.40(3)(a), 41(1): 100% of the wage for the first four months of illness, 75% for the next four, 50% for the next four and 25% thereafter until dismissal (`paid_share` by month_index; PARTIAL_PAY_LEAVE).",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "9ccb94df-3f09-5253-a0b2-616700dda029",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"gender": "FEMALE",
+			"event_kinds": ["BIRTH", "BIRTH_COMPLICATION"],
+			"grant_months": 3,
+			"certified_extension_months": 3,
+			"full_pay_months": 4,
+			"reduced_share": 0.75,
+			"reduced_through_month": 6
+		},
+		"references": [
+			{
+				"title": "UU 13/2003 art.82(1); UU 4/2024 (KIA) art.4(3)(a): three months of maternity leave, and up to three more where a doctor certifies a special condition of mother or child (`leave.facts.special_condition_certified`); art.5(2): paid in full for the first four months and 75% for the fifth and sixth. Months beyond the entitlement are unpaid (paid_share 0). PP 36/2021 art.40(5)(d)."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "57cfdaba-d40b-5397-907a-910fca5ffd93",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"gender": "MALE",
+			"event_kinds": ["BIRTH", "BIRTH_COMPLICATION", "MISCARRIAGE"],
+			"grant_days": 2
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 arts.40(3)(c)(5), 41(3)(e): two paid days when the wife gives birth or miscarries; UU 4/2024 art.6(1): two days for a birth, which may be extended by up to three more days or as agreed (PATERNITY_EXTENSION_LEAVE), two days for a miscarriage. Window EVENT.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "808c9755-d69d-502d-87fa-8548b15a978b",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "MARRIAGE_LEAVE",
+		"name": "Marriage leave",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"event_kinds": ["MARRIAGE"],
+			"relationships": ["SELF"],
+			"grant_days": 3
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 arts.40(3)(c), 41(3)(a): the paid days per event (3; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "6833fc1d-c2a4-57db-90de-3b538ca92a00",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "CHILD_MARRIAGE_LEAVE",
+		"name": "Child's marriage leave",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"event_kinds": ["MARRIAGE"],
+			"relationships": ["CHILD"],
+			"grant_days": 2
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 arts.40(3)(c), 41(3)(b): the paid days per event (2; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "4ec7067b-f711-5452-98b5-4fe54100d797",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "CHILD_CIRCUMCISION_LEAVE",
+		"name": "Child's circumcision leave",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"event_kinds": ["CIRCUMCISION"],
+			"grant_days": 2
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 arts.40(3)(c), 41(3)(c): the paid days per event (2; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "24653b0e-1f5a-5566-8f3e-f0f6b5ca2c8c",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "CHILD_BAPTISM_LEAVE",
+		"name": "Child's baptism leave",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"event_kinds": ["BAPTISM"],
+			"grant_days": 2
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 arts.40(3)(c), 41(3)(d): the paid days per event (2; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "ddd19e0b-563e-5b88-b9c7-74c6566a5886",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "BEREAVEMENT_LEAVE",
+		"name": "Bereavement leave (immediate family)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"event_kinds": ["DEATH"],
+			"relationships": ["SPOUSE", "CHILD", "PARENT", "PARENT_IN_LAW", "CHILD_IN_LAW"],
+			"grant_days": 2
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 arts.40(3)(c), 41(3)(f): the paid days per event (2; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "8b067b4e-b776-5317-a855-b7d90a509a0c",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "BEREAVEMENT_HOUSEHOLD_LEAVE",
+		"name": "Bereavement leave (household member)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"event_kinds": ["DEATH"],
+			"relationships": ["HOUSEHOLD"],
+			"grant_days": 1
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 arts.40(3)(c), 41(3)(g): the paid days per event (1; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "771cc688-fd66-5996-a1d4-e519faad4d47",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "MENSTRUAL_LEAVE",
+		"name": "Menstrual leave",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"gender": "FEMALE",
+			"grant_days": 2
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 arts.40(3)(b), 41(2): a female worker sick on the first and second days of menstruation is paid for the days taken, at most 2; UU 13/2003 art.81(1).",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "af65b5d6-561f-5e1e-bef0-09144e5dfbe6",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "MISCARRIAGE_LEAVE",
+		"name": "Miscarriage leave",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"gender": "FEMALE",
+			"event_kinds": ["MISCARRIAGE"],
+			"grant_months": 1.5
+		},
+		"references": [
+			{
+				"title": "UU 13/2003 art.82(2): 1.5 months of rest, or as the doctor or midwife certifies, after a miscarriage — read as one month and fifteen days from the first day (`entry.from`..`entry.to`); paid in full (PP 36/2021 art.40(5)(e), art.46, https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021); UU 4/2024 art.4(2)(b).",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "366aae68-2262-5994-96cc-7645f211b277",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"pay_treatment": "PAID",
+		"lookup": {},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "910f0a3e-2824-589f-82e8-7beebbf680ff",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
+		"references": [
+			{
+				"title": "UU 13/2003",
+				"locator": "art.85(1)",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2003/13TAHUN2003UU.htm",
+				"quote": "Pekerja/buruh tidak wajib bekerja pada hari-hari libur resmi.",
+				"effective_from": "2003-03-25"
+			}
+		]
+	},
+	{
+		"code": "RELIGIOUS_DUTY_LEAVE",
+		"name": "Cuti ibadah (religious duty leave)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"event_kinds": ["RELIGIOUS_DUTY"],
+			"once_per_employment": true
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 arts.40(4)(b), 43: the wage is paid while the worker performs a religious duty their religion commands, only once during the employment with the company: a second event (another `facts.event_id`, or none) is refused.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "f60fc943-d78f-57ba-8adc-85ca148e8154",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "WORK_ACCIDENT_LEAVE",
+		"name": "Work accident or occupational disease leave",
+		"pay_treatment": "PAID",
+		"description": "Absence after a work accident or occupational disease, while the worker cannot work (sementara tidak mampu bekerja).",
+		"lookup": {
+			"paid_share_month_bands": [
+				{
+					"through_month": 12,
+					"share": 1
+				},
+				{
+					"through_month": null,
+					"share": 0.5
+				}
+			],
+			"recovered_from": "BPJS_KETENAGAKERJAAN"
+		},
+		"references": [
+			{
+				"title": "UU 13/2003 art.86; PP 44/2015 art.25 and Lampiran III as amended by PP 82/2019: while a worker is temporarily unable to work after a work accident or occupational disease the employer pays the wage (STMB) — 100% for the first 12 months, then 50% until recovery (secondary for the 50% tail; the official Lampiran could not be read) — and claims it back from BPJS Ketenagakerjaan."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "75ffcb49-743c-5ecd-ae67-59e21c834848",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "STATE_DUTY_LEAVE",
+		"name": "State duty",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"event_kinds": ["STATE_DUTY"],
+			"max_months": 12,
+			"shortfall_only": true
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 arts.40(4)(a), 42: a worker performing a duty to the state for at most one year is paid the shortfall between the state’s pay and the usual wage (`leave.facts.state_income_share`, the state’s pay as a share of that wage; paid_share 1 − share); the worker notifies in writing (art.42(3)).",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "ddf650ac-7970-5345-be74-34cb20121625",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "UNION_DUTY_LEAVE",
+		"name": "Union duty",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"requires": "EMPLOYER_CONSENT"
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 arts.40(4)(c), 44: paid at the usual wage, with the employer’s consent shown by written notice (`entry.facts.employer_consent`).",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "1cb71776-03f1-5b5f-84e7-1cbfc24e67dd",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "COMPANY_TRAINING_LEAVE",
+		"name": "Company education or training",
+		"pay_treatment": "PAID",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PP 36/2021 arts.40(4)(d), 45: paid at the usual wage.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "1ab54aea-7ab4-584c-a583-0ad15066da70",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "EMPLOYER_IDLE",
+		"name": "Ready to work, no work provided",
+		"pay_treatment": "PAID",
+		"lookup": {},
+		"references": [
+			{
+				"title": "PP 36/2021 art.40(2)(d): the worker was willing to do the agreed work but the employer did not employ them through its own fault or an avoidable obstacle — the wage is paid.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "9f1b0550-14d3-50a0-a247-c598c88ec073",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "SUSPENSION",
+		"name": "Suspension during dismissal (skorsing)",
+		"pay_treatment": "PAID",
+		"lookup": {},
+		"references": [
+			{
+				"title": "UU 13/2003 art.157A(1)–(3) as added by UU 6/2023: until the dismissal is settled both parties keep their obligations; a suspended worker keeps the wage and other rights."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "c79c1ba8-fbd1-5df8-a8fa-1f3438ba4740",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "PATERNITY_EXTENSION_LEAVE",
+		"name": "Paternity leave extension",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"gender": "MALE",
+			"event_kinds": ["BIRTH", "BIRTH_COMPLICATION"],
+			"grant_days": 3,
+			"requires": "EMPLOYER_AGREEMENT"
+		},
+		"references": [
+			{
+				"title": "UU 4/2024 art.6(1)(a): the two days of a birth may be followed by up to three more days, or as agreed with the employer (`entry.facts.employer_agreed`); window EVENT, 3 days."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "20da979e-7475-5ad9-8a20-54a314e1311e",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "LONG_LEAVE",
+		"name": "Long leave (istirahat panjang)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"requires": "EMPLOYER_GRANT"
+		},
+		"references": [
+			{
+				"title": "UU 13/2003 art.79(5) as amended by UU 6/2023: long leave as the employment agreement, company regulation or collective agreement grants it (`company.facts.long_leave_granted`); PP 36/2021 arts.40(5)(c), 46: paid at the usual wage.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "fbece36b-d802-556b-91f4-4389cfb7d37d",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	}
+]

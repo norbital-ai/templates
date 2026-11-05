@@ -1,0 +1,244 @@
+[
+	{
+		"code": "PROBATION_PAST_SIX_MONTHS",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"condition": "const terms = get(ctx.entry, 'terms', {});\nreturn get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\tget(terms, 'probation_period', null) !== null;",
+		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst probation = get(terms, 'probation_period', null);\nconst end = get(probation, 'to', null);\nreturn end !== null && end <= add_months(probation.from, ctx.lookup.maximum_months);",
+		"order": 6,
+		"lookup": {
+			"maximum_months": 6
+		},
+		"references": [
+			{
+				"title": "Labor Code (PD 442) art.296: probationary employment shall not exceed six months from the date the employee started working; an employee allowed to work after the probationary period is a regular employee."
+			}
+		],
+		"id": "fd336f9d-b6e4-5c56-acd0-d5ca67cfc070",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "EBET_PROGRAM_RECORDED",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"condition": "const role = get(ctx.entry, 'engagement', null);\nreturn get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\t(role === 'INTERN' || role === 'APPRENTICE');",
+		"validate": "const role = get(ctx.entry, 'engagement', null);\nconst program = get(get(ctx.entry, 'employee_extension_data', {}), 'ebet_program', null);\nreturn role === 'APPRENTICE'\n\t? program === ctx.lookup.apprenticeship_program\n\t: ctx.lookup.trainee_programs.includes(program);",
+		"order": 9,
+		"lookup": {
+			"apprenticeship_program": "APPRENTICESHIP",
+			"trainee_programs": ["GENERAL", "UPSKILLING"]
+		},
+		"references": [
+			{
+				"title": "Republic Act No. 12063 (Enterprise-Based Education and Training Framework Act) s.4: an apprentice contract records an APPRENTICESHIP programme; a trainee contract records GENERAL training or UPSKILLING."
+			}
+		],
+		"id": "ee12a3ee-29f9-55cf-83f4-176a705c810a",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "WAGE_PAYMENT_PLACE",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\tget(get(ctx.entry, 'employee_extension_data', {}), 'wage_payment_place', null) !== null;",
+		"validate": "const extension = get(ctx.entry, 'employee_extension_data', {});\nconst place = get(extension, 'wage_payment_place', null);\nreturn place !== ctx.lookup.prohibited_place ||\n\tget(extension, 'employed_at_payment_place', false) === true;",
+		"order": 12,
+		"lookup": {
+			"prohibited_place": "BAR_CLUB_OR_GAMING_PLACE"
+		},
+		"references": [
+			{
+				"title": "Omnibus Rules Implementing the Labor Code, Book III Rule VIII s.4(d): wages shall not be paid in a bar, night or day club, drinking establishment, massage clinic, dance hall or gaming place unless the employee is employed there."
+			}
+		],
+		"id": "bb12d417-fcbe-579c-a7f3-ff06ebc2be99",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "CONTRACT_CATEGORIES",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT';",
+		"validate": "const terms = get(ctx.entry, 'terms', null);\nif (terms === null) return false;\nreturn ctx.lookup.statutory_work_categories.includes(get(terms, 'statutory_work_category', null)) &&\n\tctx.lookup.residency_statuses.includes(get(terms, 'residency_status', null));",
+		"order": 23,
+		"lookup": {
+			"statutory_work_categories": [
+				"NON_FIELD",
+				"FIELD_PERSONNEL",
+				"TASK_BASIS",
+				"PIECE_RATE",
+				"MANAGERIAL"
+			],
+			"residency_statuses": [
+				"CITIZEN",
+				"PERMANENT_RESIDENT",
+				"RESIDENT_ALIEN",
+				"NON_RESIDENT_ALIEN_ETB",
+				"NON_RESIDENT_ALIEN_NETB"
+			]
+		},
+		"references": [
+			{
+				"title": "Labor Code art.82 (field personnel) and PD 851 Revised Guidelines (task-basis and piece-rate work): statutory work category; NIRC ss.22(E)-(G), 24(A) and 25(A)-(B): residency status selects the graduated or final withholding table."
+			}
+		],
+		"id": "6df44550-ffa4-58a6-9b44-180b0f6f2624",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "SHARED_CONTRACT_TERMS",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\tget(get(ctx.entry, 'terms', {}), 'normal_hours_per_day', null) !== null;",
+		"validate": "const hours = get(get(ctx.entry, 'terms', {}), 'normal_hours_per_day', null);\nreturn hours >= ctx.lookup.minimum_daily_hours && hours <= ctx.lookup.maximum_daily_hours;",
+		"order": 24,
+		"lookup": {
+			"minimum_daily_hours": 1,
+			"maximum_daily_hours": 12
+		},
+		"references": [
+			{
+				"title": "Labor Code art.83: the normal hours of work shall not exceed eight hours a day; a compressed workweek may lengthen the normal day but not beyond twelve hours (DOLE Department Advisory No. 02-04)."
+			}
+		],
+		"id": "41fb3025-4da5-5959-bc85-9b29b15aeb63",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "SHARED_FINAL_PAY_DEADLINE",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\tget(ctx.entry, 'final_pay_due_on', null) !== null;",
+		"validate": "const due = get(ctx.entry, 'final_pay_due_on', null);\nconst end = get(get(ctx.entry, 'effective_range', {}), 'to', null);\nreturn end !== null && due >= end && due <= add_days(end, ctx.lookup.maximum_days);",
+		"order": 27,
+		"lookup": {
+			"maximum_days": 30
+		},
+		"references": [
+			{
+				"title": "DOLE Labor Advisory No. 06-20: final pay shall be paid within thirty calendar days from the date of separation, unless a more favourable company policy or individual/CBA agreement provides a shorter period."
+			}
+		],
+		"id": "8a45d8ca-193c-5581-8c33-c42465b33e2b",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "NPC_REGISTRATION_SCOPE_REVIEW_REQUIRED",
+		"target_collection": "entity_profile_version",
+		"events": ["create", "update"],
+		"condition": "return ctx.entry.status === ctx.lookup.sealed_status;",
+		"validate": "const facts = get(ctx.entry, 'entity_extension_data', {});\nreturn ctx.lookup.required_declarations.every((name) => get(facts, name, null) !== null);",
+		"order": 30,
+		"lookup": {
+			"sealed_status": "SEALED",
+			"required_declarations": [
+				"processes_sensitive_pi_1000",
+				"npc_processing_likely_risk",
+				"npc_automated_decisions_or_profiling"
+			]
+		},
+		"references": [
+			{
+				"title": "NPC Circular No. 2022-04, ss.5-7: registration scope, likely-risk processing and automated decision-making or profiling declarations.",
+				"url": "https://privacy.gov.ph/wp-content/uploads/2023/05/Circular-2022-04.pdf"
+			}
+		],
+		"id": "e1431c90-3c49-5203-976b-29e23784c88f",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "BUSINESS_CASE_SUBJECT_AND_REFERENCE",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"condition": "return ctx.entry.kind === ctx.lookup.kind;",
+		"validate": "const inputs = get(ctx.entry, 'inputs', {});\nconst year = get(inputs, 'tax_year', null);\nconst payment = get(inputs, 'compensation_payment_case_id', '');\nreturn year !== null && year >= ctx.lookup.minimum_year && String(payment).trim() !== '';",
+		"order": 32,
+		"lookup": {
+			"kind": "BIR_2316_DELIVERED",
+			"minimum_year": 1900
+		},
+		"references": [
+			{
+				"title": "BIR Revenue Regulations No. 11-2018, ss.2.79(B)(5) and 2.83.1: the BIR Form 2316 follows the last compensation payment and identifies the employee and the compensation period.",
+				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
+			}
+		],
+		"id": "0c671018-83d7-5dd2-a0c0-197c3e2c98b2",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "BUSINESS_CASE_DOCUMENT_REQUIRED",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"condition": "return ctx.entry.kind === ctx.lookup.kind;",
+		"validate": "return get(ctx.entry, 'evidence_file', null) !== null;",
+		"order": 33,
+		"lookup": {
+			"kind": "BIR_2316_DELIVERED"
+		},
+		"references": [
+			{
+				"title": "BIR Revenue Regulations No. 11-2018, ss.2.79(B)(5) and 2.83.1: the BIR Form 2316 follows the last compensation payment; its delivery is evidenced by the furnished certificate.",
+				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
+			}
+		],
+		"id": "81ccca4e-5a4b-5bd0-8982-160ddd1855da",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "ROSTER_WARNINGS",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"condition": "return true;",
+		"validate": "return true;",
+		"order": 34,
+		"lookup": {
+			"roster_warnings": {
+				"daily_hours": 12,
+				"daily_overtime_hours": null,
+				"monthly_overtime_hours": null,
+				"consecutive_days": 6,
+				"weekly_rest_days": 1
+			}
+		},
+		"references": [
+			{
+				"title": "Labor Code art.83 and DOLE Department Advisory No. 02-04: the normal hours of work do not exceed eight hours a day, and a compressed workweek may lengthen the normal day but not beyond twelve hours. Labor Code art.91: a rest day of at least twenty-four consecutive hours after six consecutive normal work days. Roster warnings record these caps without refusing the entry; no daily or monthly overtime cap is recorded for the Philippines."
+			}
+		],
+		"id": "6151b868-0100-5d54-8e91-477fe1876dde",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "MINIMUM_WAGE_FLOOR",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"order": 25,
+		"reads": {
+			"statutory_contribution_catalog": {
+				"where": {
+					"code": {
+						"eq": "WTAX"
+					},
+					"settings_id": {
+						"eq": "ctx.entry.input_schema_version_id"
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			}
+		},
+		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT';",
+		"validate": "const wageRows = ctx.reads.statutory_contribution_catalog || [];\nconst wtax = wageRows.length > 0 ? wageRows[0].lookup : null;\nif (wtax == null) return true;\nconst employer = get(ctx.subject, 'employer.entity_extension_data', {});\nif (get(employer, 'bmbe_certificate_of_authority', false) === true) return true;\nif (get(employer, 'minimum_wage_exemption_approved', false) === true) return true;\nconst terms = get(ctx.entry, 'terms', {});\nconst facts = get(ctx.subject, 'employment.employee_extension_data', {});\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(get(terms, 'statutory_work_category', ''));\nconst region = get(facts, 'work_region', get(employer, 'region', ''));\nif (region === '') return true;\nconst table = domestic ? wtax.minimum_wage_domestic : wtax.minimum_wage_by_region;\nconst rates = (table || []).filter((entry) => entry.region === region && entry.from <= get(ctx.entry, 'effective_range.from', '9999-12-31'));\nif (rates.length === 0) return false;\nconst latest = rates.toSorted((a, b) => (a.from < b.from ? 1 : -1))[0];\nconst floor = Number(latest.monthly);\nconst annualDays = Number(get(wtax, 'annual_paid_days', 313));\nconst hours = Number(get(terms, 'normal_hours_per_day', get(wtax, 'normal_daily_hours', 8)));\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst daily = unit === 'DAILY' ? amount : unit === 'HOURLY' ? amount * hours : amount * 12 / annualDays;\nreturn daily + 0.005 >= floor * 12 / annualDays;",
+		"lookup": {
+			"job_natures": ["AGRI", "NONAGRI", "RETAIL", "DOMESTIC"]
+		},
+		"references": [
+			{
+				"title": "RA 6727 s.2 and the Regional Tripartite Wages and Productivity Board wage orders: the daily minimum wage depends on the region and the establishment's agriculture/non-agriculture/retail classification; domestic workers have a separate wage table. DOLE/BWC wage order summaries, read 2026-10-31."
+			}
+		],
+		"id": "5eb24813-7eb1-5765-81cc-9a9ec8fc4c1b",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	}
+]

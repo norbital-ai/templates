@@ -1,0 +1,124 @@
+[
+	{
+		"code": "EMPLOYER_SHUTDOWN",
+		"name": "Shutdown or stoppage the employer causes",
+		"lookup": {},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {
+			"work.treatment": {
+				"scheduled": true,
+				"counts_as_attended": true
+			},
+			"work.payment": {
+				"wage": "PAID"
+			}
+		},
+		"references": [
+			{
+				"title": "民法 §487: the employer’s delay in accepting the work leaves the wage owed; the day is not an absence.",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0000001&flno=487"
+			}
+		],
+		"id": "d56fbf5a-4081-5bb3-8fef-b7bbcdc2b909",
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+	},
+	{
+		"code": "GOVERNMENT_STOP_WORK",
+		"name": "Stop-work ordered by the labour inspection authority",
+		"lookup": {},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {
+			"work.treatment": {
+				"scheduled": true,
+				"counts_as_attended": true
+			},
+			"work.payment": {
+				"wage": "PAID"
+			}
+		},
+		"references": [
+			{
+				"title": "職業安全衛生法 §36(2): 勞工於停工期間應由雇主照給工資.",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0060001&flno=36"
+			}
+		],
+		"id": "6bd15be6-8507-553e-8867-dd363d3e1b01",
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+	},
+	{
+		"code": "NATURAL_DISASTER",
+		"name": "Work stopped by a typhoon or other natural disaster",
+		"lookup": {},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {
+			"work.treatment": {
+				"scheduled": true,
+				"counts_as_attended": true
+			},
+			"work.payment": {
+				"wage": "MAY_BE_WITHHELD"
+			}
+		},
+		"references": [
+			{
+				"title": "天然災害發生事業單位勞工出勤管理及工資給付要點: not an absence and the attendance bonus untouched; the day’s wage may be withheld.",
+				"url": "https://laws.mol.gov.tw/FLAW/FLAWDAT01.aspx?id=FL049468"
+			}
+		],
+		"id": "1c1bdb73-86ba-5061-b0fb-5bbf792947cd",
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+	},
+	{
+		"code": "STRIKE",
+		"name": "Lawful strike",
+		"lookup": {},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {
+			"work.treatment": {
+				"scheduled": true,
+				"counts_as_attended": false
+			},
+			"work.payment": {
+				"wage": "NOT_PAID"
+			}
+		},
+		"references": [
+			{
+				"title": "勞資爭議處理法 §54; 民法 §482: no work, no wage for the strike days; not attended.",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0020007&flno=54"
+			}
+		],
+		"id": "193d80d6-d313-508b-836c-8a815fbf94a9",
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+	},
+	{
+		"code": "REDUCED_WORK_AGREEMENT",
+		"name": "減班休息 agreed in writing to reduce hours",
+		"lookup": {},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {
+			"work.treatment": {
+				"scheduled": false,
+				"counts_as_attended": false
+			},
+			"work.payment": {
+				"wage": "NOT_PAID",
+				"monthly_minimum_wage_floor": true,
+				"insurance_and_pension_retained": true
+			}
+		},
+		"references": [
+			{
+				"title": "因應景氣影響勞雇雙方協商減少工時應行注意事項: days off unpaid, a monthly-paid full-time worker’s month never below the minimum wage; insurance and pension kept.",
+				"url": "https://www.mol.gov.tw/1607/1632/1640/12438/post"
+			}
+		],
+		"id": "fabafdcd-8bae-513e-976f-afaeefc7bf48",
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+	}
+]

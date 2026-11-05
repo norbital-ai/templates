@@ -1,0 +1,340 @@
+[
+	{
+		"code": "PUBLIC_HOLIDAY_IN_LIEU",
+		"name": "Public holiday in lieu",
+		"references": [
+			{
+				"title": "Labor Code art.94; Omnibus Rules Book III Rule IV ss.3-4: a regular holiday not worked is paid the daily wage; a holiday falling on a rest day follows the Rules."
+			}
+		],
+		"lookup": {
+			"can_encash": true
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "6ca02f91-94d5-5025-b72a-e8123e100919",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "VAWC_LEAVE",
+		"name": "Leave for victims of violence against women and their children",
+		"lookup": {
+			"grant_days": 10,
+			"window": "EVENT",
+			"can_encash": false
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"references": [
+			{
+				"title": "Republic Act No. 9262 (Anti-Violence Against Women and Their Children Act of 2004), section 43: a woman employee who is a victim of violence is entitled to up to ten paid days of leave per event, not convertible to cash."
+			}
+		],
+		"id": "b810065d-b3b4-5377-a7a2-a719b311ead3",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "MEDICAL_LEAVE",
+		"name": "Medical leave",
+		"references": [
+			{
+				"title": "Labor Code art.100; contract or company policy: paid leave beyond the statutory service incentive leave is a contractual benefit."
+			}
+		],
+		"lookup": {
+			"can_encash": true
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "00e407f4-f5fa-5e25-b533-8898d09b1980",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "PATERNITY_LEAVE",
+		"name": "Paternity leave",
+		"lookup": {
+			"grant_days": 7,
+			"max_events": 4,
+			"allocation_days": 7,
+			"window": "EVENT",
+			"can_encash": false
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"references": [
+			{
+				"title": "Republic Act No. 8187, sections 2 and 3: a married male employee is entitled to seven paid days for each of the first four deliveries of, or miscarriages by, his lawful spouse; the leave is not convertible to cash. Republic Act No. 11210, section 6: the mother may allocate up to seven of her maternity days to the father, raising the entitlement to fourteen days.",
+				"url": "https://lawphil.net/statutes/repacts/ra2019/ra_11210_2019.html"
+			}
+		],
+		"id": "d26a4619-2c4a-5003-b289-12e306c0a4e6",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "SPECIAL_LEAVE_FOR_WOMEN",
+		"name": "Special leave for women (gynaecological surgery)",
+		"lookup": {
+			"grant_days": 60,
+			"service_months": 6,
+			"window": "EVENT",
+			"can_encash": false
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"references": [
+			{
+				"title": "Republic Act No. 9710 (Magna Carta of Women), section 18, and DOLE Department Order No. 112-A, series of 2012: a woman employee with six months of service in the preceding twelve is entitled to up to two months (60 days) of paid leave following gynaecological surgery, not convertible to cash."
+			}
+		],
+		"id": "c2ac405a-0006-5174-ba4f-7236fe819fc3",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "EMERGENCY_LEAVE",
+		"name": "Emergency leave",
+		"references": [
+			{
+				"title": "Labor Code art.100; contract or company policy: paid leave beyond the statutory service incentive leave is a contractual benefit."
+			}
+		],
+		"lookup": {
+			"can_encash": true
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "b3316903-9093-50df-a8a4-90c47962a24a",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "ANNUAL_LEAVE",
+		"name": "Annual leave",
+		"lookup": {
+			"grant_days": 5,
+			"per_months": 12,
+			"service_months": 12,
+			"window": "LIFETIME",
+			"can_encash": true
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"references": [
+			{
+				"title": "Labor Code, article 95, and DOLE Handbook on Workers' Statutory Monetary Benefits 2024, chapter 7 C-D: five paid days of service incentive leave per year after one year of service, accrued pro rata at five-twelfths of a day per completed month; unused days may be carried and commuted on separation at the then-current daily rate. Supreme Court, Rodriguez v. Park N Ride, G.R. No. 222980, 20 March 2017. Managerial employees, field personnel, task-basis workers and establishments regularly employing fewer than ten are excluded.",
+				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819"
+			}
+		],
+		"id": "fb1202b4-41e7-5418-8926-49a1b3a2ebd5",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "COMPASSIONATE_LEAVE",
+		"name": "Compassionate leave",
+		"references": [
+			{
+				"title": "Labor Code art.100; contract or company policy: paid leave beyond the statutory service incentive leave is a contractual benefit."
+			}
+		],
+		"lookup": {
+			"can_encash": true
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "9e5550a1-008a-507d-bceb-682d68b8a01a",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "MATERNITY_LEAVE",
+		"name": "Maternity leave",
+		"lookup": {
+			"grant_days": 105,
+			"solo_parent_days": 120,
+			"termination_days": 60,
+			"allocation_days": 7,
+			"window": "EVENT",
+			"can_encash": false
+		},
+		"pay_treatment": "UNPAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"references": [
+			{
+				"title": "Republic Act No. 11210, sections 3 and 5, and Republic Act No. 11861, sections 15 and 20: a pregnant female employee is entitled to 105 days for a live birth, 120 days when a qualified solo parent, and 60 days for miscarriage or emergency termination; up to seven days may be allocated to the child's father or an alternate caregiver. Payment is the SSS daily maternity benefit plus the employer's salary differential under section 5, not salary, so the leave itself is unpaid.",
+				"url": "https://lawphil.net/statutes/repacts/ra2019/ra_11210_2019.html"
+			}
+		],
+		"id": "c9f726f2-df47-528e-ac65-9ad398c3a826",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "HOSPITALIZATION_LEAVE",
+		"name": "Hospitalization leave",
+		"references": [
+			{
+				"title": "Labor Code art.100; contract or company policy: paid leave beyond the statutory service incentive leave is a contractual benefit."
+			}
+		],
+		"lookup": {
+			"can_encash": true
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "c6c1f065-a394-5121-8516-da3f56a8bb0f",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "ABSENCE",
+		"name": "Unpaid absence",
+		"references": [
+			{
+				"title": "DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.2; Omnibus Rules Book III Rule IV s.2: no work, no pay."
+			}
+		],
+		"lookup": {
+			"can_encash": false
+		},
+		"pay_treatment": "UNPAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "03312868-b16e-5114-8e2b-989496ef35eb",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "SOLO_PARENT_LEAVE",
+		"name": "Parental leave for solo parents",
+		"lookup": {
+			"grant_days": 7,
+			"service_months": 6,
+			"window": "CALENDAR_YEAR",
+			"can_encash": false
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"references": [
+			{
+				"title": "Republic Act No. 8972 (Solo Parents' Welfare Act), section 8, as amended by Republic Act No. 11861 (Expanded Solo Parents Welfare Act): seven paid days per calendar year after six months of service, non-cumulative and not convertible to cash, on presentation of a Solo Parent Identification Card.",
+				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/95472"
+			}
+		],
+		"id": "920bda5e-70aa-5cb0-bda4-40334b64c3c0",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "UNPAID_LEAVE",
+		"name": "Unpaid leave",
+		"references": [
+			{
+				"title": "DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.2; Omnibus Rules Book III Rule IV s.2: no work, no pay."
+			}
+		],
+		"lookup": {
+			"can_encash": false
+		},
+		"pay_treatment": "UNPAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "54adaf9b-f0eb-5bf4-bdc6-86dc29280081",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "ANNUAL_LEAVE_DOMESTIC",
+		"name": "Service incentive leave (kasambahay)",
+		"lookup": {
+			"grant_days": 5,
+			"service_months": 12,
+			"window": "SERVICE_YEAR",
+			"can_encash": false
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"references": [
+			{
+				"title": "Republic Act No. 10361 (Batas Kasambahay), section 29: a domestic worker with one year of service is entitled to five paid days of service incentive leave; unused days are not cumulative, not carried over and not convertible to cash."
+			}
+		],
+		"id": "35241d78-df1d-5c76-9298-f474a316f704",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "MATERNITY_LEAVE_EXTENSION",
+		"name": "Maternity leave extension (without pay)",
+		"lookup": {
+			"grant_days": 30,
+			"window": "EVENT",
+			"can_encash": false
+		},
+		"pay_treatment": "UNPAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"references": [
+			{
+				"title": "Republic Act No. 11210, section 3: after the 105-day maternity leave the mother may extend her leave by up to 30 days without pay, on notice given at least 45 days before the leave ends.",
+				"url": "https://lawphil.net/statutes/repacts/ra2019/ra_11210_2019.html"
+			}
+		],
+		"id": "d159b66d-cea1-50fc-9002-2d52f477ca28",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "MATERNITY_ALLOCATION_LEAVE",
+		"name": "Allocated maternity leave (unmarried father or alternate caregiver)",
+		"lookup": {
+			"grant_days": 7,
+			"window": "EVENT",
+			"can_encash": false
+		},
+		"pay_treatment": "PAID",
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"references": [
+			{
+				"title": "Republic Act No. 11210, section 6: on written notice to both employers, the mother may allocate up to seven days of her maternity leave to the child's father or, if he is absent, deceased or incapacitated, to an alternate caregiver, over and above the father's paternity leave. A married father takes the allocated days under paternity leave; this leave covers the unmarried father and the alternate caregiver.",
+				"url": "https://lawphil.net/statutes/repacts/ra2019/ra_11210_2019.html"
+			}
+		],
+		"id": "20854a2f-1e17-5aff-8fbe-ac6bf303d9fb",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	}
+]

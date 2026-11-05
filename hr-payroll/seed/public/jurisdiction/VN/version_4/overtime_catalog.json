@@ -1,0 +1,155 @@
+[
+	{
+		"code": "OVERTIME",
+		"name": "Overtime on a normal working day (Làm thêm giờ ngày thường)",
+		"lookup": {
+			"normal_hours_per_day": 8,
+			"fallback_working_days": 26,
+			"factor": 1.5
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.98(1)(a): an employee who works overtime on a normal day is paid at least 150% of the wage of the normal working hour.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP arts.54(1)(a3)–(a4), 55(1)(a): the monthly wage is divided by the normal working days of the month the enterprise chose and the day wage by the normal hours of the day; the overtime hour wage is the month’s wage for the work divided by the month’s actual normal hours. The hourly base is the contractual rate plus the contract’s FIXED_ALLOWANCE job-related allowances; meal, housing, insurance-equivalent and work-expense allowances, bonuses, and overtime, night and holiday pay stay out.",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "fcc28f32-de70-509a-b3df-37737c654ea2",
+		"eligibility": "// js\nconst entry = get(ctx, 'entry', {});\nconst employment = ctx.subject.employment;\nreturn (\n\t!['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', '')) &&\n\tget(employment, 'terms.rate.unit', 'MONTHLY') !== 'PIECE' &&\n\tget(entry, 'unit', '') === 'HOUR' &&\n\tNumber(get(entry, 'quantity', 0)) > 0\n);",
+		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst fixed = Number(get(get(terms, 'allowances.FIXED_ALLOWANCE', {}), 'amount', 0));\nconst from = month_start(ctx.run.salary_coverage.from);\nconst to = month_end(ctx.run.salary_coverage.from);\nconst offDays = get(ctx.subject, 'employer.payment_schedule.non_working_weekdays', [0, 6]);\nlet workingDays = 0;\nfor (let day = from; day <= to; day = add_days(day, 1)) {\n\tif (!offDays.includes(weekday(day))) workingDays = workingDays + 1;\n}\nconst weekDays = Math.max(1, 7 - offDays.length);\nconst contractDays = Number(get(terms, 'normal_days_per_week', 0)) || weekDays;\nconst days =\n\tworkingDays > 0\n\t\t? (workingDays * contractDays) / weekDays\n\t\t: ctx.lookup.fallback_working_days;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hoursPerMonth = days * hoursPerDay;\nconst monthly =\n\tunit === 'HOURLY'\n\t\t? amount * hoursPerMonth\n\t\t: unit === 'DAILY'\n\t\t\t? amount * days\n\t\t\t: amount;\nconst hourly = (monthly + fixed) / hoursPerMonth;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.factor;",
+		"incurred_on": "",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "d72e1447-040e-5942-889b-71ec2ff845af",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "REST_DAY_OVERTIME",
+		"name": "Overtime on a weekly rest day (Làm thêm giờ ngày nghỉ hằng tuần)",
+		"lookup": {
+			"normal_hours_per_day": 8,
+			"fallback_working_days": 26,
+			"factor": 2
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.98(1)(b): work on a weekly rest day is paid at least 200%; every hour worked on that day is overtime. A public holiday falling on a rest day is paid as a holiday (Decree 145/2020/NĐ-CP art.55(3)). The hourly base is the same as OVERTIME.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP arts.54(1)(a3)–(a4), 55(1)(a): the monthly wage is divided by the normal working days of the month the enterprise chose and the day wage by the normal hours of the day; the overtime hour wage is the month’s wage for the work divided by the month’s actual normal hours. The hourly base is the contractual rate plus the contract’s FIXED_ALLOWANCE job-related allowances; meal, housing, insurance-equivalent and work-expense allowances, bonuses, and overtime, night and holiday pay stay out.",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "fcc28f32-de70-509a-b3df-37737c654ea2",
+		"eligibility": "// js\nconst entry = get(ctx, 'entry', {});\nconst employment = ctx.subject.employment;\nreturn (\n\t!['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', '')) &&\n\tget(employment, 'terms.rate.unit', 'MONTHLY') !== 'PIECE' &&\n\tget(entry, 'unit', '') === 'HOUR' &&\n\tNumber(get(entry, 'quantity', 0)) > 0\n);",
+		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst fixed = Number(get(get(terms, 'allowances.FIXED_ALLOWANCE', {}), 'amount', 0));\nconst from = month_start(ctx.run.salary_coverage.from);\nconst to = month_end(ctx.run.salary_coverage.from);\nconst offDays = get(ctx.subject, 'employer.payment_schedule.non_working_weekdays', [0, 6]);\nlet workingDays = 0;\nfor (let day = from; day <= to; day = add_days(day, 1)) {\n\tif (!offDays.includes(weekday(day))) workingDays = workingDays + 1;\n}\nconst weekDays = Math.max(1, 7 - offDays.length);\nconst contractDays = Number(get(terms, 'normal_days_per_week', 0)) || weekDays;\nconst days =\n\tworkingDays > 0\n\t\t? (workingDays * contractDays) / weekDays\n\t\t: ctx.lookup.fallback_working_days;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hoursPerMonth = days * hoursPerDay;\nconst monthly =\n\tunit === 'HOURLY'\n\t\t? amount * hoursPerMonth\n\t\t: unit === 'DAILY'\n\t\t\t? amount * days\n\t\t\t: amount;\nconst hourly = (monthly + fixed) / hoursPerMonth;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.factor;",
+		"incurred_on": "",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "cbb735dc-b41d-5a65-b02f-17ac4acf94a4",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "HOLIDAY_WORK",
+		"name": "Work on a public holiday or paid day off (Làm việc ngày lễ, ngày nghỉ có lương)",
+		"lookup": {
+			"normal_hours_per_day": 8,
+			"fallback_working_days": 26,
+			"factor": 3
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.98(1)(c): work on a public holiday or paid day off is paid at least 300% for each hour worked, excluding the holiday pay a monthly wage already carries; hours banked as time off are not worked hours. The hourly base is the same as OVERTIME.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP arts.54(1)(a3)–(a4), 55(1)(a): the monthly wage is divided by the normal working days of the month the enterprise chose and the day wage by the normal hours of the day; the overtime hour wage is the month’s wage for the work divided by the month’s actual normal hours. The hourly base is the contractual rate plus the contract’s FIXED_ALLOWANCE job-related allowances; meal, housing, insurance-equivalent and work-expense allowances, bonuses, and overtime, night and holiday pay stay out.",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "fcc28f32-de70-509a-b3df-37737c654ea2",
+		"eligibility": "// js\nconst entry = get(ctx, 'entry', {});\nconst employment = ctx.subject.employment;\nreturn (\n\t!['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', '')) &&\n\tget(employment, 'terms.rate.unit', 'MONTHLY') !== 'PIECE' &&\n\tget(entry, 'unit', '') === 'HOUR' &&\n\tNumber(get(entry, 'quantity', 0)) > 0\n);",
+		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst fixed = Number(get(get(terms, 'allowances.FIXED_ALLOWANCE', {}), 'amount', 0));\nconst from = month_start(ctx.run.salary_coverage.from);\nconst to = month_end(ctx.run.salary_coverage.from);\nconst offDays = get(ctx.subject, 'employer.payment_schedule.non_working_weekdays', [0, 6]);\nlet workingDays = 0;\nfor (let day = from; day <= to; day = add_days(day, 1)) {\n\tif (!offDays.includes(weekday(day))) workingDays = workingDays + 1;\n}\nconst weekDays = Math.max(1, 7 - offDays.length);\nconst contractDays = Number(get(terms, 'normal_days_per_week', 0)) || weekDays;\nconst days =\n\tworkingDays > 0\n\t\t? (workingDays * contractDays) / weekDays\n\t\t: ctx.lookup.fallback_working_days;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hoursPerMonth = days * hoursPerDay;\nconst monthly =\n\tunit === 'HOURLY'\n\t\t? amount * hoursPerMonth\n\t\t: unit === 'DAILY'\n\t\t\t? amount * days\n\t\t\t: amount;\nconst hourly = (monthly + fixed) / hoursPerMonth;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.factor;",
+		"incurred_on": "",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "88cd12d4-f970-5d12-a421-491e2f3c2936",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "NIGHT_WORK",
+		"name": "Night-work premium (Phụ cấp làm việc ban đêm)",
+		"lookup": {
+			"normal_hours_per_day": 8,
+			"fallback_working_days": 26,
+			"premium_rate": 0.3,
+			"night_from": "22:00",
+			"night_to": "06:00"
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 arts.98(2), 106: work between 22:00 and 06:00 is night work and is paid at least 30% above the normal-day hour wage for each night hour, whether the hour is normal or overtime (Decree 145/2020/NĐ-CP art.56(1); art.57 adds the night-overtime supplement). The hourly base is the same as OVERTIME.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP arts.54(1)(a3)–(a4), 55(1)(a): the monthly wage is divided by the normal working days of the month the enterprise chose and the day wage by the normal hours of the day; the overtime hour wage is the month’s wage for the work divided by the month’s actual normal hours. The hourly base is the contractual rate plus the contract’s FIXED_ALLOWANCE job-related allowances; meal, housing, insurance-equivalent and work-expense allowances, bonuses, and overtime, night and holiday pay stay out.",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			},
+			{
+				"title": "Circular 111/2013/TT-BTC art.3(1)(i) exempts the night-work premium from personal income tax to 2025; Law 109/2025 art.4(8) from 2026. This is a tax treatment of the premium, not a pay rate."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "fcc28f32-de70-509a-b3df-37737c654ea2",
+		"eligibility": "// js\nconst entry = get(ctx, 'entry', {});\nconst employment = ctx.subject.employment;\nreturn (\n\t!['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', '')) &&\n\tget(employment, 'terms.rate.unit', 'MONTHLY') !== 'PIECE' &&\n\tget(entry, 'unit', '') === 'HOUR' &&\n\tNumber(get(entry, 'quantity', 0)) > 0\n);",
+		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst fixed = Number(get(get(terms, 'allowances.FIXED_ALLOWANCE', {}), 'amount', 0));\nconst from = month_start(ctx.run.salary_coverage.from);\nconst to = month_end(ctx.run.salary_coverage.from);\nconst offDays = get(ctx.subject, 'employer.payment_schedule.non_working_weekdays', [0, 6]);\nlet workingDays = 0;\nfor (let day = from; day <= to; day = add_days(day, 1)) {\n\tif (!offDays.includes(weekday(day))) workingDays = workingDays + 1;\n}\nconst weekDays = Math.max(1, 7 - offDays.length);\nconst contractDays = Number(get(terms, 'normal_days_per_week', 0)) || weekDays;\nconst days =\n\tworkingDays > 0\n\t\t? (workingDays * contractDays) / weekDays\n\t\t: ctx.lookup.fallback_working_days;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hoursPerMonth = days * hoursPerDay;\nconst monthly =\n\tunit === 'HOURLY'\n\t\t? amount * hoursPerMonth\n\t\t: unit === 'DAILY'\n\t\t\t? amount * days\n\t\t\t: amount;\nconst hourly = (monthly + fixed) / hoursPerMonth;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.premium_rate;",
+		"incurred_on": "",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "bf2cc1bc-b106-5e09-be42-6458f50728a6",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	},
+	{
+		"code": "NIGHT_OVERTIME",
+		"name": "Night-overtime supplement (Phụ cấp làm thêm giờ ban đêm)",
+		"lookup": {
+			"normal_hours_per_day": 8,
+			"fallback_working_days": 26,
+			"premium_rate": 0.2,
+			"day_wage_factor": {
+				"NORMAL_DAY": 1,
+				"DAYTIME_OVERTIME": 1.5,
+				"REST_DAY": 2,
+				"PUBLIC_HOLIDAY": 3,
+				"SUBSTITUTE": 3,
+				"DOUBLE_HOLIDAY": 3
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.98(3); Decree 145/2020/NĐ-CP art.57(1)(b): overtime at night adds 20% of the daytime hour wage of that day — 100% on a normal day with no daytime overtime, 150% where the day also has daytime overtime, 200% on a weekly rest day and 300% on a public holiday. The admitted night-overtime hours carry their day kind; lookup.day_wage_factor holds those four statutory factors. On a public holiday every paid night hour of the holiday is in the supplement; on a normal or rest day only the night hours inside the overtime span are. The hourly base is the same as OVERTIME.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			},
+			{
+				"title": "Decree 145/2020/NĐ-CP arts.54(1)(a3)–(a4), 55(1)(a): the monthly wage is divided by the normal working days of the month the enterprise chose and the day wage by the normal hours of the day; the overtime hour wage is the month’s wage for the work divided by the month’s actual normal hours. The hourly base is the contractual rate plus the contract’s FIXED_ALLOWANCE job-related allowances; meal, housing, insurance-equivalent and work-expense allowances, bonuses, and overtime, night and holiday pay stay out.",
+				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "fcc28f32-de70-509a-b3df-37737c654ea2",
+		"eligibility": "// js\nconst entry = get(ctx, 'entry', {});\nconst employment = ctx.subject.employment;\nreturn (\n\t!['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', '')) &&\n\tget(employment, 'terms.rate.unit', 'MONTHLY') !== 'PIECE' &&\n\tget(entry, 'unit', '') === 'HOUR' &&\n\tNumber(get(entry, 'quantity', 0)) > 0\n);",
+		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst fixed = Number(get(get(terms, 'allowances.FIXED_ALLOWANCE', {}), 'amount', 0));\nconst from = month_start(ctx.run.salary_coverage.from);\nconst to = month_end(ctx.run.salary_coverage.from);\nconst offDays = get(ctx.subject, 'employer.payment_schedule.non_working_weekdays', [0, 6]);\nlet workingDays = 0;\nfor (let day = from; day <= to; day = add_days(day, 1)) {\n\tif (!offDays.includes(weekday(day))) workingDays = workingDays + 1;\n}\nconst weekDays = Math.max(1, 7 - offDays.length);\nconst contractDays = Number(get(terms, 'normal_days_per_week', 0)) || weekDays;\nconst days =\n\tworkingDays > 0\n\t\t? (workingDays * contractDays) / weekDays\n\t\t: ctx.lookup.fallback_working_days;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hoursPerMonth = days * hoursPerDay;\nconst monthly =\n\tunit === 'HOURLY'\n\t\t? amount * hoursPerMonth\n\t\t: unit === 'DAILY'\n\t\t\t? amount * days\n\t\t\t: amount;\nconst hourly = (monthly + fixed) / hoursPerMonth;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.premium_rate *\n\tNumber(get(ctx.lookup.day_wage_factor, String(get(entry, 'kind', 'NORMAL_DAY')), 1));",
+		"incurred_on": "",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "0108d243-fe33-534d-8356-449a95d8166c",
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+	}
+]

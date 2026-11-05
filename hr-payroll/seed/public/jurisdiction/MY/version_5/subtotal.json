@@ -1,0 +1,51 @@
+[
+	{
+		"code": "BASIC",
+		"name": "Basic salary",
+		"previous_id": null,
+		"id": "6bcccede-5847-53ec-ac6e-86347e6a8bf4",
+		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
+	},
+	{
+		"code": "ORDINARY_WAGES",
+		"name": "Ordinary wages",
+		"previous_id": "6bcccede-5847-53ec-ac6e-86347e6a8bf4",
+		"id": "61e71a84-594c-543f-8ea6-c33b918c46cb",
+		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
+	},
+	{
+		"code": "ADDITIONAL_WAGES",
+		"name": "Ordinary pay and bonus",
+		"previous_id": "61e71a84-594c-543f-8ea6-c33b918c46cb",
+		"id": "96fe2331-7fe8-5b00-a861-f2af6bbda52d",
+		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
+	},
+	{
+		"code": "GROSS",
+		"name": "Gross earnings",
+		"previous_id": "96fe2331-7fe8-5b00-a861-f2af6bbda52d",
+		"id": "4b391153-8087-5dec-b1de-ff3a834ccb8a",
+		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
+	},
+	{
+		"code": "NET",
+		"name": "Net pay",
+		"previous_id": "0883bc38-8951-55ea-a7ad-6a99077a3b84",
+		"id": "580cbea9-acd6-5d9a-af56-f47b294bc967",
+		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
+	},
+	{
+		"id": "e8eea6da-e98a-570b-bf3f-ba597cdcca2c",
+		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
+		"code": "EMPLOYER_COST",
+		"name": "Employer cost",
+		"previous_id": "580cbea9-acd6-5d9a-af56-f47b294bc967"
+	},
+	{
+		"code": "FINAL_PAY",
+		"name": "Final pay and non-wage settlements",
+		"previous_id": "4b391153-8087-5dec-b1de-ff3a834ccb8a",
+		"id": "0883bc38-8951-55ea-a7ad-6a99077a3b84",
+		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
+	}
+]

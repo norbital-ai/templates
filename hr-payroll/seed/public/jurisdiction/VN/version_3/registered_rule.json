@@ -1,0 +1,845 @@
+[
+	{
+		"code": "MINIMUM_WAGE_FLOOR",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				}
+			}
+		},
+		"condition": "// js\n// Only the monthly wage of the job is checked; part-time, intern and probation terms are outside it.\nconst rate = get(ctx.entry, 'terms.rate', null);\nreturn (\n\trate !== null &&\n\trate.unit === 'MONTHLY' &&\n\trate.amount > 0 &&\n\t!['PART_TIME', 'INTERN'].includes(ctx.entry.engagement) &&\n\tget(ctx.entry, 'terms.probation_period', null) === null\n);",
+		"validate": "// js\nconst employer = ctx.reads.entity_profile_version[0];\nconst region = get(employer, 'entity_extension_data.region', null);\nconst floor = get(ctx.lookup.minimum_wage.by_region, region, null);\nif (floor === null) return true;\nconst facts = get(ctx.entry, 'employee_extension_data.term_facts', {});\nconst prior =\n\tget(facts, 'prior_floor_reclassified', false) === true &&\n\tget(facts, 'prior_floor_region', null) !== null &&\n\tctx.entry.effective_range.from <= ctx.lookup.prior_floor_effective_until\n\t\t? get(ctx.lookup.minimum_wage.prior_by_region, facts.prior_floor_region, 0)\n\t\t: 0;\nreturn ctx.entry.terms.rate.amount >= Math.max(floor, prior);",
+		"order": 1,
+		"lookup": {
+			"minimum_wage": {
+				"by_region": {
+					"I": 5310000,
+					"II": 4730000,
+					"III": 4140000,
+					"IV": 3700000
+				},
+				"prior_by_region": {
+					"I": 4960000,
+					"II": 4410000,
+					"III": 3860000,
+					"IV": 3450000
+				}
+			},
+			"prior_floor_effective_until": "2025-12-31"
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 arts.90(2), 91; Decree 293/2025/NĐ-CP art.3 (the version’s rules.minimum_wage.by_region). An entity without a recorded region is checked against Region IV, the lowest floor; part-time, probation (at least 85% of the job wage, art.26) and intern terms are outside the monthly check. An incumbent hired by 31 December 2025 whose worksite moved to a lower region keeps the prior region’s Decree 74/2024 minimum (Decree 293/2025 art.5(5); contract-term facts prior_floor_region, prior_floor_reclassified).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "1baf7637-ba8e-5ed6-8cd5-55bbedb50622",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "OVERTIME_MONTHLY_CAP",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) > 0;",
+		"validate": "// js\nconst from = month_start(ctx.entry.work_date);\nconst to = month_end(ctx.entry.work_date);\nconst siblings = ctx.reads.roster_entry.filter((day) => day.work_date >= from && day.work_date <= to && day.work_date !== ctx.entry.work_date);\nconst minutes =\n\tsum(siblings.map((day) => interval_minutes(day.planned_overtime_intervals ?? []))) +\n\tinterval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []);\nreturn minutes / 60 <= ctx.lookup.overtime_hours;",
+		"order": 2,
+		"lookup": {
+			"overtime_hours": 40
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.107(2)(b): overtime may not exceed 40 hours a month. Counted: derived overtime on working days, and every paid hour on a rest day or public holiday.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "38f7c836-593b-5544-ad22-5d320096c8ed",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "OVERTIME_DAILY_CAP",
+		"target_collection": "roster_entry",
+		"events": ["update"],
+		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) > 0;",
+		"validate": "// js\nconst worked = interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) / 60;\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) / 60;\nif (overtime === 0) return true;\nconst normal = worked - overtime;\nreturn normal > 0 ? overtime <= ctx.lookup.share * normal : worked <= ctx.lookup.daily_hours;",
+		"order": 3,
+		"lookup": {
+			"share": 0.5,
+			"daily_hours": 12
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.107(2)(a): overtime at most 50% of the normal hours of a day; under a weekly regime normal plus overtime hours at most 12 a day.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "8f7dbbe1-d60d-51f8-bf18-20f9837447a3",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "DAMAGE_DEDUCTION_CEILING",
+		"target_collection": "adhoc_catalog_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"adhoc_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				}
+			},
+			"payslip": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					},
+					"state": {
+						"in": ["FINALISED", "PAID"]
+					}
+				}
+			},
+			"ledger_entry": {
+				"where": {
+					"account": {
+						"eq": "statutory_contribution"
+					}
+				}
+			}
+		},
+		"condition": "// js\nconst catalog = ctx.reads.adhoc_catalog[0];\nreturn (\n\tget(catalog, 'code', '') === 'PROPERTY_DAMAGE_COMPENSATION' &&\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.is_reversal !== true\n);",
+		"validate": "// js\nconst slip = ctx.reads.payslip[0];\nif (slip === null || slip === undefined) return true;\nconst statutory = sum(\n\tctx.reads.ledger_entry\n\t\t.filter((entry) => entry.account === 'statutory_contribution' && entry.code.endsWith('.employee'))\n\t\t.map((entry) => get(entry, 'amount', 0))\n);\nreturn ctx.entry.quantity <= ctx.lookup.share * (get(slip, 'gross_earnings', 0) - statutory);",
+		"order": 4,
+		"lookup": {
+			"share": 0.3
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.102(3): the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory social insurance, health insurance, unemployment insurance and personal income tax.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "9c078e21-b382-55c8-ad59-3f4d670b9ac9",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "OVERTIME_ANNUAL_CAP",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					}
+				}
+			},
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.subject.employment.entity_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) > 0;",
+		"validate": "// js\nconst year = ctx.entry.work_date.substring(0, 4);\nconst siblings = ctx.reads.roster_entry.filter(\n\t(day) => day.work_date.substring(0, 4) === year && day.work_date !== ctx.entry.work_date\n);\nconst hours =\n\t(sum(siblings.map((day) => interval_minutes(day.planned_overtime_intervals ?? []))) +\n\t\tinterval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? [])) /\n\t60;\nconst employer = ctx.reads.entity_profile_version[0];\nconst cap =\n\tget(employer, 'entity_extension_data.overtime_300h_sector', false) === true\n\t\t? ctx.lookup.extended_hours\n\t\t: ctx.lookup.ordinary_hours;\nreturn hours <= cap;",
+		"order": 5,
+		"lookup": {
+			"ordinary_hours": 200,
+			"extended_hours": 300
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.107(2)(b): at most 200 hours a year; art.107(3): 300 hours in the sectors and cases listed, after notifying the provincial labour authority (art.107(4); Decree 145/2020/NĐ-CP arts.61–62). Counted from hours.year: all overtime (banked included; every hour on a 0-hour rest day) plus the planned hours worked on public, substitute and double holidays, each hour once.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "5a3ada44-dfab-5d23-8719-65ffe15697d8",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "REGION_REQUIRED",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				}
+			}
+		},
+		"validate": "// js\nconst employer = ctx.reads.entity_profile_version[0];\nreturn ['I', 'II', 'III', 'IV'].includes(get(employer, 'entity_extension_data.region', null));",
+		"order": 6,
+		"lookup": {},
+		"references": [
+			{
+				"title": "Decree 293/2025/NĐ-CP arts.3–4: the minimum wage is the region of the employer’s place of operation."
+			}
+		],
+		"id": "8c64ae8a-29f0-59bb-89a9-3709c799df30",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "HOURLY_MINIMUM_WAGE",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				}
+			}
+		},
+		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nreturn rate !== null && rate.unit === 'HOURLY';",
+		"validate": "// js\nconst employer = ctx.reads.entity_profile_version[0];\nconst region = get(employer, 'entity_extension_data.region', null);\nconst floor = get(ctx.lookup.hourly_by_region, region, null);\nreturn floor === null || ctx.entry.terms.rate.amount >= floor;",
+		"order": 7,
+		"lookup": {
+			"hourly_by_region": {
+				"I": 25500,
+				"II": 22700,
+				"III": 20000,
+				"IV": 17800
+			}
+		},
+		"references": [
+			{
+				"title": "Decree 293/2025/NĐ-CP art.3(2), art.4: an hourly-paid worker is paid at least the regional hourly minimum (term fact hourly_rate)."
+			}
+		],
+		"id": "5911e955-b6fa-55f6-892d-7b4178585cf5",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "PROBATION_WAGE",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nreturn (\n\tget(ctx.entry, 'terms.probation_period', null) !== null &&\n\trate !== null &&\n\tget(ctx.entry, 'employee_extension_data.term_facts.probation_job_wage_vnd', null) !== null\n);",
+		"validate": "// js\nconst job = get(ctx.entry, 'employee_extension_data.term_facts.probation_job_wage_vnd', null);\nreturn ctx.entry.terms.rate.amount >= ctx.lookup.share * job;",
+		"order": 8,
+		"lookup": {
+			"share": 0.85
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14",
+				"locator": "art.26.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "ba486f34-c90b-5ec3-957d-b0672a8de1c5",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "PROBATION_PERIOD",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"condition": "// js\nconst period = get(ctx.entry, 'terms.probation_period', null);\nreturn (\n\tperiod !== null &&\n\tperiod.to !== null &&\n\tget(ctx.entry, 'employee_extension_data.term_facts.probation_class', null) !== null\n);",
+		"validate": "// js\nconst period = ctx.entry.terms.probation_period;\nconst jobClass = get(ctx.entry, 'employee_extension_data.term_facts.probation_class', null);\nif (jobClass === 'OTHER')\n\treturn period.to <= add_working_days(period.from, ctx.lookup.other_working_days - 1, [], [6, 0]);\nconst limit =\n\tjobClass === 'ENTERPRISE_MANAGER'\n\t\t? ctx.lookup.enterprise_manager_days\n\t\t: jobClass === 'COLLEGE_OR_ABOVE'\n\t\t\t? ctx.lookup.college_days\n\t\t\t: ctx.lookup.intermediate_days;\nreturn calendar_distance_days(period.from, period.to) + 1 <= limit;",
+		"order": 9,
+		"lookup": {
+			"enterprise_manager_days": 180,
+			"college_days": 60,
+			"intermediate_days": 30,
+			"other_working_days": 6
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.25: at most 180 days for an enterprise manager, 60 for a college-level job, 30 for an intermediate or technical job, 6 working days for any other.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "50f0a3e4-c86a-5471-b902-af4da2f6571f",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "PREGNANT_OR_INFANT_NIGHT_OVERTIME",
+		"target_collection": "roster_entry",
+		"events": ["update"],
+		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) > 0;",
+		"validate": "// js\nconst contract = ctx.subject.employment;\nconst date = ctx.entry.work_date;\nconst atRisk = get(contract, 'employee_extension_data.facts.children', []).some((child) => {\n\tconst due = get(child, 'estimated_delivery_date', null);\n\tconst born = get(child, 'child_birthdate', null);\n\tif (due !== null && born === null) return date >= add_months(due, -ctx.lookup.advance_months);\n\treturn born !== null && add_months(born, ctx.lookup.infant_months) > date;\n});\nif (!atRisk) return true;\nconst night = clock_window_minutes(\n\tget(ctx.entry, 'actual_worked_intervals', []) ?? [],\n\tctx.lookup.timezone,\n\tctx.lookup.night_from,\n\tctx.lookup.night_to\n);\nreturn night === 0 && interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) === 0;",
+		"order": 10,
+		"lookup": {
+			"advance_months": 3,
+			"infant_months": 12,
+			"night_from": "22:00",
+			"night_to": "06:00",
+			"timezone": "Asia/Ho_Chi_Minh"
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.137(1)(a): unless she agrees, no night work, overtime or long business trips from the seventh month of pregnancy (sixth in remote areas) or while raising a child under 12 months. Read on employee.children (estimated_delivery_date three months ahead, child_birthdate) and the day’s consent (work.days[].overtime_consented, the work-day sheet’s per-day consent column: owner ruling, consent is per day, never an employee fact).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "44aad442-22bd-5f80-a0b5-5169a4513eb4",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "MINOR_WORKING_TIME",
+		"target_collection": "roster_entry",
+		"events": ["update"],
+		"reads": {
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) > 0;",
+		"validate": "// js\nconst contract = ctx.subject.employment;\nconst dob = get(contract, 'payroll.date_of_birth', null);\nif (dob === null) return true;\nconst age = age_on(dob, ctx.entry.work_date);\nif (age >= ctx.lookup.young_age) return true;\nconst worked = interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) / 60;\nconst week = ctx.reads.roster_entry.filter(\n\t(day) => day.work_date !== ctx.entry.work_date && day.work_date >= add_days(ctx.entry.work_date, -6)\n);\nconst weekly =\n\t(sum(week.map((day) => interval_minutes(day.actual_worked_intervals ?? []))) +\n\t\tinterval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? [])) /\n\t60;\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []);\nconst night = clock_window_minutes(\n\tget(ctx.entry, 'actual_worked_intervals', []) ?? [],\n\tctx.lookup.timezone,\n\tctx.lookup.night_from,\n\tctx.lookup.night_to\n);\nif (age < ctx.lookup.child_age) return worked <= ctx.lookup.child_daily && weekly <= ctx.lookup.child_weekly && overtime === 0 && night === 0;\nconst listed = get(contract, 'employee_extension_data.term_facts.minor_listed_job', false) === true;\nreturn worked <= ctx.lookup.young_daily && weekly <= ctx.lookup.young_weekly && (listed || (overtime === 0 && night === 0));",
+		"order": 11,
+		"lookup": {
+			"child_age": 15,
+			"young_age": 18,
+			"child_daily": 4,
+			"child_weekly": 20,
+			"young_daily": 8,
+			"young_weekly": 40,
+			"night_from": "22:00",
+			"night_to": "06:00",
+			"timezone": "Asia/Ho_Chi_Minh"
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.146(1)(b): a worker from 15 to under 18 works at most 8 hours a day and 40 a week, overtime and night work only in the jobs the Minister lists (term fact minor_listed_job).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "3bda3fe3-c0d3-58d7-9ff2-9e18b4ff13bf",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "WEEKLY_REST",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					}
+				}
+			},
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.subject.employment.entity_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "// js\nconst employer = ctx.reads.entity_profile_version[0];\nreturn (\n\tget(employer, 'entity_extension_data.rest_averaged_monthly', false) === true &&\n\tinterval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) > 0\n);",
+		"validate": "// js\nconst from = month_start(ctx.entry.work_date);\nconst to = month_end(ctx.entry.work_date);\nconst siblings = ctx.reads.roster_entry.filter((day) => day.work_date >= from && day.work_date <= to && day.work_date !== ctx.entry.work_date);\nconst rest = siblings.filter((day) => interval_minutes(day.actual_worked_intervals ?? []) === 0).length;\nreturn siblings.length + 1 < ctx.lookup.month_records || rest >= ctx.lookup.rest_days;",
+		"order": 12,
+		"lookup": {
+			"rest_days": 4,
+			"month_records": 28
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14 art.111(1): at least 24 consecutive hours of rest each week; where the cycle does not allow it, at least four days a month on average (entity fact rest_averaged_monthly).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "c83bb6bf-9208-50c8-9153-4930bcc5b316",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "ROSTER_NORMAL_HOURS_DAY",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) > 0;",
+		"validate": "// js\nconst contract = ctx.subject.employment;\nconst agreed = get(contract, 'terms.normal_hours_per_day', ctx.lookup.daily_hours);\nconst cap = agreed > ctx.lookup.daily_hours ? ctx.lookup.weekly_arrangement_hours : ctx.lookup.daily_hours;\nconst worked = interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) / 60;\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) / 60;\nreturn worked - overtime <= cap;",
+		"order": 13,
+		"lookup": {
+			"daily_hours": 8,
+			"weekly_arrangement_hours": 10
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019 art.105(1)–(2): normal working hours at most 8 a day and 48 a week; under a weekly arrangement at most 10 a day (term fact normal_hours_arrangement).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "ae09212f-c08d-57c6-b621-6a0fdf3e46a1",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "ROSTER_NORMAL_HOURS_WEEK",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) > 0;",
+		"validate": "// js\nconst from = add_days(ctx.entry.work_date, -6);\nconst siblings = ctx.reads.roster_entry.filter(\n\t(day) => day.work_date >= from && day.work_date <= ctx.entry.work_date && day.work_date !== ctx.entry.work_date\n);\nconst worked =\n\tsum(siblings.map((day) => interval_minutes(day.actual_worked_intervals ?? []))) +\n\tinterval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []);\nconst overtime =\n\tsum(siblings.map((day) => interval_minutes(day.planned_overtime_intervals ?? []))) +\n\tinterval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []);\nreturn (worked - overtime) / 60 <= ctx.lookup.weekly_hours;",
+		"order": 14,
+		"lookup": {
+			"weekly_hours": 48
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019 art.105(1)–(2): at most 48 normal hours a week.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "3561b233-fe19-5312-915f-fff2b7d75a73",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "ROSTER_OVERTIME_DAY",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) > 0;",
+		"validate": "// js\nconst contract = ctx.subject.employment;\nconst normal = get(contract, 'terms.normal_hours_per_day', ctx.lookup.default_normal_hours);\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) / 60;\nreturn normal > 0 && overtime <= ctx.lookup.share * normal && normal + overtime <= ctx.lookup.daily_hours;",
+		"order": 15,
+		"lookup": {
+			"share": 0.5,
+			"daily_hours": 12,
+			"default_normal_hours": 8
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019 art.107(2)(b): overtime at most 50% of the normal hours of a day; under a weekly arrangement normal plus overtime at most 12 a day.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "77bc8540-4e3a-5c97-aa29-8776ccf1f304",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "ROSTER_SHIFT_CHANGE_REST",
+		"target_collection": "roster_entry",
+		"events": ["update"],
+		"reads": {
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) > 0;",
+		"validate": "// js\nconst previous = ctx.reads.roster_entry\n\t.filter((day) => day.work_date < ctx.entry.work_date && interval_minutes(day.actual_worked_intervals ?? []) > 0)\n\t.toSorted((left, right) => (left.work_date < right.work_date ? 1 : -1))[0];\nif (previous === undefined) return true;\nconst intervals = previous.actual_worked_intervals ?? [];\nconst last = intervals[intervals.length - 1];\nconst end = get(last, 'end', null);\nconst firstInterval = get(ctx.entry, 'actual_worked_intervals', [])[0];\nif (end === null) return true;\nreturn elapsed_minutes(end, firstInterval.start) / 60 >= ctx.lookup.rest_hours;",
+		"order": 16,
+		"lookup": {
+			"rest_hours": 12
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019 art.110: a shift worker rests at least 12 hours before moving to another shift.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "c26638ad-92bf-597c-a025-27303b78e68f",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "ROSTER_WEEKLY_REST",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					}
+				}
+			},
+			"entity_profile_version": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.subject.employment.entity_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "// js\nconst employer = ctx.reads.entity_profile_version[0];\nreturn (\n\tget(employer, 'entity_extension_data.rest_averaged_monthly', false) !== true &&\n\tinterval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) > 0\n);",
+		"validate": "// js\nconst from = add_days(ctx.entry.work_date, -(ctx.lookup.worked_days - 1));\nconst siblings = ctx.reads.roster_entry.filter(\n\t(day) => day.work_date >= from && day.work_date < ctx.entry.work_date\n);\nconst worked =\n\tsiblings.filter((day) => interval_minutes(day.actual_worked_intervals ?? []) > 0).length + 1;\nreturn siblings.length < ctx.lookup.worked_days - 1 || worked < ctx.lookup.worked_days;",
+		"order": 17,
+		"lookup": {
+			"worked_days": 7
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019 art.111(1): at least 24 consecutive hours of rest each week; where the work cycle does not allow it, four days a month on average (entity fact rest_averaged_monthly).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "ed341b30-6d9a-5a31-bb14-76ade853b9a6",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "ROSTER_MINOR_WORKING_TIME",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) > 0;",
+		"validate": "// js\nconst contract = ctx.subject.employment;\nconst dob = get(contract, 'payroll.date_of_birth', null);\nif (dob === null) return true;\nconst age = age_on(dob, ctx.entry.work_date);\nif (age >= ctx.lookup.young_age) return true;\nconst listed = get(contract, 'employee_extension_data.term_facts.minor_listed_job', false) === true;\nif (age >= ctx.lookup.child_age && listed) return true;\nreturn false;",
+		"order": 18,
+		"lookup": {
+			"child_age": 15,
+			"young_age": 18
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019 art.146: under 15 at most 4 hours a day and 20 a week, no overtime or night work; from 15 to under 18 at most 8 a day and 40 a week, overtime and night work only in the jobs the Minister lists (term fact minor_listed_job); night is 22:00–06:00 (art.106).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "bb2b7133-c879-52a0-8181-72612cf07b5c",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "ROSTER_MATERNITY_NIGHT_OVERTIME",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) > 0;",
+		"validate": "// js\nconst contract = ctx.subject.employment;\nconst date = ctx.entry.work_date;\nconst atRisk = get(contract, 'employee_extension_data.facts.children', []).some((child) => {\n\tconst due = get(child, 'estimated_delivery_date', null);\n\tconst born = get(child, 'child_birthdate', null);\n\tif (due !== null && born === null) return date >= add_months(due, -ctx.lookup.advance_months);\n\treturn born !== null && add_months(born, ctx.lookup.infant_months) > date;\n});\nreturn !atRisk;",
+		"order": 19,
+		"lookup": {
+			"advance_months": 3,
+			"infant_months": 12
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019 art.137(1): no night work, overtime or long business trips from the seventh month of pregnancy (estimated delivery within three months on employee.children) or while raising a child under 12 months, unless she agrees (day.overtime_consented, the sheet’s per-day consent: owner ruling, consent is per day).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "f9c7c018-1742-5c68-903d-826e90a5109b",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "ROSTER_UNDER_13",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) > 0 || interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) > 0;",
+		"validate": "// js\nconst contract = ctx.subject.employment;\nconst dob = get(contract, 'payroll.date_of_birth', null);\nif (dob === null) return true;\nif (age_on(dob, ctx.entry.work_date) >= ctx.lookup.age_years) return true;\nreturn get(contract, 'employee_extension_data.term_facts.child_arts_sports_approved', false) === true;",
+		"order": 20,
+		"lookup": {
+			"age_years": 13
+		},
+		"references": [
+			{
+				"title": "Labour Code 2019 art.145(3): the employer may not recruit or use a person under 13, except in arts, physical training or sports work that does not harm the child, with the provincial labour authority’s consent (term fact child_arts_sports_approved).",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"id": "cc85c798-ea45-5793-82d9-873cfa7bb74b",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "ROSTER_PATTERN_CYCLE",
+		"target_collection": "roster_entry",
+		"events": ["update"],
+		"reads": {
+			"shift_pattern": {
+				"limit": 10000
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "// js\nreturn get(ctx.subject.employment, 'terms.shift_pattern_id', null) !== null;",
+		"validate": "// js\nconst patternId = get(ctx.subject.employment, 'terms.shift_pattern_id', null);\nconst pattern = patternId == null ? undefined : ctx.reads.shift_pattern.find((row) => row.id === patternId);\nconst days = get(pattern, 'pattern.days', []);\nconst anchor = get(pattern, 'pattern.anchor_date', null);\nif (days.length === 0 || anchor === null) return true;\nconst offset = ((calendar_distance_days(anchor, ctx.entry.work_date) % days.length) + days.length) % days.length;\nconst cycleStart = add_days(ctx.entry.work_date, -offset);\nconst cycleEnd = add_days(cycleStart, days.length - 1);\nconst planned = ctx.reads.roster_entry\n\t.filter((day) => day.work_date >= cycleStart && day.work_date <= cycleEnd && day.work_date !== ctx.entry.work_date)\n\t.map((day) => day.shift_definition_id)\n\t.concat([get(ctx.entry, 'shift_definition_id', null)])\n\t.toSorted();\nconst expected = days.map((day) => day.shift_definition_id).toSorted();\nreturn planned.length === expected.length && planned.every((value, index) => value === expected[index]);",
+		"order": 21,
+		"lookup": {},
+		"id": "a11cd8ad-1aad-51f6-8a39-f1f243635c11",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "PAYROLL_RUN_KINDS",
+		"target_collection": "payroll_run",
+		"events": ["create"],
+		"validate": "// js\nreturn ctx.lookup.kinds.includes(ctx.entry.kind);",
+		"order": 22,
+		"lookup": {
+			"kinds": ["REGULAR", "OFF_CYCLE"]
+		},
+		"id": "3e6fb23c-2370-5d13-8cff-918a197c0b71",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "ENCASHMENT_PRIOR_WAGE_REVIEW",
+		"target_collection": "leave_catalog_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"leave_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				}
+			},
+			"employee_contract": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					}
+				}
+			}
+		},
+		"condition": "// js\nconst catalog = ctx.reads.leave_catalog[0];\nconst contract = ctx.subject.employment;\nreturn (\n\tget(catalog, 'lookup.can_encash', false) === true &&\n\tctx.entry.is_reversal !== true &&\n\tget(contract, 'effective_range.to', null) !== null\n);",
+		"validate": "// js\nconst contract = ctx.subject.employment;\nconst exit = contract.effective_range.to;\nconst review = get(contract, 'employee_extension_data.term_facts.encashment_review', null);\nreturn (\n\treview !== null &&\n\tget(review, 'month', '') === add_months(month_start(exit), -1).substring(0, 7)\n);",
+		"order": 23,
+		"lookup": {},
+		"id": "f9442741-c300-5b6b-b8f7-2a381efcc5e9",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "ANNUAL_SERVICE_EXIT_REVIEW",
+		"target_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"workplace_case_catalog_entry": {
+				"where": {
+					"kind": {
+						"eq": "ANNUAL_LEAVE_COMBINING_AGREEMENT"
+					}
+				}
+			}
+		},
+		"condition": "// js\nreturn get(ctx.entry, 'final_pay_due_on', null) !== null && get(ctx.entry, 'effective_range.to', null) !== null;",
+		"validate": "// js\nconst exit = ctx.entry.effective_range.to;\nconst review = get(ctx.entry, 'employee_extension_data.facts.annual_leave_service_review', null);\nif (review === null) return false;\nif (String(get(review, 'year', '')) !== exit.substring(0, 4) || get(review, 'as_of', '') !== exit) return false;\nconst covered = ctx.reads.workplace_case_catalog_entry.some(\n\t(record) =>\n\t\trecord.opened_on <= exit &&\n\t\t(record.closed_on === null || record.closed_on === undefined || record.closed_on >= exit) &&\n\t\tget(record, 'inputs.effective_from', '') <= exit &&\n\t\tget(record, 'inputs.effective_to', '') >= exit\n);\nreturn (\n\t!covered ||\n\t(get(review, 'carry_previous_year_days', null) !== null &&\n\t\tget(review, 'carry_second_previous_year_days', null) !== null)\n);",
+		"order": 24,
+		"lookup": {},
+		"id": "e0ddc011-72a4-540d-a913-1ab296560d85",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "CONTRACT_CATEGORIES",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn ctx.entry.engagement !== 'PAYEE';",
+		"validate": "// js\nconst residency = get(ctx.entry, 'terms.residency_status', null);\nconst category = get(ctx.entry, 'terms.statutory_work_category', null);\nreturn (\n\tresidency !== null &&\n\tctx.lookup.residency_status.includes(residency) &&\n\t(category === null || ctx.lookup.work_classification.includes(category))\n);",
+		"order": 25,
+		"lookup": {
+			"work_classification": ["ORDINARY", "MANAGERIAL", "ARDUOUS", "ESPECIALLY_ARDUOUS"],
+			"residency_status": ["CITIZEN", "PERMANENT_RESIDENT", "RESIDENT", "NON_RESIDENT"],
+			"work_pass_categories": ["PERMIT", "EXEMPTION_CERTIFICATE", "EXEMPT_NOTIFICATION"]
+		},
+		"id": "92bc7473-8afd-5e2a-b3d2-a2d28230c769",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "SHARED_CONTRACT_TERMS",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"validate": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate !== null && !(rate.amount > 0)) return false;\nconst day = get(ctx.entry, 'terms.normal_hours_per_day', null);\nif (day !== null && day > ctx.lookup.daily_hours) return false;\nconst week = get(ctx.entry, 'terms.normal_hours_per_week', null);\nif (week !== null && week > ctx.lookup.weekly_hours) return false;\nreturn true;",
+		"order": 26,
+		"lookup": {
+			"daily_hours": 10,
+			"weekly_hours": 48
+		},
+		"id": "5aa10909-e17d-51f9-bcf4-ea73987ca9e0",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "SHARED_STRUCTURED_EMPLOYEE_INPUTS",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"validate": "// js\nreturn Object.keys(ctx.lookup.bounds).every((path) => {\n\tconst value = get(ctx.entry, path, null);\n\tconst bound = ctx.lookup.bounds[path];\n\tif (value === null) return get(bound, 'required', false) !== true;\n\tconst minimum = get(bound, 'minimum', null);\n\tconst maximum = get(bound, 'maximum', null);\n\tconst allowed = get(bound, 'allowed', null);\n\tif (minimum !== null && value < minimum) return false;\n\tif (maximum !== null && value > maximum) return false;\n\tif (allowed !== null && !allowed.includes(value)) return false;\n\treturn true;\n});",
+		"order": 27,
+		"lookup": {
+			"bounds": {
+				"terms.normal_hours_per_day": {
+					"maximum": 10
+				},
+				"terms.normal_hours_per_week": {
+					"maximum": 48
+				},
+				"terms.normal_days_per_week": {
+					"maximum": 6
+				}
+			}
+		},
+		"id": "dc4d92a1-960f-512b-842e-f04ce93f2413",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "SHARED_STRUCTURED_ENTITY_INPUTS",
+		"target_collection": "entity_profile_version",
+		"events": ["create", "update"],
+		"validate": "// js\nreturn Object.keys(ctx.lookup.bounds).every((path) => {\n\tconst value = get(ctx.entry, path, null);\n\tconst bound = ctx.lookup.bounds[path];\n\tif (value === null) return get(bound, 'required', false) !== true;\n\tconst minimum = get(bound, 'minimum', null);\n\tconst maximum = get(bound, 'maximum', null);\n\tconst allowed = get(bound, 'allowed', null);\n\tif (minimum !== null && value < minimum) return false;\n\tif (maximum !== null && value > maximum) return false;\n\tif (allowed !== null && !allowed.includes(value)) return false;\n\treturn true;\n});",
+		"order": 28,
+		"lookup": {
+			"bounds": {}
+		},
+		"id": "96f657f5-49b3-5db1-9591-23a650393dc9",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "SHARED_ORIGINAL_AGREEMENT_INTENT",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn ctx.entry.engagement !== 'PAYEE';",
+		"validate": "// js\nconst agreement = get(ctx.entry, 'signed_contract_period', null);\nif (agreement === null) return false;\nif (agreement.to === null) return true;\nreturn (\n\tagreement.to >= agreement.from &&\n\tadd_days(agreement.to, 1) <= add_months(agreement.from, ctx.lookup.maximum_fixed_term_months)\n);",
+		"order": 29,
+		"lookup": {
+			"maximum_fixed_term_months": 36
+		},
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14, article20: actual definite or indefinite agreement; maximum fixed term36months.",
+				"url": "https://vanban.chinhphu.vn/?classid=1&docid=198540&orggroupid=1&pageid=27160"
+			},
+			{
+				"title": "ILO-hosted English text of Labour Code45/2019/QH14, article20",
+				"url": "https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/110469/VNM110469%20Eng.pdf"
+			}
+		],
+		"id": "ea17bc3c-9572-5bcf-99dc-e1108250b41f",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "OPERATIONS_EVENT_DATE_REQUIRED",
+		"target_collection": "entity_profile_version",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn ctx.entry.status === 'SEALED';",
+		"validate": "// js\nconst firstEmployed = get(ctx.entry, 'entity_extension_data.first_employed_on', null);\nif (firstEmployed === null) return true;\nreturn get(ctx.entry, 'entity_extension_data.operations_started_on', null) !== null;",
+		"order": 30,
+		"lookup": {},
+		"id": "d93e0687-0c58-53d7-837a-a21dde4dbaeb",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "BUSINESS_CASE_SUBJECT_AND_REFERENCE",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn ctx.entry.kind === 'ANNUAL_LEAVE_COMBINING_AGREEMENT';",
+		"validate": "// js\nreturn (\n\tget(ctx.entry, 'inputs.employment_id', null) !== null &&\n\tget(ctx.entry, 'inputs.reference', '') !== ''\n);",
+		"order": 31,
+		"lookup": {},
+		"id": "5edb9101-00fc-5f49-8a53-d6ae6692064f",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "BUSINESS_CASE_EFFECTIVE_INTERVAL",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn ctx.entry.kind === 'ANNUAL_LEAVE_COMBINING_AGREEMENT';",
+		"validate": "// js\nconst from = get(ctx.entry, 'inputs.effective_from', null);\nconst to = get(ctx.entry, 'inputs.effective_to', null);\nreturn from !== null && to !== null && from >= ctx.entry.opened_on && to >= from;",
+		"order": 32,
+		"lookup": {},
+		"id": "fd4fb9eb-2a00-593a-87c1-dfc3a2d8a4fe",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "BUSINESS_CASE_DOCUMENT_REQUIRED",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn ctx.entry.kind === 'ANNUAL_LEAVE_COMBINING_AGREEMENT';",
+		"validate": "// js\nreturn get(ctx.entry, 'evidence_file', null) !== null;",
+		"order": 33,
+		"lookup": {},
+		"id": "c4cb8a02-dc49-5eaa-ae9c-5da592d2c677",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "ANNUAL_LEAVE_COMBINING_MAXIMUM",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn ctx.entry.kind === 'ANNUAL_LEAVE_COMBINING_AGREEMENT';",
+		"validate": "// js\nconst from = get(ctx.entry, 'inputs.effective_from', null);\nconst to = get(ctx.entry, 'inputs.effective_to', null);\nreturn from !== null && to !== null && to <= add_days(add_years(from, ctx.lookup.maximum_years), -1);",
+		"order": 34,
+		"lookup": {
+			"maximum_years": 3
+		},
+		"id": "6078bbe8-cc6d-5f21-b715-0b227e28d3e1",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "ROSTER_WARNINGS",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"condition": "// js\nreturn true;",
+		"validate": "// js\nreturn true;",
+		"order": 35,
+		"lookup": {
+			"roster_warnings": {
+				"daily_hours": 12,
+				"daily_overtime_hours": 4,
+				"monthly_overtime_hours": 40,
+				"consecutive_days": 6,
+				"weekly_rest_days": 1
+			}
+		},
+		"id": "2728ec39-ebb1-5342-95ab-426ed87ddc5e",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	}
+]

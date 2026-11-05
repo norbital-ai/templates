@@ -1,0 +1,40 @@
+{
+	"name": "@norbital-ai/templates",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"packageManager": "bun@1.4.1",
+	"engines": {
+		"node": ">=26.0.0"
+	},
+	"scripts": {
+		"check": "bun run check:static && bun run templates:verify",
+		"check:static": "bun run templates:check && bun run format:check && bun run templates:lock:check",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"templates:check": "bolt templates check",
+		"templates:lock": "bolt templates lock",
+		"templates:lock:check": "bolt templates lock --check",
+		"templates:verify": "bolt templates verify",
+		"test": "bolt templates test"
+	},
+	"devDependencies": {
+		"@norbital-ai/bolt-cli": "0.0.14",
+		"@typescript/native": "npm:typescript@7.0.2",
+		"pg": "^8.23.0",
+		"prettier": "^3.9.6",
+		"prettier-plugin-svelte": "^4.1.1",
+		"svelte": "^5.56.10",
+		"typescript": "6.0.3",
+		"svelte2tsx": "0.7.61"
+	},
+	"trustedDependencies": [
+		"esbuild"
+	],
+	"overrides": {
+		"effect": "4.0.6",
+		"@effect/platform-node": "4.0.6",
+		"@effect/platform-node-shared": "4.0.6",
+		"@effect/vitest": "4.0.6"
+	}
+}

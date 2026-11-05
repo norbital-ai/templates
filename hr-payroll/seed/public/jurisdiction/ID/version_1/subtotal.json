@@ -1,0 +1,37 @@
+[
+	{
+		"code": "BASIC",
+		"name": "Basic pay",
+		"previous_id": null,
+		"id": "ce859a79-e1c0-5625-a560-75c45bf3b20e",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "ORDINARY_WAGES",
+		"name": "Ordinary wages",
+		"previous_id": "ce859a79-e1c0-5625-a560-75c45bf3b20e",
+		"id": "772bfa3c-a50d-5547-a364-f38c182d3338",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "ADDITIONAL_WAGES",
+		"name": "Ordinary and additional wages",
+		"previous_id": "772bfa3c-a50d-5547-a364-f38c182d3338",
+		"id": "763896e2-da09-5a88-9dc2-704f0f02e7b0",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "GROSS",
+		"name": "Gross earnings",
+		"previous_id": "763896e2-da09-5a88-9dc2-704f0f02e7b0",
+		"id": "37adc41d-4143-57fd-b963-af36b77a9aa7",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "NET",
+		"name": "Net pay",
+		"previous_id": "37adc41d-4143-57fd-b963-af36b77a9aa7",
+		"id": "d22ae8ac-c96f-5b57-bc2e-45963366f2d7",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	}
+]

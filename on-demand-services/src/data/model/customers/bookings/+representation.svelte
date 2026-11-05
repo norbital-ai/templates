@@ -1,0 +1,383 @@
+<script lang="ts">
+	import { fork, bolt } from '$bolt';
+	import { Effect } from 'effect';
+	import {
+		useKinds,
+		Button,
+		Combobox,
+		enumText,
+		TimeInput,
+		Label,
+		Picker,
+		RecordShell,
+		Section,
+		Table,
+		RunStatus,
+		useBolt,
+		type RecordSection,
+		type RecordView
+	} from '@norbital-ai/ui';
+	import type { Id } from '@norbital-ai/bolt';
+	import { Instant, PlainDate } from '@norbital-ai/std/date';
+	import { Cluster, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { untrack } from 'svelte';
+	import SlotPicker from '../../../../lib/SlotPicker.svelte';
+	import { livePool } from '../../../../lib/pool.svelte.js';
+	import { bookingSlots, bookingWindow } from '../../../../lib/slots.js';
+	const zone = useKinds().zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+	let {
+		view
+	}: {
+		view: RecordView<'bookings'>;
+	} = $props();
+	const t = bolt.t;
+	const ui = useBolt();
+	const repeatWord = (value: string) =>
+		enumText(value, { t: (key) => ui.t(key), model: 'bookings', field: 'repeat' });
+	const day = bolt.clock('day');
+	const today = $derived<string>(day.today);
+	const REPEATS = ['once', 'weekly', 'fortnightly', 'monthly'] as const;
+	// a stored booking: what was booked (with its notes) and where; the preferred helpers sit in a tab of their own
+	const sections: RecordSection[] = [
+		{
+			name: 'booking',
+			icon: 'lucide:calendar-check',
+			title: t('models.bookings.singular'),
+			fields: [
+				'number',
+				'customer',
+				'service',
+				'status',
+				'preference',
+				'repeat',
+				'visit_count',
+				'notes'
+			]
+		},
+		{
+			name: 'where',
+			icon: 'lucide:map-pin',
+			title: t('section.where'),
+			fields: ['address', 'area', 'location']
+		}
+	];
+	// opened from a customer, the customer is filled in
+	let customer = $state<Id<'customers'> | null>(
+		untrack(() => (view.mode === 'create' ? (view.values.customer ?? null) : null))
+	);
+	let service = $state<Id<'services'> | null>(
+		untrack(() => (view.mode === 'create' ? (view.values.service ?? null) : null))
+	);
+	let preference = $state<'any' | 'preferred'>('any');
+	let helpers = $state<Id<'helpers'>[]>([]);
+	let from = $state<string>(day.today);
+	let start = $state<string | null>(null);
+	let repeat = $state<(typeof REPEATS)[number]>('once');
+	let message = $state<string | null>(null);
+	let booking = $state(false);
+	let started = $state<string | null>(null);
+	const names = $derived(
+		helpers.length === 0
+			? null
+			: bolt.query({
+					helpers: { where: { id: { in: helpers } }, fields: ['name', 'skills'], limit: 5 }
+				})
+	);
+	// the starts this booking could take: the customer and service, then the pool over the full recurring horizon
+	const chosen = $derived(
+		customer === null || service === null
+			? null
+			: bolt.query({
+					customers: {
+						where: { id: { eq: customer } },
+						fields: ['location', 'area'],
+						limit: 1
+					},
+					services: {
+						where: { id: { eq: service } },
+						fields: ['skill', 'duration_minutes', 'active'],
+						limit: 1
+					}
+				})
+	);
+	const target = $derived(chosen?.current?.customers.rows[0] ?? null);
+	const chosenService = $derived(chosen?.current?.services.rows[0] ?? null);
+	const horizon = $derived(bookingWindow({ from: PlainDate(from), days: 7, repeat }, zone));
+	const pool = livePool(
+		() =>
+			chosen?.current !== undefined && (preference === 'any' || helpers.length > 0)
+				? { from: horizon.from, to: horizon.to, spots: [target?.location ?? null] }
+				: null,
+		zone
+	);
+	const clock = bolt.clock('minute');
+	const offered = $derived(
+		pool.current === undefined || chosen?.current === undefined
+			? undefined
+			: bookingSlots(
+					target,
+					chosenService,
+					{ preference, repeat, ...(preference === 'preferred' ? { helpers } : {}) },
+					horizon.days,
+					pool.current,
+					zone,
+					clock.now
+				)
+	);
+	const refused = $derived(typeof offered === 'string' ? offered : null);
+	const shown = $derived(typeof offered === 'string' ? undefined : offered);
+	const ready = $derived(
+		customer !== null &&
+			service !== null &&
+			start !== null &&
+			(preference === 'any' || helpers.length > 0) &&
+			shown?.some((d) => d.starts.includes(Instant(start!))) === true
+	);
+	function book() {
+		const selectedCustomer = customer,
+			selectedService = service,
+			selectedStart = start;
+		if (selectedCustomer === null || selectedService === null || selectedStart === null) return;
+		booking = true;
+		message = null;
+		const order = helpers;
+		fork(
+			Effect.gen(function* () {
+				const call = bolt.start('bookings_book', {
+					customer: selectedCustomer,
+					service: selectedService,
+					preference,
+					...(preference === 'preferred' ? { helpers: order } : {}),
+					start: Instant(selectedStart),
+					repeat
+				});
+				const outcome = yield* call;
+				if (outcome.kind === 'committed') started = call.id;
+				else message = outcome.kind === 'refused' ? outcome.message : t('app.schedule.book_failed');
+			}).pipe(
+				Effect.ensuring(
+					Effect.sync(() => {
+						booking = false;
+					})
+				)
+			),
+			() => {
+				message = t('app.schedule.book_failed');
+			}
+		);
+	}
+</script>
+
+{#snippet preferred()}
+	{#if view.mode !== 'create'}<Table
+			of="booking_helpers"
+			key="booking-helpers"
+			where={{ booking: { eq: view.record.id } }}
+			orderBy={{ rank: 'asc' }}
+			columns={['rank', 'helper']}
+			toolbar={{ title: t('app.schedule.preferred_helpers'), new: false }}
+		/>{/if}
+{/snippet}
+
+{#if view.mode === 'create'}
+	<RecordShell
+		of="bookings"
+		fields={[
+			'number',
+			'customer',
+			'service',
+			'status',
+			'preference',
+			'repeat',
+			'visit_count',
+			'address',
+			'notes',
+			'location'
+		]}
+		mode="create"
+	>
+		<Stack gap="lg">
+			<Section
+				icon="lucide:map-pin"
+				collapsible={false}
+				first
+				name="where"
+				title={t('app.schedule.step_where')}
+			>
+				<Grid minimum="compact">
+					{#if view.values.customer == null}
+						<Stack gap="xs">
+							<Label for="booking-customer">{t('component.customer')}</Label>
+							<Picker
+								id="booking-customer"
+								of="customers"
+								value={customer}
+								onChange={(id) => {
+									customer = id;
+									start = null;
+								}}
+							/>
+						</Stack>
+					{/if}
+					<Stack gap="xs">
+						<Label for="booking-service">{t('component.service')}</Label>
+						<Picker
+							id="booking-service"
+							of="services"
+							where={{ active: { eq: true } }}
+							value={service}
+							onChange={(id) => {
+								service = id;
+								start = null;
+							}}
+						/>
+					</Stack>
+				</Grid>
+			</Section>
+			<Section
+				icon="lucide:sliders-horizontal"
+				collapsible={false}
+				name="options"
+				title={t('app.booking.options')}
+			>
+				<Grid minimum="compact" gap="md">
+					<Stack gap="sm">
+						<Label for="booking-preference">{t('app.schedule.step_preference')}</Label>
+						<Combobox
+							id="booking-preference"
+							value={preference}
+							options={[
+								{ value: 'any', label: t('app.schedule.no_preference') },
+								{ value: 'preferred', label: t('app.schedule.has_preference') }
+							]}
+							onChange={(value) => {
+								if (value !== null) {
+									preference = value;
+									start = null;
+								}
+							}}
+						/>
+					</Stack>
+					<Stack gap="sm">
+						<Label for="booking-repeat">{t('app.schedule.step_repeat')}</Label>
+						<Combobox
+							id="booking-repeat"
+							value={repeat}
+							options={REPEATS.map((r) => ({
+								value: r,
+								label: repeatWord(r)
+							}))}
+							onChange={(value) => {
+								if (value !== null) {
+									repeat = value;
+									start = null;
+								}
+							}}
+						/>
+					</Stack>
+				</Grid>
+			</Section>
+			{#if preference === 'preferred'}
+				<Section
+					icon="lucide:users"
+					collapsible={false}
+					name="helpers"
+					title={t('app.schedule.preferred_helpers')}
+				>
+					<Cluster gap="xs" align="center">
+						{#each helpers as h, i (h)}
+							<Button
+								variant="secondary"
+								onclick={() => {
+									helpers = helpers.filter((x) => x !== h);
+									start = null;
+								}}
+								>{i + 1}. {names?.current?.helpers.rows.find((r) => r.id === h)?.name ?? '—'} ×</Button
+							>
+						{/each}
+					</Cluster>
+					{#if helpers.length < 5}
+						<!-- a fresh picker after each pick, so it offers the next helper -->
+						{#key helpers.length}
+							<Picker
+								of="helpers"
+								where={{ status: { eq: 'active' } }}
+								value={null}
+								onChange={(id) => {
+									if (id !== null && !helpers.includes(id)) {
+										helpers = [...helpers, id];
+										start = null;
+									}
+								}}
+							/>
+						{/key}
+					{/if}
+				</Section>
+			{/if}
+			<Section
+				icon="lucide:calendar-days"
+				collapsible={false}
+				name="schedule"
+				title={t('app.booking.available_start')}
+			>
+				<Stack gap="sm" class="max-w-xs">
+					<Label for="booking-date">{t('app.booking.dates_from')}</Label>
+					<TimeInput
+						id="booking-date"
+						value={from}
+						onChange={(next: string | null) => {
+							from = next ?? today;
+							start = null;
+						}}
+					/>
+				</Stack>
+				{#if pool.error || refused}<p role="alert" class="text-sm text-destructive">
+						{refused ?? pool.error?.message}
+					</p>{/if}
+				{#if shown && shown.some((d) => d.starts.length > 0)}
+					<SlotPicker
+						days={shown}
+						minutes={chosenService?.duration_minutes ?? 60}
+						value={start}
+						locale={bolt.locale}
+						onPick={(s) => (start = s)}
+						{t}
+					/>
+				{:else if shown}<p class="text-caption">{t('app.schedule.not_free')}</p>
+				{:else if customer !== null && service !== null && !pool.error && refused === null}<p
+						role="status"
+						class="text-caption"
+					>
+						{t('component.loading')}
+					</p>{/if}
+			</Section>
+			<Cluster gap="sm" align="center">
+				<Button disabled={!ready || booking} onclick={book}>{t('app.schedule.book')}</Button>
+				{#if message}<p class="text-sm">{message}</p>{/if}
+				{#if started}<RunStatus automation="bookings_book" run={started} />{/if}
+			</Cluster>
+		</Stack>
+	</RecordShell>
+{:else}
+	<RecordShell
+		of="bookings"
+		fields={[
+			'number',
+			'customer',
+			'service',
+			'status',
+			'preference',
+			'repeat',
+			'visit_count',
+			'address',
+			'area',
+			'location',
+			'notes'
+		]}
+		id={view.record.id}
+		{sections}
+		tabs={view.record.preference === 'preferred'
+			? [{ name: 'helpers', title: t('app.schedule.preferred_helpers'), body: preferred }]
+			: []}
+	/>
+{/if}

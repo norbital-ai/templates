@@ -1,0 +1,19 @@
+[
+	{
+		"code": "SALARY_ADVANCE",
+		"name": "Salary advance (預借工資)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "勞動基準法",
+				"locator": "§22(2)、§26",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=26",
+				"quote": "工資應全額直接給付勞工。但法令另有規定或勞雇雙方另有約定者，不在此限。…雇主不得預扣勞工工資作為違約金或賠償費用。"
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": "8d1e7388-7cca-52e1-8b3f-46ec313e7f18",
+		"id": "d7eb9041-8c4b-59fc-b877-8db8a21a46a4",
+		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42"
+	}
+]

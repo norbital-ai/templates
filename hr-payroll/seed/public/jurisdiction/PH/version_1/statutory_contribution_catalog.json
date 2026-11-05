@@ -1,0 +1,1150 @@
+[
+	{
+		"code": "SSS",
+		"name": "Social Security System",
+		"lookup": {
+			"minor_unit": 0.01,
+			"employee_rate": 0.05,
+			"employer_rate": 0.1,
+			"combined_rate": 0.15,
+			"minimum_salary_credit": 5000,
+			"maximum_salary_credit": 35000,
+			"salary_credit_step": 500,
+			"regular_fund_salary_credit_ceiling": 20000,
+			"domestic_salary_credit_floor": 1000,
+			"domestic_threshold": 5000,
+			"ordinary_coverage_age_years": 60,
+			"extended_coverage_age_years": 65
+		},
+		"references": [
+			{
+				"title": "Republic Act 11199 (Social Security Act of 2018)",
+				"locator": "ss.4(a)(9), 8(i), 9(a), 11, 12-B(a), 18",
+				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333",
+				"quote": "Read 2026-10-07. s.9(a): compulsory coverage for employees \"not over sixty (60) years of age\", the age at entry; initial compulsory coverage extends through the 60th birthday. s.11 ends the employer's contribution only at separation; s.12-B(a) retires a member who has reached sixty and is separated, or who has reached sixty-five. So an employee covered before sixty keeps contributing while employed until sixty-five; from sixty-five nothing is charged. The first contribution liability date includes earlier employers and is independent of current registration. Owner ruling (2026-10-07): a missing date of birth is treated as under sixty (RA 11199 s.9(a) covers every employee not over sixty, and an unrecorded birth date gives no ground to treat the person as over it). s.8(i): compensation is remuneration for services; separation and retirement payments outside remuneration for services are excluded."
+			},
+			{
+				"title": "SSS Circular 2024-006 (business employers)",
+				"locator": "II.B",
+				"effective_from": "2025-01-01",
+				"quote": "Effective January 2025. Regular SS uses the first PHP20,000 monthly salary credit at 5% employee and 10% employer; excess to PHP35,000 belongs to SSS_MPF. MSC is the monthly salary credit between PHP5,000 and PHP35,000."
+			},
+			{
+				"title": "SSS Circular 2024-007 (household employers)",
+				"url": "https://www.sss.gov.ph/wp-content/uploads/2024/12/Cir-2024-007-HR-Kasambahay-scaled.jpg",
+				"effective_from": "2025-01-01",
+				"quote": "Household compensation below PHP5,000 takes nine distinct MSC brackets from PHP1,000 to PHP5,000: PHP1,000 below PHP1,250 and PHP500 brackets to PHP5,000 (round to 500, half up, minimum 1,000). The household employer pays the whole 15% regular SS share and the kasambahay nothing. From PHP5,000 compensation the regular employer/employee split applies; the SSS household-employer page deducts the employee share only \"if earning more than P5,000.00\"."
+			},
+			{
+				"title": "Republic Act 10361 (Batas Kasambahay)",
+				"locator": "section 30",
+				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514",
+				"quote": "A domestic worker is covered by SSS, PhilHealth and Pag-IBIG after at least one month of service; where the domestic worker earns less than PHP5,000 a month the employer pays the whole premium/contribution."
+			},
+			{
+				"title": "SSS: employees page",
+				"url": "https://www.sss.gov.ph/employees/",
+				"quote": "A foreign employee is covered like any other unless an SSS bilateral social security agreement exempts the person."
+			},
+			{
+				"title": "SSS contribution base is the monthly ordinary wage",
+				"locator": "RA 11199 s.8(f); IRR (2019) Rule 12 s.6(iii)",
+				"url": "https://www.sss.gov.ph/wp-content/uploads/2022/04/IRR-RA11199-SS-Act-of-2018_2.pdf",
+				"quote": "Read 2026-11-04. s.8(f): compensation is all actual remuneration for employment. IRR Rule 12 s.6(iii) lists \"[b]onuses (except Christmas bonus)\" as compensation. IRR Rule 12 s.6(iii) excludes a Christmas bonus and does not name 13th-month pay. Practical treatment: the monthly salary credit reads the ORDINARY_WAGES checkpoint, so 13th month pay, Christmas bonus, separation and retirement pay and SSS benefits are outside the monthly MSC; WTAX taxes the final GROSS and includes the 13th month and Christmas bonus in its PHP90,000 pool."
+			}
+		],
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"off_cycle_eligible": false,
+		"subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"eligibility": "const p = ctx.lookup;\nconst base = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst exempt = get(facts, 'statutory.SSS.elections.exempt_by_totalisation', false) === true;\nconst dob = get(ctx.subject.employment, 'payroll.date_of_birth', '');\nconst age = dob === '' ? 0 : age_on(dob, add_days(ctx.run.salary_coverage.from, -1));\nconst start = get(ctx.subject.employment, 'effective_range.from', '');\nconst before60 = get(facts, 'statutory.SSS.elections.covered_before_60', false) === true ||\n\t(dob !== '' && start !== '' && age_on(dob, start) < p.ordinary_coverage_age_years);\nconst firstMonth = domestic && start !== '' && calendar_completed_months(start, ctx.run.salary_coverage.from) < 1;\nreturn base > 0 && !exempt && !firstMonth && age < p.extended_coverage_age_years &&\n\t(age < p.ordinary_coverage_age_years || before60);",
+		"employee_amount": "const p = ctx.lookup;\nconst base = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst low = domestic && base < p.domestic_threshold;\nconst credit = low\n\t? Math.max(round(base, p.salary_credit_step, 'HALF_UP'), p.domestic_salary_credit_floor)\n\t: clamp(round(base, p.salary_credit_step, 'HALF_UP'), p.minimum_salary_credit, p.maximum_salary_credit);\nif (low) return 0;\nconst regular = Math.min(credit, p.regular_fund_salary_credit_ceiling);\nreturn round(regular * p.employee_rate, p.minor_unit, 'HALF_UP');",
+		"employer_amount": "const p = ctx.lookup;\nconst base = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst low = domestic && base < p.domestic_threshold;\nconst credit = low\n\t? Math.max(round(base, p.salary_credit_step, 'HALF_UP'), p.domestic_salary_credit_floor)\n\t: clamp(round(base, p.salary_credit_step, 'HALF_UP'), p.minimum_salary_credit, p.maximum_salary_credit);\nreturn low\n\t? round(credit * p.combined_rate, p.minor_unit, 'HALF_UP')\n\t: round(Math.min(credit, p.regular_fund_salary_credit_ceiling) * p.employer_rate, p.minor_unit, 'HALF_UP');",
+		"employer_cost_subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"id": "fb7b18cf-0654-57d2-b95f-dc2c859af0d4",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "SSS_MPF",
+		"name": "SSS Mandatory Provident Fund (WISP)",
+		"lookup": {
+			"minor_unit": 0.01,
+			"employee_rate": 0.05,
+			"employer_rate": 0.1,
+			"minimum_salary_credit": 5000,
+			"maximum_salary_credit": 35000,
+			"salary_credit_step": 500,
+			"regular_fund_salary_credit_ceiling": 20000,
+			"domestic_salary_credit_floor": 1000,
+			"domestic_threshold": 5000
+		},
+		"references": [
+			{
+				"title": "Republic Act 11199 (Social Security Act of 2018)",
+				"locator": "s.4(a)(2)",
+				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333",
+				"quote": "Read 2026-10-07. s.9(a): compulsory coverage for employees \"not over sixty (60) years of age\", the age at entry; initial compulsory coverage extends through the 60th birthday. s.11 ends the employer's contribution only at separation; s.12-B(a) retires a member who has reached sixty and is separated, or who has reached sixty-five. So an employee covered before sixty keeps contributing while employed until sixty-five; from sixty-five nothing is charged. The first contribution liability date includes earlier employers and is independent of current registration. Owner ruling (2026-10-07): a missing date of birth is treated as under sixty (RA 11199 s.9(a) covers every employee not over sixty, and an unrecorded birth date gives no ground to treat the person as over it). The Regular SS result establishes coverage, including the first-liability age test."
+			},
+			{
+				"title": "SSS Circular 2024-006 (business employers)",
+				"locator": "II.B.2",
+				"effective_from": "2025-01-01",
+				"url": "https://www.sss.gov.ph/pay-contribution/",
+				"quote": "Effective January 2025. Only a covered SSS member contributes to the Mandatory Provident Fund on salary credit above PHP20,000 through PHP35,000 at 5% employee and 10% employer."
+			},
+			{
+				"title": "SSS Circular 2024-007 (household employers)",
+				"locator": "II.B.2",
+				"effective_from": "2025-01-01",
+				"quote": "Same MPF rule for household employers: salary credit above PHP20,000 through PHP35,000 at 5% employee and 10% employer."
+			},
+			{
+				"title": "Republic Act 10361 (Batas Kasambahay)",
+				"locator": "section 30",
+				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514",
+				"quote": "A domestic worker is covered by SSS, PhilHealth and Pag-IBIG after at least one month of service; where the domestic worker earns less than PHP5,000 a month the employer pays the whole premium/contribution."
+			},
+			{
+				"title": "SSS: employees page",
+				"url": "https://www.sss.gov.ph/employees/",
+				"quote": "A foreign employee is covered like any other unless an SSS bilateral social security agreement exempts the person."
+			},
+			{
+				"title": "MPF uses the same compensation base as regular SS",
+				"locator": "RA 11199 s.8(f); IRR Rule 12 s.6(iii); SSS Circular 2024-006 II.B.2",
+				"url": "https://www.sss.gov.ph/wp-content/uploads/2024/12/CI-2024-006-Publication.pdf",
+				"quote": "Read 2026-11-04. The MPF salary credit above PHP20,000 through PHP35,000 is part of the same monthly salary credit and follows the same ordinary-wage base as regular SS."
+			}
+		],
+		"kind": "CONTRIBUTION",
+		"depends_on": ["SSS"],
+		"off_cycle_eligible": false,
+		"subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"eligibility": "return get(ctx.statutory, 'SSS', null) !== null;",
+		"employee_amount": "const p = ctx.lookup;\nconst base = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst low = domestic && base < p.domestic_threshold;\nconst credit = low\n\t? Math.max(round(base, p.salary_credit_step, 'HALF_UP'), p.domestic_salary_credit_floor)\n\t: clamp(round(base, p.salary_credit_step, 'HALF_UP'), p.minimum_salary_credit, p.maximum_salary_credit);\nif (low) return 0;\nconst excess = Math.max(0, credit - p.regular_fund_salary_credit_ceiling);\nreturn round(excess * p.employee_rate, p.minor_unit, 'HALF_UP');",
+		"employer_amount": "const p = ctx.lookup;\nconst base = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst low = domestic && base < p.domestic_threshold;\nconst credit = low\n\t? Math.max(round(base, p.salary_credit_step, 'HALF_UP'), p.domestic_salary_credit_floor)\n\t: clamp(round(base, p.salary_credit_step, 'HALF_UP'), p.minimum_salary_credit, p.maximum_salary_credit);\nif (low) return 0;\nconst excess = Math.max(0, credit - p.regular_fund_salary_credit_ceiling);\nreturn round(excess * p.employer_rate, p.minor_unit, 'HALF_UP');",
+		"employer_cost_subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"id": "77b9e570-8245-503d-b0b5-242a235a95a2",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "SSS_EC",
+		"name": "Employees Compensation Programme premium",
+		"lookup": {
+			"employer_compensation_salary_threshold": 15000,
+			"lower_employer_compensation_amount": 10,
+			"upper_employer_compensation_amount": 30,
+			"minimum_salary_credit": 5000,
+			"maximum_salary_credit": 35000,
+			"salary_credit_step": 500,
+			"domestic_salary_credit_floor": 1000,
+			"domestic_threshold": 5000
+		},
+		"references": [
+			{
+				"title": "Presidential Decree 626 (Employees Compensation) as amended",
+				"locator": "Art.168 (compulsory coverage); Labor Code Art.183",
+				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/26/22503",
+				"quote": "Employer-only EC premium keyed to the SSS monthly salary credit. EC covers compulsory SSS private employees, including continued qualifying coverage after sixty; a first liability after the sixtieth birthday does not create EC cover."
+			},
+			{
+				"title": "SSS Employees' Compensation Program",
+				"url": "https://www.sss.gov.ph/employees-compensation-program/",
+				"quote": "ECP coverage page; unchanged law corrected in place."
+			},
+			{
+				"title": "SSS Circulars 2024-006 and 2024-007",
+				"effective_from": "2025-01-01",
+				"quote": "Effective January 2025: EC is PHP10 through MSC PHP14,500 and PHP30 from MSC PHP15,000."
+			},
+			{
+				"title": "Republic Act 11199 (Social Security Act of 2018)",
+				"locator": "ss.8(i), 9(a), 11, 12-B(a)",
+				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333",
+				"quote": "Read 2026-10-07. s.9(a): compulsory coverage for employees \"not over sixty (60) years of age\", the age at entry; initial compulsory coverage extends through the 60th birthday. s.11 ends the employer's contribution only at separation; s.12-B(a) retires a member who has reached sixty and is separated, or who has reached sixty-five. So an employee covered before sixty keeps contributing while employed until sixty-five; from sixty-five nothing is charged. The first contribution liability date includes earlier employers and is independent of current registration. Owner ruling (2026-10-07): a missing date of birth is treated as under sixty (RA 11199 s.9(a) covers every employee not over sixty, and an unrecorded birth date gives no ground to treat the person as over it). s.8(i): compensation is remuneration for services; separation pay (Labor Code arts.298-299) and retirement pay (RA 7641) are paid for the ending of service, not for it, and are outside the contribution base."
+			},
+			{
+				"title": "Republic Act 10361 (Batas Kasambahay)",
+				"locator": "section 30",
+				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514",
+				"quote": "A domestic worker is covered by SSS, PhilHealth and Pag-IBIG after at least one month of service; where the domestic worker earns less than PHP5,000 a month the employer pays the whole premium/contribution."
+			},
+			{
+				"title": "SSS: employees page",
+				"url": "https://www.sss.gov.ph/employees/",
+				"quote": "A foreign employee is covered like any other unless an SSS bilateral social security agreement exempts the person."
+			},
+			{
+				"title": "EC premium follows the SSS monthly salary credit",
+				"locator": "PD 626 art.168; SSS Circulars 2024-006 and 2024-007",
+				"url": "https://www.sss.gov.ph/wp-content/uploads/2024/12/CI-2024-006-Publication.pdf",
+				"quote": "Read 2026-11-04. The EC premium is keyed to the SSS monthly salary credit, so it follows the same ORDINARY_WAGES base."
+			}
+		],
+		"kind": "CONTRIBUTION",
+		"depends_on": ["SSS"],
+		"off_cycle_eligible": false,
+		"subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"eligibility": "return get(ctx.statutory, 'SSS', null) !== null;",
+		"employee_amount": "return 0;",
+		"employer_amount": "const p = ctx.lookup;\nconst base = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst low = domestic && base < p.domestic_threshold;\nconst credit = low\n\t? Math.max(round(base, p.salary_credit_step, 'HALF_UP'), p.domestic_salary_credit_floor)\n\t: clamp(round(base, p.salary_credit_step, 'HALF_UP'), p.minimum_salary_credit, p.maximum_salary_credit);\nreturn credit >= p.employer_compensation_salary_threshold\n\t? p.upper_employer_compensation_amount\n\t: p.lower_employer_compensation_amount;",
+		"employer_cost_subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"id": "082a25d9-b437-5b97-8b86-a5c6b72dbe2a",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "PHIC",
+		"name": "PhilHealth",
+		"lookup": {
+			"minor_unit": 0.01,
+			"combined_rate": 0.05,
+			"minimum_salary_base": 10000,
+			"maximum_salary_base": 100000,
+			"domestic_threshold": 5000
+		},
+		"references": [
+			{
+				"title": "Republic Act 11223 (Universal Health Care Act)",
+				"locator": "section 10",
+				"quote": "A premium on the monthly basic salary of an employed member."
+			},
+			{
+				"title": "PhilHealth Circular 2020-0005 (Revision 1)",
+				"locator": "§V.A-C, §V.B, §V.G",
+				"url": "https://www.philhealth.gov.ph/circulars/2020/circ2020-0005.pdf",
+				"quote": "One 5% premium on the monthly basic salary, floor PHP10,000, ceiling PHP100,000, \"equally shared between the employee and employer\" (§V.B). The circular is silent on an odd centavo; recorded default: the employee half truncates and the employer carries the remainder (a half-centavo premium such as basic 15,819 -> 790.95 gives 395.47 / 395.48). §V.G with RA 10361 s.30: where a domestic worker earns less than PHP5,000 a month the employer pays the whole premium. This is the circular PhilHealth Advisory 2025-0002 ¶1 and PA2026-0042 name."
+			},
+			{
+				"title": "PhilHealth Advisory 2025-0002",
+				"locator": "¶1, ¶3",
+				"quote": "¶1: premium on the monthly basic salary. ¶3: keyed off the basic monthly salary stated in the contract, kept whole against undertime, tardiness, leave without pay and absences, and whole for a mid-month hire or leaver."
+			},
+			{
+				"title": "Republic Act 10361 (Batas Kasambahay)",
+				"locator": "section 30",
+				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514",
+				"quote": "A domestic worker is covered by SSS, PhilHealth and Pag-IBIG after at least one month of service; where the domestic worker earns less than PHP5,000 a month the employer pays the whole premium/contribution."
+			},
+			{
+				"title": "Republic Act 9679 and HDMF Circular 460",
+				"locator": "RA 9679 s.7; Circular 460 pp.1-2",
+				"quote": "Pag-IBIG: 2% of an employee's monthly fund salary (see the HDMF scheme). No premium is charged on a settlement run after the exit month that has no monthly basic."
+			},
+			{
+				"title": "PhilHealth Monthly Basic Salary excludes 13th month, bonus, commission, overtime and allowances",
+				"locator": "RA 11223 s.10; PhilHealth Circular 2020-0005 §V.F; Advisory 2025-0002",
+				"url": "https://www.philhealth.gov.ph/circulars/2020/circ2020-0005.pdf",
+				"quote": "Read 2026-11-04. MBS is \"the fixed basic rate of an employee which shall not include sales commission, overtime pay, allowances, thirteenth month pay, bonuses or other gratuity payments.\" The premium therefore reads the actual paid BASIC checkpoint, never the ordinary or additional wages checkpoints; the contract rate is no longer a fallback."
+			}
+		],
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"off_cycle_eligible": false,
+		"subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"eligibility": "const monthlyBasic = Number(get(ctx.subtotals, 'BASIC', ctx.base_pay));\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst start = get(ctx.subject.employment, 'effective_range.from', '');\nconst firstMonth = domestic && start !== '' && calendar_completed_months(start, ctx.run.salary_coverage.from) < 1;\nreturn monthlyBasic > 0 && !firstMonth;",
+		"employee_amount": "const p = ctx.lookup;\nconst monthlyBasic = Math.max(0, Number(get(ctx.subtotals, 'BASIC', ctx.base_pay)));\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst base = clamp(monthlyBasic, p.minimum_salary_base, p.maximum_salary_base);\nconst premium = round(base * p.combined_rate, p.minor_unit, 'HALF_UP');\nreturn domestic && monthlyBasic < p.domestic_threshold\n\t? 0\n\t: round(premium / 2, p.minor_unit, 'TRUNCATE');",
+		"employer_amount": "const p = ctx.lookup;\nconst monthlyBasic = Math.max(0, Number(get(ctx.subtotals, 'BASIC', ctx.base_pay)));\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst base = clamp(monthlyBasic, p.minimum_salary_base, p.maximum_salary_base);\nconst premium = round(base * p.combined_rate, p.minor_unit, 'HALF_UP');\nconst share = round(premium / 2, p.minor_unit, 'TRUNCATE');\nreturn domestic && monthlyBasic < p.domestic_threshold\n\t? premium\n\t: round(premium - share, p.minor_unit, 'HALF_UP');",
+		"employer_cost_subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"id": "af49b039-44b1-5211-aee7-1cc305f5cad2",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "HDMF",
+		"name": "Pag-IBIG Fund (Home Development Mutual Fund)",
+		"lookup": {
+			"minor_unit": 0.01,
+			"maximum_salary_base": 10000,
+			"lower_employee_rate_salary_ceiling": 1500,
+			"lower_employee_rate": 0.01,
+			"higher_employee_and_employer_rate": 0.02,
+			"domestic_threshold": 5000,
+			"ordinary_coverage_age_years": 60,
+			"extended_coverage_age_years": 65
+		},
+		"references": [
+			{
+				"title": "Republic Act 9679",
+				"locator": "ss.6-7",
+				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/19155",
+				"quote": "Monthly Fund Salary is basic salary and other allowances received in the month. Contributions use remuneration actually paid for the employment month, including covered allowances and deducting unpaid absence."
+			},
+			{
+				"title": "HDMF Circular 460",
+				"locator": "pp.1-3; C.1-2",
+				"url": "https://wcms.dmw.gov.ph/uploads/DMW_ADVISORY_37_2025_01225b9fec.pdf",
+				"effective_from": "2024-02-01",
+				"quote": "Dated 15 January 2024; contributions effective February 2024 (official DMW annex pp.2-4). Employee contribution is 1% up to PHP1,500 and 2% above PHP1,500; employer contribution is 2%, with a PHP10,000 compensation ceiling."
+			},
+			{
+				"title": "HDMF Circular 274",
+				"locator": "B and H.2-4, p.8",
+				"url": "https://naro.law.upd.edu.ph/issuances/5476",
+				"quote": "Coverage history (certified ONAR copy). Private initial coverage not over 60 is distinct from continuing membership until compulsory Fund retirement at 65. Non-compulsory termination permits mandatory re-enrolment when coverage resumes; self-paying and voluntary classes have no automatic employer payroll counterpart. Membership facts require a recorded evidence reference; missing registration never establishes exemption."
+			},
+			{
+				"title": "Implementing Rules and Regulations of RA 9679",
+				"locator": "Rule V s.1(a), s.3, s.10",
+				"url": "https://web.archive.org/web/2023id_/https://www.pagibigfund.gov.ph/document/pdf/governance/43.1_on_institutional_matters/IRR%20of%20RA%20No.%209679.pdf",
+				"quote": "Read 2026-10-07. s.1(a): membership is mandatory for \"all employees who are compulsorily covered by the SSS\" (a private employee \"not over 60 years old\"). s.10: \"Any member shall be compulsorily retired under the Fund upon reaching age sixty-five (65)\", so nothing is charged from sixty-five, nor from sixty for an employee not covered before it (the SSS derivation). Voluntary membership after that (s.3) is the member's, not payroll."
+			},
+			{
+				"title": "Republic Act 10361 (Batas Kasambahay)",
+				"locator": "section 30",
+				"url": "https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514",
+				"quote": "A domestic worker is covered after at least one month of service; where the monthly Fund Salary is below PHP5,000 the employer pays both shares."
+			},
+			{
+				"title": "Pag-IBIG Fund Salary excludes 13th month and bonus",
+				"locator": "RA 9679 ss.4, 7; HDMF Circular 460 C.1",
+				"url": "https://mpm.ph/wp-content/uploads/2024/01/HDMF-Circular-No.-460-Pag-ibig-HDMF-Table-2024.pdf",
+				"quote": "Read 2026-11-04. RA 9679 s.4 defines compensation as \"basic monthly salary plus mandated cost of living allowance\"; s.7 computes contributions on that monthly compensation. Circular 460's Fund Salary is \"basic salary and other allowances\" — a bonus or 13th-month payment is neither. The ORDINARY_WAGES checkpoint applies."
+			}
+		],
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"off_cycle_eligible": false,
+		"subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"eligibility": "const facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nconst start = get(ctx.subject.employment, 'effective_range.from', '');\nconst firstMonth = domestic && start !== '' && calendar_completed_months(start, ctx.run.salary_coverage.from) < 1;\nconst dob = get(ctx.subject.employment, 'payroll.date_of_birth', '');\nconst age = dob === '' ? 0 : age_on(dob, add_days(ctx.run.salary_coverage.from, -1));\nconst before60 = get(facts, 'statutory.SSS.elections.covered_before_60', false) === true ||\n\t(dob !== '' && start !== '' && age_on(dob, start) < ctx.lookup.ordinary_coverage_age_years);\nreturn !firstMonth && (age < ctx.lookup.ordinary_coverage_age_years ||\n\t(before60 && age < ctx.lookup.extended_coverage_age_years));",
+		"employee_amount": "const p = ctx.lookup;\nconst ordinary = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst base = Math.min(ordinary, p.maximum_salary_base);\nconst rate = base <= p.lower_employee_rate_salary_ceiling ? p.lower_employee_rate : p.higher_employee_and_employer_rate;\nconst employee = round(base * rate, p.minor_unit, 'HALF_UP');\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nreturn domestic && ordinary < p.domestic_threshold ? 0 : employee;",
+		"employer_amount": "const p = ctx.lookup;\nconst ordinary = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)));\nconst base = Math.min(ordinary, p.maximum_salary_base);\nconst rate = base <= p.lower_employee_rate_salary_ceiling ? p.lower_employee_rate : p.higher_employee_and_employer_rate;\nconst employee = round(base * rate, p.minor_unit, 'HALF_UP');\nconst employer = round(base * p.higher_employee_and_employer_rate, p.minor_unit, 'HALF_UP');\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\nreturn domestic && ordinary < p.domestic_threshold\n\t? round(employee + employer, p.minor_unit, 'HALF_UP')\n\t: employer;",
+		"employer_cost_subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"id": "d1c67697-4373-5d49-8cce-d8b5bed12602",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "WTAX",
+		"name": "Withholding Tax on Compensation",
+		"lookup": {
+			"minor_unit": 0.01,
+			"nonresident_rate": 0.25,
+			"monthly_tax": [
+				{
+					"up_to": 20833,
+					"rate": 0
+				},
+				{
+					"up_to": 33333,
+					"rate": 0.15
+				},
+				{
+					"up_to": 66667,
+					"rate": 0.2
+				},
+				{
+					"up_to": 166667,
+					"rate": 0.25
+				},
+				{
+					"up_to": 666667,
+					"rate": 0.3
+				},
+				{
+					"up_to": null,
+					"rate": 0.35
+				}
+			],
+			"semi_monthly_tax": [
+				{
+					"up_to": 10417,
+					"rate": 0
+				},
+				{
+					"up_to": 16667,
+					"rate": 0.15
+				},
+				{
+					"up_to": 33333,
+					"rate": 0.2
+				},
+				{
+					"up_to": 83333,
+					"rate": 0.25
+				},
+				{
+					"up_to": 333333,
+					"rate": 0.3
+				},
+				{
+					"up_to": null,
+					"rate": 0.35
+				}
+			],
+			"weekly_tax": [
+				{
+					"up_to": 4808,
+					"rate": 0
+				},
+				{
+					"up_to": 7692,
+					"rate": 0.15
+				},
+				{
+					"up_to": 15385,
+					"rate": 0.2
+				},
+				{
+					"up_to": 38462,
+					"rate": 0.25
+				},
+				{
+					"up_to": 153846,
+					"rate": 0.3
+				},
+				{
+					"up_to": null,
+					"rate": 0.35
+				}
+			],
+			"daily_tax": [
+				{
+					"up_to": 685,
+					"rate": 0
+				},
+				{
+					"up_to": 1096,
+					"rate": 0.15
+				},
+				{
+					"up_to": 2192,
+					"rate": 0.2
+				},
+				{
+					"up_to": 5479,
+					"rate": 0.25
+				},
+				{
+					"up_to": 21918,
+					"rate": 0.3
+				},
+				{
+					"up_to": null,
+					"rate": 0.35
+				}
+			],
+			"de_minimis": {
+				"rice_monthly": 2000,
+				"laundry_monthly": 300,
+				"dependant_medical_semester": 1500,
+				"uniform_annual": 7000,
+				"medical_annual": 10000,
+				"award_annual": 10000,
+				"cba_annual": 10000,
+				"gift_annual": 5000,
+				"monetised_leave_days": 10,
+				"overtime_meal_minimum_wage_share": 0.25,
+				"annual_bonus_and_other_benefits": 90000
+			},
+			"minimum_wage_by_region": [
+				{
+					"region": "BARMM-CITY-AGRI-RETAIL",
+					"from": "2026-12-01",
+					"monthly": 11372.33
+				},
+				{
+					"region": "BARMM-CITY-AGRI-RETAIL",
+					"from": "2026-08-06",
+					"monthly": 10720.25
+				},
+				{
+					"region": "BARMM-CITY-AGRI-RETAIL",
+					"from": "2025-12-01",
+					"monthly": 10068.17
+				},
+				{
+					"region": "BARMM-CITY-NONAGRI",
+					"from": "2026-12-01",
+					"monthly": 12024.42
+				},
+				{
+					"region": "BARMM-CITY-NONAGRI",
+					"from": "2026-08-06",
+					"monthly": 11372.33
+				},
+				{
+					"region": "BARMM-CITY-NONAGRI",
+					"from": "2025-12-01",
+					"monthly": 10720.25
+				},
+				{
+					"region": "BARMM-PROV-AGRI",
+					"from": "2026-12-01",
+					"monthly": 11111.5
+				},
+				{
+					"region": "BARMM-PROV-AGRI",
+					"from": "2026-08-06",
+					"monthly": 10459.42
+				},
+				{
+					"region": "BARMM-PROV-AGRI",
+					"from": "2025-12-01",
+					"monthly": 9807.33
+				},
+				{
+					"region": "BARMM-PROV-NONAGRI",
+					"from": "2026-12-01",
+					"monthly": 11372.33
+				},
+				{
+					"region": "BARMM-PROV-NONAGRI",
+					"from": "2026-08-06",
+					"monthly": 10720.25
+				},
+				{
+					"region": "BARMM-PROV-NONAGRI",
+					"from": "2025-12-01",
+					"monthly": 10068.17
+				},
+				{
+					"region": "CAR",
+					"from": "2025-12-30",
+					"monthly": 13172.08
+				},
+				{
+					"region": "CAR",
+					"from": "2025-12-01",
+					"monthly": 12259.17
+				},
+				{
+					"region": "I-LOW",
+					"from": "2025-12-01",
+					"monthly": 12520
+				},
+				{
+					"region": "I-NONAGRI-10PLUS",
+					"from": "2025-12-01",
+					"monthly": 13172.08
+				},
+				{
+					"region": "II",
+					"from": "2025-12-01",
+					"monthly": 13041.67
+				},
+				{
+					"region": "III-AURORA-AGRI",
+					"from": "2026-04-16",
+					"monthly": 14215.42
+				},
+				{
+					"region": "III-AURORA-AGRI",
+					"from": "2025-12-01",
+					"monthly": 13432.92
+				},
+				{
+					"region": "III-AURORA-NONAGRI",
+					"from": "2026-04-16",
+					"monthly": 14606.67
+				},
+				{
+					"region": "III-AURORA-NONAGRI",
+					"from": "2025-12-01",
+					"monthly": 13824.17
+				},
+				{
+					"region": "III-AURORA-RETAIL",
+					"from": "2026-04-16",
+					"monthly": 13432.92
+				},
+				{
+					"region": "III-AURORA-RETAIL",
+					"from": "2025-12-01",
+					"monthly": 12389.58
+				},
+				{
+					"region": "III-CORE-AGRI",
+					"from": "2026-04-16",
+					"monthly": 14867.5
+				},
+				{
+					"region": "III-CORE-AGRI",
+					"from": "2025-12-01",
+					"monthly": 14085
+				},
+				{
+					"region": "III-CORE-NONAGRI",
+					"from": "2026-04-16",
+					"monthly": 15650
+				},
+				{
+					"region": "III-CORE-NONAGRI",
+					"from": "2025-12-01",
+					"monthly": 14867.5
+				},
+				{
+					"region": "III-CORE-RETAIL",
+					"from": "2026-04-16",
+					"monthly": 15389.17
+				},
+				{
+					"region": "III-CORE-RETAIL",
+					"from": "2025-12-01",
+					"monthly": 14606.67
+				},
+				{
+					"region": "IV-A",
+					"from": "2025-12-01",
+					"monthly": 15650
+				},
+				{
+					"region": "IV-A-1ST",
+					"from": "2025-12-01",
+					"monthly": 14345.83
+				},
+				{
+					"region": "IV-A-2ND-5TH",
+					"from": "2026-04-01",
+					"monthly": 13693.75
+				},
+				{
+					"region": "IV-A-2ND-5TH",
+					"from": "2025-12-01",
+					"monthly": 13302.5
+				},
+				{
+					"region": "IV-A-AGRI-2ND-5TH",
+					"from": "2026-04-01",
+					"monthly": 13250.33
+				},
+				{
+					"region": "IV-A-AGRI-2ND-5TH",
+					"from": "2025-12-01",
+					"monthly": 12650.42
+				},
+				{
+					"region": "IV-A-AGRI-COMPONENT-1ST",
+					"from": "2025-12-01",
+					"monthly": 13693.75
+				},
+				{
+					"region": "IV-A-AGRI-RECLASSIFIED-1ST",
+					"from": "2026-04-01",
+					"monthly": 13693.75
+				},
+				{
+					"region": "IV-A-AGRI-RECLASSIFIED-1ST",
+					"from": "2025-12-01",
+					"monthly": 12650.42
+				},
+				{
+					"region": "IV-A-RECLASSIFIED-1ST",
+					"from": "2026-04-01",
+					"monthly": 14345.83
+				},
+				{
+					"region": "IV-A-RECLASSIFIED-1ST",
+					"from": "2025-12-01",
+					"monthly": 13302.5
+				},
+				{
+					"region": "IV-A-ROSARIO-CAVITE",
+					"from": "2025-12-01",
+					"monthly": 15650
+				},
+				{
+					"region": "IV-A-RETAIL-SMALL",
+					"from": "2026-04-01",
+					"monthly": 13250.33
+				},
+				{
+					"region": "IV-A-RETAIL-SMALL",
+					"from": "2025-12-01",
+					"monthly": 12650.42
+				},
+				{
+					"region": "IV-B",
+					"from": "2026-01-01",
+					"monthly": 11867.92
+				},
+				{
+					"region": "IV-B",
+					"from": "2025-12-01",
+					"monthly": 11215.83
+				},
+				{
+					"region": "IV-B-SMALL",
+					"from": "2026-01-01",
+					"monthly": 11867.92
+				},
+				{
+					"region": "IV-B-SMALL",
+					"from": "2025-12-01",
+					"monthly": 10537.67
+				},
+				{
+					"region": "IX-HIGH",
+					"from": "2026-06-01",
+					"monthly": 12102.67
+				},
+				{
+					"region": "IX-HIGH",
+					"from": "2026-01-01",
+					"monthly": 11450.58
+				},
+				{
+					"region": "IX-HIGH",
+					"from": "2025-12-01",
+					"monthly": 10798.5
+				},
+				{
+					"region": "IX-LOW",
+					"from": "2026-06-01",
+					"monthly": 11763.58
+				},
+				{
+					"region": "IX-LOW",
+					"from": "2026-01-01",
+					"monthly": 11111.5
+				},
+				{
+					"region": "IX-LOW",
+					"from": "2025-12-01",
+					"monthly": 10459.42
+				},
+				{
+					"region": "NCR",
+					"from": "2026-09-26",
+					"monthly": 19692.92
+				},
+				{
+					"region": "NCR",
+					"from": "2025-12-01",
+					"monthly": 18127.92
+				},
+				{
+					"region": "NCR-AGRI-SMALL",
+					"from": "2026-09-26",
+					"monthly": 18727.83
+				},
+				{
+					"region": "NCR-AGRI-SMALL",
+					"from": "2025-12-01",
+					"monthly": 17162.83
+				},
+				{
+					"region": "V",
+					"from": "2026-12-01",
+					"monthly": 12520
+				},
+				{
+					"region": "V",
+					"from": "2026-04-08",
+					"monthly": 11867.92
+				},
+				{
+					"region": "V",
+					"from": "2025-12-01",
+					"monthly": 11346.25
+				},
+				{
+					"region": "VI-AGRI",
+					"from": "2025-12-01",
+					"monthly": 13563.33
+				},
+				{
+					"region": "VI-NONAGRI-10ORLESS",
+					"from": "2025-12-01",
+					"monthly": 13693.75
+				},
+				{
+					"region": "VI-NONAGRI-11PLUS",
+					"from": "2025-12-01",
+					"monthly": 14345.83
+				},
+				{
+					"region": "VII-A",
+					"from": "2026-10-14",
+					"monthly": 15180.5
+				},
+				{
+					"region": "VII-A",
+					"from": "2025-12-01",
+					"monthly": 14085
+				},
+				{
+					"region": "VII-B",
+					"from": "2026-10-14",
+					"monthly": 14137.17
+				},
+				{
+					"region": "VII-B",
+					"from": "2025-12-01",
+					"monthly": 13041.67
+				},
+				{
+					"region": "VIII-HIGH",
+					"from": "2026-06-01",
+					"monthly": 12259.17
+				},
+				{
+					"region": "VIII-HIGH",
+					"from": "2025-12-08",
+					"monthly": 11789.67
+				},
+				{
+					"region": "VIII-HIGH",
+					"from": "2025-12-01",
+					"monthly": 11346.25
+				},
+				{
+					"region": "VIII-LOW",
+					"from": "2026-06-01",
+					"monthly": 11476.67
+				},
+				{
+					"region": "VIII-LOW",
+					"from": "2025-12-08",
+					"monthly": 11007.17
+				},
+				{
+					"region": "VIII-LOW",
+					"from": "2025-12-01",
+					"monthly": 10563.75
+				},
+				{
+					"region": "X-CAT-I",
+					"from": "2026-05-01",
+					"monthly": 13041.67
+				},
+				{
+					"region": "X-CAT-I",
+					"from": "2026-01-16",
+					"monthly": 12676.5
+				},
+				{
+					"region": "X-CAT-I",
+					"from": "2025-12-01",
+					"monthly": 12024.42
+				},
+				{
+					"region": "X-CAT-II",
+					"from": "2026-05-01",
+					"monthly": 12650.42
+				},
+				{
+					"region": "X-CAT-II",
+					"from": "2026-01-16",
+					"monthly": 12285.25
+				},
+				{
+					"region": "X-CAT-II",
+					"from": "2025-12-01",
+					"monthly": 11633.17
+				},
+				{
+					"region": "XI-AGRI",
+					"from": "2026-09-01",
+					"monthly": 13693.75
+				},
+				{
+					"region": "XI-AGRI",
+					"from": "2026-03-13",
+					"monthly": 13432.92
+				},
+				{
+					"region": "XI-AGRI",
+					"from": "2025-12-01",
+					"monthly": 13172.08
+				},
+				{
+					"region": "XI-NONAGRI",
+					"from": "2026-09-01",
+					"monthly": 14085
+				},
+				{
+					"region": "XI-NONAGRI",
+					"from": "2026-03-13",
+					"monthly": 13693.75
+				},
+				{
+					"region": "XI-NONAGRI",
+					"from": "2025-12-01",
+					"monthly": 13302.5
+				},
+				{
+					"region": "XII-AGRI",
+					"from": "2025-12-15",
+					"monthly": 11554.92
+				},
+				{
+					"region": "XII-AGRI",
+					"from": "2025-12-01",
+					"monthly": 11294.08
+				},
+				{
+					"region": "XII-NONAGRI",
+					"from": "2025-12-15",
+					"monthly": 11998.33
+				},
+				{
+					"region": "XII-NONAGRI",
+					"from": "2025-12-01",
+					"monthly": 11737.5
+				},
+				{
+					"region": "XIII",
+					"from": "2026-05-01",
+					"monthly": 12389.58
+				},
+				{
+					"region": "XIII",
+					"from": "2026-01-03",
+					"monthly": 11867.92
+				},
+				{
+					"region": "XIII",
+					"from": "2025-12-01",
+					"monthly": 11346.25
+				}
+			],
+			"minimum_wage_domestic": [
+				{
+					"region": "BARMM",
+					"from": "2026-01-08",
+					"monthly": 5500
+				},
+				{
+					"region": "BARMM",
+					"from": "2025-12-01",
+					"monthly": 5000
+				},
+				{
+					"region": "CAR",
+					"from": "2025-12-30",
+					"monthly": 6600
+				},
+				{
+					"region": "CAR",
+					"from": "2025-12-01",
+					"monthly": 6000
+				},
+				{
+					"region": "I",
+					"from": "2025-12-01",
+					"monthly": 6700
+				},
+				{
+					"region": "II",
+					"from": "2025-12-01",
+					"monthly": 6500
+				},
+				{
+					"region": "III",
+					"from": "2025-12-01",
+					"monthly": 6500
+				},
+				{
+					"region": "IV-A",
+					"from": "2025-12-01",
+					"monthly": 6750
+				},
+				{
+					"region": "IV-B",
+					"from": "2026-01-01",
+					"monthly": 7000
+				},
+				{
+					"region": "IV-B",
+					"from": "2025-12-01",
+					"monthly": 6500
+				},
+				{
+					"region": "IX",
+					"from": "2026-05-20",
+					"monthly": 6000
+				},
+				{
+					"region": "IX",
+					"from": "2025-12-01",
+					"monthly": 5500
+				},
+				{
+					"region": "IX-OTHER",
+					"from": "2026-05-20",
+					"monthly": 5500
+				},
+				{
+					"region": "IX-OTHER",
+					"from": "2025-12-01",
+					"monthly": 5000
+				},
+				{
+					"region": "NCR",
+					"from": "2026-02-07",
+					"monthly": 7800
+				},
+				{
+					"region": "NCR",
+					"from": "2025-12-01",
+					"monthly": 7000
+				},
+				{
+					"region": "V",
+					"from": "2025-12-01",
+					"monthly": 6000
+				},
+				{
+					"region": "VI",
+					"from": "2025-12-01",
+					"monthly": 6500
+				},
+				{
+					"region": "VII",
+					"from": "2026-10-14",
+					"monthly": 7500
+				},
+				{
+					"region": "VII",
+					"from": "2025-12-01",
+					"monthly": 7000
+				},
+				{
+					"region": "VIII",
+					"from": "2025-12-08",
+					"monthly": 6400
+				},
+				{
+					"region": "VIII",
+					"from": "2025-12-01",
+					"monthly": 6000
+				},
+				{
+					"region": "VIII-OTHER",
+					"from": "2025-12-08",
+					"monthly": 5800
+				},
+				{
+					"region": "VIII-OTHER",
+					"from": "2025-12-01",
+					"monthly": 5500
+				},
+				{
+					"region": "X",
+					"from": "2026-01-16",
+					"monthly": 6500
+				},
+				{
+					"region": "X",
+					"from": "2025-12-01",
+					"monthly": 6000
+				},
+				{
+					"region": "XI",
+					"from": "2026-03-13",
+					"monthly": 6500
+				},
+				{
+					"region": "XI",
+					"from": "2025-12-01",
+					"monthly": 6000
+				},
+				{
+					"region": "XII",
+					"from": "2025-12-01",
+					"monthly": 6000
+				},
+				{
+					"region": "XIII",
+					"from": "2026-01-03",
+					"monthly": 6500
+				},
+				{
+					"region": "XIII",
+					"from": "2025-12-01",
+					"monthly": 6000
+				}
+			],
+			"annual_paid_days": 313,
+			"normal_daily_hours": 8,
+			"rice_subsidy_ceiling": 2500
+		},
+		"references": [
+			{
+				"title": "Read 2026-10-31: rice and laundry ceilings apply independently to each calendar month; unused limits do not carry. The dependant medical allowance uses the statutory per-semester ceiling (PHP1,500 for each January-June and July-December period). The sum of each period's excess enters the separate PHP90,000 annual 13th-month/other-benefits pool. RR2-98 s.2.78.1(A)(3) as amended by RR11-2018/RR4-2025."
+			},
+			{
+				"title": "National Internal Revenue Code (as amended by RA 10963)",
+				"locator": "ss.24(A)(2), 25(B), 32(B)(6)-(7), 79",
+				"quote": "Annual table (2023): PHP250,000 0%; 15% to 400,000; 22,500 + 20% to 800,000; 102,500 + 25% to 2,000,000; 402,500 + 30% to 8,000,000; 2,202,500 + 35%. s.25(B): a non-resident alien not engaged in trade or business is taxed 25% final on the entire income (de minimis and the PHP90,000 exclusion not deducted). s.24(A)(2): minimum wage earners exempt."
+			},
+			{
+				"title": "Revenue Regulations 11-2018",
+				"locator": "s.2.79(B)(5)(b) Steps 1-4; s.2.78.1(B)",
+				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf",
+				"quote": "Withholding on compensation. Each period withholds on the month to date with the monthly column; December's last period and the exit period annualise: the year's taxable compensation, plus a previous employer's (from its Form 2316), less the year's withholding; a negative result refunds. The year-end deficiency is withheld from the last payment of compensation for the year. Exclusions (s.2.78.1(B)): the employee shares of SSS, MPF, PhilHealth and Pag-IBIG as charged and union dues ((B)(12)); 13th-month pay, other benefits and de minimis excess to PHP90,000 ((B)(11)); minimum wage earner ((B)(13)): exempt on the statutory minimum wage, holiday, overtime, night-shift and hazard pay when the contract's rate for an 8-hour day is at or below the regional daily floor of the workplace in force on the period's last day; a certified BMBE has no floor. Fringe benefits: rank-and-file compensation; for supervisory and managerial staff the FBT scheme's instead."
+			},
+			{
+				"title": "Revenue Regulations 11-2018, Annex E (withholding tax tables)",
+				"url": "https://bir-cdn.bir.gov.ph/local/pdf/Annex%20E%20RR%2011-2018.pdf",
+				"quote": "Read 2026-10-07. Monthly column rungs PHP20,833 / 33,333 / 66,667 / 166,667 / 666,667; semi-monthly column PHP10,417 / 16,667 / 33,333 / 83,333 / 333,333 (937.50 / 4,270.70 / 16,770.70 / 91,770.70). Daily column: PHP685 and below 0; 15% over 685; 61.65 + 20% over 1,096; 280.85 + 25% over 2,192; 1,102.60 + 30% over 5,479; 6,034.30 + 35% over 21,918 (the Annex prints \"6,034.00.30\"; 1,102.60 + 30% x 16,439 = 6,034.30). Weekly column: PHP4,808 and below 0; 15% over 4,808; 432.60 + 20% over 7,692; 1,971.20 + 25% over 15,385; 7,740.45 + 30% over 38,462; 42,355.65 + 35% over 153,846."
+			},
+			{
+				"title": "Revenue Regulations 2-98 as amended by RR 11-2018 and RR 4-2025",
+				"locator": "s.2.78.1(A)(3)",
+				"quote": "De minimis ceilings: rice PHP2,000 and laundry PHP300 a month, dependants' medical PHP1,500 a semester, uniform PHP7,000, medical assistance, awards and CBA PHP10,000, gifts PHP5,000, 10 days' monetised leave, overtime/night meal 25% of the regional minimum wage a day."
+			},
+			{
+				"title": "Soriano v. Secretary of Finance",
+				"locator": "G.R. 184450 (2017)",
+				"quote": "A minimum wage earner is taxed on pay other than the statutory minimum wage and its holiday, overtime, night-shift and hazard pay."
+			},
+			{
+				"title": "RR11-2018 s.2.79(B)(3),(5)(a): overtime and other variable wage benefits are supplementary even though this template groups them in WTAX.WAGE for MWE exemptions. The review trigger separately counts known taxable variable-wage codes; MWE statutory wage benefits remain exempt. Historical variable wages and an offcycle before salary conservatively require exact-period review until captured actual-period classification supports automatic cumulative calculation.",
+				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
+			},
+			{
+				"title": "RR11-2018 s.2.79(B)(3),(5)(a),(5)(b): cash/payment-date withholding. Complete same-frequency MONTHLY history derives cumulative tax using distinct actual salary periods, captured last causal assessment of each prior cash month, actual previous-employer taxable compensation/tax/period facts, and current actual month taxable base. Offcycles do not create periods. The cumulative excess is nonnegative; annual final-payment rule permits refunds. Unknown/mixed/delayed-period and legacy cases retain exact-period reviewed liability/refusal. December requires an evidenced final payment date, not a month-end inferred from a salary window.",
+				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf"
+			},
+			{
+				"title": "13th-month pay and other benefits are exempt to PHP90,000 in the aggregate",
+				"locator": "NIRC s.32(B)(7)(e); RR 11-2018 s.2.78.1(B)(11)",
+				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf",
+				"quote": "Read 2026-11-04. 13th-month pay and other benefits are excluded from gross compensation up to PHP90,000 for the calendar year; the excess is taxable compensation. The monthly withholding taxes the final GROSS and adds ADDITIONAL_WAGES - ORDINARY_WAGES once to the PHP90,000 pool, reading prior payslips' additional_wages for the part already used by the same employer."
+			}
+		],
+		"kind": "TAX",
+		"depends_on": ["SSS", "SSS_MPF", "PHIC", "HDMF"],
+		"off_cycle_eligible": false,
+		"subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"eligibility": "return Number(get(ctx.subtotals, 'GROSS', ctx.base_pay)) > 0;",
+		"employee_amount": "// rice subsidy is a de minimis benefit up to its ceiling, not taxable pay\nconst riceSubsidy = Math.min(\n\tNumber(get(ctx.subject.employment, 'terms.allowances.meal.amount', 0)),\n\tctx.lookup.rice_subsidy_ceiling\n);\nconst ordinary = Math.max(0, Number(get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay)) - riceSubsidy);\nconst additional = Math.max(ordinary, Number(get(ctx.subtotals, 'ADDITIONAL_WAGES', ordinary)));\nconst total = Math.max(additional, Number(get(ctx.subtotals, 'GROSS', additional)));\nconst benefits = Math.max(0, additional - ordinary);\nconst residency = get(ctx.subject.employment.terms, 'residency_status', 'RESIDENT');\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nif (get(facts, 'statutory.WTAX.elections.treaty_exempt', false) === true) return 0;\nif (residency === 'NON_RESIDENT_ALIEN_NETB') {\n\treturn round(total * ctx.lookup.nonresident_rate, ctx.lookup.minor_unit, 'HALF_UP');\n}\nconst minimumWageEarner = (() => {\n\tconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\n\tconst employerFacts = get(ctx.subject.employer, 'entity_extension_data', {});\n\tif (get(employerFacts, 'bmbe_certificate_of_authority', false) === true) return false;\n\tconst category = get(ctx.subject.employment.terms, 'statutory_work_category', '');\n\tconst domestic = ['DOMESTIC', 'KASAMBAHAY'].includes(category);\n\tconst region = get(facts, 'work_region', get(employerFacts, 'region', ''));\n\tconst table = domestic ? ctx.lookup.minimum_wage_domestic : ctx.lookup.minimum_wage_by_region;\n\tconst rates = table.filter((entry) => entry.region === region);\n\tif (rates.length === 0) return false;\n\tconst day = ctx.run.salary_coverage.to;\n\tconst applicable = rates.filter((entry) => entry.from <= day).toSorted((a, b) => a.from > b.from ? -1 : 1);\n\tif (applicable.length === 0) return false;\n\tconst floor = Number(applicable[0].monthly);\n\tif (floor <= 0) return false;\n\tconst terms = ctx.subject.employment.terms;\n\tconst rate = Number(get(terms.rate, 'amount', 0));\n\tconst unit = get(terms.rate, 'unit', 'MONTHLY');\n\tconst annualDays = Number(get(facts, 'days_per_year', ctx.lookup.annual_paid_days));\n\tconst hours = Number(get(terms, 'normal_hours_per_day', ctx.lookup.normal_daily_hours));\n\tif (domestic) {\n\t\tconst monthly = unit === 'MONTHLY'\n\t\t\t? rate\n\t\t\t: unit === 'DAILY'\n\t\t\t\t? rate * ctx.lookup.annual_paid_days / 12\n\t\t\t\t: unit === 'HOURLY'\n\t\t\t\t\t? rate * hours * ctx.lookup.annual_paid_days / 12\n\t\t\t\t\t: rate;\n\t\treturn monthly <= floor + 0.005;\n\t}\n\tconst daily = unit === 'DAILY' ? rate : unit === 'HOURLY' ? rate * hours : rate * 12 / annualDays;\n\treturn daily <= floor * 12 / ctx.lookup.annual_paid_days + 0.005;\n})();\nif (minimumWageEarner) return 0;\nconst contributions = Number(get(ctx.statutory, 'SSS.employee', 0)) +\n\tNumber(get(ctx.statutory, 'SSS_MPF.employee', 0)) +\n\tNumber(get(ctx.statutory, 'PHIC.employee', 0)) +\n\tNumber(get(ctx.statutory, 'HDMF.employee', 0));\n// RR 11-2018 s.2.79(B)(3)-(4): the period table taxes the period's total\n// compensation. The annual input is the PHP90,000 13th-month/other-benefits\n// pool (s.2.78.1(B)(11)); the payslip's additional_wages\n// is ADDITIONAL_WAGES - ORDINARY_WAGES, so prior slips carry what this employer\n// already paid this year.\nconst year = String(ctx.run.salary_coverage.to).slice(0, 4);\nconst employerId = String(get(ctx.subject.employer, 'entity_id', get(ctx.subject.employer, 'id', '')));\nlet benefitsYtd = 0;\nfor (const slip of get(ctx.history, 'payslips', [])) {\n\tif (String(get(slip, 'period', '')).slice(0, 4) !== year) continue;\n\tif (employerId !== '' && String(get(slip, 'entity_id', '')) !== employerId) continue;\n\tbenefitsYtd += Math.max(0, Number(get(slip, 'additional_wages', 0)));\n}\nconst ceiling = Number(get(ctx.lookup, 'de_minimis.annual_bonus_and_other_benefits', 90000));\nconst exempt = Math.min(benefits, Math.max(0, ceiling - benefitsYtd));\nconst taxable = Math.max(0, total - contributions - exempt);\nif (taxable <= 0) return 0;\nconst days = calendar_distance_days(ctx.run.salary_coverage.from, ctx.run.salary_coverage.to) + 1;\nconst bands = days <= 1\n\t? ctx.lookup.daily_tax\n\t: days <= 7\n\t\t? ctx.lookup.weekly_tax\n\t\t: days <= 16\n\t\t\t? ctx.lookup.semi_monthly_tax\n\t\t\t: ctx.lookup.monthly_tax;\nreturn round(ladder(taxable, bands), ctx.lookup.minor_unit, 'HALF_UP');",
+		"employer_amount": "return 0;",
+		"id": "e30f4d1d-a59a-56ba-9b01-a719addb7c55",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"employer_cost_subtotal_id": null
+	},
+	{
+		"code": "FBT",
+		"name": "Fringe benefit tax",
+		"lookup": {
+			"minor_unit": 0.01,
+			"ordinary_gross_up_share": 0.65,
+			"ordinary_rate": 0.35,
+			"special_nonresident_gross_up_share": 0.75,
+			"special_nonresident_rate": 0.25
+		},
+		"references": [
+			{
+				"title": "National Internal Revenue Code (as amended by RA 10963)",
+				"locator": "section 33",
+				"quote": "Fringe benefits tax."
+			},
+			{
+				"title": "Revenue Regulations 11-2018",
+				"locator": "s.2.33(A)-(D)",
+				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf",
+				"quote": "A final tax of 35% on the grossed-up monetary value (÷ 65%) of fringe benefits granted to employees other than rank and file (25% ÷ 75% for a non-resident alien not engaged in trade or business), paid by the employer and not part of the employee's gross income; rank-and-file benefits are compensation. The monetary value is assigned by s.2.33(B) and RR 3-98."
+			}
+		],
+		"kind": "TAX",
+		"depends_on": [],
+		"off_cycle_eligible": false,
+		"subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"eligibility": "const classification = get(ctx.subject.employment.terms, 'statutory_work_category', '');\nconst base = Math.max(0, Number(get(ctx.subtotals, 'FRINGE_BENEFIT', 0)));\nreturn ['MANAGERIAL', 'SUPERVISORY'].includes(classification) && base > 0;",
+		"employee_amount": "return 0;",
+		"employer_amount": "const base = Math.max(0, Number(get(ctx.subtotals, 'FRINGE_BENEFIT', 0)));\nif (base <= 0) return 0;\nconst special = get(ctx.subject.employment.terms, 'residency_status', 'RESIDENT') === 'NON_RESIDENT_ALIEN_NETB';\nconst share = special ? ctx.lookup.special_nonresident_gross_up_share : ctx.lookup.ordinary_gross_up_share;\nconst rate = special ? ctx.lookup.special_nonresident_rate : ctx.lookup.ordinary_rate;\nreturn round(base / share * rate, ctx.lookup.minor_unit, 'HALF_UP');",
+		"employer_cost_subtotal_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"id": "ad706649-1da9-553f-b18b-c0797fc598ba",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	}
+]

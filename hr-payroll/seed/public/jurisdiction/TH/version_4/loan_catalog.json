@@ -1,0 +1,24 @@
+[
+	{
+		"code": "WELFARE_LOAN",
+		"name": "Welfare or savings loan repayment",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.76",
+				"locator": "s.76",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "A loan repayment deducted from wages is limited to 10 percent (one fifth with a provident fund contribution) unless the employee has given prior written consent."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": "04159d7b-522f-5878-9520-c890443d8cdc",
+		"eligibility": "// js\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.amount;",
+		"incurred_on": "// js\nreturn ctx.entry.paid_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "29d504c4-7c98-5778-acbc-7c519365d85d",
+		"settings_id": "84c29e3a-8ac4-5674-b16d-f6ae2f938464"
+	}
+]

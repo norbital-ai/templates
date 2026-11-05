@@ -1,0 +1,611 @@
+[
+	{
+		"code": "CPF",
+		"name": "Central Provident Fund",
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
+		"employer_cost_subtotal_id": "930abb8b-61d3-5956-839d-9ff2b3c1fbb3",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"ordinary_ceiling": 8000.0,
+			"annual_ceiling": 102000.0,
+			"months_per_year": 12.0,
+			"minimum_wage": 50.0,
+			"employee_threshold": 500.0,
+			"full_rate_threshold": 750.0,
+			"rounding_step": 1.0,
+			"employee_rounding": "DOWN",
+			"total_rounding": "HALF_UP",
+			"r1_low": 0.17,
+			"r1_mid": 0.15,
+			"r1_high": 0.05,
+			"r1_total": 0.22,
+			"r2_low": 0.16,
+			"r2_mid": 0.15,
+			"r2_high": 0.05,
+			"r2_total": 0.21,
+			"r3_low": 0.125,
+			"r3_mid": 0.15,
+			"r3_high": 0.05,
+			"r3_total": 0.175,
+			"r4_low": 0.09,
+			"r4_mid": 0.15,
+			"r4_high": 0.05,
+			"r4_total": 0.14,
+			"r5_low": 0.075,
+			"r5_mid": 0.15,
+			"r5_high": 0.05,
+			"r5_total": 0.125,
+			"r6_low": 0.17,
+			"r6_mid": 0.45,
+			"r6_high": 0.15,
+			"r6_total": 0.32,
+			"r7_low": 0.16,
+			"r7_mid": 0.375,
+			"r7_high": 0.125,
+			"r7_total": 0.285,
+			"r8_low": 0.125,
+			"r8_mid": 0.225,
+			"r8_high": 0.075,
+			"r8_total": 0.2,
+			"r9_low": 0.04,
+			"r9_mid": 0.15,
+			"r9_high": 0.05,
+			"r9_total": 0.09,
+			"r10_low": 0.035,
+			"r10_mid": 0.15,
+			"r10_high": 0.05,
+			"r10_total": 0.085,
+			"r11_low": 0.09,
+			"r11_mid": 0.45,
+			"r11_high": 0.15,
+			"r11_total": 0.24,
+			"r12_low": 0.06,
+			"r12_mid": 0.375,
+			"r12_high": 0.125,
+			"r12_total": 0.185,
+			"r13_low": 0.035,
+			"r13_mid": 0.225,
+			"r13_high": 0.075,
+			"r13_total": 0.11,
+			"r14_low": 0.17,
+			"r14_mid": 0.6,
+			"r14_high": 0.2,
+			"r14_total": 0.37,
+			"r15_low": 0.16,
+			"r15_mid": 0.54,
+			"r15_high": 0.18,
+			"r15_total": 0.34,
+			"r16_low": 0.125,
+			"r16_mid": 0.375,
+			"r16_high": 0.125,
+			"r16_total": 0.25,
+			"r17_low": 0.09,
+			"r17_mid": 0.225,
+			"r17_high": 0.075,
+			"r17_total": 0.165,
+			"bands": [
+				{
+					"phase": "full",
+					"age": 0,
+					"key": "r14"
+				},
+				{
+					"phase": "full",
+					"age": 55,
+					"key": "r15"
+				},
+				{
+					"phase": "full",
+					"age": 60,
+					"key": "r16"
+				},
+				{
+					"phase": "full",
+					"age": 65,
+					"key": "r17"
+				},
+				{
+					"phase": "full",
+					"age": 70,
+					"key": "r5"
+				},
+				{
+					"phase": "first_year",
+					"age": 0,
+					"key": "r9"
+				},
+				{
+					"phase": "first_year",
+					"age": 60,
+					"key": "r10"
+				},
+				{
+					"phase": "first_year_full_employer",
+					"age": 0,
+					"key": "r1"
+				},
+				{
+					"phase": "first_year_full_employer",
+					"age": 55,
+					"key": "r2"
+				},
+				{
+					"phase": "first_year_full_employer",
+					"age": 60,
+					"key": "r3"
+				},
+				{
+					"phase": "first_year_full_employer",
+					"age": 65,
+					"key": "r4"
+				},
+				{
+					"phase": "first_year_full_employer",
+					"age": 70,
+					"key": "r5"
+				},
+				{
+					"phase": "second_year",
+					"age": 0,
+					"key": "r11"
+				},
+				{
+					"phase": "second_year",
+					"age": 55,
+					"key": "r12"
+				},
+				{
+					"phase": "second_year",
+					"age": 60,
+					"key": "r13"
+				},
+				{
+					"phase": "second_year",
+					"age": 65,
+					"key": "r10"
+				},
+				{
+					"phase": "second_year_full_employer",
+					"age": 0,
+					"key": "r6"
+				},
+				{
+					"phase": "second_year_full_employer",
+					"age": 55,
+					"key": "r7"
+				},
+				{
+					"phase": "second_year_full_employer",
+					"age": 60,
+					"key": "r8"
+				},
+				{
+					"phase": "second_year_full_employer",
+					"age": 65,
+					"key": "r4"
+				},
+				{
+					"phase": "second_year_full_employer",
+					"age": 70,
+					"key": "r5"
+				}
+			]
+		},
+		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nconst approved =\n\tget(facts, 'facts.student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'facts.student_training_approved', false) === true &&\n\tget(facts, 'facts.student_training_evidence', '') !== '';\nreturn (\n\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) > 0 &&\n\t!approved &&\n\t['CITIZEN', 'PERMANENT_RESIDENT'].includes(\n\t\tget(ctx.subject.employment.terms, 'residency_status', '')\n\t)\n);",
+		"employee_amount": "const terms = ctx.subject.employment.terms;\nconst facts = ctx.subject.employment.employee_extension_data;\nconst status = get(terms, 'residency_status', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status)) return 0;\nconst dob = get(ctx.subject.employment.payroll, 'date_of_birth', '');\nif (dob === '') return 0;\nconst age = age_on(dob, add_days(month_start(ctx.run.salary_coverage.from), -1));\nconst elections = get(facts, 'facts.statutory.CPF.elections', {});\nconst full = get(elections, 'spr_full_rates', false) === true;\nconst employerFull = get(elections, 'spr_employer_full_rates', false) === true;\nconst since = get(facts, 'facts.residency_since', '');\nconst from = ctx.run.salary_coverage.from;\nconst phase =\n\tstatus !== 'PERMANENT_RESIDENT' || full || since === ''\n\t\t? 'full'\n\t\t: from <= String(month_end(add_years(since, 1)))\n\t\t\t? employerFull\n\t\t\t\t? 'first_year_full_employer'\n\t\t\t\t: 'first_year'\n\t\t\t: from <= String(month_end(add_years(since, 2)))\n\t\t\t\t? employerFull\n\t\t\t\t\t? 'second_year_full_employer'\n\t\t\t\t\t: 'second_year'\n\t\t\t\t: 'full';\nconst bands = ctx.lookup.bands.filter((band) => band.phase === phase);\nlet key = bands[0].key;\nfor (const band of bands) if (age >= band.age) key = band.key;\nconst lowRate = Number(get(ctx.lookup, key + '_low', 0));\nconst midRate = Number(get(ctx.lookup, key + '_mid', 0));\nconst highRate = Number(get(ctx.lookup, key + '_high', 0));\nconst totalRate = Number(get(ctx.lookup, key + '_total', 0));\nconst year = String(ctx.run.salary_coverage.from).slice(0, 4);\nconst ordinary = Math.min(\n\tNumber(get(ctx, 'subtotals.ORDINARY_WAGES', 0)),\n\tctx.lookup.ordinary_ceiling\n);\nconst additionalNow = Math.max(\n\t0,\n\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) -\n\t\tNumber(get(ctx, 'subtotals.ORDINARY_WAGES', 0))\n);\nlet ordinaryYtd = ordinary;\nlet additionalYtd = 0;\nfor (const slip of get(ctx, 'history.payslips', [])) {\n\tif (String(get(slip, 'period', '')).slice(0, 4) !== year) continue;\n\tordinaryYtd += Math.min(\n\t\tNumber(get(slip, 'ordinary_wages', 0)),\n\t\tctx.lookup.ordinary_ceiling\n\t);\n\tadditionalYtd += Number(get(slip, 'additional_wages', 0));\n}\nconst additional = Math.min(\n\tadditionalNow,\n\tMath.max(0, ctx.lookup.annual_ceiling - ordinaryYtd - additionalYtd)\n);\nconst wage = ordinary + additional;\nif (wage <= ctx.lookup.minimum_wage) return 0;\nif (wage <= ctx.lookup.employee_threshold) return 0;\nconst employee =\n\twage <= ctx.lookup.full_rate_threshold\n\t\t? round(\n\t\t\t\tmidRate * (wage - ctx.lookup.employee_threshold),\n\t\t\t\tctx.lookup.rounding_step,\n\t\t\t\tctx.lookup.employee_rounding\n\t\t\t)\n\t\t: round(wage * highRate, ctx.lookup.rounding_step, ctx.lookup.employee_rounding);\nreturn employee;",
+		"employer_amount": "const terms = ctx.subject.employment.terms;\nconst facts = ctx.subject.employment.employee_extension_data;\nconst status = get(terms, 'residency_status', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status)) return 0;\nconst dob = get(ctx.subject.employment.payroll, 'date_of_birth', '');\nif (dob === '') return 0;\nconst age = age_on(dob, add_days(month_start(ctx.run.salary_coverage.from), -1));\nconst elections = get(facts, 'facts.statutory.CPF.elections', {});\nconst full = get(elections, 'spr_full_rates', false) === true;\nconst employerFull = get(elections, 'spr_employer_full_rates', false) === true;\nconst since = get(facts, 'facts.residency_since', '');\nconst from = ctx.run.salary_coverage.from;\nconst phase =\n\tstatus !== 'PERMANENT_RESIDENT' || full || since === ''\n\t\t? 'full'\n\t\t: from <= String(month_end(add_years(since, 1)))\n\t\t\t? employerFull\n\t\t\t\t? 'first_year_full_employer'\n\t\t\t\t: 'first_year'\n\t\t\t: from <= String(month_end(add_years(since, 2)))\n\t\t\t\t? employerFull\n\t\t\t\t\t? 'second_year_full_employer'\n\t\t\t\t\t: 'second_year'\n\t\t\t\t: 'full';\nconst bands = ctx.lookup.bands.filter((band) => band.phase === phase);\nlet key = bands[0].key;\nfor (const band of bands) if (age >= band.age) key = band.key;\nconst lowRate = Number(get(ctx.lookup, key + '_low', 0));\nconst midRate = Number(get(ctx.lookup, key + '_mid', 0));\nconst highRate = Number(get(ctx.lookup, key + '_high', 0));\nconst totalRate = Number(get(ctx.lookup, key + '_total', 0));\nconst year = String(ctx.run.salary_coverage.from).slice(0, 4);\nconst ordinary = Math.min(\n\tNumber(get(ctx, 'subtotals.ORDINARY_WAGES', 0)),\n\tctx.lookup.ordinary_ceiling\n);\nconst additionalNow = Math.max(\n\t0,\n\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) -\n\t\tNumber(get(ctx, 'subtotals.ORDINARY_WAGES', 0))\n);\nlet ordinaryYtd = ordinary;\nlet additionalYtd = 0;\nfor (const slip of get(ctx, 'history.payslips', [])) {\n\tif (String(get(slip, 'period', '')).slice(0, 4) !== year) continue;\n\tordinaryYtd += Math.min(\n\t\tNumber(get(slip, 'ordinary_wages', 0)),\n\t\tctx.lookup.ordinary_ceiling\n\t);\n\tadditionalYtd += Number(get(slip, 'additional_wages', 0));\n}\nconst additional = Math.min(\n\tadditionalNow,\n\tMath.max(0, ctx.lookup.annual_ceiling - ordinaryYtd - additionalYtd)\n);\nconst wage = ordinary + additional;\nif (wage <= ctx.lookup.minimum_wage) return 0;\nif (wage <= ctx.lookup.employee_threshold) return 0;\nconst employee =\n\twage <= ctx.lookup.full_rate_threshold\n\t\t? round(\n\t\t\t\tmidRate * (wage - ctx.lookup.employee_threshold),\n\t\t\t\tctx.lookup.rounding_step,\n\t\t\t\tctx.lookup.employee_rounding\n\t\t\t)\n\t\t: round(wage * highRate, ctx.lookup.rounding_step, ctx.lookup.employee_rounding);\nconst total =\n\twage <= ctx.lookup.employee_threshold\n\t\t? round(wage * lowRate, ctx.lookup.rounding_step, ctx.lookup.total_rounding)\n\t\t: wage <= ctx.lookup.full_rate_threshold\n\t\t\t? round(\n\t\t\t\t\twage * lowRate + midRate * (wage - ctx.lookup.employee_threshold),\n\t\t\t\t\tctx.lookup.rounding_step,\n\t\t\t\t\tctx.lookup.total_rounding\n\t\t\t\t)\n\t\t\t: round(wage * totalRate, ctx.lookup.rounding_step, ctx.lookup.total_rounding);\nreturn total - employee;",
+		"references": [
+			{
+				"title": "CPF Act 1953 s.7 and First Schedule; CPF Board contribution tables from 1 January 2026 — Ordinary Wages capped at $8,000; above 55–60 34%, above 60–65 25%, above 65–70 16.5%",
+				"locator": "s.7; First Schedule; Tables 1–5",
+				"url": "https://www.cpf.gov.sg/content/dam/web/employer/employer-obligations/documents/CPFcontributionratesfrom1Jan2026.pdf",
+				"quote": "Ordinary Wages are capped at SGD 8,000 per month. Additional Wages are capped at SGD 102,000 less the Total Ordinary Wages subject to CPF for the year.",
+				"effective_from": "2026-01-01"
+			}
+		],
+		"id": "116f0213-5e88-57a0-ad22-ab894423269f",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "CDAC",
+		"name": "Chinese Development Assistance Council Fund",
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"brackets": [
+				{
+					"up_to": 2000,
+					"amount": 0.5
+				},
+				{
+					"up_to": 3500,
+					"amount": 1
+				},
+				{
+					"up_to": 5000,
+					"amount": 1.5
+				},
+				{
+					"up_to": 7500,
+					"amount": 2
+				},
+				{
+					"up_to": null,
+					"amount": 3
+				}
+			],
+			"races": ["CHINESE", "SINO INDIAN", "SINO JAPANESE", "SINO KADAZAN"]
+		},
+		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nconst approved =\n\tget(facts, 'facts.student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'facts.student_training_approved', false) === true &&\n\tget(facts, 'facts.student_training_evidence', '') !== '';\nconst race = get(\n\tfacts,\n\t'term_facts.race',\n\t''\n);\nreturn (\n\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) > 0 &&\n\t!approved &&\n\t['CITIZEN', 'PERMANENT_RESIDENT'].includes(\n\t\tget(ctx.subject.employment.terms, 'residency_status', '')\n\t) &&\n\tctx.lookup.races.includes(race) &&\n\tget(facts, 'facts.statutory.CDAC.elections.shg_opted_out', false) !== true\n);",
+		"employee_amount": "const facts = ctx.subject.employment.employee_extension_data;\nconst declared = get(\n\tfacts,\n\t'facts.statutory.CDAC.elections.shg_monthly_amount',\n\tnull\n);\nreturn declared != null\n\t? Number(declared)\n\t: bracket(\n\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)),\n\t\t\tctx.lookup.brackets\n\t\t);",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "CDAC Rules 1992 r.2; CPF Board, Contributions to self-help groups — monthly wage-band deduction for Chinese citizens and permanent residents",
+				"locator": "r.2",
+				"url": "https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups",
+				"effective_from": "2026-01-01",
+				"quote": "Contribution rates are banded by the employee's Monthly Total Wages. Total Wages is the sum of Ordinary Wages and Additional Wages."
+			}
+		],
+		"id": "789dcb80-702d-54ac-a8ba-fea80def66e0",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
+		"employer_cost_subtotal_id": null
+	},
+	{
+		"code": "ECF",
+		"name": "Eurasian Community Fund",
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"brackets": [
+				{
+					"up_to": 1000,
+					"amount": 2
+				},
+				{
+					"up_to": 1500,
+					"amount": 4
+				},
+				{
+					"up_to": 2500,
+					"amount": 6
+				},
+				{
+					"up_to": 4000,
+					"amount": 9
+				},
+				{
+					"up_to": 7000,
+					"amount": 12
+				},
+				{
+					"up_to": 10000,
+					"amount": 16
+				},
+				{
+					"up_to": null,
+					"amount": 20
+				}
+			],
+			"races": [
+				"EURASIAN",
+				"OTHER EURASIAN",
+				"ANGLO BURMESE",
+				"ANGLO CHINESE",
+				"ANGLO FILIPINO",
+				"ANGLO INDIAN",
+				"ANGLO THAI"
+			]
+		},
+		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nconst approved =\n\tget(facts, 'facts.student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'facts.student_training_approved', false) === true &&\n\tget(facts, 'facts.student_training_evidence', '') !== '';\nconst race = get(\n\tfacts,\n\t'term_facts.race',\n\t''\n);\nreturn (\n\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) > 0 &&\n\t!approved &&\n\t['CITIZEN', 'PERMANENT_RESIDENT'].includes(\n\t\tget(ctx.subject.employment.terms, 'residency_status', '')\n\t) &&\n\tctx.lookup.races.includes(race) &&\n\tget(facts, 'facts.statutory.ECF.elections.shg_opted_out', false) !== true\n);",
+		"employee_amount": "const facts = ctx.subject.employment.employee_extension_data;\nconst declared = get(\n\tfacts,\n\t'facts.statutory.ECF.elections.shg_monthly_amount',\n\tnull\n);\nreturn declared != null\n\t? Number(declared)\n\t: bracket(\n\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)),\n\t\t\tctx.lookup.brackets\n\t\t);",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "CPF (Contributions to Community Fund — Eurasian Association) Rules 1995 r.2; CPF Board, Contributions to self-help groups — monthly wage-band deduction for Eurasian citizens and permanent residents",
+				"locator": "r.2",
+				"url": "https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups",
+				"effective_from": "2026-01-01",
+				"quote": "Contribution rates are banded by the employee's Monthly Total Wages. Total Wages is the sum of Ordinary Wages and Additional Wages."
+			}
+		],
+		"id": "d72eb541-056e-52bf-b166-706d7c81c677",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
+		"employer_cost_subtotal_id": null
+	},
+	{
+		"code": "MBMF",
+		"name": "Mosque Building and Mendaki Fund",
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"brackets": [
+				{
+					"up_to": 1000,
+					"amount": 3
+				},
+				{
+					"up_to": 2000,
+					"amount": 4.5
+				},
+				{
+					"up_to": 3000,
+					"amount": 6.5
+				},
+				{
+					"up_to": 4000,
+					"amount": 15
+				},
+				{
+					"up_to": 6000,
+					"amount": 19.5
+				},
+				{
+					"up_to": 8000,
+					"amount": 22
+				},
+				{
+					"up_to": 10000,
+					"amount": 24
+				},
+				{
+					"up_to": null,
+					"amount": 26
+				}
+			]
+		},
+		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nconst approved =\n\tget(facts, 'facts.student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'facts.student_training_approved', false) === true &&\n\tget(facts, 'facts.student_training_evidence', '') !== '';\nconst religion = get(facts, 'term_facts.religion', '');\nreturn (\n\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) > 0 &&\n\t!approved &&\n\treligion === 'ISLAM' &&\n\tget(facts, 'facts.statutory.MBMF.elections.shg_opted_out', false) !== true\n);",
+		"employee_amount": "const facts = ctx.subject.employment.employee_extension_data;\nconst declared = get(\n\tfacts,\n\t'facts.statutory.MBMF.elections.shg_monthly_amount',\n\tnull\n);\nreturn declared != null\n\t? Number(declared)\n\t: bracket(\n\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)),\n\t\t\tctx.lookup.brackets\n\t\t);",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "Mosque Building and Mendaki Fund Rules; CPF Board, Contributions to self-help groups — monthly wage-band deduction for Muslim employees",
+				"locator": "MBMF",
+				"url": "https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups",
+				"effective_from": "2026-01-01",
+				"quote": "Contribution rates are banded by the employee's Monthly Total Wages. Total Wages is the sum of Ordinary Wages and Additional Wages."
+			}
+		],
+		"id": "ff2989c2-660b-550e-9b15-93ed3c89d9f6",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
+		"employer_cost_subtotal_id": null
+	},
+	{
+		"code": "SINDA",
+		"name": "Singapore Indian Development Association Fund",
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"brackets": [
+				{
+					"up_to": 1000,
+					"amount": 1
+				},
+				{
+					"up_to": 1500,
+					"amount": 3
+				},
+				{
+					"up_to": 2500,
+					"amount": 5
+				},
+				{
+					"up_to": 4500,
+					"amount": 7
+				},
+				{
+					"up_to": 7500,
+					"amount": 9
+				},
+				{
+					"up_to": 10000,
+					"amount": 12
+				},
+				{
+					"up_to": 15000,
+					"amount": 18
+				},
+				{
+					"up_to": null,
+					"amount": 30
+				}
+			],
+			"races": [
+				"SRI LANKAN",
+				"SINDHI",
+				"BANGLADESHI",
+				"PAKISTANI",
+				"INDIAN",
+				"BENGALI",
+				"GUJARATI",
+				"MALAYALEE",
+				"PUNJABI",
+				"SIKH",
+				"TAMIL",
+				"TELUGU",
+				"SINHALESE",
+				"PARSEE",
+				"PATHAN",
+				"KANNADA",
+				"KASHMIRI",
+				"GOAN",
+				"CEYLONESE",
+				"CEYLON MOOR",
+				"MALABARI",
+				"OTHER INDIAN",
+				"ASSAMI",
+				"BRAHMIN",
+				"HINDUSTANI",
+				"KHASI",
+				"MAHRATTA",
+				"MANIPURI",
+				"MARATHI",
+				"RAJPUT"
+			]
+		},
+		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nconst approved =\n\tget(facts, 'facts.student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'facts.student_training_approved', false) === true &&\n\tget(facts, 'facts.student_training_evidence', '') !== '';\nconst race = get(\n\tfacts,\n\t'term_facts.race',\n\t''\n);\nconst terms = ctx.subject.employment.terms;\nconst status = get(terms, 'residency_status', '');\nconst pass = get(terms, 'work_authorisation_category', '');\nreturn (\n\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) > 0 &&\n\t!approved &&\n\t(['CITIZEN', 'PERMANENT_RESIDENT'].includes(status) || pass === 'EMPLOYMENT_PASS') &&\n\tctx.lookup.races.includes(race) &&\n\tget(facts, 'facts.statutory.SINDA.elections.shg_opted_out', false) !== true\n);",
+		"employee_amount": "const facts = ctx.subject.employment.employee_extension_data;\nconst declared = get(\n\tfacts,\n\t'facts.statutory.SINDA.elections.shg_monthly_amount',\n\tnull\n);\nreturn declared != null\n\t? Number(declared)\n\t: bracket(\n\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)),\n\t\t\tctx.lookup.brackets\n\t\t);",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "SINDA Fund Rules; CPF Act 1953 s.76(3); CPF Board, Contributions to self-help groups — monthly wage-band deduction for Indian citizens, permanent residents and Employment Pass holders",
+				"locator": "s.76(3)",
+				"url": "https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups",
+				"effective_from": "2026-01-01",
+				"quote": "Contribution rates are banded by the employee's Monthly Total Wages. Total Wages is the sum of Ordinary Wages and Additional Wages."
+			}
+		],
+		"id": "68dc40a9-46c9-5a07-a43e-adcfb4b42143",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
+		"employer_cost_subtotal_id": null
+	},
+	{
+		"code": "SDL",
+		"name": "Skills Development Levy",
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
+		"employer_cost_subtotal_id": "930abb8b-61d3-5956-839d-9ff2b3c1fbb3",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"rate": 0.0025,
+			"minimum": 2.0,
+			"maximum": 11.25,
+			"exempt_institutions": [
+				"ITE",
+				"NYP",
+				"NTU",
+				"NUS",
+				"NP",
+				"RP",
+				"SIT",
+				"SMU",
+				"SP",
+				"SUSS",
+				"SUTD",
+				"TP"
+			]
+		},
+		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nconst approved =\n\tget(facts, 'facts.student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'facts.student_training_approved', false) === true &&\n\tget(facts, 'facts.student_training_evidence', '') !== '';\nconst institution = get(facts, 'facts.student_training_institution', '');\nconst exempt = approved && ctx.lookup.exempt_institutions.includes(institution);\nconst role = get(facts, 'facts.statutory.SDL.elections.sdl_household_role', null);\nconst household =\n\trole != null &&\n\t['DOMESTIC_SERVANT', 'GARDENER', 'CHAUFFEUR'].includes(role) &&\n\tget(facts, 'facts.statutory.SDL.elections.sdl_wholly_exclusive', false) === true &&\n\tget(facts, 'facts.statutory.SDL.elections.sdl_nonbusiness', false) === true;\nreturn Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) > 0 && !exempt && !household;",
+		"employee_amount": "return 0;",
+		"employer_amount": "const wage = Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0));\nif (wage <= 0) return 0;\nreturn clamp(\n\tround(wage * ctx.lookup.rate, 0.01, 'HALF_UP'),\n\tctx.lookup.minimum,\n\tctx.lookup.maximum\n);",
+		"references": [
+			{
+				"title": "Skills Development Levy Act 1979 ss.2–4 — 0.25% of wages, minimum $2, maximum $11.25 a month",
+				"locator": "ss.2–4",
+				"url": "https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy",
+				"effective_from": "2026-01-01",
+				"quote": "The levy payable for each employee is at 0.25% of the monthly total wages."
+			}
+		],
+		"id": "73af9c52-0be5-551b-ac9a-ec2f99a974a6",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+	},
+	{
+		"code": "WHT_NR_DIRECTOR",
+		"name": "Withholding tax on non-resident director fees",
+		"kind": "TAX",
+		"depends_on": [],
+		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"rate": 0.24
+		},
+		"eligibility": "return (\n\tctx.base_pay > 0 &&\n\t(get(ctx.subject.employment.employee_extension_data, 'facts.tax_resident', true) === false ||\n\t\tget(ctx.subject.employment.terms, 'residency_status', '') === 'NON_RESIDENT')\n);",
+		"employee_amount": "return round(ctx.base_pay * ctx.lookup.rate, 0.01, 'HALF_UP');",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.45; IRAS — 24% withholding on director fees paid to a non-resident director",
+				"locator": "s.45",
+				"url": "https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-director",
+				"effective_from": "2026-01-01"
+			}
+		],
+		"id": "263c95be-7a67-5aa8-8feb-3d0892fdb25e",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
+		"employer_cost_subtotal_id": null
+	},
+	{
+		"code": "WHT_NR_ENTERTAINER",
+		"name": "Withholding tax on non-resident public entertainers",
+		"kind": "TAX",
+		"depends_on": [],
+		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
+		"off_cycle_eligible": false,
+		"lookup": {
+			"rate": 0.15
+		},
+		"eligibility": "return (\n\tctx.base_pay > 0 &&\n\t(get(ctx.subject.employment.employee_extension_data, 'facts.tax_resident', true) === false ||\n\t\tget(ctx.subject.employment.terms, 'residency_status', '') === 'NON_RESIDENT')\n);",
+		"employee_amount": "return round(ctx.base_pay * ctx.lookup.rate, 0.01, 'HALF_UP');",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.45; IRAS — 15% withholding on the gross income of a non-resident public entertainer",
+				"locator": "s.45",
+				"url": "https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-public-entertainer-(artiste-musician-sportsman-etc-)/tax-obligations-of-non-resident-public-entertainer",
+				"effective_from": "2026-01-01"
+			}
+		],
+		"id": "f05d58c6-3d6b-5e6a-9576-2911cd7bbfd0",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
+		"employer_cost_subtotal_id": null
+	},
+	{
+		"code": "APPENDIX_8A",
+		"name": "Appendix 8A benefits-in-kind (Form IR8A item d8)",
+		"kind": "TAX",
+		"depends_on": [],
+		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
+		"off_cycle_eligible": false,
+		"lookup": {},
+		"eligibility": "return false;",
+		"employee_amount": "return 0;",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.10(1)(b); IRAS, Form IR8A and Appendix 8A notes (YA2027) — benefits-in-kind are reportable employment income, not a charge",
+				"locator": "Appendix 8A",
+				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf",
+				"effective_from": "2026-01-01"
+			}
+		],
+		"id": "6047e1f8-079e-5d28-aabf-f73748f4e28c",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
+		"employer_cost_subtotal_id": null
+	},
+	{
+		"code": "APPENDIX_8B",
+		"name": "Appendix 8B share-plan gains (Form IR8A item d7)",
+		"kind": "TAX",
+		"depends_on": [],
+		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
+		"off_cycle_eligible": false,
+		"lookup": {},
+		"eligibility": "return false;",
+		"employee_amount": "return 0;",
+		"employer_amount": "return 0;",
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.10(1)(b),(6); IRAS, Appendix 8B notes (YA2027) — ESOP/ESOW gains are reportable employment income, not a charge",
+				"locator": "Appendix 8B",
+				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-appendix-8b-for-ya2027.pdf",
+				"effective_from": "2026-01-01"
+			}
+		],
+		"id": "94367581-9462-5d58-90c4-23381f905334",
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
+		"employer_cost_subtotal_id": null
+	}
+]

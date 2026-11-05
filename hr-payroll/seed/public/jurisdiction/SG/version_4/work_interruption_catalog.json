@@ -1,0 +1,92 @@
+[
+	{
+		"lookup": {},
+		"subtotal_id": null,
+		"code": "EMPLOYER_SHUTDOWN",
+		"name": "Employer shutdown or temporary closure",
+		"off_cycle_eligible": false,
+		"references": [
+			{
+				"title": "Employment Act 1968 ss.27(1)(a),28(1) — a shutdown or closure by the employer is not the employee’s absence, so salary is paid whole",
+				"locator": "ss.27(1)(a),28(1)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"events": {},
+		"id": "c742f35d-4859-5be0-8f05-47a1f77bc9a8",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"lookup": {},
+		"subtotal_id": null,
+		"code": "LOCKOUT",
+		"name": "Lockout by the employer",
+		"off_cycle_eligible": false,
+		"references": [
+			{
+				"title": "Employment Act 1968 ss.27(1)(a),28(1) — a lockout by the employer is not the employee’s absence, so salary is paid whole",
+				"locator": "ss.27(1)(a),28(1)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"events": {},
+		"id": "c8b5eae7-ecdb-5c82-b891-aaeff18a954b",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"lookup": {},
+		"subtotal_id": null,
+		"code": "GOVERNMENT_ORDER",
+		"name": "Government order closing the workplace",
+		"off_cycle_eligible": false,
+		"references": [
+			{
+				"title": "Employment Act 1968 ss.27(1)(a),28(1) — a government closure is not the employee’s absence, so salary is paid whole",
+				"locator": "ss.27(1)(a),28(1)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"events": {},
+		"id": "60dd7b92-c644-50a2-8513-84a92d772757",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"lookup": {},
+		"subtotal_id": null,
+		"code": "NATURAL_DISASTER",
+		"name": "Natural disaster or force majeure closure",
+		"off_cycle_eligible": false,
+		"references": [
+			{
+				"title": "Employment Act 1968 ss.27(1)(a),28(1) — a force-majeure closure is not the employee’s absence, so salary is paid whole",
+				"locator": "ss.27(1)(a),28(1)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"events": {},
+		"id": "f61fbf11-cb08-59be-ab90-3f2012367a76",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"lookup": {},
+		"subtotal_id": null,
+		"code": "STRIKE",
+		"name": "Strike",
+		"off_cycle_eligible": false,
+		"references": [
+			{
+				"title": "Employment Act 1968 s.27(1)(a) — a deduction requires the employee’s own absence; a strike is not attendance",
+				"locator": "s.27(1)(a)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2027-01-01"
+			}
+		],
+		"events": {},
+		"id": "b4c1e3c7-9b47-5c21-97b9-c031dbcc820c",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	}
+]

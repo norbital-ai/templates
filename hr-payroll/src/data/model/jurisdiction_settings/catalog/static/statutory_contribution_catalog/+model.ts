@@ -1,0 +1,114 @@
+import { model } from '@norbital-ai/bolt';
+import {
+	guardConfigurationRows,
+	requireDraftSettings
+} from '../../../../../../lib/payroll_engine/configuration.js';
+
+export default model('statutory_contribution_catalog', {
+	description:
+		'Effective jurisdiction statutory scheme. One lookup, an eligibility function and employee/employer amount functions.',
+	label: 'code',
+	fields: {
+		employer_cost_subtotal_id: {
+			kind: 'ref',
+			to: 'subtotal',
+			optional: true,
+			onDelete: 'restrict',
+			inverse: 'statutory_employer_cost'
+		},
+		subtotal_id: {
+			kind: 'ref',
+			to: 'subtotal',
+			onDelete: 'restrict',
+			inverse: 'statutory_contribution_catalog'
+		},
+		lookup: {
+			kind: 'json',
+			shape: { kind: 'record', of: { kind: 'json' } },
+			default: {}
+		},
+		code: { kind: 'text' },
+		name: { kind: 'text' },
+		references: { kind: 'custom', of: 'references', optional: true },
+		kind: { kind: 'enum', values: ['CONTRIBUTION', 'TAX'] },
+		off_cycle_eligible: { kind: 'bool' },
+		eligibility: { kind: 'text', format: 'cel', max: 65536 },
+		depends_on: { kind: 'list', of: { kind: 'text' }, optional: true },
+		employee_amount: { kind: 'text', format: 'cel', max: 65536 },
+		employer_amount: { kind: 'text', format: 'cel', max: 65536, optional: true },
+		settings_id: {
+			kind: 'ref',
+			to: 'jurisdiction_settings',
+			inverse: 'statutory_contribution_catalog',
+			owned: true
+		}
+	},
+	unique: [{ fields: ['settings_id', 'code'] }],
+	read: {
+		statutory_contribution_catalog: { fields: 'all' },
+		'statutory_contribution_catalog.settings_id': { fields: 'all' }
+	},
+	create: {
+		columns: {
+			statutory_contribution_catalog: [
+				'employer_cost_subtotal_id',
+				'subtotal_id',
+				'lookup',
+				'code',
+				'name',
+				'references',
+				'kind',
+				'off_cycle_eligible',
+				'eligibility',
+				'depends_on',
+				'employee_amount',
+				'employer_amount',
+				'settings_id'
+			]
+		},
+		transform: function* (rows, ctx) {
+			yield* guardConfigurationRows(
+				ctx.db.query,
+				'statutory_contribution_catalog',
+				rows,
+				rows.map((r) => r.settings_id)
+			);
+			return rows;
+		}
+	},
+	update: {
+		columns: {
+			statutory_contribution_catalog: [
+				'employer_cost_subtotal_id',
+				'subtotal_id',
+				'lookup',
+				'code',
+				'name',
+				'references',
+				'kind',
+				'off_cycle_eligible',
+				'eligibility',
+				'depends_on',
+				'employee_amount',
+				'employer_amount'
+			]
+		},
+		transform: function* (changes, ctx) {
+			yield* guardConfigurationRows(
+				ctx.db.query,
+				'statutory_contribution_catalog',
+				changes.map((c) => ({ ...c.before, ...c.set })),
+				changes.map((c) => c.before.settings_id)
+			);
+			return changes.map((c) => c.set);
+		}
+	},
+	delete: {
+		check: function* (rows, ctx) {
+			yield* requireDraftSettings(
+				ctx.db.query,
+				rows.map((r) => r.settings_id)
+			);
+		}
+	}
+});

@@ -1,0 +1,196 @@
+[
+	{
+		"code": "OVERTIME",
+		"name": "Overtime",
+		"lookup": {
+			"monthly_wage_threshold": 4000,
+			"manual_categories": [
+				"MANUAL_LABOUR",
+				"MANUAL_LABOUR_SUPERVISOR",
+				"VEHICLE_OPERATOR",
+				"VESSEL_CREW"
+			],
+			"monthly_divisor": 26,
+			"days_per_week": 6,
+			"weeks_per_year": 52,
+			"months_per_year": 12,
+			"normal_hours_per_day": 8,
+			"part_time_hours_factor": 0.7,
+			"holiday_kinds": ["PUBLIC_HOLIDAY", "SUBSTITUTE", "DOUBLE_HOLIDAY"],
+			"fixed_allowances_in_ordinary_pay": true,
+			"excluded_allowances": [],
+			"standard_premium": 1.5,
+			"part_time_premium": 1.0
+		},
+		"references": [
+			{
+				"title": "Overtime on a normal working day at not less than 1.5 × the hourly rate (EA s.60A(3)(a)); at most 104 hours in a month (Employment (Limitation of Overtime Work) Regulations 1980 reg.2). Rest-day and public-holiday overtime are their own lines. EA s.60I(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay of a monthly-rated employee is the monthly rate ÷ 26; the hourly rate is that ÷ the normal hours of work (s.60I(1)(b), company.facts.normal_daily_hours, 8 unrecorded). Encoded 2026-10-07 (round 7): EA First Schedule paras 1A–2 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.facts.overtime_by_contract applies them by contract. EA s.60I (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay is monthly ÷ 26 (s.60I(1A)), weekly ÷ 6 (s.60I(1B)), and for a daily, hourly or piece rate the preceding wage period's wages ÷ the days worked (s.60I(1C), the days of a piece or hourly worker read from the period's WORK-day hours ÷ the normal hours); the hourly rate is it ÷ the contract's normal hours a day (s.60I(1)(b), s.60A(3)(c); terms.facts.normal_hours_per_day, else company.facts.normal_daily_hours, else 8). Pay basis: terms.facts.pay_basis. Part-time terms (Part-Time Employees Regulations 2010 regs 2, 4, 5, 6(6), 9(3), https://jtksm.mohr.gov.my/sites/default/files/2023-03/10.%20Employment%20-%20Part-time%20Employees%20-%20Regulations%202010%20%20%281%29.pdf): the hours beyond the part-timer's normal hours up to a full-timer's day (company.facts.normal_daily_hours, 8 by reg.4(1)) at 1.0× and beyond it at 1.5× the hourly rate. Fixed contractual cash allowances enter the ordinary monthly or weekly wage; travel or special-expense reimbursements belong in claims. Meal allowances receive no holiday uplift (EA s.60D(3)(b))."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "bc74c485-db0f-5cc8-9576-8cf565d92296",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data.term_facts', {});\nconst rate = get(terms, 'rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, entry) =>\n\t\tget(entry[1], 'variability', 'FIXED') === 'VARIABLE'\n\t\t\t? total\n\t\t\t: total + Number(get(entry[1], 'amount', 0)),\n\t0\n);\nconst monthly =\n\tunit === 'MONTHLY'\n\t\t? amount + fixed\n\t\t: unit === 'DAILY'\n\t\t\t? (amount * ctx.lookup.days_per_week * ctx.lookup.weeks_per_year) /\n\t\t\t\tctx.lookup.months_per_year\n\t\t\t: (amount *\n\t\t\t\t\tctx.lookup.normal_hours_per_day *\n\t\t\t\t\tctx.lookup.days_per_week *\n\t\t\t\t\tctx.lookup.weeks_per_year) /\n\t\t\t\tctx.lookup.months_per_year;\nreturn (\n\tunit !== 'PIECE' &&\n\t(monthly <= ctx.lookup.monthly_wage_threshold ||\n\t\tctx.lookup.manual_categories.includes(get(terms, 'statutory_work_category', '')) ||\n\t\tget(facts, 'overtime_by_contract', false) === true)\n);",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data.term_facts', {});\nconst rate = get(terms, 'rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst fixed = ctx.lookup.fixed_allowances_in_ordinary_pay\n\t? Object.entries(get(terms, 'allowances', {})).reduce(\n\t\t\t(total, entry) =>\n\t\t\t\tget(entry[1], 'variability', 'FIXED') === 'VARIABLE' ||\n\t\t\t\tctx.lookup.excluded_allowances.includes(entry[0])\n\t\t\t\t\t? total\n\t\t\t\t\t: total + Number(get(entry[1], 'amount', 0)),\n\t\t\t0\n\t\t)\n\t: 0;\nconst daily =\n\tunit === 'MONTHLY'\n\t\t? (amount + fixed) / ctx.lookup.monthly_divisor\n\t\t: unit === 'DAILY'\n\t\t\t? amount\n\t\t\t: 0;\nconst partTime = get(employment, 'engagement', 'EMPLOYEE') === 'PART_TIME';\nconst normal = Number(\n\tget(\n\t\tterms,\n\t\t'normal_hours_per_day',\n\t\tpartTime\n\t\t\t? ctx.lookup.part_time_hours_factor * ctx.lookup.normal_hours_per_day\n\t\t\t: ctx.lookup.normal_hours_per_day\n\t)\n);\nconst full = partTime\n\t? Number(\n\t\t\tget(facts, 'comparable_full_time_hours_per_day', ctx.lookup.normal_hours_per_day)\n\t\t)\n\t: normal;\nconst tier = Math.max(0, full - normal);\nconst orpDay = unit === 'HOURLY' ? amount * normal : daily;\nconst orpHour = unit === 'HOURLY' ? amount : orpDay / normal;\nconst days = get(ctx, 'work.days', []);\nconst ordinary = days\n\t.filter((day) => ['WORK', 'OFF'].includes(get(day, 'day_type', 'WORK')) && !ctx.lookup.holiday_kinds.includes(get(day, 'holiday_kind', 'NONE')))\n\t.toSorted((a, b) => {\n\t\tconst left = String(get(a, 'date', ''));\n\t\tconst right = String(get(b, 'date', ''));\n\t\treturn left < right ? -1 : left > right ? 1 : 0;\n\t});\nconst charged = sum(\n\tordinary.map((day) => {\n\t\t// all hours on an off day are overtime at the standard premium; a rest day has its own bands\n\t\tconst hours = Math.max(0, Number(get(day, get(day, 'day_type', 'WORK') === 'OFF' ? 'worked_hours' : 'overtime_hours', 0)));\n\t\treturn partTime\n\t\t\t? Math.min(hours, tier) * ctx.lookup.part_time_premium +\n\t\t\t\t\tMath.max(0, hours - tier) * ctx.lookup.standard_premium\n\t\t\t: hours * ctx.lookup.standard_premium;\n\t})\n);\nreturn charged * orpHour;",
+		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "78a0d0a0-1793-50ad-8bf2-0dec45d5ff31",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "REST_DAY_WORK",
+		"name": "Rest-day work",
+		"lookup": {
+			"monthly_wage_threshold": 4000,
+			"manual_categories": [
+				"MANUAL_LABOUR",
+				"MANUAL_LABOUR_SUPERVISOR",
+				"VEHICLE_OPERATOR",
+				"VESSEL_CREW"
+			],
+			"monthly_divisor": 26,
+			"days_per_week": 6,
+			"weeks_per_year": 52,
+			"months_per_year": 12,
+			"normal_hours_per_day": 8,
+			"part_time_hours_factor": 0.7,
+			"holiday_kinds": ["PUBLIC_HOLIDAY", "SUBSTITUTE", "DOUBLE_HOLIDAY"],
+			"fixed_allowances_in_ordinary_pay": true,
+			"excluded_allowances": [],
+			"monthly_half_day": 0.5,
+			"monthly_full_day": 1,
+			"other_half_day": 1,
+			"other_full_day": 2,
+			"half_day_hours_factor": 0.5
+		},
+		"references": [
+			{
+				"title": "Work on a rest day by a monthly-rated employee within the normal hours: half a day's wages for up to half the normal hours, one day's wages for more (EA s.60(3)(a)–(b), https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf). EA s.60I(1A): the ordinary rate of pay of a monthly-rated employee is the monthly rate ÷ 26; the hourly rate is that ÷ the normal hours of work (s.60I(1)(b), company.facts.normal_daily_hours, 8 unrecorded). Encoded 2026-10-07 (round 7): a daily, hourly or similar rate is paid one day's wages for up to half the normal hours and two days' for more (s.60(3)(a)); a monthly or weekly rate half a day's and a day's (s.60(3)(b)). EA First Schedule paras 1A–2: these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.facts.overtime_by_contract applies them by contract. Fixed contractual cash allowances enter the ordinary monthly or weekly wage; travel or special-expense reimbursements belong in claims. Meal allowances receive no holiday uplift (EA s.60D(3)(b)).",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "bc74c485-db0f-5cc8-9576-8cf565d92296",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data.term_facts', {});\nconst rate = get(terms, 'rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, entry) =>\n\t\tget(entry[1], 'variability', 'FIXED') === 'VARIABLE'\n\t\t\t? total\n\t\t\t: total + Number(get(entry[1], 'amount', 0)),\n\t0\n);\nconst monthly =\n\tunit === 'MONTHLY'\n\t\t? amount + fixed\n\t\t: unit === 'DAILY'\n\t\t\t? (amount * ctx.lookup.days_per_week * ctx.lookup.weeks_per_year) /\n\t\t\t\tctx.lookup.months_per_year\n\t\t\t: (amount *\n\t\t\t\t\tctx.lookup.normal_hours_per_day *\n\t\t\t\t\tctx.lookup.days_per_week *\n\t\t\t\t\tctx.lookup.weeks_per_year) /\n\t\t\t\tctx.lookup.months_per_year;\nreturn (\n\tunit !== 'PIECE' &&\n\t(monthly <= ctx.lookup.monthly_wage_threshold ||\n\t\tctx.lookup.manual_categories.includes(get(terms, 'statutory_work_category', '')) ||\n\t\tget(facts, 'overtime_by_contract', false) === true)\n);",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data.term_facts', {});\nconst rate = get(terms, 'rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst fixed = ctx.lookup.fixed_allowances_in_ordinary_pay\n\t? Object.entries(get(terms, 'allowances', {})).reduce(\n\t\t\t(total, entry) =>\n\t\t\t\tget(entry[1], 'variability', 'FIXED') === 'VARIABLE' ||\n\t\t\t\tctx.lookup.excluded_allowances.includes(entry[0])\n\t\t\t\t\t? total\n\t\t\t\t\t: total + Number(get(entry[1], 'amount', 0)),\n\t\t\t0\n\t\t)\n\t: 0;\nconst daily =\n\tunit === 'MONTHLY'\n\t\t? (amount + fixed) / ctx.lookup.monthly_divisor\n\t\t: unit === 'DAILY'\n\t\t\t? amount\n\t\t\t: 0;\nconst partTime = get(employment, 'engagement', 'EMPLOYEE') === 'PART_TIME';\nconst normal = Number(\n\tget(\n\t\tterms,\n\t\t'normal_hours_per_day',\n\t\tpartTime\n\t\t\t? ctx.lookup.part_time_hours_factor * ctx.lookup.normal_hours_per_day\n\t\t\t: ctx.lookup.normal_hours_per_day\n\t)\n);\nconst full = partTime\n\t? Number(\n\t\t\tget(facts, 'comparable_full_time_hours_per_day', ctx.lookup.normal_hours_per_day)\n\t\t)\n\t: normal;\nconst tier = Math.max(0, full - normal);\nconst orpDay = unit === 'HOURLY' ? amount * normal : daily;\nconst orpHour = unit === 'HOURLY' ? amount : orpDay / normal;\nconst days = get(ctx, 'work.days', []);\nconst other = unit === 'DAILY' || unit === 'HOURLY';\nconst charged = sum(\n\tdays\n\t\t.filter((day) => get(day, 'day_type', 'WORK') === 'REST' && !ctx.lookup.holiday_kinds.includes(get(day, 'holiday_kind', 'NONE')))\n\t\t.map((day) => {\n\t\t\tconst worked = Math.min(Number(get(day, 'worked_hours', 0)), normal);\n\t\t\tif (worked <= 0) return 0;\n\t\t\tif (worked <= normal * ctx.lookup.half_day_hours_factor)\n\t\t\t\treturn other ? ctx.lookup.other_half_day : ctx.lookup.monthly_half_day;\n\t\t\treturn other ? ctx.lookup.other_full_day : ctx.lookup.monthly_full_day;\n\t\t})\n);\nreturn charged * orpDay;",
+		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "3c7ad617-f3ec-5a50-b922-7b289d8f89fa",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "REST_DAY_OVERTIME",
+		"name": "Rest-day overtime",
+		"lookup": {
+			"monthly_wage_threshold": 4000,
+			"manual_categories": [
+				"MANUAL_LABOUR",
+				"MANUAL_LABOUR_SUPERVISOR",
+				"VEHICLE_OPERATOR",
+				"VESSEL_CREW"
+			],
+			"monthly_divisor": 26,
+			"days_per_week": 6,
+			"weeks_per_year": 52,
+			"months_per_year": 12,
+			"normal_hours_per_day": 8,
+			"part_time_hours_factor": 0.7,
+			"holiday_kinds": ["PUBLIC_HOLIDAY", "SUBSTITUTE", "DOUBLE_HOLIDAY"],
+			"fixed_allowances_in_ordinary_pay": true,
+			"excluded_allowances": [],
+			"rest_day_premium": 2,
+			"part_time_premium": 1.5
+		},
+		"references": [
+			{
+				"title": "Work on a rest day beyond the normal hours at not less than 2 × the hourly rate (EA s.60(3)(c), https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the rest day’s paid hours beyond the normal hours a day, less any banked, the hours within them being REST_DAY_WORK’s; overtime payment is not EPF or HRD wages. EA s.60I(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay of a monthly-rated employee is the monthly rate ÷ 26; the hourly rate is that ÷ the normal hours of work (s.60I(1)(b), company.facts.normal_daily_hours, 8 unrecorded). Encoded 2026-10-07 (round 7): EA First Schedule paras 1A–2 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.facts.overtime_by_contract applies them by contract. EA s.60I (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay is monthly ÷ 26 (s.60I(1A)), weekly ÷ 6 (s.60I(1B)), and for a daily, hourly or piece rate the preceding wage period's wages ÷ the days worked (s.60I(1C), the days of a piece or hourly worker read from the period's WORK-day hours ÷ the normal hours); the hourly rate is it ÷ the contract's normal hours a day (s.60I(1)(b), s.60A(3)(c); terms.facts.normal_hours_per_day, else company.facts.normal_daily_hours, else 8). Pay basis: terms.facts.pay_basis. Part-time terms (Part-Time Employees Regulations 2010 regs 2, 4, 5, 6(6), 9(3), https://jtksm.mohr.gov.my/sites/default/files/2023-03/10.%20Employment%20-%20Part-time%20Employees%20-%20Regulations%202010%20%20%281%29.pdf): the hours beyond the part-timer's normal hours up to a full-timer's day (company.facts.normal_daily_hours, 8 by reg.4(1)) at 1.5× and beyond it at 2.0× the hourly rate. Fixed contractual cash allowances enter the ordinary monthly or weekly wage; travel or special-expense reimbursements belong in claims. Meal allowances receive no holiday uplift (EA s.60D(3)(b))."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "bc74c485-db0f-5cc8-9576-8cf565d92296",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data.term_facts', {});\nconst rate = get(terms, 'rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, entry) =>\n\t\tget(entry[1], 'variability', 'FIXED') === 'VARIABLE'\n\t\t\t? total\n\t\t\t: total + Number(get(entry[1], 'amount', 0)),\n\t0\n);\nconst monthly =\n\tunit === 'MONTHLY'\n\t\t? amount + fixed\n\t\t: unit === 'DAILY'\n\t\t\t? (amount * ctx.lookup.days_per_week * ctx.lookup.weeks_per_year) /\n\t\t\t\tctx.lookup.months_per_year\n\t\t\t: (amount *\n\t\t\t\t\tctx.lookup.normal_hours_per_day *\n\t\t\t\t\tctx.lookup.days_per_week *\n\t\t\t\t\tctx.lookup.weeks_per_year) /\n\t\t\t\tctx.lookup.months_per_year;\nreturn (\n\tunit !== 'PIECE' &&\n\t(monthly <= ctx.lookup.monthly_wage_threshold ||\n\t\tctx.lookup.manual_categories.includes(get(terms, 'statutory_work_category', '')) ||\n\t\tget(facts, 'overtime_by_contract', false) === true)\n);",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data.term_facts', {});\nconst rate = get(terms, 'rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst fixed = ctx.lookup.fixed_allowances_in_ordinary_pay\n\t? Object.entries(get(terms, 'allowances', {})).reduce(\n\t\t\t(total, entry) =>\n\t\t\t\tget(entry[1], 'variability', 'FIXED') === 'VARIABLE' ||\n\t\t\t\tctx.lookup.excluded_allowances.includes(entry[0])\n\t\t\t\t\t? total\n\t\t\t\t\t: total + Number(get(entry[1], 'amount', 0)),\n\t\t\t0\n\t\t)\n\t: 0;\nconst daily =\n\tunit === 'MONTHLY'\n\t\t? (amount + fixed) / ctx.lookup.monthly_divisor\n\t\t: unit === 'DAILY'\n\t\t\t? amount\n\t\t\t: 0;\nconst partTime = get(employment, 'engagement', 'EMPLOYEE') === 'PART_TIME';\nconst normal = Number(\n\tget(\n\t\tterms,\n\t\t'normal_hours_per_day',\n\t\tpartTime\n\t\t\t? ctx.lookup.part_time_hours_factor * ctx.lookup.normal_hours_per_day\n\t\t\t: ctx.lookup.normal_hours_per_day\n\t)\n);\nconst full = partTime\n\t? Number(\n\t\t\tget(facts, 'comparable_full_time_hours_per_day', ctx.lookup.normal_hours_per_day)\n\t\t)\n\t: normal;\nconst tier = Math.max(0, full - normal);\nconst orpDay = unit === 'HOURLY' ? amount * normal : daily;\nconst orpHour = unit === 'HOURLY' ? amount : orpDay / normal;\nconst days = get(ctx, 'work.days', []);\nconst charged = sum(\n\tdays\n\t\t.filter((day) => get(day, 'day_type', 'WORK') === 'REST' && !ctx.lookup.holiday_kinds.includes(get(day, 'holiday_kind', 'NONE')))\n\t\t.map((day) => {\n\t\t\tconst worked = Math.max(0, Number(get(day, 'worked_hours', 0)) - normal);\n\t\t\treturn partTime\n\t\t\t\t? Math.min(worked, tier) * ctx.lookup.part_time_premium +\n\t\t\t\t\t\tMath.max(0, worked - tier) * ctx.lookup.rest_day_premium\n\t\t\t\t: worked * ctx.lookup.rest_day_premium;\n\t\t})\n);\nreturn charged * orpHour;",
+		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "928b83a3-76d7-5180-abfc-819296628fe6",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "HOLIDAY_WORK",
+		"name": "Public-holiday work",
+		"lookup": {
+			"monthly_wage_threshold": 4000,
+			"manual_categories": [
+				"MANUAL_LABOUR",
+				"MANUAL_LABOUR_SUPERVISOR",
+				"VEHICLE_OPERATOR",
+				"VESSEL_CREW"
+			],
+			"monthly_divisor": 26,
+			"days_per_week": 6,
+			"weeks_per_year": 52,
+			"months_per_year": 12,
+			"normal_hours_per_day": 8,
+			"part_time_hours_factor": 0.7,
+			"holiday_kinds": ["PUBLIC_HOLIDAY", "SUBSTITUTE", "DOUBLE_HOLIDAY"],
+			"fixed_allowances_in_ordinary_pay": true,
+			"excluded_allowances": ["MEAL_ALLOWANCE"],
+			"holiday_work_days": 2
+		},
+		"references": [
+			{
+				"title": "Work on a paid public holiday within the normal hours: two days' wages at the ordinary rate of pay in addition to the holiday pay (EA s.60D(3)(a)(i)). EA s.60I(1A): the ordinary rate of pay of a monthly-rated employee is the monthly rate ÷ 26; the hourly rate is that ÷ the normal hours of work (s.60I(1)(b), company.facts.normal_daily_hours, 8 unrecorded). Encoded 2026-10-07 (round 7): only a holiday actually worked (work.holidays[].worked) earns the two days' wages, in addition to the holiday pay (s.60D(3)(a)(i)). EA First Schedule paras 1A–2: these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.facts.overtime_by_contract applies them by contract. Fixed contractual cash allowances enter the ordinary monthly or weekly wage; travel or special-expense reimbursements belong in claims. Meal allowances receive no holiday uplift (EA s.60D(3)(b)).",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "bc74c485-db0f-5cc8-9576-8cf565d92296",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data.term_facts', {});\nconst rate = get(terms, 'rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, entry) =>\n\t\tget(entry[1], 'variability', 'FIXED') === 'VARIABLE'\n\t\t\t? total\n\t\t\t: total + Number(get(entry[1], 'amount', 0)),\n\t0\n);\nconst monthly =\n\tunit === 'MONTHLY'\n\t\t? amount + fixed\n\t\t: unit === 'DAILY'\n\t\t\t? (amount * ctx.lookup.days_per_week * ctx.lookup.weeks_per_year) /\n\t\t\t\tctx.lookup.months_per_year\n\t\t\t: (amount *\n\t\t\t\t\tctx.lookup.normal_hours_per_day *\n\t\t\t\t\tctx.lookup.days_per_week *\n\t\t\t\t\tctx.lookup.weeks_per_year) /\n\t\t\t\tctx.lookup.months_per_year;\nreturn (\n\tunit !== 'PIECE' &&\n\t(monthly <= ctx.lookup.monthly_wage_threshold ||\n\t\tctx.lookup.manual_categories.includes(get(terms, 'statutory_work_category', '')) ||\n\t\tget(facts, 'overtime_by_contract', false) === true)\n);",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data.term_facts', {});\nconst rate = get(terms, 'rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst fixed = ctx.lookup.fixed_allowances_in_ordinary_pay\n\t? Object.entries(get(terms, 'allowances', {})).reduce(\n\t\t\t(total, entry) =>\n\t\t\t\tget(entry[1], 'variability', 'FIXED') === 'VARIABLE' ||\n\t\t\t\tctx.lookup.excluded_allowances.includes(entry[0])\n\t\t\t\t\t? total\n\t\t\t\t\t: total + Number(get(entry[1], 'amount', 0)),\n\t\t\t0\n\t\t)\n\t: 0;\nconst daily =\n\tunit === 'MONTHLY'\n\t\t? (amount + fixed) / ctx.lookup.monthly_divisor\n\t\t: unit === 'DAILY'\n\t\t\t? amount\n\t\t\t: 0;\nconst partTime = get(employment, 'engagement', 'EMPLOYEE') === 'PART_TIME';\nconst normal = Number(\n\tget(\n\t\tterms,\n\t\t'normal_hours_per_day',\n\t\tpartTime\n\t\t\t? ctx.lookup.part_time_hours_factor * ctx.lookup.normal_hours_per_day\n\t\t\t: ctx.lookup.normal_hours_per_day\n\t)\n);\nconst full = partTime\n\t? Number(\n\t\t\tget(facts, 'comparable_full_time_hours_per_day', ctx.lookup.normal_hours_per_day)\n\t\t)\n\t: normal;\nconst tier = Math.max(0, full - normal);\nconst orpDay = unit === 'HOURLY' ? amount * normal : daily;\nconst orpHour = unit === 'HOURLY' ? amount : orpDay / normal;\nconst days = get(ctx, 'work.days', []);\nconst worked = days.filter(\n\t(day) =>\n\t\tctx.lookup.holiday_kinds.includes(get(day, 'holiday_kind', 'NONE')) &&\n\t\tMath.min(Number(get(day, 'worked_hours', 0)), normal) > 0\n);\nreturn worked.length * ctx.lookup.holiday_work_days * orpDay;",
+		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "237c7b0a-e40c-5e6a-a549-726e437368d8",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "HOLIDAY_OVERTIME",
+		"name": "Public-holiday overtime",
+		"lookup": {
+			"monthly_wage_threshold": 4000,
+			"manual_categories": [
+				"MANUAL_LABOUR",
+				"MANUAL_LABOUR_SUPERVISOR",
+				"VEHICLE_OPERATOR",
+				"VESSEL_CREW"
+			],
+			"monthly_divisor": 26,
+			"days_per_week": 6,
+			"weeks_per_year": 52,
+			"months_per_year": 12,
+			"normal_hours_per_day": 8,
+			"part_time_hours_factor": 0.7,
+			"holiday_kinds": ["PUBLIC_HOLIDAY", "SUBSTITUTE", "DOUBLE_HOLIDAY"],
+			"fixed_allowances_in_ordinary_pay": true,
+			"excluded_allowances": ["MEAL_ALLOWANCE"],
+			"holiday_premium": 3,
+			"part_time_premium": 2
+		},
+		"references": [
+			{
+				"title": "Overtime on a paid public holiday beyond the normal hours at not less than 3 × the hourly rate (EA s.60D(3)(a)(ii), https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): a holiday with planned hours counts its overtime past them, one planned with none its paid hours beyond the normal hours a day, less any banked, the hours within them being HOLIDAY_WORK’s; overtime payment is not EPF or HRD wages. EA s.60I(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay of a monthly-rated employee is the monthly rate ÷ 26; the hourly rate is that ÷ the normal hours of work (s.60I(1)(b), company.facts.normal_daily_hours, 8 unrecorded). Encoded 2026-10-07 (round 7): EA First Schedule paras 1A–2 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): these premia bind an employee earning not more than RM4,000 a month (s.2 wages less commission, subsistence and overtime: terms.monthly_wage) or engaged in manual labour, supervising it, operating or maintaining a commercial vehicle, or as vessel crew, whatever the pay; not a domestic employee (para 2(5)); terms.facts.overtime_by_contract applies them by contract. EA s.60I (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf): the ordinary rate of pay is monthly ÷ 26 (s.60I(1A)), weekly ÷ 6 (s.60I(1B)), and for a daily, hourly or piece rate the preceding wage period's wages ÷ the days worked (s.60I(1C), the days of a piece or hourly worker read from the period's WORK-day hours ÷ the normal hours); the hourly rate is it ÷ the contract's normal hours a day (s.60I(1)(b), s.60A(3)(c); terms.facts.normal_hours_per_day, else company.facts.normal_daily_hours, else 8). Pay basis: terms.facts.pay_basis. Part-time terms (Part-Time Employees Regulations 2010 regs 2, 4, 5, 6(6), 9(3), https://jtksm.mohr.gov.my/sites/default/files/2023-03/10.%20Employment%20-%20Part-time%20Employees%20-%20Regulations%202010%20%20%281%29.pdf): the hours beyond the part-timer's normal hours up to a full-timer's day (company.facts.normal_daily_hours, 8 by reg.4(1)) at 2.0× and beyond it at 3.0× the hourly rate. Fixed contractual cash allowances enter the ordinary monthly or weekly wage; travel or special-expense reimbursements belong in claims. Meal allowances receive no holiday uplift (EA s.60D(3)(b))."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "bc74c485-db0f-5cc8-9576-8cf565d92296",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data.term_facts', {});\nconst rate = get(terms, 'rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, entry) =>\n\t\tget(entry[1], 'variability', 'FIXED') === 'VARIABLE'\n\t\t\t? total\n\t\t\t: total + Number(get(entry[1], 'amount', 0)),\n\t0\n);\nconst monthly =\n\tunit === 'MONTHLY'\n\t\t? amount + fixed\n\t\t: unit === 'DAILY'\n\t\t\t? (amount * ctx.lookup.days_per_week * ctx.lookup.weeks_per_year) /\n\t\t\t\tctx.lookup.months_per_year\n\t\t\t: (amount *\n\t\t\t\t\tctx.lookup.normal_hours_per_day *\n\t\t\t\t\tctx.lookup.days_per_week *\n\t\t\t\t\tctx.lookup.weeks_per_year) /\n\t\t\t\tctx.lookup.months_per_year;\nreturn (\n\tunit !== 'PIECE' &&\n\t(monthly <= ctx.lookup.monthly_wage_threshold ||\n\t\tctx.lookup.manual_categories.includes(get(terms, 'statutory_work_category', '')) ||\n\t\tget(facts, 'overtime_by_contract', false) === true)\n);",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst facts = get(employment, 'employee_extension_data.term_facts', {});\nconst rate = get(terms, 'rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst fixed = ctx.lookup.fixed_allowances_in_ordinary_pay\n\t? Object.entries(get(terms, 'allowances', {})).reduce(\n\t\t\t(total, entry) =>\n\t\t\t\tget(entry[1], 'variability', 'FIXED') === 'VARIABLE' ||\n\t\t\t\tctx.lookup.excluded_allowances.includes(entry[0])\n\t\t\t\t\t? total\n\t\t\t\t\t: total + Number(get(entry[1], 'amount', 0)),\n\t\t\t0\n\t\t)\n\t: 0;\nconst daily =\n\tunit === 'MONTHLY'\n\t\t? (amount + fixed) / ctx.lookup.monthly_divisor\n\t\t: unit === 'DAILY'\n\t\t\t? amount\n\t\t\t: 0;\nconst partTime = get(employment, 'engagement', 'EMPLOYEE') === 'PART_TIME';\nconst normal = Number(\n\tget(\n\t\tterms,\n\t\t'normal_hours_per_day',\n\t\tpartTime\n\t\t\t? ctx.lookup.part_time_hours_factor * ctx.lookup.normal_hours_per_day\n\t\t\t: ctx.lookup.normal_hours_per_day\n\t)\n);\nconst full = partTime\n\t? Number(\n\t\t\tget(facts, 'comparable_full_time_hours_per_day', ctx.lookup.normal_hours_per_day)\n\t\t)\n\t: normal;\nconst tier = Math.max(0, full - normal);\nconst orpDay = unit === 'HOURLY' ? amount * normal : daily;\nconst orpHour = unit === 'HOURLY' ? amount : orpDay / normal;\nconst days = get(ctx, 'work.days', []);\nconst charged = sum(\n\tdays\n\t\t.filter((day) =>\n\t\t\tctx.lookup.holiday_kinds.includes(get(day, 'holiday_kind', 'NONE'))\n\t\t)\n\t\t.map((day) => {\n\t\t\tconst worked = Math.max(0, Number(get(day, 'worked_hours', 0)) - normal);\n\t\t\treturn partTime\n\t\t\t\t? Math.min(worked, tier) * ctx.lookup.part_time_premium +\n\t\t\t\t\t\tMath.max(0, worked - tier) * ctx.lookup.holiday_premium\n\t\t\t\t: worked * ctx.lookup.holiday_premium;\n\t\t})\n);\nreturn charged * orpHour;",
+		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "552f75c2-36a1-5daa-8951-c49c95af7882",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	}
+]

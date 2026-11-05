@@ -1,0 +1,113 @@
+[
+	{
+		"code": "FIXED_ALLOWANCE",
+		"name": "Phụ cấp lương (fixed wage allowance)",
+		"references": [
+			{
+				"title": "Law on Social Insurance 41/2024/QH15 art.31(1)(b) with Decree 158/2025/NĐ-CP art.7(1): a wage allowance of a stated amount agreed in the labour contract and paid regularly each pay period is part of the insurance salary (SI, HI, UI and the union fee and dues follow that salary); it is salary income for PIT. Prorated on the base salary’s basis (Decree 145/2020 art.54(1)(a)): the working days of the employment over the planned working days, a part of a semi-monthly half at the monthly day wage."
+			}
+		],
+		"lookup": {},
+		"subtotal_id": "b6527447-b4e7-5b31-92fa-e7c38a0fbfbb",
+		"eligibility": "// js\nconst terms = ctx.subject.employment.terms ?? {};\nconst amount = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn get(terms, 'rate.unit', '') === 'MONTHLY' && amount !== 0;",
+		"conversion": "// js\nconst terms = ctx.subject.employment.terms ?? {};\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst amount = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn rate > 0 ? (amount * Number(ctx.base_pay)) / rate : amount;",
+		"incurred_on": "// js\nreturn String(ctx.run.salary_coverage.from);",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": true,
+		"id": "cf0a2fd2-2bcc-5228-9048-6de1086122a7",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "HOUSING",
+		"name": "Tiền thuê nhà, điện, nước trả thay (rent paid on the employee’s behalf)",
+		"references": [
+			{
+				"title": "Circular 111/2013/TT-BTC art.2(2)(đ)(đ.1): rent, electricity, water and related services the employer pays on the worker’s behalf are taxable at the amount paid but not above 15% of the worker’s total taxable income at the unit, the rent excluded. The employer pays the landlord, so the line is an employer cost, not pay. Counts toward PIT.HOUSING, where the PIT base takes the lower of the amount and that 15%. Rent paid to the landlord is not a wage paid to the worker, so it is outside the insurance salary of Law 41/2024/QH15 art.31(1)(b) and Decree 158/2025/NĐ-CP art.7(1); Circular 06/2021/TT-BLĐTBXH, cited here before, was repealed from 1 July 2025 by Circular 12/2025/TT-BNV art.20(2). Prorated on the base salary’s basis (Decree 145/2020 art.54(1)(a)): the working days of the employment over the planned working days, a part of a semi-monthly half at the monthly day wage."
+			}
+		],
+		"lookup": {},
+		"subtotal_id": "b6527447-b4e7-5b31-92fa-e7c38a0fbfbb",
+		"eligibility": "// js\nconst terms = ctx.subject.employment.terms ?? {};\nconst amount = Number(get(terms, 'allowances.HOUSING.amount', 0));\nreturn get(terms, 'rate.unit', '') === 'MONTHLY' && amount !== 0;",
+		"conversion": "// js\nconst terms = ctx.subject.employment.terms ?? {};\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst amount = Number(get(terms, 'allowances.HOUSING.amount', 0));\nreturn rate > 0 ? (amount * Number(ctx.base_pay)) / rate : amount;",
+		"incurred_on": "// js\nreturn String(ctx.run.salary_coverage.from);",
+		"direction": "ADD",
+		"party": "EMPLOYER",
+		"off_cycle_eligible": true,
+		"id": "1b43878b-4240-5112-a568-f3e6cafc46ac",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "INSURANCE_EQUIVALENT",
+		"name": "Khoản tiền tương đương mức đóng bảo hiểm (insurance-equivalent payment)",
+		"references": [
+			{
+				"title": "Labour Code 2019 art.168(3): an employee outside compulsory SI, HI or UI is paid, with each wage, the amount the employer would have contributed — 17.5% SI, 3% HI, 1% UI of the monthly wage for each scheme the employee is outside (Law 41/2024 art.32; HI Law art.13; Law 74/2025 art.33). https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf Prorated on the base salary’s basis (Decree 145/2020 art.54(1)(a)): the working days of the employment over the planned working days, a part of a semi-monthly half at the monthly day wage.",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		],
+		"lookup": {
+			"currency": "VND",
+			"social_insurance_rate": 0.175,
+			"health_insurance_rate": 0.03,
+			"unemployment_insurance_rate": 0.01,
+			"reference_salary": 2340000,
+			"monthly_salary_ceiling": 46800000,
+			"unemployment_cap_multiple": 20,
+			"minimum_wage_by_region": {
+				"I": 5310000,
+				"II": 4730000,
+				"III": 4140000,
+				"IV": 3700000
+			}
+		},
+		"subtotal_id": "b6527447-b4e7-5b31-92fa-e7c38a0fbfbb",
+		"eligibility": "// js\nreturn get(ctx.subject.employment.terms, 'rate.unit', '') === 'MONTHLY';",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst facts = get(extension, 'facts', {});\nconst contract = get(extension, 'term_facts', {});\nconst review = get(contract, 'insurance_review', null);\nconst current =\n\tget(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? review : null;\nconst monthly = Number(get(terms, 'rate.amount', 0));\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nconst wage = Number(get(current, 'salary_vnd', monthly + fixed));\nconst signed = get(employment, 'signed_contract_period', null);\nconst months =\n\tsigned?.from == null || signed.to == null\n\t\t? Infinity\n\t\t: calendar_completed_months(signed.from, add_days(signed.to, 1));\nconst probation = get(terms, 'probation_period', null);\nconst onProbation = probation != null && String(ctx.run.salary_coverage.from) <= probation.to;\nconst foreign = ![\n\t'VN',\n\t'VNM',\n\t'VIETNAM',\n\t'VIETNAMESE',\n\t'Vietnam',\n\t'Vietnamese'\n].includes(String(get(facts, 'nationality', 'VN')));\nconst excluded =\n\tget(contract, 'receiving_pension', false) === true ||\n\tget(facts, 'domestic_worker', false) === true ||\n\tget(contract, 'pass_type', '') === 'INTRA_COMPANY_TRANSFER' ||\n\tmonths < 1 ||\n\t(foreign && months < 12) ||\n\t(employment.engagement === 'PART_TIME' && wage < ctx.lookup.reference_salary) ||\n\tonProbation;\nconst insured = Math.min(\n\tMath.max(wage, ctx.lookup.reference_salary),\n\tctx.lookup.monthly_salary_ceiling\n);\nconst region = String(get(ctx.subject.employer.entity_extension_data, 'region', 'I'));\nconst minimum = Number(\n\tget(ctx.lookup.minimum_wage_by_region, region, ctx.lookup.minimum_wage_by_region.I)\n);\nconst unemployment = Math.min(\n\tMath.max(wage, ctx.lookup.reference_salary),\n\tminimum * ctx.lookup.unemployment_cap_multiple\n);\nconst si =\n\texcluded ||\n\tget(facts, 'statutory.SI.elections.si_treaty_exempt', false) === true ||\n\tget(current, 'si_temporarily_suspended', false) === true;\nconst hi = excluded || get(facts, 'statutory.HI.elections.hi_treaty_exempt', false) === true;\nconst ui =\n\texcluded ||\n\tforeign ||\n\tget(facts, 'statutory.UI.elections.pension_qualified', false) === true;\nreturn (\n\t(si ? insured * ctx.lookup.social_insurance_rate : 0) +\n\t(hi ? insured * ctx.lookup.health_insurance_rate : 0) +\n\t(ui ? unemployment * ctx.lookup.unemployment_insurance_rate : 0)\n);",
+		"incurred_on": "// js\nreturn String(ctx.run.salary_coverage.from);",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": true,
+		"id": "49d7b048-199d-50a7-9c00-d3c99c0deadc",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "MEAL_ALLOWANCE",
+		"name": "Tiền ăn giữa ca, ăn trưa (meal allowance paid in money)",
+		"references": [
+			{
+				"title": "Circular 111/2013/TT-BTC art.2(2)(g.5): a mid-shift meal paid in money is taxable only above the Labour Ministry cap, 730,000 a month (Circular 26/2016/TT-BLĐTBXH); Decree 253/2026 art.69(1)(b) keeps it until 30 June 2026. Counts toward PIT.MEAL, where the PIT base takes only the part above the cap. Outside the insurance salary, whatever its amount or regularity, so the class counts toward no insurance scheme: Law 41/2024/QH15 art.31(1)(b) with Decree 158/2025/NĐ-CP art.7(1)(c) brings in only the other supplements (các khoản bổ sung khác) of a stated amount agreed with the wage and paid regularly and stably each pay period, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) (in force from 1 January 2021) sets the mid-shift meal (tiền ăn giữa ca) apart from those supplements as a benefit written as a separate item of the labour contract. The earlier SI-specific list naming it (Circular 59/2015/TT-BLĐTBXH art.30(3) as amended by Circular 06/2021/TT-BLĐTBXH) was repealed from 1 July 2025 by Circular 12/2025/TT-BNV art.20(2); the Circular 10/2020 text: https://storage-vnportal.vnpt.vn/gov-lan/SharePointFolders/Lists/VanBanQPPL/Attachments/207/thong-tu-10-2020-noi-dung-hdld-cong-viec-anh-huong-xau-toi-sinh-san.pdf Prorated on the base salary’s basis (Decree 145/2020 art.54(1)(a)): the working days of the employment over the planned working days, a part of a semi-monthly half at the monthly day wage.",
+				"url": "https://storage-vnportal.vnpt.vn/gov-lan/SharePointFolders/Lists/VanBanQPPL/Attachments/207/thong-tu-10-2020-noi-dung-hdld-cong-viec-anh-huong-xau-toi-sinh-san.pdf"
+			}
+		],
+		"lookup": {},
+		"subtotal_id": "b6527447-b4e7-5b31-92fa-e7c38a0fbfbb",
+		"eligibility": "// js\nconst terms = ctx.subject.employment.terms ?? {};\nconst amount = Number(get(terms, 'allowances.MEAL_ALLOWANCE.amount', 0));\nreturn get(terms, 'rate.unit', '') === 'MONTHLY' && amount !== 0;",
+		"conversion": "// js\nconst terms = ctx.subject.employment.terms ?? {};\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst amount = Number(get(terms, 'allowances.MEAL_ALLOWANCE.amount', 0));\nreturn rate > 0 ? (amount * Number(ctx.base_pay)) / rate : amount;",
+		"incurred_on": "// js\nreturn String(ctx.run.salary_coverage.from);",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": true,
+		"id": "cbda3614-99e9-5455-af76-5c9094249644",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "WORK_EXPENSE_ALLOWANCE",
+		"name": "Phone, stationery, travel and uniform allowance",
+		"references": [
+			{
+				"title": "Circular 111/2013/TT-BTC art.2(2)(đ.2) as amended (reviewer citation; official text not re-read): stationery, travel, phone and clothing payments are taxable above the employer’s regulated level (entity fact work_expense_limit, VND a month). Prorated on the base salary’s basis (Decree 145/2020 art.54(1)(a)): the working days of the employment over the planned working days, a part of a semi-monthly half at the monthly day wage."
+			}
+		],
+		"lookup": {},
+		"subtotal_id": "b6527447-b4e7-5b31-92fa-e7c38a0fbfbb",
+		"eligibility": "// js\nconst terms = ctx.subject.employment.terms ?? {};\nconst amount = Number(get(terms, 'allowances.WORK_EXPENSE_ALLOWANCE.amount', 0));\nreturn get(terms, 'rate.unit', '') === 'MONTHLY' && amount !== 0;",
+		"conversion": "// js\nconst terms = ctx.subject.employment.terms ?? {};\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst amount = Number(get(terms, 'allowances.WORK_EXPENSE_ALLOWANCE.amount', 0));\nreturn rate > 0 ? (amount * Number(ctx.base_pay)) / rate : amount;",
+		"incurred_on": "// js\nreturn String(ctx.run.salary_coverage.from);",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": true,
+		"id": "691b0ccd-4650-55c3-8e97-c75749ce3e90",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	}
+]

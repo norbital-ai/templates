@@ -1,0 +1,446 @@
+[
+	{
+		"code": "BONUS",
+		"name": "賞与 (bonus)",
+		"description": "The entry quantity is the bonus paid with the month. A bonus paid three times a year or less is 賞与; a computation period over six months belongs to BONUS_OVER_SIX_MONTHS.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "健康保険法 art.3(6) and 厚生年金保険法 art.3(1)(iv): a bonus paid three times a year or less is 賞与, assessed on the standard bonus amount (健保法 art.45, 厚年法 art.24の4), not the monthly grade; wages for labour insurance; withheld by the bonus rate table (所得税法 art.186(1)(ii)). The 賞与支払届 is due within 5 days (健保則 art.27, 厚年則 art.19の5). A bonus for a period over six months is BONUS_OVER_SIX_MONTHS (所得税法 art.186(2)). Entry: quantity = the bonus amount paid with the month."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "248d5dfb-3b90-5a38-893e-fda495563ded",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "dc61576b-63d9-5a1a-ae1e-8495d55fd7f6",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "BONUS_OVER_SIX_MONTHS",
+		"name": "賞与（計算期間6か月超） (bonus for a period over six months)",
+		"description": "The entry quantity is the bonus paid for a computation period over six months. It is assessed as a bonus; under the monthly-table method the period is divided by twelve rather than six.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "所得税法 art.186(2): where the bonus computation period exceeds six months and the 月額表 method applies, the bonus is divided by twelve, not six. Otherwise as BONUS: 標準賞与額 for social insurance, a wage for labour insurance. Entry: quantity = the bonus amount; the computation period is over six months."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "248d5dfb-3b90-5a38-893e-fda495563ded",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "05ae8efc-315b-5366-b24e-6c4c10685f52",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "SHUTDOWN_ALLOWANCE",
+		"name": "休業手当 (shutdown allowance)",
+		"description": "The entry quantity is the Article 12 average-wage base for the employer-caused idle period (average daily wage multiplied by idle days). The allowance is 60% of that base; wages actually paid for the idle time reduce the base before entry.",
+		"lookup": {
+			"rate": 0.6
+		},
+		"references": [
+			{
+				"title": "労働基準法26条: an employer-caused suspension requires at least60percent of the actual Article12average wage. The ordinary wages paid for the suspended time remain actual payment facts; no named average is entered. Entry: quantity = the average-wage base for the idle period; `lookup` holds the 60% rate and the average-wage source policy.",
+				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=73022000&dataType=0"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "8fde21b2-77a1-59bb-aa43-5dc20517461b",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0 && ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from && (ctx.subject.employment.effective_range.to == null || ctx.entry.incurred_on <= ctx.subject.employment.effective_range.to);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.rate;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "0d1845d7-a267-5738-8e0c-29313a918505",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "INJURY_WAITING_COMPENSATION",
+		"name": "休業補償 待期3日間 (injury absence compensation, first 3 days)",
+		"description": "The entry quantity is the Article 12 average-wage base for the occupational-injury waiting days (average daily wage multiplied by waiting days, at most three). The employer pays 60% of that base.",
+		"lookup": {
+			"rate": 0.6
+		},
+		"references": [
+			{
+				"title": "労働基準法76条 and 労災保険法14条: compensation for the actual occupational-injury waiting days uses60percent of the actual Article12average wage. The genuine event and covered dates remain original case/entry facts. Entry: quantity = the average-wage base for the waiting days (maximum three); `lookup` holds the 60% rate and the average-wage source policy.",
+				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=73022000&dataType=0"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3d8b8fe3-f923-550d-b45d-2df5b2633692",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0 && ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from && (ctx.subject.employment.effective_range.to == null || ctx.entry.incurred_on <= ctx.subject.employment.effective_range.to);",
+		"conversion": "return ctx.entry.quantity * ctx.lookup.rate;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "7fead0a8-5116-52d3-8319-c6a8b1a617b0",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "DISMISSAL_NOTICE_ALLOWANCE",
+		"name": "解雇予告手当 (pay in lieu of dismissal notice)",
+		"description": "The entry quantity is the Article 12 average-wage base for the notice shortfall (average daily wage multiplied by the days of notice not given, at most thirty).",
+		"lookup": {},
+		"references": [
+			{
+				"title": "労働基準法20条 and21条: the applicable notice shortfall is paid at the actual Article12average wage. Original notice dates and an actually applicable statutory/certified exemption remain source facts. Taxed as retirement income under 所得税基本通達30-5. Entry: quantity = the average-wage base for the notice shortfall (maximum thirty days); `lookup` holds the average-wage source policy.",
+				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=73022000&dataType=0"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3d8b8fe3-f923-550d-b45d-2df5b2633692",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0 && ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from && (ctx.subject.employment.effective_range.to == null || ctx.entry.incurred_on <= ctx.subject.employment.effective_range.to);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "cc457021-c7fb-5055-b940-398fa14a3c15",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "RETIREMENT_ALLOWANCE",
+		"name": "退職手当 (retirement allowance)",
+		"description": "The entry quantity is the retirement allowance the work rules provide. It is paid after exit and taxed as retirement income; it is not remuneration or a labour-insurance wage.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "No statute requires a retirement allowance; where the work rules provide one (労働基準法 art.89(iii)の2) it is paid as they state. Retirement income (所得税法 art.30), withheld by RETIREMENT_TAX; not remuneration for social insurance or wages for labour insurance. The resident tax on retirement income (10%) is withheld by RESIDENT_TAX_RETIREMENT. It is payable after the exit (payable_after_exit): withheld when paid (所得税法 arts.199, 203) on a slip of its own; no premium is charged on it. Entry: quantity = the retirement allowance amount."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "2fa502b6-f768-5f9c-88cd-2f2ca8561bb9",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "5d434279-365f-5942-8eab-966feb9dee0f",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "MEALS_IN_KIND",
+		"name": "食事の現物支給 (meals in kind)",
+		"description": "The entry quantity is the taxable meal benefit: the employer's cost less the employee's payment. Meals in kind are not taxable where the employee pays half or more of their value and the employer's cost is within the monthly limit; otherwise the excess is a taxable benefit. This catalogue records the taxable value and creates no pay line.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "所得税基本通達",
+				"locator": "36-38の2（食事の現物給与）",
+				"quote": "食事の現物給与は、供与する食事の価額から従業員の負担額を控除した額を給与として課税する。"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "a9ef22d6-2851-595c-ac96-3b41678e7885",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "HOUSING_IN_KIND",
+		"name": "社宅の貸与 (company housing)",
+		"description": "The entry quantity is the taxable housing benefit: the ordinary rent less the rent the employee pays. A 使用人 who pays half or more has no taxable benefit; an officer has no half-rent exemption. This catalogue records the taxable value and creates no pay line.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "所得税基本通達",
+				"locator": "36-45、36-47（社宅の貸与）",
+				"quote": "社宅の貸与は、通常の賃貸料の額と従業員の負担額との差額を給与として課税する。"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "b9232431-ee1a-5076-bcdc-a784141d5f12",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "TAXABLE_BENEFIT",
+		"name": "課税される経済的利益 (other taxable benefit)",
+		"description": "The entry quantity is the value of the other taxable benefit in kind. This catalogue records the taxable value and creates no pay line.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "所得税法 art.36(1)–(2) with 所得税基本通達 36-15 ff.: other benefits in kind (goods, services, low-interest loans, awards in money) are salary at their value as the 通達 states; the employer enters the taxable value. Entry: quantity = the taxable value."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "d07710ca-e7d0-55d0-9a67-1d22fc0f2eaa",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "SPECIAL_ALLOWANCE",
+		"name": "臨時の手当 (other taxable cash allowance)",
+		"description": "The entry quantity is the cash allowance paid with the month, including any excess over the night-duty or night-meal limits. It is salary, social-insurance remuneration and a labour-insurance wage.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "所得税法 art.28: a cash allowance paid in the month is salary income, remuneration for social insurance (健保法 art.3(5)) and a wage for labour insurance — including any excess over the night-duty or night-meal limits. Entry: quantity = the cash allowance amount; `lookup` holds the night limits above which an amount belongs here."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "8fde21b2-77a1-59bb-aa43-5dc20517461b",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "56479914-4c60-5968-bc12-c94dd5de3a54",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "NIGHT_DUTY_ALLOWANCE",
+		"name": "宿日直手当 (night and holiday duty allowance)",
+		"description": "The entry quantity is the number of 宿直・日直 occasions. The catalogue pays the non-taxable limit per occasion; any excess is entered as SPECIAL_ALLOWANCE.",
+		"lookup": {
+			"limit_per_unit": 4000
+		},
+		"references": [
+			{
+				"title": "所得税基本通達 28-1: a 宿直・日直 allowance up to 4,000 yen an occasion is not taxable (entry.quantity occasions; the class pays at most that, any excess is SPECIAL_ALLOWANCE). It is 報酬 for social insurance (健康保険法 art.3(5); 日本年金機構 lists 宿日直手当 as 報酬) and a wage for labour insurance (労働保険徴収法 art.2(2)). Entry: quantity = occasions; `lookup.limit_per_unit` is the non-taxable limit per occasion."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "8fde21b2-77a1-59bb-aa43-5dc20517461b",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.lookup.limit_per_unit * ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "4834acb8-52aa-5b21-80e0-73e905487787",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "NIGHT_MEAL_CASH",
+		"name": "深夜勤務の夜食代 (night-shift meal money)",
+		"description": "The entry quantity is the number of night-work meal occasions. The catalogue pays the non-taxable limit per occasion; a payment above the limit is wholly taxable and is entered as SPECIAL_ALLOWANCE.",
+		"lookup": {
+			"limit_per_unit": 650
+		},
+		"references": [
+			{
+				"title": "昭和59年7月26日 直法6-5 as amended 令和8年3月31日: cash paid instead of a meal for night work (22:00–05:00) is not taxable up to 650 yen an occasion (entry.quantity; from 1 April 2026 650, before 300). The exemption holds only where the whole payment of the occasion is within the limit; a larger payment is wholly taxable, so it is entered in full as SPECIAL_ALLOWANCE (the class refuses an amount above the limit). Enter one entry per occasion (entry.quantity 1). It is a wage: 報酬 for social insurance (健康保険法 art.3(5); 厚生年金保険法 art.3(1)(iii)) and 賃金 for labour insurance (労働保険徴収法 art.2(2)). Entry: quantity = occasions; `lookup.limit_per_unit` is the dated non-taxable limit per occasion."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3d8b8fe3-f923-550d-b45d-2df5b2633692",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.lookup.limit_per_unit * ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "cb81d113-3469-56d7-aa4c-979919609678",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "LONG_SERVICE_AWARD",
+		"name": "永年勤続表彰（記念品） (long-service award in kind)",
+		"description": "The entry quantity is the value of a long-service award in kind. An award in kind for at least ten years of service, at intervals of at least five years and of reasonable value, is not taxable; this catalogue records the value and creates no pay line.",
+		"lookup": {
+			"minimum_service_years": 10
+		},
+		"references": [
+			{
+				"title": "所得税基本通達 36-21: an award in kind (not cash) for 10 or more years of service, at intervals of 5 years or more and of a reasonable value, is not taxable; a cash award or one outside these conditions is TAXABLE_BENEFIT or BONUS. Entry: quantity = the award value; `lookup` holds the service and interval tests."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "const months = calendar_completed_months(ctx.subject.employment.effective_range.from, ctx.entry.incurred_on);\nreturn ctx.entry.quantity > 0 && months >= ctx.lookup.minimum_service_years * 12;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "226f494c-7904-5913-bff7-06c4c54b98d0",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "DISCIPLINARY_DEDUCTION",
+		"name": "減給の制裁 (disciplinary pay reduction)",
+		"description": "The entry quantity is the Article 12 average-wage base for the disciplinary reduction (average daily wage multiplied by the deducted days). Each deduction is limited to half that base and to one tenth of the wages payable for the wage period.",
+		"lookup": {
+			"wage_period_share": 0.1,
+			"rate": 0.5
+		},
+		"references": [
+			{
+				"title": "労働基準法91条: each disciplinary wage deduction is limited to half the actual daily average wage; aggregate wage-period discipline deductions are limited to one tenth of the wages payable for that wage period. Actual prior deductions remain ledger records. Entry: quantity = the average-wage base for the deducted days; `lookup` holds the half-wage and one-tenth caps and the average-wage source policy.",
+				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=73022000&dataType=0"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "a36e63f8-effd-5898-8940-223ff54d57d8",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0 && get(ctx.subtotals, 'ORDINARY_WAGES', 0) > 0;",
+		"conversion": "const cap = get(ctx.subtotals, 'ORDINARY_WAGES', 0) * ctx.lookup.wage_period_share;\nreturn Math.min(ctx.entry.quantity * ctx.lookup.rate, cap);",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "c13284fa-2066-5cc0-80dd-a8f960c06207",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "LATE_WAGE_INTEREST",
+		"name": "退職者の未払賃金の遅延利息 (delay interest on unpaid wages)",
+		"description": "The entry quantity is the unpaid wage left after exit. Interest runs at 14.6% a year from the day after the contractual due date to the payment date. It is not salary income.",
+		"lookup": {
+			"annual_rate": 0.146,
+			"days_per_year": 365
+		},
+		"references": [
+			{
+				"title": "賃金の支払の確保等に関する法律",
+				"locator": "6条1項、施行令1条（遅延利息）",
+				"quote": "退職した労働者の未払賃金には、年十四・六パーセントの遅延利息を付す。"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "a36e63f8-effd-5898-8940-223ff54d57d8",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0 && ctx.subject.employment.final_pay_due_on != null && ctx.entry.incurred_on > ctx.subject.employment.final_pay_due_on;",
+		"conversion": "const days = calendar_distance_days(ctx.subject.employment.final_pay_due_on, ctx.entry.incurred_on);\nreturn (ctx.entry.quantity * ctx.lookup.annual_rate * days) / ctx.lookup.days_per_year;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "263b7d20-806c-5083-a497-00d1d652b0fa",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "COMMUTER_PASS",
+		"name": "通勤定期券（複数月分） (commuter pass for several months)",
+		"description": "The entry quantity is the taxable commuter-pass amount after the exemption. A pass for several months is exempt up to the monthly limit multiplied by the months it covers.",
+		"lookup": {
+			"car_distance_bands": [
+				{
+					"below": 2,
+					"amount": 0
+				},
+				{
+					"below": 10,
+					"amount": 4200
+				},
+				{
+					"below": 15,
+					"amount": 7300
+				},
+				{
+					"below": 25,
+					"amount": 13500
+				},
+				{
+					"below": 35,
+					"amount": 19700
+				},
+				{
+					"below": 45,
+					"amount": 25900
+				},
+				{
+					"below": 55,
+					"amount": 32300
+				},
+				{
+					"below": 65,
+					"amount": 38700
+				},
+				{
+					"below": 75,
+					"amount": 45700
+				},
+				{
+					"below": 85,
+					"amount": 52700
+				},
+				{
+					"below": 95,
+					"amount": 59600
+				},
+				{
+					"below": null,
+					"amount": 66400
+				}
+			],
+			"parking_monthly_cap": 5000
+		},
+		"references": [
+			{
+				"title": "所得税法施行令",
+				"locator": "20条の2（通勤手当の非課税限度額）",
+				"quote": "通勤手当は、一月当たり十五万円を限度として非課税とする。"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "3d8b8fe3-f923-550d-b45d-2df5b2633692",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "689ebc63-ff2e-5e46-9a75-cb9f775419bf",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "MEALS_IN_KIND_SOCIAL_INSURANCE",
+		"name": "食事の現物給与 (社会保険の報酬)",
+		"description": "The entry quantity is the 告示 value of the meal benefit after the employee's payment. Meals in kind are remuneration at the prefecture's published price; this catalogue records the value and creates no pay line.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "健康保険法",
+				"locator": "46条、厚生年金保険法25条（現物給与）",
+				"quote": "食事の現物給与は、厚生労働大臣が定める価額により報酬に算入する。"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "ff6883c5-f402-5b1b-ad36-8248b5a68732",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "HOUSING_IN_KIND_SOCIAL_INSURANCE",
+		"name": "住宅の現物給与 (社会保険の報酬)",
+		"description": "The entry quantity is the 告示 value of the company-housing benefit after the rent the employee pays. The value is per 畳 of living rooms to 30 September 2026 and per square metre of the whole floor area from 1 October 2026; this catalogue records the value and creates no pay line.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "健康保険法",
+				"locator": "46条、厚生年金保険法25条（現物給与）",
+				"quote": "住宅の現物給与は、厚生労働大臣が定める価額により報酬に算入する。"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": null,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "92f9ce0f-abe0-5bd3-ae38-2ab2f20d9593",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	}
+]

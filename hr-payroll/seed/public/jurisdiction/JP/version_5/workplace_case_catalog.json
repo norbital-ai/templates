@@ -1,0 +1,257 @@
+[
+	{
+		"code": "DEPENDANT_CHANGE",
+		"name": "被扶養者の異動 (dependant change)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "23373891-46f7-565a-bc30-828485e03c15",
+		"settings_id": "23937fac-c333-5f41-a60a-8c0852a0ac5f",
+		"references": [
+			{
+				"title": "健康保険法施行規則",
+				"locator": "38条（被扶養者異動届）",
+				"quote": "被扶養者の異動があった日から五日以内に届け出る。"
+			}
+		]
+	},
+	{
+		"code": "DATA_BREACH",
+		"name": "個人データの漏えい等 (personal-data breach)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "599bc8e3-7b08-5163-90d0-1ba19b199e3f",
+		"settings_id": "23937fac-c333-5f41-a60a-8c0852a0ac5f",
+		"references": [
+			{
+				"title": "個人情報の保護に関する法律",
+				"locator": "26条（報告及び通知）",
+				"quote": "漏えい等の事実を知ったときは、個人情報保護委員会に報告し、本人に通知する。"
+			}
+		]
+	},
+	{
+		"code": "EMPLOYMENT_CERTIFICATE_REQUEST",
+		"name": "退職証明書の請求 (actual certificate request)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "6313fba9-0dfd-58a1-b460-59a62042a7e0",
+		"settings_id": "23937fac-c333-5f41-a60a-8c0852a0ac5f",
+		"references": [
+			{
+				"title": "労働基準法",
+				"locator": "22条（退職証明書）",
+				"quote": "労働者が退職証明書の交付を請求したときは、遅滞なく交付する。"
+			}
+		]
+	},
+	{
+		"code": "CHILDCARE_OVERTIME_LIMIT_REQUEST",
+		"name": "育児・介護 時間外労働制限請求",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "7ed8a535-8ea2-568c-91b3-bbb29e711e60",
+		"settings_id": "23937fac-c333-5f41-a60a-8c0852a0ac5f",
+		"references": [
+			{
+				"title": "育児休業、介護休業等育児又は家族介護を行う労働者の福祉に関する法律",
+				"locator": "17条（時間外労働の制限）",
+				"quote": "小学校就学の始期に達するまでの子を養育する労働者が請求したときは、一月二十四時間・一年百五十時間を超えて時間外労働をさせてはならない。"
+			}
+		]
+	},
+	{
+		"code": "CHILDCARE_NO_OVERTIME_REQUEST",
+		"name": "育児・介護 所定外労働制限請求",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "ed7a885f-327f-55f2-8ec1-4317f7a1342d",
+		"settings_id": "23937fac-c333-5f41-a60a-8c0852a0ac5f",
+		"references": [
+			{
+				"title": "育児休業、介護休業等育児又は家族介護を行う労働者の福祉に関する法律",
+				"locator": "16条の8（所定外労働の制限）",
+				"quote": "三歳に満たない子を養育する労働者が請求したときは、所定労働時間を超えて労働させてはならない。"
+			}
+		]
+	},
+	{
+		"code": "CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST",
+		"name": "育児・介護 深夜業制限請求",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "695aa4b5-2f29-55e5-9163-3db70e2c4cde",
+		"settings_id": "23937fac-c333-5f41-a60a-8c0852a0ac5f",
+		"references": [
+			{
+				"title": "育児休業、介護休業等育児又は家族介護を行う労働者の福祉に関する法律",
+				"locator": "19条（深夜業の制限）",
+				"quote": "小学校就学の始期に達するまでの子を養育する労働者が請求したときは、午後十時から午前五時までの間に労働させてはならない。"
+			}
+		]
+	},
+	{
+		"code": "PREGNANCY_WORK_LIMIT_REQUEST",
+		"name": "妊産婦 時間外・休日・深夜業制限請求",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "f6bc3120-1430-574b-84b7-6cf2ff890344",
+		"settings_id": "23937fac-c333-5f41-a60a-8c0852a0ac5f",
+		"references": [
+			{
+				"title": "労働基準法",
+				"locator": "66条2項・3項（妊産婦の時間外・休日・深夜労働の制限）",
+				"quote": "妊産婦が請求した場合、時間外労働、休日労働及び深夜労働をさせてはならない。"
+			}
+		]
+	},
+	{
+		"code": "DIGITAL_WAGE_PAYMENT_CONSENT",
+		"name": "Employee’s written digital wage payment consent",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "49236921-89c9-5b74-9e92-f53b1c1c0481",
+		"settings_id": "23937fac-c333-5f41-a60a-8c0852a0ac5f",
+		"references": [
+			{
+				"title": "労働基準法",
+				"locator": "24条1項、労働基準法施行規則7条の2（デジタル払い）",
+				"quote": "デジタル払いには、労働者の同意と厚生労働大臣の指定を受けた資金移動業者の口座を要する。"
+			}
+		]
+	},
+	{
+		"code": "CROSS_BORDER_WORK_RECORD",
+		"name": "Actual overseas work dates and country",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "33c4b828-3de9-573e-8ca8-504537929d1b",
+		"settings_id": "23937fac-c333-5f41-a60a-8c0852a0ac5f",
+		"references": [
+			{
+				"title": "所得税法",
+				"locator": "161条（国内源泉所得）",
+				"quote": "非居住者の給与は、その勤務地が国内か国外かにより国内源泉所得の範囲が決まる。"
+			}
+		]
+	},
+	{
+		"code": "EXTERNAL_WAGE_RECORD",
+		"name": "Original external wage payment or cost allocation",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "fa5f5c54-5dba-5789-aa7c-d6b1fcdcb816",
+		"settings_id": "23937fac-c333-5f41-a60a-8c0852a0ac5f",
+		"references": [
+			{
+				"title": "労働基準法",
+				"locator": "108条（賃金台帳）",
+				"quote": "賃金台帳を調製し、賃金の計算及び支払の事実を記録しなければならない。"
+			}
+		]
+	},
+	{
+		"code": "BENEFIT_SERVICE_RECORD",
+		"name": "Actual service attributable to a benefit award",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "08204fd0-5584-56a9-a949-2cff419520e5",
+		"settings_id": "23937fac-c333-5f41-a60a-8c0852a0ac5f",
+		"references": [
+			{
+				"title": "雇用保険法",
+				"locator": "15条（失業の認定）",
+				"quote": "受給資格者は、失業の認定日に公共職業安定所に出頭し、求職の申込みをする。"
+			}
+		]
+	},
+	{
+		"code": "SHORT_TIME_COVERAGE_NOTICE",
+		"name": "年金事務所の特定適用事業所通知 (actual pension-office coverage notice)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "647b1ac9-74e6-5195-9ecf-82c89ab3afcb",
+		"settings_id": "23937fac-c333-5f41-a60a-8c0852a0ac5f",
+		"references": [
+			{
+				"title": "健康保険法",
+				"locator": "3条1項、厚生年金保険法12条（短時間労働者の適用）",
+				"quote": "特定適用事業所の短時間労働者は、所定の要件を満たすとき被保険者となる。"
+			}
+		]
+	},
+	{
+		"code": "SHORT_TIME_VOLUNTARY_APPROVAL",
+		"name": "任意特定適用事業所の認可 (actual voluntary specific-coverage approval)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "5536566e-bef3-5a6d-97ed-e724897b6c42",
+		"settings_id": "23937fac-c333-5f41-a60a-8c0852a0ac5f",
+		"references": [
+			{
+				"title": "健康保険法",
+				"locator": "3条1項、厚生年金保険法12条（任意特定適用事業所）",
+				"quote": "任意特定適用事業所の短時間労働者は、所定の要件を満たすとき被保険者となる。"
+			}
+		]
+	},
+	{
+		"code": "RETIREMENT_INCOME_DECLARATION",
+		"name": "退職所得の受給に関する申告書 (actual received declaration)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "7b6f6f99-a22f-5d74-afab-40dd68337c7b",
+		"settings_id": "23937fac-c333-5f41-a60a-8c0852a0ac5f",
+		"references": [
+			{
+				"title": "所得税法",
+				"locator": "203条（退職所得の源泉徴収）",
+				"quote": "退職所得の受給に関する申告書を提出したときは、退職所得の金額に応じて源泉徴収する。"
+			}
+		]
+	},
+	{
+		"code": "AVERAGE_WAGE_AUTHORITY_DETERMINATION",
+		"name": "労働局長の平均賃金決定 (actual labour-bureau average-wage determination)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "f84eca2c-7343-5b57-beba-341521dcb4f6",
+		"settings_id": "23937fac-c333-5f41-a60a-8c0852a0ac5f",
+		"references": [
+			{
+				"title": "労働基準法",
+				"locator": "12条（平均賃金）",
+				"quote": "平均賃金は、原則として三箇月間の賃金総額をその期間の総日数で除して算定する。"
+			}
+		]
+	}
+]

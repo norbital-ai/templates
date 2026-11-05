@@ -1,0 +1,44 @@
+[
+	{
+		"code": "BASIC",
+		"name": "Basic pay",
+		"previous_id": null,
+		"id": "e4659642-6dbe-5369-b1a3-c3648d0ddbb0",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "ORDINARY_WAGES",
+		"name": "Ordinary wages",
+		"previous_id": "e4659642-6dbe-5369-b1a3-c3648d0ddbb0",
+		"id": "12891cdb-7aef-5514-8e5c-3752633b0926",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "ADDITIONAL_WAGES",
+		"name": "Additional wages (ordinary plus additional)",
+		"previous_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
+		"id": "86f31485-ff37-54bc-bfbc-130becca8477",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "GROSS",
+		"name": "Gross earnings",
+		"previous_id": "86f31485-ff37-54bc-bfbc-130becca8477",
+		"id": "0fd4ec8c-695a-5598-a4a4-2ed672013f86",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "CONTRIBUTIONS",
+		"name": "Statutory contributions",
+		"previous_id": "0fd4ec8c-695a-5598-a4a4-2ed672013f86",
+		"id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "NET",
+		"name": "Net pay",
+		"previous_id": "61411268-6feb-568c-9b41-4fb093cf2377",
+		"id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	}
+]

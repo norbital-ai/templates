@@ -1,0 +1,114 @@
+[
+	{
+		"code": "OVERTIME",
+		"name": "Overtime on working days (延长工作时间 150%)",
+		"lookup": {
+			"factor": 1.5,
+			"monthly_divisor": 21.75,
+			"daily_hours": 8,
+			"wage_base_allowances": [
+				"FIXED_ALLOWANCE",
+				"FOREIGN_LANGUAGE_ALLOWANCE",
+				"FOREIGN_CHILD_EDUCATION_ALLOWANCE"
+			]
+		},
+		"references": [
+			{
+				"title": "劳动法 第四十四条第一项; 工资支付暂行规定 第十三条第一款第一项; 人社部发〔2025〕2号: 月计薪天数21.75, 小时工资=月工资÷(21.75×8); 上海基数见沪人社综发〔2016〕29号 第九条."
+			}
+		],
+		"eligibility": "// js\nconst work = get(ctx, 'work', {});\nreturn ['STANDARD', ''].includes(get(ctx.subject.employment.terms, 'statutory_work_category', '')) &&\n\tget(ctx.subject.employment.terms.rate, 'unit', 'MONTHLY') === 'MONTHLY' &&\n\tget(work, 'overtime_hours', 0) > 0;",
+		"conversion": "// js\nconst work = get(ctx, 'work', {});\nconst terms = ctx.subject.employment.terms;\nconst fixed = ctx.lookup.wage_base_allowances.reduce(\n\t(total, code) => total + get(terms, `allowances.${code}.amount`, 0),\n\t0\n);\nconst wage = get(terms, 'rate.amount', 0) + fixed;\nreturn get(work, 'overtime_hours', 0) * ctx.lookup.factor * wage / ctx.lookup.monthly_divisor / ctx.lookup.daily_hours;",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d2efd27-f65d-57da-b1e9-1ad4692f4433",
+		"id": "b7d33f44-72fd-53fb-a657-1e5080d3ab57",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "COMPREHENSIVE_OVERTIME",
+		"name": "Comprehensive-hours overtime (综合计算工时 150%)",
+		"lookup": {
+			"factor": 1.5,
+			"monthly_divisor": 21.75,
+			"daily_hours": 8,
+			"wage_base_allowances": [
+				"FIXED_ALLOWANCE",
+				"FOREIGN_LANGUAGE_ALLOWANCE",
+				"FOREIGN_CHILD_EDUCATION_ALLOWANCE"
+			]
+		},
+		"references": [
+			{
+				"title": "工资支付暂行规定 第十三条第三款: 综合计算工时制超过法定标准工时的部分按150%, 法定节假日按300%."
+			}
+		],
+		"eligibility": "// js\nconst review = get(\n\tctx.subject.employment.employee_extension_data,\n\t'term_facts.comprehensive_overtime_review',\n\tnull\n);\nconst from = ctx.run.salary_coverage.from;\nconst to = ctx.run.salary_coverage.to;\nreturn get(ctx.subject.employment.terms, 'statutory_work_category', '') === 'COMPREHENSIVE' &&\n\tget(ctx.subject.employment.terms.rate, 'unit', 'MONTHLY') === 'MONTHLY' &&\n\treview != null &&\n\treview.month === from.slice(0, 7) &&\n\treview.reference !== '' &&\n\treview.settlement_on >= from &&\n\treview.settlement_on <= to &&\n\tNumber(review.excess_nonholiday_hours) > 0;",
+		"conversion": "// js\nconst review = get(\n\tctx.subject.employment.employee_extension_data,\n\t'term_facts.comprehensive_overtime_review',\n\tnull\n);\nconst terms = ctx.subject.employment.terms;\nconst fixed = ctx.lookup.wage_base_allowances.reduce(\n\t(total, code) => total + get(terms, `allowances.${code}.amount`, 0),\n\t0\n);\nconst wage = get(terms, 'rate.amount', 0) + fixed;\nreturn Number(review.excess_nonholiday_hours) * ctx.lookup.factor * wage / ctx.lookup.monthly_divisor / ctx.lookup.daily_hours;",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d2efd27-f65d-57da-b1e9-1ad4692f4433",
+		"id": "5ce47c4b-7d04-50cc-b3ba-e46f1b4728aa",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "REST_DAY_WORK",
+		"name": "Rest-day work (休息日 200%)",
+		"lookup": {
+			"factor": 2,
+			"monthly_divisor": 21.75,
+			"daily_hours": 8,
+			"wage_base_allowances": [
+				"FIXED_ALLOWANCE",
+				"FOREIGN_LANGUAGE_ALLOWANCE",
+				"FOREIGN_CHILD_EDUCATION_ALLOWANCE"
+			]
+		},
+		"references": [
+			{
+				"title": "劳动法 第四十四条第二项; 工资支付暂行规定 第十三条: 休息日工作不能安排补休的按200%; 已补休的不再支付."
+			}
+		],
+		"eligibility": "// js\nconst work = get(ctx, 'work', {});\nreturn ['STANDARD', ''].includes(get(ctx.subject.employment.terms, 'statutory_work_category', '')) &&\n\tget(ctx.subject.employment.terms.rate, 'unit', 'MONTHLY') === 'MONTHLY' &&\n\tget(ctx.subject.employer, 'entity_extension_data.rest_day_work_compensated', false) !== true &&\n\tget(work, 'rest_day_hours', 0) > 0;",
+		"conversion": "// js\nconst work = get(ctx, 'work', {});\nconst terms = ctx.subject.employment.terms;\nconst fixed = ctx.lookup.wage_base_allowances.reduce(\n\t(total, code) => total + get(terms, `allowances.${code}.amount`, 0),\n\t0\n);\nconst wage = get(terms, 'rate.amount', 0) + fixed;\nreturn get(work, 'rest_day_hours', 0) * ctx.lookup.factor * wage / ctx.lookup.monthly_divisor / ctx.lookup.daily_hours;",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d2efd27-f65d-57da-b1e9-1ad4692f4433",
+		"id": "7a32fb92-55f4-5ae4-96ea-dc9d28d70903",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "HOLIDAY_WORK",
+		"name": "Statutory holiday work (法定休假日 300%)",
+		"lookup": {
+			"factor": 3,
+			"monthly_divisor": 21.75,
+			"daily_hours": 8,
+			"wage_base_allowances": [
+				"FIXED_ALLOWANCE",
+				"FOREIGN_LANGUAGE_ALLOWANCE",
+				"FOREIGN_CHILD_EDUCATION_ALLOWANCE"
+			]
+		},
+		"references": [
+			{
+				"title": "劳动法 第四十四条第三项; 工资支付暂行规定 第十三条: 法定休假日工作按300%; 上海不定时工时制在法定节假日安排工作的亦按300% (沪人社综发〔2016〕29号 第九条)."
+			}
+		],
+		"eligibility": "// js\nconst work = get(ctx, 'work', {});\nreturn ['STANDARD', '', 'COMPREHENSIVE'].includes(\n\tget(ctx.subject.employment.terms, 'statutory_work_category', '')\n) &&\n\tget(ctx.subject.employment.terms.rate, 'unit', 'MONTHLY') === 'MONTHLY' &&\n\tget(work, 'holiday_hours', 0) > 0;",
+		"conversion": "// js\nconst work = get(ctx, 'work', {});\nconst terms = ctx.subject.employment.terms;\nconst fixed = ctx.lookup.wage_base_allowances.reduce(\n\t(total, code) => total + get(terms, `allowances.${code}.amount`, 0),\n\t0\n);\nconst wage = get(terms, 'rate.amount', 0) + fixed;\nreturn get(work, 'holiday_hours', 0) * ctx.lookup.factor * wage / ctx.lookup.monthly_divisor / ctx.lookup.daily_hours;",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d2efd27-f65d-57da-b1e9-1ad4692f4433",
+		"id": "c88c91e0-7ff1-580e-be8d-a1b0b4f7f1a9",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	}
+]

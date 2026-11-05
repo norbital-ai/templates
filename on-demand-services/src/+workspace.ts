@@ -1,0 +1,38 @@
+import { workspace } from '@norbital-ai/bolt';
+/**
+ * An on-demand home-services business in Singapore: customers book a service at their address, a helper with the skill
+ * is matched to each visit, and dispatch watches every shift before it starts. Days and working hours are Singapore
+ * wall time; money is in Singapore dollars.
+ *
+ * Customers book on the portal, which a site can embed: they verify their mobile number on the page with a texted code,
+ * which signs them up — no invitation — as a `customer` (the portal alone, and only their own records), bound to the
+ * customer record with that number. A newcomer passes a bot check first, since each code is a paid text. An administrator
+ * can close sign-up in Settings.
+ */
+export default workspace({
+	tz: 'Asia/Singapore',
+	locale: 'en-SG',
+	connections: {
+		// the business mailbox customer notices are emailed from (`customer_notices.syncs.mail`)
+		customer_mail: { integration: 'email' },
+		whatsapp: { integration: 'whatsapp' },
+		google_routes: { integration: 'google_routes' }
+	},
+	currency: 'SGD',
+	// the warning letter
+	convert: { to: ['pdf'] },
+	apps: [
+		'scheduler/schedule',
+		'scheduler/helpers',
+		'scheduler/customers',
+		'scheduler/configurations',
+		'helper',
+		'portal'
+	],
+	signup: {
+		via: ['phone'],
+		policies: ['customer'],
+		party: { model: 'customers', match: { phone: 'phone' } },
+		challenge: 'turnstile'
+	}
+});

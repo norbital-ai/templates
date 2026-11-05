@@ -1,0 +1,163 @@
+[
+	{
+		"code": "OVERTIME",
+		"name": "Overtime (1.5× hourly basic)",
+		"lookup": {
+			"multiplier": 1.5,
+			"months_per_year": 12,
+			"weeks_per_year": 52,
+			"full_time_weekly_hours": 44,
+			"non_workman_monthly_ceiling": 2600,
+			"non_workman_hourly_cap": 13.6
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 ss.38(4)–(5) and Fourth Schedule — overtime at 1.5× the hourly basic rate (12 × monthly basic ÷ (52 × 44)); a non-workman above $2,600 is capped at $13.60 an hour",
+				"locator": "ss.38(4)–(5); Fourth Schedule",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2026-07-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
+		"eligibility": "// js\nconst entry = get(ctx, 'entry', {});\nreturn get(entry, 'unit', '') === 'HOUR' && Number(get(entry, 'quantity', 0)) > 0;\n",
+		"conversion": "// js\nconst terms = ctx.subject.employment.terms;\nconst rate = get(terms, 'rate', {});\nconst monthly =\n\tget(rate, 'unit', 'MONTHLY') === 'MONTHLY'\n\t\t? Number(get(rate, 'amount', 0))\n\t\t: Number(get(ctx, 'base_pay', 0));\nconst hourly = (monthly * ctx.lookup.months_per_year) / (ctx.lookup.weeks_per_year * ctx.lookup.full_time_weekly_hours);\nconst category = get(terms, 'statutory_work_category', 'NON_MANUAL');\nconst capped =\n\tcategory === 'NON_MANUAL' && monthly > ctx.lookup.non_workman_monthly_ceiling\n\t\t? Math.min(hourly, ctx.lookup.non_workman_hourly_cap)\n\t\t: hourly;\nreturn Number(ctx.entry.quantity) * capped * ctx.lookup.multiplier;\n",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "e617a32c-8908-537e-bdc3-33e18252e6a5",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "PART_TIME_EXTRA_HOURS",
+		"name": "Part-time extra hours within full-time normal hours",
+		"lookup": {
+			"multiplier": 1,
+			"months_per_year": 12,
+			"weeks_per_year": 52
+		},
+		"references": [
+			{
+				"title": "Employment (Part-Time Employees) Regulations; MOM, Overtime for part-time employees — hours within a comparable full-timer’s normal hours are paid at the hourly basic rate",
+				"locator": "Part-time overtime",
+				"url": "https://www.mom.gov.sg/employment-practices/part-time-employment/overtime",
+				"effective_from": "2026-07-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
+		"eligibility": "// js\nconst entry = get(ctx, 'entry', {});\nreturn ctx.subject.employment.engagement === 'PART_TIME' && get(entry, 'unit', '') === 'HOUR' && Number(get(entry, 'quantity', 0)) > 0;\n",
+		"conversion": "// js\nconst terms = ctx.subject.employment.terms;\nconst rate = get(terms, 'rate', {});\nconst monthly =\n\tget(rate, 'unit', 'MONTHLY') === 'MONTHLY'\n\t\t? Number(get(rate, 'amount', 0))\n\t\t: Number(get(ctx, 'base_pay', 0));\nconst hourly =\n\t(monthly * ctx.lookup.months_per_year) /\n\t(ctx.lookup.weeks_per_year * Number(get(terms, 'normal_hours_per_week', 44)));\nreturn Number(ctx.entry.quantity) * hourly * ctx.lookup.multiplier;\n",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "e80b3d18-379b-5656-9f15-58569b998058",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "PART_TIME_OVERTIME",
+		"name": "Part-time overtime beyond full-time normal hours",
+		"lookup": {
+			"multiplier": 1.5,
+			"months_per_year": 12,
+			"weeks_per_year": 52
+		},
+		"references": [
+			{
+				"title": "Employment (Part-Time Employees) Regulations; MOM, Overtime for part-time employees — hours beyond a comparable full-timer’s normal hours are paid at 1.5× the hourly basic rate",
+				"locator": "Part-time overtime",
+				"url": "https://www.mom.gov.sg/employment-practices/part-time-employment/overtime",
+				"effective_from": "2026-07-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
+		"eligibility": "// js\nconst entry = get(ctx, 'entry', {});\nreturn ctx.subject.employment.engagement === 'PART_TIME' && get(entry, 'unit', '') === 'HOUR' && Number(get(entry, 'quantity', 0)) > 0;\n",
+		"conversion": "// js\nconst terms = ctx.subject.employment.terms;\nconst rate = get(terms, 'rate', {});\nconst monthly =\n\tget(rate, 'unit', 'MONTHLY') === 'MONTHLY'\n\t\t? Number(get(rate, 'amount', 0))\n\t\t: Number(get(ctx, 'base_pay', 0));\nconst hourly =\n\t(monthly * ctx.lookup.months_per_year) /\n\t(ctx.lookup.weeks_per_year * Number(get(terms, 'normal_hours_per_week', 44)));\nreturn Number(ctx.entry.quantity) * hourly * ctx.lookup.multiplier;\n",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "93bcc778-5d3f-5f3c-8f18-d564cfd1b22c",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "REST_DAY_WORK",
+		"name": "Rest-day work (Employment Act s.37)",
+		"lookup": {
+			"half_day_divisor": 2,
+			"employer_request_days_up_to_half": 1,
+			"employer_request_days_above_half": 2,
+			"months_per_year": 12,
+			"weeks_per_year": 52
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.37(2)–(3) — rest-day work is half/one day’s basic pay at the employee’s request and one/two days’ at the employer’s request",
+				"locator": "s.37(2)–(3)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2026-07-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
+		"eligibility": "// js\nconst entry = get(ctx, 'entry', {});\nreturn get(entry, 'unit', '') === 'HOUR' && Number(get(entry, 'quantity', 0)) > 0;\n",
+		"conversion": "// js\nconst terms = ctx.subject.employment.terms;\nconst rate = get(terms, 'rate', {});\nconst monthly =\n\tget(rate, 'unit', 'MONTHLY') === 'MONTHLY'\n\t\t? Number(get(rate, 'amount', 0))\n\t\t: Number(get(ctx, 'base_pay', 0));\nconst daily =\n\t(monthly * ctx.lookup.months_per_year) /\n\t(ctx.lookup.weeks_per_year * Number(get(terms, 'normal_days_per_week', 5)));\nconst hours = Number(ctx.entry.quantity);\nreturn (\n\tdaily *\n\t(hours <= Number(get(terms, 'normal_hours_per_day', 8)) / ctx.lookup.half_day_divisor\n\t\t? ctx.lookup.employer_request_days_up_to_half\n\t\t: ctx.lookup.employer_request_days_above_half)\n);\n",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "99e11b59-a784-5c6e-8118-c4562f903755",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "PART_TIME_REST_DAY_EXTRA_HOURS",
+		"name": "Part-time rest-day hours between own and full-time normal hours",
+		"lookup": {
+			"multiplier": 1,
+			"months_per_year": 12,
+			"weeks_per_year": 52
+		},
+		"references": [
+			{
+				"title": "MOM, Part-time employment: rest days — rest-day hours between the part-timer’s and full-time normal hours are paid at the hourly basic rate",
+				"locator": "Rest days",
+				"url": "https://www.mom.gov.sg/employment-practices/part-time-employment/rest-days",
+				"effective_from": "2026-07-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
+		"eligibility": "// js\nconst entry = get(ctx, 'entry', {});\nreturn ctx.subject.employment.engagement === 'PART_TIME' && get(entry, 'unit', '') === 'HOUR' && Number(get(entry, 'quantity', 0)) > 0;\n",
+		"conversion": "// js\nconst terms = ctx.subject.employment.terms;\nconst rate = get(terms, 'rate', {});\nconst monthly =\n\tget(rate, 'unit', 'MONTHLY') === 'MONTHLY'\n\t\t? Number(get(rate, 'amount', 0))\n\t\t: Number(get(ctx, 'base_pay', 0));\nconst hourly =\n\t(monthly * ctx.lookup.months_per_year) /\n\t(ctx.lookup.weeks_per_year * Number(get(terms, 'normal_hours_per_week', 44)));\nreturn Number(ctx.entry.quantity) * hourly * ctx.lookup.multiplier;\n",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "ea7a92ac-d05e-5cb4-961a-f9ef97dfa743",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "PART_TIME_REST_DAY_OVERTIME",
+		"name": "Part-time rest-day overtime beyond full-time normal hours",
+		"lookup": {
+			"multiplier": 1.5,
+			"months_per_year": 12,
+			"weeks_per_year": 52
+		},
+		"references": [
+			{
+				"title": "MOM, Part-time employment: rest days — rest-day hours beyond full-time normal hours are paid at 1.5× the hourly basic rate",
+				"locator": "Rest days",
+				"url": "https://www.mom.gov.sg/employment-practices/part-time-employment/rest-days",
+				"effective_from": "2026-07-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
+		"eligibility": "// js\nconst entry = get(ctx, 'entry', {});\nreturn ctx.subject.employment.engagement === 'PART_TIME' && get(entry, 'unit', '') === 'HOUR' && Number(get(entry, 'quantity', 0)) > 0;\n",
+		"conversion": "// js\nconst terms = ctx.subject.employment.terms;\nconst rate = get(terms, 'rate', {});\nconst monthly =\n\tget(rate, 'unit', 'MONTHLY') === 'MONTHLY'\n\t\t? Number(get(rate, 'amount', 0))\n\t\t: Number(get(ctx, 'base_pay', 0));\nconst hourly =\n\t(monthly * ctx.lookup.months_per_year) /\n\t(ctx.lookup.weeks_per_year * Number(get(terms, 'normal_hours_per_week', 44)));\nreturn Number(ctx.entry.quantity) * hourly * ctx.lookup.multiplier;\n",
+		"incurred_on": "return ctx.as_of;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "439ea493-e35f-5968-b849-b6aeafb3c791",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	}
+]

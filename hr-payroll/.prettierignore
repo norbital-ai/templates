@@ -1,0 +1,8 @@
+.norbital
+.svelte-check
+.tmp
+node_modules
+bun.lock
+
+# Vendored face-model JSONs for kiosk matching. Not ours to format.
+assets/models/

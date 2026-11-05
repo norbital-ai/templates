@@ -1,0 +1,59 @@
+[
+	{
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"name": "Medical claim (paid by the company direct)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "BIR RR 2-98 s.2.78.1(A)(3)(f) as amended by RR 29-2025: actual medical assistance is de minimis to PHP12,000 a year; the excess is an 'other benefit' within the PHP90,000 exclusion."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0 && (end == null || ctx.entry.incurred_on <= end);",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYER",
+		"id": "f052b818-73e0-518b-9b6e-cf307dd04777",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "MEDICAL_CLAIM",
+		"name": "Medical claim",
+		"lookup": {},
+		"references": [
+			{
+				"title": "BIR RR 2-98 s.2.78.1(A)(3)(f) as amended by RR 29-2025: actual medical assistance is de minimis to PHP12,000 a year; the excess is an 'other benefit' within the PHP90,000 exclusion."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0 && (end == null || ctx.entry.incurred_on <= end);",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "e2cb5cff-8de3-53dc-ad16-2a6c8ac2a929",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "DENTAL_CLAIM",
+		"name": "Dental claim",
+		"lookup": {},
+		"references": [
+			{
+				"title": "BIR RR 2-98 s.2.78.1(A)(3)(f) as amended by RR 29-2025: actual medical assistance is de minimis to PHP12,000 a year; the excess is an 'other benefit' within the PHP90,000 exclusion."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0 && (end == null || ctx.entry.incurred_on <= end);",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "80893171-14c5-5b2a-8101-c32d51c161f2",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	}
+]

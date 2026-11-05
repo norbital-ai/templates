@@ -1,0 +1,769 @@
+[
+	{
+		"code": "EPF",
+		"name": "Employees Provident Fund",
+		"references": [
+			{
+				"title": "Employees Provident Fund Act 1991 (Act 452)",
+				"locator": "s.43 and Third Schedule Parts A and E",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf",
+				"quote": "Part A: Malaysian citizens, permanent residents and pre-1-August-1998 electors below 60; Part E: Malaysian citizens aged 60 and above (Part E by its own terms reaches Malaysian citizens only). A non-citizen contributes under Part F; a permanent resident or pre-1998 elector aged 60 or above contributes under Part C. The first printed row of both Parts is NIL: wages of RM0.01 to RM10.00 attract no contribution. Above the table the total contribution is rounded up to the next ringgit and the employer’s share is that total less the employee’s rounded share, never two separate round-ups. Bands: RM20 to RM5,000, RM100 to RM20,000, contribution taken on the band's upper limit; employee 11%, employer 13% up to RM5,000 and 12% above; above RM20,000 each share is its percentage of the wage; Part E is the employer's 4% alone. Part A note under the RM5,000 row: \"Where the employer pays bonus to an employee who receives monthly wages of RM5,000.00 and below, and upon receiving the said bonus renders the wages received for that month to exceed RM5,000.00, the employer’s contribution shall be calculated at the rate of 13% of the amount of wages for the month. The total contribution which includes cents shall be rounded to the next ringgit.\" The employee's share stays on the printed row. The Act does not state how the total splits between the two shares above RM20,000. Part A para 1(c) and Part C para 1(c): a non-citizen who elected to contribute before 1 August 1998 stays on Part A below 60 and Part C from 60. The same bonus note covers those electors."
+			},
+			{
+				"title": "Employees Provident Fund Act 1991 (Act 452)",
+				"locator": "s.2 \"wages\"; s.48(1)-(2); s.51(2B)(a); First Schedule paras (2)-(3), (8), (13)",
+				"quote": "\"Wages\" excludes a retrenchment, lay-off or termination benefit, a payment in lieu of notice and \"overtime payment\". A person who has attained seventy-five is not an employee (First Schedule para (13)) and s.51(2B)(a) credits nothing to a member after seventy-five, so no part of the Third Schedule is charged from the month the person turns 75. A domestic servant is not an employee unless the employee gave one month's notice to be a member (paras (2)-(3)). A student on industrial training engaged without a contract of service or apprenticeship is not an employee (s.2)."
+			},
+			{
+				"title": "Employees Provident Fund (Amendment) Act 2025 (Act A1760)",
+				"quote": "Inserts Part F for non-citizens. Act A1760 deleted only Parts B and D and prints no age in Part F because the exclusion sits in the First Schedule. Pre-1-August-1998 non-citizen members remain on Parts A/C."
+			},
+			{
+				"title": "KWSP, Third Schedule effective 1 October 2025",
+				"locator": "Part A p.12",
+				"url": "https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
+				"quote": "Employee 11% of the band’s upper limit (or of the wage above RM20,000); employer 13% to RM5,000, where only additional wages lift the month over RM5,000, and 12% above; the employer’s share is the rounded total less the employee’s share.",
+				"effective_from": "2025-10-01"
+			},
+			{
+				"title": "KWSP, Employer Mandatory Contribution",
+				"locator": "note 1",
+				"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
+				"quote": "Contribution ceases at the age of 75."
+			},
+			{
+				"title": "KWSP, Employer Mandatory Contribution",
+				"locator": "example 2.1",
+				"url": "https://web.archive.org/web/20260810072920/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
+				"quote": "RM21,250 → 2,550.00 + 2,337.50 = RM4,888; the employee share is the exact 11% (5.5%) to the sen; above RM20,000 each share is the exact percentage of the wage and only the total, with its cents, is rounded up to the next ringgit."
+			},
+			{
+				"title": "KWSP, Contribution for Non-Malaysian Citizen Employees",
+				"url": "https://www.kwsp.gov.my/en/employer/responsibilities/non-malaysian-citizen-employees",
+				"quote": "A non-citizen who became a member before 1 August 1998 stays on Part A below 60 (Part C from 60) rather than Part F."
+			},
+			{
+				"title": "KWSP Form 17A (Khas)",
+				"quote": "An employee may elect a higher share; a contract may give a higher employer share. Neither goes below the Third Schedule."
+			},
+			{
+				"title": "Employment Act 1955",
+				"locator": "s.60A(3)(b), s.60A(4) proviso, s.60D(3)(a)(i)",
+				"quote": "AGC reprint as at 1 August 2023. Overtime is only the hours beyond the normal hours of work (s.60A(3)(b)); holiday work \"shall not be construed as overtime work\" (s.60A(4) proviso); the two days' wages for work within the normal hours on a paid holiday (s.60D(3)(a)(i)) are not overtime."
+			},
+			{
+				"title": "Employment Act 1955",
+				"locator": "s.60(3)(a), (b), (c) and s.60A(3)",
+				"quote": "Rest-day work within the normal hours (s.60(3)(a)/(b)) is not overtime; only s.60(3)(c) hours beyond the normal hours are overtime (s.60A(3))."
+			},
+			{
+				"title": "KWSP Employer FAQ",
+				"locator": "FAQ 21",
+				"quote": "Wages for work on a holiday are EPF wages \"unless the work attendance is considered as overtime\"."
+			},
+			{
+				"title": "2026-10-31: PartA/C bonus note is specific to bonus and actual wages; other additional wages remain in the non-bonus wage test. For unaligned bonus-crossing wages, both shares require evidenced KWSP confirmation; allocation is not inferred.",
+				"url": "https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025"
+			},
+			{
+				"title": "Third Schedule and KWSP worked examples establish rates and combined rounding; an authority-confirmed split is required when the two shares cannot be proven from those examples.",
+				"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution"
+			},
+			{
+				"title": "Employees Provident Fund Act 1991 (Act 452) s.2 \"wages\"",
+				"locator": "s.2 definition of \"wages\"; Third Schedule Part A note under the RM5,000 row",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf",
+				"quote": "\"Wages\" includes \"any bonus, commission or allowance payable by the employer to the employee\". The Part A note under the RM5,000 row charges the employer's 13% rate where a bonus lifts a month of wages of RM5,000 or below over RM5,000, so EPF is assessed on the month's wages including the bonus. This row reads the bonus-inclusive ADDITIONAL_WAGES checkpoint."
+			}
+		],
+		"off_cycle_eligible": false,
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "eb778268-60c3-57b9-980b-5c30bf0d04c6",
+		"employer_cost_subtotal_id": "eb6c83e4-6b9f-5290-9fee-16724e6e30ad",
+		"lookup": {
+			"employee_rate": 0.11,
+			"lower_employer_rate": 0.13,
+			"higher_employer_rate": 0.12,
+			"combined_rate": 0.23,
+			"senior_employer_rate": 0.04,
+			"senior_age": 60,
+			"maximum_age": 75,
+			"minimum_chargeable": 10,
+			"table_ceiling": 20000,
+			"lower_rate_ceiling": 5000,
+			"lower_salary_step": 20,
+			"minor_unit": 0.01,
+			"whole_unit": 1,
+			"hundred_units": 100
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nconst residency = get(employment, 'terms.residency_status', '');\nconst elected = get(employment, 'employee_extension_data.facts.statutory.EPF.elections.elected_before_1998', false) === true;\nconst excluded = get(employment, 'employee_extension_data.term_facts.industrial_training_student', false) === true;\nif (get(employment, 'engagement', '') === 'PAYEE' || excluded) return false;\nconst dob = get(employment, 'payroll.date_of_birth', '');\nif (dob === '') return false;\nconst age = age_on(dob, add_days(ctx.run.salary_coverage.from, -1));\nif (age >= ctx.lookup.maximum_age) return false;\nif (residency === 'CITIZEN') return true;\nif (residency === 'PERMANENT_RESIDENT') return age < ctx.lookup.senior_age;\nreturn elected && age < ctx.lookup.senior_age;",
+		"employee_amount": "const employment = ctx.subject.employment;\nconst w = Math.max(0, ctx.subtotals.ADDITIONAL_WAGES - ctx.overtime);\nconst dob = get(employment, 'payroll.date_of_birth', '');\nconst age = age_on(dob, add_days(ctx.run.salary_coverage.from, -1));\nif (age >= ctx.lookup.senior_age || w <= ctx.lookup.minimum_chargeable) return 0;\nif (w > ctx.lookup.table_ceiling) {\n const statutory = round(w * ctx.lookup.employee_rate, ctx.lookup.whole_unit, 'UP');\n return Math.max(statutory, round(w * get(employment, 'employee_extension_data.facts.statutory.EPF.elections.employee_rate', 0), ctx.lookup.whole_unit, 'UP'));\n}\nconst band = w <= ctx.lookup.lower_rate_ceiling ? round(w, ctx.lookup.lower_salary_step, 'UP') : round(w, ctx.lookup.hundred_units, 'UP');\nconst statutory = round(band * ctx.lookup.employee_rate, ctx.lookup.whole_unit, 'UP');\nreturn Math.max(statutory, round(w * get(employment, 'employee_extension_data.facts.statutory.EPF.elections.employee_rate', 0), ctx.lookup.whole_unit, 'UP'));",
+		"employer_amount": "const employment = ctx.subject.employment;\nconst w = Math.max(0, ctx.subtotals.ADDITIONAL_WAGES - ctx.overtime);\nconst dob = get(employment, 'payroll.date_of_birth', '');\nconst age = age_on(dob, add_days(ctx.run.salary_coverage.from, -1));\nif (w <= ctx.lookup.minimum_chargeable) return 0;\nconst band = w <= ctx.lookup.lower_rate_ceiling ? round(w, ctx.lookup.lower_salary_step, 'UP') : round(w, ctx.lookup.hundred_units, 'UP');\nif (age >= ctx.lookup.senior_age) return w > ctx.lookup.table_ceiling ? round(w * ctx.lookup.senior_employer_rate, ctx.lookup.whole_unit, 'UP') : round(band * ctx.lookup.senior_employer_rate, ctx.lookup.whole_unit, 'UP');\nif (w > ctx.lookup.table_ceiling) {\n const statutory = round(w * ctx.lookup.combined_rate, ctx.lookup.whole_unit, 'UP') - round(w * ctx.lookup.employee_rate, ctx.lookup.minor_unit, 'HALF_UP');\n return Math.max(statutory, round(w * get(employment, 'employee_extension_data.term_facts.contractual_epf_employer_rate', 0), ctx.lookup.whole_unit, 'UP'));\n}\nconst rate = w <= ctx.lookup.lower_rate_ceiling ? ctx.lookup.lower_employer_rate : ctx.lookup.higher_employer_rate;\nconst statutory = round(band * rate, ctx.lookup.whole_unit, 'UP');\nreturn Math.max(statutory, round(w * get(employment, 'employee_extension_data.term_facts.contractual_epf_employer_rate', 0), ctx.lookup.whole_unit, 'UP'));",
+		"id": "138e1b7d-1a9a-529b-b968-053b43a63ed8",
+		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19"
+	},
+	{
+		"code": "EPF_PR",
+		"name": "Employees Provident Fund (permanent residents aged 60 and above)",
+		"references": [
+			{
+				"title": "Employees Provident Fund Act 1991 (Act 452)",
+				"locator": "s.43 and Third Schedule Part C",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf",
+				"quote": "A permanent resident, or a non-citizen who elected to contribute before 1 August 1998, who has attained 60: employee 5.5% of wages, employer 6.5% for wages up to RM5,000 a month and 6% above that, and 5.5% / 6% for the months where wages exceed RM20,000. The printed ladder repeats Part A's brackets (RM10 to RM20, RM20 to RM5,000, RM100 to RM20,000) with the contribution taken on the band's upper limit and rounded up to the next ringgit. Above the table the total contribution is rounded up to the next ringgit and the employer’s share is that total less the employee’s rounded share, never two separate round-ups. Part C note: a bonus that lifts a monthly wage of RM5,000 or below over RM5,000 keeps the employer at 6.5% of the month’s wages, the total rounded to the next ringgit. Part A para 1(c) and Part C para 1(c): a non-citizen who elected to contribute before 1 August 1998 stays on Part A below 60 and Part C from 60; the same bonus note covers them. Above RM20,000 each share is the exact percentage of the wage and only the total, with its cents, is rounded up to the next ringgit."
+			},
+			{
+				"title": "Employees Provident Fund Act 1991 (Act 452)",
+				"locator": "s.2 \"wages\"; s.48(1)-(2); s.51(2B)(a); First Schedule paras (2)-(3), (8), (13)",
+				"quote": "\"Wages\" excludes a retrenchment, lay-off or termination benefit, a payment in lieu of notice and \"overtime payment\". A person who has attained seventy-five is not an employee (First Schedule para (13)) and s.51(2B)(a) credits nothing to a member after seventy-five, so no part of the Third Schedule is charged from the month the person turns 75. A domestic servant is not an employee unless the employee gave one month's notice to be a member (paras (2)-(3)). A student on industrial training engaged without a contract of service or apprenticeship is not an employee (s.2)."
+			},
+			{
+				"title": "Employees Provident Fund (Amendment) Act 2025 (Act A1760)",
+				"quote": "Act A1760 deleted only Parts B and D and prints no age in Part F because the exclusion sits in the First Schedule."
+			},
+			{
+				"title": "KWSP, Third Schedule effective 1 October 2025",
+				"url": "https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025",
+				"quote": "Checked 2026-09-28 in a browser (kwsp.gov.my answers 403 to non-browser clients): all 1,200 printed rows of Parts A, C and E equal the rule above, so the bands are derived from the printed rates, not transcribed.",
+				"effective_from": "2025-10-01"
+			},
+			{
+				"title": "KWSP, Employer Mandatory Contribution",
+				"locator": "note 1",
+				"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
+				"quote": "Contribution ceases at the age of 75."
+			},
+			{
+				"title": "KWSP, Employer Mandatory Contribution",
+				"locator": "example 2.1",
+				"url": "https://web.archive.org/web/20260810072920/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
+				"quote": "RM21,250 → 2,550.00 + 2,337.50 = RM4,888; the employee share is the exact 11% (5.5%) to the sen; above RM20,000 each share is the exact percentage of the wage and only the total, with its cents, is rounded up to the next ringgit."
+			},
+			{
+				"title": "KWSP, Contribution for Non-Malaysian Citizen Employees",
+				"quote": "Part C also carries a non-citizen who became an EPF member before 1 August 1998 once 60."
+			},
+			{
+				"title": "Employment Act 1955",
+				"locator": "s.60A(3)(b), s.60A(4) proviso, s.60D(3)(a)(i)",
+				"quote": "AGC reprint as at 1 August 2023. Overtime is only the hours beyond the normal hours of work (s.60A(3)(b)); holiday work \"shall not be construed as overtime work\" (s.60A(4) proviso); the two days' wages for work within the normal hours on a paid holiday (s.60D(3)(a)(i)) are not overtime."
+			},
+			{
+				"title": "Employment Act 1955",
+				"locator": "s.60(3)(a), (b), (c) and s.60A(3)",
+				"quote": "Rest-day work within the normal hours (s.60(3)(a)/(b)) is not overtime; only s.60(3)(c) hours beyond the normal hours are overtime (s.60A(3))."
+			},
+			{
+				"title": "KWSP Employer FAQ",
+				"locator": "FAQ 21",
+				"quote": "Wages for work on a holiday are EPF wages \"unless the work attendance is considered as overtime\"."
+			},
+			{
+				"title": "2026-10-31: PartA/C bonus note is specific to bonus and actual wages; other additional wages remain in the non-bonus wage test. For unaligned bonus-crossing wages, both shares require evidenced KWSP confirmation; allocation is not inferred.",
+				"url": "https://www.kwsp.gov.my/documents/d/guest/third_schedule_from_-1-october-2025"
+			},
+			{
+				"title": "Third Schedule and KWSP worked examples establish rates and combined rounding; an authority-confirmed split is required when the two shares cannot be proven from those examples.",
+				"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution"
+			},
+			{
+				"title": "Employees Provident Fund Act 1991 (Act 452) s.2 \"wages\"",
+				"locator": "s.2 definition of \"wages\"; Third Schedule Part C note under the RM5,000 row",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf",
+				"quote": "\"Wages\" includes \"any bonus, commission or allowance payable by the employer to the employee\". Part C repeats the bonus note: a bonus that lifts a month of wages of RM5,000 or below over RM5,000 keeps the employer at 6.5% of the month's wages. This row reads the bonus-inclusive ADDITIONAL_WAGES checkpoint."
+			}
+		],
+		"off_cycle_eligible": false,
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "eb778268-60c3-57b9-980b-5c30bf0d04c6",
+		"employer_cost_subtotal_id": "eb6c83e4-6b9f-5290-9fee-16724e6e30ad",
+		"lookup": {
+			"employee_rate": 0.055,
+			"lower_employer_rate": 0.065,
+			"higher_employer_rate": 0.06,
+			"combined_rate": 0.115,
+			"senior_age": 60,
+			"maximum_age": 75,
+			"minimum_chargeable": 10,
+			"table_ceiling": 20000,
+			"lower_rate_ceiling": 5000,
+			"lower_salary_step": 20,
+			"minor_unit": 0.01,
+			"whole_unit": 1,
+			"hundred_units": 100
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nconst residency = get(employment, 'terms.residency_status', '');\nconst elected = get(employment, 'employee_extension_data.facts.statutory.EPF.elections.elected_before_1998', false) === true;\nconst excluded = get(employment, 'employee_extension_data.term_facts.industrial_training_student', false) === true;\nif (get(employment, 'engagement', '') === 'PAYEE' || excluded) return false;\nif (!(residency === 'PERMANENT_RESIDENT' || (residency !== 'CITIZEN' && elected))) return false;\nconst dob = get(employment, 'payroll.date_of_birth', '');\nif (dob === '') return false;\nconst age = age_on(dob, add_days(ctx.run.salary_coverage.from, -1));\nreturn age >= ctx.lookup.senior_age && age < ctx.lookup.maximum_age;",
+		"employee_amount": "const w = Math.max(0, ctx.subtotals.ADDITIONAL_WAGES - ctx.overtime);\nif (w <= ctx.lookup.minimum_chargeable) return 0;\nif (w > ctx.lookup.table_ceiling) return round(w * ctx.lookup.employee_rate, ctx.lookup.minor_unit, 'HALF_UP');\nconst band = w <= ctx.lookup.lower_rate_ceiling ? round(w, ctx.lookup.lower_salary_step, 'UP') : round(w, ctx.lookup.hundred_units, 'UP');\nreturn round(band * ctx.lookup.employee_rate, ctx.lookup.whole_unit, 'UP');",
+		"employer_amount": "const w = Math.max(0, ctx.subtotals.ADDITIONAL_WAGES - ctx.overtime);\nif (w <= ctx.lookup.minimum_chargeable) return 0;\nif (w > ctx.lookup.table_ceiling) return round(w * ctx.lookup.combined_rate, ctx.lookup.whole_unit, 'UP') - round(w * ctx.lookup.employee_rate, ctx.lookup.minor_unit, 'HALF_UP');\nconst band = w <= ctx.lookup.lower_rate_ceiling ? round(w, ctx.lookup.lower_salary_step, 'UP') : round(w, ctx.lookup.hundred_units, 'UP');\nconst rate = w <= ctx.lookup.lower_rate_ceiling ? ctx.lookup.lower_employer_rate : ctx.lookup.higher_employer_rate;\nreturn round(band * rate, ctx.lookup.whole_unit, 'UP');",
+		"id": "a9667642-ecb2-58f2-90a1-74c85bcb7a48",
+		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19"
+	},
+	{
+		"code": "EPF_NON_CITIZEN",
+		"name": "Employees Provident Fund (non-citizen employees)",
+		"references": [
+			{
+				"title": "Employees Provident Fund (Amendment) Act 2025 (Act A1760)",
+				"locator": "s.10, Part F para 2",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf",
+				"quote": "Part F: a non-citizen employee and the employer each contribute 2% of the wages, mandatory from October 2025 wages (November 2025 contribution month). Charged on the wage as it stands: no Third Schedule bracketing and no wage ceiling. Para 2: “The total contribution which includes cents shall be rounded to the next ringgit”. It does not say which share carries the rounding; read here as the two 2% shares totalled and rounded up once, the employee share exact to the sen and the employer the rounded total less it (RM1,751: 35.02 + 35.02 = 70.04 → RM71; employee 35.02, employer 35.98). Prints no age because the exclusion sits in the First Schedule.",
+				"effective_from": "2025-10-01"
+			},
+			{
+				"title": "Employees Provident Fund Act 1991 (Act 452)",
+				"locator": "First Schedule paras 3, (8), (13); s.2; s.48(1)-(2); s.51(2B)(a)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf",
+				"quote": "A person who has attained seventy-five is not an employee and s.51(2B)(a) credits nothing to a member after seventy-five, so Part F is not charged from the month the person turns 75. s.2 excludes termination benefits and payment in lieu of notice. s.48(1)-(2): the employee deduction is no more than the contribution payable by the employee, so the employee share is never rounded up. An employee with the Board’s approval to join another scheme is not covered (para (8)). Pre-1-August-1998 non-citizen members remain on Parts A/C."
+			},
+			{
+				"title": "KWSP, Contribution for Non-Malaysian Citizen Employees",
+				"locator": "FAQ",
+				"url": "https://www.kwsp.gov.my/en/employer/responsibilities/non-malaysian-citizen-employees",
+				"quote": "Liable below 75 years of age. The FAQ rounds each share up (RM36 + RM36 = RM72, February 2026); the Act governs and prevails."
+			},
+			{
+				"title": "KWSP, Contribution for Non-Malaysian Citizen Employees (archived)",
+				"url": "https://web.archive.org/web/20260225120656/https://www.kwsp.gov.my/en/employer/responsibilities/non-malaysian-citizen-employees",
+				"quote": "Not liable: domestic workers and a worker without a valid work pass."
+			},
+			{
+				"title": "KWSP, Employer Mandatory Contribution",
+				"locator": "example 2.4",
+				"url": "https://web.archive.org/web/20260810072920/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution",
+				"quote": "RM6,710 → 134.20 + 134.20 = RM269."
+			},
+			{
+				"title": "Employment Act 1955",
+				"locator": "s.60A(3)(b), s.60A(4) proviso, s.60D(3)(a)(i)",
+				"quote": "AGC reprint as at 1 August 2023. Overtime is only the hours beyond the normal hours of work (s.60A(3)(b)); holiday work \"shall not be construed as overtime work\" (s.60A(4) proviso); the two days' wages for work within the normal hours on a paid holiday (s.60D(3)(a)(i)) are not overtime."
+			},
+			{
+				"title": "Employment Act 1955",
+				"locator": "s.60(3)(a), (b), (c) and s.60A(3)",
+				"quote": "Rest-day work within the normal hours (s.60(3)(a)/(b)) is not overtime; only s.60(3)(c) hours beyond the normal hours are overtime (s.60A(3))."
+			},
+			{
+				"title": "KWSP Employer FAQ",
+				"locator": "FAQ 21",
+				"quote": "Wages for work on a holiday are EPF wages \"unless the work attendance is considered as overtime\"."
+			},
+			{
+				"title": "Third Schedule and KWSP worked examples establish rates and combined rounding; an authority-confirmed split is required when the two shares cannot be proven from those examples.",
+				"url": "https://www.kwsp.gov.my/en/employer/responsibilities/non-malaysian-citizen-employees"
+			},
+			{
+				"title": "Employees Provident Fund Act 1991 (Act 452) s.2 \"wages\"; Act A1760 Part F",
+				"locator": "s.2 definition of \"wages\"; Part F para 1",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf",
+				"quote": "\"Wages\" includes \"any bonus, commission or allowance payable by the employer to the employee\", and Part F charges the two 2% shares on the wages as they stand, with no ceiling. This row reads the bonus-inclusive ADDITIONAL_WAGES checkpoint."
+			}
+		],
+		"off_cycle_eligible": false,
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "eb778268-60c3-57b9-980b-5c30bf0d04c6",
+		"employer_cost_subtotal_id": "eb6c83e4-6b9f-5290-9fee-16724e6e30ad",
+		"lookup": {
+			"employee_rate": 0.02,
+			"employer_rate": 0.02,
+			"maximum_age": 75,
+			"whole_unit": 1
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nconst residency = get(employment, 'terms.residency_status', '');\nconst elected = get(employment, 'employee_extension_data.facts.statutory.EPF.elections.elected_before_1998', false) === true;\nconst excluded = get(employment, 'employee_extension_data.term_facts.industrial_training_student', false) === true;\nif (get(employment, 'engagement', '') === 'PAYEE' || excluded) return false;\nif (residency === 'CITIZEN' || residency === 'PERMANENT_RESIDENT' || elected) return false;\nconst dob = get(employment, 'payroll.date_of_birth', '');\nif (dob === '') return true;\nreturn age_on(dob, add_days(ctx.run.salary_coverage.from, -1)) < ctx.lookup.maximum_age;",
+		"employee_amount": "return round(Math.max(0, ctx.subtotals.ADDITIONAL_WAGES - ctx.overtime) * ctx.lookup.employee_rate, ctx.lookup.whole_unit, 'UP');",
+		"employer_amount": "return round(Math.max(0, ctx.subtotals.ADDITIONAL_WAGES - ctx.overtime) * ctx.lookup.employer_rate, ctx.lookup.whole_unit, 'UP');",
+		"id": "c66b8a0b-b56c-5318-b17d-d9553a619fa6",
+		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19"
+	},
+	{
+		"code": "SOCSO",
+		"name": "Social Security Organisation (PERKESO)",
+		"references": [
+			{
+				"title": "Employees’ Social Security Act 1969 (Act 4)",
+				"locator": "s.2(5); First Schedule paras 12(i)-(iii), 12(iv), 12A; Third Schedule",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf",
+				"quote": "Second Category (employment injury only): an employee aged 60 or above, one first liable for contributions at 55 or above, and a certified invalid receiving an invalidity pension (para 12(i)-(iii)). Para 12(iv) (foreign workers) deleted by P.U. (A) 180/2024; a foreign worker whose work pass has lapsed is outside the invalidity scheme and pays the Second Category (para 12A). Wage table charged as 0.5% / 1.75% (invalidity) below 60 and employer-only 1.25% from 60, on wages capped at RM6,000. The first contribution due date includes earlier employers and is independent of registration or actual payment. \"Wages\" (Act 4 s.2 / Act 800 s.2) exclude a retrenchment, lay-off or termination benefit and a payment in lieu of notice. An industrial-training student engaged without a contract of service or apprenticeship is not an \"employee\" (s.2(5))."
+			},
+			{
+				"title": "Employees’ Social Security (Invalidity Scheme) amendment",
+				"locator": "P.U. (A) 180/2024",
+				"quote": "Effective 1 July 2024. Foreign workers contribute in the First Category (employment injury and invalidity).",
+				"effective_from": "2024-07-01"
+			},
+			{
+				"title": "Employees’ Social Security (Amendment) Act 2026 (Act A1788)",
+				"locator": "Parts I and IV",
+				"url": "https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf",
+				"quote": "Wages up to RM200 use the printed rows 1–6 of the Third Schedule; the 1.25% employment-injury column rounds half to even (RM200.01–300 → RM3.10)."
+			},
+			{
+				"title": "PERKESO Employer Circular 3/2024",
+				"quote": "RM6,000 wage ceiling and contribution bands."
+			},
+			{
+				"title": "PERKESO FAQ, Extension of the Invalidity Scheme to Foreign Workers",
+				"locator": "Q2, Q4",
+				"url": "https://www.perkeso.gov.my/images/pekerja_asing/250724%20-FAQ%20-%20INVALIDITY%20SCHEME%20FOREIGN%20WORKER.pdf",
+				"quote": "Foreign workers contribute in the First Category (employment injury and invalidity) since 1 July 2024."
+			},
+			{
+				"title": "Employment Insurance System Act 2017 (Act 800)",
+				"locator": "s.2",
+				"url": "https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf",
+				"quote": "\"Employee\" means a person employed for wages under a contract of service or apprenticeship; an industrial-training student engaged without one is not an employee, no contribution is due. Under such a contract the student is an employee and is charged like any other; neither First Schedule nor any order excludes students as such."
+			},
+			{
+				"title": "PERKESO Soalan Lazim",
+				"locator": "Q1; LINDUNG KERJAYA Q1",
+				"url": "https://www.perkeso.gov.my/hubungi-kami/saluran-hubungan/soalan-lazim.html",
+				"quote": "Read 2026-10-08. Industrial-training student without a contract of service or apprenticeship is not an employee."
+			},
+			{
+				"title": "Employment Act 1955",
+				"locator": "s.60A(3)(b), s.60A(4) proviso, s.60D(3)(a)(i)",
+				"quote": "AGC reprint as at 1 August 2023. Overtime is only the hours beyond the normal hours of work (s.60A(3)(b)); holiday work \"shall not be construed as overtime work\" (s.60A(4) proviso); the two days' wages for work within the normal hours on a paid holiday (s.60D(3)(a)(i)) are not overtime."
+			},
+			{
+				"title": "Employees' Social Security Act 1969 (Act 4) s.2(24)(e)",
+				"locator": "s.2(24) definition of \"wages\", paragraph (e)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf",
+				"quote": "\"Wages\" is \"all remuneration payable in money by an employer to an employee including any payment in respect of leave, holidays, overtime, and extra work on holidays\" but does not include \"(e) annual bonus\". SOCSO is assessed on the ordinary wages in ORDINARY_WAGES; the annual bonus in ADDITIONAL_WAGES is outside the SOCSO base."
+			}
+		],
+		"off_cycle_eligible": false,
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "eb778268-60c3-57b9-980b-5c30bf0d04c6",
+		"employer_cost_subtotal_id": "eb6c83e4-6b9f-5290-9fee-16724e6e30ad",
+		"lookup": {
+			"salary_ceiling": 6000,
+			"senior_age": 60,
+			"new_entrant_senior_age": 55,
+			"salary_class_step": 200,
+			"highest_midpoint": 5950,
+			"midpoint_offset": 50,
+			"employee_rate": 0.005,
+			"employer_rate": 0.0175,
+			"employer_only_rate": 0.0125,
+			"table_step": 0.1,
+			"half_step": 0.05,
+			"employee_bands": [
+				{
+					"up_to": 30,
+					"amount": 0.1
+				},
+				{
+					"up_to": 50,
+					"amount": 0.2
+				},
+				{
+					"up_to": 70,
+					"amount": 0.3
+				},
+				{
+					"up_to": 100,
+					"amount": 0.4
+				},
+				{
+					"up_to": 140,
+					"amount": 0.6
+				},
+				{
+					"up_to": 200,
+					"amount": 0.85
+				}
+			],
+			"employer_bands": [
+				{
+					"up_to": 30,
+					"amount": 0.4
+				},
+				{
+					"up_to": 50,
+					"amount": 0.7
+				},
+				{
+					"up_to": 70,
+					"amount": 1.1
+				},
+				{
+					"up_to": 100,
+					"amount": 1.5
+				},
+				{
+					"up_to": 140,
+					"amount": 2.1
+				},
+				{
+					"up_to": 200,
+					"amount": 2.95
+				}
+			],
+			"senior_bands": [
+				{
+					"up_to": 30,
+					"amount": 0.3
+				},
+				{
+					"up_to": 50,
+					"amount": 0.5
+				},
+				{
+					"up_to": 70,
+					"amount": 0.8
+				},
+				{
+					"up_to": 100,
+					"amount": 1.1
+				},
+				{
+					"up_to": 140,
+					"amount": 1.5
+				},
+				{
+					"up_to": 200,
+					"amount": 2.1
+				}
+			]
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nif (get(employment, 'engagement', '') === 'PAYEE') return false;\nif (get(employment, 'employee_extension_data.term_facts.industrial_training_student', false) === true) return false;\nif (get(employment, 'employee_extension_data.term_facts.receiving_pension', false) === true) return false;\nconst dob = get(employment, 'payroll.date_of_birth', '');\nreturn dob !== '';",
+		"employee_amount": "const employment = ctx.subject.employment;\nconst dob = get(employment, 'payroll.date_of_birth', '');\nconst age = age_on(dob, add_days(ctx.run.salary_coverage.from, -1));\nif (age >= ctx.lookup.senior_age) return 0;\nif (age >= ctx.lookup.new_entrant_senior_age && get(employment, 'employee_extension_data.facts.statutory.SOCSO.elections.first_insured_at_55_or_more', false) === true) return 0;\nconst w = Math.min(ctx.subtotals.ORDINARY_WAGES, ctx.lookup.salary_ceiling);\nif (w <= 0) return 0;\nif (w <= ctx.lookup.salary_class_step) return bracket(w, ctx.lookup.employee_bands);\nconst midpoint = w >= ctx.lookup.salary_ceiling ? ctx.lookup.highest_midpoint : round(w, 100, 'UP') - ctx.lookup.midpoint_offset;\nreturn midpoint * ctx.lookup.employee_rate;",
+		"employer_amount": "const employment = ctx.subject.employment;\nconst dob = get(employment, 'payroll.date_of_birth', '');\nconst age = age_on(dob, add_days(ctx.run.salary_coverage.from, -1));\nconst w = Math.min(ctx.subtotals.ORDINARY_WAGES, ctx.lookup.salary_ceiling);\nif (w <= 0) return 0;\nconst employerOnly = age >= ctx.lookup.senior_age || (age >= ctx.lookup.new_entrant_senior_age && get(employment, 'employee_extension_data.facts.statutory.SOCSO.elections.first_insured_at_55_or_more', false) === true);\nif (employerOnly) {\n if (w <= ctx.lookup.salary_class_step) return bracket(w, ctx.lookup.senior_bands);\n const midpoint = w >= ctx.lookup.salary_ceiling ? ctx.lookup.highest_midpoint : round(w, 100, 'UP') - ctx.lookup.midpoint_offset;\n return round(midpoint * ctx.lookup.employer_only_rate, ctx.lookup.half_step, 'HALF_EVEN');\n}\nif (w <= ctx.lookup.salary_class_step) return bracket(w, ctx.lookup.employer_bands);\nconst midpoint = w >= ctx.lookup.salary_ceiling ? ctx.lookup.highest_midpoint : round(w, 100, 'UP') - ctx.lookup.midpoint_offset;\nreturn round(midpoint * ctx.lookup.employer_rate, ctx.lookup.table_step, 'DOWN') + ctx.lookup.half_step;",
+		"id": "2f32085d-9108-59d0-826e-75ed05b54dbb",
+		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19"
+	},
+	{
+		"code": "EIS",
+		"name": "Employment Insurance System",
+		"references": [
+			{
+				"title": "Employment Insurance System Act 2017 (Act 800)",
+				"locator": "First Schedule paras 8-10; Second Schedule; s.2",
+				"url": "https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf",
+				"quote": "Covered employees contribute from age 18 until age 60; from 57 an employee for whom no contribution was payable before 57 is excluded (para 9). Para 10 excludes every foreign employee except (a) a permanent resident, (b) a lawful entrant allowed to reside twelve months or more and (c) a person born in Malaysia whose citizenship cannot be determined, both (b) and (c) holding a reg.5(3)(c) identity card (e.g. MyKAS). Wages up to RM200 use the printed rows 1–6 of the Second Schedule (5, 10, 15, 20, 25, 35 sen each side). The first contribution due date includes earlier employers and is independent of registration or actual payment. \"Wages\" (Act 4 s.2 / Act 800 s.2) exclude a retrenchment, lay-off or termination benefit and a payment in lieu of notice."
+			},
+			{
+				"title": "PERKESO Employer Circular 3/2024",
+				"quote": "RM6,000 wage ceiling and bands."
+			},
+			{
+				"title": "PERKESO FAQ, Domestic Workers",
+				"url": "https://www.perkeso.gov.my/images/pekerja_domestik/280721_-_FAQ_Domestic_Workers.pdf",
+				"quote": "Local domestic workers are covered since 1 June 2021; foreign domestic workers are not."
+			},
+			{
+				"title": "Employees’ Social Security Act 1969 (Act 4)",
+				"locator": "s.2(5)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf",
+				"quote": "An industrial-training student engaged without a contract of service or apprenticeship is not an \"employee\" (s.2(5))."
+			},
+			{
+				"title": "Employment Insurance System Act 2017 (Act 800)",
+				"locator": "s.2",
+				"url": "https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf",
+				"quote": "\"Employee\" means a person employed for wages under a contract of service or apprenticeship; an industrial-training student engaged without one is not an employee, no contribution is due. Under such a contract the student is an employee and is charged like any other; neither First Schedule nor any order excludes students as such."
+			},
+			{
+				"title": "PERKESO Soalan Lazim",
+				"locator": "Q1; LINDUNG KERJAYA Q1",
+				"url": "https://www.perkeso.gov.my/hubungi-kami/saluran-hubungan/soalan-lazim.html",
+				"quote": "Read 2026-10-08. Industrial-training student without a contract of service or apprenticeship is not an employee."
+			},
+			{
+				"title": "Employment Act 1955",
+				"locator": "s.60A(3)(b), s.60A(4) proviso, s.60D(3)(a)(i)",
+				"quote": "AGC reprint as at 1 August 2023. Overtime is only the hours beyond the normal hours of work (s.60A(3)(b)); holiday work \"shall not be construed as overtime work\" (s.60A(4) proviso); the two days' wages for work within the normal hours on a paid holiday (s.60D(3)(a)(i)) are not overtime."
+			},
+			{
+				"title": "Employment Insurance System Act 2017 (Act 800) s.2 \"wages\"",
+				"locator": "s.2 definition of \"wages\", paragraph (e)",
+				"url": "https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf",
+				"quote": "\"Wages\" excludes \"(e) any annual bonus\", so EIS is assessed on the ordinary wages in ORDINARY_WAGES and the annual bonus in ADDITIONAL_WAGES is outside the EIS base."
+			}
+		],
+		"off_cycle_eligible": false,
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "eb778268-60c3-57b9-980b-5c30bf0d04c6",
+		"employer_cost_subtotal_id": "eb6c83e4-6b9f-5290-9fee-16724e6e30ad",
+		"lookup": {
+			"salary_ceiling": 6000,
+			"minimum_age": 18,
+			"maximum_age": 60,
+			"prior_age": 57,
+			"salary_class_step": 200,
+			"highest_midpoint": 5950,
+			"midpoint_offset": 50,
+			"rate": 0.002,
+			"bands": [
+				{
+					"up_to": 30,
+					"amount": 0.05
+				},
+				{
+					"up_to": 50,
+					"amount": 0.1
+				},
+				{
+					"up_to": 70,
+					"amount": 0.15
+				},
+				{
+					"up_to": 100,
+					"amount": 0.2
+				},
+				{
+					"up_to": 140,
+					"amount": 0.25
+				},
+				{
+					"up_to": 200,
+					"amount": 0.35
+				}
+			]
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nif (get(employment, 'engagement', '') === 'PAYEE') return false;\nif (get(employment, 'employee_extension_data.term_facts.industrial_training_student', false) === true) return false;\nconst residency = get(employment, 'terms.residency_status', '');\nconst resident = residency === 'CITIZEN' || residency === 'PERMANENT_RESIDENT' || get(employment, 'employee_extension_data.facts.statutory.EIS.elections.mykas_resident', false) === true;\nif (!resident) return false;\nconst dob = get(employment, 'payroll.date_of_birth', '');\nif (dob === '') return false;\nconst age = age_on(dob, add_days(ctx.run.salary_coverage.from, -1));\nif (age < ctx.lookup.minimum_age || age >= ctx.lookup.maximum_age) return false;\nreturn !(age >= ctx.lookup.prior_age && get(employment, 'employee_extension_data.facts.statutory.EIS.elections.first_insured_at_57_or_more', false) === true);",
+		"employee_amount": "const w = Math.min(ctx.subtotals.ORDINARY_WAGES, ctx.lookup.salary_ceiling);\nif (w <= 0) return 0;\nif (w <= ctx.lookup.salary_class_step) return bracket(w, ctx.lookup.bands);\nconst midpoint = w >= ctx.lookup.salary_ceiling ? ctx.lookup.highest_midpoint : round(w, 100, 'UP') - ctx.lookup.midpoint_offset;\nreturn midpoint * ctx.lookup.rate;",
+		"employer_amount": "const w = Math.min(ctx.subtotals.ORDINARY_WAGES, ctx.lookup.salary_ceiling);\nif (w <= 0) return 0;\nif (w <= ctx.lookup.salary_class_step) return bracket(w, ctx.lookup.bands);\nconst midpoint = w >= ctx.lookup.salary_ceiling ? ctx.lookup.highest_midpoint : round(w, 100, 'UP') - ctx.lookup.midpoint_offset;\nreturn midpoint * ctx.lookup.rate;",
+		"id": "2a7a5606-952e-5801-b9a7-73f225cb136a",
+		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19"
+	},
+	{
+		"code": "PCB",
+		"name": "Monthly Tax Deduction (Potongan Cukai Bulanan)",
+		"references": [
+			{
+				"title": "Income Tax Act 1967 (Act 53)",
+				"locator": "ss.6A, 7(1), 46(1)(n), 47, 48, 107(2); Schedule 1",
+				"quote": "s.6A(2)(a) RM400 rebate and s.6A(2)(b) RM400 spouse rebate when chargeable income P ≤ RM35,000. s.107(2): a non-resident is charged 30% of all remuneration. s.46(1)(n): SOCSO/EIS (and SKBBK) employee contributions are relieved only as claimed on Form TP1 item C14, up to RM350 a year. s.48(4): shared entitlement excludes a split solely between spouses living together. s.7(1)(a)-(c), (1A): residence by days in Malaysia — 182 or more days in the basis year (s.7(1)(a)); a stay unbroken from 182 or more consecutive days in the previous basis year (s.7(1)(b)); 90 or more days with 90 or more in three of the four preceding basis years (s.7(1)(c)(ii))."
+			},
+			{
+				"title": "Income Tax Act 1967 (Act 53), Schedule 6",
+				"locator": "paras 13, 15(1)(b), 21-22, 25C",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf",
+				"quote": "AGC online text as at 1 January 2026. Para 15(1)(b): compensation for loss of employment exempt up to RM10,000 a completed year of service. Para 25C: long service award exempt up to RM2,000 per employee per year of assessment only after more than ten years with the same employer. Para 21(a): a non-resident employed in Malaysia for no more than 60 days in the year is exempt; para 22(a): past 60 days the exempted months are recovered. Para 13: official travelling allowance up to RM6,000 a year and child care allowance up to RM3,000; past-achievement / service-excellence / long-service awards up to RM2,000 together; none for an employee who controls the employer."
+			},
+			{
+				"title": "Income Tax (Deduction from Remuneration) Rules 1994"
+			},
+			{
+				"title": "LHDN, Specification for Monthly Tax Deduction (MTD) 2026",
+				"locator": "sections D and E; D(a) note p.9; D(2) Steps 1(C/E) and 4; D(3)-(5); E(9) item v p.21; E(5), E(13), E(15)",
+				"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf",
+				"quote": "Resident: year-to-date formula P = Σ(Y − K*) + (Y1 − K1) + (Y2 − K2)n + (Yt − Kt) − (D + S + DU + SU + QC); all EPF relief within RM4,000. D RM9,000 (the only automatic relief, D.2(i) item a); S RM4,000 spouse without income; DU RM7,000 disabled individual; SU a further RM6,000 disabled spouse; QC child relief RM2,000 under 18 or studying, RM8,000 tertiary or disabled, RM16,000 disabled in tertiary education, half amounts for a shared child. Normal MTD = [tax − (Z + X)] ÷ (n + 1), truncated to the sen and rounded up to 5 sen; additional remuneration adds the year’s tax with Yt − Kt; each component under RM10 is not deducted; the month’s zakat is then rebated. Optional deductions item k (D.2(ii)): SOCSO/EIS RM350 a year, the specification’s worked examples carry LP1 = 0 on a RM5,500 wage. D(a): exempt income is excluded from MTD remuneration; \"With effect from August 2017, MTD for resident on foreign workers is applicable to employees with an employment contract of or more than 182 days\". Non-resident 30%. D(b) and E(13): current additional-remuneration EPF is included once in the additional-pay calculation. D(3)-(5): approved REP, knowledge-worker and relocation C-suite profiles are 15% of projected chargeable income after relief and accumulated PCB/rebates; REP and knowledge-worker profiles retain the RM400/RM800 low-chargeable-income rebate, C-suite none; REP requires Malaysian citizenship, C-suite non-citizenship; REP and C-suite periods are exactly five consecutive assessment years. E(5), E(15): external zakat and religious-travel departure levy are rebates in the accepted claim month; full rebate amounts remain in history even when current PCB is zero. Accumulated MTD excludes CP38 directed instalments; accumulated rebates retain the full qualifying zakat, including TP3 openings. E(9): exempt perquisites leave the MTD remuneration (official travelling allowance up to RM6,000 a year, child care allowance up to RM3,000, awards up to RM2,000 together)."
+			},
+			{
+				"title": "LHDN, Form TP1 2026",
+				"url": "https://www.hasil.gov.my/wp-content/uploads/bm-borang-tp1-2026.pdf",
+				"quote": "Category caps, medical and education sublimits, shared contribution limits, alimony/spouse limits, claim intervals and joint-home interest shares apply to the tax-year totals. C11(a) voluntary EPF shares the RM4,000 statutory cap with compulsory contributions; C11(b) is a separate RM3,000 allocation. D1: external zakat and the religious-travel departure levy (limited to two lifetime journeys) are rebates."
+			},
+			{
+				"title": "LHDN, Nota Penerangan TP1 2026",
+				"url": "https://www.hasil.gov.my/wp-content/uploads/nota-penerangan-tp1-2026.pdf"
+			},
+			{
+				"title": "LHDN Public Ruling 7/2025",
+				"quote": "A qualifying child under 18 at any time in the basis year remains eligible for that year."
+			},
+			{
+				"title": "LHDN Public Ruling 1/2026",
+				"quote": "An approved resident Malaysian REP individual and five consecutive assessment years are required."
+			},
+			{
+				"title": "LHDN Public Ruling 2/2026",
+				"url": "https://www.hasil.gov.my/media/ikelbhz0/pr-2-2026-tax-treatment-of-foreign-nationals-exercising-employment-in-malaysia.pdf",
+				"quote": "Schedule 6 paragraph 21 applies to employment exercised while in Malaysia for no more than 60 days, not physical presence days alone."
+			},
+			{
+				"title": "Income Tax (Real Estate Property Gains) — REP incentive order",
+				"locator": "P.U. (A) 151/2012 rules 2-5, as amended",
+				"quote": "Requires an approved resident Malaysian REP individual and five consecutive assessment years."
+			},
+			{
+				"title": "Knowledge-worker incentive order",
+				"locator": "P.U. (A) 344/2010 rules 2, 4-7",
+				"quote": "Ministerial approval through IRDA and current employment in a qualifying activity with a designated company while residing in the specified region."
+			},
+			{
+				"title": "Relocation C-suite incentive order",
+				"locator": "P.U. (A) 242/2023 rules 3-7; rule 5(d); rule 7",
+				"url": "https://www.maicsa.org.my/media/8567/technical_announcements_230817_1_3.pdf",
+				"quote": "A non-citizen resident in a C-suite position with the approved company, the conditions in the Minister’s approval letter, minimum basic salary RM25,000 monthly (rule 5(d)), exactly five consecutive assessment years (rule 7). Gazette mirror at the URL."
+			},
+			{
+				"title": "Employment Act 1955",
+				"locator": "s.60A(3)(b), s.60A(4) proviso, s.60D(3)(a)(i)",
+				"quote": "AGC reprint as at 1 August 2023. Overtime is only the hours beyond the normal hours of work (s.60A(3)(b)); holiday work \"shall not be construed as overtime work\" (s.60A(4) proviso); the two days' wages for work within the normal hours on a paid holiday (s.60D(3)(a)(i)) are not overtime."
+			},
+			{
+				"title": "LHDN, Amendment to Specification for MTD Calculations Using Computerized Calculation for 2025",
+				"locator": "part C items 1-10; part E \"List of deductions\" a-p",
+				"url": "https://web.archive.org/web/2025/https://www.hasil.gov.my/media/mdahzjwi/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2025.pdf",
+				"quote": "Updated 1 January 2025; archived. The MTD formula and approved-profile formulas D(1)-(5) are unchanged between the 2025 and 2026 specifications; the YA2025 list of deductions a-p carries the same caps as 2026 except diagnosis/early intervention for a child with learning disabilities, limited to RM6,000 (raised to RM10,000 from YA2026). Tourist attractions (RM1,000) and food waste grinder/CCTV are YA2026 reliefs, not available in YA2025. Applied to assessment year 2025 (December 2025 pay)."
+			},
+			{
+				"title": "2026-10-31 calculation correction: actual dated TP1/TP3 claims and rebates; actual employee EPF ordinary parts/total contributions; before-salary amounts require reviewed evidence; bonus-only year-end corrections remain payable. Non-resident short-stay exemption is not awarded automatically from a local contract.",
+				"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf"
+			},
+			{
+				"title": "LHDN MTD2026 D additional Step1E and E1/E3/E5: truncate K2 to two decimals and apply the under-RM10 normal-MTD rule before computing annual normal MTD; Step2 recomputes K2 after actual additional EPF.",
+				"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf"
+			},
+			{
+				"title": "MTD2026 D additional-remuneration note / ITA25(1): employment income is taxed in the year received. PCB uses actual payment-date month/year and captured cash history; EPF and insurance retain their salary-period basis.",
+				"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf"
+			},
+			{
+				"title": "LHDN, MTD Calculation Specifications 2026 Using Computerized Calculation",
+				"locator": "paras 1-2 (normal and additional remuneration): P, K, K1, K2, Kt, n and n + 1; Steps 1-5; Table 1",
+				"url": "https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf",
+				"quote": "MTD = [(P - M) R + B - (Z + X)] / (n + 1), where P = [sum(Y - K) + (Y1 - K1) + (Y2 - K2) n + (Yt - Kt)] - [D + S + DU + SU + QC + (sum LP + LP1)]. The additional-remuneration method computes the same P with the current month's (Yt - Kt) and withholds the difference between the total tax for the year and X + the normal MTD for the month x (n + 1). Rounding: cut to sen, then up to the next 5 sen; below RM10 no deduction."
+			},
+			{
+				"title": "Encoded 2026-11-04: actual year-to-date and a bonus paid once",
+				"quote": "sum(Y - K) and X come from this employee's ctx.history.payslips for the same tax year (gross_earnings, employee_statutory_schemes, tax_withheld), never from a contract rate or a whole-year multiplication of the current month. Y1 is the ORDINARY_WAGES checkpoint (ordinary pay) and Yt is ADDITIONAL_WAGES - ORDINARY_WAGES, so a one-off bonus enters P once; Y2 repeats only the ordinary pay for the balance of the year. K1 is the declared pcb_epf_normal_month when supplied, otherwise the employee EPF apportioned by ordinary pay, and K is the aggregate employee statutory contributions the payslips record. In a bonus-only run Y1 is zero, so Y2 is zero and the next normal run catches up through X."
+			}
+		],
+		"off_cycle_eligible": false,
+		"kind": "TAX",
+		"depends_on": ["EPF", "EPF_PR", "EPF_NON_CITIZEN", "SOCSO", "EIS"],
+		"subtotal_id": "eb778268-60c3-57b9-980b-5c30bf0d04c6",
+		"employer_cost_subtotal_id": "eb6c83e4-6b9f-5290-9fee-16724e6e30ad",
+		"lookup": {
+			"nonresident_rate": 0.3,
+			"personal_relief": 9000,
+			"epf_relief_cap": 4000,
+			"socso_eis_relief_cap": 350,
+			"include_skbbk_relief": false,
+			"rebate": 400,
+			"rebate_threshold": 35000,
+			"minimum": 10,
+			"minor_unit": 0.01,
+			"five_minor_units": 0.05,
+			"tax_bands": [
+				{
+					"up_to": 5000,
+					"rate": 0
+				},
+				{
+					"up_to": 20000,
+					"rate": 0.01
+				},
+				{
+					"up_to": 35000,
+					"rate": 0.03
+				},
+				{
+					"up_to": 50000,
+					"rate": 0.06
+				},
+				{
+					"up_to": 70000,
+					"rate": 0.11
+				},
+				{
+					"up_to": 100000,
+					"rate": 0.19
+				},
+				{
+					"up_to": 400000,
+					"rate": 0.25
+				},
+				{
+					"up_to": 600000,
+					"rate": 0.26
+				},
+				{
+					"up_to": 2000000,
+					"rate": 0.28
+				},
+				{
+					"up_to": null,
+					"rate": 0.3
+				}
+			],
+			"employee_disabled_relief": 7000,
+			"spouse_disabled_relief": 6000,
+			"child_reliefs": {
+				"under_18_or_studying": 2000,
+				"under_18_or_studying_half": 1000,
+				"tertiary_or_disabled": 8000,
+				"tertiary_or_disabled_half": 4000,
+				"disabled_tertiary": 16000,
+				"disabled_tertiary_half": 8000
+			},
+			"spouse_relief": 4000
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nreturn get(employment, 'engagement', '') !== 'PAYEE';",
+		"employee_amount": "const employment = ctx.subject.employment;\nconst elections = get(employment, 'employee_extension_data.facts.statutory.PCB.elections', {});\nconst residency = get(employment, 'terms.residency_status', '');\nconst declared = get(elections, 'tax_residency', '');\nconst resident =\n\tdeclared === 'NON_RESIDENT'\n\t\t? false\n\t\t: declared === 'RESIDENT'\n\t\t\t? true\n\t\t\t: residency === 'CITIZEN' || residency === 'PERMANENT_RESIDENT';\nconst ordinary = Math.max(0, ctx.subtotals.ORDINARY_WAGES);\nconst total = Math.max(0, ctx.subtotals.ADDITIONAL_WAGES);\nconst bonus = Math.max(0, total - ordinary);\nif (!resident) {\n\tconst amount = round(\n\t\tround(total * ctx.lookup.nonresident_rate, ctx.lookup.minor_unit, 'TRUNCATE'),\n\t\tctx.lookup.five_minor_units,\n\t\t'UP'\n\t);\n\treturn amount < ctx.lookup.minimum ? 0 : amount;\n}\nconst period = String(get(ctx.run, 'period', '') || get(ctx.run, 'salary_coverage.from', ''));\nconst year = period.slice(0, 4);\nconst month = Number(period.slice(5, 7));\nconst remaining = month >= 1 && month <= 12 ? 13 - month : 12;\nconst subsequent = remaining - 1;\nconst prior = get(ctx.history, 'payslips', []).filter(\n\t(row) => String(get(row, 'period', '')).slice(0, 4) === year\n);\nconst priorGross = sum_field(prior, 'gross_earnings');\nconst priorScheme = (code) =>\n\tprior.reduce(\n\t\t(total, row) => total + Number(get(row, 'employee_statutory_schemes.' + code, 0)),\n\t\t0\n\t);\nconst priorEpf = Math.min(\n\tctx.lookup.epf_relief_cap,\n\tpriorScheme('EPF') + priorScheme('EPF_PR') + priorScheme('EPF_NON_CITIZEN')\n);\nconst priorTax = sum_field(prior, 'tax_withheld');\nconst employee = (code) => (Object.hasOwn(ctx.statutory, code) ? ctx.statutory[code].employee : 0);\nconst extra =\n\tget(elections, 'socso_eis_relief', false) === true\n\t\t? Math.min(\n\t\t\t\tctx.lookup.socso_eis_relief_cap,\n\t\t\t\tpriorScheme('SOCSO') +\n\t\t\t\t\tpriorScheme('EIS') +\n\t\t\t\t\tpriorScheme('SKBBK') +\n\t\t\t\t\temployee('SOCSO') +\n\t\t\t\t\temployee('EIS') +\n\t\t\t\t\temployee('SKBBK')\n\t\t\t)\n\t\t: 0;\nconst children =\n\tctx.lookup.child_reliefs.under_18_or_studying *\n\t\tNumber(get(elections, 'children_under_18_or_studying', 0)) +\n\tctx.lookup.child_reliefs.under_18_or_studying_half *\n\t\tNumber(get(elections, 'children_under_18_or_studying_half', 0)) +\n\tctx.lookup.child_reliefs.tertiary_or_disabled *\n\t\tNumber(get(elections, 'children_tertiary_or_disabled', 0)) +\n\tctx.lookup.child_reliefs.tertiary_or_disabled_half *\n\t\tNumber(get(elections, 'children_tertiary_or_disabled_half', 0)) +\n\tctx.lookup.child_reliefs.disabled_tertiary *\n\t\tNumber(get(elections, 'children_disabled_tertiary', 0)) +\n\tctx.lookup.child_reliefs.disabled_tertiary_half *\n\t\tNumber(get(elections, 'children_disabled_tertiary_half', 0));\nconst reliefs =\n\tctx.lookup.personal_relief +\n\t(get(employment, 'employee_extension_data.term_facts.disabled', false) === true\n\t\t? ctx.lookup.employee_disabled_relief\n\t\t: 0) +\n\t(get(elections, 'spouse_without_income', false) === true ? ctx.lookup.spouse_relief : 0) +\n\t(get(elections, 'spouse_disabled', false) === true ? ctx.lookup.spouse_disabled_relief : 0) +\n\tchildren;\nconst tp1 =\n\tNumber(get(elections, 'tp1_accumulated_deductions', 0)) +\n\tNumber(get(elections, 'tp1_monthly_deductions', 0)) +\n\textra;\nconst currentEpf = employee('EPF') + employee('EPF_PR') + employee('EPF_NON_CITIZEN');\nconst declaredNormal = Number(get(elections, 'pcb_epf_normal_month', 0));\nconst normalEpf =\n\tbonus > 0\n\t\t? declaredNormal > 0\n\t\t\t? Math.min(declaredNormal, currentEpf)\n\t\t\t: (currentEpf * ordinary) / total\n\t\t: currentEpf;\nconst room = ctx.lookup.epf_relief_cap - priorEpf;\nconst k1 = Math.min(normalEpf, room);\nconst kt = Math.min(currentEpf - normalEpf, room - k1);\nconst k2Normal = subsequent > 0 ? Math.min((room - k1) / subsequent, k1) : 0;\nconst k2Total = subsequent > 0 ? Math.min((room - k1 - kt) / subsequent, k1) : 0;\nconst base = priorGross - priorEpf - reliefs - tp1;\nconst normalP = Math.max(0, base + (ordinary - k1) + (ordinary - k2Normal) * subsequent);\nconst totalP = Math.max(\n\t0,\n\tbase + (ordinary - k1) + (ordinary - k2Total) * subsequent + bonus - kt\n);\nconst taxOn = (p) =>\n\tMath.max(\n\t\t0,\n\t\tladder(p, ctx.lookup.tax_bands) -\n\t\t\t(p <= ctx.lookup.rebate_threshold\n\t\t\t\t? ctx.lookup.rebate *\n\t\t\t\t\t(get(elections, 'spouse_without_income', false) === true ? 2 : 1)\n\t\t\t\t: 0)\n\t);\nconst normalMtd = round(\n\tround(\n\t\tMath.max(0, taxOn(normalP) - priorTax) / remaining,\n\t\tctx.lookup.minor_unit,\n\t\t'TRUNCATE'\n\t),\n\tctx.lookup.five_minor_units,\n\t'UP'\n);\nconst additional =\n\tbonus > 0 ? Math.max(0, taxOn(totalP) - priorTax - normalMtd * remaining) : 0;\nconst payable = round(\n\tround(normalMtd + additional, ctx.lookup.minor_unit, 'TRUNCATE'),\n\tctx.lookup.five_minor_units,\n\t'UP'\n);\nconst zakat = Number(get(elections, 'tp1_zakat_current', 0));\nreturn Math.max(0, (payable < ctx.lookup.minimum ? 0 : payable) - zakat);",
+		"employer_amount": "return 0;",
+		"id": "d088a3ae-4755-53e4-90e9-0890b8e63cbf",
+		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19"
+	},
+	{
+		"code": "HRDF",
+		"name": "Human Resource Development Levy (HRD Corp)",
+		"references": [
+			{
+				"title": "Pembangunan Sumber Manusia Berhad Act 2001 (Act 612)",
+				"locator": "ss.1, 2, 13-16; s.14 and First Schedule",
+				"quote": "Expanded to all industries from 1 March 2021. Registration is compulsory at 10 or more Malaysian employees and the levy is 1% of monthly wages; at 5 to 9 Malaysian employees registration is optional and the 0.5% levy falls due only once the employer has elected to register. s.2: the levy and the headcount test are on Malaysian citizens; a permanent resident is not a Malaysian employee. ss.2, 14-15 exclude domestic servants and part-time wages; the mandatory employer levy remains due without registration while the optional class needs an election. s.2 \"wages\" (AGC reprint 2017) \"includes any leave pay\"; it does not list payment for untaken leave among the exclusions (a)-(f) and it is not the (d) gratuity on discharge, so payment for untaken annual leave under Employment Act 1955 s.60E(3A) is levy wages."
+			},
+			{
+				"title": "Pembangunan Sumber Manusia Berhad (Imposition of Levy) order",
+				"locator": "P.U. (A) 84/2021, First Schedule",
+				"quote": "Employer-class order: the employer-declared Form 2 Malaysian employee count and dated employer standing select the rate."
+			},
+			{
+				"title": "HRD Corp, Registered Employers",
+				"quote": "10 or more Malaysian employees: compulsory registration, 1% levy; 5 to 9: optional registration, 0.5% levy once registered."
+			},
+			{
+				"title": "HRD Corp, Levy Calculation Guideline",
+				"quote": "Wages \"includes any leave pay and arrears of wages\"."
+			},
+			{
+				"title": "HRD Corp Employers Circular 5/2018",
+				"quote": "Employer class (headcount and registration) for the levy."
+			},
+			{
+				"title": "HRD Corp Employers Circular 19/2010",
+				"quote": "Excludes domestic servants and part-time wages."
+			},
+			{
+				"title": "Pembangunan Sumber Manusia Berhad levy exemption order",
+				"locator": "P.U. (A) 13/2026",
+				"quote": "HRD Corp Circular01/2026 and official implementation clarification cover January–December2026 wage contributions, including December payable by15 January2027. Resume ordinary levy January2027.",
+				"effective_from": "2026-01-01"
+			},
+			{
+				"title": "HRD Corp Employers Circular01/2026 and official implementation clarification",
+				"url": "https://hrdcorp.gov.my/wp-content/uploads/2026/01/Employers-Circular-No-01-2026.pdf",
+				"quote": "January through December2026 wage contributions exempt for qualifying registered education employers. Official clarification expressly includes December payable15 January2027."
+			},
+			{
+				"title": "Pembangunan Sumber Manusia Berhad Act 2001 (Act 612) s.2 \"wages\"",
+				"locator": "s.2 definition of \"wages\", paragraph (e)",
+				"quote": "\"Wages\" excludes \"(e) any bonus or commission\"; the 1% levy is assessed on the ordinary wages in ORDINARY_WAGES and the annual bonus in ADDITIONAL_WAGES is outside the levy base."
+			}
+		],
+		"off_cycle_eligible": false,
+		"kind": "CONTRIBUTION",
+		"depends_on": [],
+		"subtotal_id": "eb778268-60c3-57b9-980b-5c30bf0d04c6",
+		"employer_cost_subtotal_id": "eb6c83e4-6b9f-5290-9fee-16724e6e30ad",
+		"lookup": {
+			"compulsory_rate": 0.01,
+			"optional_rate": 0.005,
+			"education_schedule_exempt": true
+		},
+		"eligibility": "const employment = ctx.subject.employment;\nif (get(employment, 'engagement', '') === 'PAYEE' || get(employment, 'engagement', '') === 'PART_TIME') return false;\nif (get(employment, 'terms.residency_status', '') !== 'CITIZEN') return false;\nconst employer = ctx.subject.employer;\nif (get(employer, 'entity_extension_data.hrd_scope', '') === 'OUT_OF_SCOPE') return false;\nif (ctx.lookup.education_schedule_exempt === true) {\n const schedule = get(employer, 'entity_extension_data.hrd_education_schedule_code', 'NONE');\n if (schedule !== '' && schedule !== 'NONE') return false;\n}\nreturn true;",
+		"employee_amount": "return 0;",
+		"employer_amount": "const employer = ctx.subject.employer;\nconst registration = get(employer, 'entity_extension_data.hrd_registration_class', 'COMPULSORY');\nconst rate = registration === 'OPTIONAL' ? ctx.lookup.optional_rate : registration === 'COMPULSORY' ? ctx.lookup.compulsory_rate : 0;\nreturn Math.max(0, ctx.subtotals.ORDINARY_WAGES - ctx.overtime) * rate;",
+		"id": "f7123e26-d603-51a9-afbb-8be121c4c5ff",
+		"settings_id": "3a2c3fdf-1b49-55dc-a54c-288bd1d98f19"
+	}
+]

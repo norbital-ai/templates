@@ -1,0 +1,6 @@
+.norbital
+.svelte-check
+.tmp
+node_modules
+bun.lock
+

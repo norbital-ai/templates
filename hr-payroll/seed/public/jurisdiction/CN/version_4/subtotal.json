@@ -1,0 +1,44 @@
+[
+	{
+		"code": "BASIC",
+		"name": "Basic salary (基本工资)",
+		"previous_id": null,
+		"id": "bc834b2d-f4b7-5383-a538-8fb0c23b4538",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	},
+	{
+		"code": "ORDINARY_WAGES",
+		"name": "Ordinary wages (正常工资)",
+		"previous_id": "bc834b2d-f4b7-5383-a538-8fb0c23b4538",
+		"id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	},
+	{
+		"code": "ADDITIONAL_WAGES",
+		"name": "Additional wages (含奖金的工资总额)",
+		"previous_id": "07ca7854-5937-5233-92e2-128abdd58b42",
+		"id": "f62b9bd3-3366-55a0-b8af-6536872c1b2d",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	},
+	{
+		"code": "GROSS",
+		"name": "Gross earnings (应发工资)",
+		"previous_id": "f62b9bd3-3366-55a0-b8af-6536872c1b2d",
+		"id": "6d3de9a9-320c-52b9-aa89-1c7b18e0de18",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	},
+	{
+		"code": "NET",
+		"name": "Net pay (实发工资)",
+		"previous_id": "03146d74-1ed4-5309-ac56-9455245707ce",
+		"id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	},
+	{
+		"code": "FINAL_PAY",
+		"name": "Final pay and non-wage settlements",
+		"previous_id": "6d3de9a9-320c-52b9-aa89-1c7b18e0de18",
+		"id": "03146d74-1ed4-5309-ac56-9455245707ce",
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+	}
+]

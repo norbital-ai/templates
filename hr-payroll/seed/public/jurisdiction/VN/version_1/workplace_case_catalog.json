@@ -1,0 +1,86 @@
+[
+	{
+		"code": "PERSONAL_DATA_BREACH",
+		"name": "Personal data protection violation (Law 91/2025 art.23; Decree 13/2023 art.23 before 2026)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "ed372b93-97ae-5d33-a958-35bd81776fad",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573",
+		"references": [
+			{
+				"title": "Decree 13/2023/NĐ-CP on personal data protection",
+				"locator": "art.23",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm",
+				"effective_from": "2023-07-01"
+			}
+		]
+	},
+	{
+		"code": "ANNUAL_LEAVE_COMBINING_AGREEMENT",
+		"name": "Written agreement combining annual leave across years",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "a6d335fd-2f02-53f6-bd4a-24615ad4326f",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573",
+		"references": [
+			{
+				"title": "Labour Code 45/2019/QH14",
+				"locator": "art.113(3)",
+				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf"
+			}
+		]
+	},
+	{
+		"code": "CROSS_BORDER_WORK_RECORD",
+		"name": "Actual overseas work dates and country",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "1438e10b-8fc2-5897-9a69-ebe8af76172d",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573",
+		"references": [
+			{
+				"title": "Law on Personal Income Tax 04/2007/QH12",
+				"locator": "art.26(1)-(2)"
+			}
+		]
+	},
+	{
+		"code": "EXTERNAL_WAGE_RECORD",
+		"name": "Original external wage payment or cost allocation",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "d09ba7b9-3f86-58c9-9c35-80c29d487da4",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573",
+		"references": [
+			{
+				"title": "Circular 111/2013/TT-BTC",
+				"locator": "art.2(2)"
+			}
+		]
+	},
+	{
+		"code": "BENEFIT_SERVICE_RECORD",
+		"name": "Actual service attributable to a benefit award",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "3fdf74d7-4814-5322-8372-8a2d084aa010",
+		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573",
+		"references": [
+			{
+				"title": "Law on Social Insurance 41/2024/QH15",
+				"url": "https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm",
+				"effective_from": "2025-07-01"
+			}
+		]
+	}
+]

@@ -1,0 +1,101 @@
+[
+	{
+		"code": "ATTENDANCE_ALLOWANCE",
+		"name": "精皆勤手当 (attendance allowance)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "健康保険法 art.3(5), 厚生年金保険法 art.3(1)(iii) (報酬), 雇用保険法 art.4(4) (賃金), 所得税法 art.28 (給与所得) and in the overtime base (労働基準法 art.37(5) does not exclude it); excluded from the wage compared with the minimum wage (最低賃金法 art.4(3)(iii) with 施行規則 art.1(2)(i)). A sub-monthly entity (SEMI_MONTHLY, TEN_DAY, WEEKLY) pays the monthly amount spread evenly over the month’s parts (period.parts), each prorated by the part’s own paid days."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "a0da1d9d-dcfc-5197-8272-03915a93f5ae",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.ATTENDANCE_ALLOWANCE.amount', 0)) > 0;",
+		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.ATTENDANCE_ALLOWANCE.amount', 0));",
+		"incurred_on": "",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "6516442f-39d6-53d3-b897-f0a0dedb21da",
+		"settings_id": "9a8f3abb-412b-568c-b068-065d6033be69"
+	},
+	{
+		"code": "COMMUTING_ALLOWANCE",
+		"name": "通勤手当 (commuting allowance)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "所得税法",
+				"locator": "9条1項5号、所得税法施行令20条の2（通勤手当）",
+				"quote": "通勤手当は、合理的な運賃額の範囲で非課税とする。"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "a0da1d9d-dcfc-5197-8272-03915a93f5ae",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.COMMUTING_ALLOWANCE.amount', 0)) > 0;",
+		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.COMMUTING_ALLOWANCE.amount', 0));",
+		"incurred_on": "",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "8148f637-5684-5ae7-a771-c3085db65d89",
+		"settings_id": "9a8f3abb-412b-568c-b068-065d6033be69"
+	},
+	{
+		"code": "FAMILY_ALLOWANCE",
+		"name": "家族手当 (family allowance)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "健康保険法",
+				"locator": "3条5項（報酬）",
+				"quote": "家族手当は、労働の対償として支払われる限り報酬に含まれる。"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "a0da1d9d-dcfc-5197-8272-03915a93f5ae",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FAMILY_ALLOWANCE.amount', 0)) > 0;",
+		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FAMILY_ALLOWANCE.amount', 0));",
+		"incurred_on": "",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "163f27a4-a12c-5712-b7e9-fd3c6773d35f",
+		"settings_id": "9a8f3abb-412b-568c-b068-065d6033be69"
+	},
+	{
+		"code": "FIXED_ALLOWANCE",
+		"name": "役職手当・固定手当 (fixed allowance)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "健康保険法 art.3(5) and 厚生年金保険法 art.3(1)(iii) (報酬), 雇用保険法 art.4(4) (賃金) and 所得税法 art.28 (給与所得): a fixed allowance is remuneration, salary income and in the overtime base. A sub-monthly entity (SEMI_MONTHLY, TEN_DAY, WEEKLY) pays the monthly amount spread evenly over the month’s parts (period.parts), each prorated by the part’s own paid days."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "a0da1d9d-dcfc-5197-8272-03915a93f5ae",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0)) > 0;",
+		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0));",
+		"incurred_on": "",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "c390c5c1-cca6-5086-a5bd-fee62c02d065",
+		"settings_id": "9a8f3abb-412b-568c-b068-065d6033be69"
+	},
+	{
+		"code": "HOUSING_ALLOWANCE",
+		"name": "住宅手当 (housing allowance)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Remuneration, wages and salary income; excluded from the overtime base only where it varies with the housing cost (労働基準法施行規則 art.21(iii), 平成11年3月31日 基発170号). A sub-monthly entity (SEMI_MONTHLY, TEN_DAY, WEEKLY) pays the monthly amount spread evenly over the month’s parts (period.parts), each prorated by the part’s own paid days."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "a0da1d9d-dcfc-5197-8272-03915a93f5ae",
+		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.HOUSING_ALLOWANCE.amount', 0)) > 0;",
+		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.HOUSING_ALLOWANCE.amount', 0));",
+		"incurred_on": "",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "dd5592ef-a872-5195-92aa-d6983db6863d",
+		"settings_id": "9a8f3abb-412b-568c-b068-065d6033be69"
+	}
+]

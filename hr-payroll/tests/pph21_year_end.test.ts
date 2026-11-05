@@ -1,0 +1,70 @@
+// PPh 21's last tax period reckons the year's actual gross, premiums included, less the employee's own JHT and JP only.
+// The expected figure is PMK 168/2023 worked by hand for twelve Rp10,000,000 months.
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { describe, it } from '@effect/vitest';
+import { Schema } from 'effect';
+import { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
+import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
+
+const catalog = Schema.decodeUnknownSync(Schema.Array(JsonObject))(
+	JSON.parse(
+		readFileSync(
+			'seed/public/jurisdiction/ID/version_3/statutory_contribution_catalog.json',
+			'utf8'
+		)
+	)
+);
+const pph21 = catalog.find((row) => row.code === 'PPH21');
+assert.ok(pph21 !== undefined);
+
+describe('PPh 21 in December', () => {
+	it('adds the year of premiums and leaves BPJS Kesehatan undeducted', () => {
+		// gross 12 x 10,519,000 = 126,228,000; biaya jabatan 6,000,000; JHT and JP 3,600,000; PTKP 54,000,000
+		// taxable 62,628,000: 5% of 60,000,000 + 15% of 2,628,000 = 3,394,200, less 11 x 262,975 withheld
+		const tax = evaluate(
+			String(pph21.employee_amount),
+			'CALCULATION',
+			{
+				subject: {
+					employment: {
+						payroll: { marital_status: 'SINGLE', gender: 'MALE' },
+						employee_extension_data: { ptkp_dependents_count: 0 },
+						effective_range: { from: '2025-01-01', to: null }
+					},
+					employer: { entity_id: 'entity' }
+				},
+				lookup: pph21.lookup,
+				run: { salary_coverage: { from: '2026-12-01', to: '2026-12-31' } },
+				as_of: '2026-12-31',
+				subtotals: { ADDITIONAL_WAGES: 10_000_000 },
+				statutory: {
+					JHT: { employee: 200_000, employer: 370_000 },
+					JP: { employee: 100_000, employer: 200_000 },
+					JKK: { employee: 0, employer: 89_000 },
+					JKM: { employee: 0, employer: 30_000 },
+					KESEHATAN: { employee: 100_000, employer: 400_000 }
+				},
+				history: {
+					payslips: Array.from({ length: 11 }, (_, index) => ({
+						period: `2026-${String(index + 1).padStart(2, '0')}`,
+						entity_id: 'entity',
+						gross_earnings: 10_000_000,
+						employee_statutory: 400_000,
+						employee_statutory_schemes: { JHT: 200_000, JP: 100_000, KESEHATAN: 100_000 },
+						employer_statutory_schemes: {
+							JHT: 370_000,
+							JP: 200_000,
+							JKK: 89_000,
+							JKM: 30_000,
+							KESEHATAN: 400_000
+						},
+						tax_withheld: 262_975
+					}))
+				}
+			},
+			'PPH21'
+		);
+		assert.equal(tax, 501_475);
+	});
+});

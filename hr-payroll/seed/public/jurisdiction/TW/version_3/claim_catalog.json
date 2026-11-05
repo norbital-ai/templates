@@ -1,0 +1,22 @@
+[
+	{
+		"code": "BUSINESS_EXPENSE_REIMBURSEMENT",
+		"name": "Business expense reimbursement (因公支出)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "所得稅法 §14(1)(3): travel and per-diem expenses paid for the employer’s purpose within the prescribed standard are not salary income — an actual-cost reimbursement with its receipt counts toward no tax, insurance or pension base.",
+				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=14"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
+		"eligibility": "// js\nreturn (\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\tctx.entry.incurred_on >= ctx.run.salary_coverage.from &&\n\tctx.entry.incurred_on <= ctx.run.salary_coverage.to\n);",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "34b59887-e8d7-574b-b277-123095bc1761",
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+	}
+]

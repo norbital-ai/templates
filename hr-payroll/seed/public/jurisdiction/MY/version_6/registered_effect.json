@@ -1,0 +1,1943 @@
+[
+	{
+		"code": "retract-exit-effects",
+		"name": "Retract Exit Effects",
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:retract-exit-effects:' + ctx.entry.id + ':' + get(ctx.entry, 'effective_range.to', '')"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r, 'effective_range.to', null) != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:retract-exit-effects:' + r.id + ':' + get(r, 'effective_range.to', '');\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Review the obligations raised by a changed exit',\n\tdue_on: get(r, 'effective_range.to', r.effective_range.from),\n\toccurrence_key: key\n}];",
+		"id": "e0230102-ac49-5521-94b0-4216d854d036",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "encash-leave-on-exit",
+		"name": "Encash Leave On Exit",
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:encash-leave-on-exit:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r, 'effective_range.to', null) != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:encash-leave-on-exit:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Encash unused leave on exit',\n\tdue_on: get(r, 'final_pay_due_on', get(r, 'effective_range.to', r.effective_range.from)),\n\toccurrence_key: key\n}];",
+		"id": "1a98078b-02a9-57a7-80e2-f21681c7741c",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "raise-exit-pay",
+		"name": "Raise Exit Pay",
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:raise-exit-pay:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r, 'effective_range.to', null) != null && get(r, 'final_pay_due_on', null) != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:raise-exit-pay:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Raise final pay',\n\tdue_on: get(r, 'final_pay_due_on', get(r, 'effective_range.to', r.effective_range.from)),\n\toccurrence_key: key\n}];",
+		"id": "5380f8d4-c1e9-500a-ba6e-5184caacce4f",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "EPF_MONTHLY_CONTRIBUTION",
+		"name": "EPF_MONTHLY_CONTRIBUTION",
+		"lookup": {
+			"offset_days": 15
+		},
+		"references": [
+			{
+				"title": "Employees Provident Fund Act 1991 (Act 452)",
+				"locator": "ss.43, 45, 47, 49",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf"
+			},
+			{
+				"title": "Third Schedule as amended by Act A1760 s.10",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf"
+			},
+			{
+				"title": "KWSP, EPF Act 1991",
+				"locator": "Third Schedule",
+				"url": "https://www.kwsp.gov.my/en/epf-act-1991-third-schedule"
+			},
+			{
+				"title": "KWSP, Employer Mandatory Contribution",
+				"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:EPF_MONTHLY_CONTRIBUTION:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:EPF_MONTHLY_CONTRIBUTION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Remit EPF contributions',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "51a96b9d-babd-51fa-ab16-152085856524",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "SOCSO_EIS_MONTHLY_CONTRIBUTION",
+		"name": "SOCSO_EIS_MONTHLY_CONTRIBUTION",
+		"lookup": {
+			"offset_days": 15
+		},
+		"references": [
+			{
+				"title": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:SOCSO_EIS_MONTHLY_CONTRIBUTION:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SOCSO_EIS_MONTHLY_CONTRIBUTION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Remit SOCSO, EIS and SKBBK contributions',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "4c2caa69-3833-52a2-9d14-accd1099fea9",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "HRD_LEVY_MONTHLY",
+		"name": "HRD_LEVY_MONTHLY",
+		"lookup": {
+			"offset_days": 15
+		},
+		"references": [
+			{
+				"title": "Pembangunan Sumber Manusia Berhad Act 2001",
+				"locator": "ss.13(1), 14"
+			},
+			{
+				"title": "HRD Corp Employers FAQ",
+				"url": "https://web.archive.org/web/2026/https://hrdcorp.gov.my/faq"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:HRD_LEVY_MONTHLY:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:HRD_LEVY_MONTHLY:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Remit the HRD levy',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "c09377eb-e464-5898-bddd-8a575adf62c0",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "PCB_REMITTANCE",
+		"name": "PCB_REMITTANCE",
+		"lookup": {
+			"offset_days": 15
+		},
+		"references": [
+			{
+				"title": "Income Tax Act 1967 (Act 53)",
+				"locator": "s.107(1)-(4)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
+			},
+			{
+				"title": "Income Tax (Deduction from Remuneration) Rules 1994"
+			},
+			{
+				"title": "LHDN, Employer’s Responsibility",
+				"url": "https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:PCB_REMITTANCE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PCB_REMITTANCE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Remit PCB withholding',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "78b02fe6-0b14-5a9c-9fa3-005c39ceed53",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "encash-leave-at-window-end",
+		"name": "Encash Leave At Window End",
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:encash-leave-at-window-end:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:encash-leave-at-window-end:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Encash leave at the leave-year end',\n\tdue_on: add_years(r.effective_range.from, 1),\n\toccurrence_key: key\n}];",
+		"id": "21fb2dc9-5b50-5578-8b2e-2aaa2c76e7db",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "WAGE_PAYMENT_DEADLINE",
+		"name": "WAGE_PAYMENT_DEADLINE",
+		"lookup": {
+			"offset_days": 7
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 (Act 265)",
+				"locator": "ss.18(1), 19(1)-(3)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:WAGE_PAYMENT_DEADLINE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:WAGE_PAYMENT_DEADLINE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Pay wages by the statutory deadline',\n\tdue_on: get(r, 'pay_due_date', add_days(r.salary_coverage.to, ctx.lookup.offset_days)),\n\toccurrence_key: key\n}];",
+		"id": "f0f644a9-13e7-5c4a-bc36-264115df77f9",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "EA_FORM",
+		"name": "EA_FORM",
+		"references": [
+			{
+				"title": "Income Tax Act 1967 (Act 53)",
+				"locator": "s.83(1A)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
+			},
+			{
+				"title": "LHDN, Employer’s Responsibility",
+				"url": "https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:EA_FORM:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.salary_coverage.from.substring(5, 7) === '01';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:EA_FORM:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Issue Form EA',\n\tdue_on: month_end(add_months(r.salary_coverage.from, 1)),\n\toccurrence_key: key\n}];",
+		"id": "cc4eb21a-0472-5834-8368-bd77d88a4b7c",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "FORM_E_CP8D",
+		"name": "FORM_E_CP8D",
+		"lookup": {
+			"offset_months": 2
+		},
+		"references": [
+			{
+				"title": "Income Tax Act 1967 (Act 53)",
+				"locator": "s.83(1)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
+			},
+			{
+				"title": "LHDN, Employer’s Responsibility",
+				"url": "https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:FORM_E_CP8D:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.salary_coverage.from.substring(5, 7) === '01';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FORM_E_CP8D:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'File Form E and CP8D',\n\tdue_on: month_end(add_months(r.salary_coverage.from, ctx.lookup.offset_months)),\n\toccurrence_key: key\n}];",
+		"id": "ab2fb121-2b4f-5b19-acb3-caeee07947af",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "PUBLIC_HOLIDAY_NOTICE",
+		"name": "PUBLIC_HOLIDAY_NOTICE",
+		"references": [
+			{
+				"title": "Employment Act 1955",
+				"locator": "s.60D(1A)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:PUBLIC_HOLIDAY_NOTICE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.salary_coverage.from.substring(5, 7) === '12';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PUBLIC_HOLIDAY_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Publish next year\\'s public holidays',\n\tdue_on: r.salary_coverage.to,\n\toccurrence_key: key\n}];",
+		"id": "f6b55d0f-cfbe-5b2e-bc71-386254cee774",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "TERMS_PARTICULARS_ISSUE",
+		"name": "TERMS_PARTICULARS_ISSUE",
+		"references": [
+			{
+				"title": "Employment Regulations 1957 [P.U.(A) 333/1983] reg. 8(1)-(2) with reg. 5(b)",
+				"url": "https://jtksm.mohr.gov.my/sites/default/files/2023-03/1.%20EMPLOYMENT%20REGULATIONS%201957_0.pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:TERMS_PARTICULARS_ISSUE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:TERMS_PARTICULARS_ISSUE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Issue written particulars of employment',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];",
+		"id": "484443a8-2b8f-5e46-b30b-5316fca481e2",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "EPF_EMPLOYEE_REGISTRATION",
+		"name": "EPF_EMPLOYEE_REGISTRATION",
+		"lookup": {
+			"offset_days": 15
+		},
+		"references": [
+			{
+				"title": "Employees Provident Fund Act 1991 (Act 452)",
+				"locator": "s.43",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf"
+			},
+			{
+				"title": "Part VIIA s.70A as substituted by Act A1760 s.3",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf"
+			},
+			{
+				"title": "KWSP, Employer Mandatory Contribution",
+				"url": "https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:EPF_EMPLOYEE_REGISTRATION:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:EPF_EMPLOYEE_REGISTRATION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Register the employee with EPF',\n\tdue_on: add_days(month_end(r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "3d5d74dc-c53a-5cd7-9156-45663b3e56f4",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "SOCSO_EIS_EMPLOYEE_REGISTRATION",
+		"name": "SOCSO_EIS_EMPLOYEE_REGISTRATION",
+		"lookup": {
+			"offset_days": 30
+		},
+		"references": [
+			{
+				"title": "Employment Insurance System Act 2017 (Act 800)",
+				"locator": "s.16(1)(b) and First Schedule",
+				"url": "https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf"
+			},
+			{
+				"title": "PERKESO, Employer Registration",
+				"url": "https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:SOCSO_EIS_EMPLOYEE_REGISTRATION:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SOCSO_EIS_EMPLOYEE_REGISTRATION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Register the employee with SOCSO and EIS',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "03def325-0ead-559d-9bb6-92cbf28d018f",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "CP22_NEW_EMPLOYEE",
+		"name": "CP22_NEW_EMPLOYEE",
+		"lookup": {
+			"offset_days": 30
+		},
+		"references": [
+			{
+				"title": "Income Tax Act 1967 (Act 53)",
+				"locator": "s.83(2)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
+			},
+			{
+				"title": "LHDN, Notification of New Employees",
+				"url": "https://www.hasil.gov.my/en/majikan/pemberitahuan-pekerja-baharu/"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:CP22_NEW_EMPLOYEE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:CP22_NEW_EMPLOYEE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify LHDN of a new employee (CP22)',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "0f93f545-fb1c-5b78-a16d-1f390ca7db99",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "FOREIGN_EMPLOYEE_PARTICULARS",
+		"name": "FOREIGN_EMPLOYEE_PARTICULARS",
+		"lookup": {
+			"offset_days": 14
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 (Act 265)",
+				"locator": "ss.60K(1)-(3), 60O",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:FOREIGN_EMPLOYEE_PARTICULARS:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.terms, 'residency_status', '') === 'FOREIGNER';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FOREIGN_EMPLOYEE_PARTICULARS:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Report foreign employee particulars',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "a09d9865-81f3-5245-be0d-ef44d6b856c5",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "CP22A_CESSATION_AND_WITHHOLDING",
+		"name": "CP22A_CESSATION_AND_WITHHOLDING",
+		"lookup": {
+			"advance_notice_days": 30
+		},
+		"references": [
+			{
+				"title": "Income Tax Act 1967 (Act 53)",
+				"locator": "s.83(3), (5)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
+			},
+			{
+				"title": "LHDN, Notification of Cessation of Employment",
+				"url": "https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:CP22A_CESSATION_AND_WITHHOLDING:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r, 'effective_range.to', null) != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:CP22A_CESSATION_AND_WITHHOLDING:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify LHDN of a cessation and withholding (CP22A)',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), -ctx.lookup.advance_notice_days),\n\toccurrence_key: key\n}];",
+		"id": "26d601fa-baea-5f64-a2da-d8450b67542b",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "CP21_LEAVING_MALAYSIA",
+		"name": "CP21_LEAVING_MALAYSIA",
+		"lookup": {
+			"advance_notice_days": 30
+		},
+		"references": [
+			{
+				"title": "Income Tax Act 1967 (Act 53)",
+				"locator": "s.83(4)-(5)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
+			},
+			{
+				"title": "LHDN, Notification of Cessation of Employment",
+				"url": "https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/"
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:CP21_LEAVING_MALAYSIA:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.kind === 'OVERSEAS_DEPARTURE_NOTICE' && get(r, 'closed_on', null) == null && get(r, 'scheduled_on', null) != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:CP21_LEAVING_MALAYSIA:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify LHDN before an employee leaves Malaysia (CP21)',\n\tdue_on: add_days(get(r, 'scheduled_on', r.opened_on), -ctx.lookup.advance_notice_days),\n\toccurrence_key: key\n}];",
+		"id": "9f63256b-a534-5597-8bec-ced034a93852",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "TERMINATION_BENEFITS_FINAL_WAGES",
+		"name": "TERMINATION_BENEFITS_FINAL_WAGES",
+		"lookup": {
+			"offset_days": 3
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 (Act 265)",
+				"locator": "ss.20-21",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:TERMINATION_BENEFITS_FINAL_WAGES:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r, 'effective_range.to', null) != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:TERMINATION_BENEFITS_FINAL_WAGES:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Pay final wages on termination',\n\tdue_on: get(r, 'final_pay_due_on', add_days(get(r, 'effective_range.to', r.effective_range.from), ctx.lookup.offset_days)),\n\toccurrence_key: key\n}];",
+		"id": "ebead9f2-b71b-50c7-bed0-dd01fe2f4ed7",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "TERMINATION_BENEFIT_PAYMENT",
+		"name": "TERMINATION_BENEFIT_PAYMENT",
+		"lookup": {
+			"offset_days": 7,
+			"service_months": 12
+		},
+		"references": [
+			{
+				"title": "Employment (Termination and Lay-Off Benefits) Regulations 1980 regs. 3-6, 11, 12 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20(TERMINATION%20&%20LAY%20OFF%20BENEFITS)%20REGULATIONS%201980_0.pdf); Employment Act 1955 First Schedule paras 1A, 2(5); ss.13(2), 14(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:TERMINATION_BENEFIT_PAYMENT:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r, 'effective_range.to', null) != null && calendar_completed_months(r.effective_range.from, get(r, 'effective_range.to', r.effective_range.from)) >= ctx.lookup.service_months;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:TERMINATION_BENEFIT_PAYMENT:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Pay statutory termination benefits',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "4e4da4bd-0cf1-5a3c-a1d9-553173af124c",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "FOREIGN_EMPLOYEE_TERMINATION_NOTICE",
+		"name": "FOREIGN_EMPLOYEE_TERMINATION_NOTICE",
+		"lookup": {
+			"offset_days": 30
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 (Act 265)",
+				"locator": "s.60KA(1)-(2)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:FOREIGN_EMPLOYEE_TERMINATION_NOTICE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r, 'effective_range.to', null) != null && get(r.terms, 'residency_status', '') === 'FOREIGNER';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FOREIGN_EMPLOYEE_TERMINATION_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify the authorities of a foreign employee\\'s termination',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "153be5b4-ff96-5575-95dc-0c6eb46e402f",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "RETRENCHMENT_NOTIFICATION",
+		"name": "RETRENCHMENT_NOTIFICATION",
+		"lookup": {
+			"advance_notice_days": 30,
+			"retrenchment_grounds": [
+				"RETRENCHMENT",
+				"RETRENCHMENT_TERM_CONTRACT",
+				"UNILATERAL",
+				"BREACH_BY_EMPLOYER"
+			]
+		},
+		"references": [
+			{
+				"title": "Pemberitahuan Pemberhentian Pekerja 2004 (Borang PK) [P.U.(B) 430/2004] under Employment Act 1955",
+				"locator": "s.63"
+			},
+			{
+				"title": "JTKSM, Employees’ Retrenchment FAQ",
+				"url": "https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:RETRENCHMENT_NOTIFICATION:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r, 'effective_range.to', null) != null && ctx.lookup.retrenchment_grounds.includes(get(r.employee_extension_data, 'exit_ground', ''));",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:RETRENCHMENT_NOTIFICATION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify the Labour Department of retrenchment',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), -ctx.lookup.advance_notice_days),\n\toccurrence_key: key\n}];",
+		"id": "15be9058-692e-5ff9-87e3-fe92badddc55",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "FOREIGN_WORKER_LEVY",
+		"name": "FOREIGN_WORKER_LEVY",
+		"references": [
+			{
+				"title": "Immigration Department of Malaysia, Foreign Worker service page (levy table),; levy imposed under the Fees Act 1951 (Act 209); Employment Act 1955 s.24 (lawful deductions).",
+				"url": "https://www.imi.gov.my/index.php/en/main-services/foreign-worker/"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:FOREIGN_WORKER_LEVY:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.terms, 'residency_status', '') === 'FOREIGNER';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FOREIGN_WORKER_LEVY:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Pay the foreign worker levy',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];",
+		"id": "1a364cc0-db95-5199-bc22-fcbf8e1aa2c7",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "EPF_EMPLOYER_REGISTRATION",
+		"name": "EPF_EMPLOYER_REGISTRATION",
+		"lookup": {
+			"offset_days": 7
+		},
+		"references": [
+			{
+				"title": "KWSP employer registration: within seven days from hiring the first employee (EPF Act s.41(1)); do not manufacture a first-wage-month date.",
+				"url": "https://www.kwsp.gov.my/en/employer/responsibilities/registration"
+			}
+		],
+		"source_collection": "entity_profile_version",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:EPF_EMPLOYER_REGISTRATION:' + ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && !get(r, 'registrations', []).some((x) => get(x, 'scheme_code', '') === 'EPF');",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:EPF_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Register the employer with EPF',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "ecadb34e-2067-5906-a369-10b289bac4f6",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "HRD_EMPLOYER_REGISTRATION",
+		"name": "HRD_EMPLOYER_REGISTRATION",
+		"lookup": {
+			"offset_days": 30
+		},
+		"references": [
+			{
+				"title": "Pembangunan Sumber Manusia Berhad Act 2001",
+				"locator": "ss.13–14 and First Schedule"
+			},
+			{
+				"title": "PSMB (Registration of Employers and Payment of Levy) Regulations",
+				"locator": "reg.4(1)"
+			},
+			{
+				"title": "HRD Corp Employers FAQ",
+				"url": "https://web.archive.org/web/2026/https://hrdcorp.gov.my/faq"
+			}
+		],
+		"source_collection": "entity_profile_version",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:HRD_EMPLOYER_REGISTRATION:' + ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && !get(r, 'registrations', []).some((x) => get(x, 'scheme_code', '') === 'HRDF');",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:HRD_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Register the employer with HRD Corp',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "60bb1741-542d-5d2e-9818-fee3192632fa",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "REST_DAY_ROSTER",
+		"name": "REST_DAY_ROSTER",
+		"references": [
+			{
+				"title": "Employment Act 1955",
+				"locator": "s.59(2)–(3)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:REST_DAY_ROSTER:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:REST_DAY_ROSTER:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Publish the rest-day roster',\n\tdue_on: r.salary_coverage.to,\n\toccurrence_key: key\n}];",
+		"id": "f52f77fa-d3c1-5a38-8f9d-3a876a3e7256",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "OVERTIME_REST_HOLIDAY_WAGES_DEADLINE",
+		"name": "OVERTIME_REST_HOLIDAY_WAGES_DEADLINE",
+		"references": [
+			{
+				"title": "Employment Act 1955",
+				"locator": "s.19(2)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:OVERTIME_REST_HOLIDAY_WAGES_DEADLINE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:OVERTIME_REST_HOLIDAY_WAGES_DEADLINE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Pay overtime and rest-day wages',\n\tdue_on: month_end(add_months(r.salary_coverage.from, 1)),\n\toccurrence_key: key\n}];",
+		"id": "1dad5454-4581-549a-964c-75829f3a47c4",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "SOCSO_ACCIDENT_REPORT",
+		"name": "SOCSO_ACCIDENT_REPORT",
+		"lookup": {
+			"offset_days": 2
+		},
+		"references": [
+			{
+				"title": "Employees' Social Security Act 1969 ss.94(e), 94A(3); PERKESO, accident reporting within 48 hours of notification.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf"
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:SOCSO_ACCIDENT_REPORT:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn get(r.inputs, 'work_injury', false) === true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SOCSO_ACCIDENT_REPORT:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Report a workplace accident to SOCSO',\n\tdue_on: add_days(r.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "0e3a18ab-8087-52b6-84f2-7175680376ca",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "SOCSO_EIS_EMPLOYER_REGISTRATION",
+		"name": "SOCSO_EIS_EMPLOYER_REGISTRATION",
+		"lookup": {
+			"offset_days": 30
+		},
+		"references": [
+			{
+				"title": "Employees' Social Security Act 1969 s.4 and Employees' Social Security (General) Regulations 1971; Employment Insurance System Act 2017 s.14(1); PERKESO, Social Security Protection leaflet (2020): \"not later than 30 days on which the Act becomes applicable\".",
+				"url": "https://www.perkeso.gov.my/images/dokumen/SEPT_2020-RISALAH_EN.pdf"
+			}
+		],
+		"source_collection": "entity_profile_version",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:SOCSO_EIS_EMPLOYER_REGISTRATION:' + ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && !['SOCSO', 'EIS'].every((code) => get(r, 'registrations', []).some((x) => get(x, 'scheme_code', '') === code));",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SOCSO_EIS_EMPLOYER_REGISTRATION:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Register the employer with SOCSO and EIS',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "5e8eeef9-e8e6-5fba-b74a-03157f265057",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "PERKESO_CESSATION_NOTICE",
+		"name": "PERKESO_CESSATION_NOTICE",
+		"lookup": {
+			"offset_days": 30
+		},
+		"references": [
+			{
+				"title": "PERKESO, Social Security Protection leaflet (2020): \"within 30 days from of such cessation\"; PERKESO, Employer Registration — Cessation of Being An Employer.",
+				"url": "https://www.perkeso.gov.my/images/dokumen/SEPT_2020-RISALAH_EN.pdf"
+			}
+		],
+		"source_collection": "entity_profile_version",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:PERKESO_CESSATION_NOTICE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'ceased_on', null) != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PERKESO_CESSATION_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify PERKESO of a cessation',\n\tdue_on: add_days(get(r.entity_extension_data, 'ceased_on', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "6eed01a9-6015-50c5-8208-2240db84abf8",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "EPF_CESSATION_NOTICE",
+		"name": "EPF_CESSATION_NOTICE",
+		"lookup": {
+			"offset_days": 30
+		},
+		"references": [
+			{
+				"title": "Employees Provident Fund Act 1991 (Act 452) s.41(3): within the period and in the manner prescribed by the Board (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); KWSP, Update & Maintain Records — Termination Of Operations: \"within 30 days\" by Form KWSP 6 (Form B) (https://www.kwsp.gov.my/en/employer/responsibilities/records), last updated 4 June 2026, read 2026-10-08 in the browser."
+			}
+		],
+		"source_collection": "entity_profile_version",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:EPF_CESSATION_NOTICE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'ceased_on', null) != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:EPF_CESSATION_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify EPF of a cessation',\n\tdue_on: add_days(get(r.entity_extension_data, 'ceased_on', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "e33b399d-e6f4-5dd9-972e-65127d8adc5f",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "HRD_CESSATION_NOTICE",
+		"name": "HRD_CESSATION_NOTICE",
+		"lookup": {
+			"offset_days": 30
+		},
+		"references": [
+			{
+				"title": "Pembangunan Sumber Manusia Berhad Act 2001 and its Registration of Employers and Payment of Levy Regulations; HRD Corp FAQ: \"within 30 days after the company stops operating\".",
+				"url": "https://web.archive.org/web/20241207133132/https://hrdcorp.gov.my/faq"
+			}
+		],
+		"source_collection": "entity_profile_version",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:HRD_CESSATION_NOTICE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'ceased_on', null) != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:HRD_CESSATION_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify HRD Corp of a cessation',\n\tdue_on: add_days(get(r.entity_extension_data, 'ceased_on', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "e29cfb5c-2f1b-57d0-9a31-606e57d7e33a",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "MATERNITY_PROTECTION_REVIEW",
+		"name": "MATERNITY_PROTECTION_REVIEW",
+		"references": [
+			{
+				"title": "EA",
+				"locator": "ss.41A and 42",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:MATERNITY_PROTECTION_REVIEW:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r, 'effective_range.to', null) != null && get(r.employee_extension_data, 'pregnant_or_pregnancy_illness', false) === true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:MATERNITY_PROTECTION_REVIEW:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Review maternity protection on an exit',\n\tdue_on: get(r, 'effective_range.to', r.effective_range.from),\n\toccurrence_key: key\n}];",
+		"id": "f0e88407-956d-5e74-92a6-21cfc9276026",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "RETIREMENT_AGE_REVIEW",
+		"name": "RETIREMENT_AGE_REVIEW",
+		"lookup": {
+			"retirement_grounds": ["RETIREMENT", "EMPLOYEE_RETIREMENT"],
+			"retirement_age": 60
+		},
+		"references": [
+			{
+				"title": "Minimum Retirement Age Act 2012 (Act 753)",
+				"locator": "s.4"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:RETIREMENT_AGE_REVIEW:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r, 'effective_range.to', null) != null && ctx.lookup.retirement_grounds.includes(get(r.employee_extension_data, 'exit_ground', '')) && get(r, 'payroll.date_of_birth', null) != null && age_on(get(r, 'payroll.date_of_birth', ''), get(r, 'effective_range.to', r.effective_range.from)) < ctx.lookup.retirement_age;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:RETIREMENT_AGE_REVIEW:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Review retirement age on an exit',\n\tdue_on: get(r, 'effective_range.to', r.effective_range.from),\n\toccurrence_key: key\n}];",
+		"id": "62bddaba-c8f7-524b-ba71-2b189663bfa2",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "RETRENCHMENT_FOREIGN_FIRST",
+		"name": "RETRENCHMENT_FOREIGN_FIRST",
+		"lookup": {
+			"advance_notice_days": 30,
+			"retrenchment_grounds": [
+				"RETRENCHMENT",
+				"RETRENCHMENT_TERM_CONTRACT",
+				"UNILATERAL",
+				"BREACH_BY_EMPLOYER"
+			]
+		},
+		"references": [
+			{
+				"title": "EA",
+				"locator": "ss.60N–60O",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:RETRENCHMENT_FOREIGN_FIRST:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r, 'effective_range.to', null) != null && ctx.lookup.retrenchment_grounds.includes(get(r.employee_extension_data, 'exit_ground', '')) && get(r.terms, 'residency_status', '') === 'FOREIGNER';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:RETRENCHMENT_FOREIGN_FIRST:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Retrench foreign employees first',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), -ctx.lookup.advance_notice_days),\n\toccurrence_key: key\n}];",
+		"id": "14593bfc-326f-5b01-8e16-0d4e1ac37db6",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "FLEXIBLE_WORKING_REPLY",
+		"name": "FLEXIBLE_WORKING_REPLY",
+		"lookup": {
+			"offset_days": 60
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 s.60Q: written decision within sixty days of receipt of the actual request.",
+				"url": "https://jtksm.mohr.gov.my/sites/default/files/2023-11/Akta%20Kerja%201955%20%28Akta%20265%29.pdf"
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:FLEXIBLE_WORKING_REPLY:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.kind === 'FLEXIBLE_WORKING_REQUEST' && get(r, 'closed_on', null) == null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FLEXIBLE_WORKING_REPLY:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Reply to a flexible working request',\n\tdue_on: add_days(r.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "244c7f79-1829-5f45-b338-e3e9ba99f394",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "SEXUAL_HARASSMENT_NOTICE",
+		"name": "SEXUAL_HARASSMENT_NOTICE",
+		"references": [
+			{
+				"title": "EA",
+				"locator": "s.81H",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"source_collection": "entity_profile_version",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:SEXUAL_HARASSMENT_NOTICE:' + ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SEXUAL_HARASSMENT_NOTICE:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Publish the sexual harassment notice',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];",
+		"id": "874d34ef-425f-58c2-aa6d-63bb38c47c02",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "EMPLOYEE_REGISTER",
+		"name": "EMPLOYEE_REGISTER",
+		"references": [
+			{
+				"title": "EA",
+				"locator": "s.61(1)–(2)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			},
+			{
+				"title": "Employment Regulations 1957"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:EMPLOYEE_REGISTER:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:EMPLOYEE_REGISTER:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Update the employee register',\n\tdue_on: r.salary_coverage.to,\n\toccurrence_key: key\n}];",
+		"id": "3d2decab-e8e6-56f3-8863-ce6ac2ecfe39",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "PAYSLIP_ISSUE",
+		"name": "PAYSLIP_ISSUE",
+		"lookup": {
+			"offset_days": 7
+		},
+		"references": [
+			{
+				"title": "Employment Regulations 1957 (statement of wages); EPF Act 1991 s.42(1)."
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:PAYSLIP_ISSUE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PAYSLIP_ISSUE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Issue payslips',\n\tdue_on: add_days(r.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "5b409c8b-0e44-534a-82a1-f0f264042308",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "TAX_RECORDS_RETENTION",
+		"name": "TAX_RECORDS_RETENTION",
+		"references": [
+			{
+				"title": "Income Tax Act 1967",
+				"locator": "s.82",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:TAX_RECORDS_RETENTION:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.salary_coverage.from.substring(5, 7) === '01';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:TAX_RECORDS_RETENTION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Retain tax records',\n\tdue_on: month_end(r.salary_coverage.from),\n\toccurrence_key: key\n}];",
+		"id": "9a703e6a-06f9-582c-901d-c6882472705e",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "WORKERS_ACCOMMODATION_CERTIFICATE",
+		"name": "WORKERS_ACCOMMODATION_CERTIFICATE",
+		"references": [
+			{
+				"title": "Workers' Minimum Standards of Housing, Accommodations and Amenities Act 1990 (Act 446) s.24D and its regulations."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:WORKERS_ACCOMMODATION_CERTIFICATE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.employee_extension_data, 'employer_provided_accommodation', false) === true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:WORKERS_ACCOMMODATION_CERTIFICATE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Obtain a workers\\' accommodation certificate',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];",
+		"id": "955ffdcb-0e53-5053-87aa-435f847d51e4",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "WORK_PASS_RENEWAL",
+		"name": "WORK_PASS_RENEWAL",
+		"lookup": {
+			"advance_notice_days": 90
+		},
+		"references": [
+			{
+				"title": "Immigration Department of Malaysia, Foreign Worker service page; levy imposed under the Fees Act 1951 (Act 209). Read 2026-10-07: the renewal documents (FOMEMA, SPIKPA, FWCS).",
+				"url": "https://www.imi.gov.my/index.php/en/main-services/foreign-worker/"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:WORK_PASS_RENEWAL:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.terms, 'residency_status', '') === 'FOREIGNER' && get(r.employee_extension_data, 'work_pass_valid_until', null) != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:WORK_PASS_RENEWAL:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Renew a work pass',\n\tdue_on: add_days(get(r.employee_extension_data, 'work_pass_valid_until', r.effective_range.from), -ctx.lookup.advance_notice_days),\n\toccurrence_key: key\n}];",
+		"id": "a199f369-0e5c-5cde-a12c-9c875d470152",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "PERSONAL_DATA_DISPOSAL",
+		"name": "PERSONAL_DATA_DISPOSAL",
+		"lookup": {
+			"annual_due": "-12-31",
+			"retention_years": 7
+		},
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2010",
+				"locator": "s.10(1)–(2)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf"
+			},
+			{
+				"title": "Income Tax Act 1967",
+				"locator": "s.82(1)(a)"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:PERSONAL_DATA_DISPOSAL:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r, 'effective_range.to', null) != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PERSONAL_DATA_DISPOSAL:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Dispose of personal data',\n\tdue_on: add_years(get(r, 'effective_range.to', r.effective_range.from).substring(0, 4) + ctx.lookup.annual_due, ctx.lookup.retention_years),\n\toccurrence_key: key\n}];",
+		"id": "1696b48f-a04b-5a79-982c-bfb77db2ee12",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "CP58_AGENT_STATEMENT",
+		"name": "CP58_AGENT_STATEMENT",
+		"lookup": {
+			"annual_due": "-03-31"
+		},
+		"references": [
+			{
+				"title": "Income Tax Act 1967",
+				"locator": "s.83A(1)–(4)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:CP58_AGENT_STATEMENT:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && r.engagement === 'PAYEE';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:CP58_AGENT_STATEMENT:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Issue a CP58 statement to an agent',\n\tdue_on: add_years(r.effective_range.from.substring(0, 4) + ctx.lookup.annual_due, 1),\n\toccurrence_key: key\n}];",
+		"id": "121b18b7-abb8-5f00-adaa-baefbe166bb1",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "PDPA_PRIVACY_NOTICE",
+		"name": "PDPA s.7 privacy notice",
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2010 (Act 709) s.7(1)–(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf, reprint 2026, read 2026-10-07); s.6 General Principle.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:PDPA_PRIVACY_NOTICE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PDPA_PRIVACY_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Give the PDPA privacy notice',\n\tdue_on: r.effective_range.from,\n\toccurrence_key: key\n}];",
+		"id": "1e8065bc-e64d-5faa-ba03-be1589045cd8",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "PDPA_DPO_APPOINTMENT",
+		"name": "Appoint and register a data protection officer",
+		"lookup": {
+			"offset_days": 21,
+			"employee_count_threshold": 10000
+		},
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2010 s.12A(1)–(4) as inserted by Act A1727, in force 1 June 2025 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf, read 2026-10-07); Personal Data Protection Commissioner, Guideline on the Appointment of Data Protection Officer paras 4.2, 7.1 (https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2025/08/GP_DPO_ENG.pdf, read 2026-10-07)."
+			}
+		],
+		"source_collection": "entity_profile_version",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:PDPA_DPO_APPOINTMENT:' + ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && (get(r.entity_extension_data, 'pdpa_dpo_required', false) === true || get(r.entity_extension_data, 'employee_count', 0) > ctx.lookup.employee_count_threshold);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PDPA_DPO_APPOINTMENT:' + r.entity_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Appoint and register a data protection officer',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "3cdaa682-f33a-5ef9-ad3a-7557cdd26bab",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "PDPA_DPO_APPOINTMENT_UPDATE",
+		"name": "Appoint and register a data protection officer (scope reached)",
+		"lookup": {
+			"offset_days": 21
+		},
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2010 s.12A as inserted by Act A1727 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf); Guideline on the Appointment of Data Protection Officer paras 4.2, 7.1 (https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2025/08/GP_DPO_ENG.pdf, read 2026-10-07)."
+			}
+		],
+		"source_collection": "entity_profile_version",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:PDPA_DPO_APPOINTMENT_UPDATE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.entity_extension_data, 'pdpa_dpo_required', false) === true;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PDPA_DPO_APPOINTMENT_UPDATE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Review the data protection officer appointment',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "dc1eb114-95e9-5c31-89f6-233b5c417900",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "PDPA_BREACH_COMMISSIONER_NOTICE",
+		"name": "Notify the Commissioner of a personal data breach",
+		"lookup": {
+			"offset_days": 3
+		},
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2010 s.12B(1), (3) as inserted by Act A1727, in force 1 June 2025 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf, read 2026-10-07); Personal Data Protection Commissioner, Guideline on Data Breach Notification paras 6.1, 14.1 (https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2025/08/GP_DBN_ENG.pdf, read 2026-10-07)."
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:PDPA_BREACH_COMMISSIONER_NOTICE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.kind === 'PERSONAL_DATA_BREACH';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PDPA_BREACH_COMMISSIONER_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify the Commissioner of a personal data breach',\n\tdue_on: add_days(r.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "3ce9eb49-6baa-5573-9270-ad1445cd2270",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "PDPA_BREACH_DATA_SUBJECT_NOTICE",
+		"name": "Notify affected employees of a personal data breach",
+		"lookup": {
+			"offset_days": 7
+		},
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2010 s.12B(2) as inserted by Act A1727 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3301061_BI/Act%20709%20(Reprint%202026).pdf, read 2026-10-07); Guideline on Data Breach Notification paras 8.1, 9.1 (https://www.pdp.gov.my/ppdpv1/wp-content/uploads/2025/08/GP_DBN_ENG.pdf, read 2026-10-07)."
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:PDPA_BREACH_DATA_SUBJECT_NOTICE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.kind === 'PERSONAL_DATA_BREACH' && get(r.inputs, 'significant_harm', false) === true && get(r.inputs, 'commissioner_notified_on', null) != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:PDPA_BREACH_DATA_SUBJECT_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Notify employees of a personal data breach',\n\tdue_on: add_days(get(r.inputs, 'commissioner_notified_on', r.opened_on), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "06e9228c-f320-5898-a78a-e105dfe8fc8e",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "SEXUAL_HARASSMENT_INQUIRY",
+		"name": "Inquire into a sexual harassment complaint",
+		"lookup": {
+			"offset_days": 30
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 ss.81A, 81B(1)–(3), 81F(a)–(b) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:SEXUAL_HARASSMENT_INQUIRY:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.kind === 'SEXUAL_HARASSMENT_COMPLAINT';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SEXUAL_HARASSMENT_INQUIRY:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Inquire into a sexual harassment complaint',\n\tdue_on: add_days(r.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "52388156-b44d-5549-b232-d48eafdc617f",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "SEXUAL_HARASSMENT_DG_INQUIRY_REPORT",
+		"name": "Inquire when directed by the Director General and report",
+		"lookup": {
+			"offset_days": 30
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 ss.81B(4)–(5), 81D(1)–(2), 81F(c)–(d) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:SEXUAL_HARASSMENT_DG_INQUIRY_REPORT:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.kind === 'SEXUAL_HARASSMENT_COMPLAINT' && get(r.inputs, 'dg_directed_on', null) != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SEXUAL_HARASSMENT_DG_INQUIRY_REPORT:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Report a Director General-directed inquiry',\n\tdue_on: add_days(get(r.inputs, 'dg_directed_on', r.opened_on), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "379e16c1-a6c0-5296-b6a4-1199eb89e034",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "SEXUAL_HARASSMENT_FINDING_ACTION",
+		"name": "Act on a proven sexual harassment finding",
+		"references": [
+			{
+				"title": "Employment Act 1955 s.81C(a)–(b) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:SEXUAL_HARASSMENT_FINDING_ACTION:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.kind === 'SEXUAL_HARASSMENT_COMPLAINT' && get(r.inputs, 'inquiry_outcome', '') === 'PROVEN';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:SEXUAL_HARASSMENT_FINDING_ACTION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Act on a proven sexual harassment finding',\n\tdue_on: get(r, 'scheduled_on', r.opened_on),\n\toccurrence_key: key\n}];",
+		"id": "578df37a-9cc3-56d2-993f-d24cc776d776",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "FOREIGN_DOMESTIC_EMPLOYMENT_NOTICE",
+		"name": "Inform the Director General of a foreign domestic employee",
+		"lookup": {
+			"offset_days": 30
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 s.57A(1)–(2) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:FOREIGN_DOMESTIC_EMPLOYMENT_NOTICE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.terms, 'residency_status', '') === 'FOREIGNER' && get(r.employee_extension_data, 'employment_type', '') === 'DOMESTIC';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FOREIGN_DOMESTIC_EMPLOYMENT_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify the Director General of a foreign domestic employee',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "ee30bd46-e305-5b7d-bcad-f0dced6780d7",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "FOREIGN_DOMESTIC_TERMINATION_NOTICE",
+		"name": "Inform the Director General of a foreign domestic employee's termination",
+		"lookup": {
+			"offset_days": 30
+		},
+		"references": [
+			{
+				"title": "Employment Act 1955 s.57B(1)–(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:FOREIGN_DOMESTIC_TERMINATION_NOTICE:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r, 'effective_range.to', null) != null && get(r.terms, 'residency_status', '') === 'FOREIGNER' && get(r.employee_extension_data, 'employment_type', '') === 'DOMESTIC';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FOREIGN_DOMESTIC_TERMINATION_NOTICE:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Notify the Director General of a domestic employee\\'s termination',\n\tdue_on: add_days(get(r, 'effective_range.to', r.effective_range.from), ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "3076a6b7-70a9-598b-b749-b1864682833f",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "CP58_AGENT_STATEMENT_ON_EXIT",
+		"name": "CP58 statement for an agent whose engagement ended",
+		"lookup": {
+			"annual_due": "-03-31"
+		},
+		"references": [
+			{
+				"title": "Income Tax Act 1967 s.83A(1)–(4) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf, read 2026-10-07)",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:CP58_AGENT_STATEMENT_ON_EXIT:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r, 'effective_range.to', null) != null && r.engagement === 'PAYEE';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:CP58_AGENT_STATEMENT_ON_EXIT:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Issue a CP58 statement on an agent\\'s exit',\n\tdue_on: add_years(get(r, 'effective_range.to', r.effective_range.from).substring(0, 4) + ctx.lookup.annual_due, 1),\n\toccurrence_key: key\n}];",
+		"id": "82d7bd5f-4a99-588e-b86c-2d5bf5e03cda",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "FOREIGN_WORKER_MEDICAL_EXAMINATION",
+		"name": "FOMEMA medical examination of a new foreign worker",
+		"lookup": {
+			"offset_days": 30
+		},
+		"references": [
+			{
+				"title": "Immigration Department of Malaysia, Foreign Worker service page (https://www.imi.gov.my/index.php/en/main-services/foreign-worker/, read 2026-10-07): \"employers are given a period of 30 days to conduct health examination of foreign workers at the registered health centre with FOMEMA\"; Immigration Act 1959/63 and Immigration Regulations 1963 (visit pass conditions).",
+				"url": "https://www.imi.gov.my/index.php/en/main-services/foreign-worker/"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:FOREIGN_WORKER_MEDICAL_EXAMINATION:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.status === 'SEALED' && get(r.terms, 'residency_status', '') === 'FOREIGNER';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:FOREIGN_WORKER_MEDICAL_EXAMINATION:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\temployee_id: r.employee_id,\n\temployment_id: r.id,\n\ttitle: 'Send a new foreign worker for a FOMEMA examination',\n\tdue_on: add_days(r.effective_range.from, ctx.lookup.offset_days),\n\toccurrence_key: key\n}];",
+		"id": "20f7c2a9-0957-5465-8869-5f0b24c74cfc",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "COMPULSORY_HOLIDAYS_CHECK",
+		"name": "Publish the five compulsory holidays",
+		"references": [
+			{
+				"title": "Employment Act 1955 s.60D(1)(a)–(b) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-10-07).",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "'MY:COMPULSORY_HOLIDAYS_CHECK:' + ctx.entry.id"
+						}
+					}
+				},
+				"limit": 10
+			}
+		},
+		"condition": "// js\nconst r = ctx.entry;\nreturn r.salary_coverage.from.substring(5, 7) === '12';",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst r = ctx.entry;\nconst key = 'MY:COMPULSORY_HOLIDAYS_CHECK:' + r.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: r.entity_id,\n\ttitle: 'Confirm the compulsory holidays are published',\n\tdue_on: r.salary_coverage.to,\n\toccurrence_key: key\n}];",
+		"id": "a7855fd8-b534-5445-aee7-9e3f2f50e585",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	}
+]

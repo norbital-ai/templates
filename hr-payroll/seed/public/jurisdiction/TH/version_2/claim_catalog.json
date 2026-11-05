@@ -1,0 +1,23 @@
+[
+	{
+		"code": "TRAVEL_REIMBURSEMENT",
+		"name": "Travel and transport for work (reimbursed)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Revenue Code s.42(1); Labour Protection Act B.E. 2541 (1998) s.73",
+				"locator": "Revenue Code s.42(1); LPA s.73",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Travelling allowances paid for the performance of work are exempt income; the employer bears transport for work away from the usual locality."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "d286b773-69a3-5ca2-9fe5-e6d4ee89bdec",
+		"eligibility": "// js\n\tconst ended = get(ctx.subject.employment.effective_range, 'to', null);\n\treturn ended == null || ctx.entry.incurred_on <= ended;",
+		"conversion": "// js\n\treturn ctx.entry.quantity;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "c3cffd96-e869-56b9-af2a-85fa44730165",
+		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56"
+	}
+]

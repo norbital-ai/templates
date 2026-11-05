@@ -1,0 +1,70 @@
+[
+	{
+		"code": "FIXED_MONTHLY",
+		"name": "Fixed monthly allowance",
+		"lookup": {
+			"prorate": true
+		},
+		"references": [
+			{
+				"title": "CPF Act 1953 s.2(1) and First Schedule — a fixed monthly allowance is an Ordinary Wage",
+				"locator": "s.2(1); First Schedule",
+				"url": "https://sso.agc.gov.sg/Act/CPFA1953",
+				"effective_from": "2026-07-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
+		"eligibility": "return get(ctx.subject, 'employment.terms.rate.unit', '') === 'MONTHLY';",
+		"conversion": "// js\nconst amount = get(ctx.subject, 'employment.terms.allowances.FIXED_MONTHLY.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",
+		"incurred_on": "return ctx.run.salary_coverage.to;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "bb927594-86d3-5cb0-b35e-3a725bbb8417",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "PT_ANNUAL_HOURLY_AW",
+		"name": "Contractual annual leave hourly addition (AW)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment (Part-Time Employees) Regulations reg.7; MOM, Part-time employment: leave — an hourly leave addition needs a clear contractual agreement and is prohibited at 5 days/30–34 hours",
+				"locator": "reg.7",
+				"url": "https://www.mom.gov.sg/employment-practices/part-time-employment/leave",
+				"effective_from": "2026-07-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "576d9a95-0b2e-58eb-8d16-14dcd0cf8835",
+		"eligibility": "return ctx.subject.employment.engagement === 'PART_TIME';",
+		"conversion": "// js\nconst amount = get(ctx.subject, 'employment.terms.allowances.PT_ANNUAL_HOURLY_AW.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",
+		"incurred_on": "return ctx.run.salary_coverage.to;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "20deca5f-415c-544a-96bd-4556fb6bb65a",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	},
+	{
+		"code": "PT_ANNUAL_HOURLY_OW",
+		"name": "Contractual annual leave hourly addition (OW)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Employment (Part-Time Employees) Regulations reg.7; MOM, Part-time employment: leave — an hourly leave addition needs a clear contractual agreement and is prohibited at 5 days/30–34 hours",
+				"locator": "reg.7",
+				"url": "https://www.mom.gov.sg/employment-practices/part-time-employment/leave",
+				"effective_from": "2026-07-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
+		"eligibility": "return ctx.subject.employment.engagement === 'PART_TIME';",
+		"conversion": "// js\nconst amount = get(ctx.subject, 'employment.terms.allowances.PT_ANNUAL_HOURLY_OW.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",
+		"incurred_on": "return ctx.run.salary_coverage.to;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "8557b626-6676-586c-8ad8-bec3303ef0cd",
+		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
+	}
+]

@@ -1,0 +1,1535 @@
+[
+	{
+		"code": "FLEXIBLE_WORK_REQUEST",
+		"name": "Formal flexible work arrangement request",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "2345e6e7-687c-5766-b67f-79b0fa7e1138",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "MOM, Tripartite Guidelines on Flexible Work Arrangement Requests (from 1 December 2024) — formal request in writing; written decision within 2 months",
+				"locator": "TG-FWAR",
+				"url": "https://www.mom.gov.sg/employment-practices/good-work-practices/flexible-work-arrangements",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "PERSONAL_DATA_ACCESS_REQUEST",
+		"name": "Personal data access request",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "2f58c084-36ad-59fe-99ab-6dd69bbe7c96",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "PDPA 2012 s.21 — an access request must be answered within 30 days",
+				"locator": "s.21",
+				"url": "https://sso.agc.gov.sg/Act/PDPA2012",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "PERSONAL_DATA_CORRECTION_REQUEST",
+		"name": "Personal data correction request",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "d5b35930-52a3-5130-acc5-1368d38c6b74",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "PDPA 2012 s.22 — a correction request must be answered within 30 days",
+				"locator": "s.22",
+				"url": "https://sso.agc.gov.sg/Act/PDPA2012",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "DATA_BREACH",
+		"name": "Data breach (suspected or confirmed)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "6954dfb0-a694-5705-a2fa-f8ce57accead",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "PDPA 2012 ss.26C–26D — assess whether a breach is notifiable and notify the PDPC within 3 days",
+				"locator": "ss.26C–26D",
+				"url": "https://sso.agc.gov.sg/Act/PDPA2012",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "WORK_ACCIDENT_LIGHT_DUTY",
+		"name": "Work-related light duty (open on first employer notice)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "9fb8d04b-0403-500e-ab7c-9aac4f1b7b12",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "Workplace Safety and Health (Incident Reporting) Regulations — report a work accident causing light duty within 10 days",
+				"locator": "Incident reporting",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "WORK_ACCIDENT_FATAL",
+		"name": "Employee work-related fatality (open on accident date)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "da06a599-dc34-56f4-8bcc-99a98547e3f1",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "Workplace Safety and Health (Incident Reporting) Regulations — notify a fatal accident immediately and report within 10 days",
+				"locator": "Incident reporting",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "WORK_ACCIDENT_SUBSEQUENT_DEATH",
+		"name": "Later death from work injury/disease (open on learning the death)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "01cfbc6e-9736-5505-bc25-579b2c9d092f",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "Workplace Safety and Health (Incident Reporting) Regulations — notify a subsequent death from work injury immediately",
+				"locator": "Incident reporting",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "OCCUPATIONAL_DISEASE_DIAGNOSIS",
+		"name": "Employee occupational disease (open on receipt of diagnosis)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "92988583-025a-5412-ae60-cd085dfe0864",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "Workplace Safety and Health (Incident Reporting) Regulations — report an occupational disease within 10 days of diagnosis",
+				"locator": "Incident reporting",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "DANGEROUS_OCCURRENCE",
+		"name": "Reportable dangerous occurrence: workplace occupier (open on occurrence date)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "6cd59a18-e36f-5623-959c-9d6672dedd60",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "Workplace Safety and Health (Incident Reporting) Regulations — notify a dangerous occurrence as soon as practicable and report within 10 days",
+				"locator": "Incident reporting",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "PUBLIC_WORKPLACE_FATALITY",
+		"name": "Work-related public/self-employed fatality: occupier (open on occurrence date)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "3d93f86c-f24b-555d-93d7-3cff033a9b46",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "Workplace Safety and Health (Incident Reporting) Regulations — the occupier reports a work-related public fatality immediately and within 10 days",
+				"locator": "Incident reporting",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "PUBLIC_WORKPLACE_HOSPITAL_TREATMENT",
+		"name": "Work-related public/self-employed hospital treatment: occupier (open on occurrence date)",
+		"lookup": {},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "e8e14fda-97d6-5014-b6df-a4dc278cef74",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "Workplace Safety and Health (Incident Reporting) Regulations — the occupier reports work-related public hospital treatment within 10 days",
+				"locator": "Incident reporting",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "RETRENCHMENT_EMPLOYEE_NOTICE",
+		"name": "Affected employee receives retrenchment notice",
+		"lookup": {
+			"input_schema": {
+				"type": "object",
+				"properties": {},
+				"additionalProperties": false,
+				"required": [],
+				"description": "opened_on is actual delivery of the retrenchment notice to this employee. Reference and evidence identify that notice; employment_id identifies the affected agreement."
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "da53a3a4-85c2-5401-8300-d4f094284b35",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "Employment (Retrenchment Reporting) Notification 2019 — an employer with 10 or more employees notifies MOM within 5 working days",
+				"locator": "Notification 2019",
+				"url": "https://www.mom.gov.sg/employment-practices/retrenchment/mandatory-retrenchment-notifications",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "OVERSEAS_DEPARTURE_NOTICE",
+		"name": "Employer learns of overseas posting/departure",
+		"lookup": {
+			"input_schema": {
+				"type": "object",
+				"properties": {
+					"expected_return_on": {
+						"type": "string",
+						"format": "date"
+					},
+					"purpose": {
+						"type": "string",
+						"enum": ["OVERSEAS_POSTING", "OVERSEAS_EMPLOYMENT", "TRAINING", "BUSINESS", "OTHER"]
+					}
+				},
+				"additionalProperties": false,
+				"required": ["purpose"],
+				"description": "opened_on is actual employer awareness; scheduled_on is actual expected departure. Record the actual return plan where known. Existing documented IRAS exemption/clearance review determines withholding release, not the mere existence of this case."
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "77b7c479-b080-5737-8a12-6bd5f909c70a",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.68(7); IRAS, Tax clearance for employees (IR21) — notify and withhold on an impending departure",
+				"locator": "s.68(7)",
+				"url": "https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "CROSS_BORDER_WORK_RECORD",
+		"name": "Actual overseas work dates and country",
+		"lookup": {
+			"input_schema": {
+				"type": "object",
+				"properties": {
+					"period": {
+						"$ref": "#/$defs/period"
+					},
+					"country": {
+						"$ref": "#/$defs/country"
+					},
+					"work_days": {
+						"type": "array",
+						"minItems": 1,
+						"items": {
+							"type": "object",
+							"properties": {
+								"date": {
+									"type": "string",
+									"format": "date",
+									"title": "Actual work date"
+								},
+								"hours": {
+									"type": "number",
+									"exclusiveMinimum": 0,
+									"title": "Actual worked hours"
+								}
+							},
+							"additionalProperties": false,
+							"required": ["date"]
+						},
+						"title": "Actual worked dates",
+						"description": "Only dates actually worked in the stated country. Supply actual hours when the external source records them; absent hours stay unknown and may not become a full day. Do not copy hours already held in native roster records."
+					}
+				},
+				"additionalProperties": false,
+				"required": ["period", "country", "work_days"],
+				"description": "One continuous actual overseas work record for one employee/country, supported by the original timesheet or equivalent factual record. A planned posting letter alone does not prove actual work or presence. Native roster/source records retain ownership of dates/hours already recorded there.",
+				"$defs": {
+					"country": {
+						"type": "string",
+						"enum": [
+							"AF",
+							"AX",
+							"AL",
+							"DZ",
+							"AS",
+							"AD",
+							"AO",
+							"AI",
+							"AQ",
+							"AG",
+							"AR",
+							"AM",
+							"AW",
+							"AU",
+							"AT",
+							"AZ",
+							"BS",
+							"BH",
+							"BD",
+							"BB",
+							"BY",
+							"BE",
+							"BZ",
+							"BJ",
+							"BM",
+							"BT",
+							"BO",
+							"BQ",
+							"BA",
+							"BW",
+							"BV",
+							"BR",
+							"IO",
+							"VG",
+							"BN",
+							"BG",
+							"BF",
+							"BI",
+							"KH",
+							"CM",
+							"CA",
+							"CV",
+							"KY",
+							"CF",
+							"TD",
+							"CL",
+							"CN",
+							"CX",
+							"CC",
+							"CO",
+							"KM",
+							"CD",
+							"CG",
+							"CK",
+							"CR",
+							"CI",
+							"HR",
+							"CU",
+							"CW",
+							"CY",
+							"CZ",
+							"DK",
+							"DJ",
+							"DM",
+							"DO",
+							"EC",
+							"EG",
+							"SV",
+							"GQ",
+							"ER",
+							"EE",
+							"ET",
+							"FO",
+							"FK",
+							"FJ",
+							"FI",
+							"FR",
+							"GF",
+							"PF",
+							"TF",
+							"GA",
+							"GM",
+							"GE",
+							"DE",
+							"GH",
+							"GI",
+							"GR",
+							"GL",
+							"GD",
+							"GP",
+							"GU",
+							"GT",
+							"GG",
+							"GN",
+							"GW",
+							"GY",
+							"HT",
+							"HM",
+							"VA",
+							"HN",
+							"HK",
+							"HU",
+							"IS",
+							"IN",
+							"ID",
+							"IR",
+							"IQ",
+							"IE",
+							"IM",
+							"IL",
+							"IT",
+							"JM",
+							"JP",
+							"JE",
+							"JO",
+							"KZ",
+							"KE",
+							"KI",
+							"KP",
+							"KR",
+							"KW",
+							"KG",
+							"LA",
+							"LV",
+							"LB",
+							"LS",
+							"LR",
+							"LY",
+							"LI",
+							"LT",
+							"LU",
+							"MO",
+							"MG",
+							"MW",
+							"MY",
+							"MV",
+							"ML",
+							"MT",
+							"MH",
+							"MQ",
+							"MR",
+							"MU",
+							"YT",
+							"MX",
+							"FM",
+							"MD",
+							"MC",
+							"MN",
+							"ME",
+							"MS",
+							"MA",
+							"MZ",
+							"MM",
+							"NA",
+							"NR",
+							"NP",
+							"NL",
+							"NC",
+							"NZ",
+							"NI",
+							"NE",
+							"NG",
+							"NU",
+							"NF",
+							"MK",
+							"MP",
+							"NO",
+							"OM",
+							"PK",
+							"PW",
+							"PS",
+							"PA",
+							"PG",
+							"PY",
+							"PE",
+							"PH",
+							"PN",
+							"PL",
+							"PT",
+							"PR",
+							"QA",
+							"RE",
+							"RO",
+							"RU",
+							"RW",
+							"BL",
+							"SH",
+							"KN",
+							"LC",
+							"MF",
+							"PM",
+							"VC",
+							"WS",
+							"SM",
+							"ST",
+							"SA",
+							"SN",
+							"RS",
+							"SC",
+							"SL",
+							"SG",
+							"SX",
+							"SK",
+							"SI",
+							"SB",
+							"SO",
+							"ZA",
+							"GS",
+							"SS",
+							"ES",
+							"LK",
+							"SD",
+							"SR",
+							"SJ",
+							"SZ",
+							"SE",
+							"CH",
+							"SY",
+							"TW",
+							"TJ",
+							"TZ",
+							"TH",
+							"TL",
+							"TG",
+							"TK",
+							"TO",
+							"TT",
+							"TN",
+							"TR",
+							"TM",
+							"TC",
+							"TV",
+							"UG",
+							"UA",
+							"AE",
+							"GB",
+							"US",
+							"UM",
+							"VI",
+							"UY",
+							"UZ",
+							"VU",
+							"VE",
+							"VN",
+							"WF",
+							"EH",
+							"YE",
+							"ZM",
+							"ZW"
+						],
+						"x-norbital": {
+							"datatype": "country"
+						},
+						"title": "Actual country"
+					},
+					"period": {
+						"type": "object",
+						"properties": {
+							"from": {
+								"type": "string",
+								"format": "date",
+								"title": "Actual first day"
+							},
+							"to": {
+								"type": "string",
+								"format": "date",
+								"title": "Actual last day"
+							}
+						},
+						"additionalProperties": false,
+						"required": ["from", "to"],
+						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
+					}
+				}
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "285277a7-8e00-5b9a-9f1f-a73781eecb2e",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.10(1) — income for services performed in Singapore is sourced in Singapore",
+				"locator": "s.10(1)",
+				"url": "https://sso.agc.gov.sg/Act/ITA1947",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "EXTERNAL_WAGE_RECORD",
+		"name": "Original external wage payment or cost allocation",
+		"lookup": {
+			"input_schema": {
+				"type": "object",
+				"properties": {
+					"record_type": {
+						"type": "string",
+						"enum": ["PAYMENT", "COST_ALLOCATION"],
+						"title": "Original record type"
+					},
+					"original_payment_reference": {
+						"type": "string",
+						"minLength": 1,
+						"title": "Original wage payment reference",
+						"description": "For PAYMENT, the unique actual payment/source reference. For COST_ALLOCATION, the original payment to which the actual recharge/allocation relates."
+					},
+					"earned_period": {
+						"$ref": "#/$defs/period"
+					},
+					"component_code": {
+						"type": "string",
+						"minLength": 1,
+						"title": "Original wage/benefit component code"
+					},
+					"amount": {
+						"type": "number",
+						"title": "Original amount",
+						"description": "The actual signed source amount. Record original payments and source-documented corrections separately; never enter a calculated domestic share or percentage."
+					},
+					"currency": {
+						"type": "string",
+						"pattern": "^[A-Z]{3}$",
+						"title": "Original currency",
+						"description": "The actual original ISO4217 source currency. Do not convert it into payroll currency while capturing the record."
+					},
+					"payer": {
+						"$ref": "#/$defs/party"
+					},
+					"service_beneficiary": {
+						"$ref": "#/$defs/party"
+					},
+					"cost_bearer": {
+						"$ref": "#/$defs/party"
+					},
+					"reverses_reference": {
+						"type": "string",
+						"minLength": 1,
+						"title": "Original record being corrected/reversed"
+					}
+				},
+				"additionalProperties": false,
+				"required": [
+					"record_type",
+					"original_payment_reference",
+					"earned_period",
+					"component_code",
+					"amount",
+					"currency",
+					"payer",
+					"service_beneficiary"
+				],
+				"description": "One actual source payment/component or actual issued cost allocation. opened_on is the actual paid date for PAYMENT, or actual allocation-issued date for COST_ALLOCATION; allocation is never payment proof. Payer is who paid the original remuneration, service beneficiary is the entity receiving the work, and cost bearer is the entity charged the actual allocated amount. The employee is the native case employment. Current-workspace payslips and same-employer prior_payroll records must not be duplicated here.",
+				"$defs": {
+					"country": {
+						"type": "string",
+						"enum": [
+							"AF",
+							"AX",
+							"AL",
+							"DZ",
+							"AS",
+							"AD",
+							"AO",
+							"AI",
+							"AQ",
+							"AG",
+							"AR",
+							"AM",
+							"AW",
+							"AU",
+							"AT",
+							"AZ",
+							"BS",
+							"BH",
+							"BD",
+							"BB",
+							"BY",
+							"BE",
+							"BZ",
+							"BJ",
+							"BM",
+							"BT",
+							"BO",
+							"BQ",
+							"BA",
+							"BW",
+							"BV",
+							"BR",
+							"IO",
+							"VG",
+							"BN",
+							"BG",
+							"BF",
+							"BI",
+							"KH",
+							"CM",
+							"CA",
+							"CV",
+							"KY",
+							"CF",
+							"TD",
+							"CL",
+							"CN",
+							"CX",
+							"CC",
+							"CO",
+							"KM",
+							"CD",
+							"CG",
+							"CK",
+							"CR",
+							"CI",
+							"HR",
+							"CU",
+							"CW",
+							"CY",
+							"CZ",
+							"DK",
+							"DJ",
+							"DM",
+							"DO",
+							"EC",
+							"EG",
+							"SV",
+							"GQ",
+							"ER",
+							"EE",
+							"ET",
+							"FO",
+							"FK",
+							"FJ",
+							"FI",
+							"FR",
+							"GF",
+							"PF",
+							"TF",
+							"GA",
+							"GM",
+							"GE",
+							"DE",
+							"GH",
+							"GI",
+							"GR",
+							"GL",
+							"GD",
+							"GP",
+							"GU",
+							"GT",
+							"GG",
+							"GN",
+							"GW",
+							"GY",
+							"HT",
+							"HM",
+							"VA",
+							"HN",
+							"HK",
+							"HU",
+							"IS",
+							"IN",
+							"ID",
+							"IR",
+							"IQ",
+							"IE",
+							"IM",
+							"IL",
+							"IT",
+							"JM",
+							"JP",
+							"JE",
+							"JO",
+							"KZ",
+							"KE",
+							"KI",
+							"KP",
+							"KR",
+							"KW",
+							"KG",
+							"LA",
+							"LV",
+							"LB",
+							"LS",
+							"LR",
+							"LY",
+							"LI",
+							"LT",
+							"LU",
+							"MO",
+							"MG",
+							"MW",
+							"MY",
+							"MV",
+							"ML",
+							"MT",
+							"MH",
+							"MQ",
+							"MR",
+							"MU",
+							"YT",
+							"MX",
+							"FM",
+							"MD",
+							"MC",
+							"MN",
+							"ME",
+							"MS",
+							"MA",
+							"MZ",
+							"MM",
+							"NA",
+							"NR",
+							"NP",
+							"NL",
+							"NC",
+							"NZ",
+							"NI",
+							"NE",
+							"NG",
+							"NU",
+							"NF",
+							"MK",
+							"MP",
+							"NO",
+							"OM",
+							"PK",
+							"PW",
+							"PS",
+							"PA",
+							"PG",
+							"PY",
+							"PE",
+							"PH",
+							"PN",
+							"PL",
+							"PT",
+							"PR",
+							"QA",
+							"RE",
+							"RO",
+							"RU",
+							"RW",
+							"BL",
+							"SH",
+							"KN",
+							"LC",
+							"MF",
+							"PM",
+							"VC",
+							"WS",
+							"SM",
+							"ST",
+							"SA",
+							"SN",
+							"RS",
+							"SC",
+							"SL",
+							"SG",
+							"SX",
+							"SK",
+							"SI",
+							"SB",
+							"SO",
+							"ZA",
+							"GS",
+							"SS",
+							"ES",
+							"LK",
+							"SD",
+							"SR",
+							"SJ",
+							"SZ",
+							"SE",
+							"CH",
+							"SY",
+							"TW",
+							"TJ",
+							"TZ",
+							"TH",
+							"TL",
+							"TG",
+							"TK",
+							"TO",
+							"TT",
+							"TN",
+							"TR",
+							"TM",
+							"TC",
+							"TV",
+							"UG",
+							"UA",
+							"AE",
+							"GB",
+							"US",
+							"UM",
+							"VI",
+							"UY",
+							"UZ",
+							"VU",
+							"VE",
+							"VN",
+							"WF",
+							"EH",
+							"YE",
+							"ZM",
+							"ZW"
+						],
+						"x-norbital": {
+							"datatype": "country"
+						},
+						"title": "Actual country"
+					},
+					"period": {
+						"type": "object",
+						"properties": {
+							"from": {
+								"type": "string",
+								"format": "date",
+								"title": "Actual first day"
+							},
+							"to": {
+								"type": "string",
+								"format": "date",
+								"title": "Actual last day"
+							}
+						},
+						"additionalProperties": false,
+						"required": ["from", "to"],
+						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
+					},
+					"party": {
+						"type": "object",
+						"properties": {
+							"registered_name": {
+								"type": "string",
+								"minLength": 1,
+								"title": "Registered entity name"
+							},
+							"country": {
+								"$ref": "#/$defs/country"
+							},
+							"registration_reference": {
+								"type": "string",
+								"minLength": 1,
+								"title": "Actual entity registration or source identifier"
+							}
+						},
+						"additionalProperties": false,
+						"required": ["registered_name", "country", "registration_reference"],
+						"description": "The real legal entity named on the source document. This is not the employee; the native case employment identifies the employee. Do not invent a native entity row for an outside organisation."
+					}
+				},
+				"allOf": [
+					{
+						"if": {
+							"properties": {
+								"record_type": {
+									"const": "COST_ALLOCATION"
+								}
+							},
+							"required": ["record_type"]
+						},
+						"then": {
+							"required": ["cost_bearer"]
+						}
+					},
+					{
+						"if": {
+							"properties": {
+								"amount": {
+									"exclusiveMaximum": 0
+								}
+							},
+							"required": ["amount"]
+						},
+						"then": {
+							"required": ["reverses_reference"]
+						}
+					}
+				]
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "824289d2-7837-5136-a810-a7266dbe8c8d",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.10(1); CPF Act 1953 s.2(1) — the actual external wage payment evidences income and wages",
+				"locator": "s.10(1)",
+				"url": "https://sso.agc.gov.sg/Act/ITA1947",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "BENEFIT_SERVICE_RECORD",
+		"name": "Actual service attributable to a benefit award",
+		"lookup": {
+			"input_schema": {
+				"type": "object",
+				"properties": {
+					"benefit_reference": {
+						"type": "string",
+						"minLength": 1,
+						"title": "Actual benefit/award reference"
+					},
+					"service_period": {
+						"$ref": "#/$defs/period"
+					},
+					"country": {
+						"$ref": "#/$defs/country"
+					},
+					"service_employer": {
+						"$ref": "#/$defs/party"
+					}
+				},
+				"additionalProperties": false,
+				"required": ["benefit_reference", "service_period", "country", "service_employer"],
+				"description": "One actual continuous service period attributable to the named benefit/retirement award, in its actual service country and legal employer. Record every source-supported period for that award, including external prior service; do not substitute all employment history or a domestic-service percentage. Gaps and missing source periods remain unknown rather than zero. opened_on is the actual statement/certificate issue date.",
+				"$defs": {
+					"country": {
+						"type": "string",
+						"enum": [
+							"AF",
+							"AX",
+							"AL",
+							"DZ",
+							"AS",
+							"AD",
+							"AO",
+							"AI",
+							"AQ",
+							"AG",
+							"AR",
+							"AM",
+							"AW",
+							"AU",
+							"AT",
+							"AZ",
+							"BS",
+							"BH",
+							"BD",
+							"BB",
+							"BY",
+							"BE",
+							"BZ",
+							"BJ",
+							"BM",
+							"BT",
+							"BO",
+							"BQ",
+							"BA",
+							"BW",
+							"BV",
+							"BR",
+							"IO",
+							"VG",
+							"BN",
+							"BG",
+							"BF",
+							"BI",
+							"KH",
+							"CM",
+							"CA",
+							"CV",
+							"KY",
+							"CF",
+							"TD",
+							"CL",
+							"CN",
+							"CX",
+							"CC",
+							"CO",
+							"KM",
+							"CD",
+							"CG",
+							"CK",
+							"CR",
+							"CI",
+							"HR",
+							"CU",
+							"CW",
+							"CY",
+							"CZ",
+							"DK",
+							"DJ",
+							"DM",
+							"DO",
+							"EC",
+							"EG",
+							"SV",
+							"GQ",
+							"ER",
+							"EE",
+							"ET",
+							"FO",
+							"FK",
+							"FJ",
+							"FI",
+							"FR",
+							"GF",
+							"PF",
+							"TF",
+							"GA",
+							"GM",
+							"GE",
+							"DE",
+							"GH",
+							"GI",
+							"GR",
+							"GL",
+							"GD",
+							"GP",
+							"GU",
+							"GT",
+							"GG",
+							"GN",
+							"GW",
+							"GY",
+							"HT",
+							"HM",
+							"VA",
+							"HN",
+							"HK",
+							"HU",
+							"IS",
+							"IN",
+							"ID",
+							"IR",
+							"IQ",
+							"IE",
+							"IM",
+							"IL",
+							"IT",
+							"JM",
+							"JP",
+							"JE",
+							"JO",
+							"KZ",
+							"KE",
+							"KI",
+							"KP",
+							"KR",
+							"KW",
+							"KG",
+							"LA",
+							"LV",
+							"LB",
+							"LS",
+							"LR",
+							"LY",
+							"LI",
+							"LT",
+							"LU",
+							"MO",
+							"MG",
+							"MW",
+							"MY",
+							"MV",
+							"ML",
+							"MT",
+							"MH",
+							"MQ",
+							"MR",
+							"MU",
+							"YT",
+							"MX",
+							"FM",
+							"MD",
+							"MC",
+							"MN",
+							"ME",
+							"MS",
+							"MA",
+							"MZ",
+							"MM",
+							"NA",
+							"NR",
+							"NP",
+							"NL",
+							"NC",
+							"NZ",
+							"NI",
+							"NE",
+							"NG",
+							"NU",
+							"NF",
+							"MK",
+							"MP",
+							"NO",
+							"OM",
+							"PK",
+							"PW",
+							"PS",
+							"PA",
+							"PG",
+							"PY",
+							"PE",
+							"PH",
+							"PN",
+							"PL",
+							"PT",
+							"PR",
+							"QA",
+							"RE",
+							"RO",
+							"RU",
+							"RW",
+							"BL",
+							"SH",
+							"KN",
+							"LC",
+							"MF",
+							"PM",
+							"VC",
+							"WS",
+							"SM",
+							"ST",
+							"SA",
+							"SN",
+							"RS",
+							"SC",
+							"SL",
+							"SG",
+							"SX",
+							"SK",
+							"SI",
+							"SB",
+							"SO",
+							"ZA",
+							"GS",
+							"SS",
+							"ES",
+							"LK",
+							"SD",
+							"SR",
+							"SJ",
+							"SZ",
+							"SE",
+							"CH",
+							"SY",
+							"TW",
+							"TJ",
+							"TZ",
+							"TH",
+							"TL",
+							"TG",
+							"TK",
+							"TO",
+							"TT",
+							"TN",
+							"TR",
+							"TM",
+							"TC",
+							"TV",
+							"UG",
+							"UA",
+							"AE",
+							"GB",
+							"US",
+							"UM",
+							"VI",
+							"UY",
+							"UZ",
+							"VU",
+							"VE",
+							"VN",
+							"WF",
+							"EH",
+							"YE",
+							"ZM",
+							"ZW"
+						],
+						"x-norbital": {
+							"datatype": "country"
+						},
+						"title": "Actual country"
+					},
+					"period": {
+						"type": "object",
+						"properties": {
+							"from": {
+								"type": "string",
+								"format": "date",
+								"title": "Actual first day"
+							},
+							"to": {
+								"type": "string",
+								"format": "date",
+								"title": "Actual last day"
+							}
+						},
+						"additionalProperties": false,
+						"required": ["from", "to"],
+						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
+					},
+					"party": {
+						"type": "object",
+						"properties": {
+							"registered_name": {
+								"type": "string",
+								"minLength": 1,
+								"title": "Registered entity name"
+							},
+							"country": {
+								"$ref": "#/$defs/country"
+							},
+							"registration_reference": {
+								"type": "string",
+								"minLength": 1,
+								"title": "Actual entity registration or source identifier"
+							}
+						},
+						"additionalProperties": false,
+						"required": ["registered_name", "country", "registration_reference"],
+						"description": "The real legal entity named on the source document. This is not the employee; the native case employment identifies the employee. Do not invent a native entity row for an outside organisation."
+					}
+				}
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "186c34ec-6699-5aa9-a583-3b5fa4419e63",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.10(1)(b) — a benefit attributable to actual service is employment income",
+				"locator": "s.10(1)(b)",
+				"url": "https://sso.agc.gov.sg/Act/ITA1947",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "REEMPLOYMENT_OBLIGATION_TRANSFER_AGREEMENT",
+		"name": "Original re-employment-obligation transfer consent",
+		"lookup": {
+			"input_schema": {
+				"type": "object",
+				"properties": {
+					"original_employer": {
+						"type": "string",
+						"pattern": "\\S"
+					},
+					"original_contract_reference": {
+						"type": "string",
+						"pattern": "\\S"
+					},
+					"original_employment_started_on": {
+						"type": "string",
+						"format": "date"
+					},
+					"protected_eap": {
+						"type": "object",
+						"properties": {
+							"amount": {
+								"type": "number",
+								"minimum": 0
+							},
+							"currency": {
+								"type": "string",
+								"pattern": "^[A-Z]{3}$"
+							}
+						},
+						"required": ["amount", "currency"],
+						"additionalProperties": false
+					}
+				},
+				"required": [
+					"original_employer",
+					"original_contract_reference",
+					"original_employment_started_on",
+					"protected_eap"
+				],
+				"additionalProperties": false,
+				"description": "This is the amount actually specified in the original signed transfer consent, not a reviewed gross-pay calculation. Scope employment_id to the actual new-employer sealed contract; reference/evidence_file identify the original consent. Native employment.start_date owns new-employer commencement. Original start/employer/reference preserve actual transferred seniority."
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "694c6849-41da-52f2-a14c-64d95b8070e5",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "Retirement and Re-employment Act 1993 s.7C — transfer of the re-employment obligation requires the employee’s consent",
+				"locator": "s.7C",
+				"url": "https://www.mom.gov.sg/employment-practices/re-employment",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "NOTICE_PERIOD_EXTENSION_AGREEMENT",
+		"name": "Actual agreed unpaid-leave notice extension",
+		"lookup": {
+			"input_schema": {
+				"type": "object",
+				"properties": {
+					"period": {
+						"type": "object",
+						"properties": {
+							"from": {
+								"type": "string",
+								"format": "date"
+							},
+							"to": {
+								"type": "string",
+								"format": "date"
+							}
+						},
+						"required": ["from", "to"],
+						"additionalProperties": false
+					}
+				},
+				"required": ["period"],
+				"additionalProperties": false,
+				"description": "Original unpaid-leave period expressly agreed to extend notice. opened_on is actual agreement receipt; employment_id/reference/evidence_file identify the real agreement. Closing a case does not revoke the original agreement."
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "cd90ab95-b332-535f-8ad3-8b333a3f0423",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "Employment Act 1968 ss.10–11 — a notice period may be varied by agreement",
+				"locator": "ss.10–11",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "NOTICE_PAY_DISPUTE",
+		"name": "Actual notice-pay dispute",
+		"lookup": {
+			"input_schema": {
+				"type": "object",
+				"properties": {
+					"period": {
+						"type": "object",
+						"properties": {
+							"from": {
+								"type": "string",
+								"format": "date"
+							},
+							"to": {
+								"type": "string",
+								"format": "date"
+							}
+						},
+						"required": ["from", "to"],
+						"additionalProperties": false
+					},
+					"asserted_by": {
+						"type": "string",
+						"enum": ["EMPLOYER", "EMPLOYEE"]
+					}
+				},
+				"required": ["period", "asserted_by"],
+				"additionalProperties": false,
+				"description": "Actual disputed notice period. Reference/evidence_file identify the claim and any binding finding. Ordinary direction is not inferred while the original claim needs adjudication."
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "cd920d7d-f877-5d2b-a5dc-4eb90da8a19d",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "Employment Act 1968 ss.10–11,23 — notice and salary in lieu are determined by the contract and the actual notice",
+				"locator": "ss.10–11,23",
+				"url": "https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice",
+				"effective_from": "2025-12-01"
+			}
+		]
+	},
+	{
+		"code": "EMPLOYMENT_CONTRACT_BREACH_DISPUTE",
+		"name": "Actual employment-contract breach dispute",
+		"lookup": {
+			"input_schema": {
+				"type": "object",
+				"properties": {
+					"period": {
+						"type": "object",
+						"properties": {
+							"from": {
+								"type": "string",
+								"format": "date"
+							},
+							"to": {
+								"type": "string",
+								"format": "date"
+							}
+						},
+						"required": ["from", "to"],
+						"additionalProperties": false
+					},
+					"asserted_by": {
+						"type": "string",
+						"enum": ["EMPLOYER", "EMPLOYEE"]
+					}
+				},
+				"required": ["period", "asserted_by"],
+				"additionalProperties": false,
+				"description": "Actual breach claim, not a computed liable-party scalar. Retain the original claim and any court/Commissioner finding through the native case source."
+			}
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": null,
+		"events": {},
+		"id": "cea757e0-6bd3-5af9-b7da-77bbd6171358",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"references": [
+			{
+				"title": "Employment Act 1968 s.23; Employment Claims Act 2016 — a contractual breach claim is determined by the Employment Claims Tribunals",
+				"locator": "s.23",
+				"url": "https://sso.agc.gov.sg/Act/ECA2016",
+				"effective_from": "2025-12-01"
+			}
+		]
+	}
+]

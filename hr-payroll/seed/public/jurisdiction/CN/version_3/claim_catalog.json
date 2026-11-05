@@ -1,0 +1,25 @@
+[
+	{
+		"code": "HOME_LEAVE_TRAVEL",
+		"name": "探亲路费 (home-visit round-trip fare)",
+		"description": "Reimburses the employer-borne part of the round-trip fare for a home visit: the full fare for a spouse or an unmarried employee's parents visit, and for a married employee's parents visit only the excess over 30% of the monthly standard wage, which the employee bears. The claim records that reimbursable amount as `quantity` in `MONEY`.",
+		"lookup": {
+			"visit_kinds": ["SPOUSE", "PARENTS", "PARENTS_MARRIED"],
+			"married_parents_self_borne_share": 0.3
+		},
+		"references": [
+			{
+				"title": "国务院关于职工探亲待遇的规定 第六条: 探望配偶和未婚职工探望父母的往返路费由单位负担; 已婚职工探望父母的往返路费, 超过本人月标准工资30%的部分由单位负担."
+			}
+		],
+		"eligibility": "const end = get(ctx.subject.employment.effective_range, 'to', null);\nreturn (\n\tget(ctx.subject.employer.entity_extension_data, 'state_owned', false) === true &&\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\t(end === null || ctx.entry.incurred_on <= end)\n);",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"off_cycle_eligible": true,
+		"subtotal_id": "c3890fcd-4799-5bbf-94de-776d861ade65",
+		"id": "134bd9c5-f0f2-57b9-828e-6907c1822515",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	}
+]

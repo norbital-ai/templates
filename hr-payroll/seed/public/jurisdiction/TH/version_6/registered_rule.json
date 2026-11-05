@@ -1,0 +1,373 @@
+[
+	{
+		"code": "NORMAL_HOURS",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"lookup": {
+			"minutes_per_day": 480,
+			"roster_warnings": {
+				"daily_hours": 12,
+				"daily_overtime_hours": 4,
+				"monthly_overtime_hours": 156,
+				"consecutive_days": 6,
+				"weekly_rest_days": 1
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s. 23",
+				"locator": "Normal working time exceeds 8 hours a day or 48 a week (7 and 42 for hazardous work) (LPA s.23).",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"validate": "// Labour Protection Act B.E. 2541 s. 23: normal time is at most eight hours a day.\n// Planned overtime is excluded; an open actual interval cannot be measured yet.\nconst worked = get(ctx.entry, 'actual_worked_intervals', []);\nif (worked.some((row) => get(row, 'end', null) == null)) return true;\nconst actual = interval_minutes(worked);\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []));\nreturn actual - overtime <= ctx.lookup.minutes_per_day;",
+		"order": 3,
+		"id": "177a090e-3eab-594b-9542-57b979e1b837",
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+	},
+	{
+		"code": "REST_BREAK",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"lookup": {
+			"elapsed_minutes": 300,
+			"break_minutes": 60
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s. 27",
+				"locator": "A day of more than five consecutive working hours was recorded without a rest break (LPA s.27).",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"validate": "// Labour Protection Act B.E. 2541 s. 27: more than five continuous hours need a rest break.\n// A split day is the run's aggregate; one recorded span is checked here.\nconst worked = get(ctx.entry, 'actual_worked_intervals', []);\nif (worked.length !== 1) return true;\nconst row = first(worked);\nconst end = get(row, 'end', null);\nif (end == null) return true;\nif (elapsed_minutes(get(row, 'start', null), end) <= ctx.lookup.elapsed_minutes) return true;\nreturn interval_minutes(get(row, 'breaks', [])) >= ctx.lookup.break_minutes;",
+		"order": 4,
+		"id": "46fa6267-8718-59e6-97ac-9db09547a714",
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+	},
+	{
+		"code": "CHILD_EMPLOYMENT",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"minimum_age": 15
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s. 44",
+				"locator": "An employee under 15 may not be employed (LPA s.44).",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"validate": "// Labour Protection Act B.E. 2541 s. 44: an employer may not employ a child under fifteen.\nconst born = get(ctx.entry, 'payroll.date_of_birth', null);\nconst from = get(ctx.entry, 'effective_range.from', null);\nif (born == null || from == null) return true;\nreturn age_on(born, from) >= ctx.lookup.minimum_age;",
+		"order": 9,
+		"id": "1c35bf09-e0c3-5850-a50a-3ac7df92d828",
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+	},
+	{
+		"code": "MINIMUM_WAGE_FLOOR",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"order": 9,
+		"lookup": {
+			"wage_divisor": 30,
+			"normal_hours_per_day": 8,
+			"by_region": {
+				"BANGKOK": 400,
+				"CHACHOENGSAO": 400,
+				"CHONBURI": 400,
+				"PHUKET": 400,
+				"RAYONG": 400,
+				"SURAT_THANI_KOH_SAMUI": 400,
+				"KOH_SAMUI": 400,
+				"CHIANG_MAI_MUEANG": 380,
+				"SONGKHLA_HAT_YAI": 380,
+				"HAT_YAI": 380,
+				"NAKHON_PATHOM": 372,
+				"NONTHABURI": 372,
+				"PATHUM_THANI": 372,
+				"SAMUT_PRAKAN": 372,
+				"SAMUT_SAKHON": 372,
+				"NAKHON_RATCHASIMA": 359,
+				"SAMUT_SONGKHRAM": 358,
+				"KHON_KAEN": 357,
+				"CHIANG_MAI": 357,
+				"PRACHINBURI": 357,
+				"PHRA_NAKHON_SI_AYUTTHAYA": 357,
+				"SARABURI": 357,
+				"LOPBURI": 356,
+				"NAKHON_NAYOK": 355,
+				"SUPHAN_BURI": 355,
+				"NONG_KHAI": 355,
+				"KRABI": 354,
+				"TRAT": 354,
+				"KANCHANABURI": 352,
+				"CHANTHABURI": 352,
+				"CHIANG_RAI": 352,
+				"TAK": 352,
+				"NAKHON_PHANOM": 352,
+				"BURIRAM": 352,
+				"PRACHUAP_KHIRI_KHAN": 352,
+				"PHANG_NGA": 352,
+				"PHITSANULOK": 352,
+				"MUKDAHAN": 352,
+				"SAKON_NAKHON": 352,
+				"SONGKHLA": 352,
+				"SA_KAEO": 352,
+				"SURAT_THANI": 352,
+				"UBON_RATCHATHANI": 352,
+				"CHUMPHON": 351,
+				"PHETCHABURI": 351,
+				"SURIN": 351,
+				"NAKHON_SAWAN": 350,
+				"YASOTHON": 350,
+				"LAMPHUN": 350,
+				"KALASIN": 349,
+				"NAKHON_SI_THAMMARAT": 349,
+				"BUENG_KAN": 349,
+				"PHETCHABUN": 349,
+				"ROI_ET": 349,
+				"CHAI_NAT": 348,
+				"CHAIYAPHUM": 348,
+				"PHATTHALUNG": 348,
+				"SING_BURI": 348,
+				"ANG_THONG": 348,
+				"KAMPHAENG_PHET": 347,
+				"PHICHIT": 347,
+				"MAHA_SARAKHAM": 347,
+				"MAE_HONG_SON": 347,
+				"RANONG": 347,
+				"RATCHABURI": 347,
+				"LAMPANG": 347,
+				"LOEI": 347,
+				"SI_SA_KET": 347,
+				"SATUN": 347,
+				"SUKHOTHAI": 347,
+				"NONG_BUA_LAM_PHU": 347,
+				"AMNAT_CHAROEN": 347,
+				"UDON_THANI": 347,
+				"UTTARADIT": 347,
+				"UTHAI_THANI": 347,
+				"TRANG": 345,
+				"NAN": 345,
+				"PHAYAO": 345,
+				"PHRAE": 345,
+				"NARATHIWAT": 337,
+				"PATTANI": 337,
+				"YALA": 337
+			}
+		},
+		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst engagement = String(get(ctx.entry, 'engagement', 'EMPLOYEE'));\nreturn (\n\trate != null &&\n\tget(rate, 'unit', null) !== 'PIECE' &&\n\t!['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement)\n);",
+		"validate": "// js\nconst rate = get(ctx.entry, 'terms.rate', {});\nconst unit = get(rate, 'unit', null);\nconst amount = Number(get(rate, 'amount', 0));\nconst employer = get(ctx.subject, 'employer', {});\nconst region = get(employer, 'entity_extension_data.region', null);\nconst table = ctx.lookup.by_region ?? {};\nif (region == null || table[region] == null) return true;\nconst hours = Number(\n\tget(ctx.entry, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day),\n);\nconst daily =\n\tunit === 'DAILY'\n\t\t? amount\n\t\t: unit === 'MONTHLY'\n\t\t\t? amount / ctx.lookup.wage_divisor\n\t\t\t: amount * hours;\nreturn daily >= Number(table[region]);",
+		"references": [
+			{
+				"title": "Wage Committee Notification on Minimum Wage Rates (No. 14), 17 June 2025, in force 1 July 2025",
+				"locator": "Provincial daily minimum wage, 337 to 400 baht; a day is the normal working time, not more than 7 hours for hazardous work and 8 hours otherwise.",
+				"url": "https://www.mol.go.th/en/news/starting-july-1-ministry-of-labour-revises-minimum-wage-to-align-with-economy-and-improve-workers-quality-of-life"
+			}
+		],
+		"id": "b3e0021f-0c9f-5f94-8bb3-46deb710a25b",
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+	},
+	{
+		"code": "SKILL_STANDARD_WAGE",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"condition": "const rate = get(ctx.entry, 'terms.rate', null);\nreturn (\n\trate != null &&\n\tget(rate, 'unit', null) !== 'PIECE' &&\n\tget(ctx.entry, 'employee_extension_data.term_facts.skill_standard_day_rate', null) != null\n);",
+		"lookup": {
+			"wage_divisor": 30,
+			"normal_hours_per_day": 8
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s. 90",
+				"locator": "The contract pays a certified worker less than the skill-standard wage rate of the trade (LPA s.90 with the Wage Committee skill-standard notification).",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"validate": "// Labour Protection Act B.E. 2541 s. 90: a certified worker's day wage must reach the\n// skill-standard rate of the trade. The rate is a recorded term fact, not a table here.\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst amount = get(rate, 'amount', 0);\nconst unit = get(rate, 'unit', null);\nconst daily =\n\tunit === 'DAILY'\n\t\t? amount\n\t\t: unit === 'MONTHLY'\n\t\t\t? amount / ctx.lookup.wage_divisor\n\t\t\t: amount * get(ctx.entry, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day);\nreturn daily >= get(ctx.entry, 'employee_extension_data.term_facts.skill_standard_day_rate', 0);",
+		"order": 10,
+		"id": "1288d9a5-f55d-51cf-a154-2137a8a3368d",
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+	},
+	{
+		"code": "ROSTER_REST_BREAK",
+		"target_collection": "roster_entry",
+		"events": ["create", "update"],
+		"lookup": {
+			"elapsed_minutes": 300,
+			"break_minutes": 60
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s. 27 para 1",
+				"locator": "five or more working hours with no recorded rest break (LPA s.27).",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"validate": "// Labour Protection Act B.E. 2541 s. 27: planned overtime beyond five continuous hours\n// needs a recorded rest break. The rest of the day is checked on actual work.\nconst planned = get(ctx.entry, 'planned_overtime_intervals', []);\nif (planned.length !== 1) return true;\nconst row = first(planned);\nconst end = get(row, 'end', null);\nif (end == null) return true;\nif (elapsed_minutes(get(row, 'start', null), end) <= ctx.lookup.elapsed_minutes) return true;\nreturn interval_minutes(get(row, 'breaks', [])) >= ctx.lookup.break_minutes;",
+		"order": 16,
+		"id": "771ba123-706d-5e8d-9bc6-062fd4a891f9",
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+	},
+	{
+		"code": "CONTRACT_CATEGORIES",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"categories": {
+				"statutory_work_category": ["ORDINARY", "HAZARDOUS"],
+				"residency_status": ["RESIDENT", "NON_RESIDENT"]
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 ss. 17, 23, 118",
+				"locator": "Select the employment type, work classification, statutory work category and residency status permitted by this jurisdiction version.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"validate": "// The contract's engagement is the model's declared enum; this rule checks the\n// jurisdiction's work classification and tax-residency categories.\nconst categories = ctx.lookup.categories;\nconst work = get(ctx.entry, 'terms.statutory_work_category', null);\nif (work != null && !categories.statutory_work_category.includes(work)) return false;\nconst residency = get(ctx.entry, 'terms.residency_status', null);\nif (residency != null && !categories.residency_status.includes(residency)) return false;\nreturn true;",
+		"order": 24,
+		"id": "043a66e0-d70c-5eae-b0fa-26ec742c5b57",
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+	},
+	{
+		"code": "SHARED_CONTRACT_TERMS",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"limits": {
+				"normal_hours_per_day_minimum": 0,
+				"normal_hours_per_day_maximum": 8,
+				"normal_hours_per_day_hazardous_maximum": 7,
+				"normal_hours_per_week_minimum": 0,
+				"normal_hours_per_week_maximum": 48,
+				"normal_hours_per_week_hazardous_maximum": 42
+			}
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 ss. 23, 68, 69",
+				"locator": "The agreed rate or normal working time does not meet this jurisdiction version’s contract limits.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"validate": "// The agreed rate and normal working time must meet this version's contract limits.\n// Hazardous work is seven hours a day and forty-two a week (LPA ss. 23, 68-69).\nconst limits = ctx.lookup.limits;\nconst terms = get(ctx.entry, 'terms', {});\nconst rate = get(terms, 'rate', null);\nif (rate != null && get(rate, 'amount', 0) < 0) return false;\nconst hazardous = get(terms, 'statutory_work_category', null) === 'HAZARDOUS';\nconst maxDay = hazardous\n\t? limits.normal_hours_per_day_hazardous_maximum\n\t: limits.normal_hours_per_day_maximum;\nconst maxWeek = hazardous\n\t? limits.normal_hours_per_week_hazardous_maximum\n\t: limits.normal_hours_per_week_maximum;\nconst day = get(terms, 'normal_hours_per_day', null);\nif (day != null && (day <= limits.normal_hours_per_day_minimum || day > maxDay)) return false;\nconst week = get(terms, 'normal_hours_per_week', null);\nif (week != null && (week <= limits.normal_hours_per_week_minimum || week > maxWeek)) return false;\nreturn true;",
+		"order": 25,
+		"id": "0b8df76d-9a0d-556c-b0c6-94d69dc6a024",
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+	},
+	{
+		"code": "SHARED_STRUCTURED_EMPLOYEE_INPUTS",
+		"target_collection": "employee_contract",
+		"events": ["create", "update"],
+		"lookup": {
+			"pvd_minimum_percent": 2,
+			"pvd_maximum_percent": 15,
+			"overtime_categories": ["MANAGER", "SECTION_65_OTHER"]
+		},
+		"references": [
+			{
+				"title": "Social Security Act B.E. 2533; Revenue Code; Royal Ordinance B.E. 2560",
+				"locator": "The recorded personal details or agreement terms do not meet this jurisdiction version’s requirements."
+			}
+		],
+		"validate": "// The recorded PVD election and overtime category must meet this version's contract terms.\nconst data = get(ctx.entry, 'employee_extension_data', {});\nconst pvd = get(get(get(data, 'facts', {}), 'statutory', {}), 'PVD', {});\nconst percent = get(get(pvd, 'elections', {}), 'employee_percent', null);\nif (\n\tget(pvd, 'kind', '') === 'MEMBER' &&\n\t(typeof percent !== 'number' ||\n\t\tpercent < ctx.lookup.pvd_minimum_percent ||\n\t\tpercent > ctx.lookup.pvd_maximum_percent)\n)\n\treturn false;\nconst overtime = get(get(data, 'term_facts', {}), 'overtime_category', null);\nreturn overtime === null || ctx.lookup.overtime_categories.includes(overtime);",
+		"order": 26,
+		"id": "a3511d79-9065-5dd6-8dbd-b156a9b538c4",
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+	},
+	{
+		"code": "SHARED_STRUCTURED_ENTITY_INPUTS",
+		"target_collection": "entity_profile_version",
+		"events": ["create", "update"],
+		"lookup": {
+			"risk_class_digits": 5
+		},
+		"references": [
+			{
+				"title": "Social Security Act B.E. 2533 s. 34; Workmen's Compensation Act B.E. 2537",
+				"locator": "The recorded employer details do not meet this jurisdiction version’s requirements."
+			}
+		],
+		"validate": "// The employer's province and WCF business code are the keys the payroll formulas read.\nconst entity = get(ctx.entry, 'entity_extension_data', {});\nconst region = get(entity, 'region', null);\nconst risk = get(entity, 'risk_class', null);\nconst digits = '0123456789';\nreturn (\n\t(region === null || (typeof region === 'string' && region !== '')) &&\n\t(risk === null || (typeof risk === 'string' && risk.length === ctx.lookup.risk_class_digits && risk.split('').every((c) => digits.includes(c))))\n);",
+		"order": 27,
+		"id": "c4fca3ec-0c25-5744-bdf6-c684e7c0cf77",
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+	},
+	{
+		"code": "BUSINESS_CASE_EFFECTIVE_INTERVAL",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"condition": "return get(ctx.entry, 'kind', null) === 'DEDUCTION_LIMIT_CONSENT';",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s. 76",
+				"locator": "Record the actual ordered requested/agreed interval, beginning on or after receipt/conclusion; do not infer permanent standing from a request.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"validate": "// A deduction consent's ordered interval begins on or after its receipt and ends after it starts.\nconst inputs = get(ctx.entry, 'inputs', {});\nconst opened = get(ctx.entry, 'opened_on', null);\nconst from = get(inputs, 'effective_from', null);\nconst to = get(inputs, 'effective_to', null);\nif (opened == null || from == null || to == null) return false;\nreturn from >= opened && to >= from;",
+		"order": 29,
+		"id": "87ea1b5a-5561-55a3-932e-5b5e1975f367",
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+	},
+	{
+		"code": "BUSINESS_CASE_SIGNED_CONSENT",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"condition": "return get(ctx.entry, 'kind', null) === 'DEDUCTION_LIMIT_CONSENT';",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s. 76",
+				"locator": "A signed request/consent needs its actual prior signature date and the signed source document.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"validate": "// A signed consent needs its actual prior signature date and the signed source document.\nconst inputs = get(ctx.entry, 'inputs', {});\nconst opened = get(ctx.entry, 'opened_on', null);\nconst signed = get(inputs, 'signed_on', null);\nif (opened == null || signed == null) return false;\nreturn signed <= opened && get(ctx.entry, 'evidence_file', null) != null;",
+		"order": 30,
+		"id": "04e88ee8-37a8-5369-ba64-a06a35d407ce",
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+	},
+	{
+		"code": "BUSINESS_CASE_DOCUMENT_REQUIRED",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"condition": "return ctx.lookup.kinds.includes(get(ctx.entry, 'kind', null));",
+		"lookup": {
+			"kinds": ["DEDUCTION_LIMIT_CONSENT", "SECURITY_DEPOSIT_RECEIVED"]
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s. 76",
+				"locator": "Attach the actual request/agreement/receipt/delivery evidence for this business event; an unrelated file does not establish its dates, amount or scope.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"validate": "// Attach the original source document supporting the case's exact dates, amount and scope.\nreturn get(ctx.entry, 'evidence_file', null) != null;",
+		"order": 31,
+		"id": "59615fec-9862-56f5-bbae-c571718f622c",
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+	},
+	{
+		"code": "DEDUCTION_CONSENT_DISTINCT_SCOPE",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"condition": "return get(ctx.entry, 'kind', null) === 'DEDUCTION_LIMIT_CONSENT';",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 s. 76",
+				"locator": "A deduction consent lists each authorised deduction code once with its actual amount limit and currency.",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
+			}
+		],
+		"validate": "// Each authorised deduction code occurs once with its actual amount and currency limit.\nconst inputs = get(ctx.entry, 'inputs', {});\nconst deductions = get(inputs, 'deductions', null);\nif (!Array.isArray(deductions) || deductions.length === 0) return false;\nreturn !deductions.some(\n\t(row, index) =>\n\t\tdeductions.some(\n\t\t\t(other, earlier) => earlier < index && get(other, 'code', null) === get(row, 'code', null)\n\t\t)\n);",
+		"order": 32,
+		"id": "0d90a71d-513d-5f70-8254-ed1858de1386",
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+	}
+]

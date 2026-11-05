@@ -1,0 +1,58 @@
+[
+	{
+		"code": "BASIC",
+		"name": "基本給 (basic salary)",
+		"previous_id": null,
+		"id": "ba0e80a0-4124-5124-9e7a-895f8d245905",
+		"settings_id": "0f253ec0-1e08-58b4-bc1e-a877d3c07fc5"
+	},
+	{
+		"code": "ORDINARY_WAGES",
+		"name": "通常賃金 (ordinary wages)",
+		"previous_id": "ba0e80a0-4124-5124-9e7a-895f8d245905",
+		"id": "a7e3664a-29cf-5d23-86f8-0415b0851b3a",
+		"settings_id": "0f253ec0-1e08-58b4-bc1e-a877d3c07fc5"
+	},
+	{
+		"code": "ADDITIONAL_WAGES",
+		"name": "通常賃金＋加算賃金 (ordinary and additional wages)",
+		"previous_id": "a7e3664a-29cf-5d23-86f8-0415b0851b3a",
+		"id": "33c5da02-9ff5-5f6a-a478-d37584263786",
+		"settings_id": "0f253ec0-1e08-58b4-bc1e-a877d3c07fc5"
+	},
+	{
+		"code": "GROSS",
+		"name": "総支給額 (gross earnings)",
+		"previous_id": "33c5da02-9ff5-5f6a-a478-d37584263786",
+		"id": "083435d6-05bb-568c-8a94-81e37a6ff57f",
+		"settings_id": "0f253ec0-1e08-58b4-bc1e-a877d3c07fc5"
+	},
+	{
+		"code": "RETIREMENT",
+		"name": "退職金 (retirement pay)",
+		"previous_id": "083435d6-05bb-568c-8a94-81e37a6ff57f",
+		"id": "f2009e0f-5c75-5034-8c82-80c983523896",
+		"settings_id": "0f253ec0-1e08-58b4-bc1e-a877d3c07fc5"
+	},
+	{
+		"code": "EMPLOYER_COST",
+		"name": "事業主負担 (employer statutory cost)",
+		"previous_id": "f2009e0f-5c75-5034-8c82-80c983523896",
+		"id": "0cac6a3c-fa66-5382-9508-7b8545ec7ee7",
+		"settings_id": "0f253ec0-1e08-58b4-bc1e-a877d3c07fc5"
+	},
+	{
+		"code": "NET",
+		"name": "差引支給額 (net pay)",
+		"previous_id": "6d4c9958-f0d0-5f91-8ab0-744f9bd5893a",
+		"id": "48c41808-ab65-5da4-86ad-e3293e904fbe",
+		"settings_id": "0f253ec0-1e08-58b4-bc1e-a877d3c07fc5"
+	},
+	{
+		"code": "FINAL_PAY",
+		"name": "Final pay and non-wage settlements",
+		"previous_id": "0cac6a3c-fa66-5382-9508-7b8545ec7ee7",
+		"id": "6d4c9958-f0d0-5f91-8ab0-744f9bd5893a",
+		"settings_id": "0f253ec0-1e08-58b4-bc1e-a877d3c07fc5"
+	}
+]

@@ -1,0 +1,437 @@
+[
+	{
+		"code": "SEVERANCE_PAY",
+		"name": "Severance pay (ค่าชดเชย)",
+		"lookup": {
+			"calendar_days": 30,
+			"hours_per_day": 8,
+			"minimum_service_days": 120,
+			"first_tier_days": 30,
+			"schedule": [
+				{
+					"up_to": 35,
+					"amount": 90
+				},
+				{
+					"up_to": 71,
+					"amount": 180
+				},
+				{
+					"up_to": 119,
+					"amount": 240
+				},
+				{
+					"up_to": 239,
+					"amount": 300
+				},
+				{
+					"up_to": null,
+					"amount": 400
+				}
+			]
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.118 (as amended by Act No. 7 B.E. 2562); Ministerial Regulation No. 394 B.E. 2567",
+				"locator": "LPA s.118; MR No. 394",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf",
+				"quote": "Severance at 30 days of final wage after 120 days of service, rising to 90, 180, 240, 300 and 400 days at 1, 3, 6, 10 and 20 years; not owed under s.118 para 3 or s.119. Tax exemption up to 400 wage days and 600,000 baht."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "ee365b61-5c37-58c4-a100-36d9dfedc168",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nconst served = calendar_distance_days(employment.effective_range.from, ctx.entry.incurred_on) + 1;\nreturn (\n\t(ended == null || ctx.entry.incurred_on <= ended) &&\n\t!get(employment, 'employee_extension_data.exit_facts.section_119_ground', false) &&\n\t!get(employment, 'employee_extension_data.exit_facts.fixed_term_project', false) &&\n\tserved >= ctx.lookup.minimum_service_days\n);",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst monthly =\n\trate.unit === 'PIECE'\n\t\t? ctx.entry.quantity\n\t\t: rate.unit === 'DAILY'\n\t\t\t? rate.amount * ctx.lookup.calendar_days\n\t\t\t: rate.unit === 'HOURLY'\n\t\t\t\t? rate.amount * get(terms, 'normal_hours_per_day', ctx.lookup.hours_per_day) * ctx.lookup.calendar_days\n\t\t\t\t: get(rate, 'amount', 0);\nconst months = calendar_completed_months(employment.effective_range.from, ctx.entry.incurred_on);\nconst days = months < 12 ? ctx.lookup.first_tier_days : bracket(months, ctx.lookup.schedule);\nreturn (monthly / ctx.lookup.calendar_days) * days;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "4410cf50-0083-585b-b98d-f422311ac47c",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "PAY_IN_LIEU_OF_NOTICE",
+		"name": "Pay in lieu of notice (สินจ้างแทนการบอกกล่าวล่วงหน้า)",
+		"lookup": {
+			"calendar_days": 30,
+			"hours_per_day": 8
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) ss.17, 17/1",
+				"locator": "ss.17, 17/1",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Notice of termination is given on or before a pay date to take effect on the next and need not exceed three months; short notice is paid as wages for the shortfall."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "ee365b61-5c37-58c4-a100-36d9dfedc168",
+		"eligibility": "// js\nconst ended = get(ctx.subject.employment, 'effective_range.to', null);\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nreturn (\n\t(ended == null || ctx.entry.incurred_on <= ended) &&\n\tctx.entry.quantity > 0 &&\n\t((ctx.entry.unit === 'DAY' && rate.unit !== 'PIECE') || ctx.entry.unit === 'MONEY')\n);",
+		"conversion": "// js\nif (ctx.entry.unit === 'MONEY') return ctx.entry.quantity;\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst monthly =\n\trate.unit === 'DAILY'\n\t\t? rate.amount * ctx.lookup.calendar_days\n\t\t: rate.unit === 'HOURLY'\n\t\t\t? rate.amount * get(terms, 'normal_hours_per_day', ctx.lookup.hours_per_day) * ctx.lookup.calendar_days\n\t\t\t: get(rate, 'amount', 0);\nreturn (monthly / ctx.lookup.calendar_days) * ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "13cd81fd-2cf7-5221-8f6e-d40478728013",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "MINIMUM_WAGE_ARREARS",
+		"name": "Minimum wage arrears",
+		"lookup": {
+			"calendar_days": 30,
+			"hours_per_day": 8,
+			"minimum_wage": {
+				"by_region": {
+					"BANGKOK": 400,
+					"CHACHOENGSAO": 400,
+					"CHON_BURI": 400,
+					"PHUKET": 400,
+					"RAYONG": 400,
+					"SURAT_THANI_KO_SAMUI": 400,
+					"CHIANG_MAI_MUEANG": 380,
+					"SONGKHLA_HAT_YAI": 380,
+					"NAKHON_PATHOM": 372,
+					"NONTHABURI": 372,
+					"PATHUM_THANI": 372,
+					"SAMUT_PRAKAN": 372,
+					"SAMUT_SAKHON": 372,
+					"NAKHON_RATCHASIMA": 359,
+					"SAMUT_SONGKHRAM": 358,
+					"KHON_KAEN": 357,
+					"CHIANG_MAI": 357,
+					"PRACHIN_BURI": 357,
+					"PHRA_NAKHON_SI_AYUTTHAYA": 357,
+					"SARABURI": 357,
+					"LOP_BURI": 356,
+					"NAKHON_NAYOK": 355,
+					"SUPHAN_BURI": 355,
+					"NONG_KHAI": 355,
+					"KRABI": 354,
+					"TRAT": 354,
+					"KANCHANABURI": 352,
+					"CHANTHABURI": 352,
+					"CHIANG_RAI": 352,
+					"TAK": 352,
+					"NAKHON_PHANOM": 352,
+					"BURI_RAM": 352,
+					"PRACHUAP_KHIRI_KHAN": 352,
+					"PHANGNGA": 352,
+					"PHITSANULOK": 352,
+					"MUKDAHAN": 352,
+					"SAKON_NAKHON": 352,
+					"SONGKHLA": 352,
+					"SA_KAEO": 352,
+					"SURAT_THANI": 352,
+					"UBON_RATCHATHANI": 352,
+					"CHUMPHON": 351,
+					"PHETCHABURI": 351,
+					"SURIN": 351,
+					"NAKHON_SAWAN": 350,
+					"YASOTHON": 350,
+					"LAMPHUN": 350,
+					"KALASIN": 349,
+					"NAKHON_SI_THAMMARAT": 349,
+					"BUENG_KAN": 349,
+					"PHETCHABUN": 349,
+					"ROI_ET": 349,
+					"CHAI_NAT": 348,
+					"CHAIYAPHUM": 348,
+					"PHATTHALUNG": 348,
+					"SING_BURI": 348,
+					"ANG_THONG": 348,
+					"KAMPHAENG_PHET": 347,
+					"PHICHIT": 347,
+					"MAHA_SARAKHAM": 347,
+					"MAE_HONG_SON": 347,
+					"RANONG": 347,
+					"RATCHABURI": 347,
+					"LAMPANG": 347,
+					"LOEI": 347,
+					"SI_SA_KET": 347,
+					"SATUN": 347,
+					"SUKHOTHAI": 347,
+					"NONG_BUA_LAM_PHU": 347,
+					"AMNAT_CHAROEN": 347,
+					"UDON_THANI": 347,
+					"UTTARADIT": 347,
+					"UTHAI_THANI": 347,
+					"TRANG": 345,
+					"NAN": 345,
+					"PHAYAO": 345,
+					"PHRAE": 345,
+					"NARATHIWAT": 337,
+					"PATTANI": 337,
+					"YALA": 337
+				},
+				"business_400": 400
+			}
+		},
+		"references": [
+			{
+				"title": "Wage Committee Notification on Minimum Wage Rates (No. 14) B.E. 2568; Labour Protection Act B.E. 2541 (1998) ss.79(3), 88, 90",
+				"locator": "Notification No. 14 cl.2-18, 20; LPA ss.79(3), 88, 90",
+				"url": "https://ratchakitcha.soc.go.th/documents/76681.pdf",
+				"quote": "Minimum daily wage by province from 1 July 2025: 400 baht in Bangkok, Chachoengsao, Chonburi, Phuket, Rayong, Koh Samui, and nationwide for category 2-4 hotels and service establishments; 380 baht in Mueang Chiang Mai and Hat Yai; 372 to 337 baht elsewhere.",
+				"effective_from": "2025-07-01"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "80293069-f8dd-5da4-a4b0-df6b7a9ff21f",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst employer = ctx.subject.employer;\nconst ended = get(employment, 'effective_range.to', null);\nconst rate = get(employment, 'terms.rate', {});\nconst region = get(employer, 'entity_extension_data.region', null);\nconst known =\n\tget(employer, 'entity_extension_data.minimum_wage_400_business', false) ||\n\t(typeof region === 'string' && Object.hasOwn(ctx.lookup.minimum_wage.by_region, region));\nreturn (\n\t(ended == null || ctx.entry.incurred_on <= ended) &&\n\t!get(employer, 'entity_extension_data.minimum_wage_exempt', false) &&\n\tctx.entry.unit === 'DAY' &&\n\tctx.entry.quantity > 0 &&\n\trate.unit !== 'PIECE' &&\n\tknown\n);",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst employer = ctx.subject.employer;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst minimum =\n\tget(employer, 'entity_extension_data.minimum_wage_400_business', false)\n\t\t? ctx.lookup.minimum_wage.business_400\n\t\t: get(ctx.lookup.minimum_wage, 'by_region.' + String(get(employer, 'entity_extension_data.region', '')), 0);\nconst fixed = sum(\n\tObject.values(get(terms, 'allowances', {}))\n\t\t.filter((allowance) => get(allowance, 'fixed', true) !== false)\n\t\t.map((allowance) => get(allowance, 'amount', 0))\n);\nconst paid =\n\trate.unit === 'DAILY'\n\t\t? rate.amount\n\t\t: rate.unit === 'HOURLY'\n\t\t\t? rate.amount * get(terms, 'normal_hours_per_day', ctx.lookup.hours_per_day)\n\t\t\t: (get(rate, 'amount', 0) + fixed) / ctx.lookup.calendar_days;\nreturn Math.max(0, minimum - paid) * ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "a20cff37-64db-533e-aada-3cdaf8bea8a5",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "BONUS",
+		"name": "Bonus",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Revenue Code ss.40(1), 50(1)",
+				"locator": "ss.40(1), 50(1)",
+				"url": "https://www.rd.go.th/59670.html",
+				"quote": "A bonus is employment income withheld under s.50(1); it is not SSO or WCF wage."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "86c11c0a-dbb4-59c3-a067-b8e154925285",
+		"eligibility": "// js\nconst ended = get(ctx.subject.employment, 'effective_range.to', null);\nreturn (ended == null || ctx.entry.incurred_on <= ended) && ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "6096d571-c940-51a6-bab7-e48763bdbc96",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91",
+		"description": "Paid on top of ordinary wages: accumulates in ADDITIONAL_WAGES; SSO, PVD and WCF read ORDINARY_WAGES and PND1 reads the total including this bonus."
+	},
+	{
+		"code": "SPECIAL_SEVERANCE_TECHNOLOGY",
+		"name": "Special severance — technology redundancy (s.122)",
+		"lookup": {
+			"calendar_days": 30,
+			"hours_per_day": 8,
+			"days_per_year": 15,
+			"maximum_days": 360,
+			"qualifying_years": 6,
+			"part_year_days": 180
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.122",
+				"locator": "s.122",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "An employee dismissed under s.121 after six consecutive years gets, beyond s.118, 15 days of final wage for each year of service, up to 360 days."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "ee365b61-5c37-58c4-a100-36d9dfedc168",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nreturn (\n\t(ended == null || ctx.entry.incurred_on <= ended) &&\n\tget(employment, 'employee_extension_data.exit_facts.special_severance_ground', null) === 'TECHNOLOGY' &&\n\tcalendar_completed_months(employment.effective_range.from, ctx.entry.incurred_on) >= ctx.lookup.qualifying_years * 12\n);",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst monthly =\n\trate.unit === 'PIECE'\n\t\t? ctx.entry.quantity\n\t\t: rate.unit === 'DAILY'\n\t\t\t? rate.amount * ctx.lookup.calendar_days\n\t\t\t: rate.unit === 'HOURLY'\n\t\t\t\t? rate.amount * get(terms, 'normal_hours_per_day', ctx.lookup.hours_per_day) * ctx.lookup.calendar_days\n\t\t\t\t: get(rate, 'amount', 0);\nconst start = employment.effective_range.from;\nconst whole = Math.trunc(calendar_completed_months(start, ctx.entry.incurred_on) / 12);\nconst part = calendar_distance_days(add_years(start, whole), ctx.entry.incurred_on) + 1;\nconst years = whole + (part > ctx.lookup.part_year_days ? 1 : 0);\nreturn (monthly / ctx.lookup.calendar_days) * Math.min(ctx.lookup.maximum_days, ctx.lookup.days_per_year * years);",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "9f2bdb80-215f-52b5-9c48-12880e2dd882",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "TECHNOLOGY_NOTICE_IN_LIEU",
+		"name": "Pay in lieu of 60 days' notice — technology redundancy (s.121)",
+		"lookup": {
+			"calendar_days": 30,
+			"hours_per_day": 8,
+			"notice_days": 60
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.121",
+				"locator": "s.121",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "A dismissal for reorganisation through machinery or technology needs 60 days notice to the labour inspector and the employees; short notice owes 60 days of final wage in lieu."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "ee365b61-5c37-58c4-a100-36d9dfedc168",
+		"eligibility": "// js\nconst ended = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ended == null || ctx.entry.incurred_on <= ended;",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst monthly =\n\trate.unit === 'PIECE'\n\t\t? ctx.entry.quantity\n\t\t: rate.unit === 'DAILY'\n\t\t\t? rate.amount * ctx.lookup.calendar_days\n\t\t\t: rate.unit === 'HOURLY'\n\t\t\t\t? rate.amount * get(terms, 'normal_hours_per_day', ctx.lookup.hours_per_day) * ctx.lookup.calendar_days\n\t\t\t\t: get(rate, 'amount', 0);\nreturn (monthly / ctx.lookup.calendar_days) * ctx.lookup.notice_days;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "1f22f93c-5fba-5aa0-87cc-c94c15385929",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "SPECIAL_SEVERANCE_RELOCATION",
+		"name": "Special severance — relocation refused (s.120)",
+		"lookup": {
+			"calendar_days": 30,
+			"hours_per_day": 8,
+			"minimum_service_days": 120,
+			"first_tier_days": 30,
+			"schedule": [
+				{
+					"up_to": 35,
+					"amount": 90
+				},
+				{
+					"up_to": 71,
+					"amount": 180
+				},
+				{
+					"up_to": 119,
+					"amount": 240
+				},
+				{
+					"up_to": 239,
+					"amount": 300
+				},
+				{
+					"up_to": null,
+					"amount": 400
+				}
+			]
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.120 para 3 (as replaced by Act No. 7 B.E. 2562)",
+				"locator": "s.120 para 3",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf",
+				"quote": "A relocation that substantially affects the employee or family and is refused owes special severance at the s.118 rate."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "ee365b61-5c37-58c4-a100-36d9dfedc168",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nconst served = calendar_distance_days(employment.effective_range.from, ctx.entry.incurred_on) + 1;\nreturn (\n\t(ended == null || ctx.entry.incurred_on <= ended) &&\n\tget(employment, 'employee_extension_data.exit_facts.special_severance_ground', null) === 'RELOCATION' &&\n\tserved >= ctx.lookup.minimum_service_days\n);",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst monthly =\n\trate.unit === 'PIECE'\n\t\t? ctx.entry.quantity\n\t\t: rate.unit === 'DAILY'\n\t\t\t? rate.amount * ctx.lookup.calendar_days\n\t\t\t: rate.unit === 'HOURLY'\n\t\t\t\t? rate.amount * get(terms, 'normal_hours_per_day', ctx.lookup.hours_per_day) * ctx.lookup.calendar_days\n\t\t\t\t: get(rate, 'amount', 0);\nconst months = calendar_completed_months(employment.effective_range.from, ctx.entry.incurred_on);\nconst days = months < 12 ? ctx.lookup.first_tier_days : bracket(months, ctx.lookup.schedule);\nreturn (monthly / ctx.lookup.calendar_days) * days;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "6d3088d8-7a35-5736-971d-63ad3bf2c7cc",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "RELOCATION_NOTICE_IN_LIEU",
+		"name": "Pay in lieu of 30 days' relocation notice (s.120)",
+		"lookup": {
+			"calendar_days": 30,
+			"hours_per_day": 8,
+			"notice_days": 30
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.120 paras 1-2, 4 (as replaced by Act No. 7 B.E. 2562)",
+				"locator": "s.120 paras 1-2, 4",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/2019/07/labour_2541_7.pdf",
+				"quote": "The employer posts the relocation notice at least 30 days before the move; short notice owes 30 days of final wage in lieu."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "ee365b61-5c37-58c4-a100-36d9dfedc168",
+		"eligibility": "// js\nconst ended = get(ctx.subject.employment, 'effective_range.to', null);\nreturn ended == null || ctx.entry.incurred_on <= ended;",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst monthly =\n\trate.unit === 'PIECE'\n\t\t? ctx.entry.quantity\n\t\t: rate.unit === 'DAILY'\n\t\t\t? rate.amount * ctx.lookup.calendar_days\n\t\t\t: rate.unit === 'HOURLY'\n\t\t\t\t? rate.amount * get(terms, 'normal_hours_per_day', ctx.lookup.hours_per_day) * ctx.lookup.calendar_days\n\t\t\t\t: get(rate, 'amount', 0);\nreturn (monthly / ctx.lookup.calendar_days) * ctx.lookup.notice_days;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "a417fd7c-0620-590b-9c65-c21c548261ee",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "SUSPENSION_BACK_PAY",
+		"name": "Wages for a suspension of a cleared employee (s.117)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.117",
+				"locator": "s.117",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "When the investigation clears the employee, the employer pays the full working-day wage for the suspension period with 15 percent a year interest."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "80293069-f8dd-5da4-a4b0-df6b7a9ff21f",
+		"eligibility": "// js\nconst ended = get(ctx.subject.employment, 'effective_range.to', null);\nreturn (ended == null || ctx.entry.incurred_on <= ended) && ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "a2e05935-949a-57ca-9f9a-9782551fd59a",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "LATE_PAYMENT_INTEREST",
+		"name": "Interest and surcharge on late wages or severance (s.9)",
+		"lookup": {
+			"calendar_days": 30,
+			"hours_per_day": 8,
+			"annual_rate": 0.15,
+			"days_per_year": 365
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.9",
+				"locator": "s.9",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Late security money, wages, overtime, holiday pay, severance or special severance carry interest at 15 percent a year; a wilful default adds 15 percent of the unpaid amount for every 7 days after the first 7."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "ee365b61-5c37-58c4-a100-36d9dfedc168",
+		"eligibility": "// js\nconst ended = get(ctx.subject.employment, 'effective_range.to', null);\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nreturn (\n\t(ended == null || ctx.entry.incurred_on <= ended) &&\n\tctx.entry.quantity > 0 &&\n\t((ctx.entry.unit === 'DAY' && rate.unit !== 'PIECE') || ctx.entry.unit === 'MONEY')\n);",
+		"conversion": "// js\nif (ctx.entry.unit === 'MONEY') return ctx.entry.quantity;\nconst employment = ctx.subject.employment;\nconst terms = get(employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst monthly =\n\trate.unit === 'DAILY'\n\t\t? rate.amount * ctx.lookup.calendar_days\n\t\t: rate.unit === 'HOURLY'\n\t\t\t? rate.amount * get(terms, 'normal_hours_per_day', ctx.lookup.hours_per_day) * ctx.lookup.calendar_days\n\t\t\t: get(rate, 'amount', 0);\nreturn (monthly * ctx.lookup.annual_rate * ctx.entry.quantity) / ctx.lookup.days_per_year;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "f7805c35-1398-53fc-be40-1d0290bd5349",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "HOLIDAY_NOT_GRANTED",
+		"name": "Holiday not granted, paid as worked (s.64)",
+		"lookup": {
+			"calendar_days": 30,
+			"hours_per_day": 8,
+			"hazardous_hours_per_day": 7
+		},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.64",
+				"locator": "s.64",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "A holiday under ss.28-30 not granted, or granted short, is paid at the s.62 and s.63 rates as if worked."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "80293069-f8dd-5da4-a4b0-df6b7a9ff21f",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nconst rate = get(employment, 'terms.rate', {});\nreturn (\n\t(ended == null || ctx.entry.incurred_on <= ended) &&\n\tctx.entry.unit === 'HOUR' &&\n\tctx.entry.quantity > 0 &&\n\t(rate.unit === 'MONTHLY' || rate.unit === 'DAILY' || rate.unit === 'HOURLY')\n);",
+		"conversion": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst hours = get(\n\tterms,\n\t'normal_hours_per_day',\n\tget(terms, 'statutory_work_category', null) === 'HAZARDOUS'\n\t\t? ctx.lookup.hazardous_hours_per_day\n\t\t: ctx.lookup.hours_per_day\n);\nconst hourly =\n\trate.unit === 'HOURLY'\n\t\t? rate.amount\n\t\t: rate.unit === 'DAILY'\n\t\t\t? rate.amount / hours\n\t\t\t: get(rate, 'amount', 0) / ctx.lookup.calendar_days / hours;\nreturn hourly * ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"id": "8c427134-d1a0-53a1-80a1-be2973252be4",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "SECURITY_DEPOSIT",
+		"name": "Security deposit deducted (s.10)",
+		"lookup": {},
+		"references": [
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.10",
+				"locator": "s.10",
+				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
+				"quote": "Security money may be taken only for work, in the amounts and by the keeping method the Minister's notification allows, and is returned with interest within 7 days of the exit."
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "999dc181-b877-52a5-ad41-cc383b47a27f",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst ended = get(employment, 'effective_range.to', null);\nreturn (\n\t(ended == null || ctx.entry.incurred_on <= ended) &&\n\tget(employment, 'employee_extension_data.term_facts.security_deposit_post', false) &&\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0\n);",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"id": "0953879a-b91f-5a30-8210-1169dca33f91",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	}
+]

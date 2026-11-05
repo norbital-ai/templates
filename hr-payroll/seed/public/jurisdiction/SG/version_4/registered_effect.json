@@ -1,0 +1,1234 @@
+[
+	{
+		"code": "retract-exit-effects",
+		"name": "Retract Exit Effects",
+		"lookup": {},
+		"references": [],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED' || row.effective_range.to == null) return false;\nconst suffix = ':exit:' + row.effective_range.to;\nreturn get(ctx, 'reads.obligation', []).some((task) =>\n\ttask.state === 'OPEN' &&\n\ttask.employment_id === row.id &&\n\tString(task.occurrence_key).includes(':exit:') &&\n\t!String(task.occurrence_key).endsWith(suffix)\n);",
+		"target_collection": "obligation",
+		"target_action": "update",
+		"effects": "// js\nconst row = ctx.entry;\nconst suffix = ':exit:' + row.effective_range.to;\nconst reason = 'The exit changed; this task answered an earlier exit.';\nreturn get(ctx, 'reads.obligation', [])\n\t.filter((task) =>\n\t\ttask.state === 'OPEN' &&\n\t\ttask.employment_id === row.id &&\n\t\tString(task.occurrence_key).includes(':exit:') &&\n\t\t!String(task.occurrence_key).endsWith(suffix)\n\t)\n\t.map((task) => ({ target: task.id, set: { state: 'WAIVED', waiver_reason: reason } }));",
+		"id": "d1cb57bc-71f7-5716-91be-db5d63ae7752",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "encash-leave-on-exit",
+		"name": "Encash Leave On Exit",
+		"lookup": {
+			"title": "Encash Leave On Exit"
+		},
+		"references": [],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED' || row.effective_range.to == null) return false;\nif (get(row, 'employee_extension_data.exit_facts.dismissed_for_misconduct', false) === true) return false;\nconst key = 'SG:encash-leave-on-exit:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: get(row, 'final_pay_due_on', null) ?? row.effective_range.to,\n\toccurrence_key: 'SG:encash-leave-on-exit:' + row.id + ':exit:' + row.effective_range.to\n}];",
+		"id": "992693b6-f608-5601-8590-3e862b34d83a",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "CPF_MONTHLY_SUBMISSION_AND_PAYMENT",
+		"name": "CPF monthly submission and payment",
+		"lookup": {
+			"title": "CPF monthly submission and payment",
+			"offset_days": 14
+		},
+		"references": [
+			{
+				"title": "Central Provident Fund Act 1953 ss.7, 9; CPF Regulations 1987 regs.2(1), 3 (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions (https://www.cpf.gov.sg/service/article/when-is-the-due-date-for-cpf-contributions) and How does CPF Board calculate interest on late payment (https://www.cpf.gov.sg/service/article/how-does-cpf-board-calculate-interest-on-late-payment)."
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			},
+			"holiday": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst key = 'SG:CPF_MONTHLY_SUBMISSION_AND_PAYMENT:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst run = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst dueOn = add_working_days(add_days(month_end(run.salary_coverage.to), ctx.lookup.offset_days - 1), 1, holidays, [0, 6]);\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: dueOn,\n\toccurrence_key: 'SG:CPF_MONTHLY_SUBMISSION_AND_PAYMENT:' + run.id\n}];",
+		"id": "a128c458-44ec-54fc-ae78-db3961e5293f",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "SDL_REMITTANCE",
+		"name": "Skills Development Levy remittance",
+		"lookup": {
+			"title": "Skills Development Levy remittance",
+			"offset_days": 14
+		},
+		"references": [
+			{
+				"title": "Skills Development Levy Act 1979; CPF Board, Skills Development Levy. The engine prices each employee's levy and derives the whole-dollar monthly payable; payment and receipt evidence remain external. CPF Board, Skills Development Levy (updated 2 Jul 2026): collected on behalf of SWDA; late payment penalty 10% a year.",
+				"url": "https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy"
+			},
+			{
+				"title": "CPF Board, Skills Development Levy: compute the levy per employee, sum the employer month and round the levy down to whole dollars. The remittance is that employer-month total, verified 2026-10-31.",
+				"url": "https://www.cpf.gov.sg/employer/employer-obligations/skills-development-levy"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			},
+			"holiday": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst key = 'SG:SDL_REMITTANCE:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst run = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst dueOn = add_working_days(add_days(month_end(run.salary_coverage.to), ctx.lookup.offset_days - 1), 1, holidays, [0, 6]);\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: dueOn,\n\toccurrence_key: 'SG:SDL_REMITTANCE:' + run.id\n}];",
+		"id": "3523c644-c073-5842-94b5-4da86638cb37",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "SHG_DEDUCTION_REMITTANCE",
+		"name": "Self-help group fund remittance",
+		"lookup": {
+			"title": "Self-help group fund remittance",
+			"offset_days": 14
+		},
+		"references": [
+			{
+				"title": "CPF Board, Contributions to self-help groups. The engine prices the deduction and reads the recorded instruction; obtaining the instruction and remitting are outside it.",
+				"url": "https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			},
+			"holiday": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst key = 'SG:SHG_DEDUCTION_REMITTANCE:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst run = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst dueOn = add_working_days(add_days(month_end(run.salary_coverage.to), ctx.lookup.offset_days - 1), 1, holidays, [0, 6]);\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: dueOn,\n\toccurrence_key: 'SG:SHG_DEDUCTION_REMITTANCE:' + run.id\n}];",
+		"id": "f4a02d36-1675-5ece-b128-ab0f6df6178c",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "NR_DIRECTOR_WITHHOLDING",
+		"name": "Withholding tax on non-resident director fees (IR37)",
+		"lookup": {
+			"title": "Withholding tax on non-resident director fees (IR37)",
+			"offset_days": 15,
+			"month_offset": 1
+		},
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.45; IRAS, Tax obligations for non-resident director, read 2026-10-07: 24% from YA 2024; e.g. approved 2 Dec 2025, paid by 15 Feb 2026.",
+				"url": "https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-director/tax-obligations-for-non-resident-director"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst key = 'SG:NR_DIRECTOR_WITHHOLDING:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst run = ctx.entry;\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(month_end(add_months(get(run, 'pay_date', null) ?? run.salary_coverage.to, ctx.lookup.month_offset)), ctx.lookup.offset_days),\n\toccurrence_key: 'SG:NR_DIRECTOR_WITHHOLDING:' + run.id\n}];",
+		"id": "f09c178b-b211-571a-9613-063bf0751ac7",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "NR_ENTERTAINER_WITHHOLDING",
+		"name": "Withholding tax on non-resident public entertainers (S45)",
+		"lookup": {
+			"title": "Withholding tax on non-resident public entertainers (S45)",
+			"offset_days": 15,
+			"month_offset": 1
+		},
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.45; IRAS, read 2026-10-07: pay by the 15th of the second month from the date of payment.",
+				"url": "https://www.iras.gov.sg/taxes/withholding-tax/payments-to-non-resident-public-entertainer-(artiste-musician-sportsman-etc-)/tax-obligations-of-non-resident-public-entertainer"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst key = 'SG:NR_ENTERTAINER_WITHHOLDING:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst run = ctx.entry;\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(month_end(add_months(get(run, 'pay_date', null) ?? run.salary_coverage.to, ctx.lookup.month_offset)), ctx.lookup.offset_days),\n\toccurrence_key: 'SG:NR_ENTERTAINER_WITHHOLDING:' + run.id\n}];",
+		"id": "380d457c-3993-5daa-9c6b-6530a836512e",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "encash-leave-at-window-end",
+		"name": "Encash Leave At Window End",
+		"lookup": {
+			"title": "Encash Leave At Window End",
+			"years": 1
+		},
+		"references": [],
+		"source_collection": "employee_contract",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'SG:encash-leave-at-window-end:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_years(row.effective_range.from, ctx.lookup.years),\n\toccurrence_key: 'SG:encash-leave-at-window-end:' + row.id\n}];",
+		"id": "935a55db-25e9-516d-898a-31522dac27ca",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "FOREIGN_WORKER_LEVY",
+		"name": "Foreign worker levy payment",
+		"lookup": {
+			"title": "Foreign worker levy payment",
+			"offset_days": 17
+		},
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower Act 1990 and the levy order made under it; MOM, Paying the foreign worker levy.",
+				"url": "https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			},
+			"employee_contract": {
+				"where": {}
+			},
+			"holiday": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst active = get(ctx, 'reads.employee_contract', []).filter((contract) =>\n\tcontract.status === 'SEALED' &&\n\tcontract.entity_id === run.entity_id &&\n\tcontract.effective_range.from <= run.salary_coverage.to &&\n\t(contract.effective_range.to == null || contract.effective_range.to >= run.salary_coverage.from) &&\n\t!['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(contract, 'terms.residency_status', ''))\n);\nif (active.length === 0) return false;\nconst key = 'SG:FOREIGN_WORKER_LEVY:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst run = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst dueOn = add_working_days(add_days(run.salary_coverage.to, ctx.lookup.offset_days - 1), 1, holidays, [0, 6]);\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: dueOn,\n\toccurrence_key: 'SG:FOREIGN_WORKER_LEVY:' + run.id\n}];",
+		"id": "ebc038b6-dbf0-55a5-83a3-08b749ed9d27",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "SALARY_PAYMENT_DEADLINE",
+		"name": "Salary payment",
+		"lookup": {
+			"title": "Salary payment",
+			"offset_days": 7
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968",
+				"locator": "ss.20, 21(1)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst key = 'SG:SALARY_PAYMENT_DEADLINE:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst run = ctx.entry;\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: get(run, 'pay_due_date', null) ?? add_days(run.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: 'SG:SALARY_PAYMENT_DEADLINE:' + run.id\n}];",
+		"id": "29acaa9b-91e8-5965-b29b-27b66c50d4e7",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "OVERTIME_PAYMENT_DEADLINE",
+		"name": "Overtime payment",
+		"lookup": {
+			"title": "Overtime payment",
+			"offset_days": 14
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968",
+				"locator": "s.21(2)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst key = 'SG:OVERTIME_PAYMENT_DEADLINE:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst run = ctx.entry;\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(run.salary_coverage.to, ctx.lookup.offset_days),\n\toccurrence_key: 'SG:OVERTIME_PAYMENT_DEADLINE:' + run.id\n}];",
+		"id": "1870f84e-4975-5824-ad2b-aadcb1a0ec7f",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "ITEMISED_PAYSLIP",
+		"name": "Itemised payslips",
+		"lookup": {
+			"title": "Itemised payslips",
+			"working_days": 3
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.96 (https://sso.agc.gov.sg/Act/EmA1968); MOM, Itemised pay slips (https://www.mom.gov.sg/employment-practices/salary/itemised-payslips). The engine produces the payslip content; issuing it is outside it."
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			},
+			"payroll_run": {
+				"where": {}
+			},
+			"holiday": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.state !== 'PAID') return false;\nconst key = 'SG:ITEMISED_PAYSLIP:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nconst run = get(ctx, 'reads.payroll_run', []).find((item) => item.id === row.payroll_run_id);\nif (run == null) return [];\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst paidOn = get(run, 'pay_date', null) ?? run.salary_coverage.to;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_working_days(paidOn, ctx.lookup.working_days, holidays, [0, 6]),\n\toccurrence_key: 'SG:ITEMISED_PAYSLIP:' + row.id\n}];",
+		"id": "1d22464a-f354-59ec-be3c-f1bd22c66cb4",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "ANNUAL_EMPLOYMENT_INCOME_RETURN",
+		"name": "Form IR8A / AIS annual return",
+		"lookup": {
+			"title": "Form IR8A / AIS annual return",
+			"offset_months": 2
+		},
+		"references": [
+			{
+				"title": "Income Tax Act 1947",
+				"locator": "s.68(2)"
+			},
+			{
+				"title": "IRAS, Auto Inclusion Scheme (AIS) for Employment Income",
+				"url": "https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst run = ctx.entry;\nif (run == null || run.salary_coverage.to.slice(5, 7) !== '12') return false;\nconst key = 'SG:ANNUAL_EMPLOYMENT_INCOME_RETURN:' + run.entity_id + ':' + run.salary_coverage.to.slice(0, 4);\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst run = ctx.entry;\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_months(add_days(run.salary_coverage.to, 1), ctx.lookup.offset_months),\n\toccurrence_key: 'SG:ANNUAL_EMPLOYMENT_INCOME_RETURN:' + run.entity_id + ':' + run.salary_coverage.to.slice(0, 4)\n}];",
+		"id": "752b3502-fd2e-5aa9-94fd-1087ad3d298b",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "KEY_EMPLOYMENT_TERMS",
+		"name": "Key employment terms",
+		"lookup": {
+			"title": "Key employment terms",
+			"due_days": 14
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968",
+				"locator": "s.95A(2)",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'SG:KEY_EMPLOYMENT_TERMS:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n\toccurrence_key: 'SG:KEY_EMPLOYMENT_TERMS:' + row.id\n}];",
+		"id": "071bb597-9337-5aec-a486-bfcc3333304a",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "WORK_PASS_IN_FORCE",
+		"name": "Work pass before the start",
+		"lookup": {
+			"title": "Work pass before the start"
+		},
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower Act 1990",
+				"locator": "s.5(1)"
+			},
+			{
+				"title": "MOM, Passes and permits",
+				"url": "https://www.mom.gov.sg/passes-and-permits"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nif (['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(row, 'terms.residency_status', ''))) return false;\nconst key = 'SG:WORK_PASS_IN_FORCE:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: row.effective_range.from,\n\toccurrence_key: 'SG:WORK_PASS_IN_FORCE:' + row.id\n}];",
+		"id": "e3bd5b4c-40ed-589d-88d4-b502574e0d0a",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "WORK_INJURY_COMPENSATION_INSURANCE",
+		"name": "Work injury compensation insurance",
+		"lookup": {
+			"title": "Work injury compensation insurance",
+			"salary_ceiling": 2600
+		},
+		"references": [
+			{
+				"title": "Work Injury Compensation Act 2019; MOM, Work injury compensation insurance.",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-injury-compensation/work-injury-compensation-insurance"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst manual = get(row, 'terms.statutory_work_category', '') !== 'NON_MANUAL';\nconst salary = Number(get(row, 'terms.rate.amount', 0));\nif (!manual && salary > ctx.lookup.salary_ceiling) return false;\nconst key = 'SG:WORK_INJURY_COMPENSATION_INSURANCE:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: row.effective_range.from,\n\toccurrence_key: 'SG:WORK_INJURY_COMPENSATION_INSURANCE:' + row.id\n}];",
+		"id": "98e99111-4452-5960-85dd-0527823ba60e",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "PDPA_CONSENT_PURPOSE_NOTIFICATION",
+		"name": "PDPA purpose notification",
+		"lookup": {
+			"title": "PDPA purpose notification"
+		},
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012 ss.13 (consent required), 14, 15 and 15A (deemed consent), 16 (withdrawal), 17 and First and Second Schedules (without consent), 18 (limitation of purpose), 20 including s.20(4) (employment relationship) (https://sso.agc.gov.sg/Act/PDPA2012); PDPC Advisory Guidelines on the PDPA for Selected Topics, Employment chapter (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/advisory-guidelines/ag-on-selected-topics/advisory-guidelines-on-the-pdpa-for-selected-topics-(revised-may-2024).pdf)"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst key = 'SG:PDPA_CONSENT_PURPOSE_NOTIFICATION:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: row.effective_range.from,\n\toccurrence_key: 'SG:PDPA_CONSENT_PURPOSE_NOTIFICATION:' + row.id\n}];",
+		"id": "7ebf2713-986b-5ac8-9b14-af8f958fb124",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "FINAL_SALARY_PAYMENT",
+		"name": "Final salary payment",
+		"lookup": {
+			"title": "Final salary payment",
+			"working_days": 3
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968",
+				"locator": "ss.21(3), 22, 23, 24",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			},
+			"holiday": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED' || row.effective_range.to == null) return false;\nif (get(row, 'employee_extension_data.exit_facts', null) == null) return false;\nconst key = 'SG:FINAL_SALARY_PAYMENT:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst impossible = get(row, 'employee_extension_data.exit_facts.final_pay_not_possible', false) === true;\nconst dueOn = get(row, 'final_pay_due_on', null) ?? (impossible\n\t? add_working_days(row.effective_range.to, ctx.lookup.working_days, holidays, [0, 6])\n\t: row.effective_range.to);\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: dueOn,\n\toccurrence_key: 'SG:FINAL_SALARY_PAYMENT:' + row.id + ':exit:' + row.effective_range.to\n}];",
+		"id": "ad48a999-3847-57ec-9546-d068db0f8246",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "TAX_CLEARANCE_AND_WITHHOLDING",
+		"name": "IR21 tax clearance",
+		"lookup": {
+			"title": "IR21 tax clearance",
+			"advance_months": 1
+		},
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.68(5)–(7) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr68-); Employment Act 1968 s.24 (https://sso.agc.gov.sg/Act/EmA1968); IRAS, Getting tax clearance: a step-by-step guide (https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/getting-tax-clearance-a-step-by-step-guide)."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED' || row.effective_range.to == null) return false;\nif (get(row, 'employee_extension_data.exit_facts', null) == null) return false;\nif (get(row, 'terms.residency_status', '') === 'CITIZEN') return false;\nif (get(row, 'employee_extension_data.exit_facts.ir21_exemption', null) != null) return false;\nconst key = 'SG:TAX_CLEARANCE_AND_WITHHOLDING:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_months(row.effective_range.to, -ctx.lookup.advance_months),\n\toccurrence_key: 'SG:TAX_CLEARANCE_AND_WITHHOLDING:' + row.id + ':exit:' + row.effective_range.to\n}];",
+		"id": "5b492702-ca8a-5572-9c94-d57511f88f2e",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "WORK_PASS_CANCELLATION",
+		"name": "Work pass cancellation",
+		"lookup": {
+			"title": "Work pass cancellation",
+			"due_days": 7
+		},
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower Act 1990 and the Employment of Foreign Manpower (Work Passes) Regulations; MOM, Cancel a Work Permit (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/cancel-a-work-permit) and Cancel an Employment Pass (https://www.mom.gov.sg/passes-and-permits/employment-pass/cancel-a-pass), read 2026-10-06: “Within 1 week after the last day of notice.”"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED' || row.effective_range.to == null) return false;\nif (get(row, 'employee_extension_data.exit_facts', null) == null) return false;\nif (['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(row, 'terms.residency_status', ''))) return false;\nconst key = 'SG:WORK_PASS_CANCELLATION:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(row.effective_range.to, ctx.lookup.due_days),\n\toccurrence_key: 'SG:WORK_PASS_CANCELLATION:' + row.id + ':exit:' + row.effective_range.to\n}];",
+		"id": "637e9db7-45e4-522b-9f05-173dc0c7e08f",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "RETRENCHMENT_NOTIFICATION",
+		"name": "Mandatory retrenchment notification",
+		"lookup": {
+			"title": "Mandatory retrenchment notification",
+			"employee_count_threshold": 10,
+			"working_days": 5
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.45 and s.96A (https://sso.agc.gov.sg/Act/EmA1968); MOM, Mandatory retrenchment notifications (https://www.mom.gov.sg/employment-practices/retrenchment/mandatory-retrenchment-notifications); Tripartite Advisory on Managing Excess Manpower and Responsible Retrenchment."
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			},
+			"employee_contract": {
+				"where": {}
+			},
+			"holiday": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.kind !== 'RETRENCHMENT_EMPLOYEE_NOTICE' || row.closed_on != null) return false;\nconst active = get(ctx, 'reads.employee_contract', []).filter((contract) =>\n\tcontract.entity_id === row.entity_id &&\n\tcontract.status === 'SEALED' &&\n\tcontract.effective_range.from <= row.opened_on &&\n\t(contract.effective_range.to == null || contract.effective_range.to >= row.opened_on)\n);\nif (active.length < ctx.lookup.employee_count_threshold) return false;\nconst key = 'SG:RETRENCHMENT_NOTIFICATION:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nreturn [{\n\tentity_id: row.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_working_days(row.opened_on, ctx.lookup.working_days, holidays, [0, 6]),\n\toccurrence_key: 'SG:RETRENCHMENT_NOTIFICATION:' + row.id\n}];",
+		"id": "dbe7733f-a237-5ae2-a91a-8ac8d5070f4c",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "GOVERNMENT_PAID_LEAVE_CLAIM",
+		"name": "Government-paid leave reimbursement claim",
+		"lookup": {
+			"title": "Government-paid leave reimbursement claim",
+			"catalog_codes": [
+				"MATERNITY_LEAVE",
+				"PATERNITY_LEAVE",
+				"ADOPTION_LEAVE",
+				"SHARED_PARENTAL_LEAVE"
+			],
+			"offset_months": 3
+		},
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001; MSF ProFamily Leave, scheme pages for maternity, paternity, adoption and shared parental leave, read 2026-10-07",
+				"url": "https://www.profamilyleave.msf.gov.sg/"
+			}
+		],
+		"source_collection": "leave_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			},
+			"leave_catalog": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || !Array.isArray(row.days) || row.days.length === 0) return false;\nconst catalog = get(ctx, 'reads.leave_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(catalog.code)) return false;\nconst key = 'SG:GOVERNMENT_PAID_LEAVE_CLAIM:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nconst last = row.days.map((day) => day.date).toSorted().at(-1);\nreturn [{\n\tentity_id: row.entity_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_months(last, ctx.lookup.offset_months),\n\toccurrence_key: 'SG:GOVERNMENT_PAID_LEAVE_CLAIM:' + row.id\n}];",
+		"id": "ed73aed3-80fe-544b-9d21-bb62d0c5cbd1",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "CHILDCARE_LEAVE_CLAIM",
+		"name": "Childcare and extended childcare leave claim",
+		"lookup": {
+			"title": "Childcare and extended childcare leave claim",
+			"offset_months": 3
+		},
+		"references": [
+			{
+				"title": "Child Development Co-Savings Act 2001 s.12B; MSF ProFamily Leave, Childcare leave, read 2026-10-07: “no later than 3 months after the last date of the calendar year”",
+				"url": "https://www.profamilyleave.msf.gov.sg/schemes/childcare-leave"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst run = ctx.entry;\nif (run == null || run.salary_coverage.to.slice(5, 7) !== '12') return false;\nconst key = 'SG:CHILDCARE_LEAVE_CLAIM:' + run.entity_id + ':' + run.salary_coverage.to.slice(0, 4);\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst run = ctx.entry;\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_months(run.salary_coverage.to, ctx.lookup.offset_months),\n\toccurrence_key: 'SG:CHILDCARE_LEAVE_CLAIM:' + run.entity_id + ':' + run.salary_coverage.to.slice(0, 4)\n}];",
+		"id": "0f1e03f5-390e-53ca-9195-9e7db844c887",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "WORK_ACCIDENT_REPORT",
+		"name": "Work accident report to MOM",
+		"lookup": {
+			"title": "Work accident report to MOM",
+			"catalog_codes": [
+				"SICK_LEAVE",
+				"HOSPITALIZATION_LEAVE",
+				"WORK_INJURY_MEDICAL_LEAVE",
+				"WORK_INJURY_HOSPITALISATION_LEAVE"
+			],
+			"offset_days": 10
+		},
+		"references": [
+			{
+				"title": "Workplace Safety and Health (Incident Reporting) Regulations and Work Injury Compensation Regulations; Ministry of Manpower official reporting criteria, read 2026-10-10: https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report. The employer table expressly lists any outpatient/hospitalisation leave, light duty, death and occupational disease; fatal accident reports use accident date, non-fatal reports first employer notice. Primary legislation links were inaccessible (403); current agency guidance is the verified source. MOM parliamentary written answer dated 8 February 2023 confirms the any-instance requirement has applied since 1 September 2020: https://www.mom.gov.sg/newsroom/parliament-questions-and-replies/2023/0206-written-answer-to-pq-on-data-on-healthcare-workers-compensation-under-wica."
+			}
+		],
+		"source_collection": "leave_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			},
+			"leave_catalog": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || !Array.isArray(row.days) || row.days.length === 0) return false;\nconst catalog = get(ctx, 'reads.leave_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(catalog.code)) return false;\nconst key = 'SG:WORK_ACCIDENT_REPORT:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nconst first = row.days.map((day) => day.date).toSorted().at(0);\nreturn [{\n\tentity_id: row.entity_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(first, ctx.lookup.offset_days),\n\toccurrence_key: 'SG:WORK_ACCIDENT_REPORT:' + row.id\n}];",
+		"id": "ab9512c9-591c-5a84-81b1-1c3d98d45511",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "CPF_SUBMISSION_NUMBER",
+		"name": "CPF Submission Number registration",
+		"lookup": {
+			"title": "CPF Submission Number registration",
+			"offset_days": 14
+		},
+		"references": [
+			{
+				"title": "CPF Board: a CPF Submission Number is required to transact. This reminder is raised by an actual positive CPF assessment and uses that contribution period’s existing payment deadline; there is no separate invented registration grace period.",
+				"url": "https://www.cpf.gov.sg/service/article/how-do-i-start-contributing-cpf-as-a-new-employer"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			},
+			"entity_profile_version": {
+				"where": {}
+			},
+			"holiday": {
+				"where": {}
+			},
+			"employee_contract": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst active = get(ctx, 'reads.employee_contract', []).some((contract) =>\n\tcontract.entity_id === run.entity_id &&\n\tcontract.status === 'SEALED' &&\n\tcontract.effective_range.from <= run.salary_coverage.to &&\n\t(contract.effective_range.to == null || contract.effective_range.to >= run.salary_coverage.from) &&\n\t['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(contract, 'terms.residency_status', ''))\n);\nif (!active) return false;\nconst registered = get(ctx, 'reads.entity_profile_version', []).some((version) =>\n\tversion.entity_id === run.entity_id &&\n\tversion.status === 'SEALED' &&\n\tversion.effective_range.from <= run.salary_coverage.from &&\n\t(version.effective_range.to == null || version.effective_range.to >= run.salary_coverage.from) &&\n\t(version.registrations ?? []).some((registration) => registration.scheme_code === 'CPF')\n);\nif (registered) return false;\nconst key = 'SG:CPF_SUBMISSION_NUMBER:' + run.entity_id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst run = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst dueOn = add_working_days(add_days(month_end(run.salary_coverage.to), ctx.lookup.offset_days - 1), 1, holidays, [0, 6]);\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: dueOn,\n\toccurrence_key: 'SG:CPF_SUBMISSION_NUMBER:' + run.entity_id\n}];",
+		"id": "7731cbab-a71f-5c42-a68a-5ed403ad4c6c",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "REEMPLOYMENT_OFFER",
+		"name": "Re-employment offer",
+		"lookup": {
+			"title": "Re-employment offer",
+			"effective_date": "1963-07-01",
+			"revised_age": 64,
+			"prior_age": 63,
+			"advance_months": 6,
+			"offer_months": 3
+		},
+		"references": [
+			{
+				"title": "Retirement and Re-employment Act 1993 ss.4, 7C; MOM, Tripartite Guidelines on the Re-employment of Older Employees (updated 1 July 2026), https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en, read 2026-10-07.",
+				"url": "https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en"
+			}
+		],
+		"source_collection": "calendar",
+		"events": ["daily"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			},
+			"employee_contract": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nreturn get(ctx, 'as_of', null) != null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst day = get(ctx, 'as_of', null);\nif (day == null) return [];\nreturn get(ctx, 'reads.employee_contract', []).flatMap((contract) => {\n\tif (contract.status !== 'SEALED') return [];\n\tconst born = get(contract, 'payroll.date_of_birth', null);\n\tif (born == null) return [];\n\tconst years = born >= ctx.lookup.effective_date ? ctx.lookup.revised_age : ctx.lookup.prior_age;\n\tconst retirement = add_years(born, years);\n\tif (day !== add_months(retirement, -ctx.lookup.advance_months)) return [];\n\tconst key = 'SG:REEMPLOYMENT_OFFER:' + contract.id + ':' + retirement;\n\tif (get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key)) return [];\n\treturn [{\n\t\tentity_id: contract.entity_id,\n\t\temployee_id: contract.employee_id,\n\t\temployment_id: contract.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_months(retirement, -ctx.lookup.offer_months),\n\t\toccurrence_key: key\n\t}];\n});",
+		"id": "b65adfc2-5ad8-58fc-a9ad-6a9e3b37a75a",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "IR21_LEAVING_SINGAPORE",
+		"name": "IR21 for an overseas posting or departure over 3 months",
+		"lookup": {
+			"title": "IR21 for an overseas posting or departure over 3 months",
+			"advance_months": 1
+		},
+		"references": [
+			{
+				"title": "Income Tax Act 1947 s.68(5); IRAS, Tax clearance for employees, read 2026-10-07.",
+				"url": "https://www.iras.gov.sg/taxes/individual-income-tax/employers/tax-clearance-for-foreign-spr-employees-(ir21)/tax-clearance-for-employees"
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.kind !== 'OVERSEAS_DEPARTURE_NOTICE' || row.closed_on != null || row.scheduled_on == null) return false;\nconst key = 'SG:IR21_LEAVING_SINGAPORE:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_months(row.scheduled_on, -ctx.lookup.advance_months),\n\toccurrence_key: 'SG:IR21_LEAVING_SINGAPORE:' + row.id\n}];",
+		"id": "88ee7156-4493-524d-a316-7024ae1fa920",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "WORK_PASS_MEDICAL_INSURANCE",
+		"name": "Medical insurance for a Work Permit or S Pass holder",
+		"lookup": {
+			"title": "Medical insurance for a Work Permit or S Pass holder"
+		},
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule; MOM, Medical insurance requirements and MOM written answer 1106/2025.",
+				"url": "https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/sector-specific-rules/medical-insurance"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nif (['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(row, 'terms.residency_status', ''))) return false;\nconst key = 'SG:WORK_PASS_MEDICAL_INSURANCE:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: row.effective_range.from,\n\toccurrence_key: 'SG:WORK_PASS_MEDICAL_INSURANCE:' + row.id\n}];",
+		"id": "6c96a6b4-9af2-5211-8154-1442388f1177",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "WORK_PERMIT_SECURITY_BOND",
+		"name": "Security bond for a non-Malaysian Work Permit holder",
+		"lookup": {
+			"title": "Security bond for a non-Malaysian Work Permit holder"
+		},
+		"references": [
+			{
+				"title": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule; MOM, Security bond requirements for migrant worker, read 2026-10-07: Malaysians are exempt.",
+				"url": "https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/sector-specific-rules/security-bond"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nif (['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(row, 'terms.residency_status', ''))) return false;\nif (get(row, 'employee_extension_data.term_facts.malaysian', false) === true) return false;\nconst key = 'SG:WORK_PERMIT_SECURITY_BOND:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: row.effective_range.from,\n\toccurrence_key: 'SG:WORK_PERMIT_SECURITY_BOND:' + row.id\n}];",
+		"id": "b080802a-adf4-5ae9-949f-38c12df1e82c",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "YOUNG_PERSON_NOTIFICATION",
+		"name": "Notify MOM of a child or young person in an industrial undertaking",
+		"lookup": {
+			"title": "Notify MOM of a child or young person in an industrial undertaking",
+			"min_age": 13,
+			"max_age": 16,
+			"due_days": 30
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 Part 6 and the Employment (Children and Young Persons) Regulations; MOM, Notify for employment of young persons and Employing young persons and children, read 2026-10-07.",
+				"url": "https://www.mom.gov.sg/eservices/services/notify-for-employment-of-young-persons"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			},
+			"entity_profile_version": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst born = get(row, 'payroll.date_of_birth', null);\nif (born == null) return false;\nconst years = age_on(born, row.effective_range.from);\nif (years < ctx.lookup.min_age || years >= ctx.lookup.max_age) return false;\nconst profile = get(ctx, 'reads.entity_profile_version', []).find((version) =>\n\tversion.entity_id === row.entity_id &&\n\tversion.status === 'SEALED' &&\n\tversion.effective_range.from <= row.effective_range.from &&\n\t(version.effective_range.to == null || version.effective_range.to >= row.effective_range.from)\n);\nif (profile == null || get(profile, 'entity_extension_data.industrial_undertaking', false) !== true) return false;\nconst key = 'SG:YOUNG_PERSON_NOTIFICATION:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n\toccurrence_key: 'SG:YOUNG_PERSON_NOTIFICATION:' + row.id\n}];",
+		"id": "5214c290-62c6-53b4-a22d-f77b558dcdd0",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "MISCONDUCT_DUE_INQUIRY",
+		"name": "Due inquiry before a misconduct dismissal",
+		"lookup": {
+			"title": "Due inquiry before a misconduct dismissal"
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.14(1)–(2) (AGC, read 2026-10-07).",
+				"url": "https://sso.agc.gov.sg/Act/EmA1968"
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED' || row.effective_range.to == null) return false;\nif (get(row, 'employee_extension_data.exit_facts.dismissed_for_misconduct', false) !== true) return false;\nconst key = 'SG:MISCONDUCT_DUE_INQUIRY:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: row.effective_range.to,\n\toccurrence_key: 'SG:MISCONDUCT_DUE_INQUIRY:' + row.id + ':exit:' + row.effective_range.to\n}];",
+		"id": "164c01d2-c700-55fc-8a6f-c0b6629e4fd6",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "PDPA_DATA_PROTECTION_OFFICER",
+		"name": "Designate a data protection officer",
+		"lookup": {
+			"title": "Designate a data protection officer"
+		},
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012",
+				"locator": "ss.11(3)–(5), 12",
+				"url": "https://sso.agc.gov.sg/Act/PDPA2012"
+			}
+		],
+		"source_collection": "entity_profile_version",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nif (get(row, 'entity_extension_data.data_protection_officer_contact', '') !== '') return false;\nconst key = 'SG:PDPA_DATA_PROTECTION_OFFICER:' + row.entity_id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: row.effective_range.from,\n\toccurrence_key: 'SG:PDPA_DATA_PROTECTION_OFFICER:' + row.entity_id\n}];",
+		"id": "bc04bf95-f75e-5bb3-be31-a63e1aaa3384",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "CPF_CONDITIONAL_WAGE_REFUND",
+		"name": "CPF refund on repaid conditional wages",
+		"lookup": {
+			"title": "CPF refund on repaid conditional wages",
+			"catalog_code": "PRIOR_WAGE_CASH_REPAYMENT",
+			"years": 1
+		},
+		"references": [
+			{
+				"title": "CPF Act 1953; CPF Board, Applying for refund of CPF contributions, read 2026-10-07: a refund request is made no later than one year from the payment date, and for wages paid on conditions no later than one year from the date the wages are supposed to be repaid.",
+				"url": "https://www.cpf.gov.sg/employer/compliance-and-rectifications/applying-for-refund-of-cpf-contributions"
+			}
+		],
+		"source_collection": "adhoc_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			},
+			"adhoc_catalog": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null) return false;\nconst catalog = get(ctx, 'reads.adhoc_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || catalog.code !== ctx.lookup.catalog_code) return false;\nconst key = 'SG:CPF_CONDITIONAL_WAGE_REFUND:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_years(row.incurred_on, ctx.lookup.years),\n\toccurrence_key: 'SG:CPF_CONDITIONAL_WAGE_REFUND:' + row.id\n}];",
+		"id": "cca9a320-a6d0-5190-ae39-305eef787146",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "FLEXIBLE_WORK_REQUEST_DECISION",
+		"name": "Written decision on a formal FWA request",
+		"lookup": {
+			"title": "Written decision on a formal FWA request",
+			"offset_months": 2
+		},
+		"references": [
+			{
+				"title": "Tripartite Guidelines on Flexible Work Arrangement Requests (TG-FWAR), in force 1 December 2024; TAFEP, Guide to managing flexible work arrangements requests for employers, read 2026-10-07.",
+				"url": "https://www.tal.sg/tafep/employment%20practices/work-life%20harmony/guide%20to%20managing%20flexible%20work%20arrangements%20requests%20for%20employers"
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.kind !== 'FLEXIBLE_WORK_REQUEST') return false;\nconst key = 'SG:FLEXIBLE_WORK_REQUEST_DECISION:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_months(row.opened_on, ctx.lookup.offset_months),\n\toccurrence_key: 'SG:FLEXIBLE_WORK_REQUEST_DECISION:' + row.id\n}];",
+		"id": "dea25903-9e8f-58f3-b1cd-b8b839a0281e",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "PDPA_ACCESS_CORRECTION_REPLY",
+		"name": "Reply to a personal data access or correction request",
+		"lookup": {
+			"title": "Reply to a personal data access or correction request",
+			"kinds": ["PERSONAL_DATA_ACCESS_REQUEST", "PERSONAL_DATA_CORRECTION_REQUEST"],
+			"offset_days": 30
+		},
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012 ss.21–22 (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr21-,pr22-); Personal Data Protection Regulations 2021 reg.5 (https://sso.agc.gov.sg/SL/PDPA2012-S63-2021?ProvIds=P12-), read 2026-10-07."
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || !ctx.lookup.kinds.includes(row.kind)) return false;\nconst key = 'SG:PDPA_ACCESS_CORRECTION_REPLY:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(row.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: 'SG:PDPA_ACCESS_CORRECTION_REPLY:' + row.id\n}];",
+		"id": "3696badf-ea2d-52e2-86f7-6279369fd6a7",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "PDPA_BREACH_ASSESSMENT",
+		"name": "Assess whether a data breach is notifiable",
+		"lookup": {
+			"title": "Assess whether a data breach is notifiable",
+			"offset_days": 30
+		},
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012 ss.26B–26C (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr26C-); PDPC, Guide on Managing and Notifying Data Breaches under the PDPA, 15 Mar 2021 (https://www.pdpc.gov.sg/-/media/files/pdpc/pdf-files/other-guides/guide-on-managing-and-notifying-data-breaches-under-the-pdpa-15-mar-2021.pdf), read 2026-10-07."
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.kind !== 'DATA_BREACH') return false;\nconst key = 'SG:PDPA_BREACH_ASSESSMENT:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(row.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: 'SG:PDPA_BREACH_ASSESSMENT:' + row.id\n}];",
+		"id": "356605c2-41a5-50cd-a808-c1f01ed0fb3d",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "PDPA_BREACH_NOTIFICATION",
+		"name": "Notify the PDPC of a notifiable data breach",
+		"lookup": {
+			"title": "Notify the PDPC of a notifiable data breach",
+			"offset_days": 3
+		},
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012 s.26D(1)–(2) (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr26D-); Personal Data Protection (Notification of Data Breaches) Regulations 2021 regs.5–6 (https://sso.agc.gov.sg/SL/PDPA2012-S64-2021), read 2026-10-07."
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.kind !== 'DATA_BREACH') return false;\nconst assessedOn = get(row, 'inputs.notifiable_assessed_on', null);\nif (assessedOn == null) return false;\nconst key = 'SG:PDPA_BREACH_NOTIFICATION:' + row.id + ':' + assessedOn;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(row.inputs.notifiable_assessed_on, ctx.lookup.offset_days),\n\toccurrence_key: 'SG:PDPA_BREACH_NOTIFICATION:' + row.id + ':' + row.inputs.notifiable_assessed_on\n}];",
+		"id": "a1d9078d-a03d-55f3-8843-e0ca0835bf72",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "PDPA_RETENTION_DISPOSAL",
+		"name": "Dispose of a former employee’s personal data after retention",
+		"lookup": {
+			"title": "Dispose of a former employee’s personal data after retention",
+			"retention_years": 6
+		},
+		"references": [
+			{
+				"title": "Personal Data Protection Act 2012 s.25 (https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr25-); Income Tax Act 1947 s.67(1)(a) (https://sso.agc.gov.sg/Act/ITA1947?ProvIds=pr67-): records kept 5 years from the year of assessment; IRAS, Record keeping requirements (read 2026-10-07): a financial year ending in 2022 (YA 2023) is kept till 31 Dec 2027. The exit falls in a financial year ending in the exit year or the next, so the latest keep-till is 31 December of the exit year + 6. Longer than Employment Act 1968 s.95 with the Employment (Employee and Salary Records) regulations (1 year after the employee leaves; MOM, Employment records). Personal Data Protection Act 2012 s.25 then requires ceasing to retain the personal data."
+			}
+		],
+		"source_collection": "employee_contract",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED' || row.effective_range.to == null) return false;\nif (get(row, 'employee_extension_data.exit_facts', null) == null) return false;\nconst key = 'SG:PDPA_RETENTION_DISPOSAL:' + row.id + ':exit:' + row.effective_range.to;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nconst year = Number(row.effective_range.to.slice(0, 4)) + ctx.lookup.retention_years;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: String(year) + '-12-31',\n\toccurrence_key: 'SG:PDPA_RETENTION_DISPOSAL:' + row.id + ':exit:' + row.effective_range.to\n}];",
+		"id": "83589af8-eb6a-51eb-b28e-d102c215bfbc",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "NS_MAKE_UP_PAY_CLAIM",
+		"name": "NS make-up pay claim review",
+		"lookup": {
+			"title": "NS make-up pay claim review",
+			"offset_months": 3
+		},
+		"references": [
+			{
+				"title": "Enlistment Act 1970; OneNS, Employer > NSmen Payment: Make-Up Pay, Managing MUP for Your NSmen Employees and Payment Methods (https://www.ns.gov.sg/web/profiles/employer/nsmen-payment, last updated 29 May 2025), read 2026-10-08: “All changes must be submitted within three months from the start of the ORNS/SV activity”; DIRECT adjustments two weeks before the start.",
+				"url": "https://www.ns.gov.sg/web/profiles/employer/nsmen-payment"
+			}
+		],
+		"source_collection": "leave_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			},
+			"leave_catalog": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || !Array.isArray(row.days) || row.days.length === 0) return false;\nconst catalog = get(ctx, 'reads.leave_catalog', []).find((item) => item.id === row.catalog_id);\nif (catalog == null || catalog.code !== 'NS_LEAVE') return false;\nconst key = 'SG:NS_MAKE_UP_PAY_CLAIM:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nconst first = row.days.map((day) => day.date).toSorted().at(0);\nreturn [{\n\tentity_id: row.entity_id,\n\temployment_id: row.employment_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_months(first, ctx.lookup.offset_months),\n\toccurrence_key: 'SG:NS_MAKE_UP_PAY_CLAIM:' + row.id\n}];",
+		"id": "6de97f3a-ee8e-5060-9a43-f9bec040b25d",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "WORK_INCIDENT_CASE_REPORT",
+		"name": "Report a work incident to MOM",
+		"lookup": {
+			"title": "Report a work incident to MOM",
+			"kinds": [
+				"WORK_ACCIDENT_LIGHT_DUTY",
+				"WORK_ACCIDENT_FATAL",
+				"DANGEROUS_OCCURRENCE",
+				"PUBLIC_WORKPLACE_FATALITY"
+			],
+			"offset_days": 10
+		},
+		"references": [
+			{
+				"title": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10:. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report"
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || !ctx.lookup.kinds.includes(row.kind)) return false;\nconst key = 'SG:WORK_INCIDENT_CASE_REPORT:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(row.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: 'SG:WORK_INCIDENT_CASE_REPORT:' + row.id\n}];",
+		"id": "231c6e3a-0efc-54fe-9f03-33941e5bdbab",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "WORK_INCIDENT_NOTIFICATION",
+		"name": "Notify the Commissioner of a workplace incident",
+		"lookup": {
+			"title": "Notify the Commissioner of a workplace incident",
+			"kinds": [
+				"WORK_ACCIDENT_FATAL",
+				"DANGEROUS_OCCURRENCE",
+				"PUBLIC_WORKPLACE_FATALITY",
+				"PUBLIC_WORKPLACE_HOSPITAL_TREATMENT"
+			]
+		},
+		"references": [
+			{
+				"title": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10:. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report"
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || !ctx.lookup.kinds.includes(row.kind)) return false;\nconst key = 'SG:WORK_INCIDENT_NOTIFICATION:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: row.opened_on,\n\toccurrence_key: 'SG:WORK_INCIDENT_NOTIFICATION:' + row.id\n}];",
+		"id": "d778e16c-1d4b-54cb-b1c8-103e2c3bbb1f",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "SUBSEQUENT_WORK_DEATH_NOTIFICATION",
+		"name": "Immediately notify a subsequent death from work injury or disease",
+		"lookup": {
+			"title": "Immediately notify a subsequent death from work injury or disease"
+		},
+		"references": [
+			{
+				"title": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10:. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report"
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.kind !== 'WORK_ACCIDENT_SUBSEQUENT_DEATH') return false;\nconst key = 'SG:SUBSEQUENT_WORK_DEATH_NOTIFICATION:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: row.opened_on,\n\toccurrence_key: 'SG:SUBSEQUENT_WORK_DEATH_NOTIFICATION:' + row.id\n}];",
+		"id": "340390d7-d25e-5a69-9e65-f24ed7c58065",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "OCCUPATIONAL_DISEASE_REPORT",
+		"name": "Report an employee occupational disease diagnosis",
+		"lookup": {
+			"title": "Report an employee occupational disease diagnosis",
+			"offset_days": 10
+		},
+		"references": [
+			{
+				"title": "Ministry of Manpower, Work-related accidents: what and when to report, employer/occupier and occupational-disease tables, read 2026-10-10:. WSH (Incident Reporting) and Work Injury Compensation Regulations. The current agency criteria are verified; direct legislation links were inaccessible (403).",
+				"url": "https://www.mom.gov.sg/workplace-safety-and-health/work-accident-reporting/what-and-when-to-report"
+			}
+		],
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {}
+			}
+		},
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.kind !== 'OCCUPATIONAL_DISEASE_DIAGNOSIS') return false;\nconst key = 'SG:OCCUPATIONAL_DISEASE_REPORT:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(row.opened_on, ctx.lookup.offset_days),\n\toccurrence_key: 'SG:OCCUPATIONAL_DISEASE_REPORT:' + row.id\n}];",
+		"id": "76db3402-52a7-5d6e-88be-f29558c85d2a",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	}
+]

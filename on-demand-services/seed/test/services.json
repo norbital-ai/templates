@@ -1,0 +1,10 @@
+[
+	{
+		"id": "0d5000ff-0000-4000-8000-000000000001",
+		"name": "Fixture home cleaning",
+		"skill": "home_cleaning",
+		"duration_minutes": 180,
+		"price": "75.00",
+		"active": true
+	}
+]
