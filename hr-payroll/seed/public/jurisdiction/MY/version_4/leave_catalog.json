@@ -165,26 +165,6 @@
 		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
 	},
 	{
-		"code": "ABSENCE",
-		"name": "Unpaid absence",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
-		"lookup": {
-			"unit": "DAY"
-		},
-		"off_cycle_eligible": false,
-		"id": "31b24f59-d628-50a7-9c75-d19ae58a087d",
-		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6",
-		"references": [
-			{
-				"title": "Employment Act 1955 (Act 265)",
-				"locator": "s.18A",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
-				"quote": "An employee on a monthly rate who takes unpaid leave is paid the monthly wages divided by the days of the wage period for the days eligible; an unauthorised absence is unpaid in the same proportion."
-			}
-		]
-	},
-	{
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
 		"pay_treatment": "PAID",
@@ -251,7 +231,7 @@
 		"off_cycle_eligible": false,
 		"id": "56964271-e86c-5987-a4ea-8fea0e77369d",
 		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6",
-		"conversion": "// js\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst days = Number(get(ctx.entry, 'quantity', 0));\nconst normalDays = Number(get(terms, 'normal_days_per_week', 6));\nconst hours = Number(get(terms, 'normal_hours_per_day', 8));\nconst divisor = Number(get(ctx.lookup, 'encash_divisor', (normalDays * 52) / 12));\nconst daily =\n\tunit === 'DAILY'\n\t\t? amount\n\t\t: unit === 'HOURLY'\n\t\t\t? amount * hours\n\t\t\t: amount / divisor;\nreturn daily * days;"
+		"conversion": "// js\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst days = Number(get(ctx.entry, 'quantity', 0));\nconst normalDays = Number(get(terms, 'normal_days_per_week', 6));\nconst hours = Number(get(terms, 'normal_hours_per_day', 8));\nconst divisor = Number(get(ctx.lookup, 'encash_divisor', (normalDays * 52) / 12));\n// EA s.60E(3A), s.60I(1)(a): the ordinary rate of pay is s.2 wages, so fixed cash allowances count.\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, entry) =>\n\t\tget(entry[1], 'variability', 'FIXED') === 'VARIABLE'\n\t\t\t? total\n\t\t\t: total + Number(get(entry[1], 'amount', 0)),\n\t0\n);\nconst daily =\n\tunit === 'DAILY' ? amount\n\t: unit === 'HOURLY' ? amount * hours\n\t: (amount + fixed) / divisor;\nreturn daily * days;"
 	},
 	{
 		"code": "EMERGENCY_LEAVE",

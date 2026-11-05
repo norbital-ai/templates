@@ -132,9 +132,7 @@ export default model('payroll_run', {
 				'additional_wages',
 				'employee_statutory',
 				'employer_statutory',
-				'tax_withheld',
-				'employee_statutory_schemes',
-				'employer_statutory_schemes'
+				'tax_withheld'
 			],
 			payroll_run: [
 				'entity_id',
@@ -423,8 +421,6 @@ export default model('payroll_run', {
 						employee_statutory: slip.employee_statutory,
 						employer_statutory: slip.employer_statutory,
 						tax_withheld: slip.tax_withheld,
-						employee_statutory_schemes: slip.employee_statutory_schemes,
-						employer_statutory_schemes: slip.employer_statutory_schemes,
 						breakdown: slip.breakdown,
 						state: 'FINALISED' as const
 					})),

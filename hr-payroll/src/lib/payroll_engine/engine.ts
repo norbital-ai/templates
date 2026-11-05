@@ -256,7 +256,11 @@ const unemployedDays = (input: PayrollInput, days: readonly string[]): number =>
 				(day) => !input.employed?.some(({ from, to }) => from <= day && (to === null || day <= to))
 			).length;
 
-/** The paid share of the period's ordinary days: paid leave keeps it, unpaid leave reduces it. */
+/** Days the roster marks ABS: the person was expected, did not come and took no leave. */
+const absentDays = (input: PayrollInput): number =>
+	(input.work?.days ?? []).filter((day) => day.day_type === 'ABS').length;
+
+/** The paid share of the period's ordinary days: paid leave keeps it, unpaid leave and ABS reduce it. */
 const paidTimeFactor = (input: PayrollInput, coverage: { from: string; to: string }): number => {
 	const schedule = input.employer.payment_schedule;
 	const offDays =
@@ -269,7 +273,7 @@ const paidTimeFactor = (input: PayrollInput, coverage: { from: string; to: strin
 	const workingDays = ordinaryDays.length;
 	if (workingDays <= 0) return 1;
 	const catalogs = catalogById(input.leave_catalog);
-	let unpaidDays = unemployedDays(input, ordinaryDays);
+	let unpaidDays = unemployedDays(input, ordinaryDays) + absentDays(input);
 	for (const entry of input.entries.leave_catalog_entry ?? []) {
 		const catalog = catalogs.get(String(entry.catalog_id));
 		if (catalog?.pay_treatment !== 'UNPAID') continue;
@@ -327,7 +331,7 @@ function defaultBasePay(
 				? rateAmount * hoursPerMonth
 				: rateAmount;
 	const catalogs = catalogById(input.leave_catalog);
-	let unpaidDays = unemployedDays(input, ordinaryDays);
+	let unpaidDays = unemployedDays(input, ordinaryDays) + absentDays(input);
 	for (const entry of input.entries.leave_catalog_entry ?? []) {
 		const catalog = catalogs.get(String(entry.catalog_id));
 		if (catalog?.pay_treatment !== 'UNPAID') continue;

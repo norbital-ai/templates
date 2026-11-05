@@ -1,6 +1,7 @@
 import { datePeriod, eachDay } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
-import { holidaysForDay, scheduled } from './attendance.js';
+import { awardedMinutes, holidaysForDay, overlapSpans, scheduled } from './attendance.js';
+import { intervalSpans } from './time_evidence.js';
 import { calculatePayroll } from './engine.js';
 import type { JsonObject, Unit } from './contracts.js';
 import { objectValue, queryRows, type Reader } from './reads.js';
@@ -33,8 +34,6 @@ export interface CalculatedPayslip {
 	readonly employee_statutory: number;
 	readonly employer_statutory: number;
 	readonly tax_withheld: number;
-	readonly employee_statutory_schemes: JsonObject;
-	readonly employer_statutory_schemes: JsonObject;
 	readonly breakdown: PayslipBreakdown;
 }
 
@@ -232,35 +231,23 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 				'employee_statutory',
 				'employer_statutory',
 				'tax_withheld',
-				'employee_statutory_schemes',
-				'employer_statutory_schemes'
+				'breakdown'
 			],
 			limit: 10000
 		}
 	});
 
 	const workRows = (third.roster_entry ?? []).filter((row) => due(row, row.work_date));
-	const minutes = (value: unknown): number => {
-		if (!Array.isArray(value)) return 0;
-		let total = 0;
-		for (const item of value) {
-			if (!isJsonObject(item)) continue;
-			const start = typeof item.start === 'string' ? Date.parse(item.start) : NaN;
-			const end = typeof item.end === 'string' ? Date.parse(item.end) : NaN;
-			if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) continue;
-			const breaks = Array.isArray(item.breaks) ? item.breaks : [];
-			// a break carried both as a total and as dated intervals counts once
-			let pause = breaks.length > 0 ? 0 : Number(item.break_minutes ?? 0);
-			for (const span of breaks) {
-				if (!isJsonObject(span)) continue;
-				const a = typeof span.start === 'string' ? Date.parse(span.start) : NaN;
-				const b = typeof span.end === 'string' ? Date.parse(span.end) : NaN;
-				if (Number.isFinite(a) && Number.isFinite(b) && b > a) pause += (b - a) / 60000;
-			}
-			total += Math.max(0, (end - start) / 60000 - pause);
-		}
-		return total;
-	};
+	const closedSpans = (value: unknown) =>
+		intervalSpans(
+			Array.isArray(value) ? value.filter((row) => isJsonObject(row) && row.end != null) : []
+		);
+	const stamped = (spans: readonly { start: number; end: number }[]) =>
+		spans.map(({ start, end }) => ({
+			start: new Date(start).toISOString(),
+			end: new Date(end).toISOString()
+		}));
+	const fullAward = Number(employer.overtime_full_award_percent ?? 100);
 	const shifts = new Map((first.shift_definition ?? []).map((row) => [row.id, row]));
 	const zone = String(settings.timezone);
 	const planOf = (row: JsonObject) => {
@@ -280,8 +267,6 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 	for (const row of workRows) {
 		const owner = String(row.employment_id);
 		if (owner === undefined) continue;
-		const worked = minutes(row.actual_worked_intervals) / 60;
-		const overtime = minutes(row.planned_overtime_intervals) / 60;
 		const days = workDays.get(owner) ?? [];
 		const date = String(row.work_date);
 		const holiday = holidaysForDay(date, {
@@ -290,6 +275,11 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			roster_days: []
 		})[0];
 		const plan = planOf(row);
+		// the clock proves the person came and awards the plan; it never adds time of its own
+		const clock = closedSpans(row.actual_worked_intervals);
+		const planned = closedSpans(row.planned_overtime_intervals);
+		const overtime = awardedMinutes(planned, clock, fullAward) / 60;
+		const worked = clock.length === 0 ? 0 : scheduledHours(plan) + overtime;
 		days.push({
 			date,
 			day_type: plan.day_type,
@@ -298,8 +288,8 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			worked: worked > 0,
 			worked_hours: worked,
 			overtime_hours: overtime,
-			intervals: row.actual_worked_intervals ?? [],
-			overtime_intervals: row.planned_overtime_intervals ?? []
+			intervals: stamped(overlapSpans(clock, [...plan.spans, ...planned])),
+			overtime_intervals: stamped(overlapSpans(planned, clock))
 		});
 		workDays.set(owner, days);
 	}
@@ -373,7 +363,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			const cycle = objectValue(pattern.pattern);
 			const days = Array.isArray(cycle.days) ? cycle.days : [];
 			if (days.length === 0) return undefined;
-			const index = daysBetween(String(terms.shift_pattern_start ?? cycle.anchor_date), date);
+			const index = daysBetween(String(cycle.anchor_date), date);
 			const slot = ((index % days.length) + days.length) % days.length;
 			const shift = shifts.get(objectValue(days[slot]).shift_definition_id);
 			if (shift === undefined) continue;
@@ -503,12 +493,6 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			employee_statutory: money(employeeStatutory),
 			employer_statutory: money(employerStatutory),
 			tax_withheld: money(taxWithheld),
-			employee_statutory_schemes: Object.fromEntries(
-				contributions.map((row) => [row.code, money(row.employee)])
-			),
-			employer_statutory_schemes: Object.fromEntries(
-				contributions.map((row) => [row.code, money(row.employer)])
-			),
 			breakdown: breakdownOf(result)
 		});
 	}

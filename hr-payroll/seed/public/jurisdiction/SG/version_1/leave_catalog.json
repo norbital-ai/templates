@@ -42,7 +42,6 @@
 			"carry_max_days": 14,
 			"part4_salary_ceiling_manual": 4500,
 			"part4_salary_ceiling_non_manual": 2600,
-			"encash_divisor": 26,
 			"encash_on_exit": {
 				"allowed": true,
 				"refused_on": ["MISCONDUCT_DISMISSAL"]
@@ -50,7 +49,7 @@
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
-		"subtotal_id": "1370d34c-ffe5-51f8-be21-38464bb6e914",
+		"subtotal_id": "2757e927-84b7-563a-9aaa-895408d0b415",
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
 			{
@@ -58,11 +57,29 @@
 				"locator": "s.88A",
 				"url": "https://www.mom.gov.sg/employment-practices/leave/annual-leave/eligibility-and-entitlement",
 				"effective_from": "2025-12-01"
+			},
+			{
+				"title": "Employment Act 1968 s.88A(3) — unused annual leave is paid on termination except misconduct; MOM termination guidance",
+				"locator": "s.88A(3)",
+				"url": "https://www.mom.gov.sg/employment-practices/termination-of-employment/termination-with-notice",
+				"effective_from": "2025-12-01"
+			},
+			{
+				"title": "MOM, Monthly and daily salary — salary in lieu of annual leave is paid at the gross rate of pay: 12 × monthly gross ÷ (52 × days required a week)",
+				"locator": "Gross rate of pay",
+				"url": "https://www.mom.gov.sg/employment-practices/salary/monthly-and-daily-salary",
+				"effective_from": "2025-12-01"
+			},
+			{
+				"title": "CPF Board, Are CPF contributions payable on encashment of leave; Which allowances and payments attract CPF contributions — payment in lieu of leave attracts CPF; not paid for the month, so an Additional Wage",
+				"locator": "Leave pay",
+				"url": "https://www.cpf.gov.sg/service/article/are-cpf-contributions-payable-on-encashment-of-leave",
+				"effective_from": "2025-12-01"
 			}
 		],
 		"id": "3d613de3-9595-5e19-adfe-277789083097",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
-		"conversion": "// js\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst monthly = unit === 'DAILY' ? amount * 26 : unit === 'HOURLY' ? amount * get(terms, 'normal_hours_per_day', 8) * 26 : amount;\nconst days = Number(get(ctx.entry, 'quantity', 0));\nreturn (monthly / Number(get(ctx.lookup, 'encash_divisor', 26))) * days;"
+		"conversion": "// js\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst days = Number(get(ctx.entry, 'quantity', 0));\nif (unit === 'DAILY') return amount * days;\nif (unit === 'HOURLY') return amount * get(terms, 'normal_hours_per_day', 8) * days;\n// MOM gross rate of pay for salary in lieu of annual leave: 12 × monthly gross ÷ (52 × days required a week)\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst gross = amount + (typeof allowance === 'number' ? allowance : get(allowance, 'value', 0));\nreturn ((gross * 12) / (52 * Number(get(terms, 'normal_days_per_week', 5)))) * days;"
 	},
 	{
 		"code": "SICK_LEAVE",

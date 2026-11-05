@@ -17,7 +17,7 @@
 				}
 			}
 		},
-		"condition": "// js\n// Only the monthly wage of the job is checked; part-time, intern and probation terms are outside it.\nconst rate = get(ctx.entry, 'terms.rate', null);\nreturn (\n\trate !== null &&\n\trate.unit === 'MONTHLY' &&\n\trate.amount > 0 &&\n\t!['PART_TIME', 'INTERN'].includes(ctx.entry.engagement) &&\n\tget(ctx.entry, 'terms.probation_period', null) === null\n);",
+		"condition": "// js\n// Only the monthly wage of the job is checked; part-time, intern and probation terms are outside it.\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate === null) return false;\nif (rate.unit !== 'MONTHLY') return false;\nif (!(rate.amount > 0)) return false;\nif (['PART_TIME', 'INTERN'].includes(ctx.entry.engagement)) return false;\nreturn get(ctx.entry, 'terms.probation_period', null) === null;",
 		"validate": "// js\nconst employer = ctx.reads.entity_profile_version[0];\nconst region = get(employer, 'entity_extension_data.region', null);\nconst floor = get(ctx.lookup.minimum_wage.by_region, region, null);\nreturn floor === null || ctx.entry.terms.rate.amount >= floor;",
 		"order": 1,
 		"lookup": {
@@ -123,7 +123,7 @@
 				}
 			}
 		},
-		"condition": "// js\nconst catalog = ctx.reads.adhoc_catalog[0];\nreturn (\n\tget(catalog, 'code', '') === 'PROPERTY_DAMAGE_COMPENSATION' &&\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.is_reversal !== true\n);",
+		"condition": "// js\nconst catalog = ctx.reads.adhoc_catalog[0];\nif (get(catalog, 'code', '') !== 'PROPERTY_DAMAGE_COMPENSATION') return false;\nif (ctx.entry.unit !== 'MONEY') return false;\nreturn ctx.entry.is_reversal !== true;",
 		"validate": "// js\nconst slip = ctx.reads.payslip[0];\nif (slip === null || slip === undefined) return true;\nconst statutory = sum(\n\tctx.reads.ledger_entry\n\t\t.filter((entry) => entry.account === 'statutory_contribution' && entry.code.endsWith('.employee'))\n\t\t.map((entry) => get(entry, 'amount', 0))\n);\nreturn ctx.entry.quantity <= ctx.lookup.share * (get(slip, 'gross_earnings', 0) - statutory);",
 		"order": 4,
 		"lookup": {
@@ -248,7 +248,7 @@
 		"code": "PROBATION_WAGE",
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
-		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nreturn (\n\tget(ctx.entry, 'terms.probation_period', null) !== null &&\n\trate !== null &&\n\tget(ctx.entry, 'employee_extension_data.term_facts.probation_job_wage_vnd', null) !== null\n);",
+		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (get(ctx.entry, 'terms.probation_period', null) === null) return false;\nif (rate === null) return false;\nreturn get(ctx.entry, 'employee_extension_data.term_facts.probation_job_wage_vnd', null) !== null;",
 		"validate": "// js\nconst job = get(ctx.entry, 'employee_extension_data.term_facts.probation_job_wage_vnd', null);\nreturn ctx.entry.terms.rate.amount >= ctx.lookup.share * job;",
 		"order": 8,
 		"lookup": {
@@ -268,8 +268,8 @@
 		"code": "PROBATION_PERIOD",
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
-		"condition": "// js\nconst period = get(ctx.entry, 'terms.probation_period', null);\nreturn (\n\tperiod !== null &&\n\tperiod.to !== null &&\n\tget(ctx.entry, 'employee_extension_data.term_facts.probation_class', null) !== null\n);",
-		"validate": "// js\nconst period = ctx.entry.terms.probation_period;\nconst jobClass = get(ctx.entry, 'employee_extension_data.term_facts.probation_class', null);\nif (jobClass === 'OTHER')\n\treturn period.to <= add_working_days(period.from, ctx.lookup.other_working_days - 1, [], [6, 0]);\nconst limit =\n\tjobClass === 'ENTERPRISE_MANAGER'\n\t\t? ctx.lookup.enterprise_manager_days\n\t\t: jobClass === 'COLLEGE_OR_ABOVE'\n\t\t\t? ctx.lookup.college_days\n\t\t\t: ctx.lookup.intermediate_days;\nreturn calendar_distance_days(period.from, period.to) + 1 <= limit;",
+		"condition": "// js\nconst period = get(ctx.entry, 'terms.probation_period', null);\nif (period === null) return false;\nif (period.to === null) return false;\nreturn get(ctx.entry, 'employee_extension_data.term_facts.probation_class', null) !== null;",
+		"validate": "// js\nconst period = ctx.entry.terms.probation_period;\nconst jobClass = get(ctx.entry, 'employee_extension_data.term_facts.probation_class', null);\nif (jobClass === 'OTHER')\n\treturn period.to <= add_working_days(period.from, ctx.lookup.other_working_days - 1, [], [6, 0]);\nconst days = calendar_distance_days(period.from, period.to) + 1;\nif (jobClass === 'ENTERPRISE_MANAGER') return days <= ctx.lookup.enterprise_manager_days;\nif (jobClass === 'COLLEGE_OR_ABOVE') return days <= ctx.lookup.college_days;\nreturn days <= ctx.lookup.intermediate_days;",
 		"order": 9,
 		"lookup": {
 			"enterprise_manager_days": 180,
@@ -325,7 +325,7 @@
 			}
 		},
 		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) > 0;",
-		"validate": "// js\nconst contract = ctx.subject.employment;\nconst dob = get(contract, 'payroll.date_of_birth', null);\nif (dob === null) return true;\nconst age = age_on(dob, ctx.entry.work_date);\nif (age >= ctx.lookup.young_age) return true;\nconst worked = interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) / 60;\nconst week = ctx.reads.roster_entry.filter(\n\t(day) => day.work_date !== ctx.entry.work_date && day.work_date >= add_days(ctx.entry.work_date, -6)\n);\nconst weekly =\n\t(sum(week.map((day) => interval_minutes(day.actual_worked_intervals ?? []))) +\n\t\tinterval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? [])) /\n\t60;\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []);\nconst night = clock_window_minutes(\n\tget(ctx.entry, 'actual_worked_intervals', []) ?? [],\n\tctx.lookup.timezone,\n\tctx.lookup.night_from,\n\tctx.lookup.night_to\n);\nif (age < ctx.lookup.child_age) return worked <= ctx.lookup.child_daily && weekly <= ctx.lookup.child_weekly && overtime === 0 && night === 0;\nconst listed = get(contract, 'employee_extension_data.term_facts.minor_listed_job', false) === true;\nreturn worked <= ctx.lookup.young_daily && weekly <= ctx.lookup.young_weekly && (listed || (overtime === 0 && night === 0));",
+		"validate": "// js\nconst contract = ctx.subject.employment;\nconst dob = get(contract, 'payroll.date_of_birth', null);\nif (dob === null) return true;\nconst age = age_on(dob, ctx.entry.work_date);\nif (age >= ctx.lookup.young_age) return true;\nconst worked = interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) / 60;\nconst week = ctx.reads.roster_entry.filter(\n\t(day) => day.work_date !== ctx.entry.work_date && day.work_date >= add_days(ctx.entry.work_date, -6)\n);\nconst weekly =\n\t(sum(week.map((day) => interval_minutes(day.actual_worked_intervals ?? []))) +\n\t\tinterval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? [])) /\n\t60;\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []);\nconst night = clock_window_minutes(\n\tget(ctx.entry, 'actual_worked_intervals', []) ?? [],\n\tctx.lookup.timezone,\n\tctx.lookup.night_from,\n\tctx.lookup.night_to\n);\nif (age < ctx.lookup.child_age) {\n\tif (!(worked <= ctx.lookup.child_daily)) return false;\n\tif (!(weekly <= ctx.lookup.child_weekly)) return false;\n\treturn overtime === 0 && night === 0;\n}\nconst listed = get(contract, 'employee_extension_data.term_facts.minor_listed_job', false) === true;\nif (!(worked <= ctx.lookup.young_daily)) return false;\nif (!(weekly <= ctx.lookup.young_weekly)) return false;\nif (listed) return true;\nreturn overtime === 0 && night === 0;",
 		"order": 11,
 		"lookup": {
 			"child_age": 15,
@@ -442,7 +442,7 @@
 		"target_collection": "roster_entry",
 		"events": ["create", "update"],
 		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) > 0;",
-		"validate": "// js\nconst contract = ctx.subject.employment;\nconst normal = get(contract, 'terms.normal_hours_per_day', ctx.lookup.default_normal_hours);\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) / 60;\nreturn normal > 0 && overtime <= ctx.lookup.share * normal && normal + overtime <= ctx.lookup.daily_hours;",
+		"validate": "// js\nconst contract = ctx.subject.employment;\nconst normal = get(contract, 'terms.normal_hours_per_day', ctx.lookup.default_normal_hours);\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) / 60;\nif (!(normal > 0)) return false;\nif (!(overtime <= ctx.lookup.share * normal)) return false;\nreturn normal + overtime <= ctx.lookup.daily_hours;",
 		"order": 15,
 		"lookup": {
 			"share": 0.5,
@@ -647,7 +647,7 @@
 				}
 			}
 		},
-		"condition": "// js\nconst catalog = ctx.reads.leave_catalog[0];\nconst contract = ctx.subject.employment;\nreturn (\n\tget(catalog, 'lookup.can_encash', false) === true &&\n\tctx.entry.is_reversal !== true &&\n\tget(contract, 'effective_range.to', null) !== null\n);",
+		"condition": "// js\nconst catalog = ctx.reads.leave_catalog[0];\nconst contract = ctx.subject.employment;\nif (get(catalog, 'lookup.can_encash', false) !== true) return false;\nif (ctx.entry.is_reversal === true) return false;\nreturn get(contract, 'effective_range.to', null) !== null;",
 		"validate": "// js\nconst contract = ctx.subject.employment;\nconst exit = contract.effective_range.to;\nconst review = get(contract, 'employee_extension_data.term_facts.encashment_review', null);\nreturn (\n\treview !== null &&\n\tget(review, 'month', '') === add_months(month_start(exit), -1).substring(0, 7)\n);",
 		"order": 23,
 		"lookup": {},
@@ -668,7 +668,7 @@
 			}
 		},
 		"condition": "// js\nreturn get(ctx.entry, 'final_pay_due_on', null) !== null && get(ctx.entry, 'effective_range.to', null) !== null;",
-		"validate": "// js\nconst exit = ctx.entry.effective_range.to;\nconst review = get(ctx.entry, 'employee_extension_data.facts.annual_leave_service_review', null);\nif (review === null) return false;\nif (String(get(review, 'year', '')) !== exit.substring(0, 4) || get(review, 'as_of', '') !== exit) return false;\nconst covered = ctx.reads.workplace_case_catalog_entry.some(\n\t(record) =>\n\t\trecord.opened_on <= exit &&\n\t\t(record.closed_on === null || record.closed_on === undefined || record.closed_on >= exit) &&\n\t\tget(record, 'inputs.effective_from', '') <= exit &&\n\t\tget(record, 'inputs.effective_to', '') >= exit\n);\nreturn (\n\t!covered ||\n\t(get(review, 'carry_previous_year_days', null) !== null &&\n\t\tget(review, 'carry_second_previous_year_days', null) !== null)\n);",
+		"validate": "// js\nconst exit = ctx.entry.effective_range.to;\nconst review = get(ctx.entry, 'employee_extension_data.facts.annual_leave_service_review', null);\nif (review === null) return false;\nif (String(get(review, 'year', '')) !== exit.substring(0, 4) || get(review, 'as_of', '') !== exit) return false;\nconst covered = ctx.reads.workplace_case_catalog_entry.some((record) => {\n\tif (!(record.opened_on <= exit)) return false;\n\tif (record.closed_on != null && !(record.closed_on >= exit)) return false;\n\tif (!(get(record, 'inputs.effective_from', '') <= exit)) return false;\n\treturn get(record, 'inputs.effective_to', '') >= exit;\n});\nif (!covered) return true;\nif (get(review, 'carry_previous_year_days', null) === null) return false;\nreturn get(review, 'carry_second_previous_year_days', null) !== null;",
 		"order": 24,
 		"lookup": {},
 		"id": "0e198b5f-84b1-5393-874a-5cd6f58ab3f0",
@@ -679,7 +679,7 @@
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
 		"condition": "// js\nreturn ctx.entry.engagement !== 'PAYEE';",
-		"validate": "// js\nconst residency = get(ctx.entry, 'terms.residency_status', null);\nconst category = get(ctx.entry, 'terms.statutory_work_category', null);\nreturn (\n\tresidency !== null &&\n\tctx.lookup.residency_status.includes(residency) &&\n\t(category === null || ctx.lookup.work_classification.includes(category))\n);",
+		"validate": "// js\nconst residency = get(ctx.entry, 'terms.residency_status', null);\nconst category = get(ctx.entry, 'terms.statutory_work_category', null);\nif (residency === null) return false;\nif (!ctx.lookup.residency_status.includes(residency)) return false;\nreturn category === null || ctx.lookup.work_classification.includes(category);",
 		"order": 25,
 		"lookup": {
 			"work_classification": ["ORDINARY", "MANAGERIAL", "ARDUOUS", "ESPECIALLY_ARDUOUS"],
@@ -786,7 +786,7 @@
 		"target_collection": "workplace_case_catalog_entry",
 		"events": ["create", "update"],
 		"condition": "// js\nreturn ctx.entry.kind === 'ANNUAL_LEAVE_COMBINING_AGREEMENT';",
-		"validate": "// js\nconst from = get(ctx.entry, 'inputs.effective_from', null);\nconst to = get(ctx.entry, 'inputs.effective_to', null);\nreturn from !== null && to !== null && from >= ctx.entry.opened_on && to >= from;",
+		"validate": "// js\nconst from = get(ctx.entry, 'inputs.effective_from', null);\nconst to = get(ctx.entry, 'inputs.effective_to', null);\nif (from === null) return false;\nif (to === null) return false;\nif (!(from >= ctx.entry.opened_on)) return false;\nreturn to >= from;",
 		"order": 32,
 		"lookup": {},
 		"id": "2bd0ede3-70b2-510b-aebb-39445ffc39cc",
@@ -808,7 +808,7 @@
 		"target_collection": "workplace_case_catalog_entry",
 		"events": ["create", "update"],
 		"condition": "// js\nreturn ctx.entry.kind === 'ANNUAL_LEAVE_COMBINING_AGREEMENT';",
-		"validate": "// js\nconst from = get(ctx.entry, 'inputs.effective_from', null);\nconst to = get(ctx.entry, 'inputs.effective_to', null);\nreturn from !== null && to !== null && to <= add_days(add_years(from, ctx.lookup.maximum_years), -1);",
+		"validate": "// js\nconst from = get(ctx.entry, 'inputs.effective_from', null);\nconst to = get(ctx.entry, 'inputs.effective_to', null);\nif (from === null) return false;\nif (to === null) return false;\nreturn to <= add_days(add_years(from, ctx.lookup.maximum_years), -1);",
 		"order": 34,
 		"lookup": {
 			"maximum_years": 3

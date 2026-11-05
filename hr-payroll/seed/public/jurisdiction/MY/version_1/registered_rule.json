@@ -8,7 +8,7 @@
 		},
 		"references": [
 			{
-				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] paras 2–5",
+				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] paras 2, 3(1), 5(1)",
 				"locator": "RM1,700 a month for a monthly-rated employee; domestic servants and apprentices are outside the Order.",
 				"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
 			}
@@ -29,7 +29,7 @@
 		},
 		"references": [
 			{
-				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] para 2",
+				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] paras 3(1), 5(1)",
 				"locator": "RM8.72 an hour, including a part-time employee's rate derived from the agreed month, week or day.",
 				"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
 			},
@@ -103,7 +103,7 @@
 		},
 		"references": [
 			{
-				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] para 4",
+				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] paras 3(1), 5(1)",
 				"locator": "RM98.08, RM78.46 and RM65.38 a day for a four-, five- and six-day week.",
 				"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
 			}
@@ -124,7 +124,7 @@
 		},
 		"references": [
 			{
-				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] para 4",
+				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] paras 3(1), 5(1)",
 				"locator": "a weekly rate is at least the daily minimum for the working days a week times those days.",
 				"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
 			}
@@ -143,7 +143,7 @@
 		},
 		"references": [
 			{
-				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] para 2",
+				"title": "Minimum Wages Order 2024 [P.U.(A) 376/2024] paras 3(1), 5(1)",
 				"locator": "RM8.72 an hour.",
 				"url": "https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf"
 			}
@@ -392,7 +392,7 @@
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 			}
 		],
-		"validate": "// The agreed rate and normal working time must meet this version's contract limits.\nconst limits = ctx.lookup.limits;\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate != null && get(rate, 'amount', 0) < 0) return false;\nconst day = get(ctx.entry, 'terms.normal_hours_per_day', null);\nif (day != null && !(day > 0 && day <= limits.normal_hours_per_day_maximum)) return false;\nconst week = get(ctx.entry, 'terms.normal_hours_per_week', null);\nif (week != null && week < limits.normal_hours_per_week_minimum) return false;\nconst days = get(ctx.entry, 'terms.normal_days_per_week', null);\nif (days != null && (days !== Math.trunc(days) || days < limits.normal_days_per_week_minimum || days > limits.normal_days_per_week_maximum)) return false;\nreturn true;",
+		"validate": "// The agreed rate and normal working time must meet this version's contract limits.\nconst limits = ctx.lookup.limits;\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate != null && get(rate, 'amount', 0) < 0) return false;\nconst day = get(ctx.entry, 'terms.normal_hours_per_day', null);\nif (day != null && !(day > 0 && day <= limits.normal_hours_per_day_maximum)) return false;\nconst week = get(ctx.entry, 'terms.normal_hours_per_week', null);\nif (week != null && week < limits.normal_hours_per_week_minimum) return false;\nconst days = get(ctx.entry, 'terms.normal_days_per_week', null);\nif (days == null) return true;\nif (days !== Math.trunc(days)) return false;\nif (days < limits.normal_days_per_week_minimum) return false;\nif (days > limits.normal_days_per_week_maximum) return false;\nreturn true;",
 		"order": 36,
 		"id": "6e817a5b-600c-5fc5-991b-6fa837a08793",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0"

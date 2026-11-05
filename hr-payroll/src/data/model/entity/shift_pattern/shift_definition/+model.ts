@@ -13,7 +13,7 @@ export default model('shift_definition', {
 		variant: {
 			kind: 'object',
 			fields: {
-				day_type: { kind: 'enum', values: ['WORK', 'REST', 'OFF'] },
+				day_type: { kind: 'enum', values: ['WORK', 'REST', 'OFF', 'ABS'] },
 				start_time: { kind: 'time', optional: true },
 				end_time: { kind: 'time', optional: true },
 				ends_next_day: { kind: 'bool' },

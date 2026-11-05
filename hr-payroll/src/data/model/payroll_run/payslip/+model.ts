@@ -31,18 +31,6 @@ export default model('payslip', {
 		employee_statutory: { kind: 'decimal', scale: 12, min: 0, default: 0 },
 		employer_statutory: { kind: 'decimal', scale: 12, min: 0, default: 0 },
 		tax_withheld: { kind: 'decimal', scale: 12, min: 0, default: 0 },
-		employee_statutory_schemes: {
-			kind: 'json',
-			shape: { kind: 'record', of: { kind: 'json' } },
-			default: {},
-			help: "Each contribution's employee amount by scheme code, for a rule that relieves schemes apart."
-		},
-		employer_statutory_schemes: {
-			kind: 'json',
-			shape: { kind: 'record', of: { kind: 'json' } },
-			default: {},
-			help: "Each contribution's employer amount by scheme code, for a rule that taxes premiums apart."
-		},
 		breakdown: {
 			kind: 'json',
 			shape: { kind: 'record', of: { kind: 'json' } },
@@ -85,8 +73,6 @@ export default model('payslip', {
 				'employee_statutory',
 				'employer_statutory',
 				'tax_withheld',
-				'employee_statutory_schemes',
-				'employer_statutory_schemes',
 				'breakdown',
 				'state'
 			]

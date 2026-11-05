@@ -765,10 +765,6 @@
 							"of": "shift_pattern",
 							"optional": true
 						},
-						"shift_pattern_start": {
-							"kind": "date",
-							"optional": true
-						},
 						"signed_on": {
 							"help": "The actual date this employment agreement was signed.",
 							"kind": "date",
@@ -1013,6 +1009,13 @@
 				},
 				"name": {
 					"kind": "text"
+				},
+				"overtime_full_award_percent": {
+					"default": 100,
+					"help": "How much of planned overtime the clock must cover to pay all of it. Below this, the clocked time pays, rounded down to the half hour.",
+					"kind": "int",
+					"max": 100,
+					"min": 1
 				},
 				"pay_cutoff_day": {
 					"help": "The day attendance closes: 1 attends the calendar month; 2–28 attend from the previous month’s cutoff through the day before this one.",
@@ -2289,17 +2292,6 @@
 					"min": 0,
 					"scale": 12
 				},
-				"employee_statutory_schemes": {
-					"default": {},
-					"help": "Each contribution's employee amount by scheme code, for a rule that relieves schemes apart.",
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
-				},
 				"employer_cost": {
 					"default": 0,
 					"kind": "decimal",
@@ -2311,17 +2303,6 @@
 					"kind": "decimal",
 					"min": 0,
 					"scale": 12
-				},
-				"employer_statutory_schemes": {
-					"default": {},
-					"help": "Each contribution's employer amount by scheme code, for a rule that taxes premiums apart.",
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
 				},
 				"employment_id": {
 					"inverse": "payslips",
@@ -2764,7 +2745,8 @@
 							"values": [
 								"WORK",
 								"REST",
-								"OFF"
+								"OFF",
+								"ABS"
 							]
 						},
 						"end_time": {

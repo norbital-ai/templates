@@ -25,7 +25,7 @@
 		"reads": {
 			"pay_lines": "Signed payroll line amounts for the salary period, keyed by producer or catalogue code; deductions are negative."
 		},
-		"validate": "const lines = get(get(ctx, 'reads', {}), 'pay_lines', null);\nif (lines === null) return false;\nconst statutory = sum(\n\t['CPF', 'CDAC', 'ECF', 'MBMF', 'SINDA', 'SDL'].map((code) =>\n\t\tNumber(get(get(get(ctx, 'statutory', {}), code, {}), 'employee', 0))\n\t)\n);\nconst excluded = sum(\n\tget(ctx.lookup, 'excluded_codes', []).map((code) => -Number(get(lines, code, 0)))\n);\nreturn (\n\tNumber(get(ctx.entry, 'total_deductions', 0)) - statutory - excluded <=\n\tget(ctx.lookup, 'share', 0.5) * Number(get(ctx.entry, 'gross_earnings', 0))\n);",
+		"validate": "const lines = get(get(ctx, 'reads', {}), 'pay_lines', null);\nif (lines === null) return false;\n// EA s.32(2): the limit does not apply to the last salary on termination\nconst leaving = get(get(ctx, 'subject', {}), 'employment.effective_range.to', null);\nif (leaving != null && leaving <= get(get(ctx, 'run', {}), 'salary_coverage.to', '')) return true;\n// EA s.32(1) leaves out only s.27(1)(a), (f) and (j): the CPF employee share under (h) counts\nconst excluded = sum(\n\tget(ctx.lookup, 'excluded_codes', []).map((code) => -Number(get(lines, code, 0)))\n);\nreturn (\n\tNumber(get(ctx.entry, 'total_deductions', 0)) - excluded <=\n\tget(ctx.lookup, 'share', 0.5) * Number(get(ctx.entry, 'gross_earnings', 0))\n);",
 		"lookup": {
 			"share": 0.5,
 			"excluded_codes": [
@@ -55,7 +55,7 @@
 		"reads": {
 			"overtime_hours": "Recorded overtime hours in the salary month."
 		},
-		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nreturn (\n\tget(ctx.lookup, 'part_iv_categories', []).includes(category) &&\n\tNumber(get(ctx, 'base_pay', 0)) <= ceiling &&\n\t(engagements === null ||\n\t\tengagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', '')))\n);",
+		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nif (!get(ctx.lookup, 'part_iv_categories', []).includes(category)) return false;\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nif (!(Number(get(ctx, 'base_pay', 0)) <= ceiling)) return false;\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nif (engagements === null) return true;\nreturn engagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', ''));",
 		"validate": "const hours = get(get(ctx, 'reads', {}), 'overtime_hours', null);\nreturn hours === null || Number(hours) <= get(ctx.lookup, 'monthly_hours', 72);",
 		"lookup": {
 			"monthly_hours": 72,
@@ -167,7 +167,7 @@
 		"events": ["create"],
 		"order": 7,
 		"condition": "const role = get(\n\tget(ctx.lookup, 'roles', {}),\n\tString(get(get(get(ctx, 'subject', {}), 'employment.employee_extension_data', {}), 'term_facts.pwm_role', '')),\n\tnull\n);\nreturn role !== null;",
-		"validate": "const role = get(\n\tget(ctx.lookup, 'roles', {}),\n\tString(get(get(get(ctx, 'subject', {}), 'employment.employee_extension_data', {}), 'term_facts.pwm_role', '')),\n\tnull\n);\nif (role === null) return true;\nconst wage =\n\tget(role, 'base', '') === 'BASIC'\n\t\t? Number(get(ctx, 'base_pay', 0))\n\t\t: Number(get(ctx.entry, 'gross_earnings', 0));\nreturn wage >= Number(get(role, 'monthly_floor', 0));",
+		"validate": "const role = get(\n\tget(ctx.lookup, 'roles', {}),\n\tString(get(get(get(ctx, 'subject', {}), 'employment.employee_extension_data', {}), 'term_facts.pwm_role', '')),\n\tnull\n);\nif (role === null) return true;\nconst wage =\n\tget(role, 'base', '') === 'BASIC'\n\t\t? Number(get(ctx, 'base_pay', 0))\n\t\t: Number(get(ctx.entry, 'gross_earnings', 0));\n// steps are newest first: the first one already started replaces the role's floor\nconst day = get(get(ctx, 'run', {}), 'salary_coverage.to', '');\nconst step = get(role, 'steps', []).find((row) => row.from <= day);\nreturn wage >= Number(get(step ?? role, 'monthly_floor', 0));",
 		"lookup": {
 			"roles": {
 				"ADMIN_ASSISTANT": {
@@ -1034,7 +1034,7 @@
 			"workforce": "The employer work-pass population covering the salary month."
 		},
 		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nreturn (\n\tget(ctx.lookup, 'local_residencies', []).includes(get(terms, 'residency_status', '')) &&\n\tget(get(get(ctx, 'subject', {}), 'employment.employee_extension_data', {}), 'term_facts.pwm_role', '') === ''\n);",
-		"validate": "const workforce = get(get(ctx, 'reads', {}), 'workforce', null);\nif (workforce === null) return false;\nconst declared = get(workforce, 'authorisations', []).some((authorisation) =>\n\tget(ctx.lookup, 'work_pass_categories', []).includes(\n\t\tget(authorisation, 'category', '')\n\t)\n);\nreturn (\n\tget(workforce, 'complete', false) === true &&\n\tdeclared &&\n\tNumber(get(ctx.entry, 'gross_earnings', 0)) >= get(ctx.lookup, 'monthly_floor', 1600)\n);",
+		"validate": "const workforce = get(get(ctx, 'reads', {}), 'workforce', null);\nif (workforce === null) return false;\nif (get(workforce, 'complete', false) !== true) return false;\nconst declared = get(workforce, 'authorisations', []).some((authorisation) =>\n\tget(ctx.lookup, 'work_pass_categories', []).includes(\n\t\tget(authorisation, 'category', '')\n\t)\n);\nif (!declared) return false;\nconst gross = Number(get(ctx.entry, 'gross_earnings', 0));\nconst terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst hours = Number(get(terms, 'normal_hours_per_week', ctx.lookup.full_time_minimum_hours));\n// MOM: under 35 hours a week the LQS is hourly, on gross pay over the month's hours\nif (hours < ctx.lookup.full_time_minimum_hours) return gross >= (ctx.lookup.hourly_floor * hours * 52) / 12;\nreturn gross >= ctx.lookup.monthly_floor;",
 		"lookup": {
 			"local_residencies": ["CITIZEN", "PERMANENT_RESIDENT"],
 			"work_pass_categories": ["WORK_PERMIT", "S_PASS", "EMPLOYMENT_PASS"],
@@ -1042,6 +1042,13 @@
 			"hourly_floor": 10.5,
 			"full_time_minimum_hours": 35
 		},
+		"references": [
+			{
+				"title": "MOM, Local Qualifying Salary; Factsheet on lower-wage workers, COS 2026 para.10",
+				"url": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/local-qualifying-salary",
+				"quote": "From 1 July 2026 the LQS rises from $1,600 to $1,800 for full-time local workers; part-time locals (under 35 hours a week) at least $10.50 an hour, total monthly gross over total hours worked."
+			}
+		],
 		"id": "c7f05374-2ca4-527b-b1f3-8065670d44c4",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
 	},
@@ -1053,7 +1060,7 @@
 		"reads": {
 			"worked_days": "Recorded work days for the salary month with their hours."
 		},
-		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nreturn (\n\tget(ctx.lookup, 'part_iv_categories', []).includes(category) &&\n\tNumber(get(ctx, 'base_pay', 0)) <= ceiling &&\n\t(engagements === null ||\n\t\tengagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', '')))\n);",
+		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nif (!get(ctx.lookup, 'part_iv_categories', []).includes(category)) return false;\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nif (!(Number(get(ctx, 'base_pay', 0)) <= ceiling)) return false;\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nif (engagements === null) return true;\nreturn engagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', ''));",
 		"validate": "const days = get(get(ctx, 'reads', {}), 'worked_days', null);\nreturn (\n\tdays === null ||\n\tdays.every((day) => Number(get(day, 'hours', 0)) <= get(ctx.lookup, 'daily_hours', 12))\n);",
 		"lookup": {
 			"daily_hours": 12,
@@ -1080,7 +1087,7 @@
 		"reads": {
 			"consecutive_worked_days": "Worked days in the run of days ending with the salary period."
 		},
-		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nreturn (\n\tget(ctx.lookup, 'part_iv_categories', []).includes(category) &&\n\tNumber(get(ctx, 'base_pay', 0)) <= ceiling &&\n\t(engagements === null ||\n\t\tengagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', '')))\n);",
+		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nif (!get(ctx.lookup, 'part_iv_categories', []).includes(category)) return false;\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nif (!(Number(get(ctx, 'base_pay', 0)) <= ceiling)) return false;\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nif (engagements === null) return true;\nreturn engagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', ''));",
 		"validate": "const consecutive = get(get(ctx, 'reads', {}), 'consecutive_worked_days', null);\nreturn consecutive === null || Number(consecutive) < get(ctx.lookup, 'consecutive_days', 7);",
 		"lookup": {
 			"consecutive_days": 7,
@@ -1105,7 +1112,7 @@
 		"events": ["create"],
 		"order": 11,
 		"condition": "const extension = get(get(get(ctx, 'subject', {}), 'employment', {}), 'employee_extension_data', {});\nreturn (\n\tget(extension, 'exit_facts.ir21_clearance_on', null) != null &&\n\tget(extension, 'exit_facts.ir21_exemption', null) == null\n);",
-		"validate": "const extension = get(get(get(ctx, 'subject', {}), 'employment', {}), 'employee_extension_data', {});\nconst month = String(get(get(ctx, 'run', {}), 'period.from', '')).substring(0, 7);\nreturn (\n\tget(extension, 'exit_facts.ir21_additional_clearance_on', null) != null &&\n\tget(extension, 'exit_facts.ir21_additional_cleared_month', '') === month &&\n\tNumber(get(ctx.entry, 'gross_earnings', 0)) <=\n\t\tNumber(get(extension, 'exit_facts.ir21_additional_cleared_month_gross', 0))\n);",
+		"validate": "const extension = get(get(get(ctx, 'subject', {}), 'employment', {}), 'employee_extension_data', {});\nif (get(extension, 'exit_facts.ir21_additional_clearance_on', null) == null) return false;\nconst month = String(get(get(ctx, 'run', {}), 'period.from', '')).substring(0, 7);\nif (get(extension, 'exit_facts.ir21_additional_cleared_month', '') !== month) return false;\nreturn (\n\tNumber(get(ctx.entry, 'gross_earnings', 0)) <=\n\tNumber(get(extension, 'exit_facts.ir21_additional_cleared_month_gross', 0))\n);",
 		"lookup": {},
 		"references": [
 			{
@@ -1125,8 +1132,8 @@
 		"reads": {
 			"year_bonus": "Bonus paid to the employee in the calendar year to date."
 		},
-		"condition": "const role = get(\n\tget(ctx.lookup, 'roles', {}),\n\tString(get(get(get(ctx, 'subject', {}), 'employment.employee_extension_data', {}), 'term_facts.pwm_role', '')),\n\tnull\n);\nconst terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nreturn (\n\trole !== null &&\n\tget(ctx.lookup, 'sectors', []).includes(get(role, 'sector', '')) &&\n\tget(ctx.lookup, 'local_residencies', []).includes(get(terms, 'residency_status', '')) &&\n\tString(get(get(ctx, 'run', {}), 'period.to', '')).endsWith(get(ctx.lookup, 'annual_due_suffix', '-12-31'))\n);",
-		"validate": "const employment = get(get(ctx, 'subject', {}), 'employment', {});\nconst since = get(employment, 'effective_range.from', null);\nconst bonus = Number(get(get(ctx, 'reads', {}), 'year_bonus', 0));\nconst basic = Number(get(ctx, 'base_pay', 0));\nconst due =\n\tbasic *\n\tget(ctx.lookup, 'months_per_year', 12) /\n\tget(ctx.lookup, 'weeks_per_year', 52) *\n\tget(ctx.lookup, 'bonus_weeks', 2);\nreturn (\n\tsince !== null &&\n\tcalendar_completed_months(String(since), String(get(get(ctx, 'run', {}), 'period.to', ''))) >=\n\t\tget(ctx.lookup, 'service_months', 12) &&\n\tbonus >= due\n);",
+		"condition": "const role = get(\n\tget(ctx.lookup, 'roles', {}),\n\tString(get(get(get(ctx, 'subject', {}), 'employment.employee_extension_data', {}), 'term_facts.pwm_role', '')),\n\tnull\n);\nif (role === null) return false;\nif (!get(ctx.lookup, 'sectors', []).includes(get(role, 'sector', ''))) return false;\nconst terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nif (!get(ctx.lookup, 'local_residencies', []).includes(get(terms, 'residency_status', ''))) return false;\nreturn String(get(get(ctx, 'run', {}), 'period.to', '')).endsWith(get(ctx.lookup, 'annual_due_suffix', '-12-31'));",
+		"validate": "const employment = get(get(ctx, 'subject', {}), 'employment', {});\nconst since = get(employment, 'effective_range.from', null);\nconst bonus = Number(get(get(ctx, 'reads', {}), 'year_bonus', 0));\nconst basic = Number(get(ctx, 'base_pay', 0));\nconst due =\n\tbasic *\n\tget(ctx.lookup, 'months_per_year', 12) /\n\tget(ctx.lookup, 'weeks_per_year', 52) *\n\tget(ctx.lookup, 'bonus_weeks', 2);\nif (since === null) return false;\nconst served = calendar_completed_months(String(since), String(get(get(ctx, 'run', {}), 'period.to', '')));\nif (!(served >= get(ctx.lookup, 'service_months', 12))) return false;\nreturn bonus >= due;",
 		"lookup": {
 			"sectors": ["CLEANING", "LANDSCAPE"],
 			"local_residencies": ["CITIZEN", "PERMANENT_RESIDENT"],
@@ -1329,7 +1336,7 @@
 		"target_collection": "roster_entry",
 		"events": ["create", "update"],
 		"order": 13,
-		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nreturn (\n\tget(ctx.lookup, 'part_iv_categories', []).includes(category) &&\n\tNumber(get(ctx, 'base_pay', 0)) <= ceiling &&\n\t(engagements === null ||\n\t\tengagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', '')))\n);",
+		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nif (!get(ctx.lookup, 'part_iv_categories', []).includes(category)) return false;\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nif (!(Number(get(ctx, 'base_pay', 0)) <= ceiling)) return false;\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nif (engagements === null) return true;\nreturn engagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', ''));",
 		"validate": "const intervals = get(ctx.entry, 'actual_worked_intervals', []);\nreturn interval_minutes(intervals) <= get(ctx.lookup, 'daily_hours', 12) * 60;",
 		"lookup": {
 			"daily_hours": 12,
@@ -1360,7 +1367,7 @@
 		"target_collection": "roster_entry",
 		"events": ["create", "update"],
 		"order": 14,
-		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nreturn (\n\tget(ctx.lookup, 'part_iv_categories', []).includes(category) &&\n\tNumber(get(ctx, 'base_pay', 0)) <= ceiling &&\n\t(engagements === null ||\n\t\tengagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', '')))\n);",
+		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nif (!get(ctx.lookup, 'part_iv_categories', []).includes(category)) return false;\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nif (!(Number(get(ctx, 'base_pay', 0)) <= ceiling)) return false;\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nif (engagements === null) return true;\nreturn engagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', ''));",
 		"validate": "const intervals = get(ctx.entry, 'actual_worked_intervals', []);\nreturn intervals.every(\n\t(interval) =>\n\t\telapsed_minutes(interval.start, interval.end) <=\n\t\t\tget(ctx.lookup, 'consecutive_hours', 6) * 60 ||\n\t\tsum(\n\t\t\tget(interval, 'breaks', []).map((pause) => elapsed_minutes(pause.start, pause.end))\n\t\t) >=\n\t\t\tget(ctx.lookup, 'meal_break_minutes', 45)\n);",
 		"lookup": {
 			"consecutive_hours": 6,
@@ -1388,7 +1395,7 @@
 		"reads": {
 			"consecutive_worked_days": "Worked days in the run of days ending with this roster day."
 		},
-		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nreturn (\n\tget(ctx.lookup, 'part_iv_categories', []).includes(category) &&\n\tNumber(get(ctx, 'base_pay', 0)) <= ceiling &&\n\t(engagements === null ||\n\t\tengagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', '')))\n);",
+		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nif (!get(ctx.lookup, 'part_iv_categories', []).includes(category)) return false;\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nif (!(Number(get(ctx, 'base_pay', 0)) <= ceiling)) return false;\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nif (engagements === null) return true;\nreturn engagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', ''));",
 		"validate": "const consecutive = get(get(ctx, 'reads', {}), 'consecutive_worked_days', null);\nreturn consecutive === null || Number(consecutive) < get(ctx.lookup, 'consecutive_days', 7);",
 		"lookup": {
 			"consecutive_days": 7,
@@ -1461,7 +1468,7 @@
 		"reads": {
 			"day_type": "The shift day type recorded for this roster day."
 		},
-		"condition": "const born = get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', null);\nconst date = get(ctx.entry, 'work_date', null);\nif (born === null || date === null) return false;\nconst manual = get(ctx.lookup, 'manual_categories', []).includes(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'statutory_work_category', '')\n);\nreturn (\n\tmanual &&\n\tage_on(String(born), String(date)) < get(ctx.lookup, 'young_age', 16) &&\n\tget(get(ctx, 'reads', {}), 'day_type', '') === 'REST'\n);",
+		"condition": "const born = get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', null);\nconst date = get(ctx.entry, 'work_date', null);\nif (born === null || date === null) return false;\nconst manual = get(ctx.lookup, 'manual_categories', []).includes(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'statutory_work_category', '')\n);\nif (!manual) return false;\nif (!(age_on(String(born), String(date)) < get(ctx.lookup, 'young_age', 16))) return false;\nreturn get(get(ctx, 'reads', {}), 'day_type', '') === 'REST';",
 		"validate": "return get(get(ctx, 'reads', {}), 'commissioner_permission', null) != null;",
 		"lookup": {
 			"young_age": 16,
@@ -1510,7 +1517,7 @@
 		"reads": {
 			"rest_day_worked": "Whether the salary period records rest-day work."
 		},
-		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nreturn (\n\tget(ctx.lookup, 'part_iv_categories', []).includes(category) &&\n\tNumber(get(ctx, 'base_pay', 0)) <= ceiling &&\n\t(engagements === null ||\n\t\tengagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', '')))\n);",
+		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nif (!get(ctx.lookup, 'part_iv_categories', []).includes(category)) return false;\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nif (!(Number(get(ctx, 'base_pay', 0)) <= ceiling)) return false;\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nif (engagements === null) return true;\nreturn engagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', ''));",
 		"validate": "const worked = get(get(ctx, 'reads', {}), 'rest_day_worked', false);\nif (worked !== true) return true;\nreturn get(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'normal_hours_per_day', null) != null;",
 		"lookup": {
 			"part_iv_categories": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
@@ -1588,8 +1595,8 @@
 		"reads": {
 			"leave_rows": "Leave rows taken in the salary period."
 		},
-		"condition": "const rows = get(get(ctx, 'reads', {}), 'leave_rows', null);\nreturn (\n\tget(get(ctx, 'subject', {}), 'employment.engagement', '') === 'PART_TIME' &&\n\trows !== null &&\n\trows.length > 0\n);",
-		"validate": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst extension = get(get(ctx, 'subject', {}), 'employment.employee_extension_data', {});\nconst comparable =\n\tget(extension, 'term_facts.comparable_full_time_hours_per_day', null) != null &&\n\tget(extension, 'term_facts.comparable_full_time_hours_per_week', null) != null;\nconst declared = get(extension, 'facts.no_similar_full_time_employee', false) === true;\nreturn (\n\tget(terms, 'normal_hours_per_week', null) != null &&\n\tget(terms, 'normal_days_per_week', null) != null &&\n\t(comparable || declared)\n);",
+		"condition": "if (get(get(ctx, 'subject', {}), 'employment.engagement', '') !== 'PART_TIME') return false;\nconst rows = get(get(ctx, 'reads', {}), 'leave_rows', null);\nreturn rows !== null && rows.length > 0;",
+		"validate": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst extension = get(get(ctx, 'subject', {}), 'employment.employee_extension_data', {});\nif (get(terms, 'normal_hours_per_week', null) == null) return false;\nif (get(terms, 'normal_days_per_week', null) == null) return false;\nif (get(extension, 'facts.no_similar_full_time_employee', false) === true) return true;\nif (get(extension, 'term_facts.comparable_full_time_hours_per_day', null) == null) return false;\nreturn get(extension, 'term_facts.comparable_full_time_hours_per_week', null) != null;",
 		"lookup": {},
 		"id": "b4f7441d-70d9-589a-b7b9-4f73ad9c7254",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
@@ -1617,7 +1624,7 @@
 			"wica_leave_rows": "Work-injury leave rows paid in the salary period."
 		},
 		"condition": "const rows = get(get(ctx, 'reads', {}), 'wica_leave_rows', null);\nreturn rows !== null && rows.length > 0;",
-		"validate": "const rows = get(get(ctx, 'reads', {}), 'wica_leave_rows', []);\nreturn rows.every((row) => {\n\tconst inputs = get(row, 'inputs', {});\n\tconst accident = String(get(inputs, 'wica_accident_on', ''));\n\tif (accident === '') return false;\n\treturn (\n\t\tString(get(row, 'from', '')) >= accident &&\n\t\tString(get(row, 'to', '')) < add_years(accident, get(ctx.lookup, 'years', 1)) &&\n\t\tget(inputs, 'wica_average_monthly_earnings', null) != null &&\n\t\tget(inputs, 'wica_working_days_per_week', null) != null &&\n\t\tget(inputs, 'wica_ame_evidence', '') !== ''\n\t);\n});",
+		"validate": "const rows = get(get(ctx, 'reads', {}), 'wica_leave_rows', []);\nreturn rows.every((row) => {\n\tconst inputs = get(row, 'inputs', {});\n\tconst accident = String(get(inputs, 'wica_accident_on', ''));\n\tif (accident === '') return false;\n\tif (!(String(get(row, 'from', '')) >= accident)) return false;\n\tif (!(String(get(row, 'to', '')) < add_years(accident, get(ctx.lookup, 'years', 1)))) return false;\n\tif (get(inputs, 'wica_average_monthly_earnings', null) == null) return false;\n\tif (get(inputs, 'wica_working_days_per_week', null) == null) return false;\n\treturn get(inputs, 'wica_ame_evidence', '') !== '';\n});",
 		"lookup": {
 			"years": 1
 		},
@@ -1632,8 +1639,8 @@
 		"reads": {
 			"open_departure_cases": "Open employer-notified overseas departure cases for the employee."
 		},
-		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst cases = get(get(ctx, 'reads', {}), 'open_departure_cases', null);\nreturn (\n\tget(terms, 'residency_status', '') !== 'CITIZEN' &&\n\tcases !== null &&\n\tcases.length > 0\n);",
-		"validate": "const extension = get(get(get(ctx, 'subject', {}), 'employment', {}), 'employee_extension_data', {});\nif (get(extension, 'facts.ir21_departure_exemption_evidence', '') !== '') return true;\nconst cleared = get(extension, 'facts.ir21_departure_clearance_through', null);\nreturn (\n\tcleared != null &&\n\tString(get(get(ctx, 'run', {}), 'period.to', '')) <= String(cleared) &&\n\tget(extension, 'facts.ir21_departure_clearance_evidence', '') !== ''\n);",
+		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nif (get(terms, 'residency_status', '') === 'CITIZEN') return false;\nconst cases = get(get(ctx, 'reads', {}), 'open_departure_cases', null);\nreturn cases !== null && cases.length > 0;",
+		"validate": "const extension = get(get(get(ctx, 'subject', {}), 'employment', {}), 'employee_extension_data', {});\nif (get(extension, 'facts.ir21_departure_exemption_evidence', '') !== '') return true;\nconst cleared = get(extension, 'facts.ir21_departure_clearance_through', null);\nif (cleared == null) return false;\nif (!(String(get(get(ctx, 'run', {}), 'period.to', '')) <= String(cleared))) return false;\nreturn get(extension, 'facts.ir21_departure_clearance_evidence', '') !== '';",
 		"lookup": {},
 		"id": "7e8c6076-0c46-50d5-8589-e807885f75d1",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
@@ -1647,7 +1654,7 @@
 			"pay_lines": "Signed payroll line amounts for the salary period, keyed by producer or catalogue code; deductions are negative."
 		},
 		"condition": "const lines = get(get(ctx, 'reads', {}), 'pay_lines', null);\nif (lines === null) return false;\nreturn [\n\t'ENCASHMENT',\n\t'PT_ANNUAL_LEAVE_ENCASHMENT',\n\t'NO_PAY_LEAVE',\n\t'HOLIDAY_ON_OFF_DAY',\n\t'HOLIDAY_ADJACENT_ABSENCE',\n\t'HOLIDAY_IN_NO_PAY_LEAVE',\n\t'SALARY_IN_LIEU_OF_NOTICE'\n].some((code) => Number(get(lines, code, 0)) !== 0);",
-		"validate": "const allowances = Object.values(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'allowances', {})\n);\nreturn allowances.every(\n\t(allowance) =>\n\t\tget(ctx.lookup, 'allowance_purposes', []).includes(get(allowance, 'purpose', '')) &&\n\t\t(get(ctx.lookup, 'fixed_purposes', []).includes(get(allowance, 'purpose', '')) ||\n\t\t\tget(allowance, 'variability', '') === 'FIXED')\n);",
+		"validate": "const allowances = Object.values(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'allowances', {})\n);\nreturn allowances.every((allowance) => {\n\tconst purpose = get(allowance, 'purpose', '');\n\tif (!get(ctx.lookup, 'allowance_purposes', []).includes(purpose)) return false;\n\tif (get(ctx.lookup, 'fixed_purposes', []).includes(purpose)) return true;\n\treturn get(allowance, 'variability', '') === 'FIXED';\n});",
 		"lookup": {
 			"allowance_purposes": [
 				"FOOD",
@@ -1732,7 +1739,7 @@
 		"events": ["create"],
 		"order": 34,
 		"condition": "const allowances = Object.values(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'allowances', {})\n);\nreturn allowances.some(\n\t(allowance) =>\n\t\tget(ctx.lookup, 'codes', []).includes(get(allowance, 'code', '')) &&\n\t\tNumber(get(allowance, 'amount', 0)) > 0\n);",
-		"validate": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst extension = get(get(ctx, 'subject', {}), 'employment.employee_extension_data', {});\nconst days = Number(get(terms, 'normal_days_per_week', 0));\nconst hours = Number(get(terms, 'normal_hours_per_week', 0));\nconst prohibited =\n\tdays >= get(ctx.lookup, 'days_threshold', 5) &&\n\thours >= get(ctx.lookup, 'hours_threshold', 30) &&\n\thours <= get(ctx.lookup, 'hours_threshold_ceiling', 34);\nreturn (\n\t!prohibited &&\n\tget(extension, 'facts.part_time_annual_encashment_agreed', false) === true &&\n\tget(extension, 'facts.pt_leave_hourly_uplift_evidence', '') !== ''\n);",
+		"validate": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst extension = get(get(ctx, 'subject', {}), 'employment.employee_extension_data', {});\nconst days = Number(get(terms, 'normal_days_per_week', 0));\nconst hours = Number(get(terms, 'normal_hours_per_week', 0));\nconst prohibited =\n\tdays >= get(ctx.lookup, 'days_threshold', 5) &&\n\thours >= get(ctx.lookup, 'hours_threshold', 30) &&\n\thours <= get(ctx.lookup, 'hours_threshold_ceiling', 34);\nif (prohibited) return false;\nif (get(extension, 'facts.part_time_annual_encashment_agreed', false) !== true) return false;\nreturn get(extension, 'facts.pt_leave_hourly_uplift_evidence', '') !== '';",
 		"lookup": {
 			"codes": ["PT_ANNUAL_HOURLY_OW", "PT_ANNUAL_HOURLY_AW"],
 			"days_threshold": 5,
@@ -1761,7 +1768,7 @@
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
 		"order": 36,
-		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst pass = get(terms, 'work_authorisation_category', '');\nconst classification = get(terms, 'work_classification', '');\nreturn get(ctx.lookup, 'residency_statuses', []).includes(get(terms, 'residency_status', '')) &&\n\t(pass === '' || get(ctx.lookup, 'work_pass_categories', []).includes(pass)) &&\n\t(classification === '' || get(ctx.lookup, 'work_classifications', []).includes(classification));",
+		"validate": "const terms = get(ctx.entry, 'terms', {});\nif (!get(ctx.lookup, 'residency_statuses', []).includes(get(terms, 'residency_status', ''))) return false;\nconst pass = get(terms, 'work_authorisation_category', '');\nif (pass !== '' && !get(ctx.lookup, 'work_pass_categories', []).includes(pass)) return false;\nconst classification = get(terms, 'work_classification', '');\nreturn classification === '' || get(ctx.lookup, 'work_classifications', []).includes(classification);",
 		"lookup": {
 			"residency_statuses": ["CITIZEN", "PERMANENT_RESIDENT", "FOREIGNER"],
 			"work_pass_categories": ["WORK_PERMIT", "S_PASS", "EMPLOYMENT_PASS"],
@@ -1785,7 +1792,7 @@
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
 		"order": 38,
-		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst extension = get(ctx.entry, 'employee_extension_data', {});\nconst limits = get(ctx.lookup, 'terms', {});\nreturn Object.keys(limits).every((key) => {\n\tconst rule = limits[key];\n\tconst value = get(terms, key, get(extension, key, null));\n\tif (value == null) return get(rule, 'required', false) !== true;\n\tconst number = Number(value);\n\treturn (\n\t\t(get(rule, 'integer', false) !== true || number === Math.trunc(number)) &&\n\t\t(get(rule, 'exclusive_minimum', null) === null ||\n\t\t\tnumber > get(rule, 'exclusive_minimum', 0)) &&\n\t\t(get(rule, 'minimum', null) === null || number >= get(rule, 'minimum', 0)) &&\n\t\t(get(rule, 'maximum', null) === null || number <= get(rule, 'maximum', 0))\n\t);\n});",
+		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst extension = get(ctx.entry, 'employee_extension_data', {});\nconst limits = get(ctx.lookup, 'terms', {});\nreturn Object.keys(limits).every((key) => {\n\tconst rule = limits[key];\n\tconst value = get(terms, key, get(extension, key, null));\n\tif (value == null) return get(rule, 'required', false) !== true;\n\tconst number = Number(value);\n\tif (get(rule, 'integer', false) === true && number !== Math.trunc(number)) return false;\n\tconst floor = get(rule, 'exclusive_minimum', null);\n\tif (floor !== null && !(number > floor)) return false;\n\tconst minimum = get(rule, 'minimum', null);\n\tif (minimum !== null && !(number >= minimum)) return false;\n\tconst maximum = get(rule, 'maximum', null);\n\treturn maximum === null || number <= maximum;\n});",
 		"lookup": {
 			"terms": {
 				"normal_hours_per_day": {
@@ -1817,7 +1824,7 @@
 		"target_collection": "entity_profile_version",
 		"events": ["create", "update"],
 		"order": 39,
-		"validate": "const extension = get(ctx.entry, 'entity_extension_data', {});\nconst limits = get(ctx.lookup, 'entity', {});\nreturn Object.keys(limits).every((key) => {\n\tconst rule = limits[key];\n\tconst value = get(extension, key, null);\n\tif (value == null) return get(rule, 'required', false) !== true;\n\tif (typeof value === 'string') return value !== '';\n\tconst number = Number(value);\n\treturn (\n\t\t(get(rule, 'integer', false) !== true || number === Math.trunc(number)) &&\n\t\t(get(rule, 'exclusive_minimum', null) === null ||\n\t\t\tnumber > get(rule, 'exclusive_minimum', 0)) &&\n\t\t(get(rule, 'maximum', null) === null || number <= get(rule, 'maximum', 0))\n\t);\n});",
+		"validate": "const extension = get(ctx.entry, 'entity_extension_data', {});\nconst limits = get(ctx.lookup, 'entity', {});\nreturn Object.keys(limits).every((key) => {\n\tconst rule = limits[key];\n\tconst value = get(extension, key, null);\n\tif (value == null) return get(rule, 'required', false) !== true;\n\tif (typeof value === 'string') return value !== '';\n\tconst number = Number(value);\n\tif (get(rule, 'integer', false) === true && number !== Math.trunc(number)) return false;\n\tconst floor = get(rule, 'exclusive_minimum', null);\n\tif (floor !== null && !(number > floor)) return false;\n\tconst maximum = get(rule, 'maximum', null);\n\treturn maximum === null || number <= maximum;\n});",
 		"lookup": {
 			"entity": {
 				"registration_number": {
@@ -1864,7 +1871,7 @@
 		"events": ["create", "update"],
 		"order": 43,
 		"condition": "return get(ctx.entry, 'kind', '') === 'OVERSEAS_DEPARTURE_NOTICE';",
-		"validate": "const scheduled = get(ctx.entry, 'scheduled_on', null);\nconst expected = get(get(ctx.entry, 'inputs', {}), 'expected_return_on', null);\nreturn (\n\tscheduled != null &&\n\tscheduled !== '' &&\n\t(expected == null || expected === '' || String(expected) >= String(scheduled))\n);",
+		"validate": "const scheduled = get(ctx.entry, 'scheduled_on', null);\nif (scheduled == null || scheduled === '') return false;\nconst expected = get(get(ctx.entry, 'inputs', {}), 'expected_return_on', null);\nif (expected == null || expected === '') return true;\nreturn String(expected) >= String(scheduled);",
 		"lookup": {},
 		"id": "3d36a445-4b39-53f2-b325-3ded578a05e0",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"

@@ -12,7 +12,7 @@
 				"title": "国务院关于职工探亲待遇的规定 第六条: 探望配偶和未婚职工探望父母的往返路费由单位负担; 已婚职工探望父母的往返路费, 超过本人月标准工资30%的部分由单位负担."
 			}
 		],
-		"eligibility": "const end = get(ctx.subject.employment.effective_range, 'to', null);\nreturn (\n\tget(ctx.subject.employer.entity_extension_data, 'state_owned', false) === true &&\n\tctx.entry.unit === 'MONEY' &&\n\tctx.entry.quantity > 0 &&\n\t(end === null || ctx.entry.incurred_on <= end)\n);",
+		"eligibility": "const end = get(ctx.subject.employment.effective_range, 'to', null);\nif (get(ctx.subject.employer.entity_extension_data, 'state_owned', false) !== true) return false;\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end === null) return true;\nreturn ctx.entry.incurred_on <= end;",
 		"conversion": "return ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"direction": "ADD",

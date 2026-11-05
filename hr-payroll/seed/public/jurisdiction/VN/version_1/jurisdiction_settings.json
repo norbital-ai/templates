@@ -599,7 +599,7 @@
 							"type": "boolean",
 							"default": false,
 							"title": "Settlement period extended to 30 days",
-							"description": "Labour Code 2019 art.48(1): settlement within 14 working days of termination; only art.48(1)(a), (c), (d) — the employer ceased operating; a merger, division, sale or transfer; natural disaster, fire, enemy action or epidemic — allow up to 30 days. Unrecorded is the 14-day rule."
+							"description": "Labour Code 2019 art.48(1): settlement within 14 working days of termination; only art.48(1)(a)–(d) — the employer ceased operating; restructuring, technological change or economic reasons; a merger, division, sale or transfer; natural disaster, fire, enemy action or epidemic — allow up to 30 days. Unrecorded is the 14-day rule."
 						},
 						"unlawful_resignation": {
 							"type": "boolean",
@@ -648,7 +648,7 @@
 					"type": "boolean",
 					"default": false,
 					"title": "Declares salary PIT quarterly (quarterly VAT filer)",
-					"description": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) with Decree 126/2020/NĐ-CP arts.8(1), 9: a payer eligible to declare VAT quarterly may declare salary PIT quarterly; unrecorded is the monthly return by the 20th. From 1 July 2026 (Circular 89/2026/TT-BTC art.22(1)(a)(a.1)) every salary payer declares quarterly and this input is not read."
+					"description": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) with Decree 126/2020/NĐ-CP arts.8(1), 9: a payer eligible to declare VAT quarterly may declare salary PIT quarterly; unrecorded is the monthly return by the 20th. From the April 2026 period (Resolution 66.16/2026/NQ-CP, in force 15 April 2026; Circular 89/2026/TT-BTC art.22(1)(a)(a.1) from 1 July 2026) every salary payer declares quarterly and this input is not read."
 				},
 				"stoppage_pay_percent": {
 					"type": "number",

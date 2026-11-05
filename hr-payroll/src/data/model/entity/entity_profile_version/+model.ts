@@ -77,6 +77,13 @@ export default model('entity_profile_version', {
 			default: 10,
 			help: 'The share of expected final pay that must remain after loan recovery.'
 		},
+		overtime_full_award_percent: {
+			kind: 'int',
+			min: 1,
+			max: 100,
+			default: 100,
+			help: 'How much of planned overtime the clock must cover to pay all of it. Below this, the clocked time pays, rounded down to the half hour.'
+		},
 		entity_extension_data: {
 			kind: 'json',
 			shape: { kind: 'record', of: { kind: 'json' } },
@@ -240,6 +247,7 @@ export default model('entity_profile_version', {
 				'registrations',
 				'registered_address',
 				'final_pay_loan_floor_percent',
+				'overtime_full_award_percent',
 				'bank',
 				'statutory_units',
 				'entity_extension_data',
@@ -286,6 +294,7 @@ export default model('entity_profile_version', {
 				'registrations',
 				'registered_address',
 				'final_pay_loan_floor_percent',
+				'overtime_full_award_percent',
 				'bank',
 				'statutory_units',
 				'entity_extension_data',

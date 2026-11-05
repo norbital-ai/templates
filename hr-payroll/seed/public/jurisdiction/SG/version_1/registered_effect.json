@@ -11,10 +11,10 @@
 				"where": {}
 			}
 		},
-		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED' || row.effective_range.to == null) return false;\nconst suffix = ':exit:' + row.effective_range.to;\nreturn get(ctx, 'reads.obligation', []).some((task) =>\n\ttask.state === 'OPEN' &&\n\ttask.employment_id === row.id &&\n\tString(task.occurrence_key).includes(':exit:') &&\n\t!String(task.occurrence_key).endsWith(suffix)\n);",
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED' || row.effective_range.to == null) return false;\nconst suffix = ':exit:' + row.effective_range.to;\nreturn get(ctx, 'reads.obligation', []).some((task) => {\n\tif (task.state !== 'OPEN') return false;\n\tif (task.employment_id !== row.id) return false;\n\tconst key = String(task.occurrence_key);\n\treturn key.includes(':exit:') && !key.endsWith(suffix);\n});",
 		"target_collection": "obligation",
 		"target_action": "update",
-		"effects": "// js\nconst row = ctx.entry;\nconst suffix = ':exit:' + row.effective_range.to;\nconst reason = 'The exit changed; this task answered an earlier exit.';\nreturn get(ctx, 'reads.obligation', [])\n\t.filter((task) =>\n\t\ttask.state === 'OPEN' &&\n\t\ttask.employment_id === row.id &&\n\t\tString(task.occurrence_key).includes(':exit:') &&\n\t\t!String(task.occurrence_key).endsWith(suffix)\n\t)\n\t.map((task) => ({ target: task.id, set: { state: 'WAIVED', waiver_reason: reason } }));",
+		"effects": "// js\nconst row = ctx.entry;\nconst suffix = ':exit:' + row.effective_range.to;\nconst reason = 'The exit changed; this task answered an earlier exit.';\nreturn get(ctx, 'reads.obligation', [])\n\t.filter((task) => {\n\t\tif (task.state !== 'OPEN') return false;\n\t\tif (task.employment_id !== row.id) return false;\n\t\tconst key = String(task.occurrence_key);\n\t\treturn key.includes(':exit:') && !key.endsWith(suffix);\n\t})\n\t.map((task) => ({ target: task.id, set: { state: 'WAIVED', waiver_reason: reason } }));",
 		"id": "b6a41827-a73a-530a-a53d-17746b66c05c",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
 	},
@@ -219,7 +219,7 @@
 		},
 		"references": [
 			{
-				"title": "Employment of Foreign Manpower Act 1990 and the levy order made under it; MOM, Paying the foreign worker levy.",
+				"title": "Employment of Foreign Manpower Act 1990 and the levy order made under it; MOM, Paying the foreign worker levy: by the 17th of the next month. MOM, Key facts on Employment Pass: no foreign worker levy or quota.",
 				"url": "https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/foreign-worker-levy/paying-the-levy"
 			}
 		],
@@ -236,7 +236,7 @@
 				"where": {}
 			}
 		},
-		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst active = get(ctx, 'reads.employee_contract', []).filter((contract) =>\n\tcontract.status === 'SEALED' &&\n\tcontract.entity_id === run.entity_id &&\n\tcontract.effective_range.from <= run.salary_coverage.to &&\n\t(contract.effective_range.to == null || contract.effective_range.to >= run.salary_coverage.from) &&\n\t!['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(contract, 'terms.residency_status', ''))\n);\nif (active.length === 0) return false;\nconst key = 'SG:FOREIGN_WORKER_LEVY:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst active = get(ctx, 'reads.employee_contract', []).filter((contract) => {\n\tif (contract.status !== 'SEALED') return false;\n\tif (contract.entity_id !== run.entity_id) return false;\n\tif (!(contract.effective_range.from <= run.salary_coverage.to)) return false;\n\tconst end = contract.effective_range.to;\n\tif (end != null && !(end >= run.salary_coverage.from)) return false;\n\tif (['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(contract, 'terms.residency_status', ''))) return false;\n\treturn get(contract, 'terms.work_authorisation_category', '') !== 'EMPLOYMENT_PASS';\n});\nif (active.length === 0) return false;\nconst key = 'SG:FOREIGN_WORKER_LEVY:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst run = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst dueOn = add_working_days(add_days(run.salary_coverage.to, ctx.lookup.offset_days - 1), 1, holidays, [0, 6]);\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: dueOn,\n\toccurrence_key: 'SG:FOREIGN_WORKER_LEVY:' + run.id\n}];",
@@ -581,7 +581,7 @@
 				"where": {}
 			}
 		},
-		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.kind !== 'RETRENCHMENT_EMPLOYEE_NOTICE' || row.closed_on != null) return false;\nconst active = get(ctx, 'reads.employee_contract', []).filter((contract) =>\n\tcontract.entity_id === row.entity_id &&\n\tcontract.status === 'SEALED' &&\n\tcontract.effective_range.from <= row.opened_on &&\n\t(contract.effective_range.to == null || contract.effective_range.to >= row.opened_on)\n);\nif (active.length < ctx.lookup.employee_count_threshold) return false;\nconst key = 'SG:RETRENCHMENT_NOTIFICATION:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.kind !== 'RETRENCHMENT_EMPLOYEE_NOTICE' || row.closed_on != null) return false;\nconst active = get(ctx, 'reads.employee_contract', []).filter((contract) => {\n\tif (contract.entity_id !== row.entity_id) return false;\n\tif (contract.status !== 'SEALED') return false;\n\tif (!(contract.effective_range.from <= row.opened_on)) return false;\n\tconst end = contract.effective_range.to;\n\treturn end == null || end >= row.opened_on;\n});\nif (active.length < ctx.lookup.employee_count_threshold) return false;\nconst key = 'SG:RETRENCHMENT_NOTIFICATION:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst row = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nreturn [{\n\tentity_id: row.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_working_days(row.opened_on, ctx.lookup.working_days, holidays, [0, 6]),\n\toccurrence_key: 'SG:RETRENCHMENT_NOTIFICATION:' + row.id\n}];",
@@ -715,7 +715,7 @@
 				"where": {}
 			}
 		},
-		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst active = get(ctx, 'reads.employee_contract', []).some((contract) =>\n\tcontract.entity_id === run.entity_id &&\n\tcontract.status === 'SEALED' &&\n\tcontract.effective_range.from <= run.salary_coverage.to &&\n\t(contract.effective_range.to == null || contract.effective_range.to >= run.salary_coverage.from) &&\n\t['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(contract, 'terms.residency_status', ''))\n);\nif (!active) return false;\nconst registered = get(ctx, 'reads.entity_profile_version', []).some((version) =>\n\tversion.entity_id === run.entity_id &&\n\tversion.status === 'SEALED' &&\n\tversion.effective_range.from <= run.salary_coverage.from &&\n\t(version.effective_range.to == null || version.effective_range.to >= run.salary_coverage.from) &&\n\t(version.registrations ?? []).some((registration) => registration.scheme_code === 'CPF')\n);\nif (registered) return false;\nconst key = 'SG:CPF_SUBMISSION_NUMBER:' + run.entity_id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst active = get(ctx, 'reads.employee_contract', []).some((contract) => {\n\tif (contract.entity_id !== run.entity_id) return false;\n\tif (contract.status !== 'SEALED') return false;\n\tif (!(contract.effective_range.from <= run.salary_coverage.to)) return false;\n\tconst end = contract.effective_range.to;\n\tif (end != null && !(end >= run.salary_coverage.from)) return false;\n\treturn ['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(contract, 'terms.residency_status', ''));\n});\nif (!active) return false;\nconst registered = get(ctx, 'reads.entity_profile_version', []).some((version) => {\n\tif (version.entity_id !== run.entity_id) return false;\n\tif (version.status !== 'SEALED') return false;\n\tif (!(version.effective_range.from <= run.salary_coverage.from)) return false;\n\tconst end = version.effective_range.to;\n\tif (end != null && !(end >= run.salary_coverage.from)) return false;\n\treturn (version.registrations ?? []).some((registration) => registration.scheme_code === 'CPF');\n});\nif (registered) return false;\nconst key = 'SG:CPF_SUBMISSION_NUMBER:' + run.entity_id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst run = ctx.entry;\nconst holidays = get(ctx, 'reads.holiday', []).map((h) => h.date);\nconst dueOn = add_working_days(add_days(month_end(run.salary_coverage.to), ctx.lookup.offset_days - 1), 1, holidays, [0, 6]);\nreturn [{\n\tentity_id: run.entity_id,\n\ttitle: ctx.lookup.title,\n\tdue_on: dueOn,\n\toccurrence_key: 'SG:CPF_SUBMISSION_NUMBER:' + run.entity_id\n}];",
@@ -791,7 +791,7 @@
 		},
 		"references": [
 			{
-				"title": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule; MOM, Medical insurance requirements and MOM written answer 1106/2025.",
+				"title": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule; MOM, Medical insurance requirements and MOM written answer 1106/2025; MOM, Key facts on Employment Pass: the employer may choose whether to provide it.",
 				"url": "https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/sector-specific-rules/medical-insurance"
 			}
 		],
@@ -802,7 +802,7 @@
 				"where": {}
 			}
 		},
-		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nif (['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(row, 'terms.residency_status', ''))) return false;\nconst key = 'SG:WORK_PASS_MEDICAL_INSURANCE:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nif (['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(row, 'terms.residency_status', ''))) return false;\nif (get(row, 'terms.work_authorisation_category', '') === 'EMPLOYMENT_PASS') return false;\nconst key = 'SG:WORK_PASS_MEDICAL_INSURANCE:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: row.effective_range.from,\n\toccurrence_key: 'SG:WORK_PASS_MEDICAL_INSURANCE:' + row.id\n}];",
@@ -817,7 +817,7 @@
 		},
 		"references": [
 			{
-				"title": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule; MOM, Security bond requirements for migrant worker, read 2026-10-07: Malaysians are exempt.",
+				"title": "Employment of Foreign Manpower (Work Passes) Regulations 2012, Fourth Schedule; MOM, Security bond requirements for migrant worker, read 2026-10-07: Malaysians are exempt. MOM FAQ: employers of S Pass holders do not have to post a security bond.",
 				"url": "https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/sector-specific-rules/security-bond"
 			}
 		],
@@ -828,7 +828,7 @@
 				"where": {}
 			}
 		},
-		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nif (['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(row, 'terms.residency_status', ''))) return false;\nif (get(row, 'employee_extension_data.term_facts.malaysian', false) === true) return false;\nconst key = 'SG:WORK_PERMIT_SECURITY_BOND:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nif (['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(row, 'terms.residency_status', ''))) return false;\nif (['EMPLOYMENT_PASS', 'S_PASS'].includes(get(row, 'terms.work_authorisation_category', ''))) return false;\nif (get(row, 'employee_extension_data.term_facts.malaysian', false) === true) return false;\nconst key = 'SG:WORK_PERMIT_SECURITY_BOND:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: row.effective_range.from,\n\toccurrence_key: 'SG:WORK_PERMIT_SECURITY_BOND:' + row.id\n}];",
@@ -860,7 +860,7 @@
 				"where": {}
 			}
 		},
-		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst born = get(row, 'payroll.date_of_birth', null);\nif (born == null) return false;\nconst years = age_on(born, row.effective_range.from);\nif (years < ctx.lookup.min_age || years >= ctx.lookup.max_age) return false;\nconst profile = get(ctx, 'reads.entity_profile_version', []).find((version) =>\n\tversion.entity_id === row.entity_id &&\n\tversion.status === 'SEALED' &&\n\tversion.effective_range.from <= row.effective_range.from &&\n\t(version.effective_range.to == null || version.effective_range.to >= row.effective_range.from)\n);\nif (profile == null || get(profile, 'entity_extension_data.industrial_undertaking', false) !== true) return false;\nconst key = 'SG:YOUNG_PERSON_NOTIFICATION:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
+		"condition": "// js\nconst row = ctx.entry;\nif (row == null || row.status !== 'SEALED') return false;\nconst born = get(row, 'payroll.date_of_birth', null);\nif (born == null) return false;\nconst years = age_on(born, row.effective_range.from);\nif (years < ctx.lookup.min_age || years >= ctx.lookup.max_age) return false;\nconst profile = get(ctx, 'reads.entity_profile_version', []).find((version) => {\n\tif (version.entity_id !== row.entity_id) return false;\n\tif (version.status !== 'SEALED') return false;\n\tif (!(version.effective_range.from <= row.effective_range.from)) return false;\n\tconst end = version.effective_range.to;\n\treturn end == null || end >= row.effective_range.from;\n});\nif (profile == null || get(profile, 'entity_extension_data.industrial_undertaking', false) !== true) return false;\nconst key = 'SG:YOUNG_PERSON_NOTIFICATION:' + row.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst row = ctx.entry;\nreturn [{\n\tentity_id: row.entity_id,\n\temployee_id: row.employee_id,\n\temployment_id: row.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_days(row.effective_range.from, ctx.lookup.due_days),\n\toccurrence_key: 'SG:YOUNG_PERSON_NOTIFICATION:' + row.id\n}];",

@@ -2,7 +2,7 @@
 	{
 		"code": "ECONOMIC_COMPENSATION",
 		"name": "经济补偿 (economic compensation on termination)",
-		"description": "The entry quantity is the average monthly wage over the 12 months before termination. Service is measured from the contract start to the incurred date: a full year pays one month, six months or more pays one, and under six months pays half; the total is capped at 12 years.",
+		"description": "The entry quantity is the average monthly wage over the 12 months before termination. Service is measured from the contract start through the incurred date: a full year pays one month, six months or more pays one, and any shorter part pays half; the total is capped at 12 years.",
 		"lookup": {
 			"months_per_year": 12,
 			"full_year_min_months": 6,
@@ -18,7 +18,7 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0 && ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
-		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst months = calendar_completed_months(start, ctx.entry.incurred_on);\nconst years = Math.trunc(months / ctx.lookup.months_per_year);\nconst remainder = months % ctx.lookup.months_per_year;\nconst counted = Math.min(\n\tctx.lookup.max_years,\n\tyears +\n\t\t(remainder >= ctx.lookup.full_year_min_months\n\t\t\t? 1\n\t\t\t: remainder > 0\n\t\t\t\t? 0.5\n\t\t\t\t: 0)\n);\nreturn ctx.entry.quantity * counted;\n",
+		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst end = add_days(ctx.entry.incurred_on, 1);\nconst months = calendar_completed_months(start, end);\nconst years = Math.trunc(months / ctx.lookup.months_per_year);\nconst remainder = months % ctx.lookup.months_per_year;\nconst part =\n\tremainder >= ctx.lookup.full_year_min_months ? 1 :\n\tremainder > 0 || add_months(start, months) < end ? 0.5 :\n\t0;\nreturn ctx.entry.quantity * Math.min(ctx.lookup.max_years, years + part);\n",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "04327fa4-baa4-5382-b6a5-54778b2ba08a",
 		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
@@ -27,9 +27,7 @@
 		"code": "PAY_IN_LIEU_OF_NOTICE",
 		"name": "代通知金 (one month's wage in lieu of notice)",
 		"description": "The entry quantity is the employee's wage for the previous month, paid instead of 30 days' notice.",
-		"lookup": {
-			"months": 1
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "劳动合同法 第四十条; 实施条例 第二十条: 额外支付一个月工资, 按劳动者上一个月的工资标准确定."
@@ -156,7 +154,7 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0 && ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
-		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst months = calendar_completed_months(start, ctx.entry.incurred_on);\nconst years = Math.trunc(months / ctx.lookup.months_per_year);\nconst remainder = months % ctx.lookup.months_per_year;\nconst counted = Math.min(\n\tctx.lookup.max_years,\n\tyears +\n\t\t(remainder >= ctx.lookup.full_year_min_months\n\t\t\t? 1\n\t\t\t: remainder > 0\n\t\t\t\t? 0.5\n\t\t\t\t: 0)\n);\nreturn ctx.entry.quantity * counted * ctx.lookup.multiple;\n",
+		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst end = add_days(ctx.entry.incurred_on, 1);\nconst months = calendar_completed_months(start, end);\nconst years = Math.trunc(months / ctx.lookup.months_per_year);\nconst remainder = months % ctx.lookup.months_per_year;\nconst part =\n\tremainder >= ctx.lookup.full_year_min_months ? 1 :\n\tremainder > 0 || add_months(start, months) < end ? 0.5 :\n\t0;\nreturn ctx.entry.quantity * Math.min(ctx.lookup.max_years, years + part) * ctx.lookup.multiple;\n",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "c59d6187-2d76-572e-b63d-98e946fa9cda",
 		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
@@ -165,9 +163,7 @@
 		"code": "MATERNITY_ALLOWANCE_PASSTHROUGH",
 		"name": "生育津贴代发 (fund maternity allowance paid through the employer)",
 		"description": "The entry quantity is the maternity allowance the fund pays through the employer. Female employees only.",
-		"lookup": {
-			"funded_by": "MATERNITY_INSURANCE_FUND"
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "财税〔2008〕8号: 生育津贴、生育医疗费免征个人所得税."
@@ -187,9 +183,7 @@
 		"code": "EQUITY_INCENTIVE",
 		"name": "股权激励所得 (stock options, restricted shares)",
 		"description": "The entry quantity is the value of the equity incentive. It is taxable under the separate equity method, not monthly cumulative withholding, and is not paid in cash; the catalogue therefore records the value with no pay line and no monthly IIT base.",
-		"lookup": {
-			"display_only": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "财税〔2018〕164号 二(一); 财政部 税务总局公告2023年第25号: 股权激励单独适用综合所得税率表, 至2027-12-31."
@@ -269,9 +263,7 @@
 		"code": "MATERNITY_TOPUP",
 		"name": "生育津贴差额补足 (maternity top-up)",
 		"description": "The entry quantity is the shortfall between the pre-leave wage and the maternity allowance received. Female employees only.",
-		"lookup": {
-			"days_per_month": 30
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "女职工劳动保护特别规定 第八条; 妇女权益保障法 第四十八条; 沪府发〔2013〕5号: 生育津贴低于产假前工资的差额由单位补足."
@@ -323,7 +315,7 @@
 		"subtotal_id": "58baf125-baf4-57b6-bd87-5d665b06a66a",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "const end = get(ctx.subject.employment.effective_range, 'to');\nreturn (\n\tctx.entry.quantity > 0 &&\n\tend != null &&\n\tctx.entry.incurred_on > end &&\n\tctx.entry.incurred_on <= add_years(end, ctx.lookup.max_years)\n);",
+		"eligibility": "const end = get(ctx.subject.employment.effective_range, 'to');\nif (!(ctx.entry.quantity > 0)) return false;\nif (end == null) return false;\nif (!(ctx.entry.incurred_on > end)) return false;\nreturn ctx.entry.incurred_on <= add_years(end, ctx.lookup.max_years);",
 		"conversion": "return ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "ab0fe21f-a8c0-541d-8229-522282eb4431",

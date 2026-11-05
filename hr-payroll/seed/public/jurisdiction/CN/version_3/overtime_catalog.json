@@ -14,10 +14,10 @@
 		},
 		"references": [
 			{
-				"title": "劳动法 第四十四条第一项; 工资支付暂行规定 第十三条第一款第一项; 人社部发〔2025〕2号: 月计薪天数21.75, 小时工资=月工资÷(21.75×8); 上海基数见沪人社综发〔2016〕29号 第九条."
+				"title": "劳动法 第四十四条第一项; 工资支付暂行规定 第十三条第一款第一项; 人社部发〔2025〕2号: 月计薪天数21.75, 小时工资=月工资÷(21.75×8); 上海基数见沪人社综发〔2016〕29号 第九条 (2026-08-01起 沪人社规〔2026〕10号 第九条, 条文未变)."
 			}
 		],
-		"eligibility": "// js\nconst work = get(ctx, 'work', {});\nreturn ['STANDARD', ''].includes(get(ctx.subject.employment.terms, 'statutory_work_category', '')) &&\n\tget(ctx.subject.employment.terms.rate, 'unit', 'MONTHLY') === 'MONTHLY' &&\n\tget(work, 'overtime_hours', 0) > 0;",
+		"eligibility": "// js\nconst terms = ctx.subject.employment.terms;\nif (!['STANDARD', ''].includes(get(terms, 'statutory_work_category', ''))) return false;\nif (get(terms.rate, 'unit', 'MONTHLY') !== 'MONTHLY') return false;\nreturn get(get(ctx, 'work', {}), 'overtime_hours', 0) > 0;",
 		"conversion": "// js\nconst work = get(ctx, 'work', {});\nconst terms = ctx.subject.employment.terms;\nconst fixed = ctx.lookup.wage_base_allowances.reduce(\n\t(total, code) => total + get(terms, `allowances.${code}.amount`, 0),\n\t0\n);\nconst wage = get(terms, 'rate.amount', 0) + fixed;\nreturn get(work, 'overtime_hours', 0) * ctx.lookup.factor * wage / ctx.lookup.monthly_divisor / ctx.lookup.daily_hours;",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
@@ -45,7 +45,7 @@
 				"title": "工资支付暂行规定 第十三条第三款: 综合计算工时制超过法定标准工时的部分按150%, 法定节假日按300%."
 			}
 		],
-		"eligibility": "// js\nconst review = get(\n\tctx.subject.employment.employee_extension_data,\n\t'term_facts.comprehensive_overtime_review',\n\tnull\n);\nconst from = ctx.run.salary_coverage.from;\nconst to = ctx.run.salary_coverage.to;\nreturn get(ctx.subject.employment.terms, 'statutory_work_category', '') === 'COMPREHENSIVE' &&\n\tget(ctx.subject.employment.terms.rate, 'unit', 'MONTHLY') === 'MONTHLY' &&\n\treview != null &&\n\treview.month === from.slice(0, 7) &&\n\treview.reference !== '' &&\n\treview.settlement_on >= from &&\n\treview.settlement_on <= to &&\n\tNumber(review.excess_nonholiday_hours) > 0;",
+		"eligibility": "// js\nconst review = get(\n\tctx.subject.employment.employee_extension_data,\n\t'term_facts.comprehensive_overtime_review',\n\tnull\n);\nconst from = ctx.run.salary_coverage.from;\nconst to = ctx.run.salary_coverage.to;\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'statutory_work_category', '') !== 'COMPREHENSIVE') return false;\nif (get(terms.rate, 'unit', 'MONTHLY') !== 'MONTHLY') return false;\nif (review == null) return false;\nif (review.month !== from.slice(0, 7)) return false;\nif (review.reference === '') return false;\nif (!(review.settlement_on >= from)) return false;\nif (!(review.settlement_on <= to)) return false;\nreturn Number(review.excess_nonholiday_hours) > 0;",
 		"conversion": "// js\nconst review = get(\n\tctx.subject.employment.employee_extension_data,\n\t'term_facts.comprehensive_overtime_review',\n\tnull\n);\nconst terms = ctx.subject.employment.terms;\nconst fixed = ctx.lookup.wage_base_allowances.reduce(\n\t(total, code) => total + get(terms, `allowances.${code}.amount`, 0),\n\t0\n);\nconst wage = get(terms, 'rate.amount', 0) + fixed;\nreturn Number(review.excess_nonholiday_hours) * ctx.lookup.factor * wage / ctx.lookup.monthly_divisor / ctx.lookup.daily_hours;",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
@@ -73,7 +73,7 @@
 				"title": "劳动法 第四十四条第二项; 工资支付暂行规定 第十三条: 休息日工作不能安排补休的按200%; 已补休的不再支付."
 			}
 		],
-		"eligibility": "// js\nconst work = get(ctx, 'work', {});\nreturn ['STANDARD', ''].includes(get(ctx.subject.employment.terms, 'statutory_work_category', '')) &&\n\tget(ctx.subject.employment.terms.rate, 'unit', 'MONTHLY') === 'MONTHLY' &&\n\tget(ctx.subject.employer, 'entity_extension_data.rest_day_work_compensated', false) !== true &&\n\tget(work, 'rest_day_hours', 0) > 0;",
+		"eligibility": "// js\nconst terms = ctx.subject.employment.terms;\nif (!['STANDARD', ''].includes(get(terms, 'statutory_work_category', ''))) return false;\nif (get(terms.rate, 'unit', 'MONTHLY') !== 'MONTHLY') return false;\nif (get(ctx.subject.employer, 'entity_extension_data.rest_day_work_compensated', false) === true) return false;\nreturn get(get(ctx, 'work', {}), 'rest_day_hours', 0) > 0;",
 		"conversion": "// js\nconst work = get(ctx, 'work', {});\nconst terms = ctx.subject.employment.terms;\nconst fixed = ctx.lookup.wage_base_allowances.reduce(\n\t(total, code) => total + get(terms, `allowances.${code}.amount`, 0),\n\t0\n);\nconst wage = get(terms, 'rate.amount', 0) + fixed;\nreturn get(work, 'rest_day_hours', 0) * ctx.lookup.factor * wage / ctx.lookup.monthly_divisor / ctx.lookup.daily_hours;",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
@@ -98,10 +98,10 @@
 		},
 		"references": [
 			{
-				"title": "劳动法 第四十四条第三项; 工资支付暂行规定 第十三条: 法定休假日工作按300%; 上海不定时工时制在法定节假日安排工作的亦按300% (沪人社综发〔2016〕29号 第九条)."
+				"title": "劳动法 第四十四条第三项; 工资支付暂行规定 第十三条: 法定休假日工作按300%; 上海不定时工时制在法定节假日安排工作的亦按300% (沪人社综发〔2016〕29号 第十三条; 2026-08-01起 沪人社规〔2026〕10号 第十三条, 条文未变)."
 			}
 		],
-		"eligibility": "// js\nconst work = get(ctx, 'work', {});\nreturn ['STANDARD', '', 'COMPREHENSIVE'].includes(\n\tget(ctx.subject.employment.terms, 'statutory_work_category', '')\n) &&\n\tget(ctx.subject.employment.terms.rate, 'unit', 'MONTHLY') === 'MONTHLY' &&\n\tget(work, 'holiday_hours', 0) > 0;",
+		"eligibility": "// js\nconst terms = ctx.subject.employment.terms;\nconst category = get(terms, 'statutory_work_category', '');\n// 上海市企业工资支付办法 第十三条: 不定时工时制在法定休假节日安排工作的按300%; 工资支付暂行规定 第十三条 excludes it elsewhere\nconst shanghaiFlexible =\n\tcategory === 'FLEXIBLE' && get(ctx.subject.employer, 'entity_extension_data.region', '') === 'SH';\nif (!shanghaiFlexible && !['STANDARD', '', 'COMPREHENSIVE'].includes(category)) return false;\nif (get(terms.rate, 'unit', 'MONTHLY') !== 'MONTHLY') return false;\nreturn get(get(ctx, 'work', {}), 'holiday_hours', 0) > 0;",
 		"conversion": "// js\nconst work = get(ctx, 'work', {});\nconst terms = ctx.subject.employment.terms;\nconst fixed = ctx.lookup.wage_base_allowances.reduce(\n\t(total, code) => total + get(terms, `allowances.${code}.amount`, 0),\n\t0\n);\nconst wage = get(terms, 'rate.amount', 0) + fixed;\nreturn get(work, 'holiday_hours', 0) * ctx.lookup.factor * wage / ctx.lookup.monthly_divisor / ctx.lookup.daily_hours;",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",

@@ -60,7 +60,7 @@
 												"continued_after_65": {
 													"type": "boolean",
 													"default": false,
-													"description": "LI — a worker over 65 who has not claimed the old-age benefit and continues in labour insurance (勞工保險條例 §9-1; BLI 年逾65歲繼續工作者得繼續參加勞保): charged at 12.5% (no employment insurance after 65)."
+													"description": "LI — a worker over 65 who has not claimed the old-age benefit and continues in labour insurance (勞工保險條例 §9-1; BLI 年逾65歲繼續工作者得繼續參加勞保): charged at 11.5%, the ordinary-risk rate cut by 1% (no employment insurance after 65)."
 												},
 												"disability_subsidy": {
 													"type": "number",
@@ -445,7 +445,7 @@
 				"disabled_employees_counted": {
 					"type": "number",
 					"minimum": 0,
-					"description": "身心障礙者權益保障法 §38(3): the disabled employees counted toward the quota this month (a 重度 disability counts twice). Read by DISABLED_EMPLOYMENT_QUOTA_LEVY for an employer of 67 or more."
+					"description": "身心障礙者權益保障法 §38(5): the disabled employees counted toward the quota this month (a 重度 disability counts twice). Read by DISABLED_EMPLOYMENT_QUOTA_LEVY for an employer of 67 or more."
 				},
 				"flexible_working_time": {
 					"type": "boolean",

@@ -44,7 +44,13 @@ const pcbIn = (month: number, taxPaid: number) =>
 					period: `2026-${String(index + 1).padStart(2, '0')}`,
 					gross_earnings: 6000,
 					employee_statutory: 701.65,
-					employee_statutory_schemes: { EPF: 660, SOCSO: 29.75, EIS: 11.9 },
+					breakdown: {
+						statutory: [
+							{ code: 'EPF', kind: 'CONTRIBUTION', employee: 660, employer: 0 },
+							{ code: 'SOCSO', kind: 'CONTRIBUTION', employee: 29.75, employer: 0 },
+							{ code: 'EIS', kind: 'CONTRIBUTION', employee: 11.9, employer: 0 }
+						]
+					},
 					tax_withheld: index === 0 ? taxPaid : 0
 				}))
 			}

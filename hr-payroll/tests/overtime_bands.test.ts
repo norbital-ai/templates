@@ -140,11 +140,11 @@ const pack = (
 			shift_definition_id: day.shift,
 			actual_worked_intervals: [{ start: instant(day.date, 0), end: instant(day.date, day.hours) }],
 			planned_overtime_intervals:
-				day.overtime === undefined
+				day.shift === WORK && day.overtime === undefined
 					? null
 					: [
 							{
-								start: instant(day.date, day.hours - day.overtime),
+								start: instant(day.date, day.hours - (day.overtime ?? day.hours)),
 								end: instant(day.date, day.hours)
 							}
 						],
@@ -219,7 +219,7 @@ describe('overtime bands', () => {
 					{ date: '2026-02-08', shift: REST, hours: 3 },
 					{ date: '2026-02-15', shift: REST, hours: 10 },
 					{ date: '2026-02-11', shift: WORK, hours: 8 },
-					{ date: '2026-02-12', shift: WORK, hours: 10 }
+					{ date: '2026-02-12', shift: WORK, hours: 10, overtime: 2 }
 				],
 				[
 					{ date: '2026-02-11', kind: 'PUBLIC_HOLIDAY' },
@@ -694,7 +694,7 @@ describe('overtime bands', () => {
 				[
 					{ date: '2026-02-02', shift: WORK, hours: 11, overtime: 3 },
 					{ date: '2026-02-01', shift: REST, hours: 8 },
-					{ date: '2026-02-08', shift: REST, hours: 10, overtime: 2 },
+					{ date: '2026-02-08', shift: REST, hours: 10 },
 					{ date: '2026-02-11', shift: WORK, hours: 8 },
 					{ date: '2026-02-12', shift: WORK, hours: 8 },
 					{ date: '2026-02-13', shift: WORK, hours: 10, overtime: 2 }
