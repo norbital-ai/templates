@@ -142,7 +142,7 @@ export default model('payroll_run', {
 				// what was entered after an earlier run closed is paid by the next one, a cycle late
 				payroll_run: {
 					where: { entity_id: { in: entityIds } },
-					fields: ['entity_id', 'salary_coverage'],
+					fields: ['entity_id', 'salary_coverage', 'period', 'kind'],
 					limit: 10000
 				}
 			});
@@ -159,6 +159,13 @@ export default model('payroll_run', {
 				const cycle = cycleOf(schedule, row.period);
 				if (cycle === undefined) return `${row.period} is not a pay cycle of this entity.`;
 				const offCycle = row.kind === 'OFF_CYCLE';
+				const prior = known.payroll_run.rows.filter(
+					(entry) => String(entry.entity_id) === String(row.entity_id)
+				);
+				// year-to-date only moves forward: a skipped cycle cannot run behind a later one
+				const later = prior.find((entry) => entry.kind === 'ON_CYCLE' && entry.period > row.period);
+				if (!offCycle && later !== undefined)
+					return `${later.period} has already run, so ${row.period} cannot run after it.`;
 				const pay_date = PlainDate(offCycle ? ctx.today : payDateOf(schedule, row.period));
 				const settings = known.jurisdiction_settings.rows.find(
 					(entry) => entry.code === version.settings_code && on(entry.effective_range, pay_date)
@@ -173,13 +180,11 @@ export default model('payroll_run', {
 					)
 				);
 				if (offCycle && pays.size === 0) return 'Choose what this run pays.';
-				const earliest = known.payroll_run.rows
-					.filter((entry) => String(entry.entity_id) === String(row.entity_id))
-					.reduce<PayWindow>(
-						(low, { salary_coverage: { from, to } }) =>
-							from < low.from ? { from, to: String(to) } : low,
-						cycle
-					);
+				const earliest = prior.reduce<PayWindow>(
+					(low, { salary_coverage: { from, to } }) =>
+						from < low.from ? { from, to: String(to) } : low,
+					cycle
+				);
 				return {
 					row: {
 						entity_id: row.entity_id,
@@ -294,6 +299,28 @@ export default model('payroll_run', {
 		check: function* (rows, ctx) {
 			if (rows.some((row) => row.state === 'PAID'))
 				return yield* ctx.refuse('A paid run is locked.');
+			// a later run's year-to-date already counts this one, for anyone paid in both
+			const ids = rows.map((row) => row.id);
+			const { payslip: own, payroll_run: runs } = yield* ctx.db.query({
+				payslip: { where: { payroll_run_id: { in: ids } }, fields: ['employee_id'], limit: 10000 },
+				payroll_run: { fields: ['id', 'run_number'], limit: 10000 }
+			});
+			const numbers = runs.rows.filter(({ id }) => ids.includes(id));
+			const first = Math.min(...numbers.map((row) => row.run_number));
+			const later = runs.rows.filter((row) => row.run_number > first && !ids.includes(row.id));
+			if (later.length === 0 || own.rows.length === 0) return;
+			const { payslip: shared } = yield* ctx.db.query({
+				payslip: {
+					where: {
+						employee_id: { in: own.rows.map((row) => row.employee_id) },
+						payroll_run_id: { in: later.map((row) => row.id) }
+					},
+					fields: ['id'],
+					limit: 1
+				}
+			});
+			if (shared.rows.length > 0)
+				return yield* ctx.refuse('A later run has already counted this one. Delete it first.');
 		}
 	}
 });

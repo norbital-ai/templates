@@ -1,8 +1,8 @@
 /**
- * The roster workbook: a full month for each person it names. A file row is that day's planned shift
- * and actual worked interval; the roster's pattern stays the projection for a day the file leaves
- * out. Importing one month replaces that person's entries for the month, and a roster sealed by a
- * payroll run refuses the file. One row per person-day; intervals are read in the entity's zone.
+ * The roster workbook, one month in two sheets. Plan is the scheme: each person-day's shift and planned overtime. Work
+ * entries are what happened: a clock in and a clock out. A file may carry either or both and each writes only its own
+ * fields, so the plan can go in ahead of the month and the clocks after it. A blank row and a day the file leaves out
+ * stay as they are, and a day a payroll run sealed refuses a change. Times are read in the entity's zone.
  */
 import type { Cell } from '@norbital-ai/std/sheet';
 import type { Id } from '@norbital-ai/bolt';
@@ -13,8 +13,10 @@ import {
 	employeeOn,
 	inRange,
 	raiseProblems,
+	normalToken,
 	sheetTable,
 	WorkbookRowsError,
+	type SheetTable,
 	type WorkbookSheetGrids
 } from './workbook_rows.js';
 
@@ -40,12 +42,17 @@ export type RosterShift = {
 	readonly code: string;
 	readonly from: string | null;
 	readonly to: string | null;
+	/** A timed shift's clock hours, which place a night shift's overtime on the right morning. */
+	readonly start_time?: string | null;
+	readonly end_time?: string | null;
+	readonly ends_next_day?: boolean;
 };
 export type RosterStored = {
 	readonly id: Id<'roster_entry'>;
 	readonly employment_id: Id<'employee_contract'>;
 	readonly work_date: string;
 	readonly shift_definition_id: Id<'shift_definition'> | null;
+	readonly planned_overtime_intervals: readonly RosterStoredInterval[] | null;
 	readonly actual_worked_intervals: readonly RosterStoredInterval[] | null;
 	readonly payroll_run_id: Id<'payroll_run'> | null;
 	readonly run_label: string | null;
@@ -58,85 +65,112 @@ export type RosterKnown = {
 	readonly entries: readonly RosterStored[];
 };
 
-export type RosterEntryDraft = {
-	readonly work_date: PlainDate;
-	readonly shift_definition_id: Id<'shift_definition'> | null;
-	readonly actual_worked_intervals: readonly RosterInterval[] | null;
+/** What a person-day's rows change: the plan's fields, the clocks, or both. */
+export type RosterFields = {
+	readonly shift_definition_id?: Id<'shift_definition'>;
+	readonly planned_overtime_intervals?: readonly RosterInterval[] | null;
+	readonly actual_worked_intervals?: readonly RosterInterval[];
 };
-export type RosterCreateDraft = RosterEntryDraft & {
+export type RosterCreateDraft = RosterFields & {
 	readonly employment_id: Id<'employee_contract'>;
+	readonly work_date: PlainDate;
 };
 export type RosterUpdateDraft = {
 	readonly target: Id<'roster_entry'>;
 	readonly employment_id: Id<'employee_contract'>;
-	readonly set: RosterEntryDraft;
-};
-export type RosterDeleteDraft = {
-	readonly target: Id<'roster_entry'>;
-	readonly employment_id: Id<'employee_contract'>;
+	readonly set: RosterFields;
 };
 export type RosterPlan = {
 	readonly creates: readonly RosterCreateDraft[];
 	readonly updates: readonly RosterUpdateDraft[];
-	readonly deletes: readonly RosterDeleteDraft[];
 	readonly count: number;
 	readonly overwritten: readonly string[];
 	readonly warnings: readonly string[];
 };
 
+export const ROSTER_SHEETS = { plan: 'Plan', work: 'Work entries' } as const;
 const EMPLOYEE = ['employee_number', 'employee', 'employee_no'];
-
-const ROSTER_COLUMNS = {
+const WORK_DATE = ['work_date', 'date', 'day'];
+const PLAN_COLUMNS = {
 	employee_number: EMPLOYEE,
-	work_date: ['work_date', 'date', 'day'],
+	work_date: WORK_DATE,
 	shift_code: ['shift_code', 'shift', 'planned_shift'],
+	overtime_start: ['planned_ot_start', 'planned_overtime_start', 'ot_start'],
+	overtime_end: ['planned_ot_end', 'planned_overtime_end', 'ot_end']
+};
+const WORK_COLUMNS = {
+	employee_number: EMPLOYEE,
+	work_date: WORK_DATE,
 	clock_in: ['clock_in', 'in', 'actual_in', 'start'],
 	clock_out: ['clock_out', 'out', 'actual_out', 'end']
-} as const;
-const ROSTER_OPTIONAL = ['shift_code', 'clock_in', 'clock_out'];
+};
 
 type RawRow = {
 	readonly at: number;
 	readonly number: string;
 	readonly day: string;
 	readonly shift: string;
-	readonly clockIn: Cell | null;
-	readonly clockOut: Cell | null;
+	readonly first: Cell | null;
+	readonly last: Cell | null;
 };
 
-const rowsOf = (grids: WorkbookSheetGrids): readonly RawRow[] => {
-	const table = sheetTable(grids, ROSTER_COLUMNS, ROSTER_OPTIONAL, 'Roster');
+/** One sheet's person-days. A row with nothing in it past the person and date changes nothing, so it is dropped. */
+const sheetRows = (table: SheetTable, shiftCell: string, firstCell: string, lastCell: string) => {
 	const problems: string[] = [];
 	const rows: RawRow[] = [];
 	for (const row of table.rows) {
 		const number = cellText(row.cells.employee_number);
 		const dateText = cellText(row.cells.work_date);
 		const day = cellDay(row.cells.work_date);
+		const shift = cellText(row.cells[shiftCell]);
+		const first = row.cells[firstCell] ?? null;
+		const last = row.cells[lastCell] ?? null;
 		if (number === '') problems.push(`Row ${row.at}: enter the employee number.`);
 		if (day == null) problems.push(`Row ${row.at}: "${dateText}" is not a work date (YYYY-MM-DD).`);
 		if (number === '' || day == null) continue;
-		rows.push({
-			at: row.at,
-			number,
-			day,
-			shift: cellText(row.cells.shift_code),
-			clockIn: row.cells.clock_in ?? null,
-			clockOut: row.cells.clock_out ?? null
-		});
+		if (shift === '' && cellText(first) === '' && cellText(last) === '') continue;
+		rows.push({ at: row.at, number, day, shift, first, last });
 	}
-	raiseProblems(problems);
-	if (rows.length === 0) throw new WorkbookRowsError('The file has no work-day rows.');
+	raiseProblems(problems.map((problem) => `${table.name}: ${problem}`));
 	return rows;
 };
 
-/** Every row's month; one file is one month. */
-export function rosterMonth(grids: WorkbookSheetGrids): string {
-	const rows = rowsOf(grids);
-	const months = [...new Set(rows.map((row) => row.day.slice(0, 7)))].toSorted();
-	if (months.length !== 1)
+const rowsOf = (grids: WorkbookSheetGrids) => {
+	const holds = (aliases: readonly string[]) =>
+		[...grids.values()].some((table) =>
+			(table[0] ?? []).some((cell) => aliases.includes(normalToken(cell)))
+		);
+	const planned = holds(PLAN_COLUMNS.shift_code);
+	const worked = holds(WORK_COLUMNS.clock_in);
+	if (!planned && !worked)
+		throw new WorkbookRowsError(
+			`The file needs a ${ROSTER_SHEETS.plan} sheet with a shift column, or a ${ROSTER_SHEETS.work} sheet with clock in and clock out columns.`
+		);
+	const plan = planned
+		? sheetRows(
+				sheetTable(grids, PLAN_COLUMNS, ['overtime_start', 'overtime_end'], ROSTER_SHEETS.plan),
+				'shift_code',
+				'overtime_start',
+				'overtime_end'
+			)
+		: [];
+	const work = worked
+		? sheetRows(
+				sheetTable(grids, WORK_COLUMNS, [], ROSTER_SHEETS.work),
+				'',
+				'clock_in',
+				'clock_out'
+			)
+		: [];
+	const months = [...new Set([...plan, ...work].map((row) => row.day.slice(0, 7)))].toSorted();
+	if (months.length === 0) throw new WorkbookRowsError('The file has no work-day rows.');
+	if (months.length > 1)
 		throw new WorkbookRowsError(`The file spans ${months.join(', ')}; import one month at a time.`);
-	return months[0]!;
-}
+	return { plan, work, month: months[0]! };
+};
+
+/** Every row's month; one file is one month. */
+export const rosterMonth = (grids: WorkbookSheetGrids): string => rowsOf(grids).month;
 
 type Clock = {
 	readonly instant: Instant;
@@ -187,41 +221,64 @@ const clockAt = (
 };
 
 const intervalOf = (
-	clockIn: Cell | null,
-	clockOut: Cell | null,
+	from: Cell | null,
+	to: Cell | null,
+	[startName, endName]: readonly [string, string],
 	day: string,
 	zone: string,
 	at: number,
 	problems: string[]
 ): readonly RosterInterval[] | null | undefined => {
-	const hasIn = clockIn != null && cellText(clockIn) !== '';
-	const hasOut = clockOut != null && cellText(clockOut) !== '';
-	if (hasIn !== hasOut) {
-		problems.push(`Row ${at}: a clock-in needs its clock-out.`);
+	const hasStart = from != null && cellText(from) !== '';
+	const hasEnd = to != null && cellText(to) !== '';
+	if (hasStart !== hasEnd) {
+		problems.push(`Row ${at}: ${startName} and ${endName} go together.`);
 		return undefined;
 	}
-	if (!hasIn) return null;
-	const start = clockAt(clockIn, day, zone, at, 'clock in', problems);
+	if (!hasStart) return null;
+	const start = clockAt(from, day, zone, at, startName, problems);
 	if (start == null) return undefined;
-	const end = clockAt(clockOut, day, zone, at, 'clock out', problems);
+	const end = clockAt(to, day, zone, at, endName, problems);
 	if (end == null) return undefined;
 	if (Date.parse(end.instant) === Date.parse(start.instant)) {
-		problems.push(`Row ${at}: clock out must be after clock in.`);
+		problems.push(`Row ${at}: ${endName} must be after ${startName}.`);
 		return undefined;
 	}
 	if (Date.parse(end.instant) < Date.parse(start.instant)) {
 		if (end.explicitDate) {
-			problems.push(`Row ${at}: clock out ${end.instant} is before clock in ${start.instant}.`);
+			problems.push(
+				`Row ${at}: ${endName} ${end.instant} is before ${startName} ${start.instant}.`
+			);
 			return undefined;
 		}
 		const next = parseInstant(`${addDays(day, 1)} ${end.time ?? ''}`, zone);
 		if (next == null || Date.parse(next) <= Date.parse(start.instant)) {
-			problems.push(`Row ${at}: clock out must be after clock in.`);
+			problems.push(`Row ${at}: ${endName} must be after ${startName}.`);
 			return undefined;
 		}
 		return [{ start: start.instant, end: next }];
 	}
 	return [{ start: start.instant, end: end.instant }];
+};
+
+const minutesOf = (time: string): number =>
+	Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
+
+/** The day planned overtime's bare times fall on: past midnight, nearer a night shift's end than its next start. */
+const overtimeDay = (row: RawRow, shift: RosterShift | null, zone: string): string => {
+	const start = clockAt(row.first, row.day, zone, row.at, '', []);
+	if (
+		start == null ||
+		start.explicitDate ||
+		start.time == null ||
+		shift?.ends_next_day !== true ||
+		shift.start_time == null ||
+		shift.end_time == null
+	)
+		return row.day;
+	return minutesOf(start.time) * 2 < minutesOf(shift.start_time) + minutesOf(shift.end_time)
+		? addDays(row.day, 1)
+		: row.day;
 };
 
 const shiftOf = (
@@ -248,146 +305,231 @@ const shiftOf = (
 	return undefined;
 };
 
-const intervals = (value: readonly RosterStoredInterval[] | null): string =>
-	JSON.stringify((value ?? []).map((interval) => [interval.start, interval.end]));
+/** Compared to the minute: that is all a sheet holds, so an untouched row reads as unchanged. */
+const intervals = (value: readonly RosterStoredInterval[] | null | undefined): string =>
+	JSON.stringify(
+		(value ?? []).map((interval) =>
+			[interval.start, interval.end].map((at) => Math.floor(Date.parse(at) / 60_000))
+		)
+	);
 
 const hasBreaks = (value: readonly RosterStoredInterval[] | null): boolean =>
 	(value ?? []).some(
 		(interval) => (interval.break_minutes ?? 0) > 0 || (interval.breaks?.length ?? 0) > 0
 	);
 
+/** The fields of `set` the day does not hold yet. */
+const changed = (entry: RosterStored | undefined, set: RosterFields): RosterFields => ({
+	...(set.shift_definition_id !== undefined &&
+	set.shift_definition_id !== entry?.shift_definition_id
+		? { shift_definition_id: set.shift_definition_id }
+		: {}),
+	...(set.planned_overtime_intervals !== undefined &&
+	intervals(set.planned_overtime_intervals) !== intervals(entry?.planned_overtime_intervals)
+		? { planned_overtime_intervals: set.planned_overtime_intervals }
+		: {}),
+	...(set.actual_worked_intervals !== undefined &&
+	intervals(set.actual_worked_intervals) !== intervals(entry?.actual_worked_intervals)
+		? { actual_worked_intervals: set.actual_worked_intervals }
+		: {})
+});
+
 export function planRosterUpload(grids: WorkbookSheetGrids, known: RosterKnown): RosterPlan {
-	const rows = rowsOf(grids);
-	const months = [...new Set(rows.map((row) => row.day.slice(0, 7)))];
-	if (months.length !== 1)
-		throw new WorkbookRowsError(
-			`The file spans ${months.toSorted().join(', ')}; import one month at a time.`
-		);
+	const { plan, work, month } = rowsOf(grids);
 	try {
 		Zone(known.zone);
 	} catch {
 		throw new WorkbookRowsError(`The entity's time zone "${known.zone}" is not known.`);
 	}
-	const month = months[0]!;
 	const period = monthOf(PlainDate(`${month}-01`));
 	const last = period.to ?? period.from;
+	const stored = new Map(
+		known.entries.map((entry) => [
+			`${entry.employment_id}:${String(entry.work_date).slice(0, 10)}`,
+			entry
+		])
+	);
 	const problems: string[] = [];
 	const warnings: string[] = [];
-	const sealed = new Map<Id<'employee_contract'>, RosterStored>();
-	for (const entry of known.entries) {
-		const day = String(entry.work_date).slice(0, 10);
-		if (entry.payroll_run_id != null && day >= period.from && day <= last)
-			sealed.set(entry.employment_id, entry);
-	}
-	const reportedSealed = new Set<Id<'employee_contract'>>();
-	const groups = new Map<
-		Id<'employee_contract'>,
-		Map<string, { at: number; draft: RosterEntryDraft }>
-	>();
-	for (const row of rows) {
-		if (row.day < period.from || row.day > last) {
-			problems.push(`Row ${row.at}: ${row.day} is outside ${month}.`);
-			continue;
+	const days = new Map<
+		string,
+		{
+			readonly employment_id: Id<'employee_contract'>;
+			readonly number: string;
+			readonly day: string;
+			readonly entry: RosterStored | undefined;
+			set: RosterFields;
 		}
-		const employee = employeeOn(
-			known.employees,
-			known.entity_name,
-			row.number,
-			row.day,
+	>();
+	/** A sheet's rows on the people they name, each person-day once. */
+	const located = (rows: readonly RawRow[]) => {
+		const seen = new Map<string, number>();
+		return rows.flatMap((row) => {
+			if (row.day < period.from || row.day > last) {
+				problems.push(`Row ${row.at}: ${row.day} is outside ${month}.`);
+				return [];
+			}
+			const employee = employeeOn(
+				known.employees,
+				known.entity_name,
+				row.number,
+				row.day,
+				row.at,
+				problems
+			);
+			if (employee == null) return [];
+			const key = `${employee.id}:${row.day}`;
+			const earlier = seen.get(key);
+			if (earlier !== undefined) {
+				problems.push(`Row ${row.at}: repeats ${row.number} ${row.day} from row ${earlier}.`);
+				return [];
+			}
+			seen.set(key, row.at);
+			return [{ row, employee, key }];
+		});
+	};
+	const put = (row: RawRow, employee: RosterEmployee, key: string, set: RosterFields) => {
+		const entry = stored.get(key);
+		const fields = changed(entry, set);
+		if (Object.keys(fields).length === 0 && entry !== undefined) return;
+		if (entry?.payroll_run_id != null) {
+			problems.push(
+				`Row ${row.at}: ${row.number} ${row.day} is sealed by payroll run ${entry.run_label ?? entry.payroll_run_id}; delete that run to change it.`
+			);
+			return;
+		}
+		days.set(key, {
+			employment_id: employee.id,
+			number: row.number,
+			day: row.day,
+			entry,
+			set: { ...days.get(key)?.set, ...fields }
+		});
+	};
+	for (const { row, employee, key } of located(plan)) {
+		const shift = shiftOf(known.shifts, employee, row.shift, row.day, row.at, problems);
+		if (shift === undefined) continue;
+		const overtime = intervalOf(
+			row.first,
+			row.last,
+			['planned OT start', 'planned OT end'],
+			overtimeDay(row, shift, known.zone),
+			known.zone,
 			row.at,
 			problems
 		);
-		if (employee == null) continue;
-		const locked = sealed.get(employee.id);
-		if (locked != null) {
-			if (!reportedSealed.has(employee.id)) {
-				reportedSealed.add(employee.id);
-				problems.push(
-					`Row ${row.at}: ${row.number}'s roster is sealed by payroll run ${locked.run_label ?? locked.payroll_run_id}; the month cannot be replaced.`
-				);
-			}
-			continue;
-		}
-		const shift = shiftOf(known.shifts, employee, row.shift, row.day, row.at, problems);
-		if (shift === undefined) continue;
-		const worked = intervalOf(row.clockIn, row.clockOut, row.day, known.zone, row.at, problems);
-		if (worked === undefined) continue;
-		const group = groups.get(employee.id) ?? new Map();
-		groups.set(employee.id, group);
-		const earlier = group.get(row.day);
-		if (earlier != null) {
-			problems.push(`Row ${row.at}: repeats ${row.number} ${row.day} from row ${earlier.at}.`);
-			continue;
-		}
-		group.set(row.day, {
-			at: row.at,
-			draft: {
-				work_date: PlainDate(row.day),
-				shift_definition_id: shift?.id ?? null,
-				actual_worked_intervals: worked
-			}
+		if (overtime === undefined) continue;
+		put(row, employee, key, {
+			...(shift === null ? {} : { shift_definition_id: shift.id }),
+			planned_overtime_intervals: overtime
 		});
 	}
-	for (const [employmentId, days] of groups) {
-		const number = known.employees.find((employee) => employee.id === employmentId)?.number ?? '';
-		const list = [...days.values()].toSorted((left, right) =>
-			left.draft.work_date.localeCompare(right.draft.work_date)
+	const worked = new Map<string, { at: number; day: string; interval: RosterInterval }[]>();
+	for (const { row, employee, key } of located(work)) {
+		const interval = intervalOf(
+			row.first,
+			row.last,
+			['clock in', 'clock out'],
+			row.day,
+			known.zone,
+			row.at,
+			problems
 		);
+		if (interval == null || interval[0] === undefined) continue;
+		worked.set(employee.id, [
+			...(worked.get(employee.id) ?? []),
+			{ at: row.at, day: row.day, interval: interval[0] }
+		]);
+		put(row, employee, key, { actual_worked_intervals: interval });
+	}
+	for (const shifts of worked.values()) {
+		const list = shifts.toSorted((left, right) => left.day.localeCompare(right.day));
 		for (let index = 1; index < list.length; index++) {
-			const previous = list[index - 1]!.draft.actual_worked_intervals?.at(-1);
-			const next = list[index]!.draft.actual_worked_intervals?.[0];
-			if (previous != null && next != null && Date.parse(next.start) < Date.parse(previous.end))
-				problems.push(
-					`Row ${list[index]!.at}: ${number}'s ${list[index]!.draft.work_date} interval overlaps the interval on ${list[index - 1]!.draft.work_date}.`
-				);
+			const previous = list[index - 1]!;
+			const next = list[index]!;
+			if (Date.parse(next.interval.start) < Date.parse(previous.interval.end))
+				problems.push(`Row ${next.at}: ${next.day} overlaps the interval on ${previous.day}.`);
 		}
 	}
 	raiseProblems(problems);
 	const creates: RosterCreateDraft[] = [];
 	const updates: RosterUpdateDraft[] = [];
-	const deletes: RosterDeleteDraft[] = [];
 	const overwritten: string[] = [];
-	for (const [employmentId, days] of groups) {
-		const number = known.employees.find((employee) => employee.id === employmentId)?.number ?? '';
-		const list = [...days.values()]
-			.toSorted((left, right) => left.draft.work_date.localeCompare(right.draft.work_date))
-			.map((day) => day.draft);
-		const stored = new Map<string, RosterStored>();
-		for (const entry of known.entries) {
-			if (entry.employment_id !== employmentId) continue;
-			const day = String(entry.work_date).slice(0, 10);
-			if (day >= period.from && day <= last) stored.set(day, entry);
+	for (const { employment_id, number, day, entry, set } of days.values()) {
+		if (entry === undefined) {
+			creates.push({ employment_id, work_date: PlainDate(day), ...set });
+			continue;
 		}
-		for (const draft of list) {
-			const existing = stored.get(draft.work_date);
-			if (existing == null) {
-				creates.push({ employment_id: employmentId, ...draft });
-				continue;
-			}
-			stored.delete(draft.work_date);
-			if (
-				(existing.shift_definition_id ?? null) === draft.shift_definition_id &&
-				intervals(existing.actual_worked_intervals) === intervals(draft.actual_worked_intervals)
-			)
-				continue;
-			if (hasBreaks(existing.actual_worked_intervals))
-				warnings.push(
-					`${number} ${draft.work_date}: the stored break detail was replaced by the import.`
-				);
-			overwritten.push(`${number} ${draft.work_date}`);
-			updates.push({ target: existing.id, employment_id: employmentId, set: draft });
-		}
-		for (const entry of stored.values()) {
-			overwritten.push(`${number} ${String(entry.work_date).slice(0, 10)}`);
-			deletes.push({ target: entry.id, employment_id: employmentId });
-		}
+		const replaced =
+			(set.shift_definition_id !== undefined && entry.shift_definition_id != null) ||
+			(set.planned_overtime_intervals !== undefined &&
+				(entry.planned_overtime_intervals ?? []).length > 0) ||
+			(set.actual_worked_intervals !== undefined &&
+				(entry.actual_worked_intervals ?? []).length > 0);
+		if (replaced) overwritten.push(`${number} ${day}`);
+		if (set.actual_worked_intervals !== undefined && hasBreaks(entry.actual_worked_intervals))
+			warnings.push(`${number} ${day}: the stored break detail was replaced by the import.`);
+		updates.push({ target: entry.id, employment_id, set });
 	}
 	return {
 		creates,
 		updates,
-		deletes,
-		count: rows.length,
+		count: days.size,
 		overwritten,
 		warnings
 	};
 }
+
+/** A person-day as the workbook writes it out. */
+export type RosterDay = {
+	readonly number: string;
+	readonly name: string;
+	readonly date: string;
+	readonly shift: string | null;
+	readonly planned: { readonly start: string; readonly end: string } | null;
+	readonly worked: { readonly start: string; readonly end: string } | null;
+};
+
+/** The month's two sheets, ready to fill in: a time that falls on another day than the work date carries that date. */
+export const rosterSheets = (rows: readonly RosterDay[], zone: string) => {
+	// sv-SE writes `YYYY-MM-DD HH:mm`, the form a cell reads back
+	const local = new Intl.DateTimeFormat('sv-SE', {
+		timeZone: zone,
+		dateStyle: 'short',
+		timeStyle: 'short'
+	});
+	const clock = (at: string | undefined, date: string): string | null => {
+		if (at === undefined) return null;
+		const text = local.format(new Date(at));
+		return text.startsWith(date) ? text.slice(11) : text;
+	};
+	return new Map([
+		[
+			ROSTER_SHEETS.plan,
+			[
+				['Employee number', 'Name', 'Date', 'Shift', 'Planned OT start', 'Planned OT end'],
+				...rows.map((row) => [
+					row.number,
+					row.name,
+					row.date,
+					row.shift,
+					clock(row.planned?.start, row.date),
+					clock(row.planned?.end, row.date)
+				])
+			]
+		],
+		[
+			ROSTER_SHEETS.work,
+			[
+				['Employee number', 'Name', 'Date', 'Clock in', 'Clock out'],
+				...rows.map((row) => [
+					row.number,
+					row.name,
+					row.date,
+					clock(row.worked?.start, row.date),
+					clock(row.worked?.end, row.date)
+				])
+			]
+		]
+	]);
+};

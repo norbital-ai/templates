@@ -1,10 +1,13 @@
 import { Effect } from 'effect';
 import type { Id } from '@norbital-ai/bolt';
-import { PlainDate } from '@norbital-ai/std/date';
+import { PlainDate, monthOf } from '@norbital-ai/std/date';
+import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import { bolt } from '$bolt';
 import {
 	planRosterUpload,
 	rosterMonth,
+	rosterSheets,
+	type RosterDay,
 	type RosterEmployee,
 	type RosterShift,
 	type RosterStored
@@ -28,9 +31,9 @@ const zoneOn = <V>(
 };
 
 /**
- * Reads one roster workbook for the scoped entity, plans the month's replacement and writes it:
- * whole-roster creates first, then one bounded update per existing roster. A sealed roster is
- * refused by the plan before either call, naming the payroll run.
+ * Reads one roster workbook for the scoped entity and writes what it changes: whole-roster creates
+ * first, then one bounded update per existing roster. A sealed day is refused by the plan before
+ * either call, naming the payroll run.
  */
 export const runRosterImport = (options: {
 	readonly entity_id: Id<'entity'>;
@@ -54,7 +57,7 @@ export const runRosterImport = (options: {
 					},
 					shift_definition: {
 						where: { entity_id: { eq: options.entity_id } },
-						fields: ['code', 'entity_id', 'effective_range'],
+						fields: ['code', 'entity_id', 'effective_range', 'variant'],
 						limit: 10000
 					},
 					entity_profile_version: {
@@ -95,12 +98,14 @@ export const runRosterImport = (options: {
 									where: {
 										employment_id: {
 											in: scope.employee_contract.rows.map((row) => row.id)
-										}
+										},
+										work_date: { gte: day, lte: monthOf(day).to ?? day }
 									},
 									fields: [
 										'employment_id',
 										'work_date',
 										'shift_definition_id',
+										'planned_overtime_intervals',
 										'actual_worked_intervals',
 										'payroll_run_id'
 									],
@@ -134,7 +139,10 @@ export const runRosterImport = (options: {
 					entity_id: row.entity_id,
 					code: row.code,
 					from: row.effective_range?.from ?? null,
-					to: row.effective_range?.to ?? null
+					to: row.effective_range?.to ?? null,
+					start_time: row.variant.start_time ?? null,
+					end_time: row.variant.end_time ?? null,
+					ends_next_day: row.variant.ends_next_day === true
 				}));
 				const stored: RosterStored[] = entries.map((entry) => {
 					const run = runs.find((candidate) => candidate.id === entry.payroll_run_id);
@@ -143,6 +151,7 @@ export const runRosterImport = (options: {
 						employment_id: entry.employment_id,
 						work_date: String(entry.work_date),
 						shift_definition_id: entry.shift_definition_id,
+						planned_overtime_intervals: entry.planned_overtime_intervals ?? null,
 						actual_worked_intervals: (entry.actual_worked_intervals ?? []).flatMap((interval) =>
 							interval.end == null ? [] : [{ start: interval.start, end: interval.end }]
 						),
@@ -180,11 +189,6 @@ export const runRosterImport = (options: {
 						'roster_entry.update',
 						group.map((update) => ({ target: update.target, set: update.set }))
 					);
-				for (const group of byEmployment(plan.deletes))
-					yield* bolt.act(
-						'roster_entry.delete',
-						group.map((deleted) => ({ target: deleted.target }))
-					);
 				return {
 					imported: plan.count,
 					overwritten: plan.overwritten,
@@ -192,3 +196,33 @@ export const runRosterImport = (options: {
 				};
 			})
 	});
+
+/** The month as its two sheets: what the board shows, ready to fill in and import. */
+export const downloadRosterWorkbook = async (
+	month: string,
+	rows: readonly RosterDay[],
+	zone: string
+) => {
+	const workbook = new ExcelJSBrowser.Workbook();
+	for (const [name, cells] of rosterSheets(rows, zone)) {
+		const sheet = workbook.addWorksheet(name, { views: [{ state: 'frozen', ySplit: 1 }] });
+		sheet.addRows(cells.map((row) => [...row]));
+		sheet.getRow(1).font = { bold: true };
+		sheet.columns.forEach((column) => {
+			column.width = 18;
+			// text, so Excel leaves `08:30` and `2026-06-03` exactly as they are written
+			column.numFmt = '@';
+		});
+	}
+	const bytes = await workbook.xlsx.writeBuffer();
+	const url = URL.createObjectURL(
+		new Blob([new Uint8Array(bytes)], {
+			type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+		})
+	);
+	Object.assign(document.createElement('a'), {
+		href: url,
+		download: `roster-${month}.xlsx`
+	}).click();
+	URL.revokeObjectURL(url);
+};

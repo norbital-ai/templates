@@ -126,7 +126,7 @@ export const postRunToBalances = Effect.fn('payroll.postRunToBalances')(function
  */
 export const reverseRunInBalances = Effect.fn('payroll.reverseRunInBalances')(function* (
 	ctx: EffectCtx,
-	runs: readonly { readonly pay_date: string }[]
+	runs: readonly { readonly run_number: number; readonly pay_date: string }[]
 ) {
 	const { ledger_entry: ledger = [] } = yield* queryRows(ctx.query, {
 		ledger_entry: {
@@ -166,8 +166,11 @@ export const reverseRunInBalances = Effect.fn('payroll.reverseRunInBalances')(fu
 	const { employee_balance: balances = [] } = yield* queryRows(ctx.query, {
 		employee_balance: { where: { id: { in: ids } }, limit: 10000 }
 	});
-	const updates: Json[] = balances.map((balance) => {
+	const first = Math.min(...runs.map(({ run_number }) => run_number));
+	const updates: Json[] = balances.flatMap((balance) => {
 		const held = isJsonObject(balance.account) ? balance.account : {};
+		// deleted before its effect ran: the balance never took this run, so there is nothing to undo
+		if (Number((isJsonObject(held.ytd) ? held.ytd : {}).LAST_RUN ?? 0) < first) return [];
 		const next: AccountMap = Object.fromEntries(
 			Object.entries(held).map(([family, values]) => [
 				family,
@@ -185,7 +188,7 @@ export const reverseRunInBalances = Effect.fn('payroll.reverseRunInBalances')(fu
 			family[row.code] =
 				(family[row.code] ?? 0) + (row.operation === 'ADD' ? row.amount : -row.amount);
 		}
-		return { target: String(balance.id), set: { account: next } };
+		return [{ target: String(balance.id), set: { account: next } }];
 	});
 	yield* ctx.act.checked([
 		{ callable: 'ledger_entry.create', input: inverse },
