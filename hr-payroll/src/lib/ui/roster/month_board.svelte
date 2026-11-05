@@ -6,13 +6,17 @@
 	import type { Id } from '@norbital-ai/bolt';
 	import { bolt } from '$bolt';
 	import { PlainDate } from '@norbital-ai/std/date';
-	import { cn, openRecord, RecordShell, Sheet } from '@norbital-ai/ui';
+	import { cn, CustomView, openRecord, RecordShell, Sheet } from '@norbital-ai/ui';
+	import { fork } from '@norbital-ai/ui/effect';
+	import { Effect } from 'effect';
+	import { downloadRosterWorkbook, runRosterImport } from '../workbook/roster_import.js';
 	import DayCell from './day_cell.svelte';
 	import {
 		buildDays,
 		datesBetween,
 		dayKey,
 		describeDay,
+		intervalsOf,
 		isWeekend,
 		type Day,
 		type Person
@@ -36,12 +40,16 @@
 	};
 
 	let {
-		companyId,
+		company,
 		from,
 		to,
 		today
 	}: {
-		companyId: Id<'entity'>;
+		company: {
+			readonly id: Id<'entity'>;
+			readonly name: string;
+			readonly settings_code: string;
+		};
 		/** The first and last day shown, both inclusive. */
 		from: string;
 		to: string;
@@ -54,6 +62,7 @@
 
 	let creating = $state<{ employmentId: Id<'employee_contract'>; date: string } | null>(null);
 
+	const companyId = $derived(company.id);
 	const dates = $derived(datesBetween(from, to));
 	const contracts = $derived(
 		bolt.query({
@@ -190,6 +199,7 @@
 					left.number.localeCompare(right.number) || left.name.localeCompare(right.name)
 			);
 	});
+	const byId = $derived(new Map(people.map((person) => [person.id, person])));
 	const entries = $derived(people.flatMap((person) => person.entries));
 	const locked = $derived(new Set(people.filter((person) => person.locked).map((p) => p.id)));
 	const zoneOn = (date: string): string | null =>
@@ -241,13 +251,89 @@
 		if (day.employmentId == null) return;
 		creating = { employmentId: day.employmentId as Id<'employee_contract'>, date: day.date };
 	}
+
+	let importing = $state(false);
+	function importRoster() {
+		importing = true;
+		fork(
+			runRosterImport({
+				entity_id: company.id,
+				entity_name: company.name,
+				settings_code: company.settings_code
+			}).pipe(
+				Effect.ensuring(
+					Effect.sync(() => {
+						importing = false;
+					})
+				)
+			)
+		);
+	}
+	function downloadRoster() {
+		const rows = people.flatMap((person) =>
+			dates.flatMap((date) => {
+				const day = days.get(dayKey(person.id, date));
+				if (day?.employed !== true) return [];
+				const entry = person.entries.find((row) => row.id === day.entryId);
+				const closed = (intervals: ReturnType<typeof intervalsOf>) => {
+					const first = intervals?.[0];
+					return first?.end == null ? null : { start: first.start, end: first.end };
+				};
+				return [
+					{
+						number: person.number,
+						name: person.name,
+						date,
+						shift: day.shift ?? day.projectedShift,
+						planned: closed(intervalsOf(entry?.planned_overtime_intervals)),
+						worked: closed(day.intervals === null ? null : [...day.intervals])
+					}
+				];
+			})
+		);
+		fork(Effect.promise(() => downloadRosterWorkbook(from.slice(0, 7), rows, timeZone)));
+	}
 </script>
 
 {#if error != null}
 	<p class="text-sm text-destructive" role="alert">{error}</p>
-{:else if !loading && people.length === 0}
-	<p class="text-sm text-muted-foreground">{bolt.t('v2.no_rosters')}</p>
 {:else}
+	<CustomView
+		of={people.map(({ id, number, name }) => ({ id, number, name }))}
+		fields={[
+			{ field: 'number', label: bolt.t('models.employee_contract.fields.employee_number') },
+			{ field: 'name', label: bolt.t('roster.person') }
+		]}
+		key="roster-board"
+		model="roster_entry"
+		toolbar={{
+			new: false,
+			actions: [
+				{
+					run: importRoster,
+					icon: 'lucide:file-spreadsheet',
+					name: bolt.t('holiday_calendar.import_spreadsheet'),
+					disabled: () => (importing || loading ? bolt.t('component.loading') : null)
+				},
+				{
+					run: downloadRoster,
+					icon: 'lucide:download',
+					name: bolt.t('roster.download_workbook'),
+					disabled: () => (loading ? bolt.t('component.loading') : null)
+				}
+			]
+		}}
+	>
+		{#snippet children(shown)}
+			{@render board(shown.flatMap((row) => byId.get(String(row.id)) ?? []))}
+		{/snippet}
+		{#snippet empty()}
+			{#if !loading}<p class="text-sm text-muted-foreground">{bolt.t('v2.no_rosters')}</p>{/if}
+		{/snippet}
+	</CustomView>
+{/if}
+
+{#snippet board(rows: readonly BoardPerson[])}
 	<div class="max-h-[70vh] overflow-auto rounded-lg border bg-card">
 		<table
 			class="table-fixed border-separate border-spacing-0 text-left text-xs"
@@ -294,7 +380,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each people as person (person.id)}
+				{#each rows as person (person.id)}
 					<tr>
 						<th
 							scope="row"
@@ -338,7 +424,7 @@
 			</tbody>
 		</table>
 	</div>
-{/if}
+{/snippet}
 
 {#if creating != null}
 	<Sheet

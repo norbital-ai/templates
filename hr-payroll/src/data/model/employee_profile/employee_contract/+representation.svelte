@@ -3,7 +3,6 @@
 		Button,
 		Combobox,
 		Editor,
-		EmptyState,
 		Field,
 		Form,
 		isJsonSchema,
@@ -11,7 +10,6 @@
 		openRecord,
 		RecordShell,
 		Sheet,
-		Tabs,
 		Textarea,
 		toast,
 		type FieldEditor,
@@ -31,8 +29,6 @@
 	import { isJsonObject, type JsonObject } from '../../../../lib/payroll_engine/foundation.js';
 	import type { Id } from '@norbital-ai/bolt';
 	import { bolt } from '$bolt';
-	import VersionTimeline from '../../../../lib/ui/components/version_timeline.svelte';
-	import { formatTermsDates } from '../../../../lib/ui/format/display_formatters.js';
 	import { contractCategories } from '../../../../lib/ui/person/contract_categories.js';
 	import ContractTermsEditor from '../../../../lib/ui/person/contract_terms_editor.svelte';
 	import VersionFacts from '../../../../lib/ui/person/version_facts.svelte';
@@ -165,26 +161,6 @@
 				})
 	);
 
-	const statusText = (status: string, ended: boolean): string =>
-		status === 'DRAFT'
-			? t('contract.open')
-			: status === 'VOID'
-				? t('contract.voided')
-				: ended
-					? t('contract.ended')
-					: t('contract.sealed');
-	const history = $derived(
-		(siblings?.current?.employee_contract.rows ?? [])
-			.toSorted((left, right) =>
-				String(left.effective_range.from).localeCompare(String(right.effective_range.from))
-			)
-			.map((row) => ({
-				id: row.id,
-				period: formatTermsDates(row, t),
-				status: statusText(row.status, row.effective_range.to != null),
-				detail: row.employee_number
-			}))
-	);
 	const stateBadge = $derived(
 		record === null
 			? undefined
@@ -1387,22 +1363,6 @@
 	</Sheet>
 {/if}
 
-{#snippet employmentHistory()}
-	{#if record}
-		{#if siblings?.loading}
-			<p class="text-meta">{t('component.loading')}</p>
-		{:else if history.length === 0}
-			<EmptyState title={t('section.employment_history')} />
-		{:else}
-			<VersionTimeline
-				label={t('section.employment_history')}
-				items={history}
-				onOpen={(id) => openRecord('employee_contract', id)}
-			/>
-		{/if}
-	{/if}
-{/snippet}
-
 <RecordShell
 	of="employee_contract"
 	mode={view.mode}
@@ -1411,18 +1371,5 @@
 	footerActions={contractActions}
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
 >
-	{#if record === null}
-		{@render details()}
-	{:else}
-		<Tabs
-			tabs={[
-				{ name: 'details', title: t('models.employee_contract.singular'), body: details },
-				{
-					name: 'history',
-					title: t('section.employment_history'),
-					body: employmentHistory
-				}
-			]}
-		/>
-	{/if}
+	{@render details()}
 </RecordShell>

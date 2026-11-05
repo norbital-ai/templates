@@ -219,7 +219,7 @@
 						>{/if}</Cluster
 				></Stack
 			>{/if}{/if}{/snippet}
-{#snippet history()}{#if record}<Stack gap="lg"
+{#snippet payslips()}{#if record}<Stack gap="lg"
 			><Table
 				of="payslip"
 				key="person-payslips"
@@ -242,7 +242,7 @@
 				{ name: 'leave', title: bolt.t('app.leave.title'), body: leavesTab },
 				{ name: 'finances', title: bolt.t('v2.balances'), body: finances },
 				{ name: 'face', title: bolt.t('v2.face'), body: face },
-				{ name: 'history', title: bolt.t('v2.history'), body: history }
+				{ name: 'payslips', title: bolt.t('v2.payslips'), body: payslips }
 			]}
 		/>{/if}
 </RecordShell>

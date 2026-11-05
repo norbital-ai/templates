@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
+import { Instant } from '@norbital-ai/std/date';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
 import { WorkbookRowsError } from '../src/lib/payroll_engine/workbook_rows.ts';
 import {
 	planRosterUpload,
 	rosterMonth,
+	rosterSheets,
 	type RosterKnown
 } from '../src/lib/payroll_engine/roster_workbook.ts';
 import { parseAdhocSheet, parseLeaveSheet } from '../src/lib/payroll_engine/entry_workbook.ts';
@@ -34,6 +36,21 @@ const rosterKnown = (entries: RosterKnown['entries'] = []): RosterKnown => ({
 	],
 	shifts: [{ id: shift, entity_id: entity, code: 'DAY', from: '2026-01-01', to: null }],
 	entries
+});
+
+const span = (start: string, end: string) => ({ start: Instant(start), end: Instant(end) });
+
+const stored = (
+	over: Partial<RosterKnown['entries'][number]> & { readonly work_date: string }
+): RosterKnown['entries'][number] => ({
+	id: entry,
+	employment_id: employee,
+	shift_definition_id: shift,
+	planned_overtime_intervals: null,
+	actual_worked_intervals: null,
+	payroll_run_id: null,
+	run_label: null,
+	...over
 });
 
 const rosterSheet = (...rows: readonly (readonly Cell[])[]) =>
@@ -72,24 +89,13 @@ describe('roster workbook', () => {
 		);
 	});
 
-	it('treats missing days as off and replaces the stored month', () => {
+	it('leaves a day the file does not name as it is', () => {
 		const plan = planRosterUpload(
 			rosterSheet(['1001', '2026-03-02', 'DAY', '08:00', '17:00']),
-			rosterKnown([
-				{
-					id: entry,
-					employment_id: employee,
-					work_date: '2026-03-03',
-					shift_definition_id: shift,
-					actual_worked_intervals: null,
-					payroll_run_id: null,
-					run_label: null
-				}
-			])
+			rosterKnown([stored({ work_date: '2026-03-03' })])
 		);
 		assert.equal(plan.creates.length, 1);
 		assert.equal(plan.updates.length, 0);
-		assert.deepEqual(plan.deletes, [{ target: entry, employment_id: employee }]);
 	});
 
 	it('rejects an overnight interval that overlaps the next day', () => {
@@ -106,25 +112,33 @@ describe('roster workbook', () => {
 		);
 	});
 
-	it('refuses a roster sealed by a payroll run and names the run', () => {
+	it('refuses a change to a sealed day and names the run, and lets an unchanged one pass', () => {
+		const sealed = stored({
+			work_date: '2026-03-02',
+			actual_worked_intervals: [span('2026-03-02T00:00:00.000Z', '2026-03-02T09:00:00.000Z')],
+			payroll_run_id: run,
+			run_label: 'RUN-2026-03'
+		});
 		throwsRows(
 			() =>
 				planRosterUpload(
-					rosterSheet(['1001', '2026-03-02', 'DAY', '08:00', '17:00']),
-					rosterKnown([
-						{
-							id: entry,
-							employment_id: employee,
-							work_date: '2026-03-01',
-							shift_definition_id: shift,
-							actual_worked_intervals: null,
-							payroll_run_id: run,
-							run_label: 'RUN-2026-03'
-						}
-					])
+					rosterSheet(['1001', '2026-03-02', 'DAY', '08:00', '18:00']),
+					rosterKnown([sealed])
 				),
 			/sealed by payroll run RUN-2026-03/
 		);
+		const plan = planRosterUpload(
+			rosterSheet(
+				['1001', '2026-03-02', 'DAY', '08:00', '17:00'],
+				['1001', '2026-03-03', 'DAY', '08:00', '17:00']
+			),
+			rosterKnown([sealed])
+		);
+		assert.deepEqual(
+			plan.creates.map((day) => String(day.work_date)),
+			['2026-03-03']
+		);
+		assert.equal(plan.updates.length, 0);
 	});
 
 	it('normalises local clocks in the entity zone and rolls an overnight interval', () => {
@@ -141,38 +155,152 @@ describe('roster workbook', () => {
 			'2026-03'
 		);
 		const intervals = days.creates.map((day) => day.actual_worked_intervals?.[0]);
-		assert.deepEqual(intervals[0], {
-			start: '2026-03-02T00:00:00.000Z',
-			end: '2026-03-02T09:00:00.000Z'
-		});
-		assert.deepEqual(intervals[1], {
-			start: '2026-03-03T14:00:00.000Z',
-			end: '2026-03-03T22:00:00.000Z'
-		});
-		assert.deepEqual(intervals[2], {
-			start: '2026-03-04T14:00:00.000Z',
-			end: '2026-03-04T22:00:00.000Z'
-		});
+		assert.deepEqual(intervals[0], span('2026-03-02T00:00:00.000Z', '2026-03-02T09:00:00.000Z'));
+		assert.deepEqual(intervals[1], span('2026-03-03T14:00:00.000Z', '2026-03-03T22:00:00.000Z'));
+		assert.deepEqual(intervals[2], span('2026-03-04T14:00:00.000Z', '2026-03-04T22:00:00.000Z'));
 	});
 
-	it('replaces the month: creates new days, updates changed days and deletes the rest', () => {
-		const plan = planRosterUpload(
-			rosterSheet(['1001', '2026-03-03', 'DAY', '08:00', '17:00']),
-			rosterKnown([
-				{
-					id: entry,
-					employment_id: employee,
-					work_date: '2026-03-02',
-					shift_definition_id: shift,
-					actual_worked_intervals: null,
-					payroll_run_id: null,
-					run_label: null
-				}
-			])
+	it('a plan sheet and a work entries sheet each write only their own fields', () => {
+		const planSheet = [
+			['Employee number', 'Name', 'Date', 'Shift', 'Planned OT start', 'Planned OT end'],
+			['1001', 'A', '2026-03-02', 'DAY', '17:00', '19:00'],
+			['1001', 'A', '2026-03-03', 'DAY', null, null]
+		];
+		const workSheet = [
+			['Employee number', 'Name', 'Date', 'Clock in', 'Clock out'],
+			['1001', 'A', '2026-03-02', '08:00', '19:05'],
+			['1001', 'A', '2026-03-03', null, null]
+		];
+		const both = planRosterUpload(
+			new Map([
+				['Plan', planSheet],
+				['Work entries', workSheet]
+			]),
+			rosterKnown()
 		);
-		assert.equal(plan.creates.length, 1);
-		assert.equal(plan.updates.length, 0);
-		assert.deepEqual(plan.deletes, [{ target: entry, employment_id: employee }]);
+		assert.deepEqual(both.creates[0], {
+			employment_id: employee,
+			work_date: '2026-03-02',
+			shift_definition_id: shift,
+			planned_overtime_intervals: [span('2026-03-02T09:00:00.000Z', '2026-03-02T11:00:00.000Z')],
+			actual_worked_intervals: [span('2026-03-02T00:00:00.000Z', '2026-03-02T11:05:00.000Z')]
+		});
+		// the blank work row made no clock: the plan row alone wrote that day
+		assert.equal(both.creates[1]?.actual_worked_intervals, undefined);
+
+		const planned = stored({
+			work_date: '2026-03-02',
+			planned_overtime_intervals: [span('2026-03-02T09:00:00.000Z', '2026-03-02T11:00:00.000Z')]
+		});
+		const clocks = planRosterUpload(new Map([['Work entries', workSheet]]), rosterKnown([planned]));
+		assert.deepEqual(clocks.updates[0]?.set, {
+			actual_worked_intervals: [span('2026-03-02T00:00:00.000Z', '2026-03-02T11:05:00.000Z')]
+		});
+		// a first clock replaces nothing
+		assert.deepEqual(clocks.overwritten, []);
+
+		const worked = stored({
+			work_date: '2026-03-02',
+			actual_worked_intervals: [span('2026-03-02T00:00:00.000Z', '2026-03-02T09:00:00.000Z')]
+		});
+		const replan = planRosterUpload(new Map([['Plan', planSheet]]), rosterKnown([worked]));
+		assert.equal(replan.updates[0]?.set.actual_worked_intervals, undefined);
+		assert.equal(replan.updates[0]?.set.planned_overtime_intervals?.length, 1);
+	});
+
+	it('a bare overtime time falls on the side of a night shift it is nearer', () => {
+		const known = {
+			...rosterKnown(),
+			shifts: [
+				{
+					id: shift,
+					entity_id: entity,
+					code: 'DAY',
+					from: '2026-01-01',
+					to: null,
+					start_time: '20:30',
+					end_time: '06:30',
+					ends_next_day: true
+				}
+			]
+		};
+		const overtime = (start: string, end: string) =>
+			planRosterUpload(
+				grid([
+					['employee_number', 'date', 'shift', 'planned_ot_start', 'planned_ot_end'],
+					['1001', '2026-03-02', 'DAY', start, end]
+				]),
+				known
+			).creates[0]?.planned_overtime_intervals?.[0];
+		// the morning after the shift ends
+		assert.deepEqual(
+			overtime('06:30', '08:30'),
+			span('2026-03-02T22:30:00.000Z', '2026-03-03T00:30:00.000Z')
+		);
+		// the evening before it starts
+		assert.deepEqual(
+			overtime('18:30', '20:30'),
+			span('2026-03-02T10:30:00.000Z', '2026-03-02T12:30:00.000Z')
+		);
+		// a dated cell needs no working out
+		assert.deepEqual(
+			overtime('2026-03-03 06:30', '2026-03-03 08:30'),
+			span('2026-03-02T22:30:00.000Z', '2026-03-03T00:30:00.000Z')
+		);
+	});
+
+	it('reads Excel time cells, and refuses half a pair', () => {
+		const plan = planRosterUpload(
+			rosterSheet(['1001', '2026-03-02', 'DAY', 8 / 24, 17 / 24]),
+			rosterKnown()
+		);
+		assert.deepEqual(plan.creates[0]?.actual_worked_intervals, [
+			span('2026-03-02T00:00:00.000Z', '2026-03-02T09:00:00.000Z')
+		]);
+		throwsRows(
+			() =>
+				planRosterUpload(rosterSheet(['1001', '2026-03-02', 'DAY', '08:00', null]), rosterKnown()),
+			/clock in and clock out go together/
+		);
+	});
+
+	it('a file with neither sheet says what it needs', () => {
+		throwsRows(
+			() => planRosterUpload(grid([['name'], ['x']]), rosterKnown()),
+			/Plan sheet.*Work entries sheet/
+		);
+	});
+
+	it('the month it writes out reads back as no change, an overnight clock and overtime included', () => {
+		const known = rosterKnown([
+			stored({
+				work_date: '2026-03-02',
+				planned_overtime_intervals: [span('2026-03-02T22:30:00.000Z', '2026-03-03T00:30:00.000Z')],
+				actual_worked_intervals: [span('2026-03-02T12:21:37.000Z', '2026-03-03T01:11:00.000Z')]
+			})
+		]);
+		const sheets = rosterSheets(
+			[
+				{
+					number: '1001',
+					name: 'A',
+					date: '2026-03-02',
+					shift: 'DAY',
+					planned: span('2026-03-02T22:30:00.000Z', '2026-03-03T00:30:00.000Z'),
+					worked: span('2026-03-02T12:21:37.000Z', '2026-03-03T01:11:00.000Z')
+				}
+			],
+			'Asia/Singapore'
+		);
+		assert.deepEqual(sheets.get('Work entries')?.[1], [
+			'1001',
+			'A',
+			'2026-03-02',
+			'20:21',
+			'2026-03-03 09:11'
+		]);
+		const plan = planRosterUpload(sheets, known);
+		assert.deepEqual([plan.creates, plan.updates], [[], []]);
 	});
 });
 

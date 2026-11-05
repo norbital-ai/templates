@@ -14,8 +14,8 @@
 	const to = $derived(String(monthOf(from).to ?? from));
 </script>
 
-{#snippet board()}{#if scope.id !== null}<MonthBoard
-			companyId={scope.id}
+{#snippet board()}{#if scope.company !== null}<MonthBoard
+			company={scope.company}
 			{from}
 			{to}
 			today={String(today)}
@@ -40,14 +40,17 @@
 	description={bolt.t('v2.work_help')}
 	icon="lucide:calendar-clock"
 >
-	{#snippet actions()}<TimeInput
-			of="date"
-			precision="month"
-			value={`${month}-01`}
-			onChange={(date: string | null) => {
-				if (date != null) month = date.slice(0, 7);
-			}}
-		/><CompanyScope {scope} />{/snippet}
+	{#snippet actions()}<div class="w-44">
+			<TimeInput
+				of="date"
+				precision="month"
+				value={`${month}-01`}
+				onChange={(date: string | null) => {
+					if (date != null) month = date.slice(0, 7);
+				}}
+			/>
+		</div>
+		<CompanyScope {scope} />{/snippet}
 	{#if scope.id === null}<EmptyState title={bolt.t('app.events.empty_scope')} />{:else}<Tabs
 			tabs={[
 				{ name: 'board', title: bolt.t('v2.board'), body: board },

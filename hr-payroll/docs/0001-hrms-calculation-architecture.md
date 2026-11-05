@@ -58,6 +58,7 @@ This is the owner's design. Every agent working on this workspace reads this sec
 - Everything else derives from the entity's schedule, its cutoff day and the law in force. None of it is typed.
 - A run is `UNPAID` or `PAID`, and payment is per run. A payslip has no status and is read-only forever.
 - An unpaid run can be deleted. That deletes its payslips and nothing else: every entry it sealed keeps its row and its `payroll_run_id` goes to null, and the balance returns to where it stood through inverse ledger entries. A paid run is locked.
+- Year-to-date only moves forward. A run a later run counted cannot be deleted, for anyone paid in both, so runs come off newest first; and a skipped on-cycle period cannot run behind a later one.
 - Attendance stays as recorded. Pay with no attendance behind it is flagged, never invented.
 
 ### Simplicity
