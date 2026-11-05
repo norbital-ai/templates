@@ -11,7 +11,7 @@ export default model('roster_entry', {
 	label: 'work_date',
 	fields: {
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'roster_entry' },
-		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true },
+		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, onDelete: 'setNull' },
 		work_date: { kind: 'date' },
 		shift_definition_id: {
 			kind: 'ref',

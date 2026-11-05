@@ -1,4 +1,4 @@
-import { datePeriod, eachDay, isPlainDate } from '@norbital-ai/std/date';
+import { addMonths, datePeriod, eachDay, isPlainDate } from '@norbital-ai/std/date';
 import type { JsonObject, Lookup, Party, Direction, Rounding, Unit } from './contracts.js';
 import { lookupOf } from './contracts.js';
 import { evaluate } from './expressions.js';
@@ -44,8 +44,14 @@ export interface StatutoryResult {
 	readonly kind: string;
 	readonly employee: number;
 	readonly employer: number;
+	readonly overpaid?: number;
 	readonly employee_ytd: number;
 	readonly employer_ytd: number;
+}
+
+export interface ProjectedDay {
+	readonly date: string;
+	readonly work: boolean;
 }
 
 export interface PayrollInput {
@@ -64,12 +70,11 @@ export interface PayrollInput {
 	readonly employer: JsonObject;
 	readonly balance: JsonObject;
 	readonly entries: Readonly<Record<string, readonly JsonObject[]>>;
-	readonly history: Readonly<Record<string, readonly JsonObject[]>>;
 	readonly work?: { readonly days: readonly JsonObject[] };
 	/** The person's contracts, whichever one pays: days outside all of them were never owed. */
 	readonly employed?: readonly { readonly from: string; readonly to: string | null }[];
-	/** Working days the person's pattern projects in the attendance period, holidays excluded. */
-	readonly projected_work_days?: number;
+	/** The person's pattern over the salary and attendance periods. */
+	readonly projected_days?: readonly ProjectedDay[];
 }
 
 export interface PayrollResult {
@@ -243,12 +248,6 @@ function line(input: {
 const signed = (direction: Direction, amount: number): number =>
 	direction === 'ADD' ? amount : -amount;
 
-/** Unpaid leave took every working day the pattern projected: nothing is owed for the period. */
-const noPaidDay = (input: PayrollInput, unpaidDays: number): boolean =>
-	input.projected_work_days !== undefined &&
-	input.projected_work_days > 0 &&
-	unpaidDays >= input.projected_work_days;
-
 const unemployedDays = (input: PayrollInput, days: readonly string[]): number =>
 	input.employed === undefined
 		? 0
@@ -256,32 +255,78 @@ const unemployedDays = (input: PayrollInput, days: readonly string[]): number =>
 				(day) => !input.employed?.some(({ from, to }) => from <= day && (to === null || day <= to))
 			).length;
 
-/** Days the roster marks ABS: the person was expected, did not come and took no leave. */
-const absentDays = (input: PayrollInput): number =>
-	(input.work?.days ?? []).filter((day) => day.day_type === 'ABS').length;
-
-/** The paid share of the period's ordinary days: paid leave keeps it, unpaid leave and ABS reduce it. */
-const paidTimeFactor = (input: PayrollInput, coverage: { from: string; to: string }): number => {
-	const schedule = input.employer.payment_schedule;
-	const offDays =
-		isJsonObject(schedule) && Array.isArray(schedule.non_working_weekdays)
-			? schedule.non_working_weekdays.filter((day): day is number => typeof day === 'number')
-			: [0, 6];
-	const ordinaryDays = eachDay(datePeriod(coverage.from, coverage.to)).filter(
-		(day) => !offDays.includes(new Date(`${day}T00:00:00Z`).getUTCDay())
-	);
-	const workingDays = ordinaryDays.length;
-	if (workingDays <= 0) return 1;
+/** Unpaid days by date: unpaid leave, half days included, and days the roster marks ABS. */
+const unpaidByDate = (input: PayrollInput): Map<string, number> => {
+	const unpaid = new Map<string, number>();
+	const add = (date: string, days: number) => unpaid.set(date, (unpaid.get(date) ?? 0) + days);
 	const catalogs = catalogById(input.leave_catalog);
-	let unpaidDays = unemployedDays(input, ordinaryDays) + absentDays(input);
 	for (const entry of input.entries.leave_catalog_entry ?? []) {
-		const catalog = catalogs.get(String(entry.catalog_id));
-		if (catalog?.pay_treatment !== 'UNPAID') continue;
-		const days = leaveDays(entry);
-		unpaidDays += entry.is_reversal === true ? -days : days;
+		if (catalogs.get(String(entry.catalog_id))?.pay_treatment !== 'UNPAID') continue;
+		const half = entry.is_reversal === true ? -0.5 : 0.5;
+		for (const day of Array.isArray(entry.days) ? entry.days : [])
+			if (isJsonObject(day)) add(String(day.date), half);
 	}
-	if (noPaidDay(input, unpaidDays - unemployedDays(input, ordinaryDays))) return 0;
-	return Math.min(1, Math.max(0, workingDays - unpaidDays) / workingDays);
+	for (const day of input.work?.days ?? []) if (day.day_type === 'ABS') add(String(day.date), 1);
+	return unpaid;
+};
+
+/** The person's days in a period: their pattern, or the employer's weekdays without one. */
+const plannedDays = (
+	input: PayrollInput,
+	coverage: { from: string; to: string }
+): readonly ProjectedDay[] => {
+	if (input.projected_days !== undefined) return input.projected_days;
+	const schedule = input.employer.payment_schedule;
+	const off: readonly unknown[] =
+		isJsonObject(schedule) && Array.isArray(schedule.non_working_weekdays)
+			? schedule.non_working_weekdays
+			: [0, 6];
+	return eachDay(datePeriod(coverage.from, coverage.to)).map((date) => ({
+		date: String(date),
+		work: !off.includes(new Date(`${date}T00:00:00Z`).getUTCDay())
+	}));
+};
+
+/** Rest and off days between missed work days: nobody earns them inside a stretch of unpaid days. */
+const unpaidRestDays = (
+	days: readonly ProjectedDay[],
+	unpaid: ReadonlyMap<string, number>
+): number => {
+	const missed = (day: ProjectedDay | undefined) =>
+		day === undefined || (unpaid.get(day.date) ?? 0) >= 1;
+	return days.filter((day, index) => {
+		if (day.work) return false;
+		const before = days.slice(0, index).findLast((other) => other.work);
+		const after = days.slice(index + 1).find((other) => other.work);
+		return (before !== undefined || after !== undefined) && missed(before) && missed(after);
+	}).length;
+};
+
+/**
+ * The share of a period someone is paid for, by the jurisdiction's `proration_basis`. Joiners, leavers,
+ * unpaid leave and ABS all pass through this one rule.
+ */
+const paidShare = (
+	input: PayrollInput,
+	coverage: { from: string; to: string },
+	basis: unknown
+): number => {
+	const days = plannedDays(input, coverage);
+	const unpaid = unpaidByDate(input);
+	const unpaidDays = [...unpaid.values()].reduce((total, value) => total + value, 0);
+	const share = (total: number, lost: number) =>
+		total <= 0 ? 1 : Math.min(1, Math.max(0, total - lost) / total);
+	if (basis === 'CALENDAR_DAYS') {
+		const calendar = eachDay(datePeriod(coverage.from, coverage.to)).map(String);
+		return share(
+			calendar.length,
+			unemployedDays(input, calendar) + unpaidDays + unpaidRestDays(days, unpaid)
+		);
+	}
+	const workDays = days
+		.filter(({ date, work }) => work && date >= coverage.from && date <= coverage.to)
+		.map(({ date }) => date);
+	return share(workDays.length, unemployedDays(input, workDays) + unpaidDays);
 };
 
 /** Default opening checkpoint: contract salary, prorated by UNPAID leave; reversal undoes the absence. */
@@ -330,25 +375,103 @@ function defaultBasePay(
 			: rateUnit === 'HOURLY'
 				? rateAmount * hoursPerMonth
 				: rateAmount;
-	const catalogs = catalogById(input.leave_catalog);
-	let unpaidDays = unemployedDays(input, ordinaryDays) + absentDays(input);
-	for (const entry of input.entries.leave_catalog_entry ?? []) {
-		const catalog = catalogs.get(String(entry.catalog_id));
-		if (catalog?.pay_treatment !== 'UNPAID') continue;
-		const days = leaveDays(entry);
-		unpaidDays += entry.is_reversal === true ? -days : days;
-	}
-	if (noPaidDay(input, unpaidDays - unemployedDays(input, ordinaryDays))) return 0;
-	const factor = Math.min(1, Math.max(0, workingDays - unpaidDays) / workingDays);
-	return salaryAmount * factor;
+	// a day or hour rate pays the days worked; only a salary follows the statute's basis
+	const basis =
+		rateUnit === 'DAILY' || rateUnit === 'HOURLY' ? 'WORKING_DAYS' : lookup.proration_basis;
+	return salaryAmount * paidShare(input, coverage, basis);
 }
+
+/** The tax year a run's pay date falls in. */
+const taxYear = (input: PayrollInput, coverage: { from: string; to: string }): number => {
+	const date = String(input.run.pay_date ?? coverage.to);
+	const year = Number(date.slice(0, 4));
+	return Number(date.slice(5, 7)) >= Number(input.settings.tax_year_start_month ?? 1)
+		? year
+		: year - 1;
+};
+
+const heldBalance = (input: PayrollInput): JsonObject => {
+	const account = input.balance.account;
+	return isJsonObject(account) ? account : {};
+};
+
+const accountOf = (held: JsonObject, family: string): JsonObject => {
+	const account = held[family];
+	return isJsonObject(account) ? account : {};
+};
+
+/**
+ * Balances never run on. The first run of a tax year or under a new jurisdiction closes the year-to-date accounts, a
+ * new jurisdiction closes the months too, and a month over a year old leaves. All of it is dated ledger entries.
+ */
+const closeBalance = (
+	input: PayrollInput,
+	year: number,
+	month: string
+): { readonly entries: readonly LedgerOperation[]; readonly balance: JsonObject } => {
+	const held = heldBalance(input);
+	const ytd = accountOf(held, 'ytd');
+	const law = `LAW.${String(input.settings.code)}`;
+	const sameLaw = ytd[law] === 1;
+	const sameYear = sameLaw && typeof ytd.TAX_YEAR === 'number' && ytd.TAX_YEAR >= year;
+	const effective_on = String(input.run.pay_date);
+	const close = (family: string, codes: readonly string[]): readonly LedgerOperation[] =>
+		codes.flatMap((code) => {
+			const value = accountOf(held, family)[code];
+			return typeof value === 'number' && value > 0 && code !== 'LAST_RUN'
+				? [{ operation: 'DEDUCT' as const, account: family, code, amount: value, effective_on }]
+				: [];
+		});
+	const oldest = String(addMonths(`${month}-01`, -12)).slice(0, 7);
+	const months = Object.keys(accountOf(held, 'month'));
+	const gone = sameLaw ? months.filter((code) => code.slice(0, 7) < oldest) : months;
+	return {
+		entries: [
+			...(sameYear
+				? []
+				: [
+						...close('ytd', Object.keys(ytd)),
+						...close(
+							'statutory_contribution',
+							Object.keys(accountOf(held, 'statutory_contribution'))
+						),
+						{
+							operation: 'ADD' as const,
+							account: 'ytd',
+							code: 'TAX_YEAR',
+							amount: year,
+							effective_on
+						},
+						{ operation: 'ADD' as const, account: 'ytd', code: law, amount: 1, effective_on }
+					]),
+			...close('month', gone),
+			...gone.map((code) => ({
+				operation: 'REMOVE' as const,
+				account: 'month',
+				code,
+				amount: 0,
+				effective_on
+			}))
+		],
+		balance: {
+			...held,
+			...(sameYear ? {} : { ytd: {}, statutory_contribution: {} }),
+			month: Object.fromEntries(
+				Object.entries(accountOf(held, 'month')).filter(([code]) => !gone.includes(code))
+			)
+		}
+	};
+};
 
 /** One pure linear pass: inputs in, pay lines, checkpoint values, statutory YTD and ledger out. */
 export function calculatePayroll(input: PayrollInput): PayrollResult {
 	const chain = subtotalChain(input.subtotals);
 	const coverage = period(input.run);
 	const settingsLookup = lookupOf(input.settings);
-	const balance = input.balance.account ?? {};
+	const paidOn = String(input.run.pay_date ?? coverage.to);
+	const payMonth = paidOn.slice(0, 7);
+	const { entries: closing, balance } = closeBalance(input, taxYear(input, coverage), payMonth);
+	const byMonth = Array.isArray(settingsLookup.month_balance) ? settingsLookup.month_balance : [];
 	// expressions read service entitlement dates, not the latest contract's start
 	const employment =
 		typeof input.employment.service_started_on === 'string' &&
@@ -361,23 +484,31 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 					}
 				}
 			: input.employment;
+	const subject = { employee: input.employee, employment, employer: input.employer };
+	const dayRate =
+		typeof settingsLookup.day_rate === 'string'
+			? evaluateNumber(
+					settingsLookup.day_rate,
+					{ subject, lookup: settingsLookup, run: input.run, as_of: coverage.to },
+					'day_rate'
+				)
+			: 0;
 	const base = (context: unknown, lookup: Lookup, field: string) => ({
-		subject: {
-			employee: input.employee,
-			employment,
-			employer: input.employer
-		},
-		lookup,
+		subject,
+		lookup: { ...settingsLookup, ...lookup },
 		balances: balance,
 		base_pay: context,
+		day_rate: dayRate,
 		work: input.work ?? { days: [] },
 		run: input.run,
-		history: input.history,
 		as_of: coverage.to
 	});
+	const openingPay =
+		input.run.kind === 'OFF_CYCLE' ? 0 : defaultBasePay(input, settingsLookup, coverage);
 	const lines: PayLine[] = [];
 	const values = new Map<string, number>();
 	const results: SubtotalResult[] = [];
+	const computedBy = new Map<string, number>();
 	const baseSubtotal = chain[0];
 	if (baseSubtotal === undefined) throw new Refusal({ message: 'A payroll run needs subtotals.' });
 
@@ -391,10 +522,13 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 		};
 		const computed =
 			chain.indexOf(subtotal) === 0 && subtotal.calculation == null
-				? input.run.kind === 'OFF_CYCLE'
-					? 0
-					: defaultBasePay(input, settingsLookup, coverage)
-				: evaluateNumber(subtotal.calculation, baseContext, `${code}.calculation`);
+				? openingPay
+				: evaluateNumber(
+						subtotal.calculation,
+						chain.indexOf(subtotal) === 0 ? { ...baseContext, base_pay: openingPay } : baseContext,
+						`${code}.calculation`
+					);
+		computedBy.set(id(subtotal), computed);
 		if (computed !== 0)
 			lines.push(
 				line({
@@ -422,7 +556,10 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 			};
 			if (!eligible(producer.eligibility, context, `${code}.eligibility`)) continue;
 			const raw = evaluateNumber(producer.conversion, context, `${code}.conversion`);
-			const value = lookup.prorate === true ? raw * paidTimeFactor(input, coverage) : raw;
+			const value =
+				lookup.prorate === true
+					? raw * paidShare(input, coverage, settingsLookup.proration_basis)
+					: raw;
 			if (value === 0) continue;
 			subtotalLines.push(
 				line({
@@ -582,25 +719,27 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 				.reduce((total, row) => total + row.amount, 0)
 		};
 		if (!eligible(scheme.eligibility, context, `${code}.eligibility`)) continue;
-		const employee = round(
-			input.settings,
-			evaluateNumber(scheme.employee_amount, context, `${code}.employee_amount`)
-		);
+		const owed = evaluateNumber(scheme.employee_amount, context, `${code}.employee_amount`);
+		// below zero the row has overpaid: a reversal entry brings that back, never a negative line
+		const employee = round(input.settings, Math.max(0, owed));
+		const overpaid = round(input.settings, Math.max(0, -owed));
 		const employer = round(
 			input.settings,
-			evaluateNumber(scheme.employer_amount, context, `${code}.employer_amount`)
+			amount(
+				evaluateNumber(scheme.employer_amount, context, `${code}.employer_amount`),
+				`${code}.employer_amount`
+			)
 		);
 		statutoryValues[code] = { employee, employer };
-		const prior = (input.history.statutory ?? []).filter((row) => row.code === code);
-		const employeeYtd =
-			prior.reduce((total, row) => total + amount(row.employee ?? 0, 'YTD'), 0) + employee;
-		const employerYtd =
-			prior.reduce((total, row) => total + amount(row.employer ?? 0, 'YTD'), 0) + employer;
+		const paid = isJsonObject(balance.statutory_contribution) ? balance.statutory_contribution : {};
+		const employeeYtd = amount(paid[`${code}.employee`] ?? 0, 'YTD') + employee;
+		const employerYtd = amount(paid[`${code}.employer`] ?? 0, 'YTD') + employer;
 		statutory.push({
 			code,
 			kind: String(scheme.kind ?? 'CONTRIBUTION'),
 			employee,
 			employer,
+			...(overpaid > 0 ? { overpaid } : {}),
 			employee_ytd: employeeYtd,
 			employer_ytd: employerYtd
 		});
@@ -637,39 +776,29 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 				})
 			);
 	}
-	// Statutory lines are producers too: rebuild the running checkpoints with them included.
+	// Statutory lines are producers too: the checkpoints add them up. Nothing is evaluated twice.
 	const finalValues = new Map<string, number>();
 	const finalResults: SubtotalResult[] = [];
+	const linesBy = Map.groupBy(
+		lines.filter((l) => l.party === 'EMPLOYEE' && l.source_id.model !== 'employee_contract'),
+		(l) => l.subtotal_id
+	);
 	for (const subtotal of chain) {
-		const code = text(subtotal, 'code');
 		const previous = subtotal.previous_id;
 		const previousValue = typeof previous === 'string' ? (finalValues.get(previous) ?? 0) : 0;
-		const context = {
-			...base(previousValue, settingsLookup, code),
-			subtotals: Object.fromEntries(finalResults.map((row) => [row.code, row.value]))
-		};
-		const computed =
-			chain.indexOf(subtotal) === 0 && subtotal.calculation == null
-				? input.run.kind === 'OFF_CYCLE'
-					? 0
-					: defaultBasePay(input, settingsLookup, coverage)
-				: evaluateNumber(subtotal.calculation, context, `${code}.calculation`);
-		const included = lines.filter(
-			(l) =>
-				l.subtotal_id === id(subtotal) &&
-				l.party === 'EMPLOYEE' &&
-				l.source_id.model !== 'employee_contract'
-		);
 		const value = round(
 			input.settings,
 			previousValue +
-				computed +
-				included.reduce((total, l) => total + signed(l.direction, l.amount), 0)
+				(computedBy.get(id(subtotal)) ?? 0) +
+				(linesBy.get(id(subtotal)) ?? []).reduce(
+					(total, l) => total + signed(l.direction, l.amount),
+					0
+				)
 		);
 		finalValues.set(id(subtotal), value);
 		finalResults.push({
 			id: id(subtotal),
-			code,
+			code: text(subtotal, 'code'),
 			name: text(subtotal, 'name'),
 			previous_id: (subtotal.previous_id as string | null | undefined) ?? null,
 			value
@@ -684,7 +813,21 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 	const employerCost = lines
 		.filter((l) => l.party === 'EMPLOYER')
 		.reduce((total, l) => total + signed(l.direction, l.amount), 0);
-	const ledger: LedgerOperation[] = [];
+	const ledger: LedgerOperation[] = [...closing];
+	const post = (account: string, code: string, amount: number) =>
+		ledger.push({
+			operation: 'ADD',
+			account,
+			code,
+			amount,
+			unit: 'MONEY',
+			effective_on: paidOn
+		});
+	const postHeld = (account: string, code: string, value: number) => {
+		post(account, code, value);
+		if (byMonth.includes(code)) post('month', `${payMonth}.${code}`, value);
+	};
+	for (const { code, value } of results) if (value > 0) postHeld('ytd', code, value);
 	if (net !== 0)
 		ledger.push({
 			operation: net > 0 ? 'ADD' : 'DEDUCT',
@@ -692,27 +835,11 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 			code: 'NET_PAY',
 			amount: Math.abs(net),
 			unit: 'MONEY',
-			effective_on: String(input.run.pay_date ?? coverage.to)
+			effective_on: paidOn
 		});
-	for (const result of statutory) {
-		if (result.employee !== 0)
-			ledger.push({
-				operation: 'ADD',
-				account: 'statutory_contribution',
-				code: `${result.code}.employee`,
-				amount: result.employee,
-				unit: 'MONEY',
-				effective_on: String(input.run.pay_date ?? coverage.to)
-			});
-		if (result.employer !== 0)
-			ledger.push({
-				operation: 'ADD',
-				account: 'statutory_contribution',
-				code: `${result.code}.employer`,
-				amount: result.employer,
-				unit: 'MONEY',
-				effective_on: String(input.run.pay_date ?? coverage.to)
-			});
+	for (const { code, employee, employer } of statutory) {
+		if (employee > 0) postHeld('statutory_contribution', `${code}.employee`, employee);
+		if (employer > 0) postHeld('statutory_contribution', `${code}.employer`, employer);
 	}
 	return {
 		lines,

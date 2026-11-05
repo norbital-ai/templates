@@ -134,10 +134,6 @@
 			"due_day": {
 				"SH": 15,
 				"KM": null
-			},
-			"preparatory": {
-				"SH": "ORGANISATION",
-				"KM": "NO_UNION"
 			}
 		},
 		"references": [
@@ -177,11 +173,7 @@
 			"cutoff_month": 10,
 			"annual_due_suffix": "-12-15",
 			"quarter_months": 3,
-			"due_days": 14,
-			"preparatory": {
-				"SH": "ORGANISATION",
-				"KM": "NO_UNION"
-			}
+			"due_days": 14
 		},
 		"references": [
 			{
@@ -210,46 +202,6 @@
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nif (get(ctx.lookup.preparatory, region, '') !== 'NO_UNION') return [];\nif (get(ext, 'union_established', false) === true) return [];\nconst month = Number(run.salary_coverage.from.slice(5, 7));\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: month >= ctx.lookup.cutoff_month\n  ? run.salary_coverage.from.slice(0, 4) + ctx.lookup.annual_due_suffix\n  : add_days(add_months(month_start(run.salary_coverage.from), (Math.trunc((month - 1) / ctx.lookup.quarter_months) + 1) * ctx.lookup.quarter_months - month + 1), ctx.lookup.due_days),\n  occurrence_key: 'UNION_PREPARATORY_FUND:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
 		"id": "94852b6c-7fdc-502a-81d7-ce4d64664bc6",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
-	},
-	{
-		"code": "DISABLED_EMPLOYMENT_FUND_PAYMENT",
-		"name": "Disabled persons' employment security fund",
-		"lookup": {
-			"title": "Disabled persons' employment security fund",
-			"month_by_region": {
-				"SH": "10",
-				"KM": "11"
-			}
-		},
-		"references": [
-			{
-				"title": "残疾人就业保障金征收使用管理办法 (财税〔2015〕72号) 第八条、第九条; 残疾人就业保障金征收使用管理办法 (财税〔2015〕72号) 第八条、第九条; 财政部公告2023年第98号 (至2027年12月31日: 1%以上按50%, 1%以下按90%; 30人以下暂免); 云南省 残疾人按比例就业 联网认证 and 申报缴纳.",
-				"url": "https://www.hhgj.gov.cn/info/6711/587781.htm"
-			}
-		],
-		"source_collection": "payroll_run",
-		"events": ["create"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"state": {
-						"eq": "OPEN"
-					},
-					"entity_id": {
-						"eq": {
-							"var": "entry.entity_id"
-						}
-					}
-				},
-				"limit": 10000
-			}
-		},
-		"condition": "const run = ctx.entry;\nif (run == null) return false;\nconst key = 'DISABLED_EMPLOYMENT_FUND_PAYMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7);\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "const run = ctx.entry;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nif (get(ctx.lookup.month_by_region, region, null) !== run.salary_coverage.from.slice(5, 7)) return [];\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: month_end(run.salary_coverage.from),\n  occurrence_key: 'DISABLED_EMPLOYMENT_FUND_PAYMENT:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
-		"id": "15c108c2-34be-57df-9090-3b588e0ae111",
 		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
 	},
 	{
@@ -1739,6 +1691,219 @@
 		"target_action": "create",
 		"effects": "const run = ctx.entry;\nreturn [{\n  entity_id: run.entity_id,\n  title: ctx.lookup.title,\n  due_on: String(Number(run.salary_coverage.from.slice(0, 4)) + ctx.lookup.retention_years) + '-12-31',\n  occurrence_key: 'ACCOUNTING_VOUCHER_RETENTION:' + run.entity_id + ':' + run.salary_coverage.from.slice(0, 7)\n}];",
 		"id": "bf715eb0-afe0-545c-b8f6-3536b900c324",
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
+	},
+	{
+		"code": "MINIMUM_WAGE",
+		"name": "Normal-time wage below the local minimum wage",
+		"lookup": {
+			"title": "Normal-time wage below the local minimum wage"
+		},
+		"references": [
+			{
+				"title": "最低工资规定 第十二条; 上海市企业工资支付办法; 昆明市工资支付条例. A full month at the contract monthly rate; Shanghai excludes the employee's social insurance and housing fund from the comparison. A warning, never a stop."
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "entry.employment_id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "entry.payroll_run_id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "const key = 'MINIMUM_WAGE:' + ctx.entry.id;\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return false;\nconst run = first(ctx.reads.payroll_run);\nif (run == null) return false;\nconst employment = ctx.subject.employment;\nconst rate = get(employment.terms, 'rate', null);\nif (rate == null) return false;\nif (rate.unit !== 'MONTHLY') return false;\nif (['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(employment.engagement)) return false;\nconst salary = run.salary_coverage;\nif (month_start(salary.from) !== salary.from) return false;\nif (month_end(salary.to) !== salary.to) return false;\nif (employment.effective_range.from > salary.from) return false;\nconst end = get(employment.effective_range, 'to', null);\nif (end != null && end !== '' && end < salary.to) return false;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst zones = ctx.lookup.minimum_wage.filter((row) => row.region === region);\nif (zones.length === 0) return false;\nconst zone = String(get(ext, 'wage_zone', zones[0].default_zone));\nconst table = zones.find((row) => row.zone === zone);\nif (table == null) return false;\nconst contributions = table.excludes_employee_contributions ? Number(ctx.entry.employee_statutory) : 0;\nreturn Number(rate.amount) - contributions < table.monthly;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "return [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: ctx.lookup.title,\n  due_on: first(ctx.reads.payroll_run).pay_date,\n  occurrence_key: 'MINIMUM_WAGE:' + ctx.entry.id\n}];",
+		"id": "aec12cfd-dd4e-4a17-95ad-1367f72b7299",
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
+	},
+	{
+		"code": "DISABILITY_ALLOWANCE_SI_BASE",
+		"name": "Disability allowance paid: contribution base must equal it",
+		"lookup": {
+			"title": "Disability allowance paid: contribution base must equal it",
+			"catalog_code": "WORK_INJURY_DISABILITY_ALLOWANCE",
+			"tolerance": 0.01
+		},
+		"references": [
+			{
+				"title": "工伤保险条例 第三十六条: 伤残津贴 is the contribution base for the worker and the employer."
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "entry.employment_id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "entry.payroll_run_id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "const key = 'DISABILITY_ALLOWANCE_SI_BASE:' + ctx.entry.id;\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return false;\nconst run = first(ctx.reads.payroll_run);\nif (run == null) return false;\nconst allowance = sum_field(\n  get(ctx.entry, 'breakdown.lines', []).filter((line) => line.code === ctx.lookup.catalog_code),\n  'amount'\n);\nif (allowance <= 0) return false;\nconst base = get(ctx.subject.employment.employee_extension_data, 'term_facts.si_contribution_base', null);\nif (base == null) return true;\nreturn Math.abs(Number(base) - allowance) > ctx.lookup.tolerance;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "return [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: ctx.lookup.title,\n  due_on: first(ctx.reads.payroll_run).pay_date,\n  occurrence_key: 'DISABILITY_ALLOWANCE_SI_BASE:' + ctx.entry.id\n}];",
+		"id": "68f51dd8-a1d6-4f1c-ae84-fc9ed270aa48",
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
+	},
+	{
+		"code": "CN_COMPREHENSIVE_REVIEW",
+		"name": "Comprehensive-hours settlement not reviewed for this month",
+		"lookup": {
+			"title": "Comprehensive-hours settlement not reviewed for this month"
+		},
+		"references": [
+			{
+				"title": "劳部发〔1994〕503号: the approved comprehensive-hours cycle; term_facts.comprehensive_overtime_review pays the excess."
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "entry.employment_id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "entry.payroll_run_id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "const key = 'CN_COMPREHENSIVE_REVIEW:' + ctx.entry.id;\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return false;\nconst run = first(ctx.reads.payroll_run);\nif (run == null) return false;\nconst terms = get(ctx.subject.employment, 'terms', {});\nif (String(get(terms, 'statutory_work_category', '')) !== 'COMPREHENSIVE') return false;\nconst review = get(\n  ctx.subject.employment.employee_extension_data,\n  'term_facts.comprehensive_overtime_review',\n  null,\n);\nconst period = run.salary_coverage.from.slice(0, 7);\nif (review == null) return true;\nif (String(get(review, 'month', '')) !== period) return true;\nif (String(get(review, 'reference', '')).trim() === '') return true;\nreturn String(get(review, 'settlement_on', '')).slice(0, 7) !== period;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "return [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: ctx.lookup.title,\n  due_on: first(ctx.reads.payroll_run).pay_date,\n  occurrence_key: 'CN_COMPREHENSIVE_REVIEW:' + ctx.entry.id\n}];",
+		"id": "c6d4327a-2ccb-454c-88cc-93c3fae5a93a",
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
+	},
+	{
+		"code": "CN_HPF_COMMENCEMENT_REVIEW",
+		"name": "Housing-fund start not recorded for a hire this month",
+		"lookup": {
+			"title": "Housing-fund start not recorded for a hire this month"
+		},
+		"references": [
+			{
+				"title": "住房公积金管理条例 第十七条: a first-ever job starts contributions in month two; term_facts.hpf_first_employment records it."
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "entry.employment_id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "entry.payroll_run_id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "const key = 'CN_HPF_COMMENCEMENT_REVIEW:' + ctx.entry.employment_id;\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return false;\nconst run = first(ctx.reads.payroll_run);\nif (run == null) return false;\nif (['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.subject.employment.engagement)) return false;\nconst start = String(get(ctx.subject.employment.effective_range, 'from', ''));\nif (start.slice(0, 7) !== run.salary_coverage.from.slice(0, 7)) return false;\nreturn get(ctx.subject.employment.employee_extension_data, 'term_facts.hpf_first_employment', null) == null;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "return [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: ctx.lookup.title,\n  due_on: first(ctx.reads.payroll_run).pay_date,\n  occurrence_key: 'CN_HPF_COMMENCEMENT_REVIEW:' + ctx.entry.employment_id\n}];",
+		"id": "b6f48a83-8c80-4f7e-be9a-80bad985f3d3",
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
+	},
+	{
+		"code": "CN_ANNUAL_LEAVE_REVIEW",
+		"name": "Annual-leave decision missing for this year",
+		"lookup": {
+			"title": "Annual-leave decision missing for this year",
+			"service_months": 12
+		},
+		"references": [
+			{
+				"title": "职工带薪年休假条例 第四条; 企业职工带薪年休假实施办法 第八条: term_facts.annual_leave_year_reviews holds one decision a year."
+			}
+		],
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "entry.employment_id"
+						}
+					}
+				},
+				"limit": 1000
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "entry.payroll_run_id"
+						}
+					}
+				},
+				"limit": 1
+			}
+		},
+		"condition": "const key = 'CN_ANNUAL_LEAVE_REVIEW:' + ctx.entry.employment_id + ':' + first(ctx.reads.payroll_run).salary_coverage.from.slice(0, 4);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return false;\nconst run = first(ctx.reads.payroll_run);\nif (run == null) return false;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.subject.employment.engagement)) return false;\nconst service = calendar_completed_months(\n  ctx.subject.employment.effective_range.from,\n  run.salary_coverage.from,\n);\nif (service < ctx.lookup.service_months) return false;\nconst reviews = get(\n  ctx.subject.employment.employee_extension_data,\n  'term_facts.annual_leave_year_reviews',\n  [],\n);\nconst year = Number(run.salary_coverage.from.slice(0, 4));\nif (!Array.isArray(reviews)) return true;\nreturn reviews.filter((r) => Math.trunc(Number(r.year)) === year).length !== 1;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "return [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: ctx.lookup.title,\n  due_on: first(ctx.reads.payroll_run).pay_date,\n  occurrence_key: 'CN_ANNUAL_LEAVE_REVIEW:' + ctx.entry.employment_id + ':' + first(ctx.reads.payroll_run).salary_coverage.from.slice(0, 4)\n}];",
+		"id": "de87ca8b-5372-4f8c-b0ec-3babe993ad9d",
 		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
 	}
 ]

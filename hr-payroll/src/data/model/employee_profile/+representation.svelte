@@ -225,7 +225,7 @@
 				key="person-payslips"
 				where={{ employee_id: { eq: record.id } }}
 				toolbar={{ new: false, delete: false, title: bolt.t('v2.payslips') }}
-				columns={['payroll_run_id', 'gross_earnings', 'net_pay', 'state']}
+				columns={['payroll_run_id', 'gross_earnings', 'net_pay']}
 			/>
 		</Stack>{/if}{/snippet}
 <RecordShell

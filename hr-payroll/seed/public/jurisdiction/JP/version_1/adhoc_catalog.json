@@ -30,7 +30,7 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "7b54168d-9085-5d22-a977-a094945efb5f",
+		"subtotal_id": "37c0d019-4f0c-5860-a31d-0bf20c794ae7",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
@@ -52,7 +52,7 @@
 				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=73022000&dataType=0"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "e8624935-bf18-5f88-a175-c0ddac0217fe",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -75,7 +75,7 @@
 				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=73022000&dataType=0"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "9e955eb9-6a8c-5225-a295-5a6a5b9ced86",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -93,11 +93,11 @@
 		"references": [
 			{
 				"title": "労働基準法20条 and21条: the applicable notice shortfall is paid at the actual Article12average wage. Original notice dates and an actually applicable statutory/certified exemption remain source facts. Taxed as retirement income under 所得税基本通達30-5. Entry: quantity = the average-wage base for the notice shortfall (maximum thirty days); `lookup` holds the average-wage source policy.",
-				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=73022000&dataType=0"
+				"url": "https://www.nta.go.jp/law/tsutatsu/kihon/shotoku/04/04.htm"
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "9e955eb9-6a8c-5225-a295-5a6a5b9ced86",
+		"subtotal_id": "63006fab-b628-5edd-a8b7-58eae7ca6612",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "if (!(ctx.entry.quantity > 0)) return false;\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nreturn range.to == null || ctx.entry.incurred_on <= range.to;",
@@ -127,6 +127,29 @@
 		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
 	},
 	{
+		"code": "RETIREMENT_ALLOWANCE_UNDECLARED",
+		"name": "退職手当 申告書なし (retirement allowance without the declaration)",
+		"description": "The retirement allowance of a leaver who filed no 退職所得の受給に関する申告書: withheld at 20.42% of the payment, with no deduction.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "所得税法",
+				"locator": "201条3項",
+				"url": "https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2732.htm",
+				"quote": "退職手当等の支給額に20.42パーセントの税率を乗じて計算した所得税および復興特別所得税の額を源泉徴収します。"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "b99f829d-34e2-551c-b9b7-69041a154660",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "643df3d9-3c7b-5e0f-9302-55ba31d1dc43",
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+	},
+	{
 		"code": "MEALS_IN_KIND",
 		"name": "食事の現物支給 (meals in kind)",
 		"description": "The entry quantity is the taxable meal benefit: the employer's cost less the employee's payment. Meals in kind are not taxable where the employee pays half or more of their value and the employer's cost is within the monthly limit; otherwise the excess is a taxable benefit. This catalogue records the taxable value and creates no pay line.",
@@ -138,7 +161,7 @@
 				"quote": "食事の現物給与は、供与する食事の価額から従業員の負担額を控除した額を給与として課税する。"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -160,7 +183,7 @@
 				"quote": "社宅の貸与は、通常の賃貸料の額と従業員の負担額との差額を給与として課税する。"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -180,7 +203,7 @@
 				"title": "所得税法 art.36(1)–(2) with 所得税基本通達 36-15 ff.: other benefits in kind (goods, services, low-interest loans, awards in money) are salary at their value as the 通達 states; the employer enters the taxable value. Entry: quantity = the taxable value."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -200,7 +223,7 @@
 				"title": "所得税法 art.28: a cash allowance paid in the month is salary income, remuneration for social insurance (健保法 art.3(5)) and a wage for labour insurance — including any excess over the night-duty or night-meal limits. Entry: quantity = the cash allowance amount; `lookup` holds the night limits above which an amount belongs here."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "e8624935-bf18-5f88-a175-c0ddac0217fe",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -222,8 +245,8 @@
 				"title": "所得税基本通達 28-1: a 宿直・日直 allowance up to 4,000 yen an occasion is not taxable (entry.quantity occasions; the class pays at most that, any excess is SPECIAL_ALLOWANCE). It is 報酬 for social insurance (健康保険法 art.3(5); 日本年金機構 lists 宿日直手当 as 報酬) and a wage for labour insurance (労働保険徴収法 art.2(2)). Entry: quantity = occasions; `lookup.limit_per_unit` is the non-taxable limit per occasion."
 			}
 		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "e8624935-bf18-5f88-a175-c0ddac0217fe",
+		"off_cycle_eligible": false,
+		"subtotal_id": "af0d351c-429e-5541-90ab-614399cbb25c",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
@@ -244,7 +267,7 @@
 				"title": "昭和59年7月26日 直法6-5 as amended 令和8年3月31日: cash paid instead of a meal for night work (22:00–05:00) is not taxable up to 300 yen an occasion (entry.quantity; from 1 April 2026 650, before 300). The exemption holds only where the whole payment of the occasion is within the limit; a larger payment is wholly taxable, so it is entered in full as SPECIAL_ALLOWANCE (the class refuses an amount above the limit). Enter one entry per occasion (entry.quantity 1). It is a wage: 報酬 for social insurance (健康保険法 art.3(5); 厚生年金保険法 art.3(1)(iii)) and 賃金 for labour insurance (労働保険徴収法 art.2(2)). Entry: quantity = occasions; `lookup.limit_per_unit` is the dated non-taxable limit per occasion."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "9e955eb9-6a8c-5225-a295-5a6a5b9ced86",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -281,7 +304,6 @@
 		"name": "減給の制裁 (disciplinary pay reduction)",
 		"description": "The entry quantity is the Article 12 average-wage base for the disciplinary reduction (average daily wage multiplied by the deducted days). Each deduction is limited to half that base and to one tenth of the wages payable for the wage period.",
 		"lookup": {
-			"wage_period_share": 0.1,
 			"rate": 0.5
 		},
 		"references": [
@@ -290,7 +312,7 @@
 				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=73022000&dataType=0"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
@@ -305,8 +327,7 @@
 		"name": "退職者の未払賃金の遅延利息 (delay interest on unpaid wages)",
 		"description": "The entry quantity is the unpaid wage left after exit. Interest runs at 14.6% a year from the day after the contractual due date to the payment date. It is not salary income.",
 		"lookup": {
-			"annual_rate": 0.146,
-			"days_per_year": 365
+			"annual_rate": 0.146
 		},
 		"references": [
 			{
@@ -337,7 +358,7 @@
 				"quote": "通勤手当は、一月当たり十五万円を限度として非課税とする。"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "9e955eb9-6a8c-5225-a295-5a6a5b9ced86",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -359,7 +380,7 @@
 				"quote": "食事の現物給与は、厚生労働大臣が定める価額により報酬に算入する。"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -381,7 +402,7 @@
 				"quote": "住宅の現物給与は、厚生労働大臣が定める価額により報酬に算入する。"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -389,6 +410,26 @@
 		"conversion": "return ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "807bfd55-aa3e-57dc-a6c9-db541eaad433",
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+	},
+	{
+		"code": "STATUTORY_ADJUSTMENT",
+		"name": "Statutory adjustment",
+		"references": [
+			{
+				"title": "RA 11199, RA 11223, RA 9679 and NIRC s.58: correction of a prior statutory contribution or withholding remittance."
+			}
+		],
+		"description": "The entry quantity is the statutory correction; the statutory schemes are not re-run.",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "fca3ac06-58e1-5965-957b-52d8dd4a5b3b",
 		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
 	}
 ]

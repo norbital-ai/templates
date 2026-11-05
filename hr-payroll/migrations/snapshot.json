@@ -129,6 +129,7 @@
 				},
 				"payroll_run_id": {
 					"kind": "ref",
+					"onDelete": "setNull",
 					"optional": true,
 					"to": "payroll_run"
 				},
@@ -465,6 +466,7 @@
 				},
 				"payroll_run_id": {
 					"kind": "ref",
+					"onDelete": "setNull",
 					"optional": true,
 					"to": "payroll_run"
 				},
@@ -1733,6 +1735,7 @@
 				},
 				"payroll_run_id": {
 					"kind": "ref",
+					"onDelete": "setNull",
 					"optional": true,
 					"to": "payroll_run"
 				}
@@ -1921,6 +1924,7 @@
 				},
 				"payroll_run_id": {
 					"kind": "ref",
+					"onDelete": "setNull",
 					"optional": true,
 					"to": "payroll_run"
 				},
@@ -1974,6 +1978,7 @@
 				},
 				"payroll_run_id": {
 					"kind": "ref",
+					"onDelete": "setNull",
 					"optional": true,
 					"to": "payroll_run"
 				}
@@ -2149,53 +2154,24 @@
 		"payroll_run": {
 			"audit": true,
 			"fields": {
-				"attendance_coverage": {
-					"kind": "period",
-					"of": "date"
-				},
 				"entity_id": {
 					"inverse": "payroll_runs",
 					"kind": "ref",
 					"to": "entity"
 				},
-				"findings": {
-					"default": [],
-					"kind": "json"
-				},
 				"kind": {
+					"default": "ON_CYCLE",
 					"kind": "enum",
 					"values": [
-						"REGULAR",
-						"OFF_CYCLE",
-						"FINAL",
-						"CORRECTION"
+						"ON_CYCLE",
+						"OFF_CYCLE"
 					]
-				},
-				"occurrence_key": {
-					"kind": "text"
 				},
 				"pay_date": {
 					"kind": "date"
 				},
-				"pay_due_date": {
-					"kind": "date"
-				},
-				"payment_timezone": {
-					"format": "zone",
-					"kind": "text"
-				},
 				"period": {
 					"kind": "text"
-				},
-				"replacement_of_id": {
-					"kind": "ref",
-					"onDelete": "restrict",
-					"optional": true,
-					"to": "payroll_run"
-				},
-				"replacement_reason": {
-					"kind": "text",
-					"optional": true
 				},
 				"run_number": {
 					"kind": "seq"
@@ -2209,40 +2185,21 @@
 					"onDelete": "restrict",
 					"to": "jurisdiction_settings"
 				},
-				"source_manifest": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
-				},
-				"source_reference": {
-					"kind": "text",
-					"optional": true
-				},
 				"state": {
-					"initial": "FINALISED",
+					"initial": "UNPAID",
 					"kind": "state",
 					"states": {
-						"FINALISED": {
-							"edit": [
-								"state"
-							],
-							"to": [
-								"PAID",
-								"SUPERSEDED"
-							]
-						},
 						"PAID": {
 							"edit": "none",
 							"to": []
 						},
-						"SUPERSEDED": {
-							"edit": "none",
-							"to": []
+						"UNPAID": {
+							"edit": [
+								"state"
+							],
+							"to": [
+								"PAID"
+							]
 						}
 					}
 				}
@@ -2252,8 +2209,14 @@
 			"unique": [
 				{
 					"fields": [
-						"occurrence_key"
-					]
+						"entity_id",
+						"period"
+					],
+					"where": {
+						"kind": {
+							"eq": "ON_CYCLE"
+						}
+					}
 				}
 			]
 		},
@@ -2343,24 +2306,6 @@
 					"onDelete": "restrict",
 					"to": "jurisdiction_settings"
 				},
-				"state": {
-					"initial": "FINALISED",
-					"kind": "state",
-					"states": {
-						"FINALISED": {
-							"edit": [
-								"state"
-							],
-							"to": [
-								"PAID"
-							]
-						},
-						"PAID": {
-							"edit": "none",
-							"to": []
-						}
-					}
-				},
 				"tax_withheld": {
 					"default": 0,
 					"kind": "decimal",
@@ -2374,7 +2319,7 @@
 				}
 			},
 			"nativeRules": 2,
-			"recordLabel": "record.state + ' · ' + string(record.net_pay)",
+			"recordLabel": "string(record.net_pay)",
 			"unique": [
 				{
 					"fields": [
@@ -2642,6 +2587,7 @@
 				},
 				"payroll_run_id": {
 					"kind": "ref",
+					"onDelete": "setNull",
 					"optional": true,
 					"to": "payroll_run"
 				},
@@ -4620,6 +4566,7 @@
 				},
 				"payroll_run_id": {
 					"kind": "ref",
+					"onDelete": "setNull",
 					"optional": true,
 					"to": "payroll_run"
 				},
@@ -4749,6 +4696,7 @@
 				},
 				"payroll_run_id": {
 					"kind": "ref",
+					"onDelete": "setNull",
 					"optional": true,
 					"to": "payroll_run"
 				},

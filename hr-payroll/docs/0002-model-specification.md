@@ -154,34 +154,33 @@ commit ──► registered_effect (collection, event) ──► target_action w
 
 ## 8. Payroll and output
 
-- `payroll_run` — `run_number`, `entity_id`, `settings_id`, `period`, `kind` (`REGULAR`, `OFF_CYCLE`, `FINAL`, `CORRECTION`), `salary_coverage`, `attendance_coverage`, `pay_date`, `pay_due_date`, `payment_timezone`, `source_reference`, `replacement_of_id`, `replacement_reason`, `source_manifest`, `findings`, `occurrence_key`. Create runs the engine and writes payslips and ledger rows as one payload; the run is `FINALISED` immediately and has no update path.
+- `payroll_run` — `run_number`, `entity_id`, `period`, `kind` (`ON_CYCLE`, `OFF_CYCLE`), `settings_id`, `salary_coverage`, `pay_date`, state `UNPAID → PAID`. The writer names `entity_id`, `period` and `kind`; the transform fills the rest from the entity's schedule, cutoff day and the law in force. An off-cycle run names the entries it pays through the write-only `attaches` layers, and only those people get a payslip. One on-cycle run per entity and period. Create runs the engine and writes payslips and ledger rows as one payload.
 - `payroll_run` file syncs — `salary_listing` (xlsx), `ocbc_fast` (txt), `metro_bank` (txt), each with a `payroll_run_id` context. Format modules live under `src/lib/export_format_configuration/` and share one interface.
-- `payslip` — `payroll_run_id`, `employee_id`, `employment_id`, `entity_id`, `basic_earnings`, `gross_earnings`, `net_pay`, `total_deductions`, `employer_cost`, lifecycle.
+- `payslip` — `payroll_run_id`, `employee_id`, `employment_id`, `entity_id`, `basic_earnings`, `gross_earnings`, `net_pay`, `total_deductions`, `employer_cost`, `breakdown`. No status and no update: a payslip is read-only forever.
 - `obligation` — free-form task: `entity_id`, optional `employee_id`/`employment_id`, `title`, optional `due_on`/`fulfilled_on`, `occurrence_key`, optional evidence and `waiver_reason`, state `OPEN → FULFILLED | WAIVED`. No kind, duty code, source entry, amount or settlement list.
 - `bank` — a custom field (`bank_name`, `bank_code`, `bank_account_number`, `bank_account_name`) used by the employer version and the contract. File exports are model syncs, not a bank model.
 
 ## 9. Roster
 
-`roster` — `employment_id`, optional `pattern_id`, optional `payroll_run_id`. One roster per employment; unique on `employment_id`.
+`roster_entry` — `employment_id`, optional `payroll_run_id`, `work_date`, optional `shift_definition_id`, `planned_overtime_intervals`, `actual_worked_intervals`. One entry per employment and date. The contract's `shift_pattern_id` is the default; an entry exists only for a day that differs or has clock evidence.
 
-`roster_entry` — owned by `roster_id`: `work_date`, optional `shift_definition_id`, `planned_overtime_intervals`, `actual_worked_intervals`. Unique on `(roster_id, work_date)`.
-
-The parent roster stores employment and the payroll lock once. An entry's create, update and delete read the parent and refuse when it is locked.
+A run sets `payroll_run_id` on the entries it captures, and a captured entry refuses create, update and delete.
 
 ## 10. Expression context
 
-| Context         | Contents                                             |
-| --------------- | ---------------------------------------------------- |
-| `ctx.subject`   | employee, employment, employer data                  |
-| `ctx.entry`     | catalogue entry and admitted quantity/unit           |
-| `ctx.lookup`    | the definition's flat lookup                         |
-| `ctx.balances`  | employee balance account map                         |
-| `ctx.base`      | base-pay checkpoint value                            |
-| `ctx.subtotals` | completed earlier subtotal results only              |
-| `ctx.statutory` | completed earlier statutory results by scheme code   |
-| `ctx.history`   | prior ledger and payslips for YTD                    |
-| `ctx.run`       | payroll frame during a run                           |
-| `ctx.reads`     | declared reads for validation and registered effects |
+| Context         | Contents                                              |
+| --------------- | ----------------------------------------------------- |
+| `ctx.subject`   | employee, employment, employer data                   |
+| `ctx.entry`     | catalogue entry and admitted quantity/unit            |
+| `ctx.lookup`    | the jurisdiction's global lookup under the row's own  |
+| `ctx.balances`  | employee balance account map, including `ytd`         |
+| `ctx.base_pay`  | the running checkpoint; default base pay at the first |
+| `ctx.day_rate`  | the jurisdiction's day rate for this person           |
+| `ctx.subtotals` | completed earlier subtotal results only               |
+| `ctx.statutory` | completed earlier statutory results by scheme code    |
+| `ctx.work`      | the period's roster days and their priced minutes     |
+| `ctx.run`       | payroll frame during a run                            |
+| `ctx.reads`     | declared reads for validation and registered effects  |
 
 No `ctx.components`, `ctx.rates`, `ctx.basis`, `ctx.assessment`, `ctx.recovery_budget`, `ctx.references` or `ctx.earlier`.
 

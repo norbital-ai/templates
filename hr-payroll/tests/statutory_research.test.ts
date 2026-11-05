@@ -29,6 +29,27 @@ const law = (code: string) => {
 			const list: Row | Row[] = JSON.parse(readFileSync(join(root, version, file), 'utf8'));
 			(rows[model] ??= []).push(...(Array.isArray(list) ? list : [list]));
 		}
+	rows.entity_profile_version = [
+		{
+			id: '22222222-2222-4222-8222-222222222222',
+			entity_id: ENTITY,
+			name: 'Entity',
+			settings_code: code,
+			input_schema_version_id: rows.jurisdiction_settings?.[0]?.id ?? null,
+			effective_range: { from: '2025-01-01', to: null },
+			time_zone: 'Asia/Jakarta',
+			pay_cutoff_day: 1,
+			payment_schedule: {
+				frequency: 'MONTHLY',
+				business_day: 'PREVIOUS',
+				non_working_weekdays: [0, 6],
+				short_month: 'LAST_DAY',
+				anchors: [{ cycle_part: 1, day: 25, month_offset: 0 }]
+			},
+			entity_extension_data: {},
+			status: 'SEALED'
+		}
+	];
 	return rows;
 };
 const answer = (value: unknown) => ({
@@ -415,36 +436,21 @@ describe('statutory research', () => {
 			)
 	);
 
-	it.live('payroll refuses a version off its period, and law confirmed but not merged', () =>
+	it.live('payroll refuses law confirmed but not merged', () =>
 		scenario(
 			[found(finding()), answer({ changes: [rate({ effective_from: '2026-12-01' })] })],
 			(t) =>
 				Effect.gen(function* () {
-					const december = { from: PlainDate('2026-12-01'), to: PlainDate('2026-12-31') };
-					const run = (settings_id: Id<'jurisdiction_settings'>) =>
-						t.as(t.admin).act('payroll_run.create', [
-							{
-								entity_id: ENTITY,
-								settings_id,
-								period: '2026-12',
-								kind: 'REGULAR',
-								salary_coverage: december,
-								attendance_coverage: december,
-								pay_date: PlainDate('2026-12-28'),
-								pay_due_date: PlainDate('2026-12-28'),
-								payment_timezone: 'Asia/Jakarta',
-								occurrence_key: 'december',
-								state: 'FINALISED'
-							}
-						]);
+					const run = () =>
+						t
+							.as(t.admin)
+							.act('payroll_run.create', [
+								{ entity_id: ENTITY, period: '2026-12', kind: 'ON_CYCLE' }
+							]);
 					yield* research(t);
-					const { findings, versions } = yield* ledger(t);
-					const older = first(versions.filter((row) => row.effective_range.to !== null));
-					const inForce = first(versions.filter((row) => row.effective_range.to === null));
-					const off = yield* Effect.flip(run(older.id));
-					assert.match(String(off), /does not cover/);
+					const { findings } = yield* ledger(t);
 					yield* confirm(t, first(findings).id);
-					const held = yield* Effect.flip(run(inForce.id));
+					const held = yield* Effect.flip(run());
 					assert.match(String(held), /Merge the confirmed ID law/);
 				})
 		)

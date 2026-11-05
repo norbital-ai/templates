@@ -6,8 +6,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "f4a66682-0750-5031-a375-b575595db56c",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069",
+		"id": "35d335d3-490e-5e3e-865c-5e463b43a23c",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3",
 		"references": [
 			{
 				"title": "健康保険法施行規則",
@@ -23,8 +23,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "4471d62e-c0af-5ac8-9613-ebc50ff5173e",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069",
+		"id": "73d97c52-b470-59b5-8cd5-277cc4d4c0ef",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3",
 		"references": [
 			{
 				"title": "個人情報の保護に関する法律",
@@ -40,8 +40,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "f9108363-a9d6-5dac-9ae3-0e38406c1b42",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069",
+		"id": "24a0e5a3-ffdc-580e-a03f-0630a1aa37b9",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3",
 		"references": [
 			{
 				"title": "労働基準法",
@@ -57,8 +57,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "2483a3e3-1ed2-5a9b-9917-ae09fcc8a544",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069",
+		"id": "ac167128-42d3-5a63-a3f6-42f3e140a162",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3",
 		"references": [
 			{
 				"title": "育児休業、介護休業等育児又は家族介護を行う労働者の福祉に関する法律",
@@ -74,8 +74,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "cdbd363e-7d16-5486-be96-d7cce0f81845",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069",
+		"id": "b5f8f7aa-6919-5c63-889b-5eed328cdba9",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3",
 		"references": [
 			{
 				"title": "育児休業、介護休業等育児又は家族介護を行う労働者の福祉に関する法律",
@@ -91,8 +91,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "de14e317-d75f-5823-aa70-d61d6d10e2b2",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069",
+		"id": "5318368a-a26f-5f1e-8217-837b576678e1",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3",
 		"references": [
 			{
 				"title": "育児休業、介護休業等育児又は家族介護を行う労働者の福祉に関する法律",
@@ -108,8 +108,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "67639cbc-1856-56e2-9ada-fe03eb5fe0c4",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069",
+		"id": "e3547e9e-5b42-5dcf-9dc3-26bbf526af4b",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3",
 		"references": [
 			{
 				"title": "労働基準法",
@@ -125,8 +125,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "7a95de51-1ce8-5604-891a-32f29d4f3a02",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069",
+		"id": "7cfa15df-f1e9-55d0-8181-686654739373",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3",
 		"references": [
 			{
 				"title": "労働基準法",
@@ -142,8 +142,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "d713a0b7-4359-5034-9649-ffb2df46e4e0",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069",
+		"id": "a83408d6-e25c-56ed-ae77-6044affc2194",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3",
 		"references": [
 			{
 				"title": "所得税法",
@@ -159,8 +159,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "13209a58-3032-50d4-9c8a-146c2d84a768",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069",
+		"id": "380f0d27-169a-5cdb-a5e2-3e916a791409",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3",
 		"references": [
 			{
 				"title": "労働基準法",
@@ -176,8 +176,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "d30cccfd-de06-57be-8fe9-3db74a01e758",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069",
+		"id": "e18fb673-ad0c-5915-be2b-0b0b554d933d",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3",
 		"references": [
 			{
 				"title": "雇用保険法",
@@ -193,8 +193,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "75617365-cee4-5242-a109-1a0437853fbc",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069",
+		"id": "00a85758-3e3d-5403-976c-1a540447039c",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3",
 		"references": [
 			{
 				"title": "健康保険法",
@@ -210,8 +210,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "b9b608f6-32c3-54e4-a969-3efdab0ecbf3",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069",
+		"id": "38f2080f-67b6-58c7-bc28-17e14fb6b900",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3",
 		"references": [
 			{
 				"title": "健康保険法",
@@ -227,8 +227,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "53d49ff2-8a8a-5c8c-bcd5-f0a597dabbde",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069",
+		"id": "79282a91-4673-58b1-897b-07b5ce310053",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3",
 		"references": [
 			{
 				"title": "所得税法",
@@ -244,8 +244,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "51e81afb-0df8-52d3-b826-4b159c07aa94",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069",
+		"id": "666cbf56-e711-5fee-afd6-fe5f5f7480fc",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3",
 		"references": [
 			{
 				"title": "労働基準法",

@@ -36,7 +36,7 @@ The 36 models group by owner:
 - `entity` → `entity_profile_version`, `holiday`, `shift_pattern` → `shift_definition`
 - `jurisdiction_settings` → `subtotal`, static and non-static catalogues, `registered_rule`,
   `registered_effect`
-- `obligation`; `payroll_run` → `payslip`; `roster` → `roster_entry`
+- `obligation`; `payroll_run` → `payslip`; `roster_entry`
 - `statutory_finding` → `statutory_change`: one legal instrument and its dated field or row changes. They
   record what is known about the law; `jurisdiction_settings` remains the sealed snapshot payroll reads
 - `statutory_source`: where research reads, by jurisdiction; it outlives versions
@@ -48,7 +48,7 @@ is a new row, never an edit to a sealed one.
 Every fact has one owner. The first subtotal computes base pay from the contract; each later
 subtotal adds the employee lines that name it. Statutory schemes evaluate in `depends_on` order and
 persist only as ledger rows. `payroll_run.create` calculates and writes payslips and ledger rows as
-one payload; the run is `FINALISED` immediately and has no separate finalise step. `payslip` stores
+one payload; the run starts `UNPAID`, is marked `PAID` once, and has no separate finalise step. `payslip` stores
 totals only.
 
 Event-time movements (leave, claims, ad hoc pay, loan repayments) post to `ledger_entry` and update

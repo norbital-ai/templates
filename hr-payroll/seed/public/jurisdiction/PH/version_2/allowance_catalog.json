@@ -7,10 +7,10 @@
 		},
 		"references": [
 			{
-				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (c): medical cash allowance to dependants to ₱2,000 a semester (₱333 a month): a de minimis benefit to the semester ceiling (January–June, July–December), the excess inside the ₱90,000 exclusion — the WTAX part `DEP_MEDICAL`. The per-month figure is the semester's sixth, so the semester ceiling governs either cadence."
+				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (c): medical cash allowance to dependants to ₱2,000 a semester (₱333 a month): a de minimis benefit to the semester ceiling (January–June, July–December), the excess inside the ₱90,000 exclusion — the DE_MINIMIS_DEPENDANT_MEDICAL checkpoint. The per-month figure is the semester's sixth, so the semester ceiling governs either cadence."
 			}
 		],
-		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
+		"subtotal_id": "e19c63cb-24eb-4ec8-b2f5-7f19d36f2f4b",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
 		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.as_of;",
@@ -28,10 +28,10 @@
 		},
 		"references": [
 			{
-				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (g): laundry allowance to ₱400 a month: a de minimis benefit to the ceiling in each calendar month, the excess inside the ₱90,000 exclusion — the WTAX part `LAUNDRY`."
+				"title": "RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 December 2025, in force 6 January 2026) (g): laundry allowance to ₱400 a month: a de minimis benefit to the ceiling in each calendar month, the excess inside the ₱90,000 exclusion — the DE_MINIMIS_LAUNDRY checkpoint."
 			}
 		],
-		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
+		"subtotal_id": "8b9b6a31-d5d6-458a-900e-59017887ff51",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
 		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.as_of;",
@@ -157,7 +157,7 @@
 				"title": "BIR RR 2-98 s.2.78.1(A)(3)(d) as amended by RR 29-2025: rice subsidy is de minimis to PHP2,500 a month; the excess is an 'other benefit' within the PHP90,000 exclusion. Labor Code art.100."
 			}
 		],
-		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
+		"subtotal_id": "046407a5-f28b-42dd-834e-ab1432b01027",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
 		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.as_of;",

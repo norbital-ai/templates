@@ -4,13 +4,13 @@
 		"name": "Public holiday in lieu",
 		"references": [
 			{
-				"title": "Labor Code art.94; Omnibus Rules Book III Rule IV ss.3-4: a regular holiday not worked is paid the daily wage; a holiday falling on a rest day follows the Rules."
+				"title": "Labor Code art.94; Omnibus Rules Book III Rule IV ss.3-4: Philippine law has no in-lieu day: a regular holiday is paid where it falls, and one on a rest day is priced by HOLIDAY_WORK or the Rules, not moved. So the default is unpaid and not encashable. A company that grants a day in lieu and pays it sets `pay_treatment`, or a cash `conversion` with a `subtotal_id`, on its own row."
 			}
 		],
 		"lookup": {
-			"can_encash": true
+			"can_encash": false
 		},
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"direction": "ADD",
@@ -44,13 +44,13 @@
 		"name": "Medical leave",
 		"references": [
 			{
-				"title": "Labor Code art.100; contract or company policy: paid leave beyond the statutory service incentive leave is a contractual benefit."
+				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. A company that pays it sets `pay_treatment`, or a cash `conversion` with a `subtotal_id`, on its own row."
 			}
 		],
 		"lookup": {
-			"can_encash": true
+			"can_encash": false
 		},
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"direction": "ADD",
@@ -109,13 +109,13 @@
 		"name": "Emergency leave",
 		"references": [
 			{
-				"title": "Labor Code art.100; contract or company policy: paid leave beyond the statutory service incentive leave is a contractual benefit."
+				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. A company that pays it sets `pay_treatment`, or a cash `conversion` with a `subtotal_id`, on its own row."
 			}
 		],
 		"lookup": {
-			"can_encash": true
+			"can_encash": false
 		},
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"direction": "ADD",
@@ -152,13 +152,13 @@
 		"name": "Compassionate leave",
 		"references": [
 			{
-				"title": "Labor Code art.100; contract or company policy: paid leave beyond the statutory service incentive leave is a contractual benefit."
+				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. A company that pays it sets `pay_treatment`, or a cash `conversion` with a `subtotal_id`, on its own row."
 			}
 		],
 		"lookup": {
-			"can_encash": true
+			"can_encash": false
 		},
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"direction": "ADD",
@@ -196,13 +196,13 @@
 		"name": "Hospitalization leave",
 		"references": [
 			{
-				"title": "Labor Code art.100; contract or company policy: paid leave beyond the statutory service incentive leave is a contractual benefit."
+				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. A company that pays it sets `pay_treatment`, or a cash `conversion` with a `subtotal_id`, on its own row."
 			}
 		],
 		"lookup": {
-			"can_encash": true
+			"can_encash": false
 		},
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"direction": "ADD",

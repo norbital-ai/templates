@@ -152,38 +152,20 @@ const pack = (
 		}))
 	};
 };
-const february = { from: PlainDate('2026-02-01'), to: PlainDate('2026-02-28') };
-const lines = Effect.fnUntraced(function* (t: Kit, zone: string, attendance = february) {
-	const settings = (yield* t.storedQuery({
-		employee_contract: { limit: 1 }
-	})).employee_contract.rows[0]?.input_schema_version_id;
-	yield* t.as(t.admin).act('payroll_run.create', [
-		{
-			entity_id: ENTITY,
-			settings_id: idOf('jurisdiction_settings', String(settings)),
-			period: '2026-02',
-			kind: 'REGULAR',
-			salary_coverage: february,
-			attendance_coverage: attendance,
-			pay_date: PlainDate('2026-02-25'),
-			pay_due_date: PlainDate('2026-02-25'),
-			payment_timezone: zone,
-			occurrence_key: 'february',
-			state: 'FINALISED'
-		}
-	]);
+const lines = Effect.fnUntraced(function* (t: Kit) {
+	yield* t
+		.as(t.admin)
+		.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]);
+	yield* t.runDue();
+	const held = (yield* t.storedQuery({ employee_balance: { limit: 1 } })).employee_balance.rows[0];
+	assert.ok(held !== undefined && 'ytd' in held.account, 'a run posts year-to-date to the balance');
 	const payslip = (yield* t.storedQuery({ payslip: { limit: 1 } })).payslip.rows[0];
 	const breakdown = Schema.decodeUnknownSync(PayslipBreakdown)(payslip?.breakdown);
 	return Object.fromEntries(breakdown.lines.map((line) => [line.code, line.amount]));
 });
-const run = (
-	seed: ReturnType<typeof pack>,
-	zone: string,
-	check: (paid: Paid) => void,
-	attendance = february
-) =>
+const run = (seed: ReturnType<typeof pack>, zone: string, check: (paid: Paid) => void) =>
 	Effect.gen(function* () {
-		check(yield* lines(yield* TestWorkspace, zone, attendance));
+		check(yield* lines(yield* TestWorkspace));
 	}).pipe(Effect.provide(workspace({ seed, now: '2026-02-20T02:00:00.000Z' })));
 type Paid = { readonly [code: string]: number };
 const near = (paid: Paid, code: string, expected: number) =>
@@ -303,7 +285,7 @@ describe('overtime bands', () => {
 				'Asia/Kuala_Lumpur',
 				(paid) => {
 					// one unpaid day of February's twenty weekdays, not the three on the entry
-					near(paid, 'BASIC', (3120 * 19) / 20);
+					near(paid, 'BASIC', (3120 * 27) / 28);
 					near(paid, 'MEDICAL_CLAIM', 40);
 				}
 			);
@@ -376,6 +358,10 @@ describe('overtime bands', () => {
 		return run(
 			{
 				...seed,
+				entity_profile_version: (seed.entity_profile_version ?? []).map((row) => ({
+					...row,
+					pay_cutoff_day: 21
+				})),
 				employee_contract: [
 					{ ...first, effective_range: { from: '2025-01-01', to: '2026-01-31' } },
 					{ ...first, id: uuid(7), effective_range: { from: '2026-02-01', to: null } }
@@ -385,8 +371,7 @@ describe('overtime bands', () => {
 				)
 			},
 			'Asia/Kuala_Lumpur',
-			(paid) => near(paid, 'OVERTIME', (2 + 1) * 1.5 * 16.25),
-			{ from: PlainDate('2026-01-21'), to: PlainDate('2026-02-20') }
+			(paid) => near(paid, 'OVERTIME', (2 + 1) * 1.5 * 16.25)
 		);
 	});
 
@@ -492,25 +477,11 @@ describe('overtime bands', () => {
 			(row) => row.code === 'MEDICAL_CLAIM' && row.settings_id === version
 		);
 		const month = (t: Kit, name: string, last: `${number}`) => {
-			const cover = {
-				from: PlainDate(`2026-${name}-01`),
-				to: PlainDate(`2026-${name}-${last}`)
-			};
-			return t.as(t.admin).act('payroll_run.create', [
-				{
-					entity_id: ENTITY,
-					settings_id: idOf('jurisdiction_settings', String(version)),
-					period: `2026-${name}`,
-					kind: 'REGULAR',
-					salary_coverage: cover,
-					attendance_coverage: cover,
-					pay_date: PlainDate(`2026-${name}-25`),
-					pay_due_date: PlainDate(`2026-${name}-25`),
-					payment_timezone: 'Asia/Kuala_Lumpur',
-					occurrence_key: name,
-					state: 'FINALISED'
-				}
-			]);
+			return t
+				.as(t.admin)
+				.act('payroll_run.create', [
+					{ entity_id: ENTITY, period: `2026-${name}`, kind: 'ON_CYCLE' }
+				]);
 		};
 		const paid = Effect.fnUntraced(function* (t: Kit, period: string) {
 			const got = yield* t.storedQuery({ payslip: { limit: 10 } });
@@ -539,6 +510,182 @@ describe('overtime bands', () => {
 			assert.notEqual(sealed.claim_catalog_entry.rows[0]?.payroll_run_id, null);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-02-20T02:00:00.000Z' })));
 	});
+
+	it.live('an off-cycle run pays only the entries it names, and no salary', () => {
+		const seed = pack(
+			'MY',
+			'Asia/Kuala_Lumpur',
+			{
+				rate: { amount: 2800, unit: 'MONTHLY' },
+				normal_hours_per_day: 8,
+				normal_hours_per_week: 48,
+				normal_days_per_week: 6,
+				statutory_work_category: 'MANUAL_LABOUR',
+				work_classification: 'EA_COVERED',
+				residency_status: 'CITIZEN',
+				wage_payment_method: 'BANK',
+				allowances: {}
+			},
+			{},
+			[],
+			[]
+		);
+		const version = seed.employee_contract?.[0]?.input_schema_version_id;
+		const bonus = (seed.adhoc_catalog ?? []).find(
+			(row) => row.code === 'BONUS' && row.settings_id === version
+		);
+		return Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const refused = yield* Effect.flip(
+				t
+					.as(t.admin)
+					.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-02', kind: 'OFF_CYCLE' }])
+			);
+			assert.match(String(refused), /Choose what this run pays/);
+			yield* t.as(t.admin).act('adhoc_catalog_entry.create', [
+				{
+					entity_id: ENTITY,
+					employment_id: idOf('employee_contract', uuid(6)),
+					catalog_id: idOf('adhoc_catalog', String(bonus?.id)),
+					description: 'Performance bonus',
+					quantity: 1000,
+					unit: 'MONEY',
+					incurred_on: PlainDate('2026-02-20')
+				}
+			]);
+			const entry = (yield* t.storedQuery({ adhoc_catalog_entry: { limit: 1 } }))
+				.adhoc_catalog_entry.rows[0];
+			assert.ok(entry !== undefined);
+			yield* t.as(t.admin).act('payroll_run.create', [
+				{
+					entity_id: ENTITY,
+					period: '2026-02',
+					kind: 'OFF_CYCLE',
+					attaches: { adhoc: [entry.id] }
+				}
+			]);
+			const got = yield* t.storedQuery({
+				payslip: { limit: 10 },
+				payroll_run: { limit: 1 },
+				adhoc_catalog_entry: { limit: 1 }
+			});
+			assert.equal(got.payslip.rows.length, 1);
+			assert.equal(String(got.payroll_run.rows[0]?.pay_date), '2026-02-20');
+			assert.notEqual(got.adhoc_catalog_entry.rows[0]?.payroll_run_id, null);
+			const { lines } = Schema.decodeUnknownSync(PayslipBreakdown)(got.payslip.rows[0]?.breakdown);
+			assert.equal(lines.find((line) => line.code === 'BONUS')?.amount, 1000);
+			assert.equal(
+				lines.some((line) => line.code === 'BASIC'),
+				false
+			);
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-02-20T02:00:00.000Z' })));
+	});
+
+	it.live(
+		'deleting an unpaid run removes its payslips, frees what it sealed and undoes the balance',
+		() => {
+			const seed = pack(
+				'MY',
+				'Asia/Kuala_Lumpur',
+				{
+					rate: { amount: 2800, unit: 'MONTHLY' },
+					normal_hours_per_day: 8,
+					normal_hours_per_week: 48,
+					normal_days_per_week: 6,
+					statutory_work_category: 'MANUAL_LABOUR',
+					work_classification: 'EA_COVERED',
+					residency_status: 'CITIZEN',
+					wage_payment_method: 'BANK',
+					allowances: {}
+				},
+				{},
+				[{ date: '2026-02-10', shift: WORK, hours: 9, overtime: 1 }],
+				[]
+			);
+			const version = seed.employee_contract?.[0]?.input_schema_version_id;
+			const claim = (seed.claim_catalog ?? []).find(
+				(row) => row.code === 'MEDICAL_CLAIM' && row.settings_id === version
+			);
+			const balance = (t: Kit) =>
+				t.storedQuery({ employee_balance: { limit: 1 } }).pipe(
+					Effect.map((got) => {
+						const { ytd = {} } = Schema.decodeUnknownSync(
+							Schema.Record(Schema.String, Schema.Record(Schema.String, Schema.Number))
+						)(got.employee_balance.rows[0]?.account);
+						return ytd['NET'] ?? 0;
+					})
+				);
+			return Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* t.as(t.admin).act('claim_catalog_entry.create', [
+					{
+						entity_id: ENTITY,
+						employment_id: idOf('employee_contract', uuid(6)),
+						catalog_id: idOf('claim_catalog', String(claim?.id)),
+						quantity: 45,
+						incurred_on: PlainDate('2026-02-12')
+					}
+				]);
+				yield* t.runDue();
+				yield* t
+					.as(t.admin)
+					.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]);
+				yield* t.runDue();
+				assert.ok((yield* balance(t)) > 0);
+				const run = (yield* t.storedQuery({ payroll_run: { limit: 1 } })).payroll_run.rows[0];
+				assert.ok(run !== undefined);
+				const sealed = yield* t.storedQuery({
+					claim_catalog_entry: { limit: 1 },
+					roster_entry: { limit: 1 }
+				});
+				const entry = sealed.claim_catalog_entry.rows[0];
+				const day = sealed.roster_entry.rows[0];
+				assert.ok(entry !== undefined && day !== undefined);
+				const editClaim = t
+					.as(t.admin)
+					.act('claim_catalog_entry.update', [{ target: entry.id, set: { quantity: 50 } }]);
+				const editRoster = t
+					.as(t.admin)
+					.act('roster_entry.update', [
+						{ target: day.id, set: { planned_overtime_intervals: [] } }
+					]);
+				yield* Effect.flip(editClaim);
+				yield* Effect.flip(editRoster);
+				yield* t.as(t.admin).act('payroll_run.delete', [{ target: run.id }]);
+				yield* t.runDue();
+				// the run's seal is gone: what it locked is editable again
+				yield* editClaim;
+				yield* editRoster;
+				const got = yield* t.storedQuery({
+					payroll_run: { limit: 1 },
+					payslip: { limit: 1 },
+					claim_catalog_entry: { limit: 1 },
+					roster_entry: { limit: 1 }
+				});
+				assert.equal(got.payroll_run.rows.length, 0);
+				assert.equal(got.payslip.rows.length, 0);
+				assert.equal(got.claim_catalog_entry.rows.length, 1);
+				assert.equal(got.claim_catalog_entry.rows[0]?.payroll_run_id, null);
+				assert.equal(String(got.claim_catalog_entry.rows[0]?.quantity), '50');
+				assert.equal(got.roster_entry.rows.length, 1);
+				assert.equal(got.roster_entry.rows[0]?.payroll_run_id, null);
+				assert.equal(yield* balance(t), 0);
+				// the same cycle runs again and pays the claim it released
+				yield* t
+					.as(t.admin)
+					.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]);
+				const rerun = (yield* t.storedQuery({ payroll_run: { limit: 1 } })).payroll_run.rows[0];
+				assert.ok(rerun !== undefined);
+				yield* t
+					.as(t.admin)
+					.act('payroll_run.update', [{ target: rerun.id, set: { state: 'PAID' } }]);
+				const refused = yield* Effect.flip(
+					t.as(t.admin).act('payroll_run.delete', [{ target: rerun.id }])
+				);
+				assert.match(String(refused), /locked|paid/i);
+			}).pipe(Effect.provide(workspace({ seed, now: '2026-02-20T02:00:00.000Z' })));
+		}
+	);
 
 	it.live('a leaver is paid the calendar days employed, across a contract split', () => {
 		const seed = pack(
@@ -604,25 +751,11 @@ describe('overtime bands', () => {
 			);
 			const entry = idOf('leave_catalog_entry', uuid(200));
 			const month = (t: Kit, name: string, last: `${number}`) => {
-				const cover = {
-					from: PlainDate(`2026-${name}-01`),
-					to: PlainDate(`2026-${name}-${last}`)
-				};
-				return t.as(t.admin).act('payroll_run.create', [
-					{
-						entity_id: ENTITY,
-						settings_id: idOf('jurisdiction_settings', String(version)),
-						period: `2026-${name}`,
-						kind: 'REGULAR',
-						salary_coverage: cover,
-						attendance_coverage: cover,
-						pay_date: PlainDate(`2026-${name}-25`),
-						pay_due_date: PlainDate(`2026-${name}-25`),
-						payment_timezone: 'Asia/Kuala_Lumpur',
-						occurrence_key: name,
-						state: 'FINALISED'
-					}
-				]);
+				return t
+					.as(t.admin)
+					.act('payroll_run.create', [
+						{ entity_id: ENTITY, period: `2026-${name}`, kind: 'ON_CYCLE' }
+					]);
 			};
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -644,8 +777,8 @@ describe('overtime bands', () => {
 								(line) => line.code === 'BASIC'
 							)?.amount
 					);
-				// half of one of February's twenty weekdays, taken from the entry the January run sealed
-				assert.deepEqual(basic, [3120 * (19.5 / 20)]);
+				// half of one of February's 28 days (Employment Act s.18A), taken from the entry the January run sealed
+				assert.deepEqual(basic, [3120 * (27.5 / 28)]);
 			}).pipe(
 				Effect.provide(
 					workspace({
@@ -753,7 +886,7 @@ describe('overtime bands', () => {
 				'ID',
 				'Asia/Jakarta',
 				{
-					rate: { amount: 7378688, unit: 'MONTHLY' },
+					rate: { amount: 7400000, unit: 'MONTHLY' },
 					normal_hours_per_day: 8,
 					normal_hours_per_week: 40,
 					normal_days_per_week: 5,
@@ -773,7 +906,7 @@ describe('overtime bands', () => {
 			),
 			'Asia/Jakarta',
 			(paid) => {
-				const hourly = 7378688 / 173;
+				const hourly = 7400000 / 173;
 				const workDay = 1 * 1.5 + 1 * 2;
 				const restDay = 8 * 2 + 1 * 3 + 1 * 4;
 				const holiday = 8 * 2;

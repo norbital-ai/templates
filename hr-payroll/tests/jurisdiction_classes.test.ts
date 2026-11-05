@@ -17,7 +17,13 @@ const rule = (path: string, code: string) => {
 	const rows = JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8')) as readonly Rule[];
 	const found = rows.find((row) => row.code === code);
 	assert.ok(found?.validate !== undefined);
-	return { validate: found.validate, lookup: found.lookup ?? {} };
+	const [settings] = JSON.parse(
+		readFileSync(
+			new URL(path.replace(/[^/]+$/, 'jurisdiction_settings.json'), import.meta.url),
+			'utf8'
+		)
+	) as readonly Rule[];
+	return { validate: found.validate, lookup: { ...settings?.lookup, ...found.lookup } };
 };
 const accepts = (defined: { validate: string; lookup: object }, context: object) =>
 	evaluate(defined.validate, 'CALCULATION', context, 'validate');

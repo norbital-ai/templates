@@ -28,7 +28,10 @@ const ruleOf = (code: string, ruleCode: string): Rule => {
 	) as readonly Rule[];
 	const rule = rows.find((row) => row.code === ruleCode);
 	assert.ok(rule?.eligibility !== undefined);
-	return rule;
+	const [settings] = JSON.parse(
+		readFileSync(new URL(`${latest(code)}/jurisdiction_settings.json`), 'utf8')
+	) as readonly Rule[];
+	return { ...rule, lookup: { ...settings?.lookup, ...rule.lookup } };
 };
 const eligible = (rule: Rule, context: object) =>
 	evaluate(
@@ -98,7 +101,7 @@ describe('seeded overtime eligibility', () => {
 			subject: {
 				employment: { employee_extension_data: { term_facts: { overtime_category: category } } }
 			},
-			run: { source_manifest: { overtime: { OVERTIME: 1 } } }
+			work: { days: [{ day_type: 'WORK', overtime_hours: 1 }] }
 		});
 		assert.equal(eligible(rule, context('MANAGER')), false);
 		assert.equal(eligible(rule, context('GENERAL')), true);

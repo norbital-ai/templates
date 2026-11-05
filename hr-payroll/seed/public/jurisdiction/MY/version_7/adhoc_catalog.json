@@ -4,7 +4,7 @@
 		"name": "Back pay – basic",
 		"lookup": {},
 		"off_cycle_eligible": true,
-		"subtotal_id": "975adb31-a659-575b-befe-42549bfe0051",
+		"subtotal_id": "5418b193-e55e-52af-8c4f-5fb9915853f5",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
@@ -26,7 +26,7 @@
 		"name": "Adjustment",
 		"lookup": {},
 		"off_cycle_eligible": true,
-		"subtotal_id": "975adb31-a659-575b-befe-42549bfe0051",
+		"subtotal_id": "5418b193-e55e-52af-8c4f-5fb9915853f5",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
@@ -64,7 +64,7 @@
 		"name": "Long service award",
 		"lookup": {},
 		"off_cycle_eligible": true,
-		"subtotal_id": "8db5aab3-89d0-582e-ba12-a499eb54bf62",
+		"subtotal_id": "d8e116ab-4fb6-59ef-9cdf-4e948ca64523",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
@@ -72,7 +72,7 @@
 		"party": "EMPLOYEE",
 		"references": [
 			{
-				"title": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB.assessed_on subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class."
+				"title": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a long service award is exempt up to RM2,000 per year of assessment after more than ten years with the same employer; the rest is additional remuneration for MTD (LHDN MTD Specification 2026 D(b)(2), E(9) item v) — PCB subtracts the exempt part. EPF Act 1991 s.2 \"wages\" (AGC text as at 1 July 2022) excludes (c) \"any gratuity\", unqualified, and KWSP's employer FAQ (Mandatory Contribution, Q11 \"Non-Wages\", read 28 September 2026) lists \"Gratuity\" among payments not liable. Owner rule 2026-09-28: law silent on whether a long service award is a gratuity; default — it is (a payment in recognition of length of service, not remuneration for work done), so outside EPF; lawful because s.2 excludes every gratuity and s.43 charges only \"wages\". Act 4 s.2(24)(d) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 \"wages\" (d) exclude only a gratuity \"payable on discharge or retirement\", and (e) only an annual bonus, so an award paid in service is SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 \"wages\" (AGC reprint 2017) is basic salary, fixed allowances, leave pay and arrears: a one-off award is none of them, so outside the HRD levy. A past-achievement, service-excellence, innovation or productivity award (the rest of para 25C) is not this class."
 			}
 		],
 		"id": "691403e7-2af9-54f1-a8db-3282dc3746c4",
@@ -83,7 +83,7 @@
 		"name": "Past achievement, service excellence, innovation or productivity award",
 		"lookup": {},
 		"off_cycle_eligible": true,
-		"subtotal_id": "975adb31-a659-575b-befe-42549bfe0051",
+		"subtotal_id": "7e550444-91a9-5d27-bcef-7720c991eee9",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
@@ -91,7 +91,7 @@
 		"party": "EMPLOYEE",
 		"references": [
 			{
-				"title": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a perquisite consisting of a past achievement, service excellence, innovation or productivity award, whether in money or otherwise, is exempt up to RM2,000 per employee per year of assessment — one cap shared with the long service award (which counts only after more than ten years with the same employer); LHDN Public Ruling 5/2019 Perquisites from Employment (https://www.hasil.gov.my/wp-content/uploads/PR_05_2019_2.pdf) para 7.1.1 and Example 11 (p.18): the RM2,000 covers the awards together. LHDN Specification for MTD Calculations Using Computerised Calculation 2026 (https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf), E(9), pp.20–22, read 28 September 2026 item v: the exempt part is excluded from MTD remuneration and the rest is additional remuneration (D(b)(2) “bonus/incentive”); PCB.assessed_on subtracts the shared exemption. EPF Act 1991 s.2 “wages” (AGC text as at 1 July 2022) includes any bonus, commission or allowance and excludes any travelling allowance; KWSP employer FAQ (Mandatory Contribution, Q8 “Components of Wage”: salary, bonus, allowance, commission, incentives; Q11 “Non-Wages”: travelling allowance or the value of any travelling concession; read 28 September 2026 in the browser): an award is a bonus or incentive, so EPF wages (additional). Act 4 s.2(24) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 “wages” exclude (b) any travelling allowance or the value of any travelling concession, (c) sums to defray special expenses entailed by the nature of the employment, (d) a gratuity on discharge or retirement and (e) an annual bonus: an in-service award is none of these, so SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 “wages” (AGC reprint 2017): basic salary and fixed allowances or other emoluments of a like nature paid in cash, excluding (b) any travelling allowance, (c) special expenses and (e) any bonus or commission: an award is no fixed allowance and is a bonus, so outside the HRD levy. A long service award is its own class, LONG_SERVICE_AWARD."
+				"title": "ITA 1967 Schedule 6 para 25C (AGC online text as at 1 January 2026): a perquisite consisting of a past achievement, service excellence, innovation or productivity award, whether in money or otherwise, is exempt up to RM2,000 per employee per year of assessment — one cap shared with the long service award (which counts only after more than ten years with the same employer); LHDN Public Ruling 5/2019 Perquisites from Employment (https://www.hasil.gov.my/wp-content/uploads/PR_05_2019_2.pdf) para 7.1.1 and Example 11 (p.18): the RM2,000 covers the awards together. LHDN Specification for MTD Calculations Using Computerised Calculation 2026 (https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf), E(9), pp.20–22, read 28 September 2026 item v: the exempt part is excluded from MTD remuneration and the rest is additional remuneration (D(b)(2) “bonus/incentive”); PCB subtracts the shared exemption. EPF Act 1991 s.2 “wages” (AGC text as at 1 July 2022) includes any bonus, commission or allowance and excludes any travelling allowance; KWSP employer FAQ (Mandatory Contribution, Q8 “Components of Wage”: salary, bonus, allowance, commission, incentives; Q11 “Non-Wages”: travelling allowance or the value of any travelling concession; read 28 September 2026 in the browser): an award is a bonus or incentive, so EPF wages (additional). Act 4 s.2(24) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 “wages” exclude (b) any travelling allowance or the value of any travelling concession, (c) sums to defray special expenses entailed by the nature of the employment, (d) a gratuity on discharge or retirement and (e) an annual bonus: an in-service award is none of these, so SOCSO, EIS and (A1788, from 1 June 2026) SKBBK wages. Act 612 s.2 “wages” (AGC reprint 2017): basic salary and fixed allowances or other emoluments of a like nature paid in cash, excluding (b) any travelling allowance, (c) special expenses and (e) any bonus or commission: an award is no fixed allowance and is a bonus, so outside the HRD levy. A long service award is its own class, LONG_SERVICE_AWARD."
 			}
 		],
 		"id": "257f7ddd-1b1f-5d99-884d-c5f6bfdf1155",
@@ -101,8 +101,8 @@
 		"code": "TRAVEL_OFFICIAL",
 		"name": "Travelling, petrol or toll allowance for official duties",
 		"lookup": {},
-		"off_cycle_eligible": true,
-		"subtotal_id": "8db5aab3-89d0-582e-ba12-a499eb54bf62",
+		"off_cycle_eligible": false,
+		"subtotal_id": "91c5dbb6-add5-5d03-b1d6-baba27eb09ca",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
@@ -110,7 +110,7 @@
 		"party": "EMPLOYEE",
 		"references": [
 			{
-				"title": "LHDN Specification for MTD Calculations Using Computerised Calculation 2026 (https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf), E(9), pp.20–22, read 28 September 2026 item i: petrol card, petrol allowance, travelling allowance or toll payment, or any combination, for official duties is exempt up to RM6,000 a year; LHDN Public Ruling 5/2019 Perquisites from Employment (https://www.hasil.gov.my/wp-content/uploads/PR_05_2019_2.pdf) para 7.2.1 (pp.20–21, Example 17: RM7,200 + RM3,600 → RM6,000 exempt, RM4,800 taxable). PCB.assessed_on and PCB.ordinary_on subtract annual_exempt(…, 6,000); the rest is normal remuneration (spec D(1)). EPF Act 1991 s.2 “wages” (AGC text as at 1 July 2022) includes any bonus, commission or allowance and excludes any travelling allowance; KWSP employer FAQ (Mandatory Contribution, Q8 “Components of Wage”: salary, bonus, allowance, commission, incentives; Q11 “Non-Wages”: travelling allowance or the value of any travelling concession; read 28 September 2026 in the browser); Act 4 s.2(24) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 “wages” exclude (b) any travelling allowance or the value of any travelling concession, (c) sums to defray special expenses entailed by the nature of the employment, (d) a gratuity on discharge or retirement and (e) an annual bonus; Act 612 s.2 “wages” (AGC reprint 2017): basic salary and fixed allowances or other emoluments of a like nature paid in cash, excluding (b) any travelling allowance, (c) special expenses and (e) any bonus or commission; Employment Act 1955 s.2 “wages” (AGC reprint as at 1 August 2023): basic wages and all other payments in cash payable for work done under the contract, excluding (c) any travelling allowance or the value of any travelling concession: so this class enters no contribution base, no First Schedule wage and no ordinary rate of pay. An ad hoc class, not a contract allowance, because `terms.monthly_wage` (the s.60I ordinary rate) sums every contract allowance. Travel between home and work is not this class."
+				"title": "LHDN Specification for MTD Calculations Using Computerised Calculation 2026 (https://www.hasil.gov.my/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-2026.pdf), E(9), pp.20–22, read 28 September 2026 item i: petrol card, petrol allowance, travelling allowance or toll payment, or any combination, for official duties is exempt up to RM6,000 a year; LHDN Public Ruling 5/2019 Perquisites from Employment (https://www.hasil.gov.my/wp-content/uploads/PR_05_2019_2.pdf) para 7.2.1 (pp.20–21, Example 17: RM7,200 + RM3,600 → RM6,000 exempt, RM4,800 taxable). PCB subtracts the year's first RM6,000; the rest is normal remuneration (spec D(1)). EPF Act 1991 s.2 “wages” (AGC text as at 1 July 2022) includes any bonus, commission or allowance and excludes any travelling allowance; KWSP employer FAQ (Mandatory Contribution, Q8 “Components of Wage”: salary, bonus, allowance, commission, incentives; Q11 “Non-Wages”: travelling allowance or the value of any travelling concession; read 28 September 2026 in the browser); Act 4 s.2(24) (PERKESO BM reprint as at 1 July 2021) and Act 800 s.2 “wages” exclude (b) any travelling allowance or the value of any travelling concession, (c) sums to defray special expenses entailed by the nature of the employment, (d) a gratuity on discharge or retirement and (e) an annual bonus; Act 612 s.2 “wages” (AGC reprint 2017): basic salary and fixed allowances or other emoluments of a like nature paid in cash, excluding (b) any travelling allowance, (c) special expenses and (e) any bonus or commission; Employment Act 1955 s.2 “wages” (AGC reprint as at 1 August 2023): basic wages and all other payments in cash payable for work done under the contract, excluding (c) any travelling allowance or the value of any travelling concession: so this class enters no contribution base, no First Schedule wage and no ordinary rate of pay. An ad hoc class, not a contract allowance, because `terms.monthly_wage` (the s.60I ordinary rate) sums every contract allowance. Travel between home and work is not this class."
 			}
 		],
 		"id": "aa2da52a-6cfd-5628-9c79-a2b10a4dba84",
@@ -120,7 +120,7 @@
 		"code": "BIK_VOLA",
 		"name": "Benefit in kind or living accommodation (monthly value, MTD Y1)",
 		"lookup": {},
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
@@ -140,7 +140,7 @@
 		"name": "Back pay – additional wages",
 		"lookup": {},
 		"off_cycle_eligible": true,
-		"subtotal_id": "e7af0d07-be82-590a-9518-1e64717502fb",
+		"subtotal_id": "5418b193-e55e-52af-8c4f-5fb9915853f5",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
@@ -148,7 +148,7 @@
 		"party": "EMPLOYEE",
 		"references": [
 			{
-				"title": "Encoded 2026-10-07 (round 7): arrears of wages are EPF wages paid as the current month's contribution (KWSP Employer Mandatory Contribution FAQ 8 and 20, https://web.archive.org/web/20260810072920/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution) and HRD levy wages (\"includes … arrears of wages\").",
+				"title": "Encoded 2026-10-07 (round 7): arrears of wages are EPF wages paid as the current month's contribution (KWSP Employer Mandatory Contribution FAQ 8 and 20, https://web.archive.org/web/20260810072920/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution) and HRD levy wages (\"includes … arrears of wages\"). Arrears are SOCSO, EIS and SKBBK wages as well (Act 4 s.2(24), Act 800 s.2 \"wages\"); only an annual bonus is outside them.",
 				"url": "https://web.archive.org/web/20260810072920/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution"
 			}
 		],
@@ -158,27 +158,17 @@
 	{
 		"code": "TERMINATION_BENEFIT",
 		"name": "Termination benefit",
-		"lookup": {
-			"service_months": 12,
-			"first_band_months": 24,
-			"second_band_months": 60,
-			"first_band_days": 10,
-			"second_band_days": 15,
-			"third_band_days": 20,
-			"months_per_year": 12,
-			"year_days": 365,
-			"wage_threshold": 4000
-		},
+		"lookup": {},
 		"off_cycle_eligible": true,
-		"subtotal_id": "8db5aab3-89d0-582e-ba12-a499eb54bf62",
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst months = calendar_completed_months(\n\temployment.effective_range.from,\n\tctx.entry.incurred_on\n);\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (!(months >= ctx.lookup.service_months)) return false;\nconst rate = get(terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\nif (monthly <= ctx.lookup.wage_threshold) return true;\nreturn ['MANUAL_LABOUR', 'MANUAL_LABOUR_SUPERVISOR', 'VEHICLE_OPERATOR', 'VESSEL_CREW'].includes(\n\tget(terms, 'statutory_work_category', null)\n);",
+		"subtotal_id": "08d443a7-052a-5a60-beba-06eb161ed6ab",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst months = calendar_completed_months(\n\temployment.effective_range.from,\n\tctx.entry.incurred_on\n);\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (!(months >= ctx.lookup.service_months)) return false;\nconst rate = get(terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\n// First Schedule para 2(5): Part XIIA does not reach a domestic employee.\nconst category = get(terms, 'statutory_work_category', '');\nif (category === 'DOMESTIC') return false;\nif (monthly <= ctx.lookup.monthly_wage_threshold) return true;\nreturn ctx.lookup.manual_categories.includes(category);",
 		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst rate = get(employment.terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\nconst months = calendar_completed_months(\n\temployment.effective_range.from,\n\tctx.entry.incurred_on\n);\nconst days =\n\tmonths < ctx.lookup.first_band_months ? ctx.lookup.first_band_days\n\t: months < ctx.lookup.second_band_months ? ctx.lookup.second_band_days\n\t: ctx.lookup.third_band_days;\n// Reg.6(2), JTKSM formula: a day's wages is twelve months' wages over 365, charged for each year of service.\nconst dayWage = (monthly * ctx.lookup.months_per_year) / ctx.lookup.year_days;\nreturn Math.max(ctx.entry.quantity, dayWage * days * (months / ctx.lookup.months_per_year));",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
 			{
-				"title": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.4(1)(b) excludes misconduct dismissal after due inquiry. EA 1955 First Schedule paras 1A, 2(1)-(4) and 3: the s.60J wage exclusion does not apply to qualifying manual workers, manual-labour supervisors, commercial vehicle operators or vessel workers, irrespective of wages. The vessel category is excluded from Part XII, not Part XIIA. Domestic employees are excluded from Part XIIA by para.2(5). The statutory work category must represent the applicable First Schedule profile. The separate reg.1A part-time and reg.7 outworker exclusions still require their own classification; this wage-category correction does not close those mechanisms. reg.6(2): a day's wages uses the actual s.2 wages of the twelve completed months immediately preceding termination, divided by365 under JTKSM's published formula. The exact original native payroll and documented same-employer prior_payroll records establish the amount and dates; no entered average, contractual-salary fallback or partial-history extrapolation is used. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it. reg.8: none is payable where the employee's service is transferred to and continued by the new employer on terms no less favourable, the service counting with that employer — TRANSFER and TRANSFER_TO_SUBSIDIARY are excluded (mapping of the new grounds corrected in place 2026-10-21, owner: most compliant reading). Encoded 2026-10-07 (round 7): Employment (Termination and Lay-Off Benefits) Regulations 1980 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20(TERMINATION%20&%20LAY%20OFF%20BENEFITS)%20REGULATIONS%201980_0.pdf) regs 3–4 and 6: not less than 10 / 15 / 20 days' wages for every year of continuous service (under two, two to under five, five or more years), pro rata to the nearest month, a day's wages being the average true day's wages over the twelve completed months before (the exact original twelve-month statutory wage total divided by365; genuine external sources retain their documented dates and signed component amounts), the entered amount if higher; not on contractual retirement, a misconduct dismissal after inquiry or a resignation other than under s.13(2) / s.14(3); First Schedule para 1A takes s.60J from a non-manual employee above RM4,000. Taxable compensation for loss of employment above RM10,000 a completed year of service (ITA Sch.6 para 15(1)(b), https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf; the RM20,000 rate applied only to exits in 2020–2021) — PCB.ADDITIONAL_NON_EPF with the exemption taken in PCB's assessable."
+				"title": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.4(1)(b) excludes misconduct dismissal after due inquiry. EA 1955 First Schedule paras 1A, 2(1)-(4) and 3: the s.60J wage exclusion does not apply to qualifying manual workers, manual-labour supervisors, commercial vehicle operators or vessel workers, irrespective of wages. The vessel category is excluded from Part XII, not Part XIIA. Domestic employees are excluded from Part XIIA by para.2(5). The statutory work category must represent the applicable First Schedule profile. The separate reg.1A part-time and reg.7 outworker exclusions still require their own classification; this wage-category correction does not close those mechanisms. reg.6(2): a day's wages uses the actual s.2 wages of the twelve completed months immediately preceding termination, divided by365 under JTKSM's published formula. The exact original native payroll and documented same-employer prior_payroll records establish the amount and dates; no entered average, contractual-salary fallback or partial-history extrapolation is used. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it. reg.8: none is payable where the employee's service is transferred to and continued by the new employer on terms no less favourable, the service counting with that employer — TRANSFER and TRANSFER_TO_SUBSIDIARY are excluded (mapping of the new grounds corrected in place 2026-10-21, owner: most compliant reading). Encoded 2026-10-07 (round 7): Employment (Termination and Lay-Off Benefits) Regulations 1980 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20(TERMINATION%20&%20LAY%20OFF%20BENEFITS)%20REGULATIONS%201980_0.pdf) regs 3–4 and 6: not less than 10 / 15 / 20 days' wages for every year of continuous service (under two, two to under five, five or more years), pro rata to the nearest month, a day's wages being the average true day's wages over the twelve completed months before (the exact original twelve-month statutory wage total divided by365; genuine external sources retain their documented dates and signed component amounts), the entered amount if higher; not on contractual retirement, a misconduct dismissal after inquiry or a resignation other than under s.13(2) / s.14(3); First Schedule para 1A takes s.60J from a non-manual employee above RM4,000. Taxable compensation for loss of employment above RM10,000 a completed year of service (ITA Sch.6 para 15(1)(b), https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf; the RM20,000 rate applied only to exits in 2020–2021) — additional remuneration in PCB, less the exemption."
 			}
 		],
 		"id": "9445b510-1b11-5002-870a-5669ee0ec06f",
@@ -227,8 +217,8 @@
 		"code": "TASK_MONTHLY_WAGE",
 		"name": "Monthly task remuneration",
 		"lookup": {},
-		"off_cycle_eligible": true,
-		"subtotal_id": "975adb31-a659-575b-befe-42549bfe0051",
+		"off_cycle_eligible": false,
+		"subtotal_id": "068ecb1e-ca60-518f-8f4e-c6b485373556",
 		"eligibility": "// js\nconst terms = ctx.subject.employment.terms;\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (get(terms, 'statutory_work_category', null) === 'TASK_BASIS') return true;\nconst rate = get(terms, 'rate', null);\nreturn rate !== null && get(rate, 'unit', null) === 'PIECE';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
@@ -246,8 +236,8 @@
 		"code": "TRIP_MONTHLY_WAGE",
 		"name": "Monthly trip remuneration (not travel reimbursement)",
 		"lookup": {},
-		"off_cycle_eligible": true,
-		"subtotal_id": "975adb31-a659-575b-befe-42549bfe0051",
+		"off_cycle_eligible": false,
+		"subtotal_id": "068ecb1e-ca60-518f-8f4e-c6b485373556",
 		"eligibility": "// js\nconst terms = ctx.subject.employment.terms;\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (get(terms, 'statutory_work_category', null) === 'TASK_BASIS') return true;\nconst rate = get(terms, 'rate', null);\nreturn rate !== null && get(rate, 'unit', null) === 'PIECE';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
@@ -265,8 +255,8 @@
 		"code": "COMMISSION_MONTHLY",
 		"name": "Commission paid monthly under the contract",
 		"lookup": {},
-		"off_cycle_eligible": true,
-		"subtotal_id": "975adb31-a659-575b-befe-42549bfe0051",
+		"off_cycle_eligible": false,
+		"subtotal_id": "6a9ac931-8c6b-59ce-a6ad-cad897f2ce8c",
 		"eligibility": "// js\nconst terms = ctx.subject.employment.terms;\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (get(terms, 'statutory_work_category', null) === 'TASK_BASIS') return true;\nconst rate = get(terms, 'rate', null);\nreturn rate !== null && get(rate, 'unit', null) === 'PIECE';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
@@ -285,7 +275,7 @@
 		"name": "Commission not paid monthly",
 		"lookup": {},
 		"off_cycle_eligible": true,
-		"subtotal_id": "975adb31-a659-575b-befe-42549bfe0051",
+		"subtotal_id": "aa3b7090-5d47-530b-99d2-d5aac0be16e6",
 		"eligibility": "// js\nconst terms = ctx.subject.employment.terms;\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (get(terms, 'statutory_work_category', null) === 'TASK_BASIS') return true;\nconst rate = get(terms, 'rate', null);\nreturn rate !== null && get(rate, 'unit', null) === 'PIECE';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
@@ -303,7 +293,7 @@
 		"code": "RESULTS_ZERO_MONTH",
 		"name": "Attestation of no task, trip or commission results for a full calendar month",
 		"lookup": {},
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"eligibility": "// js\nconst terms = ctx.subject.employment.terms;\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (get(terms, 'statutory_work_category', null) === 'TASK_BASIS') return true;\nconst rate = get(terms, 'rate', null);\nreturn rate !== null && get(rate, 'unit', null) === 'PIECE';",
 		"conversion": "// js\nreturn 0;",
@@ -324,7 +314,7 @@
 		"lookup": {
 			"monthly_cap": 150
 		},
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "dd52b358-2b42-5ad0-bbc0-a829775941e8",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn Math.min(ctx.entry.quantity, ctx.lookup.monthly_cap);",
@@ -343,7 +333,7 @@
 		"code": "CP38_INSTALMENT",
 		"name": "CP38 tax instalment",
 		"lookup": {},
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "dd52b358-2b42-5ad0-bbc0-a829775941e8",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
@@ -362,20 +352,10 @@
 	{
 		"code": "LAYOFF_BENEFIT",
 		"name": "Lay-off benefit",
-		"lookup": {
-			"service_months": 12,
-			"first_band_months": 24,
-			"second_band_months": 60,
-			"first_band_days": 10,
-			"second_band_days": 15,
-			"third_band_days": 20,
-			"months_per_year": 12,
-			"year_days": 365,
-			"wage_threshold": 4000
-		},
+		"lookup": {},
 		"off_cycle_eligible": true,
-		"subtotal_id": "8db5aab3-89d0-582e-ba12-a499eb54bf62",
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst months = calendar_completed_months(\n\temployment.effective_range.from,\n\tctx.entry.incurred_on\n);\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (!(months >= ctx.lookup.service_months)) return false;\nconst rate = get(terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\nif (monthly <= ctx.lookup.wage_threshold) return true;\nreturn ['MANUAL_LABOUR', 'MANUAL_LABOUR_SUPERVISOR', 'VEHICLE_OPERATOR', 'VESSEL_CREW'].includes(\n\tget(terms, 'statutory_work_category', null)\n);",
+		"subtotal_id": "08d443a7-052a-5a60-beba-06eb161ed6ab",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst months = calendar_completed_months(\n\temployment.effective_range.from,\n\tctx.entry.incurred_on\n);\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (!(months >= ctx.lookup.service_months)) return false;\nconst rate = get(terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\n// First Schedule para 2(5): Part XIIA does not reach a domestic employee.\nconst category = get(terms, 'statutory_work_category', '');\nif (category === 'DOMESTIC') return false;\nif (monthly <= ctx.lookup.monthly_wage_threshold) return true;\nreturn ctx.lookup.manual_categories.includes(category);",
 		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst rate = get(employment.terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\nconst months = calendar_completed_months(\n\temployment.effective_range.from,\n\tctx.entry.incurred_on\n);\nconst days =\n\tmonths < ctx.lookup.first_band_months ? ctx.lookup.first_band_days\n\t: months < ctx.lookup.second_band_months ? ctx.lookup.second_band_days\n\t: ctx.lookup.third_band_days;\n// Reg.6(2), JTKSM formula: a day's wages is twelve months' wages over 365, charged for each year of service.\nconst dayWage = (monthly * ctx.lookup.months_per_year) / ctx.lookup.year_days;\nreturn Math.max(ctx.entry.quantity, dayWage * days * (months / ctx.lookup.months_per_year));",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
@@ -392,8 +372,8 @@
 		"code": "PAYEE_PAYMENT",
 		"name": "Payment to an agent, dealer or distributor (payee)",
 		"lookup": {},
-		"off_cycle_eligible": true,
-		"subtotal_id": "975adb31-a659-575b-befe-42549bfe0051",
+		"off_cycle_eligible": false,
+		"subtotal_id": "068ecb1e-ca60-518f-8f4e-c6b485373556",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nreturn ctx.subject.employment.engagement === 'PAYEE';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
@@ -411,8 +391,8 @@
 		"code": "ZAKAT",
 		"name": "Authorised payroll zakat deduction",
 		"lookup": {},
-		"off_cycle_eligible": true,
-		"subtotal_id": "dd52b358-2b42-5ad0-bbc0-a829775941e8",
+		"off_cycle_eligible": false,
+		"subtotal_id": "9175877f-41b7-5f63-9140-a26032e34f39",
 		"eligibility": "// js\nconst exit = get(ctx.subject.employment, 'effective_range.to', null);\nif (!(ctx.entry.quantity > 0)) return false;\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
@@ -429,6 +409,78 @@
 			}
 		],
 		"id": "0bf8a6c7-9708-5d50-9b8e-b27242e63baa",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+	},
+	{
+		"code": "PIECE_REST_DAY_WORK",
+		"name": "Rest-day work on piece rates",
+		"lookup": {
+			"piece_multiple": 2
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "068ecb1e-ca60-518f-8f4e-c6b485373556",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (get(employment, 'terms.rate.unit', null) !== 'PIECE') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(employment, 'effective_range.to', null);\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
+		"conversion": "// js\n// quantity is the pieces done; the contract's rate is the ordinary rate per piece.\nreturn ctx.entry.quantity * get(ctx.subject.employment, 'terms.rate.amount', 0) * ctx.lookup.piece_multiple;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"references": [
+			{
+				"title": "Employment Act 1955 (Act 265)",
+				"locator": "s.60(3)(d); First Schedule para 1A",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
+				"quote": "An employee on piece rates who works on a rest day is paid twice the ordinary rate per piece. Enter the pieces done that day."
+			}
+		],
+		"id": "5bfdd9a1-dd05-57e8-ab1e-a68fbbbd9ddf",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+	},
+	{
+		"code": "PIECE_HOLIDAY_WORK",
+		"name": "Paid-holiday work on piece rates",
+		"lookup": {
+			"piece_multiple": 2
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "068ecb1e-ca60-518f-8f4e-c6b485373556",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (get(employment, 'terms.rate.unit', null) !== 'PIECE') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(employment, 'effective_range.to', null);\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
+		"conversion": "// js\n// quantity is the pieces done; the contract's rate is the ordinary rate per piece.\nreturn ctx.entry.quantity * get(ctx.subject.employment, 'terms.rate.amount', 0) * ctx.lookup.piece_multiple;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"references": [
+			{
+				"title": "Employment Act 1955 (Act 265)",
+				"locator": "s.60D(3)(a)(ii); First Schedule para 1A",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
+				"quote": "On a paid holiday an employee on piece rates is paid twice the ordinary rate per piece, on top of the holiday pay. Enter the pieces done within the normal hours."
+			}
+		],
+		"id": "1ab87ce8-b693-51f8-9c78-dbb0032d3573",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+	},
+	{
+		"code": "PIECE_HOLIDAY_OVERTIME",
+		"name": "Paid-holiday overtime on piece rates",
+		"lookup": {
+			"piece_multiple": 3
+		},
+		"off_cycle_eligible": false,
+		"subtotal_id": "975adb31-a659-575b-befe-42549bfe0051",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (get(employment, 'terms.rate.unit', null) !== 'PIECE') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(employment, 'effective_range.to', null);\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
+		"conversion": "// js\n// quantity is the pieces done; the contract's rate is the ordinary rate per piece.\nreturn ctx.entry.quantity * get(ctx.subject.employment, 'terms.rate.amount', 0) * ctx.lookup.piece_multiple;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"references": [
+			{
+				"title": "Employment Act 1955 (Act 265)",
+				"locator": "s.60D(3)(aaa); First Schedule para 1A",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
+				"quote": "Beyond the normal hours on a paid holiday an employee on piece rates is paid not less than three times the ordinary rate per piece. Overtime: outside EPF and HRD wages."
+			}
+		],
+		"id": "0fa247ee-fe5e-52e1-aa68-72480c801425",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	}
 ]

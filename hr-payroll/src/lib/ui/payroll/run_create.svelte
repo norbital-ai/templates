@@ -1,0 +1,209 @@
+<script lang="ts">
+	/**
+	 * A new payroll run for the entity in scope. An on-cycle run names its cycle. An off-cycle run
+	 * names who and what for: it pays the open ad hoc and claim entries those pick out, and no salary.
+	 */
+	import { bolt } from '$bolt';
+	import type { Id } from '@norbital-ai/bolt';
+	import { Button, Combobox, notifyOutcome, Sheet, Tabs, toast } from '@norbital-ai/ui';
+	import { fork } from '@norbital-ai/ui/effect';
+	import { Stack } from '@norbital-ai/ui/layout';
+	import { addMonths } from '@norbital-ai/std/date';
+	import { Effect } from 'effect';
+	import { jsonObject } from '../../payroll_engine/foundation.js';
+	import { cycleOn, cyclesIn } from '../../payroll_engine/pay_cycle.js';
+	import { todayKey } from '../format/calendar.js';
+	import { periodLabel } from './pay_periods.js';
+
+	let { companyId, open = $bindable(false) }: { companyId: Id<'entity'>; open?: boolean } =
+		$props();
+
+	const today = String(todayKey());
+	const known = $derived(
+		bolt.query({
+			entity_profile_version: {
+				where: { entity_id: { eq: companyId }, status: { eq: 'SEALED' } },
+				fields: ['payment_schedule', 'effective_range'],
+				orderBy: { created_at: 'desc' },
+				limit: 100
+			},
+			payroll_run: {
+				where: { entity_id: { eq: companyId }, kind: { eq: 'ON_CYCLE' } },
+				fields: ['period'],
+				limit: 10000
+			}
+		})
+	);
+	const version = $derived(
+		known?.current?.entity_profile_version.rows.find(
+			({ effective_range: { from, to } }) => from <= today && (to === null || today <= to)
+		)
+	);
+	const schedule = $derived(jsonObject(version?.payment_schedule ?? {}));
+	const runs = $derived(known?.current?.payroll_run.rows ?? []);
+	/** An earlier cycle would rewrite the year to date of runs already made. */
+	const latest = $derived(runs.map((run) => run.period).reduce((a, b) => (a > b ? a : b), ''));
+	const cycles = $derived(
+		Array.from({ length: 13 }, (_, back) =>
+			String(addMonths(`${today.slice(0, 7)}-01`, -back)).slice(0, 7)
+		)
+			.flatMap((month) => cyclesIn(schedule, month).toReversed())
+			.filter((cycle) => cycle.from <= today && cycle.key > latest)
+			.map((cycle) => ({
+				value: cycle.key,
+				label: periodLabel(cycle.key, {
+					first: bolt.t('app.payroll.first_half'),
+					second: bolt.t('app.payroll.second_half')
+				}),
+				description: `${cycle.from} – ${cycle.to}`
+			}))
+	);
+	let cycle = $state<string | null>(null);
+
+	const openEntry = {
+		where: { entity_id: { eq: companyId }, payroll_run_id: { isNull: true } },
+		fields: ['catalog_id', 'employment_id', 'quantity'],
+		limit: 10000
+	} as const;
+	const listed = $derived(
+		open
+			? bolt.query({
+					adhoc_catalog_entry: openEntry,
+					'adhoc_catalog_entry.catalog_id': { fields: ['name', 'off_cycle_eligible'] },
+					'adhoc_catalog_entry.employment_id': { fields: ['employee_number', 'employee_name'] },
+					claim_catalog_entry: openEntry,
+					'claim_catalog_entry.catalog_id': { fields: ['name', 'off_cycle_eligible'] },
+					'claim_catalog_entry.employment_id': { fields: ['employee_number', 'employee_name'] }
+				})
+			: null
+	);
+	const entries = $derived(
+		[
+			...(listed?.current?.adhoc_catalog_entry.rows ?? []).map((row) => ({
+				row,
+				adhoc: [row.id],
+				claim: []
+			})),
+			...(listed?.current?.claim_catalog_entry.rows ?? []).map((row) => ({
+				row,
+				adhoc: [],
+				claim: [row.id]
+			}))
+		].flatMap(({ row, adhoc, claim }) =>
+			row.catalog_id?.off_cycle_eligible === true && row.employment_id != null
+				? [
+						{
+							adhoc,
+							claim,
+							who: String(row.employment_id.id),
+							person: `${row.employment_id.employee_name} (${row.employment_id.employee_number})`,
+							what: row.catalog_id.name
+						}
+					]
+				: []
+		)
+	);
+	const unique = (values: readonly string[]) =>
+		[...new Set(values)].toSorted().map((value) => ({ value, label: value }));
+	let who = $state<string[]>([]);
+	let what = $state<string[]>([]);
+	const people = $derived(
+		[...new Map(entries.map((entry) => [entry.who, entry.person]))].map(([value, label]) => ({
+			value,
+			label
+		}))
+	);
+	const items = $derived(
+		unique(entries.filter((row) => who.includes(row.who)).map((row) => row.what))
+	);
+	const paying = $derived(
+		entries.filter((row) => who.includes(row.who) && what.includes(row.what))
+	);
+
+	let saving = $state(false);
+	const create = (row: Parameters<typeof bolt.act<'payroll_run.create'>>[1][number]) => {
+		saving = true;
+		fork(
+			bolt.act('payroll_run.create', [row]).pipe(
+				Effect.tap((outcome) => Effect.sync(() => notifyOutcome(bolt, outcome))),
+				Effect.tap((outcome) =>
+					Effect.sync(() => {
+						if (outcome.kind === 'committed') open = false;
+					})
+				),
+				Effect.catch((error) =>
+					Effect.sync(() =>
+						toast.error(error instanceof Error ? error.message : bolt.t('component.error'))
+					)
+				),
+				Effect.ensuring(Effect.sync(() => (saving = false)))
+			)
+		);
+	};
+	const runOnCycle = () => {
+		if (cycle !== null) create({ entity_id: companyId, period: cycle, kind: 'ON_CYCLE' });
+	};
+	const runOffCycle = () => {
+		const period = cycleOn(schedule, today)?.key;
+		if (period === undefined || paying.length === 0) return;
+		create({
+			entity_id: companyId,
+			period,
+			kind: 'OFF_CYCLE',
+			attaches: {
+				adhoc: paying.flatMap((row) => row.adhoc),
+				claim: paying.flatMap((row) => row.claim)
+			}
+		});
+	};
+</script>
+
+{#snippet onCycle()}
+	<Stack gap="sm">
+		<Combobox
+			class="w-full"
+			options={cycles}
+			value={cycle}
+			placeholder={bolt.t('app.payroll.period')}
+			onChange={(next) => (cycle = next)}
+		/>
+		<Button disabled={saving || cycle === null} onclick={runOnCycle}>
+			{bolt.t('app.payroll.create_run')}
+		</Button>
+	</Stack>
+{/snippet}
+{#snippet offCycleForm()}
+	<Stack gap="sm">
+		{#if entries.length === 0}
+			<p class="text-meta">{bolt.t('app.payroll.no_adhoc_items')}</p>
+		{:else}
+			<Combobox
+				multiple
+				class="w-full"
+				options={people}
+				value={who}
+				placeholder={bolt.t('app.payroll.adhoc_people')}
+				onChange={(next) => (who = [...next])}
+			/>
+			<Combobox
+				multiple
+				class="w-full"
+				options={items}
+				value={what}
+				placeholder={bolt.t('app.payroll.adhoc_items')}
+				onChange={(next) => (what = [...next])}
+			/>
+			<Button disabled={saving || paying.length === 0} onclick={runOffCycle}>
+				{bolt.t('app.payroll.create_run')}
+			</Button>
+		{/if}
+	</Stack>
+{/snippet}
+<Sheet bind:open title={bolt.t('v2.create_run')}>
+	<Tabs
+		tabs={[
+			{ name: 'on_cycle', title: bolt.t('v2.on_cycle'), body: onCycle },
+			{ name: 'off_cycle', title: bolt.t('v2.off_cycle'), body: offCycleForm }
+		]}
+	/>
+</Sheet>

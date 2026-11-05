@@ -30,15 +30,22 @@
 	{
 		"code": "NET",
 		"name": "Net pay",
-		"previous_id": "1370d34c-ffe5-51f8-be21-38464bb6e914",
+		"previous_id": "fa39cbd4-3fa5-5d57-9cdc-0c5c0b9da5c2",
 		"id": "4f426899-9035-5f1e-b880-55f46c5873a3",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
 	},
 	{
-		"code": "FINAL_PAY",
-		"name": "Final pay and non-wage settlements",
+		"code": "DIRECTOR_FEES",
+		"name": "Director's fees",
 		"previous_id": "27355b74-3c91-5803-8906-2ac9922c7275",
-		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
-		"id": "1370d34c-ffe5-51f8-be21-38464bb6e914"
+		"id": "526e4ac7-5dfc-5cd5-ab57-1c28a2438178",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
+	},
+	{
+		"code": "ENTERTAINER_FEES",
+		"name": "Public entertainer income",
+		"previous_id": "526e4ac7-5dfc-5cd5-ab57-1c28a2438178",
+		"id": "fa39cbd4-3fa5-5d57-9cdc-0c5c0b9da5c2",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
 	}
 ]

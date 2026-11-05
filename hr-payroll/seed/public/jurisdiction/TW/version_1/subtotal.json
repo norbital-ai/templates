@@ -9,7 +9,7 @@
 	{
 		"code": "ORDINARY_WAGES",
 		"name": "Ordinary wages (經常性給與)",
-		"previous_id": "81c20bc3-1ba7-513c-af0f-8243667f8fcc",
+		"previous_id": "1fcfaf05-b5ec-4b3e-b631-f21514b18497",
 		"id": "8fce4375-6f07-59ee-81d3-89921a943a6d",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42"
 	},
@@ -21,16 +21,9 @@
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42"
 	},
 	{
-		"code": "GROSS",
-		"name": "Gross earnings (應發工資)",
-		"previous_id": "08d5806f-3609-50cf-a672-d97ae903f0dc",
-		"id": "d8284312-1607-5a5d-bf69-26d9f33a3fa2",
-		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42"
-	},
-	{
 		"code": "RETIREMENT",
 		"name": "Retirement and severance (退休金及資遣費)",
-		"previous_id": "d8284312-1607-5a5d-bf69-26d9f33a3fa2",
+		"previous_id": "08d5806f-3609-50cf-a672-d97ae903f0dc",
 		"id": "04e447ca-6956-5d66-97bb-23cf029de93d",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42"
 	},
@@ -46,6 +39,20 @@
 		"name": "Final pay and non-wage settlements",
 		"previous_id": "04e447ca-6956-5d66-97bb-23cf029de93d",
 		"id": "5a2fbd83-b6ed-5c5a-9346-c2a709d5c004",
+		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42"
+	},
+	{
+		"code": "BASIC_AFTER_PARENTAL_LEAVE",
+		"name": "Basic salary after parental leave (育嬰留職停薪後)",
+		"previous_id": "81c20bc3-1ba7-513c-af0f-8243667f8fcc",
+		"id": "0f186443-cc93-4c5e-a44a-a7f66bd2797a",
+		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42"
+	},
+	{
+		"code": "SALARY_INCOME",
+		"name": "Salary income (薪資所得)",
+		"previous_id": "0f186443-cc93-4c5e-a44a-a7f66bd2797a",
+		"id": "1fcfaf05-b5ec-4b3e-b631-f21514b18497",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42"
 	}
 ]

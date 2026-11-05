@@ -219,8 +219,7 @@
 			},
 			"eligibility": {
 				"excluded_employment_types": ["DOMESTIC"]
-			},
-			"encash_divisor": 26
+			}
 		},
 		"references": [
 			{
@@ -231,7 +230,7 @@
 		"off_cycle_eligible": false,
 		"id": "d2d58d69-3de9-5191-80b8-f36d41dadc0b",
 		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5",
-		"conversion": "// js\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst days = Number(get(ctx.entry, 'quantity', 0));\nconst normalDays = Number(get(terms, 'normal_days_per_week', 6));\nconst hours = Number(get(terms, 'normal_hours_per_day', 8));\nconst divisor = Number(get(ctx.lookup, 'encash_divisor', (normalDays * 52) / 12));\n// EA s.60E(3A), s.60I(1)(a): the ordinary rate of pay is s.2 wages, so fixed cash allowances count.\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, entry) =>\n\t\tget(entry[1], 'variability', 'FIXED') === 'VARIABLE'\n\t\t\t? total\n\t\t\t: total + Number(get(entry[1], 'amount', 0)),\n\t0\n);\nconst daily =\n\tunit === 'DAILY' ? amount\n\t: unit === 'HOURLY' ? amount * hours\n\t: (amount + fixed) / divisor;\nreturn daily * days;"
+		"conversion": "// js\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst days = Number(get(ctx.entry, 'quantity', 0));\nconst daily = ctx.day_rate;\nreturn daily * days;"
 	},
 	{
 		"code": "EMERGENCY_LEAVE",

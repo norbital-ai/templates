@@ -74,7 +74,7 @@ export default model('claim_catalog_entry', {
 		entity_id: { kind: 'ref', to: 'entity' },
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'claim_catalog_entry' },
 		catalog_id: { kind: 'ref', to: 'claim_catalog', onDelete: 'restrict' },
-		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true },
+		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, onDelete: 'setNull' },
 		quantity: { kind: 'decimal', scale: 12, min: 0, label: 'Amount' },
 		unit: {
 			kind: 'enum',

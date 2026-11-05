@@ -1,6 +1,9 @@
+import { Effect } from 'effect';
+import type { EffectCtx } from '@norbital-ai/bolt';
 import type { JsonObject } from './contracts.js';
-import { Refusal, leaveDays } from './foundation.js';
+import { Refusal, isJsonObject, leaveDays, type Json } from './foundation.js';
 import type { LedgerOperation } from './engine.js';
+import { queryRows } from './reads.js';
 
 export type AccountMap = Record<string, Record<string, number>>;
 
@@ -49,6 +52,146 @@ const amountOf = (entry: JsonObject, key = 'quantity'): number => {
 		throw new Refusal({ message: `${key}: expected a nonnegative quantity.` });
 	return value;
 };
+
+/** Each payroll run applies its own ledger entries to the balance, its projection. */
+export const postRunToBalances = Effect.fn('payroll.postRunToBalances')(function* (
+	ctx: EffectCtx,
+	runs: readonly { readonly id: string; readonly run_number: number; readonly pay_date: string }[]
+) {
+	const ids = runs.map(({ id }) => id);
+	const { payslip: slips = [] } = yield* queryRows(ctx.query, {
+		payslip: { where: { payroll_run_id: { in: ids } }, fields: ['employee_id'], limit: 10000 }
+	});
+	const { employee_balance: balances = [] } = yield* queryRows(ctx.query, {
+		employee_balance: {
+			where: { employee_id: { in: [...new Set(slips.map((row) => String(row.employee_id)))] } },
+			limit: 10000
+		}
+	});
+	const { ledger_entry: ledger = [] } = yield* queryRows(ctx.query, {
+		ledger_entry: {
+			where: {
+				balance_id: { in: balances.map((row) => String(row.id)) },
+				effective_on: { in: runs.map(({ pay_date }) => pay_date) }
+			},
+			limit: 10000
+		}
+	});
+	const entries = ledger.filter(
+		({ source_id: source }) => isJsonObject(source) && ids.includes(String(source.id))
+	);
+	// an effect can run again after a crash: a balance remembers the last run it took
+	const lastRun = Math.max(...runs.map(({ run_number }) => run_number));
+	const input: Json[] = balances.flatMap((balance) => {
+		const held = isJsonObject(balance.account) ? balance.account : {};
+		const ytd = isJsonObject(held.ytd) ? held.ytd : {};
+		if (Number(ytd.LAST_RUN ?? 0) >= lastRun) return [];
+		const account = Object.fromEntries(
+			Object.entries(held).map(([family, values]) => [
+				family,
+				Object.fromEntries(
+					Object.entries(isJsonObject(values) ? values : {}).map(([code, value]) => [
+						code,
+						Number(value)
+					])
+				)
+			])
+		);
+		// net pay can be negative and has no use held: `ytd` already carries the NET checkpoint
+		const own = entries.filter((row) => row.balance_id === balance.id && row.account !== 'payroll');
+		const posted = applyOperations(
+			account,
+			own.map((row) => ({
+				operation: row.operation as LedgerOperation['operation'],
+				account: String(row.account),
+				code: String(row.code),
+				amount: Number(row.amount),
+				effective_on: String(row.effective_on)
+			}))
+		);
+		return [
+			{
+				target: String(balance.id),
+				set: { account: { ...posted, ytd: { ...posted.ytd, LAST_RUN: lastRun } } }
+			}
+		];
+	});
+	if (input.length === 0) return;
+	yield* ctx.act.checked([{ callable: 'employee_balance.update', input }]);
+});
+
+/**
+ * A deleted run's ledger rows stay, unlinked. Whatever they still hold on its pay dates nets to one inverse entry per
+ * account code, so the balance returns to where it stood, and a second pass finds nothing left.
+ */
+export const reverseRunInBalances = Effect.fn('payroll.reverseRunInBalances')(function* (
+	ctx: EffectCtx,
+	runs: readonly { readonly pay_date: string }[]
+) {
+	const { ledger_entry: ledger = [] } = yield* queryRows(ctx.query, {
+		ledger_entry: {
+			where: {
+				effective_on: { in: [...new Set(runs.map(({ pay_date }) => pay_date))] },
+				account: { in: ['ytd', 'statutory_contribution', 'month', 'payroll'] }
+			},
+			limit: 10000
+		}
+	});
+	const orphaned = ledger.filter((row) => row.source_id == null);
+	const nets = new Map<string, { readonly row: JsonObject; net: number }>();
+	for (const row of orphaned) {
+		if (row.operation !== 'ADD' && row.operation !== 'DEDUCT') continue;
+		const key = JSON.stringify([row.balance_id, row.account, row.code, row.effective_on]);
+		const held = nets.get(key) ?? { row, net: 0 };
+		held.net += row.operation === 'ADD' ? Number(row.amount) : -Number(row.amount);
+		nets.set(key, held);
+	}
+	const inverse = [...nets.values()].flatMap(({ row, net }) =>
+		net === 0
+			? []
+			: [
+					{
+						balance_id: String(row.balance_id),
+						operation: net > 0 ? ('DEDUCT' as const) : ('ADD' as const),
+						account: String(row.account),
+						code: String(row.code),
+						amount: Math.abs(net),
+						effective_on: String(row.effective_on),
+						...(row.unit == null ? {} : { unit: String(row.unit) })
+					}
+				]
+	);
+	if (inverse.length === 0) return;
+	const ids = [...new Set(inverse.map((row) => row.balance_id))];
+	const { employee_balance: balances = [] } = yield* queryRows(ctx.query, {
+		employee_balance: { where: { id: { in: ids } }, limit: 10000 }
+	});
+	const updates: Json[] = balances.map((balance) => {
+		const held = isJsonObject(balance.account) ? balance.account : {};
+		const next: AccountMap = Object.fromEntries(
+			Object.entries(held).map(([family, values]) => [
+				family,
+				Object.fromEntries(
+					Object.entries(isJsonObject(values) ? values : {}).map(([code, value]) => [
+						code,
+						Number(value)
+					])
+				)
+			])
+		);
+		for (const row of inverse) {
+			if (row.balance_id !== balance.id || row.account === 'payroll') continue;
+			const family = (next[row.account] ??= {});
+			family[row.code] =
+				(family[row.code] ?? 0) + (row.operation === 'ADD' ? row.amount : -row.amount);
+		}
+		return { target: String(balance.id), set: { account: next } };
+	});
+	yield* ctx.act.checked([
+		{ callable: 'ledger_entry.create', input: inverse },
+		{ callable: 'employee_balance.update', input: updates }
+	]);
+});
 
 /** The approval-time operation. A reversal appends the inverse operation, never edits history. */
 export function approvalOperation(

@@ -178,7 +178,9 @@ export const HR_OPERATIONS = {
 	payroll_run: {
 		...READ_ALL.payroll_run,
 		create: true,
-		delete: true
+		update: true,
+		delete: true,
+		moves: 'all'
 	},
 	obligation: { ...READ_ALL.obligation, create: true, update: true, delete: true, moves: 'all' }
 } as const;

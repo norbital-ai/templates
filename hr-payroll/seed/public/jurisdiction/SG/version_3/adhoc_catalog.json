@@ -77,7 +77,7 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.subject.employment.terms.work_classification !== 'NON_EA';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
@@ -99,7 +99,7 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.subject.employment.terms.work_classification !== 'NON_EA';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
@@ -121,7 +121,7 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.subject.employment.terms.work_classification !== 'NON_EA';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
@@ -143,7 +143,7 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.subject.employment.terms.work_classification !== 'NON_EA';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
@@ -165,7 +165,7 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.subject.employment.terms.work_classification !== 'NON_EA';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
@@ -275,8 +275,8 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "9e5f643a-e386-5ddf-997c-abe871198bb8",
+		"off_cycle_eligible": false,
+		"subtotal_id": "50c38885-495f-5b18-baec-c430aa9265d1",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
@@ -319,7 +319,7 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
@@ -341,7 +341,7 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.subject.employment.terms.work_classification !== 'NON_EA';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
@@ -363,7 +363,7 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"eligibility": "// js\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.subject.employment.terms.work_classification !== 'NON_EA';",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
@@ -385,7 +385,7 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn ['CITIZEN', 'PERMANENT_RESIDENT'].includes(ctx.subject.employment.terms.residency_status);",
 		"id": "ef03309b-c4d5-592b-8029-f2406ad9db93",
@@ -403,8 +403,8 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "9e5f643a-e386-5ddf-997c-abe871198bb8",
+		"off_cycle_eligible": false,
+		"subtotal_id": "eacfeffb-ac59-5c21-8e1c-5f81ca51cd1d",
 		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
@@ -425,7 +425,7 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"id": "f62896b0-a044-5822-b4b3-a6510e4dbc18",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
@@ -442,7 +442,7 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"id": "47d620d5-1253-5354-933d-9d34ada72bf4",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
@@ -459,7 +459,7 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"id": "5093700c-c86e-5976-934a-491fa91e2998",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
@@ -476,7 +476,7 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"id": "e2de82f2-2ad8-5d7b-9a84-d1ee45134c1d",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
@@ -493,7 +493,7 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"id": "e71c8983-d6f5-5a92-af89-bfb5d7683269",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"

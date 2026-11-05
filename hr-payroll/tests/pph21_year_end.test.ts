@@ -6,6 +6,7 @@ import { describe, it } from '@effect/vitest';
 import { Schema } from 'effect';
 import { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
+import { isJsonObject } from '../src/lib/payroll_engine/foundation.ts';
 
 const catalog = Schema.decodeUnknownSync(Schema.Array(JsonObject))(
 	JSON.parse(
@@ -17,6 +18,11 @@ const catalog = Schema.decodeUnknownSync(Schema.Array(JsonObject))(
 );
 const pph21 = catalog.find((row) => row.code === 'PPH21');
 assert.ok(pph21 !== undefined);
+const [settings] = Schema.decodeUnknownSync(Schema.Array(Schema.Struct({ lookup: JsonObject })))(
+	JSON.parse(
+		readFileSync('seed/public/jurisdiction/ID/version_3/jurisdiction_settings.json', 'utf8')
+	)
+);
 
 describe('PPh 21 in December', () => {
 	it('adds the year of premiums and leaves BPJS Kesehatan undeducted', () => {
@@ -34,7 +40,7 @@ describe('PPh 21 in December', () => {
 					},
 					employer: { entity_id: 'entity' }
 				},
-				lookup: pph21.lookup,
+				lookup: { ...settings?.lookup, ...(isJsonObject(pph21.lookup) ? pph21.lookup : {}) },
 				run: { salary_coverage: { from: '2026-12-01', to: '2026-12-31' } },
 				as_of: '2026-12-31',
 				subtotals: { ADDITIONAL_WAGES: 10_000_000 },
@@ -45,23 +51,16 @@ describe('PPh 21 in December', () => {
 					JKM: { employee: 0, employer: 30_000 },
 					KESEHATAN: { employee: 100_000, employer: 400_000 }
 				},
-				history: {
-					payslips: Array.from({ length: 11 }, (_, index) => ({
-						period: `2026-${String(index + 1).padStart(2, '0')}`,
-						entity_id: 'entity',
-						gross_earnings: 10_000_000,
-						employee_statutory: 400_000,
-						breakdown: {
-							statutory: [
-								{ code: 'JHT', kind: 'CONTRIBUTION', employee: 200_000, employer: 370_000 },
-								{ code: 'JP', kind: 'CONTRIBUTION', employee: 100_000, employer: 200_000 },
-								{ code: 'JKK', kind: 'CONTRIBUTION', employee: 0, employer: 89_000 },
-								{ code: 'JKM', kind: 'CONTRIBUTION', employee: 0, employer: 30_000 },
-								{ code: 'KESEHATAN', kind: 'CONTRIBUTION', employee: 100_000, employer: 400_000 }
-							]
-						},
-						tax_withheld: 262_975
-					}))
+				balances: {
+					ytd: { ADDITIONAL_WAGES: 110_000_000 },
+					statutory_contribution: {
+						'JHT.employee': 2_200_000,
+						'JP.employee': 1_100_000,
+						'JKK.employer': 979_000,
+						'JKM.employer': 330_000,
+						'KESEHATAN.employer': 4_400_000,
+						'PPH21.employee': 2_892_725
+					}
 				}
 			},
 			'PPH21'

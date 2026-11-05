@@ -5,7 +5,6 @@
 		"lookup": {
 			"rate": 0.05,
 			"relief_percent": 3,
-			"ordinary_percent": 5,
 			"minimum_wage_base": 1650,
 			"maximum_wage_base": 20000,
 			"minimum_age": 15,
@@ -42,8 +41,8 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"eligibility": "// js\nconst data = get(ctx.subject.employment, 'employee_extension_data', {});\nconst facts = get(data, 'facts', data);\nif (get(facts, 'sso_excluded_category', null) !== null) return false;\n// Wages here are pay for normal hours (SSA s.5, WCA s.5): overtime and holiday-work pay stay out.\nconst base = get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay) - ctx.overtime;\nif (base <= 0) return false;\nconst dob = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nif (dob === null) return true;\nconst age = age_on(dob, ctx.run.salary_coverage.from);\nif (age < ctx.lookup.minimum_age) return false;\nif (age <= ctx.lookup.maximum_age) return true;\nreturn get(facts, 'sso_continuing_insured', false) === true;\n",
-		"employee_amount": "// js\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst from = ctx.run.salary_coverage.from;\n// Wages here are pay for normal hours (SSA s.5, WCA s.5): overtime and holiday-work pay stay out.\nconst wages = get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay) - ctx.overtime;\nconst base = clamp(wages, ctx.lookup.minimum_wage_base, ctx.lookup.maximum_wage_base);\nconst ordinary = round(base * ctx.lookup.rate, ctx.lookup.rounding_unit, 'HALF_UP');\nif (!ctx.lookup.relief_regions.includes(get(entity, 'region', ''))) return ordinary;\nif (from < ctx.lookup.relief_from) return ordinary;\nif (from > ctx.lookup.relief_to) return ordinary;\n// Ministry of Labour notification B.E. 2569: employers registered in the nine southern provinces\n// pay 3 percent a side for December 2025 to May 2026, without any application.\nconst relief = round((base * ctx.lookup.relief_percent) / 100, ctx.lookup.rounding_unit, 'HALF_UP');\n// An SSO assessment of 5 percent for this month means the employer is registered elsewhere.\nif (Number(get(entity, 'sso_reviewed_rate_percent', 0)) !== ctx.lookup.ordinary_percent) return relief;\nif (get(entity, 'sso_rate_review_month', null) !== from.slice(0, 7)) return relief;\nif (get(entity, 'sso_rate_review_reference', '') === '') return relief;\nreturn ordinary;\n",
-		"employer_amount": "// js\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst from = ctx.run.salary_coverage.from;\n// Wages here are pay for normal hours (SSA s.5, WCA s.5): overtime and holiday-work pay stay out.\nconst wages = get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay) - ctx.overtime;\nconst base = clamp(wages, ctx.lookup.minimum_wage_base, ctx.lookup.maximum_wage_base);\nconst ordinary = round(base * ctx.lookup.rate, ctx.lookup.rounding_unit, 'HALF_UP');\nif (!ctx.lookup.relief_regions.includes(get(entity, 'region', ''))) return ordinary;\nif (from < ctx.lookup.relief_from) return ordinary;\nif (from > ctx.lookup.relief_to) return ordinary;\n// Ministry of Labour notification B.E. 2569: employers registered in the nine southern provinces\n// pay 3 percent a side for December 2025 to May 2026, without any application.\nconst relief = round((base * ctx.lookup.relief_percent) / 100, ctx.lookup.rounding_unit, 'HALF_UP');\n// An SSO assessment of 5 percent for this month means the employer is registered elsewhere.\nif (Number(get(entity, 'sso_reviewed_rate_percent', 0)) !== ctx.lookup.ordinary_percent) return relief;\nif (get(entity, 'sso_rate_review_month', null) !== from.slice(0, 7)) return relief;\nif (get(entity, 'sso_rate_review_reference', '') === '') return relief;\nreturn ordinary;\n",
+		"employee_amount": "// js\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst from = ctx.run.salary_coverage.from;\n// Wages here are pay for normal hours (SSA s.5, WCA s.5): overtime and holiday-work pay stay out.\nconst wages = get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay) - ctx.overtime;\nconst base = clamp(wages, ctx.lookup.minimum_wage_base, ctx.lookup.maximum_wage_base);\nconst ordinary = round(base * ctx.lookup.rate, ctx.lookup.rounding_unit, 'HALF_UP');\nif (!ctx.lookup.relief_regions.includes(get(entity, 'region', ''))) return ordinary;\nif (from < ctx.lookup.relief_from) return ordinary;\nif (from > ctx.lookup.relief_to) return ordinary;\n// Ministry of Labour notification B.E. 2569: employers registered in the nine southern provinces\n// pay 3 percent a side for December 2025 to May 2026, without any application.\nconst relief = round((base * ctx.lookup.relief_percent) / 100, ctx.lookup.rounding_unit, 'HALF_UP');\n// An SSO assessment of 5 percent for this month means the employer is registered elsewhere.\nif (Number(get(entity, 'sso_reviewed_rate_percent', 0)) !== ctx.lookup.rate * 100) return relief;\nif (get(entity, 'sso_rate_review_month', null) !== from.slice(0, 7)) return relief;\nif (get(entity, 'sso_rate_review_reference', '') === '') return relief;\nreturn ordinary;\n",
+		"employer_amount": "// js\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst from = ctx.run.salary_coverage.from;\n// Wages here are pay for normal hours (SSA s.5, WCA s.5): overtime and holiday-work pay stay out.\nconst wages = get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay) - ctx.overtime;\nconst base = clamp(wages, ctx.lookup.minimum_wage_base, ctx.lookup.maximum_wage_base);\nconst ordinary = round(base * ctx.lookup.rate, ctx.lookup.rounding_unit, 'HALF_UP');\nif (!ctx.lookup.relief_regions.includes(get(entity, 'region', ''))) return ordinary;\nif (from < ctx.lookup.relief_from) return ordinary;\nif (from > ctx.lookup.relief_to) return ordinary;\n// Ministry of Labour notification B.E. 2569: employers registered in the nine southern provinces\n// pay 3 percent a side for December 2025 to May 2026, without any application.\nconst relief = round((base * ctx.lookup.relief_percent) / 100, ctx.lookup.rounding_unit, 'HALF_UP');\n// An SSO assessment of 5 percent for this month means the employer is registered elsewhere.\nif (Number(get(entity, 'sso_reviewed_rate_percent', 0)) !== ctx.lookup.rate * 100) return relief;\nif (get(entity, 'sso_rate_review_month', null) !== from.slice(0, 7)) return relief;\nif (get(entity, 'sso_rate_review_reference', '') === '') return relief;\nreturn ordinary;\n",
 		"id": "9dd5db83-3f8e-5136-a291-d006d211d86d",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
 	},
@@ -4417,8 +4416,7 @@
 					"percent": 0.4
 				}
 			],
-			"annual_wage_ceiling": 240000,
-			"rounding_step": 0.01
+			"annual_wage_ceiling": 240000
 		},
 		"references": [
 			{
@@ -4434,20 +4432,16 @@
 		"employer_cost_subtotal_id": "999dc181-b877-52a5-ad41-cc383b47a27f",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
-		"eligibility": "// js\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst data = get(ctx.subject.employment, 'employee_extension_data', {});\nconst facts = get(data, 'facts', data);\nconst wcf = get(get(facts, 'statutory', {}), 'WCF', {});\nconst elections = get(wcf, 'elections', {});\nconst code = String(get(entity, 'risk_class', ''));\nconst notified = get(entity, 'wcf_rate_percent', null);\nconst found = ctx.lookup.rates.find((row) => row.code === code);\nif (notified === null && found === undefined)\n  throw 'Thailand WCF needs the employer business code (risk_class) or the notified wcf_rate_percent.';\n// Wages here are pay for normal hours (SSA s.5, WCA s.5): overtime and holiday-work pay stay out.\nconst base = get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay) - ctx.overtime;\nif (base <= 0) return false;\nconst from = ctx.run.salary_coverage.from;\nconst year = from.slice(0, 4);\nconst start = get(ctx.subject.employment, 'effective_range.from', '');\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst full_year = start <= year + '-01-01' && (end === null || end >= year + '-12-31');\nconst part_year = 'Thailand WCF covering less than a full calendar year needs the reviewed proportional annual wage ceiling, matching calendar year and evidence.';\nif (!full_year && get(elections, 'wcf_reviewed_annual_wage_ceiling', null) === null) throw part_year;\nif (!full_year && get(elections, 'wcf_ceiling_review_tax_year', '') !== year) throw part_year;\nif (!full_year && get(elections, 'wcf_ceiling_review_reference', '') === '') throw part_year;\nif (from < '2027-01-01') return true;\nconst unreviewed = 'Thailand WCF 2027 onward needs the actual SSO-notified annual rate, matching calendar year and review reference.';\nif (notified === null) throw unreviewed;\nif (get(entity, 'wcf_rate_review_calendar_year', '') !== year) throw unreviewed;\nif (get(entity, 'wcf_rate_review_reference', '') === '') throw unreviewed;\nreturn true;\n",
+		"eligibility": "// js\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst data = get(ctx.subject.employment, 'employee_extension_data', {});\nconst facts = get(data, 'facts', data);\nconst wcf = get(get(facts, 'statutory', {}), 'WCF', {});\nconst elections = get(wcf, 'elections', {});\nconst code = String(get(entity, 'risk_class', ''));\nconst notified = get(entity, 'wcf_rate_percent', null);\nconst found = ctx.lookup.rates.find((row) => row.code === code);\nif (notified === null && found === undefined)\n  throw 'Thailand WCF needs the employer business code (risk_class) or the notified wcf_rate_percent.';\n// Wages here are pay for normal hours (SSA s.5, WCA s.5): overtime and holiday-work pay stay out.\nconst base = get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay) - ctx.overtime;\nif (base <= 0) return false;\nconst from = ctx.run.salary_coverage.from;\nconst year = from.slice(0, 4);\nconst start = get(ctx.subject.employment, 'effective_range.from', '');\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst full_year = start <= year + '-01-01' && (end === null || end >= year + '-12-31');\nconst part_year = 'Thailand WCF covering less than a full calendar year needs the reviewed proportional annual wage ceiling, matching calendar year and evidence.';\nif (!full_year && get(elections, 'wcf_reviewed_annual_wage_ceiling', null) === null) throw part_year;\nif (!full_year && get(elections, 'wcf_ceiling_review_tax_year', '') !== year) throw part_year;\nif (!full_year && get(elections, 'wcf_ceiling_review_reference', '') === '') throw part_year;\nreturn true;\n",
 		"employee_amount": "// js\nreturn 0;",
-		"employer_amount": "// js\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst data = get(ctx.subject.employment, 'employee_extension_data', {});\nconst facts = get(data, 'facts', data);\nconst wcf = get(get(facts, 'statutory', {}), 'WCF', {});\nconst elections = get(wcf, 'elections', {});\nconst code = String(get(entity, 'risk_class', ''));\nconst notified = get(entity, 'wcf_rate_percent', null);\nconst found = ctx.lookup.rates.find((row) => row.code === code);\nconst percent = notified === null ? found.percent : Number(notified);\nconst from = ctx.run.salary_coverage.from;\nconst start = get(ctx.subject.employment, 'effective_range.from', '');\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst full_year = start <= from.slice(0, 4) + '-01-01' &&\n  (end === null || end >= from.slice(0, 4) + '-12-31');\nconst ceiling = full_year\n  ? ctx.lookup.annual_wage_ceiling\n  : Number(get(elections, 'wcf_reviewed_annual_wage_ceiling', 0));\n// The ceiling is a calendar year's (notification cl.11): only this year's contributions count against it.\nconst prior = get(ctx.history, 'payslips', [])\n  .filter((row) => String(get(row, 'period', '')).slice(0, 4) === from.slice(0, 4))\n  .flatMap((row) => get(row, 'breakdown.statutory', []))\n  .filter((scheme) => scheme.code === 'WCF')\n  .reduce((total, scheme) => total + scheme.employer, 0);\nconst cap = round((ceiling * percent) / 100, ctx.lookup.rounding_step, 'HALF_UP');\n// Wages here are pay for normal hours (SSA s.5, WCA s.5): overtime and holiday-work pay stay out.\nconst wages = get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay) - ctx.overtime;\nconst charged = round((wages * percent) / 100, ctx.lookup.rounding_step, 'HALF_UP');\nreturn Math.max(0, Math.min(Number(cap) - prior, Number(charged)));",
+		"employer_amount": "// js\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst data = get(ctx.subject.employment, 'employee_extension_data', {});\nconst facts = get(data, 'facts', data);\nconst wcf = get(get(facts, 'statutory', {}), 'WCF', {});\nconst elections = get(wcf, 'elections', {});\nconst code = String(get(entity, 'risk_class', ''));\nconst notified = get(entity, 'wcf_rate_percent', null);\nconst found = ctx.lookup.rates.find((row) => row.code === code);\nconst percent = notified === null ? found.percent : Number(notified);\nconst from = ctx.run.salary_coverage.from;\nconst start = get(ctx.subject.employment, 'effective_range.from', '');\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst full_year = start <= from.slice(0, 4) + '-01-01' &&\n  (end === null || end >= from.slice(0, 4) + '-12-31');\nconst ceiling = full_year\n  ? ctx.lookup.annual_wage_ceiling\n  : Number(get(elections, 'wcf_reviewed_annual_wage_ceiling', 0));\n// The ceiling is a calendar year's (notification cl.11): the balance holds this year's contributions only.\nconst paid = get(ctx.balances, 'statutory_contribution', {});\nconst prior = Object.hasOwn(paid, 'WCF.employer') ? paid['WCF.employer'] : 0;\nconst cap = round((ceiling * percent) / 100, ctx.lookup.rounding_step, 'HALF_UP');\n// Wages here are pay for normal hours (SSA s.5, WCA s.5): overtime and holiday-work pay stay out.\nconst wages = get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay) - ctx.overtime;\nconst charged = round((wages * percent) / 100, ctx.lookup.rounding_step, 'HALF_UP');\nreturn Math.max(0, Math.min(Number(cap) - prior, Number(charged)));",
 		"id": "69f2f4ba-c597-5e09-a10e-faa109b9d58f",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
 	},
 	{
 		"code": "PVD",
 		"name": "Provident fund (กองทุนสำรองเลี้ยงชีพ)",
-		"lookup": {
-			"minimum_percent": 2,
-			"maximum_percent": 15,
-			"rounding_step": 0.01
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Provident Fund Act B.E. 2530 (1987) s.10 (as amended by Act No. 4 B.E. 2558)",
@@ -4467,7 +4461,7 @@
 		"employer_cost_subtotal_id": "999dc181-b877-52a5-ad41-cc383b47a27f",
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
-		"eligibility": "// js\nconst data = get(ctx.subject.employment, 'employee_extension_data', {});\nconst facts = get(data, 'facts', data);\nconst pvd = get(get(facts, 'statutory', {}), 'PVD', {});\nif (get(pvd, 'kind', '') !== 'MEMBER') return false;\n// PVD Act s.3: wages exclude overtime and holiday pay.\nconst base = get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay) - ctx.overtime;\nif (base <= 0) return false;\nconst employee = Number(get(get(pvd, 'elections', {}), 'employee_percent', 0));\nconst employer = Number(get(ctx.subject.employer, 'entity_extension_data.pvd_employer_percent', 0));\nconst refused = 'Thailand PVD members require registered employee and employer rates of 2%-15%.';\nif (employee < ctx.lookup.minimum_percent) throw refused;\nif (employee > ctx.lookup.maximum_percent) throw refused;\nif (employer < ctx.lookup.minimum_percent) throw refused;\nif (employer > ctx.lookup.maximum_percent) throw refused;\nreturn true;\n",
+		"eligibility": "// js\nconst data = get(ctx.subject.employment, 'employee_extension_data', {});\nconst facts = get(data, 'facts', data);\nconst pvd = get(get(facts, 'statutory', {}), 'PVD', {});\nif (get(pvd, 'kind', '') !== 'MEMBER') return false;\n// PVD Act s.3: wages exclude overtime and holiday pay.\nconst base = get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay) - ctx.overtime;\nif (base <= 0) return false;\nconst employee = Number(get(get(pvd, 'elections', {}), 'employee_percent', 0));\nconst employer = Number(get(ctx.subject.employer, 'entity_extension_data.pvd_employer_percent', 0));\nconst refused = 'Thailand PVD members require registered employee and employer rates of 2%-15%.';\nif (employee < ctx.lookup.pvd_minimum_percent) throw refused;\nif (employee > ctx.lookup.pvd_maximum_percent) throw refused;\nif (employer < ctx.lookup.pvd_minimum_percent) throw refused;\nif (employer > ctx.lookup.pvd_maximum_percent) throw refused;\nreturn true;\n",
 		"employee_amount": "// js\nconst data = get(ctx.subject.employment, 'employee_extension_data', {});\nconst facts = get(data, 'facts', data);\nconst elections = get(get(get(facts, 'statutory', {}), 'PVD', {}), 'elections', {});\nconst percent = Number(get(elections, 'employee_percent', 0));\nconst base = get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay) - ctx.overtime;\nreturn round((base * percent) / 100, ctx.lookup.rounding_step, 'HALF_UP');",
 		"employer_amount": "// js\nconst percent = Number(get(ctx.subject.employer, 'entity_extension_data.pvd_employer_percent', 0));\nconst base = get(ctx.subtotals, 'ORDINARY_WAGES', ctx.base_pay) - ctx.overtime;\nreturn round((base * percent) / 100, ctx.lookup.rounding_step, 'HALF_UP');",
 		"id": "f53f9f7a-7250-5804-af64-a5ac6127dd6f",
@@ -4477,40 +4471,6 @@
 		"code": "PND1",
 		"name": "Personal income tax withholding (ภ.ง.ด.1)",
 		"lookup": {
-			"ladder": [
-				{
-					"up_to": 150000,
-					"rate": 0
-				},
-				{
-					"up_to": 300000,
-					"rate": 0.05
-				},
-				{
-					"up_to": 500000,
-					"rate": 0.1
-				},
-				{
-					"up_to": 750000,
-					"rate": 0.15
-				},
-				{
-					"up_to": 1000000,
-					"rate": 0.2
-				},
-				{
-					"up_to": 2000000,
-					"rate": 0.25
-				},
-				{
-					"up_to": 5000000,
-					"rate": 0.3
-				},
-				{
-					"up_to": null,
-					"rate": 0.35
-				}
-			],
 			"employment_expense_share": 0.5,
 			"employment_expense_limit": 100000,
 			"personal_allowance": 60000,
@@ -4523,9 +4483,7 @@
 			"pension_insurance_income_share_limit": 0.15,
 			"pension_insurance_limit": 200000,
 			"combined_retirement_savings_limit": 500000,
-			"elderly_or_disabled_exemption": 190000,
-			"severance_daily_wages_limit": 400,
-			"severance_exemption_limit": 600000
+			"elderly_or_disabled_exemption": 190000
 		},
 		"references": [
 			{
@@ -4536,26 +4494,84 @@
 			},
 			{
 				"title": "Revenue Department Order Por.96/2543 on withholding under s.50(1)",
-				"locator": "cl.1(1)-(5)",
+				"locator": "cl.1(1)-(5), cl.3",
 				"url": "https://www.rd.go.th/3558.html",
-				"quote": "Regular pay is annualised over the payments of the year, a mid-year joiner over the payments left; the tax a bonus or overtime adds is withheld whole in the month it is paid."
+				"quote": "Regular pay is annualised over the payments actually due in the year; the tax a bonus or overtime adds is withheld whole in the month it is paid; in the last month of work the payer may recompute on actual deductions."
 			},
 			{
 				"title": "Revenue Department, allowances and deductions; Form PND91 instructions, tax year 2024",
 				"locator": "items on the provident fund, social security and the combined limit",
 				"url": "https://www.rd.go.th/62777.html",
 				"quote": "Social security contributions as paid; provident fund savings to 15 percent of wages, the first 10,000 baht a deduction and the rest to 490,000 baht exempt, within the 500,000 baht limit shared with pension insurance. Employee Welfare Fund savings are not a listed relief."
+			},
+			{
+				"title": "Revenue Code s.47(3)",
+				"locator": "s.47(3)",
+				"url": "https://www.rd.go.th/5937.html",
+				"quote": "A taxpayer not resident in Thailand deducts the spouse and child allowances only for a spouse and children in Thailand."
+			},
+			{
+				"title": "Ministerial Regulation No. 126 cl.2(51) as amended by Ministerial Regulation No. 394 (B.E. 2567)",
+				"locator": "Royal Gazette vol.141 pt.44 Kor p.13",
+				"url": "https://www.rd.go.th/fileadmin/user_upload/kormor/newlaw/mr394A.pdf",
+				"quote": "Severance under labour law is exempt up to the wages of the last 400 days and 600,000 baht, except on retirement or the end of a contract."
+			},
+			{
+				"title": "Revenue Department ruling Kor Kor 0702/760 of 28 January 2010, in the manual on income from leaving work",
+				"locator": "Manual pp.38-39",
+				"url": "https://www.rd.go.th/fileadmin/download/leave_of_work.pdf",
+				"quote": "Pay in lieu of notice is s.40(1) income joined with other income, not a s.48(5) lump sum; severance-style pay to an employee who resigned is not exempt."
 			}
 		],
 		"off_cycle_eligible": false,
 		"subtotal_id": "999dc181-b877-52a5-ad41-cc383b47a27f",
 		"employer_cost_subtotal_id": "999dc181-b877-52a5-ad41-cc383b47a27f",
 		"kind": "TAX",
-		"depends_on": ["SSO", "PVD"],
-		"eligibility": "// js\nreturn get(ctx.subtotals, 'ADDITIONAL_WAGES', get(ctx.subtotals, 'ORDINARY_WAGES', 0)) > 0;",
-		"employee_amount": "// js\nconst from = ctx.run.salary_coverage.from;\nconst tax_year = from.slice(0, 4);\nconst wages = get(ctx.subtotals, 'ORDINARY_WAGES', 0);\n// Overtime and a bonus are extra payments of their month, never projected over the year (Por.96/2543 cl.1(5)).\nconst ordinary = wages - ctx.overtime;\nconst additional = get(ctx.subtotals, 'ADDITIONAL_WAGES', wages) - ordinary;\nif (ordinary + additional <= 0) return 0;\n// Actual wages and tax this employer already paid in the tax year; reimbursed travel is exempt (s.42(1)).\nconst prior = get(ctx.history, 'payslips', []).filter(\n  (row) => String(get(row, 'period', '')).slice(0, 4) === tax_year\n);\nconst paid_income = sum_field(prior, 'ordinary_wages') + sum_field(prior, 'additional_wages');\nconst paid_schemes = prior.flatMap((row) => get(row, 'breakdown.statutory', []));\nconst paid_scheme = (code) =>\n  paid_schemes\n    .filter((scheme) => scheme.code === code)\n    .reduce((total, scheme) => total + scheme.employee, 0);\nconst paid_tax = sum_field(prior, 'tax_withheld');\nconst month = Number(from.slice(5, 7));\nconst remaining = Math.max(1, 13 - month);\nconst data = get(ctx.subject.employment, 'employee_extension_data', {});\nconst facts = get(data, 'facts', data);\nconst elections = get(get(get(facts, 'statutory', {}), 'PND1', {}), 'elections', {});\n// Earlier-employer income and tax join this PND1 only when the same withholding\n// agent/declaration continues; otherwise they are reconciled in the annual return.\nconst same_agent = get(elections, 'same_withholding_agent', false) === true;\nconst previous_income = same_agent ? Number(get(elections, 'previous_employer_income', 0)) : 0;\nconst previous_tax = same_agent ? Number(get(elections, 'previous_employer_tax', 0)) : 0;\n// Benefits in kind are taxable but not paid, so no payslip carries them: the year counts\n// them from the first month of this employment.\nconst start = String(get(ctx.subject.employment, 'effective_range.from', ''));\nconst first_month = start.slice(0, 4) === tax_year ? Number(start.slice(5, 7)) : 1;\nconst bik =\n  Number(get(ctx.subject.employment, 'terms.allowances.BENEFIT_IN_KIND.amount', 0)) * (13 - first_month);\n// Actual year-to-date wages and the current ordinary pay projected over the months left.\nconst regular = paid_income + previous_income + ordinary * remaining + bik;\nconst marital = get(ctx.subject.employment, 'payroll.marital_status', 'SINGLE');\nconst spouse =\n  marital === 'MARRIED' && get(elections, 'spouse_income_status', '') === 'WITHOUT_INCOME'\n    ? ctx.lookup.personal_allowance\n    : 0;\nconst children =\n  (Number(get(elections, 'child_allowance_count', 0)) +\n    Number(get(elections, 'second_child_from_2018_count', 0))) *\n  ctx.lookup.child_allowance;\nconst parents =\n  Math.min(Number(get(elections, 'parents_count', 0)), 4) * ctx.lookup.parent_allowance;\nconst disabled =\n  Number(get(elections, 'disabled_dependants_count', 0)) *\n  ctx.lookup.disabled_dependant_allowance;\nconst health = Math.min(\n  Number(get(elections, 'parents_health_insurance', 0)),\n  ctx.lookup.parent_health_insurance_limit\n);\nconst life = Math.min(Number(get(elections, 'life_insurance', 0)), ctx.lookup.life_insurance_limit);\nconst home = Math.min(\n  Number(get(elections, 'home_loan_interest', 0)),\n  ctx.lookup.home_loan_interest_limit\n);\nconst other = Number(get(elections, 'other_annual_deductions', 0));\nconst dob = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nconst age = dob === null ? 0 : age_on(dob, from.slice(0, 4) + '-12-31');\nconst elderly =\n  age >= 65 || get(get(data, 'term_facts', {}), 'disabled', false) === true\n    ? Math.max(\n        0,\n        ctx.lookup.elderly_or_disabled_exemption -\n          Number(get(elections, 'exempt_190k_used_elsewhere', 0))\n      )\n    : 0;\n// Each scheme is relieved by its own rule: social security as paid (s.47(1)), the provident fund\n// inside the combined retirement limit. Employee Welfare Fund savings have no relief.\nconst sso = paid_scheme('SSO') + Number(get(get(ctx.statutory, 'SSO', {}), 'employee', 0)) * remaining;\nconst pvd = paid_scheme('PVD') + Number(get(get(ctx.statutory, 'PVD', {}), 'employee', 0)) * remaining;\nconst paid_pension = Number(get(elections, 'pension_insurance', 0));\nconst allowance =\n  ctx.lookup.personal_allowance +\n  spouse +\n  children +\n  parents +\n  disabled +\n  health +\n  life +\n  home +\n  other;\nconst annual_tax = (gross) => {\n  const expense = Math.min(\n    gross * ctx.lookup.employment_expense_share,\n    ctx.lookup.employment_expense_limit\n  );\n  const pension = Math.min(\n    paid_pension,\n    gross * ctx.lookup.pension_insurance_income_share_limit,\n    ctx.lookup.pension_insurance_limit\n  );\n  const retirement = Math.min(pvd + pension, ctx.lookup.combined_retirement_savings_limit);\n  const taxable = Math.max(0, gross - expense - allowance - elderly - sso - retirement);\n  return ladder(taxable, ctx.lookup.ladder);\n};\nconst regular_tax = annual_tax(regular);\nconst credited = paid_tax + previous_tax;\n// Por.96/2543 cl.1(5): the tax an extra payment adds is withheld whole in the month it is paid.\nconst extra_tax = annual_tax(regular + additional) - regular_tax;\nreturn Math.max(0, round((regular_tax - credited) / remaining + extra_tax, 0.01, 'HALF_UP'));\n",
+		"depends_on": ["SSO", "PVD", "PND1_SEVERANCE"],
+		"eligibility": "// js\nreturn get(ctx.subtotals, 'SEVERANCE', 0) > 0;\n",
+		"employee_amount": "// js\nconst employment = ctx.subject.employment;\nconst from = ctx.run.salary_coverage.from;\n// The tax year is cash: the year of the pay date, when the balances reset.\nconst pay_date = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst tax_year = pay_date.slice(0, 4);\nconst wages = get(ctx.subtotals, 'ORDINARY_WAGES', 0);\n// Overtime and a bonus are extra payments of their month, never projected over the year (Por.96/2543 cl.1(5)).\nconst ordinary = wages - ctx.overtime;\n// Pay in lieu of notice joins them: s.40(1) income, not a s.48(5) lump sum (ruling Kor Kor 0702/760).\nconst notice_total = get(ctx.subtotals, 'NOTICE_PAY', wages);\nconst extra = notice_total - ordinary;\n// Severance is exempt to 400 days' wages and 600,000 baht, never on retirement, the end of a contract or a\n// resignation (MR 126 cl.2(51), MR 394). The taxed part joins the year unless PND1_SEVERANCE takes it apart.\nconst ground = get(employment, 'employee_extension_data.exit_facts.exit_ground', '');\nconst exempt = ctx.lookup.severance_taxed_grounds.includes(ground)\n  ? 0\n  : Math.min(ctx.lookup.severance_daily_wages_limit * ctx.day_rate, ctx.lookup.severance_exemption_limit);\nconst separate = get(ctx.statutory, 'PND1_SEVERANCE', null) !== null;\nconst taxed = (severance) => (separate ? 0 : Math.max(0, severance - exempt));\n// Actual income and tax this employer already paid in the tax year; reimbursed travel is exempt (s.42(1)).\nconst ytd = get(ctx.balances, 'ytd', {});\nconst paid_income = get(ytd, 'NOTICE_PAY', get(ytd, 'GROSS', 0));\nconst paid_severance = get(ytd, 'SEVERANCE', paid_income) - paid_income;\nconst paid_taxed = taxed(paid_severance);\nconst severance = get(ctx.subtotals, 'SEVERANCE', notice_total) - notice_total;\nconst severance_taxed = taxed(paid_severance + severance) - paid_taxed;\nif (ordinary + extra + severance_taxed <= 0) return 0;\nconst paid = get(ctx.balances, 'statutory_contribution', {});\nconst paid_scheme = (key) => (Object.hasOwn(paid, key) ? paid[key] : 0);\nconst month = Number(pay_date.slice(5, 7));\n// The payments actually due (Por.96/2543 cl.1(1)): none past December or the last month of the contract.\nconst end = get(employment, 'effective_range.to', null);\nconst months_left = end === null ? 12 : calendar_completed_months(month_start(from), end) + 1;\nconst remaining = Math.max(1, Math.min(13 - month, months_left));\nconst data = get(employment, 'employee_extension_data', {});\nconst facts = get(data, 'facts', data);\nconst elections = get(get(get(facts, 'statutory', {}), 'PND1', {}), 'elections', {});\n// Earlier-employer income and tax join this PND1 only when the same withholding\n// agent/declaration continues; otherwise they are reconciled in the annual return.\nconst same_agent = get(elections, 'same_withholding_agent', false) === true;\nconst previous_income = same_agent ? Number(get(elections, 'previous_employer_income', 0)) : 0;\nconst previous_tax = same_agent ? Number(get(elections, 'previous_employer_tax', 0)) : 0;\n// Benefits in kind are taxable but not paid, so no payslip carries them: the year counts\n// them over the months of this employment inside it.\nconst start = String(get(employment, 'effective_range.from', ''));\nconst first_month = start.slice(0, 4) === tax_year ? Number(start.slice(5, 7)) : 1;\nconst last_month =\n  end === null || end.slice(0, 4) > tax_year\n    ? 12\n    : end.slice(0, 4) < tax_year\n      ? 0\n      : Number(end.slice(5, 7));\nconst bik =\n  Number(get(employment, 'terms.allowances.BENEFIT_IN_KIND.amount', 0)) *\n  Math.max(0, last_month - first_month + 1);\n// Actual year-to-date income and the current ordinary pay projected over the payments left.\nconst regular = paid_income + paid_taxed + previous_income + ordinary * remaining + bik;\n// Revenue Code s.47(3): a non-resident deducts only a spouse and children in Thailand. No input\n// records that, so payroll gives neither and the annual return claims them.\nconst resident = get(employment, 'terms.residency_status', 'RESIDENT') !== 'NON_RESIDENT';\nconst marital = get(employment, 'payroll.marital_status', 'SINGLE');\nconst spouse =\n  resident && marital === 'MARRIED' && get(elections, 'spouse_income_status', '') === 'WITHOUT_INCOME'\n    ? ctx.lookup.personal_allowance\n    : 0;\nconst children = resident\n  ? (Number(get(elections, 'child_allowance_count', 0)) +\n      Number(get(elections, 'second_child_from_2018_count', 0))) *\n    ctx.lookup.child_allowance\n  : 0;\nconst parents =\n  Math.min(Number(get(elections, 'parents_count', 0)), 4) * ctx.lookup.parent_allowance;\nconst disabled =\n  Number(get(elections, 'disabled_dependants_count', 0)) *\n  ctx.lookup.disabled_dependant_allowance;\nconst health = Math.min(\n  Number(get(elections, 'parents_health_insurance', 0)),\n  ctx.lookup.parent_health_insurance_limit\n);\nconst life = Math.min(Number(get(elections, 'life_insurance', 0)), ctx.lookup.life_insurance_limit);\nconst home = Math.min(\n  Number(get(elections, 'home_loan_interest', 0)),\n  ctx.lookup.home_loan_interest_limit\n);\nconst other = Number(get(elections, 'other_annual_deductions', 0));\nconst dob = get(employment, 'payroll.date_of_birth', null);\nconst age = dob === null ? 0 : age_on(dob, tax_year + '-12-31');\nconst elderly =\n  age >= 65 || get(get(data, 'term_facts', {}), 'disabled', false) === true\n    ? Math.max(\n        0,\n        ctx.lookup.elderly_or_disabled_exemption -\n          Number(get(elections, 'exempt_190k_used_elsewhere', 0))\n      )\n    : 0;\n// Each scheme is relieved by its own rule: social security as paid (s.47(1)), the provident fund\n// inside the combined retirement limit. Employee Welfare Fund savings have no relief.\nconst sso = paid_scheme('SSO.employee') + Number(get(get(ctx.statutory, 'SSO', {}), 'employee', 0)) * remaining;\nconst pvd = paid_scheme('PVD.employee') + Number(get(get(ctx.statutory, 'PVD', {}), 'employee', 0)) * remaining;\nconst paid_pension = Number(get(elections, 'pension_insurance', 0));\nconst allowance =\n  ctx.lookup.personal_allowance +\n  spouse +\n  children +\n  parents +\n  disabled +\n  health +\n  life +\n  home +\n  other;\nconst annual_tax = (gross) => {\n  const expense = Math.min(\n    gross * ctx.lookup.employment_expense_share,\n    ctx.lookup.employment_expense_limit\n  );\n  const pension = Math.min(\n    paid_pension,\n    gross * ctx.lookup.pension_insurance_income_share_limit,\n    ctx.lookup.pension_insurance_limit\n  );\n  const retirement = Math.min(pvd + pension, ctx.lookup.combined_retirement_savings_limit);\n  const taxable = Math.max(0, gross - expense - allowance - elderly - sso - retirement);\n  return ladder(taxable, ctx.lookup.ladder);\n};\nconst regular_tax = annual_tax(regular);\nconst credited = paid_scheme('PND1.employee') + previous_tax;\n// Por.96/2543 cl.1(5): the tax an extra payment adds is withheld whole in the month it is paid.\nconst extra_tax = annual_tax(regular + extra + severance_taxed) - regular_tax;\nreturn Math.max(0, round((regular_tax - credited) / remaining + extra_tax, ctx.lookup.rounding_step, 'HALF_UP'));\n",
 		"employer_amount": "// js\nreturn 0;",
 		"id": "4a09d114-4dcb-547b-ac0a-cb29ed237e82",
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+	},
+	{
+		"code": "PND1_SEVERANCE",
+		"name": "Tax on severance filed apart (s.48(5))",
+		"lookup": {
+			"qualifying_years": 5,
+			"part_year_days": 183,
+			"expense_per_year": 7000,
+			"expense_share": 0.5
+		},
+		"references": [
+			{
+				"title": "Revenue Code s.48(5)",
+				"locator": "s.48(5)",
+				"url": "https://www.rd.go.th/5937.html",
+				"quote": "Lump-sum pay on leaving may be taxed apart: 7,000 baht a year of service, then 50 percent of the rest, then the tax rates; 183 days of a part year count as a year."
+			},
+			{
+				"title": "Director-General of Revenue Notification on Income Tax No. 45 of 24 September 1992, as amended",
+				"locator": "cl.1-4",
+				"url": "https://www.rd.go.th/3213.html",
+				"quote": "At least five years of service; income paid in the first tax year; other lump sums earn expenses up to the last month’s pay × years; withholding under s.50(1) follows the same method."
+			},
+			{
+				"title": "Revenue Department manual on income from leaving work (May 2012)",
+				"locator": "pp.9-13, 21",
+				"url": "https://www.rd.go.th/fileadmin/download/leave_of_work.pdf",
+				"quote": "Severance on retirement or the end of a contract is a clause 1(d) lump sum; the net income is not entitled to the 150,000 baht exemption."
+			}
+		],
+		"off_cycle_eligible": false,
+		"subtotal_id": "999dc181-b877-52a5-ad41-cc383b47a27f",
+		"employer_cost_subtotal_id": "999dc181-b877-52a5-ad41-cc383b47a27f",
+		"kind": "TAX",
+		"depends_on": [],
+		"eligibility": "// js\n// Revenue Code s.48(5): the employee's choice, open from five years of service (Notification No. 45 cl.2(a)).\nconst employment = ctx.subject.employment;\nconst data = get(employment, 'employee_extension_data', {});\nconst facts = get(data, 'facts', data);\nconst elections = get(get(get(facts, 'statutory', {}), 'PND1', {}), 'elections', {});\nif (get(elections, 'severance_separate', false) !== true) return false;\nconst end = add_days(get(employment, 'effective_range.to', ctx.as_of), 1);\nreturn calendar_completed_months(employment.effective_range.from, end) >= ctx.lookup.qualifying_years * 12;\n",
+		"employee_amount": "// js\nconst employment = ctx.subject.employment;\nconst ytd = get(ctx.balances, 'ytd', {});\nconst notice_total = get(ctx.subtotals, 'NOTICE_PAY', 0);\nconst paid_income = get(ytd, 'NOTICE_PAY', 0);\nconst total =\n  get(ytd, 'SEVERANCE', paid_income) - paid_income + get(ctx.subtotals, 'SEVERANCE', notice_total) - notice_total;\n// Exempt as in PND1. Severance on these grounds has no exemption and counts under cl.1(d) of Notification No. 45.\nconst ground = get(employment, 'employee_extension_data.exit_facts.exit_ground', '');\nconst unexempt = ctx.lookup.severance_taxed_grounds.includes(ground);\nconst exempt = unexempt\n  ? 0\n  : Math.min(ctx.lookup.severance_daily_wages_limit * ctx.day_rate, ctx.lookup.severance_exemption_limit);\nconst income = Math.max(0, total - exempt);\nif (income <= 0) return 0;\nconst start = employment.effective_range.from;\nconst end = add_days(get(employment, 'effective_range.to', ctx.as_of), 1);\nconst whole = Math.trunc(calendar_completed_months(start, end) / 12);\n// s.48(5) para 4: 183 days of a part year count as a year; fewer are dropped.\nconst years = whole + (calendar_distance_days(add_years(start, whole), end) >= ctx.lookup.part_year_days ? 1 : 0);\n// Notification No. 45 cl.3(2): cl.1(d) income earns expenses only up to the last month's pay × years.\nconst base = unexempt ? Math.min(income, ctx.day_rate * ctx.lookup.monthly_divisor * years) : income;\nconst service = Math.min(ctx.lookup.expense_per_year * years, base);\nconst expense = service + (base - service) * ctx.lookup.expense_share;\n// No 150,000 baht exemption here (Royal Decree No. 470), so the 0 percent band of the ladder drops out.\nconst tax = ladder(income - expense, ctx.lookup.ladder.slice(1));\nconst paid = get(ctx.balances, 'statutory_contribution', {});\nconst withheld = Object.hasOwn(paid, 'PND1_SEVERANCE.employee') ? paid['PND1_SEVERANCE.employee'] : 0;\nreturn Math.max(0, round(tax - withheld, ctx.lookup.rounding_step, 'HALF_UP'));\n",
+		"employer_amount": "// js\nreturn 0;",
+		"id": "7db8b973-9df8-541a-ac2c-6617239f320c",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
 	},
 	{
@@ -4563,9 +4579,7 @@
 		"name": "Employee Welfare Fund (กองทุนสงเคราะห์ลูกจ้าง)",
 		"lookup": {
 			"rate": 0.0025,
-			"minimum_headcount": 10,
-			"collection_from": "2027-01-01",
-			"rounding_step": 0.01
+			"collection_from": "2027-01-01"
 		},
 		"references": [
 			{

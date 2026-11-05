@@ -3,9 +3,6 @@
 		"code": "OVERTIME",
 		"name": "Overtime on a working day (1.5x)",
 		"lookup": {
-			"monthly_divisor": 30,
-			"normal_hours_per_day": 8,
-			"hazardous_normal_hours_per_day": 7,
 			"multiple": 1.5
 		},
 		"references": [
@@ -16,10 +13,10 @@
 				"quote": "Working-day overtime is at least 1.5 times the hourly wage; the monthly hourly wage is the monthly wage divided by 30 times the normal hours a day; s.65(2)-(8) work is paid 1 time; a s.65(1) manager gets none."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "ff8280f4-0b59-5c0a-8e77-ca50e9faf9e1",
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '') !== 'MANAGER' &&\n\tNumber(get(ctx.run, 'source_manifest.overtime.OVERTIME', 0)) > 0\n);",
-		"conversion": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst basis = get(terms, 'rate.unit', 'MONTHLY');\nconst work = get(terms, 'statutory_work_category', '');\nconst overtime_category = get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours =\n\tnormal != null\n\t\t? Number(normal)\n\t\t: work === 'HAZARDOUS'\n\t\t\t? ctx.lookup.hazardous_normal_hours_per_day\n\t\t\t: ctx.lookup.normal_hours_per_day;\n// LPA s.68: the monthly wage, fixed allowance included (s.5), over 30 normal days.\nconst unit_wage =\n\tbasis === 'PIECE' || basis === 'HOURLY'\n\t\t? Number(get(terms, 'rate.amount', 0))\n\t\t: basis === 'DAILY'\n\t\t\t? Number(get(terms, 'rate.amount', 0)) / day_hours\n\t\t\t: (Number(get(terms, 'rate.amount', 0)) + Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0))) / (ctx.lookup.monthly_divisor * day_hours);\nconst multiple =\n\tovertime_category === 'SECTION_65_OTHER' ? 1 : ctx.lookup.multiple;\nconst quantity = Number(get(ctx.run, 'source_manifest.overtime.OVERTIME', 0));\nreturn unit_wage * multiple * quantity;",
+		"eligibility": "// js\nreturn get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '') !== 'MANAGER';",
+		"conversion": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst work = get(terms, 'statutory_work_category', '');\nconst overtime_category = get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours =\n\tnormal != null\n\t\t? Number(normal)\n\t\t: work === 'HAZARDOUS'\n\t\t\t? ctx.lookup.hazardous_normal_hours_per_day\n\t\t\t: ctx.lookup.normal_hours_per_day;\n// LPA s.68: the monthly wage, fixed allowance included (s.5), over 30 normal days.\nconst unit_wage = ctx.day_rate / day_hours;\nconst multiple =\n\tovertime_category === 'SECTION_65_OTHER' ? 1 : ctx.lookup.multiple;\n// LPA s.61: hours past the normal day, every hour of a day off.\nconst plain = get(ctx, 'work.days', []).filter((day) => get(day, 'holiday_kind', '') === '' && ['WORK', 'OFF'].includes(day.day_type));\nconst quantity = sum(plain.map((day) => Number(get(day, day.day_type === 'OFF' ? 'worked_hours' : 'overtime_hours', 0))));\nreturn unit_wage * multiple * quantity;",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -29,13 +26,7 @@
 	{
 		"code": "HOLIDAY_WORK",
 		"name": "Holiday work in normal hours",
-		"lookup": {
-			"monthly_divisor": 30,
-			"normal_hours_per_day": 8,
-			"hazardous_normal_hours_per_day": 7,
-			"paid_multiple": 1,
-			"unpaid_multiple": 2
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.62, 66",
@@ -44,10 +35,10 @@
 				"quote": "Holiday work in normal hours is at least 1 time the hourly wage when the holiday is paid and 2 times when it is unpaid; a s.65(1) manager gets none unless agreed."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "ff8280f4-0b59-5c0a-8e77-ca50e9faf9e1",
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '') !== 'MANAGER' &&\n\tNumber(get(ctx.run, 'source_manifest.overtime.HOLIDAY_WORK_PAID', 0)) +\n\t\tNumber(get(ctx.run, 'source_manifest.overtime.HOLIDAY_WORK_UNPAID', 0)) >\n\t\t0\n);",
-		"conversion": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst basis = get(terms, 'rate.unit', 'MONTHLY');\nconst work = get(terms, 'statutory_work_category', '');\nconst overtime_category = get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours =\n\tnormal != null\n\t\t? Number(normal)\n\t\t: work === 'HAZARDOUS'\n\t\t\t? ctx.lookup.hazardous_normal_hours_per_day\n\t\t\t: ctx.lookup.normal_hours_per_day;\n// LPA s.68: the monthly wage, fixed allowance included (s.5), over 30 normal days.\nconst unit_wage =\n\tbasis === 'PIECE' || basis === 'HOURLY'\n\t\t? Number(get(terms, 'rate.amount', 0))\n\t\t: basis === 'DAILY'\n\t\t\t? Number(get(terms, 'rate.amount', 0)) / day_hours\n\t\t\t: (Number(get(terms, 'rate.amount', 0)) + Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0))) / (ctx.lookup.monthly_divisor * day_hours);\nconst paid = Number(get(ctx.run, 'source_manifest.overtime.HOLIDAY_WORK_PAID', 0));\nconst unpaid = Number(get(ctx.run, 'source_manifest.overtime.HOLIDAY_WORK_UNPAID', 0));\nreturn (\n\tunit_wage *\n\t(ctx.lookup.paid_multiple * paid + ctx.lookup.unpaid_multiple * unpaid)\n);",
+		"eligibility": "// js\nreturn get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '') !== 'MANAGER';",
+		"conversion": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst work = get(terms, 'statutory_work_category', '');\nconst overtime_category = get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours =\n\tnormal != null\n\t\t? Number(normal)\n\t\t: work === 'HAZARDOUS'\n\t\t\t? ctx.lookup.hazardous_normal_hours_per_day\n\t\t\t: ctx.lookup.normal_hours_per_day;\n// LPA s.68: the monthly wage, fixed allowance included (s.5), over 30 normal days.\nconst unit_wage = ctx.day_rate / day_hours;\nconst off = (day) => day.day_type === 'REST' || get(day, 'holiday_kind', '') !== '';\n// LPA s.62: normal hours on a holiday or rest day. A monthly wage already pays the day, so it adds one times; a daily or hourly wage does not, so two.\nconst hours = sum(get(ctx, 'work.days', []).filter(off).map((day) => Math.min(Number(get(day, 'worked_hours', 0)), day_hours)));\nconst multiple = get(terms, 'rate.unit', 'MONTHLY') === 'MONTHLY' ? ctx.lookup.paid_multiple : ctx.lookup.unpaid_multiple;\nreturn unit_wage * multiple * hours;",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -58,9 +49,6 @@
 		"code": "HOLIDAY_OVERTIME",
 		"name": "Overtime on a holiday (3x)",
 		"lookup": {
-			"monthly_divisor": 30,
-			"normal_hours_per_day": 8,
-			"hazardous_normal_hours_per_day": 7,
 			"multiple": 3
 		},
 		"references": [
@@ -71,10 +59,10 @@
 				"quote": "Overtime on a holiday is at least 3 times the hourly wage; s.65(2)-(8) work is paid 1 time; a s.65(1) manager gets none."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "ff8280f4-0b59-5c0a-8e77-ca50e9faf9e1",
-		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '') !== 'MANAGER' &&\n\tNumber(get(ctx.run, 'source_manifest.overtime.HOLIDAY_OVERTIME', 0)) > 0\n);",
-		"conversion": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst basis = get(terms, 'rate.unit', 'MONTHLY');\nconst work = get(terms, 'statutory_work_category', '');\nconst overtime_category = get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours =\n\tnormal != null\n\t\t? Number(normal)\n\t\t: work === 'HAZARDOUS'\n\t\t\t? ctx.lookup.hazardous_normal_hours_per_day\n\t\t\t: ctx.lookup.normal_hours_per_day;\n// LPA s.68: the monthly wage, fixed allowance included (s.5), over 30 normal days.\nconst unit_wage =\n\tbasis === 'PIECE' || basis === 'HOURLY'\n\t\t? Number(get(terms, 'rate.amount', 0))\n\t\t: basis === 'DAILY'\n\t\t\t? Number(get(terms, 'rate.amount', 0)) / day_hours\n\t\t\t: (Number(get(terms, 'rate.amount', 0)) + Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0))) / (ctx.lookup.monthly_divisor * day_hours);\nconst multiple =\n\tovertime_category === 'SECTION_65_OTHER' ? 1 : ctx.lookup.multiple;\nconst quantity = Number(get(ctx.run, 'source_manifest.overtime.HOLIDAY_OVERTIME', 0));\nreturn unit_wage * multiple * quantity;",
+		"eligibility": "// js\nreturn get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '') !== 'MANAGER';",
+		"conversion": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst work = get(terms, 'statutory_work_category', '');\nconst overtime_category = get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours =\n\tnormal != null\n\t\t? Number(normal)\n\t\t: work === 'HAZARDOUS'\n\t\t\t? ctx.lookup.hazardous_normal_hours_per_day\n\t\t\t: ctx.lookup.normal_hours_per_day;\n// LPA s.68: the monthly wage, fixed allowance included (s.5), over 30 normal days.\nconst unit_wage = ctx.day_rate / day_hours;\nconst multiple =\n\tovertime_category === 'SECTION_65_OTHER' ? 1 : ctx.lookup.multiple;\nconst off = (day) => day.day_type === 'REST' || get(day, 'holiday_kind', '') !== '';\n// LPA s.63: hours past the normal day on a holiday or rest day.\nconst quantity = sum(get(ctx, 'work.days', []).filter(off).map((day) => Math.max(0, Number(get(day, 'worked_hours', 0)) - day_hours)));\nreturn unit_wage * multiple * quantity;",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",

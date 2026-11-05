@@ -4,44 +4,6 @@
 		"name": "Annual leave",
 		"lookup": {
 			"eligibility_months": 3,
-			"first_year_days": 7,
-			"first_year_months": 12,
-			"first_year_proration": "COMPLETED_MONTHS",
-			"first_year_rounding": "HALF_DAY_UP",
-			"service_bands": [
-				{
-					"service_months": 12,
-					"days": 8
-				},
-				{
-					"service_months": 24,
-					"days": 9
-				},
-				{
-					"service_months": 36,
-					"days": 10
-				},
-				{
-					"service_months": 48,
-					"days": 11
-				},
-				{
-					"service_months": 60,
-					"days": 12
-				},
-				{
-					"service_months": 72,
-					"days": 13
-				},
-				{
-					"service_months": 84,
-					"days": 14
-				}
-			],
-			"carry_months": 12,
-			"carry_max_days": 14,
-			"part4_salary_ceiling_manual": 4500,
-			"part4_salary_ceiling_non_manual": 2600,
 			"encash_on_exit": {
 				"allowed": true,
 				"refused_on": ["MISCONDUCT_DISMISSAL"]
@@ -79,34 +41,13 @@
 		],
 		"id": "8465d85b-5f50-5f30-af0a-f593fbae8285",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
-		"conversion": "// js\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst days = Number(get(ctx.entry, 'quantity', 0));\nif (unit === 'DAILY') return amount * days;\nif (unit === 'HOURLY') return amount * get(terms, 'normal_hours_per_day', 8) * days;\n// MOM gross rate of pay for salary in lieu of annual leave: 12 × monthly gross ÷ (52 × days required a week)\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst gross = amount + (typeof allowance === 'number' ? allowance : get(allowance, 'value', 0));\nreturn ((gross * 12) / (52 * Number(get(terms, 'normal_days_per_week', 5)))) * days;"
+		"conversion": "// js\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst terms = ctx.subject.employment.terms;\nconst days = Number(get(ctx.entry, 'quantity', 0));\nconst basic = Number(get(terms, 'rate.amount', 0));\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY' || !(basic > 0)) return ctx.day_rate * days;\n// MOM gross rate of pay for salary in lieu of annual leave: the basic day with the fixed allowance on it\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst fixed = typeof allowance === 'number' ? allowance : get(allowance, 'value', 0);\nreturn ctx.day_rate * ((basic + fixed) / basic) * days;\n"
 	},
 	{
 		"code": "SICK_LEAVE",
 		"name": "Outpatient sick leave",
 		"lookup": {
-			"eligibility_months": 3,
-			"window_months": 12,
-			"initial_period_months": 6,
-			"service_bands": [
-				{
-					"service_months": 3,
-					"days": 5
-				},
-				{
-					"service_months": 4,
-					"days": 8
-				},
-				{
-					"service_months": 5,
-					"days": 11
-				},
-				{
-					"service_months": 6,
-					"days": 14
-				}
-			],
-			"consumes_pool": "HOSPITALIZATION_LEAVE"
+			"eligibility_months": 3
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -127,28 +68,7 @@
 		"code": "HOSPITALIZATION_LEAVE",
 		"name": "Hospitalization leave",
 		"lookup": {
-			"eligibility_months": 3,
-			"window_months": 12,
-			"initial_period_months": 6,
-			"service_bands": [
-				{
-					"service_months": 3,
-					"days": 15
-				},
-				{
-					"service_months": 4,
-					"days": 30
-				},
-				{
-					"service_months": 5,
-					"days": 45
-				},
-				{
-					"service_months": 6,
-					"days": 60
-				}
-			],
-			"shared_with": ["SICK_LEAVE"]
+			"eligibility_months": 3
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -169,13 +89,7 @@
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
 		"lookup": {
-			"eligibility_months": 3,
-			"cdca_weeks": 16,
-			"ea_weeks": 12,
-			"ea_paid_weeks": 8,
-			"ea_unpaid_weeks": 4,
-			"citizenship_window_months": 12,
-			"days_per_week_default": 7
+			"eligibility_months": 3
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -196,11 +110,7 @@
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
 		"lookup": {
-			"eligibility_months": 3,
-			"weeks_from_2025_04_01": 4,
-			"weeks_before_2025_04_01": 2,
-			"citizenship_window_months": 12,
-			"days_per_week_default": 7
+			"eligibility_months": 3
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -220,14 +130,7 @@
 	{
 		"code": "CHILDCARE_LEAVE",
 		"name": "Childcare leave",
-		"lookup": {
-			"eligibility_months": 3,
-			"child_age_limit": 7,
-			"gpcl_days_per_year": 6,
-			"ea_days_per_year": 2,
-			"gpcl_lifetime_days_per_child": 42,
-			"ea_lifetime_days_per_child": 14
-		},
+		"lookup": {},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
@@ -245,12 +148,7 @@
 	{
 		"code": "UNPAID_INFANT_CARE_LEAVE",
 		"name": "Unpaid infant care leave",
-		"lookup": {
-			"eligibility_months": 3,
-			"child_age_limit": 2,
-			"days_per_year": 12,
-			"lifetime_days_per_child": 24
-		},
+		"lookup": {},
 		"pay_treatment": "UNPAID",
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
@@ -269,11 +167,7 @@
 		"code": "ADOPTION_LEAVE",
 		"name": "Adoption leave",
 		"lookup": {
-			"eligibility_months": 3,
-			"weeks": 12,
-			"child_age_months": 12,
-			"days_per_week_default": 7,
-			"pr_branch_from": "2025-04-01"
+			"eligibility_months": 3
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -294,12 +188,7 @@
 		"code": "SHARED_PARENTAL_LEAVE",
 		"name": "Shared parental leave",
 		"lookup": {
-			"scheme_from": "2025-04-01",
-			"eligibility_months": 3,
-			"pool_weeks_from_2026_04_01": 10,
-			"pool_weeks_from_2025_04_01": 6,
-			"sharing_default_divisor": 2,
-			"days_per_week_default": 7
+			"eligibility_months": 3
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -319,9 +208,7 @@
 	{
 		"code": "NS_LEAVE",
 		"name": "National service leave",
-		"lookup": {
-			"paid_when_entity_direct_scheme": true
-		},
+		"lookup": {},
 		"pay_treatment": "UNPAID",
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
@@ -376,48 +263,7 @@
 		"code": "ANNUAL_LEAVE_PART_TIME",
 		"name": "Annual leave (part-time, hours)",
 		"lookup": {
-			"eligibility_months": 3,
-			"first_year_days": 7,
-			"first_year_months": 12,
-			"first_year_proration": "COMPLETED_MONTHS",
-			"service_bands": [
-				{
-					"service_months": 12,
-					"days": 8
-				},
-				{
-					"service_months": 24,
-					"days": 9
-				},
-				{
-					"service_months": 36,
-					"days": 10
-				},
-				{
-					"service_months": 48,
-					"days": 11
-				},
-				{
-					"service_months": 60,
-					"days": 12
-				},
-				{
-					"service_months": 72,
-					"days": 13
-				},
-				{
-					"service_months": 84,
-					"days": 14
-				}
-			],
-			"basis": "CONTRACTED_HOURS",
-			"entitlement_unit": "HOUR",
-			"full_time_weekly_hours_default": 44,
-			"full_time_hours_per_day_default": 8,
-			"carry_months": 12,
-			"carry_max_days": 14,
-			"part4_salary_ceiling_manual": 4500,
-			"part4_salary_ceiling_non_manual": 2600
+			"eligibility_months": 3
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -438,32 +284,7 @@
 		"code": "SICK_LEAVE_PART_TIME",
 		"name": "Outpatient sick leave (part-time)",
 		"lookup": {
-			"eligibility_months": 3,
-			"window_months": 12,
-			"initial_period_months": 6,
-			"service_bands": [
-				{
-					"service_months": 3,
-					"days": 5
-				},
-				{
-					"service_months": 4,
-					"days": 8
-				},
-				{
-					"service_months": 5,
-					"days": 11
-				},
-				{
-					"service_months": 6,
-					"days": 14
-				}
-			],
-			"consumes_pool": "HOSPITALIZATION_LEAVE_PART_TIME",
-			"basis": "CONTRACTED_HOURS",
-			"entitlement_unit": "HOUR",
-			"full_time_weekly_hours_default": 44,
-			"full_time_hours_per_day_default": 8
+			"eligibility_months": 3
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -484,32 +305,7 @@
 		"code": "HOSPITALIZATION_LEAVE_PART_TIME",
 		"name": "Hospitalization leave (part-time)",
 		"lookup": {
-			"eligibility_months": 3,
-			"window_months": 12,
-			"initial_period_months": 6,
-			"service_bands": [
-				{
-					"service_months": 3,
-					"days": 15
-				},
-				{
-					"service_months": 4,
-					"days": 30
-				},
-				{
-					"service_months": 5,
-					"days": 45
-				},
-				{
-					"service_months": 6,
-					"days": 60
-				}
-			],
-			"shared_with": ["SICK_LEAVE_PART_TIME"],
-			"basis": "CONTRACTED_HOURS",
-			"entitlement_unit": "HOUR",
-			"full_time_weekly_hours_default": 44,
-			"full_time_hours_per_day_default": 8
+			"eligibility_months": 3
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -529,9 +325,7 @@
 	{
 		"code": "WORK_INJURY_MEDICAL_LEAVE",
 		"name": "Work injury outpatient medical leave (WICA)",
-		"lookup": {
-			"claim_window_days": 365
-		},
+		"lookup": {},
 		"pay_treatment": "UNPAID",
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
@@ -549,9 +343,7 @@
 	{
 		"code": "WORK_INJURY_HOSPITALISATION_LEAVE",
 		"name": "Work injury hospitalisation leave (WICA)",
-		"lookup": {
-			"claim_window_days": 365
-		},
+		"lookup": {},
 		"pay_treatment": "UNPAID",
 		"off_cycle_eligible": false,
 		"subtotal_id": null,

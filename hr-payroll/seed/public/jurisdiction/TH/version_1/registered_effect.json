@@ -79,7 +79,6 @@
 		"name": "PND1 monthly withholding return",
 		"lookup": {
 			"date_offset_days": 7,
-			"online_effective_from": "2027-01-31",
 			"online_offset_days": 15
 		},
 		"references": [
@@ -171,8 +170,7 @@
 		"name": "Skill Development Fund contribution",
 		"lookup": {
 			"employee_count_threshold": 100,
-			"date_offset_months": 3,
-			"months": ["12"]
+			"date_offset_months": 3
 		},
 		"references": [
 			{
@@ -227,7 +225,6 @@
 		"code": "PND1_KOR_ANNUAL",
 		"name": "PND1 Kor annual withholding return",
 		"lookup": {
-			"online_effective_from": "2027-01-31",
 			"annual_due": "-03-08"
 		},
 		"references": [
@@ -302,9 +299,7 @@
 	{
 		"code": "WCF_ANNUAL_CONTRIBUTION",
 		"name": "Workmen's Compensation Fund annual contribution",
-		"lookup": {
-			"months": ["01"]
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "the Ministry of Labour notification on business types, sizes and areas liable to contribute, contribution rates, deposits and the assessment and collection of contributions (21 February 2019, under WCA ss.44 para 1 and 45) cl.13: from the second year the estimated contribution for the whole year is paid within January (the first within 30 days of becoming liable, WCA s.44; payment by instalments on approval under cl.16-18); WCA s.46: 2% a month on late payment.",
@@ -377,8 +372,7 @@
 		"code": "EMPLOYMENT_CONDITIONS_REPORT",
 		"name": "Annual employment and working conditions report (Kor Ror 11)",
 		"lookup": {
-			"employee_count_threshold": 10,
-			"months": ["01"]
+			"employee_count_threshold": 10
 		},
 		"references": [
 			{
@@ -423,8 +417,7 @@
 		"name": "Disabled-person employment quota or fund contribution",
 		"lookup": {
 			"employee_count_threshold": 100,
-			"date_offset_months": 2,
-			"months": ["01"]
+			"date_offset_months": 2
 		},
 		"references": [
 			{
@@ -710,9 +703,7 @@
 	{
 		"code": "WCF_ADDITIONAL_CONTRIBUTION",
 		"name": "Workmen's Compensation Fund additional contribution (Kor Tor 25 Kor)",
-		"lookup": {
-			"months": ["03"]
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "the Ministry of Labour notification on business types, sizes and areas liable to contribute, contribution rates, deposits and the assessment and collection of contributions (21 February 2019, under WCA ss.44 para 1 and 45) cl.15 para 2: an additional contribution from the cl.14 statement is paid within March; WCA s.46: 2% a month on late payment.",
@@ -912,7 +903,6 @@
 		"code": "YOUNG_WORKER_HIRE_NOTICE",
 		"name": "Notify the labour inspector of a child employee",
 		"lookup": {
-			"employee_age_years_threshold": 18,
 			"date_offset_days": 15
 		},
 		"references": [
@@ -945,7 +935,6 @@
 		"code": "YOUNG_WORKER_EXIT_NOTICE",
 		"name": "Notify the labour inspector that a child employee has left",
 		"lookup": {
-			"employee_age_years_threshold": 18,
 			"date_offset_days": 7
 		},
 		"references": [
@@ -1053,9 +1042,7 @@
 	{
 		"code": "RETIREMENT_SEVERANCE",
 		"name": "Pay severance on retirement",
-		"lookup": {
-			"exit_ground": "RETIREMENT"
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 s.118/1 (LPA (No. 6) B.E. 2560): retirement at the agreed age, or at 60 on 30 days' notice from the employee where no or a later age is agreed, is a termination owing s.118 severance (adhoc SEVERANCE_PAY). Secondary summary of the No. 6 text:",
@@ -1251,8 +1238,7 @@
 		"name": "Review outstanding annual training applications",
 		"lookup": {
 			"employee_count_threshold": 100,
-			"date_offset_days": 14,
-			"months": ["01"]
+			"date_offset_days": 14
 		},
 		"references": [
 			{
@@ -1339,9 +1325,7 @@
 	{
 		"code": "WCF_INSTALMENT_DEPOSIT",
 		"name": "Deposit 25% of the year's WCF contribution (instalment payer)",
-		"lookup": {
-			"months": ["01"]
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Ministry of Labour notification of 21 February 2019 cl.16-17: an employer allowed to pay the WCF contribution by instalments (entity fact wcf_instalments, the SSO's approval) deposits 25% of the estimated year's contribution within January.",
@@ -1383,9 +1367,7 @@
 	{
 		"code": "WCF_INSTALMENT",
 		"name": "Pay the quarter's WCF instalment and report its wages",
-		"lookup": {
-			"months": ["01", "04", "07", "10"]
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Ministry of Labour notification of 21 February 2019 cl.18: the instalment payer pays in four instalments a year, each within the month after its quarter ends, reporting the quarter's total wages.",

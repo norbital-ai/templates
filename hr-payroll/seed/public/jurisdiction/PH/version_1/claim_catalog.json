@@ -28,7 +28,7 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
+		"subtotal_id": "8b9271c4-a68d-4819-be66-66da99017e17",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
@@ -47,7 +47,7 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
+		"subtotal_id": "8b9271c4-a68d-4819-be66-66da99017e17",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",

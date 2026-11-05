@@ -772,6 +772,15 @@ const roundMode = (v: unknown): 'HALF_UP' | 'HALF_EVEN' | 'UP' | 'DOWN' | 'TRUNC
 	v === 'HALF_UP' || v === 'HALF_EVEN' || v === 'UP' || v === 'DOWN' || v === 'TRUNCATE'
 		? v
 		: bad('Unknown rounding mode.');
+// the same check repeats for every person of a run, at the same place in the chain
+const checked = new Map<string, Set<string>>();
+const checkOnce = (source: string, phase: Phase, subtotals: readonly string[]): void => {
+	const scope = `${phase}:${subtotals.join()}`;
+	const seen = checked.get(source) ?? new Set<string>();
+	if (seen.has(scope)) return;
+	checkExpression(source, phase, new Set(subtotals));
+	checked.set(source, seen.add(scope));
+};
 export function evaluateExact(
 	source: string,
 	phase: Phase,
@@ -779,12 +788,12 @@ export function evaluateExact(
 	field: string
 ): unknown {
 	try {
-		checkExpression(
+		checkOnce(
 			source,
 			phase,
 			isDynObject(Reflect.get(context, 'subtotals'))
-				? new Set(Object.keys(Reflect.get(context, 'subtotals')))
-				: new Set()
+				? Object.keys(Reflect.get(context, 'subtotals'))
+				: []
 		);
 		const env = new Environment();
 		for (const [name, value] of Object.entries(pure)) env.declare(name, value, true);

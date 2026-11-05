@@ -2,24 +2,17 @@
 	{
 		"code": "OVERTIME",
 		"name": "Overtime (平日延長工時)",
-		"lookup": {
-			"monthly_divisor": 30,
-			"normal_hours_per_day": 8,
-			"first_two_hours": 2,
-			"first_two_multiplier": 1.34,
-			"further_multiplier": 1.67,
-			"emergency_multiplier": 2
-		},
+		"lookup": {},
 		"references": [
 			{
-				"title": "勞動基準法 §24(1): 延長工作時間在二小時以內者，按平日每小時工資額加給三分之一以上；再延長工作時間在二小時以內者，加給三分之二以上 — each working day’s overtime: the time recorded past the planned shift’s hours in completed half-hours, less any banked as 補休 (work.days[].overtime_hours), the first two at 1.34 and every further hour at 1.67 of the hourly wage (monthly wage incl. regular allowances ÷ 30 ÷ 8). §24(1)(3): 依第三十二條第四項規定，延長工作時間者，按平日每小時工資額加倍發給 — a day the roster marks facts.emergency_extension (hours extended under §32(4) for a natural disaster, incident or emergency) is paid 2.0 for every overtime hour instead. Within the §32 limits it is not taxable salary (所得稅法 §14(1)(3)).",
+				"title": "勞動基準法 §24(1): 延長工作時間在二小時以內者，按平日每小時工資額加給三分之一以上；再延長工作時間在二小時以內者，加給三分之二以上 — each working day’s overtime: the time recorded past the planned shift’s hours in completed half-hours, less any banked as 補休 (work.days[].overtime_hours), the first two at 1.34 and every further hour at 1.67 of the hourly wage (monthly wage incl. regular allowances ÷ 30 ÷ 8). §24(1)(3): 依第三十二條第四項規定，延長工作時間者，按平日每小時工資額加倍發給 — not priced: no roster fact marks a §32(4) day in work.days. Within the §32 limits it is not taxable salary (所得稅法 §14(1)(3)).",
 				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=24"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "54e639a8-bb8a-50ea-9f05-27db6de5f1ad",
-		"eligibility": "// js\nconst overtime = Number(get(ctx.run, 'source_manifest.overtime.OVERTIME', 0));\nreturn overtime > 0;",
-		"conversion": "// js\n// 勞動基準法 §24(1): first two overtime hours at 1.34, each further hour at 1.67; §24(1)(3) emergency extension pays every hour at 2.0.\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst basis = get(terms, 'rate.unit', 'MONTHLY');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours = normal != null ? Number(normal) : ctx.lookup.normal_hours_per_day;\nconst allowances = Object.values(get(terms, 'allowances', {})).reduce(\n  (sum, a) => sum + Number(get(a, 'amount', 0)),\n  0\n);\nconst unit_wage =\n  basis === 'PIECE' || basis === 'HOURLY' ? Number(get(terms, 'rate.amount', 0))\n  : basis === 'DAILY' ? Number(get(terms, 'rate.amount', 0)) / day_hours\n  : (Number(get(terms, 'rate.amount', 0)) + allowances) / (ctx.lookup.monthly_divisor * day_hours);\nconst day_wage = unit_wage * day_hours;\nconst total = Number(get(ctx.run, 'source_manifest.overtime.OVERTIME', 0));\nconst emergency = Math.min(total, Number(get(ctx.run, 'source_manifest.overtime.OVERTIME_EMERGENCY', 0)));\nconst ordinary = Math.max(0, total - emergency);\nconst first_hours = Math.min(ordinary, ctx.lookup.first_two_hours);\nreturn unit_wage * (first_hours * ctx.lookup.first_two_multiplier + (ordinary - first_hours) * ctx.lookup.further_multiplier) + emergency * unit_wage * ctx.lookup.emergency_multiplier;",
+		"eligibility": "return true;",
+		"conversion": "// js\n// 勞動基準法 §24(1): each working day's first two overtime hours at 1.34, each further hour at 1.67.\nconst normal = get(ctx.subject.employment, 'terms.normal_hours_per_day', null);\nconst day_hours = normal != null ? Number(normal) : ctx.lookup.normal_hours_per_day;\nconst unit_wage = ctx.day_rate / day_hours;\nconst holiday = (day) => ctx.lookup.holiday_kinds.includes(get(day, 'holiday_kind', ''));\nconst priced = ctx.work.days\n  .filter((day) => get(day, 'day_type', '') === 'WORK' && !holiday(day))\n  .map((day) => {\n    const hours = Math.max(0, Number(get(day, 'overtime_hours', 0)));\n    const first_hours = Math.min(hours, ctx.lookup.overtime_first_hours);\n    return first_hours * ctx.lookup.overtime_first_multiplier + (hours - first_hours) * ctx.lookup.overtime_further_multiplier;\n  });\nreturn unit_wage * sum(priced);",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -29,19 +22,16 @@
 	{
 		"code": "STATUTORY_REST_WORK",
 		"name": "Work on the regular day off (例假工作)",
-		"lookup": {
-			"monthly_divisor": 30,
-			"normal_hours_per_day": 8
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "勞動基準法 §40(1): 因天災、事變或突發事件…停止第三十六條至第三十八條所定勞工之假期。但停止假期之工資，應加倍發給，並應於事後補假休息 — one further day’s wage for each worked day whose shift is REST (the §36 例假); the rest in lieu is STATUTORY_REST_IN_LIEU. Work on a 例假 outside §40 is unlawful but its wage is still owed."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "54e639a8-bb8a-50ea-9f05-27db6de5f1ad",
-		"eligibility": "// js\nreturn Number(get(ctx.run, 'source_manifest.overtime.STATUTORY_REST_WORK', 0)) > 0;",
-		"conversion": "// js\n// 勞動基準法 §40(1): one further day’s wage for each 例假 worked; an hourly worker is paid the recorded hourly wage.\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst basis = get(terms, 'rate.unit', 'MONTHLY');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours = normal != null ? Number(normal) : ctx.lookup.normal_hours_per_day;\nconst allowances = Object.values(get(terms, 'allowances', {})).reduce(\n  (sum, a) => sum + Number(get(a, 'amount', 0)),\n  0\n);\nconst unit_wage =\n  basis === 'PIECE' || basis === 'HOURLY' ? Number(get(terms, 'rate.amount', 0))\n  : basis === 'DAILY' ? Number(get(terms, 'rate.amount', 0)) / day_hours\n  : (Number(get(terms, 'rate.amount', 0)) + allowances) / (ctx.lookup.monthly_divisor * day_hours);\nconst day_wage = unit_wage * day_hours;\nconst hours = Number(get(ctx.run, 'source_manifest.overtime.STATUTORY_REST_WORK', 0));\nif (hours <= 0) return 0;\nreturn basis === 'HOURLY' ? hours * unit_wage : Math.ceil(hours / day_hours) * day_wage;",
+		"eligibility": "return true;",
+		"conversion": "// js\n// 勞動基準法 §40(1): one further day's wage for each 例假 worked; an hourly worker is paid the recorded hourly wage.\nconst normal = get(ctx.subject.employment, 'terms.normal_hours_per_day', null);\nconst day_hours = normal != null ? Number(normal) : ctx.lookup.normal_hours_per_day;\nconst unit_wage = ctx.day_rate / day_hours;\nconst worked = ctx.work.days.filter((day) => get(day, 'day_type', '') === 'REST' && Number(get(day, 'worked_hours', 0)) > 0);\nif (get(ctx.subject.employment, 'terms.rate.unit', 'MONTHLY') !== 'HOURLY') return worked.length * ctx.day_rate;\nreturn unit_wage * sum(worked.map((day) => Math.min(Number(get(day, 'worked_hours', 0)), day_hours)));",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -51,24 +41,16 @@
 	{
 		"code": "REST_DAY_WORK",
 		"name": "Rest-day work (休息日工作)",
-		"lookup": {
-			"monthly_divisor": 30,
-			"normal_hours_per_day": 8,
-			"first_two_hours": 2,
-			"after_eight_hours": 8,
-			"first_two_multiplier": 1.34,
-			"after_two_multiplier": 1.67,
-			"after_eight_multiplier": 2.67
-		},
+		"lookup": {},
 		"references": [
 			{
-				"title": "勞動基準法 §24(2): 雇主使勞工於第三十六條所定休息日工作，工作時間在二小時以內者，其工資按平日每小時工資額另再加給一又三分之一以上；工作二小時後再繼續工作者，按平日每小時工資額另再加給一又三分之二以上 — the statute has two tiers only; the 2.67 kept for the ninth to twelfth hours is above its 1⅔ floor (the twelve-hour day of §32(2) counted as rest-day hours beyond the eighth), never below it. Priced on the hours actually worked — all of the day’s recorded time in completed half-hours, less any banked as 補休, counted from the first hour (the minimum-count rule was deleted 2018-03-01) on a day whose shift is OFF, the TW 休息日 (shift_definition.variant.day_type OFF; REST is the §36 例假)."
+				"title": "勞動基準法 §24(2): 雇主使勞工於第三十六條所定休息日工作，工作時間在二小時以內者，其工資按平日每小時工資額另再加給一又三分之一以上；工作二小時後再繼續工作者，按平日每小時工資額另再加給一又三分之二以上 — the statute has two tiers only, so every hour after the second is 1.67, the ninth to twelfth included (owner decision 2026-11-06). Priced on the hours actually worked — all of the day’s recorded time in completed half-hours, less any banked as 補休, counted from the first hour (the minimum-count rule was deleted 2018-03-01) on a day whose shift is OFF, the TW 休息日 (shift_definition.variant.day_type OFF; REST is the §36 例假)."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "54e639a8-bb8a-50ea-9f05-27db6de5f1ad",
-		"eligibility": "// js\nreturn Number(get(ctx.run, 'source_manifest.overtime.REST_DAY_WORK', 0)) > 0;",
-		"conversion": "// js\n// 勞動基準法 §24(2): 1.34 for the first two hours, 1.67 through the eighth, 2.67 after.\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst basis = get(terms, 'rate.unit', 'MONTHLY');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours = normal != null ? Number(normal) : ctx.lookup.normal_hours_per_day;\nconst allowances = Object.values(get(terms, 'allowances', {})).reduce(\n  (sum, a) => sum + Number(get(a, 'amount', 0)),\n  0\n);\nconst unit_wage =\n  basis === 'PIECE' || basis === 'HOURLY' ? Number(get(terms, 'rate.amount', 0))\n  : basis === 'DAILY' ? Number(get(terms, 'rate.amount', 0)) / day_hours\n  : (Number(get(terms, 'rate.amount', 0)) + allowances) / (ctx.lookup.monthly_divisor * day_hours);\nconst day_wage = unit_wage * day_hours;\nconst hours = Number(get(ctx.run, 'source_manifest.overtime.REST_DAY_WORK', 0));\nif (hours <= 0) return 0;\nconst first_hours = Math.min(hours, ctx.lookup.first_two_hours);\nconst middle_hours = Math.min(Math.max(hours - first_hours, 0), ctx.lookup.after_eight_hours - ctx.lookup.first_two_hours);\nconst last_hours = Math.max(hours - ctx.lookup.after_eight_hours, 0);\nreturn unit_wage * (first_hours * ctx.lookup.first_two_multiplier + middle_hours * ctx.lookup.after_two_multiplier + last_hours * ctx.lookup.after_eight_multiplier);",
+		"eligibility": "return true;",
+		"conversion": "// js\n// 勞動基準法 §24(2): each 休息日 worked, 1.34 for the first two hours and 1.67 for every further hour.\nconst normal = get(ctx.subject.employment, 'terms.normal_hours_per_day', null);\nconst day_hours = normal != null ? Number(normal) : ctx.lookup.normal_hours_per_day;\nconst unit_wage = ctx.day_rate / day_hours;\nconst holiday = (day) => ctx.lookup.holiday_kinds.includes(get(day, 'holiday_kind', ''));\nconst priced = ctx.work.days\n  .filter((day) => get(day, 'day_type', '') === 'OFF' && !holiday(day))\n  .map((day) => {\n    const hours = Math.max(0, Number(get(day, 'worked_hours', 0)));\n    const first_hours = Math.min(hours, ctx.lookup.overtime_first_hours);\n    return first_hours * ctx.lookup.overtime_first_multiplier + (hours - first_hours) * ctx.lookup.overtime_further_multiplier;\n  });\nreturn unit_wage * sum(priced);",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -78,20 +60,17 @@
 	{
 		"code": "HOLIDAY_WORK",
 		"name": "Public-holiday work",
-		"lookup": {
-			"monthly_divisor": 30,
-			"normal_hours_per_day": 8
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "勞動基準法 §39: 休假日…工作者，工資應加倍發給 — one further day’s wage (monthly wage ÷ 30) for each published holiday actually worked; a holiday not worked is already in the monthly salary. 改制前勞委會 87年9月14日(87)台勞動二字第039675號函: hours beyond eight follow §24 (HOLIDAY_OVERTIME).",
 				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=39"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "54e639a8-bb8a-50ea-9f05-27db6de5f1ad",
-		"eligibility": "// js\nreturn Number(get(ctx.run, 'source_manifest.overtime.HOLIDAY_WORK', 0)) > 0;",
-		"conversion": "// js\n// 勞動基準法 §39: one further day’s wage for each published holiday worked; an hourly worker is paid the recorded hourly wage for its ordinary hours.\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst basis = get(terms, 'rate.unit', 'MONTHLY');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours = normal != null ? Number(normal) : ctx.lookup.normal_hours_per_day;\nconst allowances = Object.values(get(terms, 'allowances', {})).reduce(\n  (sum, a) => sum + Number(get(a, 'amount', 0)),\n  0\n);\nconst unit_wage =\n  basis === 'PIECE' || basis === 'HOURLY' ? Number(get(terms, 'rate.amount', 0))\n  : basis === 'DAILY' ? Number(get(terms, 'rate.amount', 0)) / day_hours\n  : (Number(get(terms, 'rate.amount', 0)) + allowances) / (ctx.lookup.monthly_divisor * day_hours);\nconst day_wage = unit_wage * day_hours;\nconst hours = Number(get(ctx.run, 'source_manifest.overtime.HOLIDAY_WORK', 0));\nif (hours <= 0) return 0;\nreturn basis === 'HOURLY' ? hours * unit_wage : Math.ceil(hours / day_hours) * day_wage;",
+		"eligibility": "return true;",
+		"conversion": "// js\n// 勞動基準法 §39: one further day's wage for each published holiday worked; an hourly worker is paid the recorded hourly wage for its ordinary hours.\nconst normal = get(ctx.subject.employment, 'terms.normal_hours_per_day', null);\nconst day_hours = normal != null ? Number(normal) : ctx.lookup.normal_hours_per_day;\nconst unit_wage = ctx.day_rate / day_hours;\nconst holiday = (day) => ctx.lookup.holiday_kinds.includes(get(day, 'holiday_kind', ''));\nconst worked = ctx.work.days.filter((day) => ['WORK', 'OFF'].includes(get(day, 'day_type', '')) && holiday(day) && Number(get(day, 'worked_hours', 0)) > 0);\nif (get(ctx.subject.employment, 'terms.rate.unit', 'MONTHLY') !== 'HOURLY') return worked.length * ctx.day_rate;\nreturn unit_wage * sum(worked.map((day) => Math.min(Number(get(day, 'worked_hours', 0)), day_hours)));",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -99,46 +78,18 @@
 		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
 	},
 	{
-		"code": "INDIGENOUS_RITUAL_DAY_WORK",
-		"name": "原住民族歲時祭儀出勤 (ritual holiday worked)",
-		"lookup": {
-			"monthly_divisor": 30,
-			"normal_hours_per_day": 8
-		},
-		"references": [
-			{
-				"title": "勞動基準法 §39: work on a §37 放假日 is paid one further day’s wage (monthly ÷ 30). The ritual day worked is the roster day marked facts.indigenous_ritual_day for an indigenous worker; hours beyond eight are overtime at the §24 rates as on any holiday (the time recorded past the planned shift, priced by OVERTIME).",
-				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=39"
-			}
-		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "54e639a8-bb8a-50ea-9f05-27db6de5f1ad",
-		"eligibility": "// js\nreturn Number(get(ctx.run, 'source_manifest.overtime.INDIGENOUS_RITUAL_DAY_WORK', 0)) > 0;",
-		"conversion": "// js\n// 勞動基準法 §39: one further day’s wage for each elected ritual day worked; an hourly worker is paid the recorded hourly wage for its ordinary hours.\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst basis = get(terms, 'rate.unit', 'MONTHLY');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours = normal != null ? Number(normal) : ctx.lookup.normal_hours_per_day;\nconst allowances = Object.values(get(terms, 'allowances', {})).reduce(\n  (sum, a) => sum + Number(get(a, 'amount', 0)),\n  0\n);\nconst unit_wage =\n  basis === 'PIECE' || basis === 'HOURLY' ? Number(get(terms, 'rate.amount', 0))\n  : basis === 'DAILY' ? Number(get(terms, 'rate.amount', 0)) / day_hours\n  : (Number(get(terms, 'rate.amount', 0)) + allowances) / (ctx.lookup.monthly_divisor * day_hours);\nconst day_wage = unit_wage * day_hours;\nconst hours = Number(get(ctx.run, 'source_manifest.overtime.INDIGENOUS_RITUAL_DAY_WORK', 0));\nif (hours <= 0) return 0;\nreturn basis === 'HOURLY' ? hours * unit_wage : Math.ceil(hours / day_hours) * day_wage;",
-		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"id": "cbed7628-3148-5b6c-a184-c3cb8d54f354",
-		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
-	},
-	{
 		"code": "HOLIDAY_OVERTIME",
 		"name": "Holiday work beyond eight hours",
-		"lookup": {
-			"monthly_divisor": 30,
-			"normal_hours_per_day": 8,
-			"first_two_multiplier": 1.34,
-			"further_multiplier": 1.67
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "勞動基準法 §39 with §24(1): paid hours on a holiday beyond the eighth and past the planned shift (on a planned rest or off day, every recorded hour after the eighth), less any banked as 補休, at 1.34 for the first two and 1.67 after (改制前勞委會 87年9月14日(87)台勞動二字第039675號函; 高雄市勞工局 115年休假日一覽表 附註三). They count toward the §32 monthly overtime ceiling."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "54e639a8-bb8a-50ea-9f05-27db6de5f1ad",
-		"eligibility": "// js\nreturn Number(get(ctx.run, 'source_manifest.overtime.HOLIDAY_OVERTIME', 0)) > 0;",
-		"conversion": "// js\n// 勞動基準法 §39 with §24(1): hours after the eighth on a holiday, 1.34 for the first two and 1.67 after.\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst basis = get(terms, 'rate.unit', 'MONTHLY');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours = normal != null ? Number(normal) : ctx.lookup.normal_hours_per_day;\nconst allowances = Object.values(get(terms, 'allowances', {})).reduce(\n  (sum, a) => sum + Number(get(a, 'amount', 0)),\n  0\n);\nconst unit_wage =\n  basis === 'PIECE' || basis === 'HOURLY' ? Number(get(terms, 'rate.amount', 0))\n  : basis === 'DAILY' ? Number(get(terms, 'rate.amount', 0)) / day_hours\n  : (Number(get(terms, 'rate.amount', 0)) + allowances) / (ctx.lookup.monthly_divisor * day_hours);\nconst day_wage = unit_wage * day_hours;\nconst hours = Number(get(ctx.run, 'source_manifest.overtime.HOLIDAY_OVERTIME', 0));\nif (hours <= 0) return 0;\nconst first_hours = Math.min(hours, 2);\nreturn unit_wage * (first_hours * ctx.lookup.first_two_multiplier + (hours - first_hours) * ctx.lookup.further_multiplier);",
+		"eligibility": "return true;",
+		"conversion": "// js\n// 勞動基準法 §39 with §24(1): hours after the planned shift on a holiday (on a planned off day, after the eighth), 1.34 for the first two and 1.67 after.\nconst normal = get(ctx.subject.employment, 'terms.normal_hours_per_day', null);\nconst day_hours = normal != null ? Number(normal) : ctx.lookup.normal_hours_per_day;\nconst unit_wage = ctx.day_rate / day_hours;\nconst holiday = (day) => ctx.lookup.holiday_kinds.includes(get(day, 'holiday_kind', ''));\nconst priced = ctx.work.days\n  .filter((day) => ['WORK', 'OFF'].includes(get(day, 'day_type', '')) && holiday(day))\n  .map((day) => {\n    const hours = get(day, 'day_type', '') === 'WORK' ? Math.max(0, Number(get(day, 'overtime_hours', 0))) : Math.max(0, Number(get(day, 'worked_hours', 0)) - day_hours);\n    const first_hours = Math.min(hours, ctx.lookup.overtime_first_hours);\n    return first_hours * ctx.lookup.overtime_first_multiplier + (hours - first_hours) * ctx.lookup.overtime_further_multiplier;\n  });\nreturn unit_wage * sum(priced);",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",

@@ -9,14 +9,14 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
+		"subtotal_id": "ed9b4e8a-d378-5b8d-bd81-fdd4da21478d",
 		"eligibility": "// js\nconst ended = ctx.subject.employment.effective_range?.to;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "// js\nreturn ctx.entry.unit === 'MONEY' ? ctx.entry.quantity : 0;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"id": "3599b310-f6a9-5557-8de2-b356001a1e34",
-		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
+		"id": "a911f552-f43a-5b28-ac50-8a8d4f570b78",
+		"settings_id": "501ec2f1-625a-5c1c-9672-9ae5885072af"
 	},
 	{
 		"code": "BUSINESS_TRAVEL",
@@ -28,13 +28,13 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "765d671a-60d6-56f9-9ffa-11c348b3b9b9",
+		"subtotal_id": "ed9b4e8a-d378-5b8d-bd81-fdd4da21478d",
 		"eligibility": "// js\nconst ended = ctx.subject.employment.effective_range?.to;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "// js\nreturn ctx.entry.unit === 'MONEY' ? ctx.entry.quantity : 0;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"id": "db487bce-a530-599e-b036-5f583e9f4e07",
-		"settings_id": "d9fa13a6-5fcc-59bf-9c7b-0afb9c8eafd4"
+		"id": "e4f7e272-9c08-5b06-8e20-58bf68d96b21",
+		"settings_id": "501ec2f1-625a-5c1c-9672-9ae5885072af"
 	}
 ]

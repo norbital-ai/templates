@@ -280,7 +280,7 @@ Notes:
 
 - The loan sheet uses the native `Table` border and row rhythm; the empty state keeps the same header but has no data rows.
 - `loanScheduleProblems` is the invariant gate used by the form; `buildLoanSchedule` only mutates open rows.
-- Overtime pay still requires a positive `source_manifest.overtime` quantity; eligibility is a separate gate, so an eligible employee with zero hours gets no overtime line.
+- Overtime pay still requires overtime hours on the roster day (`ctx.work.days`); eligibility is a separate gate, so an eligible employee with zero hours gets no overtime line.
 - Statutory research now returns source URLs even when no value changed; the retry above stalled before producing an answer.
 
 ## 13. Catalogue shape and matrix interaction — 2026-11-04

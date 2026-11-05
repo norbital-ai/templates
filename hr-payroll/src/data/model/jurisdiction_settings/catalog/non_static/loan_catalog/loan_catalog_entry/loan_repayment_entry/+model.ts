@@ -15,7 +15,7 @@ export default model('loan_repayment_entry', {
 			inverse: 'repayments',
 			onDelete: 'restrict'
 		},
-		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true },
+		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, onDelete: 'setNull' },
 		amount: { kind: 'decimal', scale: 12, min: 0 },
 		paid_on: { kind: 'date', optional: true },
 		payment_reference: { kind: 'text', optional: true },

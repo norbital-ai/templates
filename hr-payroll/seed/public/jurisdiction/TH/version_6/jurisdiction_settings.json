@@ -133,14 +133,14 @@
 													"type": "boolean",
 													"default": false,
 													"title": "PND1: tax severance separately (s.48(5))",
-													"description": "With five years' service, the lump sum on leaving is taxed apart from other income."
+													"description": "Revenue Code s.48(5): with at least five years' service, the severance taxed on leaving is withheld apart from other income (Notification No. 45)."
 												},
 												"child_allowance_count": {
 													"type": "integer",
 													"minimum": 0,
 													"default": 0,
 													"title": "PND1: children qualifying for the child allowance",
-													"description": "Revenue Code s.47(1)(c): 30,000 baht a year for each legitimate or adopted child under 20, or under 25 and studying, or of any age and adjudged incompetent."
+													"description": "Revenue Code s.47(1)(c): 30,000 baht a year for each legitimate or adopted child under 20, or under 25 and studying, or of any age and adjudged incompetent. s.47(3): a non-resident gets this only for children in Thailand, on the annual return, not in payroll."
 												},
 												"disabled_dependants_count": {
 													"type": "integer",
@@ -262,7 +262,7 @@
 													"type": "string",
 													"enum": ["WITHOUT_INCOME", "WITH_INCOME"],
 													"title": "PND1: spouse income status",
-													"description": "Revenue Code s.47(1)(b): a 60,000 baht allowance for a spouse without income."
+													"description": "Revenue Code s.47(1)(b): a 60,000 baht allowance for a spouse without income. s.47(3): a non-resident gets this only for a spouse in Thailand, on the annual return, not in payroll."
 												}
 											},
 											"additionalProperties": false
@@ -276,8 +276,8 @@
 									"properties": {
 										"kind": {
 											"type": "string",
-											"title": "Registration or exemption status",
-											"pattern": "\\S"
+											"enum": ["MEMBER", "VOLUNTARY", "EXEMPT"],
+											"title": "Registration or exemption status"
 										}
 									}
 								}
@@ -369,7 +369,7 @@
 			"type": "object",
 			"title": "TH entity extension data",
 			"additionalProperties": false,
-			"description": "Additional local compliance inputs on the sealed entity profile, stored as entity_extension_data. The employer's minimum-wage area is one of the by_region keys of the MINIMUM_WAGE_ARREARS catalogue (Wage Committee Notification on Minimum Wage Rates (No. 14), Royal Gazette 1 July 2025, in force 1 July 2025 (repeals No. 13 of 23 December 2024 and the hotel notification of 27 March 2024)); its WCF business code is the Social Security Office Table 1 code of the Ministry of Labour notification of 21 February 2019 (five digits such as 01111), which sets the base WCF rate.",
+			"description": "Additional local compliance inputs on the sealed entity profile, stored as entity_extension_data. The employer's minimum-wage area is one of the by_region keys of the jurisdiction lookup (Wage Committee Notification on Minimum Wage Rates (No. 14), Royal Gazette 1 July 2025, in force 1 July 2025 (repeals No. 13 of 23 December 2024 and the hotel notification of 27 March 2024)); its WCF business code is the Social Security Office Table 1 code of the Ministry of Labour notification of 21 February 2019 (five digits such as 01111), which sets the base WCF rate.",
 			"properties": {
 				"wcf_rate_percent": {
 					"type": "number",
@@ -488,7 +488,166 @@
 		},
 		"lookup": {
 			"rounding": "HALF_UP",
-			"rounding_scale": 2
+			"rounding_scale": 2,
+			"monthly_divisor": 30,
+			"normal_hours_per_day": 8,
+			"hazardous_normal_hours_per_day": 7,
+			"day_rate": "// Labour Protection Act B.E. 2541 s.68: the monthly wage over 30 days, fixed allowance included (s.5).\n// Proration: no section sets an incomplete month. s.56(1) pays a monthly wage through weekly holidays\n// and s.68 counts the month in days, so a salary follows calendar days.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\nconst hours = Number(\n\tget(\n\t\tterms,\n\t\t'normal_hours_per_day',\n\t\tget(terms, 'statutory_work_category', '') === 'HAZARDOUS'\n\t\t\t? ctx.lookup.hazardous_normal_hours_per_day\n\t\t\t: ctx.lookup.normal_hours_per_day\n\t)\n);\nif (unit === 'DAILY') return amount;\nif (unit === 'HOURLY' || unit === 'PIECE') return amount * hours;\nreturn (amount + Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0))) / ctx.lookup.monthly_divisor;",
+			"proration_basis": "CALENDAR_DAYS",
+			"rounding_step": 0.01,
+			"schedule": [
+				{
+					"up_to": 35,
+					"amount": 90
+				},
+				{
+					"up_to": 71,
+					"amount": 180
+				},
+				{
+					"up_to": 119,
+					"amount": 240
+				},
+				{
+					"up_to": 239,
+					"amount": 300
+				},
+				{
+					"up_to": null,
+					"amount": 400
+				}
+			],
+			"minimum_service_days": 120,
+			"first_tier_days": 30,
+			"paid_multiple": 1,
+			"unpaid_multiple": 2,
+			"ladder": [
+				{
+					"up_to": 150000,
+					"rate": 0
+				},
+				{
+					"up_to": 300000,
+					"rate": 0.05
+				},
+				{
+					"up_to": 500000,
+					"rate": 0.1
+				},
+				{
+					"up_to": 750000,
+					"rate": 0.15
+				},
+				{
+					"up_to": 1000000,
+					"rate": 0.2
+				},
+				{
+					"up_to": 2000000,
+					"rate": 0.25
+				},
+				{
+					"up_to": 5000000,
+					"rate": 0.3
+				},
+				{
+					"up_to": null,
+					"rate": 0.35
+				}
+			],
+			"severance_daily_wages_limit": 400,
+			"severance_exemption_limit": 600000,
+			"severance_taxed_grounds": ["RETIREMENT", "END_OF_CONTRACT", "RESIGNATION"],
+			"pvd_minimum_percent": 2,
+			"pvd_maximum_percent": 15,
+			"elapsed_minutes": 300,
+			"break_minutes": 60,
+			"online_effective_from": "2027-01-31",
+			"employee_age_years_threshold": 18,
+			"ewf_welfare_effective_from": "2026-10-01",
+			"by_region": {
+				"BANGKOK": 400,
+				"CHACHOENGSAO": 400,
+				"CHON_BURI": 400,
+				"PHUKET": 400,
+				"RAYONG": 400,
+				"SURAT_THANI_KO_SAMUI": 400,
+				"CHIANG_MAI_MUEANG": 380,
+				"SONGKHLA_HAT_YAI": 380,
+				"NAKHON_PATHOM": 372,
+				"NONTHABURI": 372,
+				"PATHUM_THANI": 372,
+				"SAMUT_PRAKAN": 372,
+				"SAMUT_SAKHON": 372,
+				"NAKHON_RATCHASIMA": 359,
+				"SAMUT_SONGKHRAM": 358,
+				"KHON_KAEN": 357,
+				"CHIANG_MAI": 357,
+				"PRACHIN_BURI": 357,
+				"PHRA_NAKHON_SI_AYUTTHAYA": 357,
+				"SARABURI": 357,
+				"LOP_BURI": 356,
+				"NAKHON_NAYOK": 355,
+				"SUPHAN_BURI": 355,
+				"NONG_KHAI": 355,
+				"KRABI": 354,
+				"TRAT": 354,
+				"KANCHANABURI": 352,
+				"CHANTHABURI": 352,
+				"CHIANG_RAI": 352,
+				"TAK": 352,
+				"NAKHON_PHANOM": 352,
+				"BURI_RAM": 352,
+				"PRACHUAP_KHIRI_KHAN": 352,
+				"PHANGNGA": 352,
+				"PHITSANULOK": 352,
+				"MUKDAHAN": 352,
+				"SAKON_NAKHON": 352,
+				"SONGKHLA": 352,
+				"SA_KAEO": 352,
+				"SURAT_THANI": 352,
+				"UBON_RATCHATHANI": 352,
+				"CHUMPHON": 351,
+				"PHETCHABURI": 351,
+				"SURIN": 351,
+				"NAKHON_SAWAN": 350,
+				"YASOTHON": 350,
+				"LAMPHUN": 350,
+				"KALASIN": 349,
+				"NAKHON_SI_THAMMARAT": 349,
+				"BUENG_KAN": 349,
+				"PHETCHABUN": 349,
+				"ROI_ET": 349,
+				"CHAI_NAT": 348,
+				"CHAIYAPHUM": 348,
+				"PHATTHALUNG": 348,
+				"SING_BURI": 348,
+				"ANG_THONG": 348,
+				"KAMPHAENG_PHET": 347,
+				"PHICHIT": 347,
+				"MAHA_SARAKHAM": 347,
+				"MAE_HONG_SON": 347,
+				"RANONG": 347,
+				"RATCHABURI": 347,
+				"LAMPANG": 347,
+				"LOEI": 347,
+				"SI_SA_KET": 347,
+				"SATUN": 347,
+				"SUKHOTHAI": 347,
+				"NONG_BUA_LAM_PHU": 347,
+				"AMNAT_CHAROEN": 347,
+				"UDON_THANI": 347,
+				"UTTARADIT": 347,
+				"UTHAI_THANI": 347,
+				"TRANG": 345,
+				"NAN": 345,
+				"PHAYAO": 345,
+				"PHRAE": 345,
+				"NARATHIWAT": 337,
+				"PATTANI": 337,
+				"YALA": 337
+			},
+			"business_400": 400
 		},
 		"status": "SEALED",
 		"id": "99c29160-514b-5c95-8ba6-e8c8e530974c"

@@ -1055,7 +1055,2756 @@
 		},
 		"lookup": {
 			"rounding": "HALF_UP",
-			"rounding_scale": 0
+			"rounding_scale": 0,
+			"day_rate": "// proration_basis WORKING_DAYS: no statute fixes it. 労働基準法 arts.24, 89(ii) leave an incomplete month to the work rules and 民法 art.624 pays for work done, so a scheduled working day is the unit.\n// 労働基準法 art.37, 施行規則 art.19, art.21: monthly pay over scheduled monthly hours, fixed and attendance allowances in.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\nconst daily = Number(get(terms, 'normal_hours_per_day', 8));\nconst weekly = Number(\n\tget(terms, 'normal_hours_per_week', daily * Number(get(terms, 'normal_days_per_week', 5)))\n);\nconst monthly = Number(get(terms, 'normal_hours_per_month', (weekly * 52) / 12));\nif (!(monthly > 0)) return 0;\nconst allowances =\n\tNumber(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0)) +\n\tNumber(get(terms, 'allowances.ATTENDANCE_ALLOWANCE.amount', 0));\nconst hourly =\n\tunit === 'HOURLY' ? amount : unit === 'DAILY' ? (daily > 0 ? amount / daily : 0) : amount / monthly;\nreturn (hourly + allowances / monthly) * daily;",
+			"proration_basis": "WORKING_DAYS",
+			"prefecture_rate_percent": {
+				"HOKKAIDO": 10.31,
+				"AOMORI": 9.85,
+				"IWATE": 9.62,
+				"MIYAGI": 10.11,
+				"AKITA": 10.01,
+				"YAMAGATA": 9.75,
+				"FUKUSHIMA": 9.62,
+				"IBARAKI": 9.67,
+				"TOCHIGI": 9.82,
+				"GUNMA": 9.77,
+				"SAITAMA": 9.76,
+				"CHIBA": 9.79,
+				"TOKYO": 9.91,
+				"KANAGAWA": 9.92,
+				"NIIGATA": 9.55,
+				"TOYAMA": 9.65,
+				"ISHIKAWA": 9.88,
+				"FUKUI": 9.94,
+				"YAMANASHI": 9.89,
+				"NAGANO": 9.69,
+				"GIFU": 9.93,
+				"SHIZUOKA": 9.8,
+				"AICHI": 10.03,
+				"MIE": 9.99,
+				"SHIGA": 9.97,
+				"KYOTO": 10.03,
+				"OSAKA": 10.24,
+				"HYOGO": 10.16,
+				"NARA": 10.02,
+				"WAKAYAMA": 10.19,
+				"TOTTORI": 9.93,
+				"SHIMANE": 9.94,
+				"OKAYAMA": 10.17,
+				"HIROSHIMA": 9.97,
+				"YAMAGUCHI": 10.36,
+				"TOKUSHIMA": 10.47,
+				"KAGAWA": 10.21,
+				"EHIME": 10.18,
+				"KOCHI": 10.13,
+				"FUKUOKA": 10.31,
+				"SAGA": 10.78,
+				"NAGASAKI": 10.41,
+				"KUMAMOTO": 10.12,
+				"OITA": 10.25,
+				"MIYAZAKI": 10.09,
+				"KAGOSHIMA": 10.31,
+				"OKINAWA": 9.44
+			},
+			"remuneration_grades": [
+				{
+					"up_to": 62999,
+					"amount": 58000
+				},
+				{
+					"up_to": 72999,
+					"amount": 68000
+				},
+				{
+					"up_to": 82999,
+					"amount": 78000
+				},
+				{
+					"up_to": 92999,
+					"amount": 88000
+				},
+				{
+					"up_to": 100999,
+					"amount": 98000
+				},
+				{
+					"up_to": 106999,
+					"amount": 104000
+				},
+				{
+					"up_to": 113999,
+					"amount": 110000
+				},
+				{
+					"up_to": 121999,
+					"amount": 118000
+				},
+				{
+					"up_to": 129999,
+					"amount": 126000
+				},
+				{
+					"up_to": 137999,
+					"amount": 134000
+				},
+				{
+					"up_to": 145999,
+					"amount": 142000
+				},
+				{
+					"up_to": 154999,
+					"amount": 150000
+				},
+				{
+					"up_to": 164999,
+					"amount": 160000
+				},
+				{
+					"up_to": 174999,
+					"amount": 170000
+				},
+				{
+					"up_to": 184999,
+					"amount": 180000
+				},
+				{
+					"up_to": 194999,
+					"amount": 190000
+				},
+				{
+					"up_to": 209999,
+					"amount": 200000
+				},
+				{
+					"up_to": 229999,
+					"amount": 220000
+				},
+				{
+					"up_to": 249999,
+					"amount": 240000
+				},
+				{
+					"up_to": 269999,
+					"amount": 260000
+				},
+				{
+					"up_to": 289999,
+					"amount": 280000
+				},
+				{
+					"up_to": 309999,
+					"amount": 300000
+				},
+				{
+					"up_to": 329999,
+					"amount": 320000
+				},
+				{
+					"up_to": 349999,
+					"amount": 340000
+				},
+				{
+					"up_to": 369999,
+					"amount": 360000
+				},
+				{
+					"up_to": 394999,
+					"amount": 380000
+				},
+				{
+					"up_to": 424999,
+					"amount": 410000
+				},
+				{
+					"up_to": 454999,
+					"amount": 440000
+				},
+				{
+					"up_to": 484999,
+					"amount": 470000
+				},
+				{
+					"up_to": 514999,
+					"amount": 500000
+				},
+				{
+					"up_to": 544999,
+					"amount": 530000
+				},
+				{
+					"up_to": 574999,
+					"amount": 560000
+				},
+				{
+					"up_to": 604999,
+					"amount": 590000
+				},
+				{
+					"up_to": 634999,
+					"amount": 620000
+				},
+				{
+					"up_to": 664999,
+					"amount": 650000
+				},
+				{
+					"up_to": 694999,
+					"amount": 680000
+				},
+				{
+					"up_to": 729999,
+					"amount": 710000
+				},
+				{
+					"up_to": 769999,
+					"amount": 750000
+				},
+				{
+					"up_to": 809999,
+					"amount": 790000
+				},
+				{
+					"up_to": 854999,
+					"amount": 830000
+				},
+				{
+					"up_to": 904999,
+					"amount": 880000
+				},
+				{
+					"up_to": 954999,
+					"amount": 930000
+				},
+				{
+					"up_to": 1004999,
+					"amount": 980000
+				},
+				{
+					"up_to": 1054999,
+					"amount": 1030000
+				},
+				{
+					"up_to": 1114999,
+					"amount": 1090000
+				},
+				{
+					"up_to": 1174999,
+					"amount": 1150000
+				},
+				{
+					"up_to": 1234999,
+					"amount": 1210000
+				},
+				{
+					"up_to": 1294999,
+					"amount": 1270000
+				},
+				{
+					"up_to": 1354999,
+					"amount": 1330000
+				},
+				{
+					"up_to": null,
+					"amount": 1390000
+				}
+			],
+			"employee_rate": {
+				"GENERAL": 0.0055,
+				"AGRICULTURE_SAKE": 0.0065,
+				"CONSTRUCTION": 0.0065
+			},
+			"annual_tax": [
+				{
+					"up_to": 1950000,
+					"rate": 0.05,
+					"offset": 0
+				},
+				{
+					"up_to": 3300000,
+					"rate": 0.1,
+					"offset": -97500
+				},
+				{
+					"up_to": 6950000,
+					"rate": 0.2,
+					"offset": -427500
+				},
+				{
+					"up_to": 9000000,
+					"rate": 0.23,
+					"offset": -636000
+				},
+				{
+					"up_to": 18000000,
+					"rate": 0.33,
+					"offset": -1536000
+				},
+				{
+					"up_to": 40000000,
+					"rate": 0.4,
+					"offset": -2796000
+				},
+				{
+					"up_to": null,
+					"rate": 0.45,
+					"offset": -4796000
+				}
+			],
+			"days_per_year": 365,
+			"months_per_year": 12,
+			"car_distance_bands": [
+				{
+					"below": 2,
+					"amount": 0
+				},
+				{
+					"below": 10,
+					"amount": 4200
+				},
+				{
+					"below": 15,
+					"amount": 7300
+				},
+				{
+					"below": 25,
+					"amount": 13500
+				},
+				{
+					"below": 35,
+					"amount": 19700
+				},
+				{
+					"below": 45,
+					"amount": 25900
+				},
+				{
+					"below": 55,
+					"amount": 32300
+				},
+				{
+					"below": null,
+					"amount": 38700
+				}
+			],
+			"parking_monthly_cap": 0,
+			"commuting_monthly_limit": 150000,
+			"nonresident_rate": 0.2042,
+			"otsu_monthly_tax": [
+				{
+					"up_to": 91999,
+					"amount": 3200
+				},
+				{
+					"up_to": 94999,
+					"amount": 3300
+				},
+				{
+					"up_to": 96999,
+					"amount": 3400
+				},
+				{
+					"up_to": 98999,
+					"amount": 3500
+				},
+				{
+					"up_to": 102999,
+					"amount": 3600
+				},
+				{
+					"up_to": 104999,
+					"amount": 3700
+				},
+				{
+					"up_to": 108999,
+					"amount": 3800
+				},
+				{
+					"up_to": 110999,
+					"amount": 3900
+				},
+				{
+					"up_to": 112999,
+					"amount": 4000
+				},
+				{
+					"up_to": 116999,
+					"amount": 4100
+				},
+				{
+					"up_to": 118999,
+					"amount": 4200
+				},
+				{
+					"up_to": 120999,
+					"amount": 4300
+				},
+				{
+					"up_to": 122999,
+					"amount": 4500
+				},
+				{
+					"up_to": 124999,
+					"amount": 4800
+				},
+				{
+					"up_to": 126999,
+					"amount": 5100
+				},
+				{
+					"up_to": 128999,
+					"amount": 5400
+				},
+				{
+					"up_to": 130999,
+					"amount": 5700
+				},
+				{
+					"up_to": 132999,
+					"amount": 6000
+				},
+				{
+					"up_to": 134999,
+					"amount": 6300
+				},
+				{
+					"up_to": 136999,
+					"amount": 6600
+				},
+				{
+					"up_to": 138999,
+					"amount": 6800
+				},
+				{
+					"up_to": 140999,
+					"amount": 7100
+				},
+				{
+					"up_to": 142999,
+					"amount": 7500
+				},
+				{
+					"up_to": 144999,
+					"amount": 7800
+				},
+				{
+					"up_to": 146999,
+					"amount": 8100
+				},
+				{
+					"up_to": 148999,
+					"amount": 8400
+				},
+				{
+					"up_to": 150999,
+					"amount": 8700
+				},
+				{
+					"up_to": 152999,
+					"amount": 9000
+				},
+				{
+					"up_to": 154999,
+					"amount": 9300
+				},
+				{
+					"up_to": 156999,
+					"amount": 9600
+				},
+				{
+					"up_to": 158999,
+					"amount": 9900
+				},
+				{
+					"up_to": 160999,
+					"amount": 10200
+				},
+				{
+					"up_to": 162999,
+					"amount": 10500
+				},
+				{
+					"up_to": 164999,
+					"amount": 10800
+				},
+				{
+					"up_to": 166999,
+					"amount": 11100
+				},
+				{
+					"up_to": 168999,
+					"amount": 11400
+				},
+				{
+					"up_to": 170999,
+					"amount": 11700
+				},
+				{
+					"up_to": 172999,
+					"amount": 12000
+				},
+				{
+					"up_to": 174999,
+					"amount": 12400
+				},
+				{
+					"up_to": 176999,
+					"amount": 12700
+				},
+				{
+					"up_to": 178999,
+					"amount": 13200
+				},
+				{
+					"up_to": 180999,
+					"amount": 13900
+				},
+				{
+					"up_to": 182999,
+					"amount": 14600
+				},
+				{
+					"up_to": 184999,
+					"amount": 15300
+				},
+				{
+					"up_to": 186999,
+					"amount": 16000
+				},
+				{
+					"up_to": 188999,
+					"amount": 16700
+				},
+				{
+					"up_to": 190999,
+					"amount": 17500
+				},
+				{
+					"up_to": 192999,
+					"amount": 18100
+				},
+				{
+					"up_to": 194999,
+					"amount": 18800
+				},
+				{
+					"up_to": 196999,
+					"amount": 19500
+				},
+				{
+					"up_to": 198999,
+					"amount": 20200
+				},
+				{
+					"up_to": 200999,
+					"amount": 20900
+				},
+				{
+					"up_to": 202999,
+					"amount": 21500
+				},
+				{
+					"up_to": 204999,
+					"amount": 22200
+				},
+				{
+					"up_to": 206999,
+					"amount": 22700
+				},
+				{
+					"up_to": 208999,
+					"amount": 23300
+				},
+				{
+					"up_to": 210999,
+					"amount": 23900
+				},
+				{
+					"up_to": 212999,
+					"amount": 24400
+				},
+				{
+					"up_to": 214999,
+					"amount": 25000
+				},
+				{
+					"up_to": 216999,
+					"amount": 25500
+				},
+				{
+					"up_to": 218999,
+					"amount": 26100
+				},
+				{
+					"up_to": 220999,
+					"amount": 26800
+				},
+				{
+					"up_to": 223999,
+					"amount": 27400
+				},
+				{
+					"up_to": 226999,
+					"amount": 28400
+				},
+				{
+					"up_to": 229999,
+					"amount": 29300
+				},
+				{
+					"up_to": 232999,
+					"amount": 30300
+				},
+				{
+					"up_to": 235999,
+					"amount": 31300
+				},
+				{
+					"up_to": 238999,
+					"amount": 32400
+				},
+				{
+					"up_to": 241999,
+					"amount": 33400
+				},
+				{
+					"up_to": 244999,
+					"amount": 34400
+				},
+				{
+					"up_to": 247999,
+					"amount": 35400
+				},
+				{
+					"up_to": 250999,
+					"amount": 36400
+				},
+				{
+					"up_to": 253999,
+					"amount": 37500
+				},
+				{
+					"up_to": 256999,
+					"amount": 38500
+				},
+				{
+					"up_to": 259999,
+					"amount": 39400
+				},
+				{
+					"up_to": 262999,
+					"amount": 40400
+				},
+				{
+					"up_to": 265999,
+					"amount": 41500
+				},
+				{
+					"up_to": 268999,
+					"amount": 42500
+				},
+				{
+					"up_to": 271999,
+					"amount": 43500
+				},
+				{
+					"up_to": 274999,
+					"amount": 44500
+				},
+				{
+					"up_to": 277999,
+					"amount": 45500
+				},
+				{
+					"up_to": 280999,
+					"amount": 46600
+				},
+				{
+					"up_to": 283999,
+					"amount": 47600
+				},
+				{
+					"up_to": 286999,
+					"amount": 48600
+				},
+				{
+					"up_to": 289999,
+					"amount": 49700
+				},
+				{
+					"up_to": 292999,
+					"amount": 50900
+				},
+				{
+					"up_to": 295999,
+					"amount": 52100
+				},
+				{
+					"up_to": 298999,
+					"amount": 52900
+				},
+				{
+					"up_to": 301999,
+					"amount": 53700
+				},
+				{
+					"up_to": 304999,
+					"amount": 54500
+				},
+				{
+					"up_to": 307999,
+					"amount": 55200
+				},
+				{
+					"up_to": 310999,
+					"amount": 56100
+				},
+				{
+					"up_to": 313999,
+					"amount": 56900
+				},
+				{
+					"up_to": 316999,
+					"amount": 57800
+				},
+				{
+					"up_to": 319999,
+					"amount": 58800
+				},
+				{
+					"up_to": 322999,
+					"amount": 59800
+				},
+				{
+					"up_to": 325999,
+					"amount": 60900
+				},
+				{
+					"up_to": 328999,
+					"amount": 61900
+				},
+				{
+					"up_to": 331999,
+					"amount": 62900
+				},
+				{
+					"up_to": 334999,
+					"amount": 63900
+				},
+				{
+					"up_to": 337999,
+					"amount": 64900
+				},
+				{
+					"up_to": 340999,
+					"amount": 66000
+				},
+				{
+					"up_to": 343999,
+					"amount": 67000
+				},
+				{
+					"up_to": 346999,
+					"amount": 68000
+				},
+				{
+					"up_to": 349999,
+					"amount": 69000
+				},
+				{
+					"up_to": 352999,
+					"amount": 70000
+				},
+				{
+					"up_to": 355999,
+					"amount": 71100
+				},
+				{
+					"up_to": 358999,
+					"amount": 72100
+				},
+				{
+					"up_to": 361999,
+					"amount": 73100
+				},
+				{
+					"up_to": 364999,
+					"amount": 74200
+				},
+				{
+					"up_to": 367999,
+					"amount": 75200
+				},
+				{
+					"up_to": 370999,
+					"amount": 76200
+				},
+				{
+					"up_to": 373999,
+					"amount": 77100
+				},
+				{
+					"up_to": 376999,
+					"amount": 78100
+				},
+				{
+					"up_to": 379999,
+					"amount": 79000
+				},
+				{
+					"up_to": 382999,
+					"amount": 79900
+				},
+				{
+					"up_to": 385999,
+					"amount": 81400
+				},
+				{
+					"up_to": 388999,
+					"amount": 83100
+				},
+				{
+					"up_to": 391999,
+					"amount": 84700
+				},
+				{
+					"up_to": 394999,
+					"amount": 86500
+				},
+				{
+					"up_to": 397999,
+					"amount": 88200
+				},
+				{
+					"up_to": 400999,
+					"amount": 89800
+				},
+				{
+					"up_to": 403999,
+					"amount": 91600
+				},
+				{
+					"up_to": 406999,
+					"amount": 93300
+				},
+				{
+					"up_to": 409999,
+					"amount": 95000
+				},
+				{
+					"up_to": 412999,
+					"amount": 96700
+				},
+				{
+					"up_to": 415999,
+					"amount": 98300
+				},
+				{
+					"up_to": 418999,
+					"amount": 100100
+				},
+				{
+					"up_to": 421999,
+					"amount": 101800
+				},
+				{
+					"up_to": 424999,
+					"amount": 103400
+				},
+				{
+					"up_to": 427999,
+					"amount": 105200
+				},
+				{
+					"up_to": 430999,
+					"amount": 106900
+				},
+				{
+					"up_to": 433999,
+					"amount": 108500
+				},
+				{
+					"up_to": 436999,
+					"amount": 110300
+				},
+				{
+					"up_to": 439999,
+					"amount": 112000
+				},
+				{
+					"up_to": 442999,
+					"amount": 113600
+				},
+				{
+					"up_to": 445999,
+					"amount": 115400
+				},
+				{
+					"up_to": 448999,
+					"amount": 117100
+				},
+				{
+					"up_to": 451999,
+					"amount": 118700
+				},
+				{
+					"up_to": 454999,
+					"amount": 120500
+				},
+				{
+					"up_to": 457999,
+					"amount": 122200
+				},
+				{
+					"up_to": 460999,
+					"amount": 123800
+				},
+				{
+					"up_to": 463999,
+					"amount": 125600
+				},
+				{
+					"up_to": 466999,
+					"amount": 127300
+				},
+				{
+					"up_to": 469999,
+					"amount": 129000
+				},
+				{
+					"up_to": 472999,
+					"amount": 130700
+				},
+				{
+					"up_to": 475999,
+					"amount": 132300
+				},
+				{
+					"up_to": 478999,
+					"amount": 134000
+				},
+				{
+					"up_to": 481999,
+					"amount": 135600
+				},
+				{
+					"up_to": 484999,
+					"amount": 137200
+				},
+				{
+					"up_to": 487999,
+					"amount": 138800
+				},
+				{
+					"up_to": 490999,
+					"amount": 140400
+				},
+				{
+					"up_to": 493999,
+					"amount": 142000
+				},
+				{
+					"up_to": 496999,
+					"amount": 143700
+				},
+				{
+					"up_to": 499999,
+					"amount": 145200
+				},
+				{
+					"up_to": 502999,
+					"amount": 146800
+				},
+				{
+					"up_to": 505999,
+					"amount": 148500
+				},
+				{
+					"up_to": 508999,
+					"amount": 150100
+				},
+				{
+					"up_to": 511999,
+					"amount": 151600
+				},
+				{
+					"up_to": 514999,
+					"amount": 153300
+				},
+				{
+					"up_to": 517999,
+					"amount": 154900
+				},
+				{
+					"up_to": 520999,
+					"amount": 156500
+				},
+				{
+					"up_to": 523999,
+					"amount": 158100
+				},
+				{
+					"up_to": 526999,
+					"amount": 159600
+				},
+				{
+					"up_to": 529999,
+					"amount": 161000
+				},
+				{
+					"up_to": 532999,
+					"amount": 162500
+				},
+				{
+					"up_to": 535999,
+					"amount": 164000
+				},
+				{
+					"up_to": 538999,
+					"amount": 165400
+				},
+				{
+					"up_to": 541999,
+					"amount": 166900
+				},
+				{
+					"up_to": 544999,
+					"amount": 168400
+				},
+				{
+					"up_to": 547999,
+					"amount": 169900
+				},
+				{
+					"up_to": 550999,
+					"amount": 171300
+				},
+				{
+					"up_to": 553999,
+					"amount": 172800
+				},
+				{
+					"up_to": 556999,
+					"amount": 174300
+				},
+				{
+					"up_to": 559999,
+					"amount": 175700
+				},
+				{
+					"up_to": 562999,
+					"amount": 177200
+				},
+				{
+					"up_to": 565999,
+					"amount": 178700
+				},
+				{
+					"up_to": 568999,
+					"amount": 180100
+				},
+				{
+					"up_to": 571999,
+					"amount": 181600
+				},
+				{
+					"up_to": 574999,
+					"amount": 183100
+				},
+				{
+					"up_to": 577999,
+					"amount": 184600
+				},
+				{
+					"up_to": 580999,
+					"amount": 186000
+				},
+				{
+					"up_to": 583999,
+					"amount": 187500
+				},
+				{
+					"up_to": 586999,
+					"amount": 189000
+				},
+				{
+					"up_to": 589999,
+					"amount": 190400
+				},
+				{
+					"up_to": 592999,
+					"amount": 191900
+				},
+				{
+					"up_to": 595999,
+					"amount": 193400
+				},
+				{
+					"up_to": 598999,
+					"amount": 194800
+				},
+				{
+					"up_to": 601999,
+					"amount": 196300
+				},
+				{
+					"up_to": 604999,
+					"amount": 197800
+				},
+				{
+					"up_to": 607999,
+					"amount": 199300
+				},
+				{
+					"up_to": 610999,
+					"amount": 200700
+				},
+				{
+					"up_to": 613999,
+					"amount": 202200
+				},
+				{
+					"up_to": 616999,
+					"amount": 203700
+				},
+				{
+					"up_to": 619999,
+					"amount": 205100
+				},
+				{
+					"up_to": 622999,
+					"amount": 206700
+				},
+				{
+					"up_to": 625999,
+					"amount": 208100
+				},
+				{
+					"up_to": 628999,
+					"amount": 209500
+				},
+				{
+					"up_to": 631999,
+					"amount": 211000
+				},
+				{
+					"up_to": 634999,
+					"amount": 212500
+				},
+				{
+					"up_to": 637999,
+					"amount": 214000
+				},
+				{
+					"up_to": 640999,
+					"amount": 214900
+				},
+				{
+					"up_to": 643999,
+					"amount": 215900
+				},
+				{
+					"up_to": 646999,
+					"amount": 217000
+				},
+				{
+					"up_to": 649999,
+					"amount": 218000
+				},
+				{
+					"up_to": 652999,
+					"amount": 219000
+				},
+				{
+					"up_to": 655999,
+					"amount": 220000
+				},
+				{
+					"up_to": 658999,
+					"amount": 221000
+				},
+				{
+					"up_to": 661999,
+					"amount": 222100
+				},
+				{
+					"up_to": 664999,
+					"amount": 223100
+				},
+				{
+					"up_to": 667999,
+					"amount": 224100
+				},
+				{
+					"up_to": 670999,
+					"amount": 225000
+				},
+				{
+					"up_to": 673999,
+					"amount": 226000
+				},
+				{
+					"up_to": 676999,
+					"amount": 227100
+				},
+				{
+					"up_to": 679999,
+					"amount": 228100
+				},
+				{
+					"up_to": 682999,
+					"amount": 229100
+				},
+				{
+					"up_to": 685999,
+					"amount": 230400
+				},
+				{
+					"up_to": 688999,
+					"amount": 232100
+				},
+				{
+					"up_to": 691999,
+					"amount": 233600
+				},
+				{
+					"up_to": 694999,
+					"amount": 235100
+				},
+				{
+					"up_to": 697999,
+					"amount": 236700
+				},
+				{
+					"up_to": 700999,
+					"amount": 238200
+				},
+				{
+					"up_to": 703999,
+					"amount": 239700
+				},
+				{
+					"up_to": 706999,
+					"amount": 241300
+				},
+				{
+					"up_to": 709999,
+					"amount": 242900
+				},
+				{
+					"up_to": 712999,
+					"amount": 244400
+				},
+				{
+					"up_to": 715999,
+					"amount": 246000
+				},
+				{
+					"up_to": 718999,
+					"amount": 247500
+				},
+				{
+					"up_to": 721999,
+					"amount": 249000
+				},
+				{
+					"up_to": 724999,
+					"amount": 250600
+				},
+				{
+					"up_to": 727999,
+					"amount": 252200
+				},
+				{
+					"up_to": 730999,
+					"amount": 253700
+				},
+				{
+					"up_to": 733999,
+					"amount": 255300
+				},
+				{
+					"up_to": 736999,
+					"amount": 256800
+				},
+				{
+					"up_to": 739999,
+					"amount": 258300
+				},
+				{
+					"up_to": null,
+					"amount": 259800
+				}
+			],
+			"otsu_excess": [
+				{
+					"from": 740000,
+					"base": 259800,
+					"rate": 0.4084
+				},
+				{
+					"from": 1700000,
+					"base": 651900,
+					"rate": 0.45945
+				}
+			],
+			"hei_daily_tax": [
+				{
+					"up_to": 9299,
+					"amount": 0
+				},
+				{
+					"up_to": 9399,
+					"amount": 3
+				},
+				{
+					"up_to": 9499,
+					"amount": 6
+				},
+				{
+					"up_to": 9599,
+					"amount": 10
+				},
+				{
+					"up_to": 9699,
+					"amount": 13
+				},
+				{
+					"up_to": 9799,
+					"amount": 17
+				},
+				{
+					"up_to": 9899,
+					"amount": 20
+				},
+				{
+					"up_to": 9999,
+					"amount": 24
+				},
+				{
+					"up_to": 10099,
+					"amount": 27
+				},
+				{
+					"up_to": 10199,
+					"amount": 31
+				},
+				{
+					"up_to": 10299,
+					"amount": 34
+				},
+				{
+					"up_to": 10399,
+					"amount": 38
+				},
+				{
+					"up_to": 10499,
+					"amount": 41
+				},
+				{
+					"up_to": 10599,
+					"amount": 45
+				},
+				{
+					"up_to": 10699,
+					"amount": 49
+				},
+				{
+					"up_to": 10799,
+					"amount": 53
+				},
+				{
+					"up_to": 10899,
+					"amount": 56
+				},
+				{
+					"up_to": 10999,
+					"amount": 60
+				},
+				{
+					"up_to": 11099,
+					"amount": 63
+				},
+				{
+					"up_to": 11199,
+					"amount": 67
+				},
+				{
+					"up_to": 11299,
+					"amount": 70
+				},
+				{
+					"up_to": 11399,
+					"amount": 74
+				},
+				{
+					"up_to": 11499,
+					"amount": 77
+				},
+				{
+					"up_to": 11599,
+					"amount": 81
+				},
+				{
+					"up_to": 11699,
+					"amount": 84
+				},
+				{
+					"up_to": 11799,
+					"amount": 88
+				},
+				{
+					"up_to": 11899,
+					"amount": 91
+				},
+				{
+					"up_to": 11999,
+					"amount": 95
+				},
+				{
+					"up_to": 12099,
+					"amount": 99
+				},
+				{
+					"up_to": 12199,
+					"amount": 103
+				},
+				{
+					"up_to": 12299,
+					"amount": 106
+				},
+				{
+					"up_to": 12399,
+					"amount": 110
+				},
+				{
+					"up_to": 12499,
+					"amount": 113
+				},
+				{
+					"up_to": 12599,
+					"amount": 117
+				},
+				{
+					"up_to": 12699,
+					"amount": 120
+				},
+				{
+					"up_to": 12799,
+					"amount": 124
+				},
+				{
+					"up_to": 12899,
+					"amount": 127
+				},
+				{
+					"up_to": 12999,
+					"amount": 131
+				},
+				{
+					"up_to": 13099,
+					"amount": 134
+				},
+				{
+					"up_to": 13199,
+					"amount": 138
+				},
+				{
+					"up_to": 13299,
+					"amount": 141
+				},
+				{
+					"up_to": 13399,
+					"amount": 146
+				},
+				{
+					"up_to": 13499,
+					"amount": 149
+				},
+				{
+					"up_to": 13599,
+					"amount": 153
+				},
+				{
+					"up_to": 13699,
+					"amount": 156
+				},
+				{
+					"up_to": 13799,
+					"amount": 160
+				},
+				{
+					"up_to": 13899,
+					"amount": 164
+				},
+				{
+					"up_to": 13999,
+					"amount": 168
+				},
+				{
+					"up_to": 14099,
+					"amount": 172
+				},
+				{
+					"up_to": 14199,
+					"amount": 176
+				},
+				{
+					"up_to": 14299,
+					"amount": 180
+				},
+				{
+					"up_to": 14399,
+					"amount": 184
+				},
+				{
+					"up_to": 14499,
+					"amount": 188
+				},
+				{
+					"up_to": 14599,
+					"amount": 192
+				},
+				{
+					"up_to": 14699,
+					"amount": 197
+				},
+				{
+					"up_to": 14799,
+					"amount": 201
+				},
+				{
+					"up_to": 14899,
+					"amount": 205
+				},
+				{
+					"up_to": 14999,
+					"amount": 209
+				},
+				{
+					"up_to": 15099,
+					"amount": 213
+				},
+				{
+					"up_to": 15199,
+					"amount": 217
+				},
+				{
+					"up_to": 15299,
+					"amount": 221
+				},
+				{
+					"up_to": 15399,
+					"amount": 225
+				},
+				{
+					"up_to": 15499,
+					"amount": 229
+				},
+				{
+					"up_to": 15599,
+					"amount": 233
+				},
+				{
+					"up_to": 15699,
+					"amount": 237
+				},
+				{
+					"up_to": 15799,
+					"amount": 241
+				},
+				{
+					"up_to": 15899,
+					"amount": 246
+				},
+				{
+					"up_to": 15999,
+					"amount": 250
+				},
+				{
+					"up_to": 16099,
+					"amount": 254
+				},
+				{
+					"up_to": 16199,
+					"amount": 258
+				},
+				{
+					"up_to": 16299,
+					"amount": 262
+				},
+				{
+					"up_to": 16399,
+					"amount": 266
+				},
+				{
+					"up_to": 16499,
+					"amount": 270
+				},
+				{
+					"up_to": 16599,
+					"amount": 274
+				},
+				{
+					"up_to": 16699,
+					"amount": 278
+				},
+				{
+					"up_to": 16799,
+					"amount": 282
+				},
+				{
+					"up_to": 16899,
+					"amount": 286
+				},
+				{
+					"up_to": 16999,
+					"amount": 290
+				},
+				{
+					"up_to": 17099,
+					"amount": 295
+				},
+				{
+					"up_to": 17199,
+					"amount": 299
+				},
+				{
+					"up_to": 17299,
+					"amount": 303
+				},
+				{
+					"up_to": 17399,
+					"amount": 307
+				},
+				{
+					"up_to": 17499,
+					"amount": 311
+				},
+				{
+					"up_to": 17599,
+					"amount": 315
+				},
+				{
+					"up_to": 17699,
+					"amount": 319
+				},
+				{
+					"up_to": 17799,
+					"amount": 323
+				},
+				{
+					"up_to": 17899,
+					"amount": 327
+				},
+				{
+					"up_to": 17999,
+					"amount": 331
+				},
+				{
+					"up_to": 18099,
+					"amount": 335
+				},
+				{
+					"up_to": 18199,
+					"amount": 339
+				},
+				{
+					"up_to": 18299,
+					"amount": 344
+				},
+				{
+					"up_to": 18399,
+					"amount": 348
+				},
+				{
+					"up_to": 18499,
+					"amount": 352
+				},
+				{
+					"up_to": 18599,
+					"amount": 356
+				},
+				{
+					"up_to": 18699,
+					"amount": 360
+				},
+				{
+					"up_to": 18799,
+					"amount": 364
+				},
+				{
+					"up_to": 18899,
+					"amount": 368
+				},
+				{
+					"up_to": 18999,
+					"amount": 372
+				},
+				{
+					"up_to": 19099,
+					"amount": 376
+				},
+				{
+					"up_to": 19199,
+					"amount": 384
+				},
+				{
+					"up_to": 19299,
+					"amount": 393
+				},
+				{
+					"up_to": 19399,
+					"amount": 401
+				},
+				{
+					"up_to": 19499,
+					"amount": 409
+				},
+				{
+					"up_to": 19599,
+					"amount": 417
+				},
+				{
+					"up_to": 19699,
+					"amount": 425
+				},
+				{
+					"up_to": 19799,
+					"amount": 433
+				},
+				{
+					"up_to": 19899,
+					"amount": 442
+				},
+				{
+					"up_to": 19999,
+					"amount": 450
+				},
+				{
+					"up_to": 20099,
+					"amount": 458
+				},
+				{
+					"up_to": 20199,
+					"amount": 466
+				},
+				{
+					"up_to": 20299,
+					"amount": 474
+				},
+				{
+					"up_to": 20399,
+					"amount": 482
+				},
+				{
+					"up_to": 20499,
+					"amount": 491
+				},
+				{
+					"up_to": 20599,
+					"amount": 499
+				},
+				{
+					"up_to": 20699,
+					"amount": 507
+				},
+				{
+					"up_to": 20799,
+					"amount": 515
+				},
+				{
+					"up_to": 20899,
+					"amount": 523
+				},
+				{
+					"up_to": 20999,
+					"amount": 531
+				},
+				{
+					"up_to": 21099,
+					"amount": 540
+				},
+				{
+					"up_to": 21199,
+					"amount": 548
+				},
+				{
+					"up_to": 21299,
+					"amount": 556
+				},
+				{
+					"up_to": 21399,
+					"amount": 564
+				},
+				{
+					"up_to": 21499,
+					"amount": 572
+				},
+				{
+					"up_to": 21599,
+					"amount": 580
+				},
+				{
+					"up_to": 21699,
+					"amount": 589
+				},
+				{
+					"up_to": 21799,
+					"amount": 597
+				},
+				{
+					"up_to": 21899,
+					"amount": 605
+				},
+				{
+					"up_to": 21999,
+					"amount": 613
+				},
+				{
+					"up_to": 22099,
+					"amount": 621
+				},
+				{
+					"up_to": 22199,
+					"amount": 629
+				},
+				{
+					"up_to": 22299,
+					"amount": 638
+				},
+				{
+					"up_to": 22399,
+					"amount": 646
+				},
+				{
+					"up_to": 22499,
+					"amount": 654
+				},
+				{
+					"up_to": 22599,
+					"amount": 662
+				},
+				{
+					"up_to": 22699,
+					"amount": 670
+				},
+				{
+					"up_to": 22799,
+					"amount": 678
+				},
+				{
+					"up_to": 22899,
+					"amount": 687
+				},
+				{
+					"up_to": 22999,
+					"amount": 695
+				},
+				{
+					"up_to": 23099,
+					"amount": 703
+				},
+				{
+					"up_to": 23199,
+					"amount": 711
+				},
+				{
+					"up_to": 23299,
+					"amount": 719
+				},
+				{
+					"up_to": 23399,
+					"amount": 727
+				},
+				{
+					"up_to": 23499,
+					"amount": 736
+				},
+				{
+					"up_to": 23599,
+					"amount": 744
+				},
+				{
+					"up_to": 23699,
+					"amount": 752
+				},
+				{
+					"up_to": 23799,
+					"amount": 760
+				},
+				{
+					"up_to": 23899,
+					"amount": 768
+				},
+				{
+					"up_to": 23999,
+					"amount": 776
+				},
+				{
+					"up_to": null,
+					"amount": 785
+				}
+			],
+			"hei_excess": [
+				{
+					"from": 24000,
+					"base": 785,
+					"rate": 0.1021
+				},
+				{
+					"from": 26000,
+					"base": 989,
+					"rate": 0.2042
+				},
+				{
+					"from": 32000,
+					"base": 2214,
+					"rate": 0.25525
+				},
+				{
+					"from": 57000,
+					"base": 8595,
+					"rate": 0.33693
+				},
+				{
+					"from": 116500,
+					"base": 28643,
+					"rate": 0.4084
+				}
+			],
+			"bonus_rate_ko": [
+				[
+					{
+						"up_to": 67999,
+						"rate": 0.0
+					},
+					{
+						"up_to": 78999,
+						"rate": 0.02042
+					},
+					{
+						"up_to": 251999,
+						"rate": 0.04084
+					},
+					{
+						"up_to": 299999,
+						"rate": 0.06126
+					},
+					{
+						"up_to": 333999,
+						"rate": 0.08168
+					},
+					{
+						"up_to": 362999,
+						"rate": 0.1021
+					},
+					{
+						"up_to": 394999,
+						"rate": 0.12252
+					},
+					{
+						"up_to": 425999,
+						"rate": 0.14294
+					},
+					{
+						"up_to": 519999,
+						"rate": 0.16336
+					},
+					{
+						"up_to": 600999,
+						"rate": 0.18378
+					},
+					{
+						"up_to": 677999,
+						"rate": 0.2042
+					},
+					{
+						"up_to": 707999,
+						"rate": 0.22462
+					},
+					{
+						"up_to": 744999,
+						"rate": 0.24504
+					},
+					{
+						"up_to": 787999,
+						"rate": 0.26546
+					},
+					{
+						"up_to": 845999,
+						"rate": 0.28588
+					},
+					{
+						"up_to": 913999,
+						"rate": 0.3063
+					},
+					{
+						"up_to": 1311999,
+						"rate": 0.32672
+					},
+					{
+						"up_to": 1520999,
+						"rate": 0.35735
+					},
+					{
+						"up_to": 2620999,
+						"rate": 0.38798
+					},
+					{
+						"up_to": 3494999,
+						"rate": 0.41861
+					},
+					{
+						"up_to": null,
+						"rate": 0.45945
+					}
+				],
+				[
+					{
+						"up_to": 93999,
+						"rate": 0.0
+					},
+					{
+						"up_to": 242999,
+						"rate": 0.02042
+					},
+					{
+						"up_to": 281999,
+						"rate": 0.04084
+					},
+					{
+						"up_to": 337999,
+						"rate": 0.06126
+					},
+					{
+						"up_to": 364999,
+						"rate": 0.08168
+					},
+					{
+						"up_to": 393999,
+						"rate": 0.1021
+					},
+					{
+						"up_to": 421999,
+						"rate": 0.12252
+					},
+					{
+						"up_to": 454999,
+						"rate": 0.14294
+					},
+					{
+						"up_to": 519999,
+						"rate": 0.16336
+					},
+					{
+						"up_to": 616999,
+						"rate": 0.18378
+					},
+					{
+						"up_to": 698999,
+						"rate": 0.2042
+					},
+					{
+						"up_to": 732999,
+						"rate": 0.22462
+					},
+					{
+						"up_to": 770999,
+						"rate": 0.24504
+					},
+					{
+						"up_to": 813999,
+						"rate": 0.26546
+					},
+					{
+						"up_to": 873999,
+						"rate": 0.28588
+					},
+					{
+						"up_to": 943999,
+						"rate": 0.3063
+					},
+					{
+						"up_to": 1335999,
+						"rate": 0.32672
+					},
+					{
+						"up_to": 1525999,
+						"rate": 0.35735
+					},
+					{
+						"up_to": 2644999,
+						"rate": 0.38798
+					},
+					{
+						"up_to": 3526999,
+						"rate": 0.41861
+					},
+					{
+						"up_to": null,
+						"rate": 0.45945
+					}
+				],
+				[
+					{
+						"up_to": 132999,
+						"rate": 0.0
+					},
+					{
+						"up_to": 268999,
+						"rate": 0.02042
+					},
+					{
+						"up_to": 311999,
+						"rate": 0.04084
+					},
+					{
+						"up_to": 368999,
+						"rate": 0.06126
+					},
+					{
+						"up_to": 392999,
+						"rate": 0.08168
+					},
+					{
+						"up_to": 419999,
+						"rate": 0.1021
+					},
+					{
+						"up_to": 449999,
+						"rate": 0.12252
+					},
+					{
+						"up_to": 483999,
+						"rate": 0.14294
+					},
+					{
+						"up_to": 519999,
+						"rate": 0.16336
+					},
+					{
+						"up_to": 631999,
+						"rate": 0.18378
+					},
+					{
+						"up_to": 720999,
+						"rate": 0.2042
+					},
+					{
+						"up_to": 756999,
+						"rate": 0.22462
+					},
+					{
+						"up_to": 796999,
+						"rate": 0.24504
+					},
+					{
+						"up_to": 840999,
+						"rate": 0.26546
+					},
+					{
+						"up_to": 901999,
+						"rate": 0.28588
+					},
+					{
+						"up_to": 974999,
+						"rate": 0.3063
+					},
+					{
+						"up_to": 1359999,
+						"rate": 0.32672
+					},
+					{
+						"up_to": 1525999,
+						"rate": 0.35735
+					},
+					{
+						"up_to": 2668999,
+						"rate": 0.38798
+					},
+					{
+						"up_to": 3558999,
+						"rate": 0.41861
+					},
+					{
+						"up_to": null,
+						"rate": 0.45945
+					}
+				],
+				[
+					{
+						"up_to": 170999,
+						"rate": 0.0
+					},
+					{
+						"up_to": 294999,
+						"rate": 0.02042
+					},
+					{
+						"up_to": 344999,
+						"rate": 0.04084
+					},
+					{
+						"up_to": 397999,
+						"rate": 0.06126
+					},
+					{
+						"up_to": 416999,
+						"rate": 0.08168
+					},
+					{
+						"up_to": 444999,
+						"rate": 0.1021
+					},
+					{
+						"up_to": 476999,
+						"rate": 0.12252
+					},
+					{
+						"up_to": 509999,
+						"rate": 0.14294
+					},
+					{
+						"up_to": 543999,
+						"rate": 0.16336
+					},
+					{
+						"up_to": 646999,
+						"rate": 0.18378
+					},
+					{
+						"up_to": 744999,
+						"rate": 0.2042
+					},
+					{
+						"up_to": 781999,
+						"rate": 0.22462
+					},
+					{
+						"up_to": 822999,
+						"rate": 0.24504
+					},
+					{
+						"up_to": 867999,
+						"rate": 0.26546
+					},
+					{
+						"up_to": 930999,
+						"rate": 0.28588
+					},
+					{
+						"up_to": 1004999,
+						"rate": 0.3063
+					},
+					{
+						"up_to": 1384999,
+						"rate": 0.32672
+					},
+					{
+						"up_to": 1537999,
+						"rate": 0.35735
+					},
+					{
+						"up_to": 2692999,
+						"rate": 0.38798
+					},
+					{
+						"up_to": 3589999,
+						"rate": 0.41861
+					},
+					{
+						"up_to": null,
+						"rate": 0.45945
+					}
+				],
+				[
+					{
+						"up_to": 209999,
+						"rate": 0.0
+					},
+					{
+						"up_to": 299999,
+						"rate": 0.02042
+					},
+					{
+						"up_to": 377999,
+						"rate": 0.04084
+					},
+					{
+						"up_to": 423999,
+						"rate": 0.06126
+					},
+					{
+						"up_to": 443999,
+						"rate": 0.08168
+					},
+					{
+						"up_to": 469999,
+						"rate": 0.1021
+					},
+					{
+						"up_to": 502999,
+						"rate": 0.12252
+					},
+					{
+						"up_to": 533999,
+						"rate": 0.14294
+					},
+					{
+						"up_to": 569999,
+						"rate": 0.16336
+					},
+					{
+						"up_to": 661999,
+						"rate": 0.18378
+					},
+					{
+						"up_to": 767999,
+						"rate": 0.2042
+					},
+					{
+						"up_to": 805999,
+						"rate": 0.22462
+					},
+					{
+						"up_to": 848999,
+						"rate": 0.24504
+					},
+					{
+						"up_to": 895999,
+						"rate": 0.26546
+					},
+					{
+						"up_to": 958999,
+						"rate": 0.28588
+					},
+					{
+						"up_to": 1035999,
+						"rate": 0.3063
+					},
+					{
+						"up_to": 1408999,
+						"rate": 0.32672
+					},
+					{
+						"up_to": 1554999,
+						"rate": 0.35735
+					},
+					{
+						"up_to": 2715999,
+						"rate": 0.38798
+					},
+					{
+						"up_to": 3621999,
+						"rate": 0.41861
+					},
+					{
+						"up_to": null,
+						"rate": 0.45945
+					}
+				],
+				[
+					{
+						"up_to": 242999,
+						"rate": 0.0
+					},
+					{
+						"up_to": 299999,
+						"rate": 0.02042
+					},
+					{
+						"up_to": 405999,
+						"rate": 0.04084
+					},
+					{
+						"up_to": 449999,
+						"rate": 0.06126
+					},
+					{
+						"up_to": 471999,
+						"rate": 0.08168
+					},
+					{
+						"up_to": 495999,
+						"rate": 0.1021
+					},
+					{
+						"up_to": 524999,
+						"rate": 0.12252
+					},
+					{
+						"up_to": 556999,
+						"rate": 0.14294
+					},
+					{
+						"up_to": 596999,
+						"rate": 0.16336
+					},
+					{
+						"up_to": 676999,
+						"rate": 0.18378
+					},
+					{
+						"up_to": 791999,
+						"rate": 0.2042
+					},
+					{
+						"up_to": 830999,
+						"rate": 0.22462
+					},
+					{
+						"up_to": 874999,
+						"rate": 0.24504
+					},
+					{
+						"up_to": 922999,
+						"rate": 0.26546
+					},
+					{
+						"up_to": 986999,
+						"rate": 0.28588
+					},
+					{
+						"up_to": 1065999,
+						"rate": 0.3063
+					},
+					{
+						"up_to": 1433999,
+						"rate": 0.32672
+					},
+					{
+						"up_to": 1554999,
+						"rate": 0.35735
+					},
+					{
+						"up_to": 2739999,
+						"rate": 0.38798
+					},
+					{
+						"up_to": 3653999,
+						"rate": 0.41861
+					},
+					{
+						"up_to": null,
+						"rate": 0.45945
+					}
+				],
+				[
+					{
+						"up_to": 274999,
+						"rate": 0.0
+					},
+					{
+						"up_to": 332999,
+						"rate": 0.02042
+					},
+					{
+						"up_to": 430999,
+						"rate": 0.04084
+					},
+					{
+						"up_to": 475999,
+						"rate": 0.06126
+					},
+					{
+						"up_to": 498999,
+						"rate": 0.08168
+					},
+					{
+						"up_to": 520999,
+						"rate": 0.1021
+					},
+					{
+						"up_to": 546999,
+						"rate": 0.12252
+					},
+					{
+						"up_to": 581999,
+						"rate": 0.14294
+					},
+					{
+						"up_to": 622999,
+						"rate": 0.16336
+					},
+					{
+						"up_to": 692999,
+						"rate": 0.18378
+					},
+					{
+						"up_to": 814999,
+						"rate": 0.2042
+					},
+					{
+						"up_to": 855999,
+						"rate": 0.22462
+					},
+					{
+						"up_to": 899999,
+						"rate": 0.24504
+					},
+					{
+						"up_to": 949999,
+						"rate": 0.26546
+					},
+					{
+						"up_to": 1014999,
+						"rate": 0.28588
+					},
+					{
+						"up_to": 1095999,
+						"rate": 0.3063
+					},
+					{
+						"up_to": 1457999,
+						"rate": 0.32672
+					},
+					{
+						"up_to": 1554999,
+						"rate": 0.35735
+					},
+					{
+						"up_to": 2763999,
+						"rate": 0.38798
+					},
+					{
+						"up_to": 3684999,
+						"rate": 0.41861
+					},
+					{
+						"up_to": null,
+						"rate": 0.45945
+					}
+				],
+				[
+					{
+						"up_to": 307999,
+						"rate": 0.0
+					},
+					{
+						"up_to": 371999,
+						"rate": 0.02042
+					},
+					{
+						"up_to": 455999,
+						"rate": 0.04084
+					},
+					{
+						"up_to": 501999,
+						"rate": 0.06126
+					},
+					{
+						"up_to": 522999,
+						"rate": 0.08168
+					},
+					{
+						"up_to": 544999,
+						"rate": 0.1021
+					},
+					{
+						"up_to": 570999,
+						"rate": 0.12252
+					},
+					{
+						"up_to": 606999,
+						"rate": 0.14294
+					},
+					{
+						"up_to": 649999,
+						"rate": 0.16336
+					},
+					{
+						"up_to": 707999,
+						"rate": 0.18378
+					},
+					{
+						"up_to": 837999,
+						"rate": 0.2042
+					},
+					{
+						"up_to": 879999,
+						"rate": 0.22462
+					},
+					{
+						"up_to": 925999,
+						"rate": 0.24504
+					},
+					{
+						"up_to": 977999,
+						"rate": 0.26546
+					},
+					{
+						"up_to": 1042999,
+						"rate": 0.28588
+					},
+					{
+						"up_to": 1126999,
+						"rate": 0.3063
+					},
+					{
+						"up_to": 1481999,
+						"rate": 0.32672
+					},
+					{
+						"up_to": 1582999,
+						"rate": 0.35735
+					},
+					{
+						"up_to": 2787999,
+						"rate": 0.38798
+					},
+					{
+						"up_to": 3716999,
+						"rate": 0.41861
+					},
+					{
+						"up_to": null,
+						"rate": 0.45945
+					}
+				]
+			],
+			"bonus_rate_otsu": [
+				{
+					"up_to": 221999,
+					"rate": 0.1021
+				},
+				{
+					"up_to": 292999,
+					"rate": 0.2042
+				},
+				{
+					"up_to": 523999,
+					"rate": 0.3063
+				},
+				{
+					"up_to": 1117999,
+					"rate": 0.38798
+				},
+				{
+					"up_to": null,
+					"rate": 0.45945
+				}
+			],
+			"annual_salary_income_deduction": [
+				{
+					"up_to": 1899999,
+					"rate": 0,
+					"offset": 650000
+				},
+				{
+					"up_to": 3599999,
+					"rate": 0.3,
+					"offset": 80000
+				},
+				{
+					"up_to": 6599999,
+					"rate": 0.2,
+					"offset": 440000
+				},
+				{
+					"up_to": 8499999,
+					"rate": 0.1,
+					"offset": 1100000
+				},
+				{
+					"up_to": null,
+					"rate": 0,
+					"offset": 1950000
+				}
+			],
+			"annual_basic_deduction": [
+				{
+					"up_to": 1320000,
+					"rate": 0,
+					"offset": 950000
+				},
+				{
+					"up_to": 3360000,
+					"rate": 0,
+					"offset": 880000
+				},
+				{
+					"up_to": 4890000,
+					"rate": 0,
+					"offset": 680000
+				},
+				{
+					"up_to": 6550000,
+					"rate": 0,
+					"offset": 630000
+				},
+				{
+					"up_to": 23500000,
+					"rate": 0,
+					"offset": 580000
+				},
+				{
+					"up_to": 24000000,
+					"rate": 0,
+					"offset": 480000
+				},
+				{
+					"up_to": 24500000,
+					"rate": 0,
+					"offset": 320000
+				},
+				{
+					"up_to": 25000000,
+					"rate": 0,
+					"offset": 160000
+				},
+				{
+					"up_to": null,
+					"rate": 0,
+					"offset": 0
+				}
+			],
+			"midyear_salary_limit": 1230000,
+			"employee_share": 0.5,
+			"nursing_percent": 1.59,
+			"nursing_minimum_age_years": 40,
+			"nursing_maximum_age_years": 65,
+			"health_maximum_age_years": 75,
+			"pension_maximum_age_years": 70,
+			"pension_rate": 0.183,
+			"pension_minimum_grade": 88000,
+			"pension_maximum_grade": 650000,
+			"annual_bonus_salary_ceiling": 5730000,
+			"bonus_salary_ceiling": 1500000,
+			"ei_employer_rate": {
+				"GENERAL": 0.009,
+				"AGRICULTURE_SAKE": 0.01,
+				"CONSTRUCTION": 0.011
+			},
+			"annual_service_deduction": 400000,
+			"breakpoint_deduction": 8000000,
+			"extended_annual_service_deduction": 700000,
+			"minimum_service_deduction": 800000,
+			"taxable_share": 0.5,
+			"reconstruction_multiplier": 1.021,
+			"wage_period_share": 0.1,
+			"night_from": "22:00",
+			"night_to": "05:00",
+			"standard_daily_hours": 8,
+			"standard_weekly_hours": 40,
+			"special_establishment_weekly_hours": 44,
+			"employee_age_years_threshold": 18,
+			"affected_people_count_threshold": 1000,
+			"my_number_count_threshold": 100,
+			"business_year_end_month": 3,
+			"report_days_threshold": 4,
+			"young_worker_daily_hours_limit": 8,
+			"monthly_threshold_hours": 60,
+			"month_balance": [
+				"BASIC",
+				"NON_TAXABLE_PAY",
+				"ORDINARY_WAGES",
+				"ADDITIONAL_WAGES",
+				"HEALTH.employee",
+				"PENSION.employee",
+				"EI.employee",
+				"CHILD_SUPPORT.employee"
+			]
 		},
 		"status": "SEALED",
 		"id": "8f6194fc-6906-568f-a011-30183e86be25"

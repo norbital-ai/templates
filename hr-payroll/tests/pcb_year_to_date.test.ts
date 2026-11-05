@@ -6,6 +6,7 @@ import { describe, it } from '@effect/vitest';
 import { Schema } from 'effect';
 import { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
+import { isJsonObject } from '../src/lib/payroll_engine/foundation.ts';
 
 const catalog = Schema.decodeUnknownSync(Schema.Array(JsonObject))(
 	JSON.parse(
@@ -17,6 +18,11 @@ const catalog = Schema.decodeUnknownSync(Schema.Array(JsonObject))(
 );
 const pcb = catalog.find((row) => row.code === 'PCB');
 assert.ok(pcb !== undefined);
+const [settings] = Schema.decodeUnknownSync(Schema.Array(Schema.Struct({ lookup: JsonObject })))(
+	JSON.parse(
+		readFileSync('seed/public/jurisdiction/MY/version_8/jurisdiction_settings.json', 'utf8')
+	)
+);
 
 const pcbIn = (month: number, taxPaid: number) =>
 	evaluate(
@@ -31,7 +37,7 @@ const pcbIn = (month: number, taxPaid: number) =>
 					}
 				}
 			},
-			lookup: pcb.lookup,
+			lookup: { ...settings?.lookup, ...(isJsonObject(pcb.lookup) ? pcb.lookup : {}) },
 			run: { period: `2026-${String(month).padStart(2, '0')}` },
 			subtotals: { ORDINARY_WAGES: 6000, ADDITIONAL_WAGES: 6000 },
 			statutory: {
@@ -39,20 +45,14 @@ const pcbIn = (month: number, taxPaid: number) =>
 				SOCSO: { employee: 29.75, employer: 104.15 },
 				EIS: { employee: 11.9, employer: 11.9 }
 			},
-			history: {
-				payslips: Array.from({ length: month - 1 }, (_, index) => ({
-					period: `2026-${String(index + 1).padStart(2, '0')}`,
-					gross_earnings: 6000,
-					employee_statutory: 701.65,
-					breakdown: {
-						statutory: [
-							{ code: 'EPF', kind: 'CONTRIBUTION', employee: 660, employer: 0 },
-							{ code: 'SOCSO', kind: 'CONTRIBUTION', employee: 29.75, employer: 0 },
-							{ code: 'EIS', kind: 'CONTRIBUTION', employee: 11.9, employer: 0 }
-						]
-					},
-					tax_withheld: index === 0 ? taxPaid : 0
-				}))
+			balances: {
+				ytd: { FINAL_PAY: 6000 * (month - 1) },
+				statutory_contribution: {
+					'EPF.employee': 660 * (month - 1),
+					'SOCSO.employee': 29.75 * (month - 1),
+					'EIS.employee': 11.9 * (month - 1),
+					'PCB.employee': taxPaid
+				}
 			}
 		},
 		'PCB'

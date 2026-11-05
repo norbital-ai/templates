@@ -2,23 +2,19 @@
 	{
 		"code": "ECONOMIC_COMPENSATION",
 		"name": "经济补偿 (economic compensation on termination)",
-		"description": "The entry quantity is the average monthly wage over the 12 months before termination. Service is measured from the contract start through the incurred date: a full year pays one month, six months or more pays one, and any shorter part pays half; the total is capped at 12 years.",
-		"lookup": {
-			"months_per_year": 12,
-			"full_year_min_months": 6,
-			"max_years": 12
-		},
+		"description": "The entry quantity is the average monthly wage over the 12 months before termination. Service is measured from the contract start through the incurred date: a full year pays one month, six months or more pays one, and any shorter part pays half. A wage above 3× the local monthly average pays at that figure for at most 12 years (劳动合同法 第四十七条); any other wage pays in full for all its years.",
+		"lookup": {},
 		"references": [
 			{
 				"title": "劳动合同法 第四十六条、第四十七条; 实施条例 第二十七条: 每满一年一个月工资, 六个月以上不满一年按一年, 不满六个月半个月; 高于当地上年度职工月平均工资三倍的按三倍, 年限最高12年."
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "3af39890-ea2d-50fa-b162-5bf005191740",
+		"subtotal_id": "b977beff-b414-43a0-8afe-05ffad0bd47e",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0 && ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
-		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst end = add_days(ctx.entry.incurred_on, 1);\nconst months = calendar_completed_months(start, end);\nconst years = Math.trunc(months / ctx.lookup.months_per_year);\nconst remainder = months % ctx.lookup.months_per_year;\nconst part =\n\tremainder >= ctx.lookup.full_year_min_months ? 1 :\n\tremainder > 0 || add_months(start, months) < end ? 0.5 :\n\t0;\nreturn ctx.entry.quantity * Math.min(ctx.lookup.max_years, years + part);\n",
+		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst end = add_days(ctx.entry.incurred_on, 1);\nconst months = calendar_completed_months(start, end);\nconst years = Math.trunc(months / ctx.lookup.months_per_year);\nconst remainder = months % ctx.lookup.months_per_year;\nconst part =\n\tremainder >= ctx.lookup.full_year_min_months ? 1 :\n\tremainder > 0 || add_months(start, months) < end ? 0.5 :\n\t0;\nconst count = years + part;\n// 劳动合同法 第四十七条第二款: the 3× wage and the 12-year cap bind only a wage above 3× the local monthly average\nconst wage = Number(ctx.entry.quantity);\nconst code = get(\n\tctx.subject.employer,\n\t'entity_extension_data.region',\n\tget(ctx.subject.employer, 'source_reference', '')\n);\nconst cap = first(ctx.lookup.average_wage_cap.filter((row) => row.code === code));\nif (wage <= cap.monthly) return wage * count;\nreturn cap.monthly * Math.min(ctx.lookup.compensation_max_years, count);",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "bcc52caf-1c07-50fd-ade1-d78edae1a0be",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
@@ -34,7 +30,7 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "3af39890-ea2d-50fa-b162-5bf005191740",
+		"subtotal_id": "b977beff-b414-43a0-8afe-05ffad0bd47e",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
@@ -46,7 +42,7 @@
 	{
 		"code": "ANNUAL_BONUS",
 		"name": "全年一次性奖金 (annual one-time bonus)",
-		"description": "The entry quantity is the annual one-time bonus awarded for the year. Current calculation uses Method B: the bonus is added once to cumulative comprehensive income and taxed by the annual ladder. Method A (separate annual-bonus taxation: divide the bonus by 12, apply the monthly rate table and quick deduction, then multiply by the bonus) is not modelled; it needs a dedicated annual-bonus checkpoint and an employee election.",
+		"description": "The entry quantity is the annual one-time bonus awarded for the year. By default it joins cumulative comprehensive income. With the employee election `annual_bonus_separate` it stays out of that base and IIT_ANNUAL_BONUS taxes it alone. One bonus a year: pay anything else as BONUS.",
 		"lookup": {},
 		"references": [
 			{
@@ -57,7 +53,7 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "181dfe68-45c9-59e3-9cc5-d8fe97e324b2",
+		"subtotal_id": "e993d579-539d-42b5-9ec7-ba2026330689",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
@@ -91,45 +87,19 @@
 		"name": "赔偿经济损失扣款 (deduction for damage the employee caused)",
 		"description": "The entry quantity is the assessed economic loss. The deduction is capped at 20% of the contract monthly wage and must leave the local minimum wage (工资支付暂行规定 第十六条).",
 		"lookup": {
-			"max_share_of_wage": 0.2,
-			"minimum_wage": [
-				{
-					"region": "SH",
-					"zone": "1",
-					"monthly": 2740,
-					"hourly": 25
-				},
-				{
-					"region": "KM",
-					"zone": "1",
-					"monthly": 2170,
-					"hourly": 21
-				},
-				{
-					"region": "KM",
-					"zone": "2",
-					"monthly": 2020,
-					"hourly": 20
-				},
-				{
-					"region": "KM",
-					"zone": "3",
-					"monthly": 1870,
-					"hourly": 19
-				}
-			]
+			"max_share_of_wage": 0.2
 		},
 		"references": [
 			{
 				"title": "工资支付暂行规定 第十六条: 每月扣除不超过当月工资20%, 且扣除后不低于当地最低工资; 上海 沪人社综发〔2016〕29号 第二十二条 (2026-08-01起 沪人社规〔2026〕10号 第二十二条, 条文未变)."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "c3890fcd-4799-5bbf-94de-776d861ade65",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
-		"conversion": "const wage = get(ctx.subject.employment, 'terms.rate.amount');\nif (wage == null) return ctx.entry.quantity;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst zone = String(get(ext, 'wage_zone', '1'));\nconst table = (ctx.lookup.minimum_wage || []).find((row) => row.region === region && row.zone === zone);\nconst floor = Number(get(table, 'monthly', 0));\nconst cap = Math.min(wage * ctx.lookup.max_share_of_wage, Math.max(0, wage - floor));\nreturn Math.min(ctx.entry.quantity, cap);",
+		"conversion": "const wage = get(ctx.subject.employment, 'terms.rate.amount');\nif (wage == null) return ctx.entry.quantity;\nconst ext = get(ctx.subject.employer, 'entity_extension_data', {});\nconst region = String(get(ext, 'region', ''));\nconst zone = String(get(ext, 'wage_zone', '1'));\nconst table = (ctx.lookup.minimum_wage || []).find((row) => row.region === region && row.zone === zone);\nconst floor = Number(get(table, 'monthly', 0));\nconst cap = Math.min(Number(wage) * ctx.lookup.max_share_of_wage, Math.max(0, Number(wage) - floor));\nreturn Math.min(ctx.entry.quantity, cap);",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "b8f8859e-a3f0-5949-af3e-d4788e82e8de",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
@@ -137,11 +107,8 @@
 	{
 		"code": "UNLAWFUL_TERMINATION_COMPENSATION",
 		"name": "违法解除赔偿金 (2N, unlawful termination)",
-		"description": "The entry quantity is the average monthly wage. Compensation is twice the 经济补偿 count over the whole period of service, capped at 12 years.",
+		"description": "The entry quantity is the average monthly wage. Compensation is twice the 经济补偿 count over the whole period of service (劳动合同法 第八十七条), with the 3× wage and 12-year cap of 第四十七条 where the wage is above it.",
 		"lookup": {
-			"months_per_year": 12,
-			"full_year_min_months": 6,
-			"max_years": 12,
 			"multiple": 2
 		},
 		"references": [
@@ -150,11 +117,11 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "3af39890-ea2d-50fa-b162-5bf005191740",
+		"subtotal_id": "b977beff-b414-43a0-8afe-05ffad0bd47e",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0 && ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
-		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst end = add_days(ctx.entry.incurred_on, 1);\nconst months = calendar_completed_months(start, end);\nconst years = Math.trunc(months / ctx.lookup.months_per_year);\nconst remainder = months % ctx.lookup.months_per_year;\nconst part =\n\tremainder >= ctx.lookup.full_year_min_months ? 1 :\n\tremainder > 0 || add_months(start, months) < end ? 0.5 :\n\t0;\nreturn ctx.entry.quantity * Math.min(ctx.lookup.max_years, years + part) * ctx.lookup.multiple;\n",
+		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst end = add_days(ctx.entry.incurred_on, 1);\nconst months = calendar_completed_months(start, end);\nconst years = Math.trunc(months / ctx.lookup.months_per_year);\nconst remainder = months % ctx.lookup.months_per_year;\nconst part =\n\tremainder >= ctx.lookup.full_year_min_months ? 1 :\n\tremainder > 0 || add_months(start, months) < end ? 0.5 :\n\t0;\nconst count = years + part;\n// 劳动合同法 第四十七条第二款: the 3× wage and the 12-year cap bind only a wage above 3× the local monthly average\nconst wage = Number(ctx.entry.quantity);\nconst code = get(\n\tctx.subject.employer,\n\t'entity_extension_data.region',\n\tget(ctx.subject.employer, 'source_reference', '')\n);\nconst cap = first(ctx.lookup.average_wage_cap.filter((row) => row.code === code));\nif (wage <= cap.monthly) return wage * count * ctx.lookup.multiple;\nreturn cap.monthly * Math.min(ctx.lookup.compensation_max_years, count) * ctx.lookup.multiple;",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "83bef1c5-ac35-56c0-bf41-28566889c22f",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
@@ -169,7 +136,7 @@
 				"title": "财税〔2008〕8号: 生育津贴、生育医疗费免征个人所得税."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "3af39890-ea2d-50fa-b162-5bf005191740",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -242,14 +209,14 @@
 	{
 		"code": "WORK_INJURY_DISABILITY_SUBSIDY",
 		"name": "一次性伤残就业补助金 (grades 5–10, months by city)",
-		"description": "The entry quantity is the one-off disability subsidy the authority assesses. `lookup` retains the Shanghai and Kunming months by disability grade and the near-retirement adjustments.",
+		"description": "The entry quantity is the one-off disability subsidy the authority assesses.",
 		"lookup": {},
 		"references": [
 			{
 				"title": "工伤保险条例 第三十六条、第三十七条; 沪府令第93号 第四十条、第四十一条 (18/15/12/9/6/3个月, 临近退休每年减20%); 云政发〔2011〕255号 第三十六至三十八条 (33/29/22/18/13/7个月)."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "3af39890-ea2d-50fa-b162-5bf005191740",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -269,7 +236,7 @@
 				"title": "女职工劳动保护特别规定 第八条; 妇女权益保障法 第四十八条; 沪府发〔2013〕5号: 生育津贴低于产假前工资的差额由单位补足."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "5431b266-4a96-5e83-9f6d-41c78c237e9b",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -324,14 +291,14 @@
 	{
 		"code": "WORK_INJURY_DISABILITY_ALLOWANCE",
 		"name": "伤残津贴 (grade 5–6, employer-paid monthly)",
-		"description": "The entry quantity is the monthly disability allowance the employer assesses. `lookup` retains the grade 5 and 6 statutory shares of the employee wage.",
+		"description": "The entry quantity is the monthly disability allowance the employer assesses.",
 		"lookup": {},
 		"references": [
 			{
 				"title": "工伤保险条例 第三十六条第一款第(二)项: 五级70%、六级60%, 低于当地最低工资标准的补足差额."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "3af39890-ea2d-50fa-b162-5bf005191740",
 		"direction": "ADD",
 		"party": "EMPLOYEE",

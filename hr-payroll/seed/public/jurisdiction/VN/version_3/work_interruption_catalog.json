@@ -22,8 +22,8 @@
 				"pay_percent": 100
 			}
 		},
-		"id": "8ee2467c-09f8-592f-80a9-581f2842aac2",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "d4e890bf-3b14-57d2-b330-8480d1799a85",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "COWORKER_FAULT",
@@ -51,8 +51,8 @@
 				"minimum_wage_floor": "REGIONAL_MINIMUM_DAILY_WAGE"
 			}
 		},
-		"id": "b1aab978-ea67-59da-8b89-e39fed53eaf7",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "2f110af4-49a8-5a79-86fd-471044d91f86",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "OBJECTIVE_CAUSE",
@@ -81,8 +81,8 @@
 				"minimum_wage_floor_working_days": 14
 			}
 		},
-		"id": "147c14d8-0d59-50e4-a21b-0a8e71c417a8",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "ca533561-4b4d-5316-bcc7-bab077924ad6",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "STRIKE_PARTICIPANT",
@@ -109,8 +109,8 @@
 				"agreed": true
 			}
 		},
-		"id": "e3272a82-d056-554a-beac-9d98f55f5168",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "7cae9342-8eca-5a99-8e23-c80541d3b7a7",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
 	{
 		"code": "STRIKE_NON_PARTICIPANT",
@@ -138,7 +138,7 @@
 				"minimum_wage_floor": "REGIONAL_MINIMUM_DAILY_WAGE"
 			}
 		},
-		"id": "d3de1c65-cc0a-5eea-bd26-032e7e1bf6f3",
-		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+		"id": "59673e80-a3b4-58d7-a78c-3acf0d8b4b0b",
+		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	}
 ]

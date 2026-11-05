@@ -31,7 +31,7 @@ export default model('leave_catalog_entry', {
 		entity_id: { kind: 'ref', to: 'entity' },
 		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'leave_catalog_entry' },
 		catalog_id: { kind: 'ref', to: 'leave_catalog', onDelete: 'restrict' },
-		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true },
+		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, onDelete: 'setNull' },
 		days: {
 			kind: 'list',
 			min: 1,

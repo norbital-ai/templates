@@ -3,8 +3,6 @@
 		"code": "OVERTIME",
 		"name": "Overtime on a normal working day (Làm thêm giờ ngày thường)",
 		"lookup": {
-			"normal_hours_per_day": 8,
-			"fallback_working_days": 26,
 			"factor": 1.5
 		},
 		"references": [
@@ -17,10 +15,10 @@
 				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "3e8902b6-df6d-53ad-bb67-ce29f9c5f67a",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''))) return false;\nif (get(employment, 'terms.rate.unit', 'MONTHLY') === 'PIECE') return false;\nconst entry = get(ctx, 'entry', {});\nif (get(entry, 'unit', '') !== 'HOUR') return false;\nreturn Number(get(entry, 'quantity', 0)) > 0;",
-		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst fixed = Number(get(get(terms, 'allowances.FIXED_ALLOWANCE', {}), 'amount', 0));\nconst from = month_start(ctx.run.salary_coverage.from);\nconst to = month_end(ctx.run.salary_coverage.from);\nconst offDays = get(ctx.subject, 'employer.payment_schedule.non_working_weekdays', [0, 6]);\nlet workingDays = 0;\nfor (let day = from; day <= to; day = add_days(day, 1)) {\n\tif (!offDays.includes(weekday(day))) workingDays = workingDays + 1;\n}\nconst weekDays = Math.max(1, 7 - offDays.length);\nconst contractDays = Number(get(terms, 'normal_days_per_week', 0)) || weekDays;\nconst days =\n\tworkingDays > 0\n\t\t? (workingDays * contractDays) / weekDays\n\t\t: ctx.lookup.fallback_working_days;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hoursPerMonth = days * hoursPerDay;\nconst monthly =\n\tunit === 'HOURLY'\n\t\t? amount * hoursPerMonth\n\t\t: unit === 'DAILY'\n\t\t\t? amount * days\n\t\t\t: amount;\nconst hourly = (monthly + fixed) / hoursPerMonth;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.factor;",
+		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hourly = ctx.day_rate / hoursPerDay;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.factor;",
 		"incurred_on": "",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -31,8 +29,6 @@
 		"code": "REST_DAY_OVERTIME",
 		"name": "Overtime on a weekly rest day (Làm thêm giờ ngày nghỉ hằng tuần)",
 		"lookup": {
-			"normal_hours_per_day": 8,
-			"fallback_working_days": 26,
 			"factor": 2
 		},
 		"references": [
@@ -45,10 +41,10 @@
 				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "3e8902b6-df6d-53ad-bb67-ce29f9c5f67a",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''))) return false;\nif (get(employment, 'terms.rate.unit', 'MONTHLY') === 'PIECE') return false;\nconst entry = get(ctx, 'entry', {});\nif (get(entry, 'unit', '') !== 'HOUR') return false;\nreturn Number(get(entry, 'quantity', 0)) > 0;",
-		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst fixed = Number(get(get(terms, 'allowances.FIXED_ALLOWANCE', {}), 'amount', 0));\nconst from = month_start(ctx.run.salary_coverage.from);\nconst to = month_end(ctx.run.salary_coverage.from);\nconst offDays = get(ctx.subject, 'employer.payment_schedule.non_working_weekdays', [0, 6]);\nlet workingDays = 0;\nfor (let day = from; day <= to; day = add_days(day, 1)) {\n\tif (!offDays.includes(weekday(day))) workingDays = workingDays + 1;\n}\nconst weekDays = Math.max(1, 7 - offDays.length);\nconst contractDays = Number(get(terms, 'normal_days_per_week', 0)) || weekDays;\nconst days =\n\tworkingDays > 0\n\t\t? (workingDays * contractDays) / weekDays\n\t\t: ctx.lookup.fallback_working_days;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hoursPerMonth = days * hoursPerDay;\nconst monthly =\n\tunit === 'HOURLY'\n\t\t? amount * hoursPerMonth\n\t\t: unit === 'DAILY'\n\t\t\t? amount * days\n\t\t\t: amount;\nconst hourly = (monthly + fixed) / hoursPerMonth;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.factor;",
+		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hourly = ctx.day_rate / hoursPerDay;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.factor;",
 		"incurred_on": "",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -59,8 +55,6 @@
 		"code": "HOLIDAY_WORK",
 		"name": "Work on a public holiday or paid day off (Làm việc ngày lễ, ngày nghỉ có lương)",
 		"lookup": {
-			"normal_hours_per_day": 8,
-			"fallback_working_days": 26,
 			"factor": 3
 		},
 		"references": [
@@ -73,10 +67,10 @@
 				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "3e8902b6-df6d-53ad-bb67-ce29f9c5f67a",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''))) return false;\nif (get(employment, 'terms.rate.unit', 'MONTHLY') === 'PIECE') return false;\nconst entry = get(ctx, 'entry', {});\nif (get(entry, 'unit', '') !== 'HOUR') return false;\nreturn Number(get(entry, 'quantity', 0)) > 0;",
-		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst fixed = Number(get(get(terms, 'allowances.FIXED_ALLOWANCE', {}), 'amount', 0));\nconst from = month_start(ctx.run.salary_coverage.from);\nconst to = month_end(ctx.run.salary_coverage.from);\nconst offDays = get(ctx.subject, 'employer.payment_schedule.non_working_weekdays', [0, 6]);\nlet workingDays = 0;\nfor (let day = from; day <= to; day = add_days(day, 1)) {\n\tif (!offDays.includes(weekday(day))) workingDays = workingDays + 1;\n}\nconst weekDays = Math.max(1, 7 - offDays.length);\nconst contractDays = Number(get(terms, 'normal_days_per_week', 0)) || weekDays;\nconst days =\n\tworkingDays > 0\n\t\t? (workingDays * contractDays) / weekDays\n\t\t: ctx.lookup.fallback_working_days;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hoursPerMonth = days * hoursPerDay;\nconst monthly =\n\tunit === 'HOURLY'\n\t\t? amount * hoursPerMonth\n\t\t: unit === 'DAILY'\n\t\t\t? amount * days\n\t\t\t: amount;\nconst hourly = (monthly + fixed) / hoursPerMonth;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.factor;",
+		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hourly = ctx.day_rate / hoursPerDay;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.factor;",
 		"incurred_on": "",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -87,11 +81,7 @@
 		"code": "NIGHT_WORK",
 		"name": "Night-work premium (Phụ cấp làm việc ban đêm)",
 		"lookup": {
-			"normal_hours_per_day": 8,
-			"fallback_working_days": 26,
-			"premium_rate": 0.3,
-			"night_from": "22:00",
-			"night_to": "06:00"
+			"premium_rate": 0.3
 		},
 		"references": [
 			{
@@ -106,10 +96,10 @@
 				"title": "Circular 111/2013/TT-BTC art.3(1)(i) exempts the night-work premium from personal income tax to 2025; Law 109/2025 art.4(8) from 2026. This is a tax treatment of the premium, not a pay rate."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "3e8902b6-df6d-53ad-bb67-ce29f9c5f67a",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''))) return false;\nif (get(employment, 'terms.rate.unit', 'MONTHLY') === 'PIECE') return false;\nconst entry = get(ctx, 'entry', {});\nif (get(entry, 'unit', '') !== 'HOUR') return false;\nreturn Number(get(entry, 'quantity', 0)) > 0;",
-		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst fixed = Number(get(get(terms, 'allowances.FIXED_ALLOWANCE', {}), 'amount', 0));\nconst from = month_start(ctx.run.salary_coverage.from);\nconst to = month_end(ctx.run.salary_coverage.from);\nconst offDays = get(ctx.subject, 'employer.payment_schedule.non_working_weekdays', [0, 6]);\nlet workingDays = 0;\nfor (let day = from; day <= to; day = add_days(day, 1)) {\n\tif (!offDays.includes(weekday(day))) workingDays = workingDays + 1;\n}\nconst weekDays = Math.max(1, 7 - offDays.length);\nconst contractDays = Number(get(terms, 'normal_days_per_week', 0)) || weekDays;\nconst days =\n\tworkingDays > 0\n\t\t? (workingDays * contractDays) / weekDays\n\t\t: ctx.lookup.fallback_working_days;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hoursPerMonth = days * hoursPerDay;\nconst monthly =\n\tunit === 'HOURLY'\n\t\t? amount * hoursPerMonth\n\t\t: unit === 'DAILY'\n\t\t\t? amount * days\n\t\t\t: amount;\nconst hourly = (monthly + fixed) / hoursPerMonth;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.premium_rate;",
+		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hourly = ctx.day_rate / hoursPerDay;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.premium_rate;",
 		"incurred_on": "",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -120,8 +110,6 @@
 		"code": "NIGHT_OVERTIME",
 		"name": "Night-overtime supplement (Phụ cấp làm thêm giờ ban đêm)",
 		"lookup": {
-			"normal_hours_per_day": 8,
-			"fallback_working_days": 26,
 			"premium_rate": 0.2,
 			"day_wage_factor": {
 				"NORMAL_DAY": 1,
@@ -142,10 +130,10 @@
 				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": "3e8902b6-df6d-53ad-bb67-ce29f9c5f67a",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''))) return false;\nif (get(employment, 'terms.rate.unit', 'MONTHLY') === 'PIECE') return false;\nconst entry = get(ctx, 'entry', {});\nif (get(entry, 'unit', '') !== 'HOUR') return false;\nreturn Number(get(entry, 'quantity', 0)) > 0;",
-		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst fixed = Number(get(get(terms, 'allowances.FIXED_ALLOWANCE', {}), 'amount', 0));\nconst from = month_start(ctx.run.salary_coverage.from);\nconst to = month_end(ctx.run.salary_coverage.from);\nconst offDays = get(ctx.subject, 'employer.payment_schedule.non_working_weekdays', [0, 6]);\nlet workingDays = 0;\nfor (let day = from; day <= to; day = add_days(day, 1)) {\n\tif (!offDays.includes(weekday(day))) workingDays = workingDays + 1;\n}\nconst weekDays = Math.max(1, 7 - offDays.length);\nconst contractDays = Number(get(terms, 'normal_days_per_week', 0)) || weekDays;\nconst days =\n\tworkingDays > 0\n\t\t? (workingDays * contractDays) / weekDays\n\t\t: ctx.lookup.fallback_working_days;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hoursPerMonth = days * hoursPerDay;\nconst monthly =\n\tunit === 'HOURLY'\n\t\t? amount * hoursPerMonth\n\t\t: unit === 'DAILY'\n\t\t\t? amount * days\n\t\t\t: amount;\nconst hourly = (monthly + fixed) / hoursPerMonth;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.premium_rate *\n\tget(ctx.lookup.day_wage_factor, String(get(entry, 'kind', 'NORMAL_DAY')), 1);",
+		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hourly = ctx.day_rate / hoursPerDay;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.premium_rate *\n\tget(ctx.lookup.day_wage_factor, String(get(entry, 'kind', 'NORMAL_DAY')), 1);",
 		"incurred_on": "",
 		"direction": "ADD",
 		"party": "EMPLOYEE",

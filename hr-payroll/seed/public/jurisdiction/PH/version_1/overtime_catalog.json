@@ -2,31 +2,16 @@
 	{
 		"code": "OVERTIME",
 		"name": "Overtime",
-		"lookup": {
-			"threshold_hours": 8,
-			"normal_hours_per_day": 8,
-			"days_per_year": 313,
-			"months_per_year": 12,
-			"ordinary": 1.25,
-			"rest": 1.69,
-			"special": 1.69,
-			"special_rest": 1.95,
-			"double_special": 1.95,
-			"double_special_rest": 2.535,
-			"holiday": 2.6,
-			"holiday_rest": 3.38,
-			"double_holiday": 3.9,
-			"double_holiday_rest": 5.07
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labor Code art.87; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.4 §C and ch.1 §A: hours beyond eight a day at 125% of the hourly rate on an ordinary day, 169% on a rest or special day, 195% on a special day that is the rest day or on a double special day, 253.5% on a double special rest day, 260% / 338% on a regular holiday (rest day), 390% / 507% on a double holiday. The first eight hours of a rest day, holiday or off day are priced once, by that day’s own line; this line prices only the hours beyond eight. Rates: a day is the monthly basic × 12 ÷ the contract’s recorded days per year (313 when unrecorded), or the contract’s daily rate when the agreed rate unit is DAILY; an hour is that day ÷ the normal hours per day (8 when unrecorded).",
 				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
 			}
 		],
-		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
-		"eligibility": "// js\nreturn !['MANAGERIAL', 'DOMESTIC', 'FIELD_PERSONNEL', 'TASK_BASIS', 'PIECE_RATE'].includes(get(ctx.subject.employment, 'terms.statutory_work_category', ''));",
-		"conversion": "// js\n// ctx.work.days carries the roster evidence: date, day_type, holiday_kind, worked, worked_hours, overtime_hours, intervals and overtime_intervals.\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst days = Number(get(ctx.subject.employment, 'employee_extension_data.days_per_year', ctx.lookup.days_per_year));\nconst hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nconst hourly = unit === 'HOURLY'\n\t? amount\n\t: unit === 'DAILY'\n\t\t? amount / hours\n\t\t: (amount * ctx.lookup.months_per_year) / days / hours;\nconst premium = (d) => {\n\tconst rest = get(d, 'day_type', '') === 'REST';\n\tconst kind = get(d, 'holiday_kind', '');\n\tif (kind === 'DOUBLE_HOLIDAY') return rest ? ctx.lookup.double_holiday_rest : ctx.lookup.double_holiday;\n\tif (['PUBLIC_HOLIDAY', 'SUBSTITUTE'].includes(kind)) return rest ? ctx.lookup.holiday_rest : ctx.lookup.holiday;\n\tif (kind === 'DOUBLE_SPECIAL') return rest ? ctx.lookup.double_special_rest : ctx.lookup.double_special;\n\tif (kind === 'SPECIAL_HOLIDAY') return rest ? ctx.lookup.special_rest : ctx.lookup.special;\n\treturn rest ? ctx.lookup.rest : ctx.lookup.ordinary;\n};\nconst quantity = sum(\n\tctx.work.days.map((d) =>\n\t\tMath.min(\n\t\t\tNumber(get(d, 'overtime_hours', 0)),\n\t\t\tMath.max(0, Number(get(d, 'worked_hours', 0)) - ctx.lookup.threshold_hours)\n\t\t) * premium(d)\n\t)\n);\nreturn quantity * hourly;",
+		"subtotal_id": "8d9391da-6bdd-4d28-aa0e-c38368a02ae0",
+		"eligibility": "// js\nreturn !ctx.lookup.premium_excluded_categories.includes(get(ctx.subject.employment, 'terms.statutory_work_category', ''));",
+		"conversion": "// js\n// ctx.work.days carries the roster evidence: date, day_type, holiday_kind, worked, worked_hours, overtime_hours, intervals and overtime_intervals.\nconst hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nconst hourly = ctx.day_rate / hours;\nconst premium = (d) => {\n\tconst rest = get(d, 'day_type', '') === 'REST';\n\tconst kind = get(d, 'holiday_kind', '');\n\tif (kind === 'DOUBLE_HOLIDAY') return rest ? ctx.lookup.overtime_multiples.double_holiday_rest : ctx.lookup.overtime_multiples.double_holiday;\n\tif (['PUBLIC_HOLIDAY', 'SUBSTITUTE'].includes(kind)) return rest ? ctx.lookup.overtime_multiples.holiday_rest : ctx.lookup.overtime_multiples.holiday;\n\tif (kind === 'DOUBLE_SPECIAL') return rest ? ctx.lookup.overtime_multiples.double_special_rest : ctx.lookup.overtime_multiples.double_special;\n\tif (kind === 'SPECIAL_HOLIDAY') return rest ? ctx.lookup.overtime_multiples.special_rest : ctx.lookup.overtime_multiples.special;\n\treturn rest ? ctx.lookup.overtime_multiples.rest : ctx.lookup.overtime_multiples.ordinary;\n};\nconst quantity = sum(\n\tctx.work.days.map((d) =>\n\t\tMath.min(\n\t\t\tNumber(get(d, 'overtime_hours', 0)),\n\t\t\tMath.max(0, Number(get(d, 'worked_hours', 0)) - ctx.lookup.normal_hours_per_day)\n\t\t) * premium(d)\n\t)\n);\nreturn quantity * hourly;",
 		"incurred_on": "",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -38,11 +23,6 @@
 		"code": "REST_DAY_WORK",
 		"name": "Rest-day work",
 		"lookup": {
-			"normal_hours_per_day": 8,
-			"days_per_year": 313,
-			"months_per_year": 12,
-			"max_hours": 8,
-			"rate": 1.3,
 			"days_paid": 365
 		},
 		"references": [
@@ -51,9 +31,9 @@
 				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
 			}
 		],
-		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
-		"eligibility": "// js\nreturn !['MANAGERIAL', 'DOMESTIC', 'FIELD_PERSONNEL', 'TASK_BASIS', 'PIECE_RATE'].includes(get(ctx.subject.employment, 'terms.statutory_work_category', ''));",
-		"conversion": "// js\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst days = Number(get(ctx.subject.employment, 'employee_extension_data.days_per_year', ctx.lookup.days_per_year));\nconst hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nconst hourly = unit === 'HOURLY'\n\t? amount\n\t: unit === 'DAILY'\n\t\t? amount / hours\n\t\t: (amount * ctx.lookup.months_per_year) / days / hours;\nconst premium = unit === 'DAILY' || days !== ctx.lookup.days_paid ? ctx.lookup.rate : ctx.lookup.rate - 1;\nconst quantity = sum(\n\tctx.work.days\n\t\t.filter((d) => get(d, 'day_type', '') === 'REST' && get(d, 'holiday_kind', '') === '')\n\t\t.filter((d) => get(d, 'worked', false) === true)\n\t\t.map((d) => Math.min(Number(get(d, 'worked_hours', 0)), ctx.lookup.max_hours))\n);\nreturn quantity * premium * hourly;",
+		"subtotal_id": "8d9391da-6bdd-4d28-aa0e-c38368a02ae0",
+		"eligibility": "// js\nreturn !ctx.lookup.premium_excluded_categories.includes(get(ctx.subject.employment, 'terms.statutory_work_category', ''));",
+		"conversion": "// js\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst days = Number(get(ctx.subject.employment, 'employee_extension_data.days_per_year', ctx.lookup.days_per_year));\nconst hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nconst hourly = ctx.day_rate / hours;\nconst premium = unit === 'DAILY' || days !== ctx.lookup.days_paid ? ctx.lookup.day_multiples.rest : ctx.lookup.day_multiples.rest - 1;\nconst quantity = sum(\n\tctx.work.days\n\t\t.filter((d) => get(d, 'day_type', '') === 'REST' && get(d, 'holiday_kind', '') === '')\n\t\t.filter((d) => get(d, 'worked', false) === true)\n\t\t.map((d) => Math.min(Number(get(d, 'worked_hours', 0)), ctx.lookup.normal_hours_per_day))\n);\nreturn quantity * premium * hourly;",
 		"incurred_on": "",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -65,10 +45,6 @@
 		"code": "OFF_DAY_WORK",
 		"name": "Work on an unpaid off day",
 		"lookup": {
-			"normal_hours_per_day": 8,
-			"days_per_year": 313,
-			"months_per_year": 12,
-			"max_hours": 8,
 			"unpaid_days_per_year": [261, 253]
 		},
 		"references": [
@@ -77,9 +53,9 @@
 				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
 			}
 		],
-		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
-		"eligibility": "// js\nreturn !['MANAGERIAL', 'DOMESTIC', 'FIELD_PERSONNEL', 'TASK_BASIS', 'PIECE_RATE'].includes(get(ctx.subject.employment, 'terms.statutory_work_category', ''));",
-		"conversion": "// js\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst days = Number(get(ctx.subject.employment, 'employee_extension_data.days_per_year', ctx.lookup.days_per_year));\nif (unit === 'DAILY' || !ctx.lookup.unpaid_days_per_year.includes(days)) return 0;\nconst hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nconst hourly = unit === 'HOURLY' ? amount : (amount * ctx.lookup.months_per_year) / days / hours;\nconst quantity = sum(\n\tctx.work.days\n\t\t.filter((d) => get(d, 'day_type', '') === 'OFF' && get(d, 'holiday_kind', '') === '')\n\t\t.filter((d) => get(d, 'worked', false) === true)\n\t\t.map((d) => Math.min(Number(get(d, 'worked_hours', 0)), ctx.lookup.max_hours))\n);\nreturn quantity * hourly;",
+		"subtotal_id": "8d9391da-6bdd-4d28-aa0e-c38368a02ae0",
+		"eligibility": "// js\nreturn !ctx.lookup.premium_excluded_categories.includes(get(ctx.subject.employment, 'terms.statutory_work_category', ''));",
+		"conversion": "// js\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst days = Number(get(ctx.subject.employment, 'employee_extension_data.days_per_year', ctx.lookup.days_per_year));\nif (unit === 'DAILY' || !ctx.lookup.unpaid_days_per_year.includes(days)) return 0;\nconst hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nconst hourly = ctx.day_rate / hours;\nconst quantity = sum(\n\tctx.work.days\n\t\t.filter((d) => get(d, 'day_type', '') === 'OFF' && get(d, 'holiday_kind', '') === '')\n\t\t.filter((d) => get(d, 'worked', false) === true)\n\t\t.map((d) => Math.min(Number(get(d, 'worked_hours', 0)), ctx.lookup.normal_hours_per_day))\n);\nreturn quantity * hourly;",
 		"incurred_on": "",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -90,25 +66,16 @@
 	{
 		"code": "HOLIDAY_WORK",
 		"name": "Regular-holiday work",
-		"lookup": {
-			"normal_hours_per_day": 8,
-			"days_per_year": 313,
-			"months_per_year": 12,
-			"max_hours": 8,
-			"holiday": 2,
-			"holiday_rest": 2.6,
-			"double_holiday": 3,
-			"double_holiday_rest": 3.9
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labor Code art.94; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.2 §D and ch.1 §A: work on a regular holiday is paid 200% for its first eight hours (260% on the rest day, 300% / 390% on a double holiday). Holiday pay excludes retail and service establishments regularly employing fewer than ten (entity_extension_data.retail_or_service_establishment with small_establishment), kasambahay, managerial staff and field / task workers (Omnibus Rules Book III Rule IV s.1). A monthly salary already pays the holiday, so only the excess over 100% is added; a daily-paid contract is paid the full multiple. Rates: a day is the monthly basic × 12 ÷ the contract’s recorded days per year (313 when unrecorded), or the contract’s daily rate when the agreed rate unit is DAILY; an hour is that day ÷ the normal hours per day (8 when unrecorded).",
 				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
 			}
 		],
-		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
-		"eligibility": "// js\nif (['MANAGERIAL', 'DOMESTIC', 'FIELD_PERSONNEL', 'TASK_BASIS', 'PIECE_RATE'].includes(get(ctx.subject.employment, 'terms.statutory_work_category', ''))) return false;\nif (get(ctx.subject.employer, 'entity_extension_data.retail_or_service_establishment', false) !== true) return true;\nreturn get(ctx.subject.employer, 'entity_extension_data.small_establishment', false) !== true;",
-		"conversion": "// js\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst days = Number(get(ctx.subject.employment, 'employee_extension_data.days_per_year', ctx.lookup.days_per_year));\nconst hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nconst hourly = unit === 'HOURLY'\n\t? amount\n\t: unit === 'DAILY'\n\t\t? amount / hours\n\t\t: (amount * ctx.lookup.months_per_year) / days / hours;\nconst multiple = (d) => {\n\tconst rest = get(d, 'day_type', '') === 'REST';\n\tif (get(d, 'holiday_kind', '') === 'DOUBLE_HOLIDAY') return rest ? ctx.lookup.double_holiday_rest : ctx.lookup.double_holiday;\n\treturn rest ? ctx.lookup.holiday_rest : ctx.lookup.holiday;\n};\nconst premium = (d) => multiple(d) - (unit === 'DAILY' ? 0 : 1);\nconst quantity = sum(\n\tctx.work.days\n\t\t.filter((d) => ['PUBLIC_HOLIDAY', 'SUBSTITUTE', 'DOUBLE_HOLIDAY'].includes(get(d, 'holiday_kind', '')))\n\t\t.filter((d) => get(d, 'worked', false) === true)\n\t\t.map((d) => Math.min(Number(get(d, 'worked_hours', 0)), ctx.lookup.max_hours) * premium(d))\n);\nreturn quantity * hourly;",
+		"subtotal_id": "8d9391da-6bdd-4d28-aa0e-c38368a02ae0",
+		"eligibility": "// js\nif (ctx.lookup.premium_excluded_categories.includes(get(ctx.subject.employment, 'terms.statutory_work_category', ''))) return false;\nif (get(ctx.subject.employer, 'entity_extension_data.retail_or_service_establishment', false) !== true) return true;\nreturn get(ctx.subject.employer, 'entity_extension_data.small_establishment', false) !== true;",
+		"conversion": "// js\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nconst hourly = ctx.day_rate / hours;\nconst multiple = (d) => {\n\tconst rest = get(d, 'day_type', '') === 'REST';\n\tif (get(d, 'holiday_kind', '') === 'DOUBLE_HOLIDAY') return rest ? ctx.lookup.day_multiples.double_holiday_rest : ctx.lookup.day_multiples.double_holiday;\n\treturn rest ? ctx.lookup.day_multiples.holiday_rest : ctx.lookup.day_multiples.holiday;\n};\nconst premium = (d) => multiple(d) - (unit === 'DAILY' ? 0 : 1);\nconst quantity = sum(\n\tctx.work.days\n\t\t.filter((d) => ['PUBLIC_HOLIDAY', 'SUBSTITUTE', 'DOUBLE_HOLIDAY'].includes(get(d, 'holiday_kind', '')))\n\t\t.filter((d) => get(d, 'worked', false) === true)\n\t\t.map((d) => Math.min(Number(get(d, 'worked_hours', 0)), ctx.lookup.normal_hours_per_day) * premium(d))\n);\nreturn quantity * hourly;",
 		"incurred_on": "",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -120,14 +87,6 @@
 		"code": "SPECIAL_HOLIDAY_WORK",
 		"name": "Special-day work",
 		"lookup": {
-			"normal_hours_per_day": 8,
-			"days_per_year": 313,
-			"months_per_year": 12,
-			"max_hours": 8,
-			"special": 1.3,
-			"special_rest": 1.5,
-			"double_special": 1.5,
-			"double_special_rest": 1.95,
 			"days_paid": [365, 313, 261],
 			"rest_days_paid": 365
 		},
@@ -137,9 +96,9 @@
 				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
 			}
 		],
-		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
-		"eligibility": "// js\nreturn !['MANAGERIAL', 'DOMESTIC', 'FIELD_PERSONNEL', 'TASK_BASIS', 'PIECE_RATE'].includes(get(ctx.subject.employment, 'terms.statutory_work_category', ''));",
-		"conversion": "// js\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst days = Number(get(ctx.subject.employment, 'employee_extension_data.days_per_year', ctx.lookup.days_per_year));\nconst hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nconst hourly = unit === 'HOURLY'\n\t? amount\n\t: unit === 'DAILY'\n\t\t? amount / hours\n\t\t: (amount * ctx.lookup.months_per_year) / days / hours;\nconst premium = (d) => {\n\tconst rest = get(d, 'day_type', '') === 'REST';\n\tconst double = get(d, 'holiday_kind', '') === 'DOUBLE_SPECIAL';\n\tconst restMultiple = double ? ctx.lookup.double_special_rest : ctx.lookup.special_rest;\n\tconst workMultiple = double ? ctx.lookup.double_special : ctx.lookup.special;\n\tconst multiple = rest ? restMultiple : workMultiple;\n\tif (unit === 'DAILY') return multiple;\n\tconst paid = rest ? days === ctx.lookup.rest_days_paid : ctx.lookup.days_paid.includes(days);\n\treturn multiple - (paid ? 1 : 0);\n};\nconst quantity = sum(\n\tctx.work.days\n\t\t.filter((d) => ['SPECIAL_HOLIDAY', 'DOUBLE_SPECIAL'].includes(get(d, 'holiday_kind', '')))\n\t\t.filter((d) => get(d, 'worked', false) === true)\n\t\t.map((d) => Math.min(Number(get(d, 'worked_hours', 0)), ctx.lookup.max_hours) * premium(d))\n);\nreturn quantity * hourly;",
+		"subtotal_id": "8d9391da-6bdd-4d28-aa0e-c38368a02ae0",
+		"eligibility": "// js\nreturn !ctx.lookup.premium_excluded_categories.includes(get(ctx.subject.employment, 'terms.statutory_work_category', ''));",
+		"conversion": "// js\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst days = Number(get(ctx.subject.employment, 'employee_extension_data.days_per_year', ctx.lookup.days_per_year));\nconst hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nconst hourly = ctx.day_rate / hours;\nconst premium = (d) => {\n\tconst rest = get(d, 'day_type', '') === 'REST';\n\tconst double = get(d, 'holiday_kind', '') === 'DOUBLE_SPECIAL';\n\tconst restMultiple = double ? ctx.lookup.day_multiples.double_special_rest : ctx.lookup.day_multiples.special_rest;\n\tconst workMultiple = double ? ctx.lookup.day_multiples.double_special : ctx.lookup.day_multiples.special;\n\tconst multiple = rest ? restMultiple : workMultiple;\n\tif (unit === 'DAILY') return multiple;\n\tconst paid = rest ? days === ctx.lookup.rest_days_paid : ctx.lookup.days_paid.includes(days);\n\treturn multiple - (paid ? 1 : 0);\n};\nconst quantity = sum(\n\tctx.work.days\n\t\t.filter((d) => ['SPECIAL_HOLIDAY', 'DOUBLE_SPECIAL'].includes(get(d, 'holiday_kind', '')))\n\t\t.filter((d) => get(d, 'worked', false) === true)\n\t\t.map((d) => Math.min(Number(get(d, 'worked_hours', 0)), ctx.lookup.normal_hours_per_day) * premium(d))\n);\nreturn quantity * hourly;",
 		"incurred_on": "",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -151,34 +110,7 @@
 		"code": "NIGHT_SHIFT_DIFFERENTIAL",
 		"name": "Night-shift differential",
 		"lookup": {
-			"threshold_hours": 8,
-			"normal_hours_per_day": 8,
-			"days_per_year": 313,
-			"months_per_year": 12,
-			"rate": 0.1,
-			"time_zone": "Asia/Manila",
-			"window_start": "22:00",
-			"window_end": "06:00",
-			"day_ordinary": 1,
-			"day_rest": 1.3,
-			"day_special": 1.3,
-			"day_special_rest": 1.5,
-			"day_double_special": 1.5,
-			"day_double_special_rest": 1.95,
-			"day_holiday": 2,
-			"day_holiday_rest": 2.6,
-			"day_double_holiday": 3,
-			"day_double_holiday_rest": 3.9,
-			"ordinary": 1.25,
-			"rest": 1.69,
-			"special": 1.69,
-			"special_rest": 1.95,
-			"double_special": 1.95,
-			"double_special_rest": 2.535,
-			"holiday": 2.6,
-			"holiday_rest": 3.38,
-			"double_holiday": 3.9,
-			"double_holiday_rest": 5.07
+			"rate": 0.1
 		},
 		"references": [
 			{
@@ -186,9 +118,9 @@
 				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
 			}
 		],
-		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
-		"eligibility": "// js\nreturn !['MANAGERIAL', 'DOMESTIC', 'FIELD_PERSONNEL', 'TASK_BASIS', 'PIECE_RATE'].includes(get(ctx.subject.employment, 'terms.statutory_work_category', '')) && get(ctx.subject.employer, 'entity_extension_data.nsd_small_retail_exempt', false) !== true;",
-		"conversion": "// js\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst days = Number(get(ctx.subject.employment, 'employee_extension_data.days_per_year', ctx.lookup.days_per_year));\nconst hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nconst hourly = unit === 'HOURLY'\n\t? amount\n\t: unit === 'DAILY'\n\t\t? amount / hours\n\t\t: (amount * ctx.lookup.months_per_year) / days / hours;\nconst zone = get(ctx.subject.employer, 'time_zone', ctx.lookup.time_zone);\nconst overtime = (d) => Math.min(\n\tNumber(get(d, 'overtime_hours', 0)),\n\tMath.max(0, Number(get(d, 'worked_hours', 0)) - ctx.lookup.threshold_hours)\n);\nconst nightMinutes = (d, field) =>\n\tclock_window_minutes(get(d, field, []), zone, ctx.lookup.window_start, ctx.lookup.window_end, ctx.as_of) / 60;\nconst overtimeNight = (d) => Math.min(nightMinutes(d, 'overtime_intervals'), overtime(d));\nconst dayMultiple = (d) => {\n\tconst rest = get(d, 'day_type', '') === 'REST';\n\tconst kind = get(d, 'holiday_kind', '');\n\tif (kind === 'DOUBLE_HOLIDAY') return rest ? ctx.lookup.day_double_holiday_rest : ctx.lookup.day_double_holiday;\n\tif (['PUBLIC_HOLIDAY', 'SUBSTITUTE'].includes(kind)) return rest ? ctx.lookup.day_holiday_rest : ctx.lookup.day_holiday;\n\tif (kind === 'DOUBLE_SPECIAL') return rest ? ctx.lookup.day_double_special_rest : ctx.lookup.day_double_special;\n\tif (kind === 'SPECIAL_HOLIDAY') return rest ? ctx.lookup.day_special_rest : ctx.lookup.day_special;\n\treturn rest ? ctx.lookup.day_rest : ctx.lookup.day_ordinary;\n};\nconst overtimeMultiple = (d) => {\n\tconst rest = get(d, 'day_type', '') === 'REST';\n\tconst kind = get(d, 'holiday_kind', '');\n\tif (kind === 'DOUBLE_HOLIDAY') return rest ? ctx.lookup.double_holiday_rest : ctx.lookup.double_holiday;\n\tif (['PUBLIC_HOLIDAY', 'SUBSTITUTE'].includes(kind)) return rest ? ctx.lookup.holiday_rest : ctx.lookup.holiday;\n\tif (kind === 'DOUBLE_SPECIAL') return rest ? ctx.lookup.double_special_rest : ctx.lookup.double_special;\n\tif (kind === 'SPECIAL_HOLIDAY') return rest ? ctx.lookup.special_rest : ctx.lookup.special;\n\treturn rest ? ctx.lookup.rest : ctx.lookup.ordinary;\n};\nconst quantity = sum(\n\tctx.work.days.map((d) => {\n\t\tconst night = Math.max(0, nightMinutes(d, 'intervals') - overtimeNight(d));\n\t\treturn (night * dayMultiple(d) + overtimeNight(d) * overtimeMultiple(d)) * ctx.lookup.rate;\n\t})\n);\nreturn quantity * hourly;",
+		"subtotal_id": "8d9391da-6bdd-4d28-aa0e-c38368a02ae0",
+		"eligibility": "// js\nreturn !ctx.lookup.premium_excluded_categories.includes(get(ctx.subject.employment, 'terms.statutory_work_category', '')) && get(ctx.subject.employer, 'entity_extension_data.nsd_small_retail_exempt', false) !== true;",
+		"conversion": "// js\nconst hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nconst hourly = ctx.day_rate / hours;\nconst zone = get(ctx.subject.employer, 'time_zone', ctx.lookup.time_zone);\nconst overtime = (d) => Math.min(\n\tNumber(get(d, 'overtime_hours', 0)),\n\tMath.max(0, Number(get(d, 'worked_hours', 0)) - ctx.lookup.normal_hours_per_day)\n);\nconst nightMinutes = (d, field) =>\n\tclock_window_minutes(get(d, field, []), zone, ctx.lookup.night_window_start, ctx.lookup.night_window_end, ctx.as_of) / 60;\nconst overtimeNight = (d) => Math.min(nightMinutes(d, 'overtime_intervals'), overtime(d));\nconst dayMultiple = (d) => {\n\tconst rest = get(d, 'day_type', '') === 'REST';\n\tconst kind = get(d, 'holiday_kind', '');\n\tif (kind === 'DOUBLE_HOLIDAY') return rest ? ctx.lookup.day_multiples.double_holiday_rest : ctx.lookup.day_multiples.double_holiday;\n\tif (['PUBLIC_HOLIDAY', 'SUBSTITUTE'].includes(kind)) return rest ? ctx.lookup.day_multiples.holiday_rest : ctx.lookup.day_multiples.holiday;\n\tif (kind === 'DOUBLE_SPECIAL') return rest ? ctx.lookup.day_multiples.double_special_rest : ctx.lookup.day_multiples.double_special;\n\tif (kind === 'SPECIAL_HOLIDAY') return rest ? ctx.lookup.day_multiples.special_rest : ctx.lookup.day_multiples.special;\n\treturn rest ? ctx.lookup.day_multiples.rest : ctx.lookup.day_multiples.ordinary;\n};\nconst overtimeMultiple = (d) => {\n\tconst rest = get(d, 'day_type', '') === 'REST';\n\tconst kind = get(d, 'holiday_kind', '');\n\tif (kind === 'DOUBLE_HOLIDAY') return rest ? ctx.lookup.overtime_multiples.double_holiday_rest : ctx.lookup.overtime_multiples.double_holiday;\n\tif (['PUBLIC_HOLIDAY', 'SUBSTITUTE'].includes(kind)) return rest ? ctx.lookup.overtime_multiples.holiday_rest : ctx.lookup.overtime_multiples.holiday;\n\tif (kind === 'DOUBLE_SPECIAL') return rest ? ctx.lookup.overtime_multiples.double_special_rest : ctx.lookup.overtime_multiples.double_special;\n\tif (kind === 'SPECIAL_HOLIDAY') return rest ? ctx.lookup.overtime_multiples.special_rest : ctx.lookup.overtime_multiples.special;\n\treturn rest ? ctx.lookup.overtime_multiples.rest : ctx.lookup.overtime_multiples.ordinary;\n};\nconst quantity = sum(\n\tctx.work.days.map((d) => {\n\t\tconst night = Math.max(0, nightMinutes(d, 'intervals') - overtimeNight(d));\n\t\treturn (night * dayMultiple(d) + overtimeNight(d) * overtimeMultiple(d)) * ctx.lookup.rate;\n\t})\n);\nreturn quantity * hourly;",
 		"incurred_on": "",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -199,20 +131,16 @@
 	{
 		"code": "DOUBLE_HOLIDAY_UNWORKED",
 		"name": "Double holiday not worked",
-		"lookup": {
-			"normal_hours_per_day": 8,
-			"days_per_year": 313,
-			"months_per_year": 12
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labor Code art.94; DOLE Handbook on Workers’ Statutory Monetary Benefits 2024 ch.2 holiday pay §D.3: “If the employee does not work on a double regular holiday, the employer shall pay 200%” — the salary (or, daily-paid, the DAILY_HOLIDAY_PAY line) pays one of the two holidays and this line the second. A monthly salary already pays the days its factor counts, so this line pays the one holiday the salary does not; a daily-paid contract is paid every worked or paid day on its own, and the second holiday is not paid when the nearest preceding working day was an unpaid absence (Omnibus Rules Book III Rule IV ss.2, 6, 10). Rates: a day is the monthly basic × 12 ÷ the contract’s recorded days per year (313 when unrecorded), or the contract’s daily rate when the agreed rate unit is DAILY; an hour is that day ÷ the normal hours per day (8 when unrecorded).",
 				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
 			}
 		],
-		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
-		"eligibility": "// js\nif (['MANAGERIAL', 'DOMESTIC', 'FIELD_PERSONNEL', 'TASK_BASIS', 'PIECE_RATE'].includes(get(ctx.subject.employment, 'terms.statutory_work_category', ''))) return false;\nif (get(ctx.subject.employer, 'entity_extension_data.retail_or_service_establishment', false) !== true) return true;\nreturn get(ctx.subject.employer, 'entity_extension_data.small_establishment', false) !== true;",
-		"conversion": "// js\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nconst days = Number(get(ctx.subject.employment, 'employee_extension_data.days_per_year', ctx.lookup.days_per_year));\nconst hours = Number(get(ctx.subject.employment, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nconst daily = unit === 'DAILY' ? amount : unit === 'HOURLY' ? amount * hours : (amount * ctx.lookup.months_per_year) / days;\n// leave_paid marks the nearest preceding work day as paid leave, which is not an unpaid absence.\nconst workDay = (p) => {\n\tif (get(p, 'day_type', '') !== 'WORK') return false;\n\treturn get(p, 'holiday_kind', '') === '' || get(p, 'worked', false) === true;\n};\nconst between = (q, p, d) => get(q, 'date', '') > get(p, 'date', '') && get(q, 'date', '') < get(d, 'date', '');\nconst unpaidBefore = (d) =>\n\tctx.work.days.some((p) => {\n\t\tif (!(get(p, 'date', '') < get(d, 'date', ''))) return false;\n\t\tif (!workDay(p)) return false;\n\t\tif (ctx.work.days.some((q) => between(q, p, d) && workDay(q))) return false;\n\t\tif (get(p, 'worked', false) === true) return false;\n\t\treturn get(p, 'leave_paid', false) !== true;\n\t});\nconst owed = (d) => {\n\tif (get(d, 'holiday_kind', '') !== 'DOUBLE_HOLIDAY') return false;\n\tif (get(d, 'worked', false) === true) return false;\n\treturn unit !== 'DAILY' || !unpaidBefore(d);\n};\nconst quantity = sum(ctx.work.days.filter((d) => owed(d)).map(() => 1));\nreturn quantity * daily;",
+		"subtotal_id": "8d9391da-6bdd-4d28-aa0e-c38368a02ae0",
+		"eligibility": "// js\nif (ctx.lookup.premium_excluded_categories.includes(get(ctx.subject.employment, 'terms.statutory_work_category', ''))) return false;\nif (get(ctx.subject.employer, 'entity_extension_data.retail_or_service_establishment', false) !== true) return true;\nreturn get(ctx.subject.employer, 'entity_extension_data.small_establishment', false) !== true;",
+		"conversion": "// js\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\n// leave_paid marks the nearest preceding work day as paid leave, which is not an unpaid absence.\nconst workDay = (p) => {\n\tif (get(p, 'day_type', '') !== 'WORK') return false;\n\treturn get(p, 'holiday_kind', '') === '' || get(p, 'worked', false) === true;\n};\nconst between = (q, p, d) => get(q, 'date', '') > get(p, 'date', '') && get(q, 'date', '') < get(d, 'date', '');\nconst unpaidBefore = (d) =>\n\tctx.work.days.some((p) => {\n\t\tif (!(get(p, 'date', '') < get(d, 'date', ''))) return false;\n\t\tif (!workDay(p)) return false;\n\t\tif (ctx.work.days.some((q) => between(q, p, d) && workDay(q))) return false;\n\t\tif (get(p, 'worked', false) === true) return false;\n\t\treturn get(p, 'leave_paid', false) !== true;\n\t});\nconst owed = (d) => {\n\tif (get(d, 'holiday_kind', '') !== 'DOUBLE_HOLIDAY') return false;\n\tif (get(d, 'worked', false) === true) return false;\n\treturn unit !== 'DAILY' || !unpaidBefore(d);\n};\nconst quantity = sum(ctx.work.days.filter((d) => owed(d)).map(() => 1));\nreturn quantity * ctx.day_rate;",
 		"incurred_on": "",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -230,8 +158,8 @@
 				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
 			}
 		],
-		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
-		"eligibility": "// js\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nif (get(rate, 'unit', 'MONTHLY') !== 'DAILY') return false;\nif (['MANAGERIAL', 'DOMESTIC', 'FIELD_PERSONNEL', 'TASK_BASIS', 'PIECE_RATE'].includes(get(ctx.subject.employment, 'terms.statutory_work_category', ''))) return false;\nif (get(ctx.subject.employer, 'entity_extension_data.retail_or_service_establishment', false) !== true) return true;\nreturn get(ctx.subject.employer, 'entity_extension_data.small_establishment', false) !== true;",
+		"subtotal_id": "8d9391da-6bdd-4d28-aa0e-c38368a02ae0",
+		"eligibility": "// js\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nif (get(rate, 'unit', 'MONTHLY') !== 'DAILY') return false;\nif (ctx.lookup.premium_excluded_categories.includes(get(ctx.subject.employment, 'terms.statutory_work_category', ''))) return false;\nif (get(ctx.subject.employer, 'entity_extension_data.retail_or_service_establishment', false) !== true) return true;\nreturn get(ctx.subject.employer, 'entity_extension_data.small_establishment', false) !== true;",
 		"conversion": "// js\nconst rate = get(ctx.subject.employment, 'terms.rate', {});\nconst unit = get(rate, 'unit', 'MONTHLY');\nconst amount = Number(get(rate, 'amount', 0));\nif (unit !== 'DAILY') return 0;\n// leave_paid marks the nearest preceding work day as paid leave, which is not an unpaid absence.\nconst workDay = (p) => {\n\tif (get(p, 'day_type', '') !== 'WORK') return false;\n\treturn get(p, 'holiday_kind', '') === '' || get(p, 'worked', false) === true;\n};\nconst between = (q, p, d) => get(q, 'date', '') > get(p, 'date', '') && get(q, 'date', '') < get(d, 'date', '');\nconst unpaidBefore = (d) =>\n\tctx.work.days.some((p) => {\n\t\tif (!(get(p, 'date', '') < get(d, 'date', ''))) return false;\n\t\tif (!workDay(p)) return false;\n\t\tif (ctx.work.days.some((q) => between(q, p, d) && workDay(q))) return false;\n\t\tif (get(p, 'worked', false) === true) return false;\n\t\treturn get(p, 'leave_paid', false) !== true;\n\t});\nconst owed = (d) => {\n\tif (!['PUBLIC_HOLIDAY', 'SUBSTITUTE', 'DOUBLE_HOLIDAY'].includes(get(d, 'holiday_kind', ''))) return false;\n\tif (get(d, 'worked', false) === true) return false;\n\treturn !unpaidBefore(d);\n};\nconst quantity = sum(ctx.work.days.filter((d) => owed(d)).map(() => 1));\nreturn quantity * amount;",
 		"incurred_on": "",
 		"direction": "ADD",

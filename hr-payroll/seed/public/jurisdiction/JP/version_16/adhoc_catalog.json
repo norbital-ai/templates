@@ -10,14 +10,14 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "41fd0bf4-2c6a-5bd6-93b3-8a7389b76c2b",
+		"subtotal_id": "248d5dfb-3b90-5a38-893e-fda495563ded",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "5b380d52-25eb-5eb5-b267-9e76e50d1078",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "dc61576b-63d9-5a1a-ae1e-8495d55fd7f6",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "BONUS_OVER_SIX_MONTHS",
@@ -30,14 +30,14 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "41fd0bf4-2c6a-5bd6-93b3-8a7389b76c2b",
+		"subtotal_id": "fc77fa7d-205b-527e-97d9-9dc1ee542636",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "d317ced9-efe3-5fee-8090-a64e4d7e3009",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "05ae8efc-315b-5366-b24e-6c4c10685f52",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "SHUTDOWN_ALLOWANCE",
@@ -52,15 +52,15 @@
 				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=73022000&dataType=0"
 			}
 		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "17392858-1346-5af6-bb95-adae6ef77cf0",
+		"off_cycle_eligible": false,
+		"subtotal_id": "8fde21b2-77a1-59bb-aa43-5dc20517461b",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "if (!(ctx.entry.quantity > 0)) return false;\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nreturn range.to == null || ctx.entry.incurred_on <= range.to;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.rate;",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "cdb43eab-7aff-55a2-be4a-93263d9bbe37",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "0d1845d7-a267-5738-8e0c-29313a918505",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "INJURY_WAITING_COMPENSATION",
@@ -75,15 +75,15 @@
 				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=73022000&dataType=0"
 			}
 		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "c42f39e2-617f-57f2-894e-374517864ce3",
+		"off_cycle_eligible": false,
+		"subtotal_id": "3d8b8fe3-f923-550d-b45d-2df5b2633692",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "if (!(ctx.entry.quantity > 0)) return false;\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nreturn range.to == null || ctx.entry.incurred_on <= range.to;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.rate;",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "6f2dc1b7-e33b-5bc8-9d9f-cb8ee0d5bb47",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "7fead0a8-5116-52d3-8319-c6a8b1a617b0",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "DISMISSAL_NOTICE_ALLOWANCE",
@@ -93,18 +93,18 @@
 		"references": [
 			{
 				"title": "労働基準法20条 and21条: the applicable notice shortfall is paid at the actual Article12average wage. Original notice dates and an actually applicable statutory/certified exemption remain source facts. Taxed as retirement income under 所得税基本通達30-5. Entry: quantity = the average-wage base for the notice shortfall (maximum thirty days); `lookup` holds the average-wage source policy.",
-				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=73022000&dataType=0"
+				"url": "https://www.nta.go.jp/law/tsutatsu/kihon/shotoku/04/04.htm"
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "c42f39e2-617f-57f2-894e-374517864ce3",
+		"subtotal_id": "2fa502b6-f768-5f9c-88cd-2f2ca8561bb9",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "if (!(ctx.entry.quantity > 0)) return false;\nconst range = ctx.subject.employment.effective_range;\nif (!(ctx.entry.incurred_on >= range.from)) return false;\nreturn range.to == null || ctx.entry.incurred_on <= range.to;",
 		"conversion": "return ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "1c0e137c-fd91-578e-bd59-3a4ace03b222",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "cc457021-c7fb-5055-b940-398fa14a3c15",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "RETIREMENT_ALLOWANCE",
@@ -117,14 +117,37 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "b53cb4b9-2690-565c-8d37-f2ef1003fb0e",
+		"subtotal_id": "2fa502b6-f768-5f9c-88cd-2f2ca8561bb9",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "b8e7c7f5-5acf-500b-aba5-7b0fd5235b8e",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "5d434279-365f-5942-8eab-966feb9dee0f",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "RETIREMENT_ALLOWANCE_UNDECLARED",
+		"name": "退職手当 申告書なし (retirement allowance without the declaration)",
+		"description": "The retirement allowance of a leaver who filed no 退職所得の受給に関する申告書: withheld at 20.42% of the payment, with no deduction.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "所得税法",
+				"locator": "201条3項",
+				"url": "https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2732.htm",
+				"quote": "退職手当等の支給額に20.42パーセントの税率を乗じて計算した所得税および復興特別所得税の額を源泉徴収します。"
+			}
+		],
+		"off_cycle_eligible": true,
+		"subtotal_id": "a6d4244a-5931-5418-92fe-3c6e0c1557f9",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "return ctx.entry.quantity > 0;",
+		"conversion": "return ctx.entry.quantity;",
+		"incurred_on": "return ctx.entry.incurred_on;",
+		"id": "be1707d7-a1dc-52b5-88a1-1a393b3691a5",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "MEALS_IN_KIND",
@@ -138,15 +161,15 @@
 				"quote": "食事の現物給与は、供与する食事の価額から従業員の負担額を控除した額を給与として課税する。"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "06e23985-e7f5-54ee-83c3-283413eb9d7c",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "a9ef22d6-2851-595c-ac96-3b41678e7885",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "HOUSING_IN_KIND",
@@ -160,15 +183,15 @@
 				"quote": "社宅の貸与は、通常の賃貸料の額と従業員の負担額との差額を給与として課税する。"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "523e6288-43ea-5f69-87f0-268b84fce13b",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "b9232431-ee1a-5076-bcdc-a784141d5f12",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "TAXABLE_BENEFIT",
@@ -180,15 +203,15 @@
 				"title": "所得税法 art.36(1)–(2) with 所得税基本通達 36-15 ff.: other benefits in kind (goods, services, low-interest loans, awards in money) are salary at their value as the 通達 states; the employer enters the taxable value. Entry: quantity = the taxable value."
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "5f6d122f-44f7-5a0e-aa5e-99bcdeca9bc7",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "d07710ca-e7d0-55d0-9a67-1d22fc0f2eaa",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "SPECIAL_ALLOWANCE",
@@ -200,15 +223,15 @@
 				"title": "所得税法 art.28: a cash allowance paid in the month is salary income, remuneration for social insurance (健保法 art.3(5)) and a wage for labour insurance — including any excess over the night-duty or night-meal limits. Entry: quantity = the cash allowance amount; `lookup` holds the night limits above which an amount belongs here."
 			}
 		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "17392858-1346-5af6-bb95-adae6ef77cf0",
+		"off_cycle_eligible": false,
+		"subtotal_id": "8fde21b2-77a1-59bb-aa43-5dc20517461b",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "c688d357-78b3-5209-9232-aeacb11d8282",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "56479914-4c60-5968-bc12-c94dd5de3a54",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "NIGHT_DUTY_ALLOWANCE",
@@ -222,15 +245,15 @@
 				"title": "所得税基本通達 28-1: a 宿直・日直 allowance up to 4,000 yen an occasion is not taxable (entry.quantity occasions; the class pays at most that, any excess is SPECIAL_ALLOWANCE). It is 報酬 for social insurance (健康保険法 art.3(5); 日本年金機構 lists 宿日直手当 as 報酬) and a wage for labour insurance (労働保険徴収法 art.2(2)). Entry: quantity = occasions; `lookup.limit_per_unit` is the non-taxable limit per occasion."
 			}
 		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "17392858-1346-5af6-bb95-adae6ef77cf0",
+		"off_cycle_eligible": false,
+		"subtotal_id": "6ba14d5a-c85b-5ce9-8424-461fbc39b1d2",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.lookup.limit_per_unit * ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "6077a533-7444-52d0-859e-9301a7039916",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "4834acb8-52aa-5b21-80e0-73e905487787",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "NIGHT_MEAL_CASH",
@@ -244,15 +267,15 @@
 				"title": "昭和59年7月26日 直法6-5 as amended 令和8年3月31日: cash paid instead of a meal for night work (22:00–05:00) is not taxable up to 650 yen an occasion (entry.quantity; from 1 April 2026 650, before 300). The exemption holds only where the whole payment of the occasion is within the limit; a larger payment is wholly taxable, so it is entered in full as SPECIAL_ALLOWANCE (the class refuses an amount above the limit). Enter one entry per occasion (entry.quantity 1). It is a wage: 報酬 for social insurance (健康保険法 art.3(5); 厚生年金保険法 art.3(1)(iii)) and 賃金 for labour insurance (労働保険徴収法 art.2(2)). Entry: quantity = occasions; `lookup.limit_per_unit` is the dated non-taxable limit per occasion."
 			}
 		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "c42f39e2-617f-57f2-894e-374517864ce3",
+		"off_cycle_eligible": false,
+		"subtotal_id": "3d8b8fe3-f923-550d-b45d-2df5b2633692",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.lookup.limit_per_unit * ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "0b739ca9-6372-5582-9e49-c7f0296966e8",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "cb81d113-3469-56d7-aa4c-979919609678",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "LONG_SERVICE_AWARD",
@@ -273,15 +296,14 @@
 		"eligibility": "const months = calendar_completed_months(ctx.subject.employment.effective_range.from, ctx.entry.incurred_on);\nreturn ctx.entry.quantity > 0 && months >= ctx.lookup.minimum_service_years * 12;",
 		"conversion": "return ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "f10be91e-518f-5065-a3ba-19125119ec78",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "226f494c-7904-5913-bff7-06c4c54b98d0",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "DISCIPLINARY_DEDUCTION",
 		"name": "減給の制裁 (disciplinary pay reduction)",
 		"description": "The entry quantity is the Article 12 average-wage base for the disciplinary reduction (average daily wage multiplied by the deducted days). Each deduction is limited to half that base and to one tenth of the wages payable for the wage period.",
 		"lookup": {
-			"wage_period_share": 0.1,
 			"rate": 0.5
 		},
 		"references": [
@@ -290,23 +312,22 @@
 				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=73022000&dataType=0"
 			}
 		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "9a438c4a-5940-5496-bdf7-11bb4aa4ef93",
+		"off_cycle_eligible": false,
+		"subtotal_id": "a36e63f8-effd-5898-8940-223ff54d57d8",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0 && get(ctx.subtotals, 'ORDINARY_WAGES', 0) > 0;",
 		"conversion": "const cap = get(ctx.subtotals, 'ORDINARY_WAGES', 0) * ctx.lookup.wage_period_share;\nreturn Math.min(ctx.entry.quantity * ctx.lookup.rate, cap);",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "a3e3ad16-436a-5589-abb6-45f194cd9314",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "c13284fa-2066-5cc0-80dd-a8f960c06207",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "LATE_WAGE_INTEREST",
 		"name": "退職者の未払賃金の遅延利息 (delay interest on unpaid wages)",
 		"description": "The entry quantity is the unpaid wage left after exit. Interest runs at 14.6% a year from the day after the contractual due date to the payment date. It is not salary income.",
 		"lookup": {
-			"annual_rate": 0.146,
-			"days_per_year": 365
+			"annual_rate": 0.146
 		},
 		"references": [
 			{
@@ -316,72 +337,20 @@
 			}
 		],
 		"off_cycle_eligible": true,
-		"subtotal_id": "9a438c4a-5940-5496-bdf7-11bb4aa4ef93",
+		"subtotal_id": "a36e63f8-effd-5898-8940-223ff54d57d8",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "if (!(ctx.entry.quantity > 0)) return false;\nconst due = ctx.subject.employment.final_pay_due_on;\nif (due == null) return false;\nreturn ctx.entry.incurred_on > due;",
 		"conversion": "const days = calendar_distance_days(ctx.subject.employment.final_pay_due_on, ctx.entry.incurred_on);\nreturn (ctx.entry.quantity * ctx.lookup.annual_rate * days) / ctx.lookup.days_per_year;",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "c21a55f7-5f4a-5c8e-9870-c60a54e9cbf9",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "263b7d20-806c-5083-a497-00d1d652b0fa",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "COMMUTER_PASS",
 		"name": "通勤定期券（複数月分） (commuter pass for several months)",
 		"description": "The entry quantity is the taxable commuter-pass amount after the exemption. A pass for several months is exempt up to the monthly limit multiplied by the months it covers.",
-		"lookup": {
-			"car_distance_bands": [
-				{
-					"below": 2,
-					"amount": 0
-				},
-				{
-					"below": 10,
-					"amount": 4200
-				},
-				{
-					"below": 15,
-					"amount": 7300
-				},
-				{
-					"below": 25,
-					"amount": 13500
-				},
-				{
-					"below": 35,
-					"amount": 19700
-				},
-				{
-					"below": 45,
-					"amount": 25900
-				},
-				{
-					"below": 55,
-					"amount": 32300
-				},
-				{
-					"below": 65,
-					"amount": 38700
-				},
-				{
-					"below": 75,
-					"amount": 45700
-				},
-				{
-					"below": 85,
-					"amount": 52700
-				},
-				{
-					"below": 95,
-					"amount": 59600
-				},
-				{
-					"below": null,
-					"amount": 66400
-				}
-			],
-			"parking_monthly_cap": 5000
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "所得税法施行令",
@@ -389,15 +358,15 @@
 				"quote": "通勤手当は、一月当たり十五万円を限度として非課税とする。"
 			}
 		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "c42f39e2-617f-57f2-894e-374517864ce3",
+		"off_cycle_eligible": false,
+		"subtotal_id": "3d8b8fe3-f923-550d-b45d-2df5b2633692",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "94124f39-4939-53c3-b68b-f71ad0707a06",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "689ebc63-ff2e-5e46-9a75-cb9f775419bf",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "MEALS_IN_KIND_SOCIAL_INSURANCE",
@@ -411,15 +380,15 @@
 				"quote": "食事の現物給与は、厚生労働大臣が定める価額により報酬に算入する。"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "6d1970ae-dfe4-5889-ac8d-fa425b39ae42",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "ff6883c5-f402-5b1b-ad36-8248b5a68732",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "HOUSING_IN_KIND_SOCIAL_INSURANCE",
@@ -433,14 +402,34 @@
 				"quote": "住宅の現物給与は、厚生労働大臣が定める価額により報酬に算入する。"
 			}
 		],
-		"off_cycle_eligible": true,
+		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "return ctx.entry.quantity > 0;",
 		"conversion": "return ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
-		"id": "e9e8e850-b3ae-5d98-a9a7-47c5818aea0d",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "92f9ce0f-abe0-5bd3-ae38-2ab2f20d9593",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
+	},
+	{
+		"code": "STATUTORY_ADJUSTMENT",
+		"name": "Statutory adjustment",
+		"references": [
+			{
+				"title": "RA 11199, RA 11223, RA 9679 and NIRC s.58: correction of a prior statutory contribution or withholding remittance."
+			}
+		],
+		"description": "The entry quantity is the statutory correction; the statutory schemes are not re-run.",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "a36e63f8-effd-5898-8940-223ff54d57d8",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "8987adc8-990d-57e4-9ea9-372428864a67",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	}
 ]

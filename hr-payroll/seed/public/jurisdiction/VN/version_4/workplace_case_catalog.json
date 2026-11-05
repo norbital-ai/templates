@@ -6,8 +6,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "3fe648d8-c9e1-5e2e-8b7c-406d13bf684a",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb",
+		"id": "5065ad4d-ae6e-5274-a80b-9bb8d49145e7",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d",
 		"references": [
 			{
 				"title": "Law 91/2025/QH15 on personal data protection",
@@ -24,8 +24,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "0801cfe3-7cbb-5ce4-9aa8-3c6d8c32c518",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb",
+		"id": "36979c2e-4ff3-5651-b4f0-863e31c4a1f2",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d",
 		"references": [
 			{
 				"title": "Labour Code 45/2019/QH14",
@@ -41,8 +41,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "14937d48-d422-5e9d-b531-44064f81d550",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb",
+		"id": "ac377096-7dee-5e68-8d2b-1282e19e4360",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d",
 		"references": [
 			{
 				"title": "Law 109/2025/QH15 on Personal Income Tax",
@@ -57,14 +57,12 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "58df1dd9-3eeb-5e55-a808-afd113b77687",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb",
+		"id": "7753ed11-d8c3-5d18-a8b4-b49e93f12c3c",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d",
 		"references": [
 			{
-				"title": "Decree 253/2026/NĐ-CP",
-				"locator": "arts.4-5",
-				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf",
-				"effective_from": "2026-07-01"
+				"title": "Circular 111/2013/TT-BTC",
+				"locator": "art.2(2)"
 			}
 		]
 	},
@@ -75,8 +73,8 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
-		"id": "93fcc0bb-6115-5575-92b1-2bb2077d206e",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb",
+		"id": "b48bbd93-8107-5354-8860-600f2e2be670",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d",
 		"references": [
 			{
 				"title": "Law on Social Insurance 41/2024/QH15",

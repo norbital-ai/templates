@@ -1,101 +1,5 @@
 [
 	{
-		"code": "MINIMUM_WAGE",
-		"target_collection": "payroll_run",
-		"events": ["after_contributions"],
-		"order": 0,
-		"condition": "const region = String(get(ctx.subject.employer.entity_extension_data, 'region', ''));\nif (!(ctx.lookup.minimum_wage ?? []).some((r) => r.region === region)) return false;\nconst rate = ctx.subject.employment.terms.rate;\nif (rate == null) return false;\nif (rate.unit !== 'MONTHLY') return false;\nconst salary = ctx.run.salary_coverage;\nif (month_start(salary.from) !== salary.from) return false;\nif (month_end(salary.to) !== salary.to) return false;\nreturn !['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.subject.employment.engagement);",
-		"validate": "const salary = ctx.run.salary_coverage;\nconst employment = ctx.subject.employment;\nconst covered =\n  employment.effective_range.from <= salary.from &&\n  (employment.effective_range.to == null ||\n    employment.effective_range.to === '' ||\n    employment.effective_range.to >= salary.to);\nconst fullMonth = month_start(salary.from) === salary.from && month_end(salary.to) === salary.to;\nconst engagement = employment.engagement;\nconst ext = ctx.subject.employer.entity_extension_data ?? {};\nconst region = String(get(ext, 'region', ''));\nconst regionRows = (ctx.lookup.minimum_wage ?? []).filter((r) => r.region === region);\nconst zone = String(get(ext, 'wage_zone', get(regionRows[0], 'default_zone', '1')));\nconst table = regionRows.find((r) => r.zone === zone);\nconst floor = Number(get(table, 'monthly', 0));\nconst rate = employment.terms.rate;\nconst wage = rate != null && rate.unit === 'MONTHLY' ? Number(rate.amount) : 0;\nconst amountOf = (a) => (typeof a === 'number' ? a : Number(get(a, 'amount', 0)));\nconst foreign = sum(\n  ['FOREIGN_HOUSING_ALLOWANCE', 'FOREIGN_LANGUAGE_ALLOWANCE', 'FOREIGN_CHILD_EDUCATION_ALLOWANCE'].map(\n    (c) => amountOf(get(employment.terms.allowances, c, 0)),\n  ),\n);\nconst contributions =\n  get(table, 'excludes_employee_contributions', false) && rate != null && rate.unit === 'MONTHLY'\n    ? sum(\n        ['PENSION', 'MEDICAL', 'UNEMPLOYMENT', 'HPF', 'HPF_SUPPLEMENTARY'].map((c) =>\n          Number(get(ctx.statutory, c + '.employee', 0)),\n        ),\n      )\n    : 0;\nif (!covered) return false;\nif (!fullMonth) return false;\nif (['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement)) return false;\nif (!(floor > 0)) return false;\nreturn wage - foreign - contributions >= floor;",
-		"lookup": {
-			"minimum_wage": [
-				{
-					"region": "SH",
-					"zone": "1",
-					"monthly": 2740,
-					"hourly": 25,
-					"default_zone": "1",
-					"excludes_employee_contributions": true
-				},
-				{
-					"region": "KM",
-					"zone": "1",
-					"monthly": 2170,
-					"hourly": 21,
-					"default_zone": "1",
-					"excludes_employee_contributions": false
-				},
-				{
-					"region": "KM",
-					"zone": "2",
-					"monthly": 2020,
-					"hourly": 20,
-					"default_zone": "1",
-					"excludes_employee_contributions": false
-				},
-				{
-					"region": "KM",
-					"zone": "3",
-					"monthly": 1870,
-					"hourly": 19,
-					"default_zone": "1",
-					"excludes_employee_contributions": false
-				}
-			]
-		},
-		"id": "8921eda0-94d0-5d20-98bb-0fd8b115524e",
-		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
-	},
-	{
-		"code": "OVERTIME_MONTHLY_LIMIT",
-		"target_collection": "payroll_run",
-		"events": ["prepare_payroll"],
-		"order": 1,
-		"condition": "const terms = get(ctx.subject.employment, 'terms', {});\nreturn (\n  ['STANDARD', ''].includes(String(get(terms, 'statutory_work_category', 'STANDARD'))) &&\n  !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.subject.employment.engagement)\n);",
-		"validate": "const entries = (ctx.reads.roster_entry ?? [])\n  .filter(\n    (e) =>\n      e.work_date >= ctx.run.salary_coverage.from && e.work_date <= ctx.run.salary_coverage.to,\n  );\nconst hours = sum(entries.map((e) => interval_minutes(e.planned_overtime_intervals) / 60));\nreturn hours <= ctx.lookup.monthly_overtime_hours;",
-		"reads": {
-			"roster_entry": {
-				"where": {
-					"employment_id": {
-						"eq": {
-							"var": "subject.employment.id"
-						}
-					}
-				},
-				"limit": 10000
-			}
-		},
-		"lookup": {
-			"monthly_overtime_hours": 36
-		},
-		"id": "ce99de59-abfc-5706-ab5a-3ca2252470b1",
-		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
-	},
-	{
-		"code": "OVERTIME_DAILY_LIMIT",
-		"target_collection": "payroll_run",
-		"events": ["prepare_payroll"],
-		"order": 2,
-		"condition": "const terms = get(ctx.subject.employment, 'terms', {});\nreturn (\n  ['STANDARD', ''].includes(String(get(terms, 'statutory_work_category', 'STANDARD'))) &&\n  !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.subject.employment.engagement)\n);",
-		"validate": "const entries = (ctx.reads.roster_entry ?? [])\n  .filter(\n    (e) =>\n      e.work_date >= ctx.run.salary_coverage.from && e.work_date <= ctx.run.salary_coverage.to,\n  );\nreturn !entries.some(\n  (e) =>\n    interval_minutes(e.planned_overtime_intervals) / 60 > ctx.lookup.daily_overtime_hours,\n);",
-		"reads": {
-			"roster_entry": {
-				"where": {
-					"employment_id": {
-						"eq": {
-							"var": "subject.employment.id"
-						}
-					}
-				},
-				"limit": 10000
-			}
-		},
-		"lookup": {
-			"daily_overtime_hours": 3
-		},
-		"id": "c888da04-dd98-5649-8e63-2aeafed03f95",
-		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
-	},
-	{
 		"code": "MINIMUM_WAGE_HOURLY",
 		"target_collection": "employee_contract",
 		"events": ["create", "update"],
@@ -115,42 +19,7 @@
 				"limit": 100
 			}
 		},
-		"lookup": {
-			"minimum_wage": [
-				{
-					"region": "SH",
-					"zone": "1",
-					"monthly": 2740,
-					"hourly": 25,
-					"default_zone": "1",
-					"excludes_employee_contributions": true
-				},
-				{
-					"region": "KM",
-					"zone": "1",
-					"monthly": 2170,
-					"hourly": 21,
-					"default_zone": "1",
-					"excludes_employee_contributions": false
-				},
-				{
-					"region": "KM",
-					"zone": "2",
-					"monthly": 2020,
-					"hourly": 20,
-					"default_zone": "1",
-					"excludes_employee_contributions": false
-				},
-				{
-					"region": "KM",
-					"zone": "3",
-					"monthly": 1870,
-					"hourly": 19,
-					"default_zone": "1",
-					"excludes_employee_contributions": false
-				}
-			]
-		},
+		"lookup": {},
 		"id": "2709b56e-233a-57a8-9bad-f476d6201897",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
 	},
@@ -196,41 +65,7 @@
 			}
 		},
 		"lookup": {
-			"probation_wage_share": 0.8,
-			"minimum_wage": [
-				{
-					"region": "SH",
-					"zone": "1",
-					"monthly": 2740,
-					"hourly": 25,
-					"default_zone": "1",
-					"excludes_employee_contributions": true
-				},
-				{
-					"region": "KM",
-					"zone": "1",
-					"monthly": 2170,
-					"hourly": 21,
-					"default_zone": "1",
-					"excludes_employee_contributions": false
-				},
-				{
-					"region": "KM",
-					"zone": "2",
-					"monthly": 2020,
-					"hourly": 20,
-					"default_zone": "1",
-					"excludes_employee_contributions": false
-				},
-				{
-					"region": "KM",
-					"zone": "3",
-					"monthly": 1870,
-					"hourly": 19,
-					"default_zone": "1",
-					"excludes_employee_contributions": false
-				}
-			]
+			"probation_wage_share": 0.8
 		},
 		"id": "1b876e65-16d8-5a29-8772-be27013e3491",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
@@ -252,10 +87,7 @@
 		"order": 8,
 		"condition": "return ctx.entry.engagement === 'PART_TIME';",
 		"validate": "const day = get(ctx.entry.terms, 'normal_hours_per_day', null);\nconst week = get(ctx.entry.terms, 'normal_hours_per_week', null);\nif (day == null && week == null) return false;\nif (day != null && !(Number(day) <= ctx.lookup.part_time_daily_hours)) return false;\nif (week != null && !(Number(week) <= ctx.lookup.part_time_weekly_hours)) return false;\nreturn true;",
-		"lookup": {
-			"part_time_daily_hours": 4,
-			"part_time_weekly_hours": 24
-		},
+		"lookup": {},
 		"id": "56205904-b1a4-5637-a395-fdc577db1e48",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
 	},
@@ -283,31 +115,6 @@
 			"allowed_frequencies": ["SEMI_MONTHLY", "TEN_DAY", "WEEKLY", "BIWEEKLY", "DAILY"]
 		},
 		"id": "3865b6fa-3783-58c4-b338-8b46982f1dc1",
-		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
-	},
-	{
-		"code": "WEEKLY_REST",
-		"target_collection": "payroll_run",
-		"events": ["prepare_payroll"],
-		"order": 10,
-		"condition": "const terms = get(ctx.subject.employment, 'terms', {});\nreturn (\n  ['STANDARD', ''].includes(String(get(terms, 'statutory_work_category', 'STANDARD'))) &&\n  !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.subject.employment.engagement)\n);",
-		"validate": "const entries = (ctx.reads.roster_entry ?? [])\n  .filter(\n    (e) =>\n      e.work_date >= ctx.run.salary_coverage.from && e.work_date <= ctx.run.salary_coverage.to,\n  );\nconst worked = entries\n  .filter((e) => Array.isArray(e.actual_worked_intervals) && e.actual_worked_intervals.length > 0)\n  .map((e) => e.work_date)\n  .toSorted();\nconst span = ctx.lookup.weekly_rest_days - 1;\nreturn !worked.some((d, i) => i + span < worked.length && worked[i + span] === add_days(d, span));",
-		"reads": {
-			"roster_entry": {
-				"where": {
-					"employment_id": {
-						"eq": {
-							"var": "subject.employment.id"
-						}
-					}
-				},
-				"limit": 10000
-			}
-		},
-		"lookup": {
-			"weekly_rest_days": 7
-		},
-		"id": "e36c8a86-0147-56ee-a3f2-583dc6a4206e",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
 	},
 	{
@@ -416,76 +223,6 @@
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
 	},
 	{
-		"code": "RETIREMENT_AGE_REACHED",
-		"target_collection": "employee_contract",
-		"events": ["create", "update"],
-		"order": 14,
-		"condition": "const dob = get(ctx.entry.payroll, 'date_of_birth', null);\nif (dob == null) return false;\nif (dob === '') return false;\nreturn !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(ctx.entry.engagement);",
-		"validate": "const dob = get(ctx.entry.payroll, 'date_of_birth', null);\nconst date = ctx.entry.effective_range.from;\nif (dob == null || dob === '' || dob > date) return true;\nconst female = get(ctx.entry.payroll, 'gender', null) === 'FEMALE';\nconst category = female\n  ? String(get(ctx.entry.employee_extension_data, 'facts.retirement_category', 'FEMALE_50'))\n  : 'MALE';\nconst rows = ctx.lookup.retirement ?? [];\nconst rule = rows.find((r) => r.category === category) ?? rows.find((r) => r.category === 'MALE');\nif (rule == null) return false;\nif (dob < rule.cutoff) return calendar_completed_months(dob, date) < rule.base_years * 12;\nconst steps = Math.trunc(calendar_completed_months(rule.cutoff, month_start(dob)) / rule.birth_months_per_step) + 1;\nreturn calendar_completed_months(dob, date) < rule.base_years * 12 + Math.min(rule.max_deferral_months, steps);",
-		"lookup": {
-			"retirement": [
-				{
-					"category": "MALE",
-					"base_years": 60,
-					"cutoff": "1965-01-01",
-					"max_deferral_months": 36,
-					"birth_months_per_step": 4
-				},
-				{
-					"category": "FEMALE_55",
-					"base_years": 55,
-					"cutoff": "1970-01-01",
-					"max_deferral_months": 36,
-					"birth_months_per_step": 4
-				},
-				{
-					"category": "FEMALE_50",
-					"base_years": 50,
-					"cutoff": "1975-01-01",
-					"max_deferral_months": 60,
-					"birth_months_per_step": 2
-				}
-			]
-		},
-		"id": "4c1e7a7b-e829-5c3b-8d30-17592cd805b0",
-		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
-	},
-	{
-		"code": "PREGNANT_NURSING_OVERTIME",
-		"target_collection": "payroll_run",
-		"events": ["prepare_payroll"],
-		"order": 15,
-		"condition": "const until = String(\n  get(ctx.subject.employment.employee_extension_data, 'facts.nursing_protection_until', ''),\n);\nreturn until !== '' && until >= ctx.run.salary_coverage.from;",
-		"validate": "const entries = (ctx.reads.roster_entry ?? [])\n  .filter(\n    (e) =>\n      e.work_date >= ctx.run.salary_coverage.from && e.work_date <= ctx.run.salary_coverage.to,\n  );\nconst zone = String(ctx.lookup.time_zone);\nreturn !entries.some((e) => {\n  const planned = e.planned_overtime_intervals ?? [];\n  const actual = e.actual_worked_intervals ?? [];\n  const asOf = e.work_date + 'T23:59:59Z';\n  const night =\n    clock_window_minutes(planned, zone, '22:00', '06:00', asOf) +\n    clock_window_minutes(actual, zone, '22:00', '06:00', asOf);\n  return planned.length > 0 || night > 0;\n});",
-		"reads": {
-			"roster_entry": {
-				"where": {
-					"employment_id": {
-						"eq": {
-							"var": "subject.employment.id"
-						}
-					}
-				},
-				"limit": 10000
-			}
-		},
-		"lookup": {
-			"time_zone": "Asia/Shanghai"
-		},
-		"id": "cead9bdd-e0a6-5cd3-ada7-3442b12bc7be",
-		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
-	},
-	{
-		"code": "WAGE_PAID_LATE",
-		"target_collection": "payroll_run",
-		"events": ["create"],
-		"order": 16,
-		"validate": "return String(ctx.entry.pay_date) <= String(ctx.entry.pay_due_date);",
-		"lookup": {},
-		"id": "1cc35dfd-1235-5fa6-887b-50f101cf7e25",
-		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
-	},
-	{
 		"code": "ROSTER_OVERTIME_DAILY",
 		"target_collection": "roster_entry",
 		"events": ["create", "update"],
@@ -536,9 +273,7 @@
 				"limit": 1
 			}
 		},
-		"lookup": {
-			"daily_hours": 8
-		},
+		"lookup": {},
 		"id": "a876548a-aad4-5fa1-89d1-865ec1ad99c0",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
 	},
@@ -574,7 +309,7 @@
 		"events": ["create", "update"],
 		"order": 20,
 		"condition": "const terms = get(ctx.subject.employment, 'terms', {});\nreturn (\n  get(ctx.subject.employment, 'engagement', '') === 'PART_TIME' &&\n  terms != null\n);",
-		"validate": "const rows = (ctx.reads.roster_entry ?? [])\n  .filter((r) => r.work_date !== ctx.entry.work_date)\n  .concat([ctx.entry]);\nconst hours = (d) =>\n  sum(\n    rows\n      .filter((r) => r.work_date >= d && r.work_date <= add_days(d, 6))\n      .map((r) => interval_minutes(r.actual_worked_intervals) / 60),\n  );\nconst daily = (d) =>\n  sum(\n    rows\n      .filter((r) => r.work_date === d)\n      .map((r) => interval_minutes(r.actual_worked_intervals) / 60),\n  );\nreturn !rows.some(\n  (r) =>\n    daily(r.work_date) > ctx.lookup.part_time_daily_hours ||\n    hours(r.work_date) > ctx.lookup.part_time_weekly_hours,\n);",
+		"validate": "// 劳动合同法 第六十八条: on average at most 4 hours a worked day and at most 24 hours in a week\nconst monday = add_days(ctx.entry.work_date, -((weekday(ctx.entry.work_date) + 6) % 7));\nconst sunday = add_days(monday, 6);\nconst rows = (ctx.reads.roster_entry ?? [])\n  .filter((r) => r.work_date !== ctx.entry.work_date)\n  .concat([ctx.entry])\n  .filter((r) => r.work_date >= monday && r.work_date <= sunday);\nconst hoursOf = (r) =>\n  interval_minutes(get(r, 'actual_worked_intervals', []).filter((span) => get(span, 'end', null) != null)) / 60;\nconst worked = rows.filter((r) => hoursOf(r) > 0);\nconst hours = sum(worked.map(hoursOf));\nif (hours > ctx.lookup.part_time_weekly_hours) return false;\nreturn worked.length === 0 || hours / worked.length <= ctx.lookup.part_time_daily_hours;",
 		"reads": {
 			"roster_entry": {
 				"where": {
@@ -588,10 +323,7 @@
 				"limit": 10000
 			}
 		},
-		"lookup": {
-			"part_time_daily_hours": 4,
-			"part_time_weekly_hours": 24
-		},
+		"lookup": {},
 		"id": "da88d9cb-e050-561b-91de-97032fd1309d",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
 	},
@@ -693,92 +425,14 @@
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
 	},
 	{
-		"code": "DISABILITY_ALLOWANCE_SI_BASE",
-		"target_collection": "payroll_run",
-		"events": ["after_gross"],
-		"order": 26,
-		"validate": "const code = String(ctx.lookup.catalog_code);\nconst catalogs = ctx.reads.adhoc_catalog ?? [];\nconst allowance = sum(\n  (ctx.reads.adhoc_catalog_entry ?? [])\n    .filter(\n      (e) =>\n        !e.is_reversal &&\n        e.incurred_on >= ctx.run.salary_coverage.from &&\n        e.incurred_on <= ctx.run.salary_coverage.to &&\n        catalogs.some((c) => c.id === e.catalog_id && c.code === code),\n    )\n    .map((e) => Number(e.quantity)),\n);\nif (allowance <= 0) return true;\nconst base = get(ctx.subject.employment.employee_extension_data, 'term_facts.si_contribution_base', null);\nif (base == null) return false;\nconst tolerance = ctx.lookup.tolerance;\nreturn Number(base) >= allowance - tolerance && Number(base) <= allowance + tolerance;",
-		"reads": {
-			"adhoc_catalog": {
-				"limit": 10000
-			},
-			"adhoc_catalog_entry": {
-				"where": {
-					"employment_id": {
-						"eq": {
-							"var": "subject.employment.id"
-						}
-					}
-				},
-				"fields": ["catalog_id", "quantity", "incurred_on", "status", "is_reversal"],
-				"limit": 10000
-			}
-		},
-		"lookup": {
-			"catalog_code": "WORK_INJURY_DISABILITY_ALLOWANCE",
-			"tolerance": 0.01
-		},
-		"id": "292e0de4-b612-5850-a282-299e7c10717b",
-		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
-	},
-	{
-		"code": "PAYROLL_RUN_KINDS",
-		"target_collection": "payroll_run",
-		"events": ["create"],
-		"order": 28,
-		"validate": "return ctx.lookup.kinds.includes(ctx.entry.kind);",
-		"lookup": {
-			"kinds": ["REGULAR", "OFF_CYCLE"]
-		},
-		"id": "21372eeb-99b3-5178-a5d4-798f39a2c655",
-		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
-	},
-	{
 		"code": "CN_STANDARD_SHIFT_LIMIT",
 		"target_collection": "shift_definition",
 		"events": ["create", "update"],
 		"order": 30,
 		"condition": "return get(ctx.entry.variant, 'day_type', 'WORK') === 'WORK';",
 		"validate": "const v = get(ctx.entry, 'variant', {});\nconst clock = (a, b, next) => {\n  const [ah, am] = String(a).split(':').map(Number);\n  const [bh, bm] = String(b).split(':').map(Number);\n  return bh * 60 + bm - (ah * 60 + am) + (next ? 1440 : 0);\n};\nconst span =\n  v.start_time != null && v.end_time != null\n    ? clock(v.start_time, v.end_time, v.ends_next_day === true)\n    : Number(v.untimed_hours ?? 0) * 60;\nconst unpaid = sum(\n  (v.breaks ?? []).filter((b) => b.paid !== true).map((b) => clock(b.start_time, b.end_time, false)),\n);\nconst ordinary = (span - unpaid) / 60;\nreturn ordinary <= ctx.lookup.daily_hours;",
-		"lookup": {
-			"daily_hours": 8
-		},
+		"lookup": {},
 		"id": "586229f7-379a-5352-bc18-4ff8aa081421",
-		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
-	},
-	{
-		"code": "CN_COMPREHENSIVE_REVIEW",
-		"target_collection": "payroll_run",
-		"events": ["prepare_payroll"],
-		"order": 31,
-		"condition": "const terms = get(ctx.subject.employment, 'terms', {});\nreturn String(get(terms, 'statutory_work_category', '')) === 'COMPREHENSIVE';",
-		"validate": "const review = get(\n  ctx.subject.employment.employee_extension_data,\n  'term_facts.comprehensive_overtime_review',\n  null,\n);\nconst period = String(ctx.run.period);\nif (review == null) return false;\nif (String(get(review, 'month', '')) !== period) return false;\nif (String(get(review, 'reference', '')).trim() === '') return false;\nreturn String(get(review, 'settlement_on', '')).slice(0, 7) === period;",
-		"lookup": {},
-		"id": "5071ced9-63d7-5477-b383-0dd9d2142166",
-		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
-	},
-	{
-		"code": "CN_HPF_COMMENCEMENT_REVIEW",
-		"target_collection": "payroll_run",
-		"events": ["prepare_payroll"],
-		"order": 32,
-		"condition": "return !['PART_TIME', 'INTERN', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(\n  ctx.subject.employment.engagement,\n);",
-		"validate": "const start = String(get(ctx.subject.employment.effective_range, 'from', ''));\nconst period = String(ctx.run.period);\nif (start === '' || start.slice(0, 7) !== period) return true;\nreturn (\n  get(ctx.subject.employment.employee_extension_data, 'term_facts.hpf_first_employment', null) != null\n);",
-		"lookup": {},
-		"id": "80960404-68ba-517c-9f45-30d06b360a97",
-		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
-	},
-	{
-		"code": "CN_ANNUAL_LEAVE_REVIEW",
-		"target_collection": "payroll_run",
-		"events": ["prepare_payroll"],
-		"order": 33,
-		"condition": "return !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(\n  ctx.subject.employment.engagement,\n);",
-		"validate": "const service = calendar_completed_months(\n  ctx.subject.employment.effective_range.from,\n  ctx.run.salary_coverage.from,\n);\nif (service < ctx.lookup.service_months) return true;\nconst reviews = get(\n  ctx.subject.employment.employee_extension_data,\n  'term_facts.annual_leave_year_reviews',\n  [],\n);\nconst year = Number(String(ctx.run.period).slice(0, 4));\nreturn (\n  Array.isArray(reviews) &&\n  reviews.filter((r) => Math.trunc(Number(r.year)) === year).length === 1\n);",
-		"lookup": {
-			"service_months": 12
-		},
-		"id": "741446c1-4bc2-5f1f-ba10-ecbdb99f840d",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
 	},
 	{
@@ -824,16 +478,6 @@
 					"field": "facts.china_workday_share",
 					"minimum": 0,
 					"maximum": 1
-				},
-				{
-					"field": "facts.offshore_paid_share",
-					"minimum": 0,
-					"maximum": 1
-				},
-				{
-					"field": "facts.consecutive_resident_years",
-					"minimum": 0,
-					"integer": true
 				}
 			],
 			"retirement_categories": ["FEMALE_50", "FEMALE_55"],
@@ -938,6 +582,16 @@
 		"validate": "const offered = String(get(ctx.entry.inputs, 'offered_on', ''));\nconst refused = String(get(ctx.entry.inputs, 'refused_on', ''));\nconst opened = String(ctx.entry.opened_on);\nif (offered === '') return false;\nif (refused === '') return false;\nif (offered > refused) return false;\nif (refused > opened) return false;\nreturn ctx.entry.closed_on == null || String(ctx.entry.closed_on) >= refused;",
 		"lookup": {},
 		"id": "957c7d37-1a75-598c-93f4-b9472588b4b6",
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+	},
+	{
+		"code": "WAGE_PAID_LATE",
+		"target_collection": "payroll_run",
+		"events": ["create"],
+		"order": 15,
+		"validate": "// 劳动法 art.50: wages are paid at least monthly, so a pay date never falls over a month after the period it pays.\nreturn String(ctx.entry.pay_date) <= add_months(String(ctx.entry.salary_coverage.to), 1);",
+		"lookup": {},
+		"id": "1c1c1798-4838-525e-8854-61bfa33f610d",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
 	}
 ]

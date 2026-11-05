@@ -2,10 +2,12 @@ import { addDays } from '@norbital-ai/std/date';
 import type { JsonObject } from './contracts.js';
 import { objectValue, valueText } from './reads.js';
 
-/** `date` + clock time in an IANA zone, as epoch milliseconds. */
-const instant = (date: string, time: string, zone: string): number => {
-	const guess = Date.parse(`${date}T${time}:00Z`);
-	const shown = new Intl.DateTimeFormat('en-CA', {
+// a formatter is the costly part of a roster day, and a run prices thousands of them in one zone
+const formats = new Map<string, Intl.DateTimeFormat>();
+const formatIn = (zone: string): Intl.DateTimeFormat => {
+	const held = formats.get(zone);
+	if (held !== undefined) return held;
+	const format = new Intl.DateTimeFormat('en-CA', {
 		timeZone: zone,
 		year: 'numeric',
 		month: '2-digit',
@@ -14,7 +16,15 @@ const instant = (date: string, time: string, zone: string): number => {
 		minute: '2-digit',
 		second: '2-digit',
 		hourCycle: 'h23'
-	})
+	});
+	formats.set(zone, format);
+	return format;
+};
+
+/** `date` + clock time in an IANA zone, as epoch milliseconds. */
+const instant = (date: string, time: string, zone: string): number => {
+	const guess = Date.parse(`${date}T${time}:00Z`);
+	const shown = formatIn(zone)
 		.formatToParts(new Date(guess))
 		.filter((part) => part.type !== 'literal')
 		.map((part) => part.value);

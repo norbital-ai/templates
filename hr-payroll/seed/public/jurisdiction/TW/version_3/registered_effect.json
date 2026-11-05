@@ -166,12 +166,22 @@
 						}
 					}
 				}
+			},
+			"payslip": {
+				"where": {
+					"payroll_run_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["breakdown"]
 			}
 		},
 		"condition": "// js\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst nonresident =\n\tNumber(get(ctx.statutory, 'INCOME_TAX_NON_RESIDENT.employee', 0)) +\n\tNumber(get(ctx.statutory, 'SEVERANCE_TAX_NON_RESIDENT.employee', 0));\nconst due = nonresident > 0\n\t? add_days(ctx.entry.pay_date, ctx.lookup.nonresident_days)\n\t: add_days(month_end(ctx.entry.pay_date), ctx.lookup.resident_days);\nconst key = 'WITHHOLDING_TAX_REMITTANCE:' + ctx.entry.id;\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: 'Withholding tax remittance',\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "// js\nconst nonresident = ctx.reads.payslip.some((slip) =>\n\tget(slip, 'breakdown.statutory', []).some(\n\t\t(row) => ['INCOME_TAX_NON_RESIDENT', 'SEVERANCE_TAX_NON_RESIDENT'].includes(row.code) && row.employee > 0\n\t)\n);\nconst due = nonresident\n\t? add_days(ctx.entry.pay_date, ctx.lookup.nonresident_days)\n\t: add_days(month_end(ctx.entry.pay_date), ctx.lookup.resident_days);\nconst key = 'WITHHOLDING_TAX_REMITTANCE:' + ctx.entry.id;\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: 'Withholding tax remittance',\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"id": "fc9f6388-8c3b-516b-acde-7c95f3f18380",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
 	},
@@ -182,6 +192,12 @@
 			{
 				"title": "全民健康保險法 §34; 全民健康保險扣取及繳納補充保險費辦法 §7: 投保單位…於次月底前…繳納. A deadline on a Saturday, Sunday or published holiday moves to the next working day (行政程序法 §48(4); 民法 §122).",
 				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=34"
+			},
+			{
+				"title": "全民健康保險法",
+				"locator": "§34",
+				"url": "https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html",
+				"quote": "The insuring unit pays 2.11% of the excess of the month's total salary income paid (薪資所得, 所得稅格式代號 50) over the total insured amounts of its insured, netted across the establishment, not person by person; never negative."
 			}
 		],
 		"source_collection": "payroll_run",
@@ -195,12 +211,34 @@
 						}
 					}
 				}
+			},
+			"payslip": {
+				"where": {
+					"payroll_run_id": {
+						"is": {
+							"entity_id": {
+								"eq": {
+									"var": "ctx.entry.entity_id"
+								}
+							},
+							"pay_date": {
+								"gte": {
+									"var": "month_start(ctx.entry.pay_date)"
+								},
+								"lte": {
+									"var": "month_end(ctx.entry.pay_date)"
+								}
+							}
+						}
+					}
+				},
+				"fields": ["payroll_run_id", "breakdown"]
 			}
 		},
 		"condition": "// js\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst key = 'NHI_EMPLOYER_SUPPLEMENTARY_PREMIUM:' + ctx.entry.id;\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: 'NHI employer supplementary premium (§34)',\n\tdue_on: month_end(add_months(ctx.entry.pay_date, 1)),\n\toccurrence_key: key\n}];",
+		"effects": "// js\n// 全民健康保險法 §34; NHIA: (單位薪資總額 − 受僱者投保金額總額) × 2.11%, netted across the unit for the payment month. A second run in the month owes only the step it adds.\nconst key = 'NHI_EMPLOYER_SUPPLEMENTARY_PREMIUM:' + ctx.entry.id;\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nconst income = (slip) => {\n\tconst at = (code) => get(get(slip, 'breakdown.checkpoints', []).find((row) => row.code === code), 'value', 0);\n\treturn Math.max(0, at('SALARY_INCOME') + at('ADDITIONAL_WAGES') - at('ORDINARY_WAGES'));\n};\nconst total = sum(ctx.reads.payslip.map(income));\nconst own = sum(ctx.reads.payslip.filter((slip) => slip.payroll_run_id === ctx.entry.id).map(income));\nconst month = ctx.entry.pay_date.substring(0, 7);\nconst insured = get(ctx.subject.employer, 'entity_extension_data.nhi_month_insured_totals.' + month + '.amount', null);\nconst task = (title) => [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: title,\n\tdue_on: month_end(add_months(ctx.entry.pay_date, 1)),\n\toccurrence_key: key\n}];\nif (insured == null) return task('NHI employer supplementary premium (§34): record the reviewed insured total for ' + month);\nconst premium = (paid) => round(Math.max(0, paid - insured) * ctx.lookup.nhi_supplement_rate, 1, 'HALF_UP');\nconst amount = premium(total) - premium(total - own);\nif (!(amount > 0)) return [];\nreturn task('NHI employer supplementary premium (§34): NT$' + amount.toFixed(0));",
 		"id": "51e6b48a-7171-56c8-9cc6-fb4c5ed19cf3",
 		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
 	},
@@ -831,8 +869,7 @@
 		"code": "SEVERANCE_PAYMENT",
 		"name": "Severance payment",
 		"lookup": {
-			"days": 30,
-			"grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20"]
+			"days": 30
 		},
 		"references": [
 			{
@@ -852,7 +889,7 @@
 				}
 			}
 		},
-		"condition": "// js\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.lookup.grounds.includes(get(ctx.entry.employee_extension_data, 'exit_facts.lsa_termination_ground', 'OTHER'));",
+		"condition": "// js\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.lookup.severance_grounds.includes(get(ctx.entry.employee_extension_data, 'exit_facts.lsa_termination_ground', 'OTHER'));",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst key = 'exit:' + ctx.entry.id + ':SEVERANCE_PAYMENT:' + ctx.entry.effective_range.to;\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.entity_id,\n\temployment_id: ctx.entry.id,\n\ttitle: 'Severance payment',\n\tdue_on: add_days(ctx.entry.effective_range.to, ctx.lookup.days),\n\toccurrence_key: key\n}];",
@@ -863,8 +900,7 @@
 		"code": "RETIREMENT_PAYMENT",
 		"name": "LSA retirement payment",
 		"lookup": {
-			"days": 30,
-			"grounds": ["RETIREMENT"]
+			"days": 30
 		},
 		"references": [
 			{
@@ -884,7 +920,7 @@
 				}
 			}
 		},
-		"condition": "// js\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.lookup.grounds.includes(get(ctx.entry.employee_extension_data, 'exit_facts.lsa_termination_ground', 'OTHER'));",
+		"condition": "// 勞基法 §53–55: an exit that owes no severance, by a worker with service on the Act who meets a retirement ground, is a retirement to settle.\nif (ctx.entry.status !== 'SEALED') return false;\nconst to = ctx.entry.effective_range.to;\nif (to == null) return false;\nconst extension = get(ctx.entry, 'employee_extension_data', {});\nconst facts = get(extension, 'facts', {});\nif (ctx.lookup.severance_grounds.includes(get(extension, 'exit_facts.lsa_termination_ground', 'OTHER'))) return false;\nconst start = get(ctx.entry, 'service_started_on', ctx.entry.effective_range.from);\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst foreign = get(ctx.entry, 'terms.residency_status', 'CITIZEN') === 'FOREIGNER' && !spouse && !professional;\nconst lsa = get(facts, 'statutory.LABOR_PENSION.elections.pension_system', 'NEW') === 'LSA';\nconst recorded = Number(get(extension, 'exit_facts.old_system_service_months', 0));\nconst on_the_act = lsa || foreign || recorded > 0 || start < ctx.lookup.old_system_cutoff;\nif (!on_the_act) return false;\nif (get(extension, 'exit_facts.retirement_disability', false) === true) return true;\nconst born = get(ctx.entry, 'payroll.date_of_birth', null);\nif (born == null) return false;\nconst age = age_on(born, to);\nconst months = calendar_completed_months(start, add_days(to, 1));\nreturn ctx.lookup.retirement_eligibility.some((band) => {\n\tif (!(months >= band.months)) return false;\n\treturn band.age == null || age >= band.age;\n});",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst key = 'exit:' + ctx.entry.id + ':RETIREMENT_PAYMENT:' + ctx.entry.effective_range.to;\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.entity_id,\n\temployment_id: ctx.entry.id,\n\ttitle: 'LSA retirement payment',\n\tdue_on: add_days(ctx.entry.effective_range.to, ctx.lookup.days),\n\toccurrence_key: key\n}];",
@@ -895,8 +931,7 @@
 		"code": "LAYOFF_REPORT",
 		"name": "Layoff report to the authority",
 		"lookup": {
-			"days": 10,
-			"grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_20"]
+			"days": 10
 		},
 		"references": [
 			{
@@ -918,7 +953,7 @@
 				}
 			}
 		},
-		"condition": "// js\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.lookup.grounds.includes(get(ctx.entry.employee_extension_data, 'exit_facts.lsa_termination_ground', 'OTHER'));",
+		"condition": "// js\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.lookup.notice_grounds.includes(get(ctx.entry.employee_extension_data, 'exit_facts.lsa_termination_ground', 'OTHER'));",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst key = 'exit:' + ctx.entry.id + ':LAYOFF_REPORT:' + ctx.entry.effective_range.to;\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.entity_id,\n\temployment_id: ctx.entry.id,\n\ttitle: 'Layoff report to the authority',\n\tdue_on: add_days(ctx.entry.effective_range.to, -ctx.lookup.days),\n\toccurrence_key: key\n}];",
@@ -928,9 +963,7 @@
 	{
 		"code": "TERMINATION_NOTICE",
 		"name": "Termination notice or pay in lieu",
-		"lookup": {
-			"grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_20"]
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "勞動基準法",
@@ -955,7 +988,7 @@
 				}
 			}
 		},
-		"condition": "// js\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.lookup.grounds.includes(get(ctx.entry.employee_extension_data, 'exit_facts.lsa_termination_ground', 'OTHER'));",
+		"condition": "// js\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.lookup.notice_grounds.includes(get(ctx.entry.employee_extension_data, 'exit_facts.lsa_termination_ground', 'OTHER'));",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst key = 'exit:' + ctx.entry.id + ':TERMINATION_NOTICE:' + ctx.entry.effective_range.to;\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.entity_id,\n\temployment_id: ctx.entry.id,\n\ttitle: 'Termination notice or pay in lieu',\n\tdue_on: ctx.entry.effective_range.to,\n\toccurrence_key: key\n}];",
@@ -1014,7 +1047,7 @@
 				}
 			}
 		},
-		"condition": "// js\nreturn ['02', '05', '08', '11'].includes(ctx.entry.salary_coverage.from.substring(5, 7));",
+		"condition": "// js\nif (get(ctx.subject.employer, 'entity_extension_data.employment_stabilisation_fee_payer', false) !== true) return false;\nreturn ['02', '05', '08', '11'].includes(ctx.entry.salary_coverage.from.substring(5, 7));",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst key = 'EMPLOYMENT_STABILISATION_FEE:' + ctx.entry.id;\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: 'Employment stabilisation fee (就業安定費)',\n\tdue_on: add_days(ctx.entry.salary_coverage.from, ctx.lookup.days),\n\toccurrence_key: key\n}];",
@@ -1025,7 +1058,8 @@
 		"code": "WORK_RULES_FILING",
 		"name": "Work rules filed on reaching thirty workers",
 		"lookup": {
-			"days": 30
+			"days": 30,
+			"workers": 30
 		},
 		"references": [
 			{
@@ -1043,9 +1077,22 @@
 						}
 					}
 				}
+			},
+			"employee_contract": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				},
+				"fields": ["employee_id", "effective_range"]
 			}
 		},
-		"condition": "// js\nreturn ctx.entry.status === 'SEALED';",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.subject.employer, 'entity_extension_data.work_rules_approval_reference', '') !== '') return false;\nconst on = ctx.entry.effective_range.from;\nconst staff = ctx.reads.employee_contract\n  .filter((row) => {\n    const to = get(row, 'effective_range.to', null);\n    return to == null || to >= on;\n  })\n  .map((row) => row.employee_id)\n  .filter((id, index, all) => all.indexOf(id) === index).length;\nreturn staff >= ctx.lookup.workers;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst key = 'WORK_RULES_FILING:' + ctx.entry.entity_id;\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.entity_id,\n\temployment_id: ctx.entry.id,\n\ttitle: 'Work rules filed on reaching thirty workers',\n\tdue_on: add_days(ctx.entry.effective_range.from, ctx.lookup.days),\n\toccurrence_key: key\n}];",
@@ -1113,9 +1160,7 @@
 	{
 		"code": "INVOLUNTARY_SEPARATION_CERTIFICATE",
 		"name": "Involuntary separation certificate",
-		"lookup": {
-			"grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20"]
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "就業保險法 §11(3), §25(3); 就業服務法施行細則 — the employer issues the certificate of the separation’s cause.",
@@ -1135,7 +1180,7 @@
 				}
 			}
 		},
-		"condition": "// js\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.lookup.grounds.includes(get(ctx.entry.employee_extension_data, 'exit_facts.lsa_termination_ground', 'OTHER'));",
+		"condition": "// js\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.lookup.severance_grounds.includes(get(ctx.entry.employee_extension_data, 'exit_facts.lsa_termination_ground', 'OTHER'));",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst key = 'exit:' + ctx.entry.id + ':INVOLUNTARY_SEPARATION_CERTIFICATE:' + ctx.entry.effective_range.to;\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.entity_id,\n\temployment_id: ctx.entry.id,\n\ttitle: 'Involuntary separation certificate',\n\tdue_on: ctx.entry.effective_range.to,\n\toccurrence_key: key\n}];",
@@ -1172,7 +1217,7 @@
 				}
 			}
 		},
-		"condition": "// js\nconst catalog = ctx.reads.leave_catalog[0];\nif (ctx.entry.status !== 'APPROVED') return false;\nif (catalog == null) return false;\nreturn ['PARENTAL_LEAVE', 'PARENTAL_LEAVE_BY_DAY'].includes(catalog.code);",
+		"condition": "// js\nconst catalog = ctx.reads.leave_catalog[0];\nif (catalog == null) return false;\nreturn ['PARENTAL_LEAVE', 'PARENTAL_LEAVE_BY_DAY'].includes(catalog.code);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst key = 'PARENTAL_LEAVE_INSURANCE_CONTINUATION:' + ctx.entry.id;\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.entity_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: 'Insurance continuation on parental leave',\n\tdue_on: ctx.entry.days.length > 0 ? ctx.entry.days[0].date : null,\n\toccurrence_key: key\n}];",
@@ -1276,7 +1321,9 @@
 		"code": "DISABLED_EMPLOYMENT_QUOTA_LEVY",
 		"name": "Disabled-employment quota shortfall levy",
 		"lookup": {
-			"days": 10
+			"days": 10,
+			"workers": 67,
+			"quota_rate": 0.01
 		},
 		"references": [
 			{
@@ -1295,9 +1342,22 @@
 						}
 					}
 				}
+			},
+			"employee_contract": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				},
+				"fields": ["employee_id", "effective_range"]
 			}
 		},
-		"condition": "// js\nreturn true;",
+		"condition": "const on = ctx.entry.salary_coverage.to;\nconst staff = ctx.reads.employee_contract\n  .filter((row) => {\n    const to = get(row, 'effective_range.to', null);\n    return to == null || to >= on;\n  })\n  .map((row) => row.employee_id)\n  .filter((id, index, all) => all.indexOf(id) === index).length;\nif (staff < ctx.lookup.workers) return false;\nconst counted = Number(get(ctx.subject.employer, 'entity_extension_data.disabled_employees_counted', 0));\nreturn counted < Math.max(1, Math.floor(staff * ctx.lookup.quota_rate));",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst key = 'DISABLED_EMPLOYMENT_QUOTA_LEVY:' + ctx.entry.id;\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: 'Disabled-employment quota shortfall levy',\n\tdue_on: add_days(month_end(ctx.entry.salary_coverage.from), ctx.lookup.days),\n\toccurrence_key: key\n}];",
@@ -1868,14 +1928,31 @@
 						}
 					}
 				}
+			},
+			"employee_contract": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				},
+				"fields": ["employee_id", "effective_range"]
 			}
 		},
-		"condition": "// js\nreturn ctx.entry.status === 'SEALED';",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.subject.employer, 'entity_extension_data.sexual_harassment_complaint_channel', false) === true) return false;\nconst on = ctx.entry.effective_range.from;\nconst staff = ctx.reads.employee_contract\n  .filter((row) => {\n    const to = get(row, 'effective_range.to', null);\n    return to == null || to >= on;\n  })\n  .map((row) => row.employee_id)\n  .filter((id, index, all) => all.indexOf(id) === index).length;\nreturn staff >= ctx.lookup.workers && staff < ctx.lookup.workers_below;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst key = 'SEXUAL_HARASSMENT_COMPLAINT_CHANNEL:' + ctx.entry.entity_id;\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.entity_id,\n\temployment_id: ctx.entry.id,\n\ttitle: 'Sexual-harassment complaint channel posted',\n\tdue_on: ctx.entry.effective_range.from,\n\toccurrence_key: key\n}];",
 		"id": "d880fbf5-891c-541a-89b0-6803f043d707",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"lookup": {
+			"workers": 10,
+			"workers_below": 30
+		}
 	},
 	{
 		"code": "SEXUAL_HARASSMENT_PREVENTION_RULES",
@@ -1897,14 +1974,30 @@
 						}
 					}
 				}
+			},
+			"employee_contract": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				},
+				"fields": ["employee_id", "effective_range"]
 			}
 		},
-		"condition": "// js\nreturn ctx.entry.status === 'SEALED';",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.subject.employer, 'entity_extension_data.sexual_harassment_prevention_rules', false) === true) return false;\nconst on = ctx.entry.effective_range.from;\nconst staff = ctx.reads.employee_contract\n  .filter((row) => {\n    const to = get(row, 'effective_range.to', null);\n    return to == null || to >= on;\n  })\n  .map((row) => row.employee_id)\n  .filter((id, index, all) => all.indexOf(id) === index).length;\nreturn staff >= ctx.lookup.workers;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst key = 'SEXUAL_HARASSMENT_PREVENTION_RULES:' + ctx.entry.entity_id;\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.entity_id,\n\temployment_id: ctx.entry.id,\n\ttitle: 'Sexual-harassment prevention, complaint and discipline rules published',\n\tdue_on: ctx.entry.effective_range.from,\n\toccurrence_key: key\n}];",
 		"id": "c8666360-4b18-560a-aaca-9c46d2017f35",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"lookup": {
+			"workers": 30
+		}
 	},
 	{
 		"code": "PERSONAL_DATA_COLLECTION_NOTICE",

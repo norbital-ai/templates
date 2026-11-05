@@ -17,8 +17,8 @@
 				"pay": "MINIMUM_RATE"
 			}
 		},
-		"id": "b392e3a9-8f4a-5841-ab01-9f36fb55ecd5",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "4b63f080-4995-55d0-a703-2c545f4bba3d",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "FORCE_MAJEURE",
@@ -38,8 +38,8 @@
 				"pay": "NONE"
 			}
 		},
-		"id": "e6673623-7ed7-5dcb-b683-031b0257e119",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "a5bbad86-2672-57e7-a3f5-28db9635a133",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "STRIKE",
@@ -59,8 +59,8 @@
 				"pay": "NONE"
 			}
 		},
-		"id": "354a2d83-30f0-51f2-8ca3-03ff9b8000a2",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "9df35a23-cf7c-5ac8-92cd-18fce44c0832",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "LOCKOUT",
@@ -80,8 +80,8 @@
 				"pay": "NONE"
 			}
 		},
-		"id": "5713bfd8-3fcb-51a5-a5a9-4de063c6f079",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "ee11524f-4faa-52e0-9fec-e6252e5e6996",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "GOVERNMENT_ORDER",
@@ -101,8 +101,8 @@
 				"pay": "NONE"
 			}
 		},
-		"id": "7abad8c9-bfd7-5441-b55f-ed0c0a2b5148",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "30ddd36e-60f4-522a-8efc-b28d04f7d39b",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	},
 	{
 		"code": "WRONGFUL_WORK_REFUSAL",
@@ -124,7 +124,7 @@
 				"pay": "NONE"
 			}
 		},
-		"id": "39ab8120-314b-50db-9016-c7cb96bf2f36",
-		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
+		"id": "2e4b146e-c093-50de-ab7f-5a1d39195568",
+		"settings_id": "10dfad79-c882-5790-b171-5ef9cf7986c3"
 	}
 ]

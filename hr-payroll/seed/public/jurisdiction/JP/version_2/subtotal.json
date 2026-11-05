@@ -7,38 +7,45 @@
 		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
 	},
 	{
+		"code": "NON_TAXABLE_PAY",
+		"name": "非課税の通勤手当・宿日直手当 (non-taxable commuting and duty pay)",
+		"previous_id": "55f36c8b-d864-5618-9691-f46c03c1d6a7",
+		"id": "0a67b235-5a80-5df2-9d24-d588821361a5",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
 		"code": "ORDINARY_WAGES",
 		"name": "通常賃金 (ordinary wages)",
-		"previous_id": "55f36c8b-d864-5618-9691-f46c03c1d6a7",
+		"previous_id": "0a67b235-5a80-5df2-9d24-d588821361a5",
 		"id": "97c2fb14-46a5-5df2-a9ce-9059d2d49561",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
+		"code": "LONG_PERIOD_BONUS",
+		"name": "賞与（計算期間6か月超） (bonus for a period over six months)",
+		"previous_id": "97c2fb14-46a5-5df2-a9ce-9059d2d49561",
+		"id": "5ce79f02-023b-58a4-88cf-92e68224cd2f",
 		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
 	},
 	{
 		"code": "ADDITIONAL_WAGES",
 		"name": "通常賃金＋加算賃金 (ordinary and additional wages)",
-		"previous_id": "97c2fb14-46a5-5df2-a9ce-9059d2d49561",
+		"previous_id": "5ce79f02-023b-58a4-88cf-92e68224cd2f",
 		"id": "2abc5ced-f47e-5f13-bca7-d7fe5fda94e2",
 		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
 	},
 	{
-		"code": "GROSS",
-		"name": "総支給額 (gross earnings)",
+		"code": "RETIREMENT_UNDECLARED",
+		"name": "退職手当 申告書なし (retirement pay without the declaration)",
 		"previous_id": "2abc5ced-f47e-5f13-bca7-d7fe5fda94e2",
-		"id": "d8121c58-4acf-5c73-ab72-7507c99b781e",
+		"id": "9abefd0e-29ce-5290-ab2a-f9d841a66210",
 		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
 	},
 	{
 		"code": "RETIREMENT",
 		"name": "退職金 (retirement pay)",
-		"previous_id": "d8121c58-4acf-5c73-ab72-7507c99b781e",
+		"previous_id": "9abefd0e-29ce-5290-ab2a-f9d841a66210",
 		"id": "a67fb92a-c3c8-5fdf-b8ac-73fbd9ed60c8",
-		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
-	},
-	{
-		"code": "EMPLOYER_COST",
-		"name": "事業主負担 (employer statutory cost)",
-		"previous_id": "a67fb92a-c3c8-5fdf-b8ac-73fbd9ed60c8",
-		"id": "1a72d0fc-66f8-51a6-9d7a-0be95a43e760",
 		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
 	},
 	{
@@ -51,7 +58,7 @@
 	{
 		"code": "FINAL_PAY",
 		"name": "Final pay and non-wage settlements",
-		"previous_id": "1a72d0fc-66f8-51a6-9d7a-0be95a43e760",
+		"previous_id": "a67fb92a-c3c8-5fdf-b8ac-73fbd9ed60c8",
 		"id": "06edcce7-7839-5221-9295-b4a0a123ee00",
 		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
 	}

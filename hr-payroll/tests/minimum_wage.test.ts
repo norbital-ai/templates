@@ -12,7 +12,6 @@ type Rule = {
 	readonly lookup?: Record<string, unknown>;
 	readonly reads?: object;
 };
-type Catalog = { readonly code: string; readonly lookup?: Record<string, unknown> };
 
 const latest = (code: string): string => {
 	const dir = new URL(`../seed/public/jurisdiction/${code}/`, import.meta.url);
@@ -24,13 +23,32 @@ const latest = (code: string): string => {
 	return `${dir.href}${found}`;
 };
 const load = <T>(path: string): T => JSON.parse(readFileSync(new URL(path), 'utf8')) as T;
+const withGlobals = (code: string, rule: Rule): Rule => {
+	const [settings] = load<readonly Rule[]>(`${latest(code)}/jurisdiction_settings.json`);
+	return { ...rule, lookup: { ...settings?.lookup, ...rule.lookup } };
+};
 const ruleOf = (code: string, ruleCode: string): Rule => {
 	const rule = load<readonly Rule[]>(`${latest(code)}/registered_rule.json`).find(
 		(row) => row.code === ruleCode
 	);
 	assert.ok(rule?.validate !== undefined);
-	return rule;
+	return withGlobals(code, rule);
 };
+const effectOf = (code: string, effectCode: string): Rule => {
+	const effect = load<readonly Rule[]>(`${latest(code)}/registered_effect.json`).find(
+		(row) => row.code === effectCode
+	);
+	assert.ok(effect?.condition !== undefined);
+	return withGlobals(code, effect);
+};
+/** A floor on a finished payslip raises an obligation: it passes when the effect stays quiet. */
+const clear = (effect: Rule, context: object) =>
+	!evaluate(
+		effect.condition!,
+		'CALCULATION',
+		{ lookup: effect.lookup ?? {}, ...context },
+		effect.code
+	);
 const valid = (rule: Rule, context: object) =>
 	evaluate(rule.validate!, 'CALCULATION', { lookup: rule.lookup ?? {}, ...context }, rule.code);
 const run = { salary_coverage: { from: '2026-01-01', to: '2026-01-31' } };
@@ -82,34 +100,24 @@ describe('seeded minimum wage rules', () => {
 		);
 	});
 
-	it('Singapore PWM role floor and LQS pass floor', () => {
-		const pwm = ruleOf('SG', 'PWM_WAGE_FLOOR');
-		const lqs = ruleOf('SG', 'LQS_WAGE_FLOOR');
-		const roles = pwm.lookup?.['roles'] as Record<string, { monthly_floor: number }>;
+	it('Singapore PWM role floor', () => {
+		const pwm = effectOf('SG', 'PWM_WAGE_FLOOR');
+		const roles = pwm.lookup?.['pwm_roles'] as Record<string, { monthly_floor: number }>;
 		const role = roles['ADMIN_ASSISTANT'];
 		assert.ok(role !== undefined);
-		const pwmContext = (gross: number) => ({
-			subject: {
-				employment: { employee_extension_data: { term_facts: { pwm_role: 'ADMIN_ASSISTANT' } } }
-			},
-			entry: { gross_earnings: gross },
-			base_pay: gross
-		});
-		assert.equal(valid(pwm, pwmContext(role.monthly_floor)), true);
-		assert.equal(valid(pwm, pwmContext(role.monthly_floor - 1)), false);
-		const floor = Number(lqs.lookup?.['monthly_floor']);
-		const lqsContext = (gross: number) => ({
+		const context = (gross: number) => ({
 			subject: {
 				employment: {
 					terms: { residency_status: 'CITIZEN' },
-					employee_extension_data: { term_facts: {} }
+					effective_range: { from: '2024-01-01', to: null },
+					employee_extension_data: { term_facts: { pwm_role: 'ADMIN_ASSISTANT' } }
 				}
 			},
-			entry: { gross_earnings: gross },
-			reads: { workforce: { complete: true, authorisations: [{ category: 'WORK_PERMIT' }] } }
+			entry: { id: 'slip', period: '2026-01', basic_earnings: gross, ordinary_wages: gross },
+			reads: { obligation: [] }
 		});
-		assert.equal(valid(lqs, lqsContext(floor)), true);
-		assert.equal(valid(lqs, lqsContext(floor - 1)), false);
+		assert.equal(clear(pwm, context(role.monthly_floor)), true);
+		assert.equal(clear(pwm, context(role.monthly_floor - 1)), false);
 	});
 
 	it('Vietnam regional monthly and hourly floors', () => {
@@ -167,7 +175,7 @@ describe('seeded minimum wage rules', () => {
 	});
 
 	it('China regional monthly floor', () => {
-		const rule = ruleOf('CN', 'MINIMUM_WAGE');
+		const rule = effectOf('CN', 'MINIMUM_WAGE');
 		const table = rule.lookup?.['minimum_wage'] as readonly {
 			region: string;
 			zone: string;
@@ -175,8 +183,8 @@ describe('seeded minimum wage rules', () => {
 		}[];
 		const row = table[0]!;
 		const context = (amount: number) => ({
-			run,
-			entry: {},
+			entry: { id: 'slip', employee_statutory: 0 },
+			reads: { obligation: [], payroll_run: [run] },
 			subject: {
 				employer: { entity_extension_data: { region: row.region } },
 				employment: {
@@ -185,11 +193,10 @@ describe('seeded minimum wage rules', () => {
 					terms: { rate: { amount, unit: 'MONTHLY' }, allowances: {} },
 					employee_extension_data: {}
 				}
-			},
-			statutory: {}
+			}
 		});
-		assert.equal(valid(rule, context(row.monthly)), true);
-		assert.equal(valid(rule, context(row.monthly - 1)), false);
+		assert.equal(clear(rule, context(row.monthly)), true);
+		assert.equal(clear(rule, context(row.monthly - 1)), false);
 	});
 
 	it('Indonesia regional floor', () => {
@@ -226,11 +233,7 @@ describe('seeded minimum wage rules', () => {
 	});
 
 	it('Philippines regional nature keys, domestic table and exemptions', () => {
-		const rules = load<readonly Rule[]>(`${latest('PH')}/registered_rule.json`);
-		const rule = rules.find((row) => row.code === 'MINIMUM_WAGE_FLOOR');
-		const catalog = load<readonly Catalog[]>(`${latest('PH')}/statutory_contribution_catalog.json`);
-		const wtax = catalog.find((row) => row.code === 'WTAX');
-		assert.ok(rule?.validate !== undefined && wtax?.lookup !== undefined);
+		const rule = ruleOf('PH', 'MINIMUM_WAGE_FLOOR');
 		const context = (
 			region: string,
 			category: string,
@@ -250,7 +253,6 @@ describe('seeded minimum wage rules', () => {
 				employer: { entity_extension_data: { region, ...employer } },
 				employment: { employee_extension_data: {} }
 			},
-			reads: { statutory_contribution_catalog: [{ lookup: wtax.lookup }] },
 			lookup: rule.lookup ?? {}
 		});
 		assert.equal(valid(rule, context('BARMM-CITY-NONAGRI', 'NON_FIELD', 11000)), true);

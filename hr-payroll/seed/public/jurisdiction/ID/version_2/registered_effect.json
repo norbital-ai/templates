@@ -396,7 +396,7 @@
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			}
 		],
-		"source_collection": "payslip",
+		"source_collection": "payroll_run",
 		"events": ["update"],
 		"reads": {
 			"obligation": {
@@ -409,21 +409,22 @@
 				},
 				"limit": 10000
 			},
-			"payroll_run": {
+			"payslip": {
 				"where": {
-					"id": {
+					"payroll_run_id": {
 						"eq": {
-							"var": "ctx.entry.payroll_run_id"
+							"var": "ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1
+				"fields": ["id", "entity_id", "employee_id", "employment_id"],
+				"limit": 10000
 			}
 		},
 		"condition": "return ctx.entry.state === 'PAID';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const run = first(ctx.reads.payroll_run);\nif (run == null) return [];\nconst key = occurrence_key(['ID', 'PAYSLIP_ISSUE', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: 'Wage slip',\n  due_on: run.pay_date,\n  occurrence_key: key,\n}];",
+		"effects": "return ctx.reads.payslip.flatMap((slip) => {\n  const key = occurrence_key(['ID', 'PAYSLIP_ISSUE', slip.entity_id, slip.id]);\n  if (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\n  return [{\n    entity_id: slip.entity_id,\n    employee_id: slip.employee_id,\n    employment_id: slip.employment_id,\n    title: 'Wage slip',\n    due_on: ctx.entry.pay_date,\n    occurrence_key: key,\n  }];\n});",
 		"id": "689f7703-3c9c-570a-bf34-303be37b0983",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -979,20 +980,7 @@
 		"name": "THR before the religious holiday",
 		"lookup": {
 			"advance_notice_days": 7,
-			"date_offset_months": 12,
-			"holiday_names": [
-				"Idul Fitri",
-				"Idulfitri",
-				"Eid al-Fitr",
-				"Natal",
-				"Kelahiran Yesus Kristus",
-				"Christmas",
-				"Nyepi",
-				"Waisak",
-				"Vesak",
-				"Imlek",
-				"Chinese New Year"
-			]
+			"date_offset_months": 12
 		},
 		"references": [
 			{
@@ -1076,67 +1064,10 @@
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
 	{
-		"code": "LATE_WAGE_FINE",
-		"name": "Late wage: fine owed to the worker",
-		"lookup": {
-			"date_offset_days": 3
-		},
-		"references": [
-			{
-				"title": "PP 36/2021",
-				"locator": "arts.55(1), 61(1)–(2)",
-				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
-			}
-		],
-		"source_collection": "payslip",
-		"events": ["update"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"entity_id": {
-						"eq": {
-							"var": "ctx.entry.entity_id"
-						}
-					}
-				},
-				"limit": 10000
-			},
-			"payroll_run": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.payroll_run_id"
-						}
-					}
-				},
-				"limit": 1
-			}
-		},
-		"condition": "const run = first(ctx.reads.payroll_run);\nif (ctx.entry.state !== 'PAID') return false;\nif (run == null) return false;\nif (run.pay_due_date == null) return false;\nif (run.pay_date == null) return false;\nreturn run.pay_date >= add_days(run.pay_due_date, ctx.lookup.date_offset_days);",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "const run = first(ctx.reads.payroll_run);\nconst key = occurrence_key(['ID', 'LATE_WAGE_FINE', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: 'Late wage: fine owed to the worker',\n  due_on: run.pay_date,\n  occurrence_key: key,\n}];",
-		"id": "22a38971-7a4a-5242-9c1d-b4bf9d2aba1a",
-		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
-	},
-	{
 		"code": "LATE_THR_FINE",
 		"name": "Late THR: 5% fine",
 		"lookup": {
-			"advance_notice_days": 7,
-			"holiday_names": [
-				"Idul Fitri",
-				"Idulfitri",
-				"Eid al-Fitr",
-				"Natal",
-				"Kelahiran Yesus Kristus",
-				"Christmas",
-				"Nyepi",
-				"Waisak",
-				"Vesak",
-				"Imlek",
-				"Chinese New Year"
-			]
+			"advance_notice_days": 7
 		},
 		"references": [
 			{
@@ -1973,6 +1904,105 @@
 		"target_action": "create",
 		"effects": "const key = occurrence_key(['ID', 'WORKER_HEALTH_EXAMINATION_REPORT', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'WORKER_HEALTH_EXAMINATION_REPORT',\n  due_on: add_months(ctx.entry.opened_on, ctx.lookup.date_offset_months),\n  occurrence_key: key,\n}];",
 		"id": "1af9cadb-b771-51fc-9052-86f9f9f15115",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "TAX_REFUND",
+		"name": "Refund overpaid tax",
+		"lookup": {},
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"adhoc_catalog": {
+				"where": {
+					"settings_id": {
+						"eq": {
+							"var": "ctx.entry.settings_id"
+						}
+					},
+					"code": {
+						"eq": "STATUTORY_ADJUSTMENT"
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"fields": ["pay_date"],
+				"limit": 1
+			},
+			"adhoc_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					},
+					"is_reversal": {
+						"eq": true
+					}
+				},
+				"fields": ["catalog_id", "quantity", "incurred_on"],
+				"limit": 1000
+			}
+		},
+		"condition": "// js\nreturn get(ctx.entry, 'breakdown.statutory', []).some((row) => Number(get(row, 'overpaid', 0)) > 0);",
+		"target_collection": "adhoc_catalog_entry",
+		"target_action": "create",
+		"effects": "// js\n// An overpaid year comes back as a reversal entry on the adjustment item. What this year already raised is not raised again.\nconst item = first(ctx.reads.adhoc_catalog);\nconst run = first(ctx.reads.payroll_run);\nif (item == null || run == null) return [];\nconst year = String(run.pay_date).slice(0, 4);\nconst raised = sum(\n\tctx.reads.adhoc_catalog_entry\n\t\t.filter((row) => row.catalog_id === item.id && String(row.incurred_on).slice(0, 4) === year)\n\t\t.map((row) => Number(row.quantity))\n);\nconst overpaid = sum(get(ctx.entry, 'breakdown.statutory', []).map((row) => Number(get(row, 'overpaid', 0))));\nif (overpaid <= raised) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployment_id: ctx.entry.employment_id,\n\tcatalog_id: item.id,\n\tdescription: 'Tax overpaid in ' + year,\n\tquantity: overpaid - raised,\n\tunit: 'MONEY',\n\tincurred_on: run.pay_date,\n\tis_reversal: true\n}];",
+		"id": "bcc31dad-7427-50e3-8598-f2e4c68279e3",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "LATE_WAGE_FINE",
+		"name": "Late wage: fine owed to the worker",
+		"lookup": {
+			"date_offset_days": 3
+		},
+		"references": [
+			{
+				"title": "PP 36/2021",
+				"locator": "arts.55(1), 61(1)–(2)",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"source_collection": "payroll_run",
+		"events": ["update"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"limit": 10000
+			},
+			"payslip": {
+				"where": {
+					"payroll_run_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["id", "entity_id", "employee_id", "employment_id"],
+				"limit": 10000
+			}
+		},
+		"condition": "// PP 36/2021 art.61: the fine runs once wages are paid from the fourth day after the run's pay date.\nif (ctx.entry.state !== 'PAID') return false;\nreturn String(ctx.entry.updated_at).slice(0, 10) >= add_days(ctx.entry.pay_date, ctx.lookup.date_offset_days);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "return ctx.reads.payslip.flatMap((slip) => {\n  const key = occurrence_key(['ID', 'LATE_WAGE_FINE', slip.entity_id, slip.id]);\n  if (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\n  return [{\n    entity_id: slip.entity_id,\n    employee_id: slip.employee_id,\n    employment_id: slip.employment_id,\n    title: 'Late wage: fine owed to the worker',\n    due_on: ctx.entry.pay_date,\n    occurrence_key: key,\n  }];\n});",
+		"id": "0f09b76a-e611-53b0-9ec1-8d69229356e5",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	}
 ]

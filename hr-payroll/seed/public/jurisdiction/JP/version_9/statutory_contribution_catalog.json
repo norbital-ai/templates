@@ -5,269 +5,12 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
-		"employer_cost_subtotal_id": "85e29e06-589d-5f8e-835d-ca602229b97b",
+		"employer_cost_subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
 		"off_cycle_eligible": false,
-		"lookup": {
-			"prefecture_rate_percent": {
-				"HOKKAIDO": 10.28,
-				"AOMORI": 9.85,
-				"IWATE": 9.51,
-				"MIYAGI": 10.1,
-				"AKITA": 10.01,
-				"YAMAGATA": 9.75,
-				"FUKUSHIMA": 9.5,
-				"IBARAKI": 9.52,
-				"TOCHIGI": 9.82,
-				"GUNMA": 9.68,
-				"SAITAMA": 9.67,
-				"CHIBA": 9.73,
-				"TOKYO": 9.85,
-				"KANAGAWA": 9.92,
-				"NIIGATA": 9.21,
-				"TOYAMA": 9.59,
-				"ISHIKAWA": 9.7,
-				"FUKUI": 9.71,
-				"YAMANASHI": 9.55,
-				"NAGANO": 9.63,
-				"GIFU": 9.8,
-				"SHIZUOKA": 9.61,
-				"AICHI": 9.93,
-				"MIE": 9.77,
-				"SHIGA": 9.88,
-				"KYOTO": 9.89,
-				"OSAKA": 10.13,
-				"HYOGO": 10.12,
-				"NARA": 9.91,
-				"WAKAYAMA": 10.06,
-				"TOTTORI": 9.86,
-				"SHIMANE": 9.94,
-				"OKAYAMA": 10.05,
-				"HIROSHIMA": 9.78,
-				"YAMAGUCHI": 10.15,
-				"TOKUSHIMA": 10.24,
-				"KAGAWA": 10.02,
-				"EHIME": 9.98,
-				"KOCHI": 10.05,
-				"FUKUOKA": 10.11,
-				"SAGA": 10.55,
-				"NAGASAKI": 10.06,
-				"KUMAMOTO": 10.08,
-				"OITA": 10.08,
-				"MIYAZAKI": 9.77,
-				"KAGOSHIMA": 10.13,
-				"OKINAWA": 9.44
-			},
-			"nursing_percent": 1.62,
-			"nursing_minimum_age_years": 40,
-			"nursing_maximum_age_years": 65,
-			"maximum_age_years": 75,
-			"employee_share": 0.5,
-			"remuneration_grades": [
-				{
-					"up_to": 62999,
-					"amount": 58000
-				},
-				{
-					"up_to": 72999,
-					"amount": 68000
-				},
-				{
-					"up_to": 82999,
-					"amount": 78000
-				},
-				{
-					"up_to": 92999,
-					"amount": 88000
-				},
-				{
-					"up_to": 100999,
-					"amount": 98000
-				},
-				{
-					"up_to": 106999,
-					"amount": 104000
-				},
-				{
-					"up_to": 113999,
-					"amount": 110000
-				},
-				{
-					"up_to": 121999,
-					"amount": 118000
-				},
-				{
-					"up_to": 129999,
-					"amount": 126000
-				},
-				{
-					"up_to": 137999,
-					"amount": 134000
-				},
-				{
-					"up_to": 145999,
-					"amount": 142000
-				},
-				{
-					"up_to": 154999,
-					"amount": 150000
-				},
-				{
-					"up_to": 164999,
-					"amount": 160000
-				},
-				{
-					"up_to": 174999,
-					"amount": 170000
-				},
-				{
-					"up_to": 184999,
-					"amount": 180000
-				},
-				{
-					"up_to": 194999,
-					"amount": 190000
-				},
-				{
-					"up_to": 209999,
-					"amount": 200000
-				},
-				{
-					"up_to": 229999,
-					"amount": 220000
-				},
-				{
-					"up_to": 249999,
-					"amount": 240000
-				},
-				{
-					"up_to": 269999,
-					"amount": 260000
-				},
-				{
-					"up_to": 289999,
-					"amount": 280000
-				},
-				{
-					"up_to": 309999,
-					"amount": 300000
-				},
-				{
-					"up_to": 329999,
-					"amount": 320000
-				},
-				{
-					"up_to": 349999,
-					"amount": 340000
-				},
-				{
-					"up_to": 369999,
-					"amount": 360000
-				},
-				{
-					"up_to": 394999,
-					"amount": 380000
-				},
-				{
-					"up_to": 424999,
-					"amount": 410000
-				},
-				{
-					"up_to": 454999,
-					"amount": 440000
-				},
-				{
-					"up_to": 484999,
-					"amount": 470000
-				},
-				{
-					"up_to": 514999,
-					"amount": 500000
-				},
-				{
-					"up_to": 544999,
-					"amount": 530000
-				},
-				{
-					"up_to": 574999,
-					"amount": 560000
-				},
-				{
-					"up_to": 604999,
-					"amount": 590000
-				},
-				{
-					"up_to": 634999,
-					"amount": 620000
-				},
-				{
-					"up_to": 664999,
-					"amount": 650000
-				},
-				{
-					"up_to": 694999,
-					"amount": 680000
-				},
-				{
-					"up_to": 729999,
-					"amount": 710000
-				},
-				{
-					"up_to": 769999,
-					"amount": 750000
-				},
-				{
-					"up_to": 809999,
-					"amount": 790000
-				},
-				{
-					"up_to": 854999,
-					"amount": 830000
-				},
-				{
-					"up_to": 904999,
-					"amount": 880000
-				},
-				{
-					"up_to": 954999,
-					"amount": 930000
-				},
-				{
-					"up_to": 1004999,
-					"amount": 980000
-				},
-				{
-					"up_to": 1054999,
-					"amount": 1030000
-				},
-				{
-					"up_to": 1114999,
-					"amount": 1090000
-				},
-				{
-					"up_to": 1174999,
-					"amount": 1150000
-				},
-				{
-					"up_to": 1234999,
-					"amount": 1210000
-				},
-				{
-					"up_to": 1294999,
-					"amount": 1270000
-				},
-				{
-					"up_to": 1354999,
-					"amount": 1330000
-				},
-				{
-					"up_to": null,
-					"amount": 1390000
-				}
-			]
-		},
-		"eligibility": "// js\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', 'NONE');\nconst facts = ctx.subject.employment.employee_extension_data;\n// 高齢者医療確保法 arts.50, 52: cover ends on the 75th birthday itself, not its eve (the pension and care ages).\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), ctx.run.salary_coverage.to);\nif (!['SOCIAL_AND_EMPLOYMENT', 'SOCIAL_ONLY'].includes(category)) return false;\nif (get(facts, 'statutory.HEALTH.elections.social_security_agreement_exempt', false) === true) return false;\nif (!(age < ctx.lookup.maximum_age_years)) return false;\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn end == null || end >= ctx.run.salary_coverage.from;",
-		"employee_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst region = get(facts, 'insured_office_region', get(ctx.subject.employer.entity_extension_data, 'region', ''));\nconst society = get(ctx.subject.employer.entity_extension_data, 'health_insurer', 'KYOKAI') === 'SOCIETY';\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), add_days(ctx.run.salary_coverage.to, 1));\nconst nursing = age >= ctx.lookup.nursing_minimum_age_years && age < ctx.lookup.nursing_maximum_age_years && get(facts, 'statutory.HEALTH.elections.care_exempt', false) !== true;\nconst share = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_employee_share', ctx.lookup.employee_share)) : ctx.lookup.employee_share;\nconst healthRate = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_health_rate_percent', 0)) : ctx.lookup.prefecture_rate_percent[region];\nlet careRate = 0;\nif (nursing) careRate = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_care_rate_percent', 0)) : ctx.lookup.nursing_percent;\nconst rate = healthRate + careRate;\nconst elected = get(facts, 'statutory.HEALTH.elections.standard_monthly_remuneration', null);\nconst base = elected !== null ? Number(elected) : bracket(round(get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN'), ctx.lookup.remuneration_grades);\nconst total = base * rate / 100;\nreturn round(total * share - 0.0001, 1, 'HALF_UP');",
-		"employer_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst region = get(facts, 'insured_office_region', get(ctx.subject.employer.entity_extension_data, 'region', ''));\nconst society = get(ctx.subject.employer.entity_extension_data, 'health_insurer', 'KYOKAI') === 'SOCIETY';\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), add_days(ctx.run.salary_coverage.to, 1));\nconst nursing = age >= ctx.lookup.nursing_minimum_age_years && age < ctx.lookup.nursing_maximum_age_years && get(facts, 'statutory.HEALTH.elections.care_exempt', false) !== true;\nconst share = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_employee_share', ctx.lookup.employee_share)) : ctx.lookup.employee_share;\nconst healthRate = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_health_rate_percent', 0)) : ctx.lookup.prefecture_rate_percent[region];\nlet careRate = 0;\nif (nursing) careRate = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_care_rate_percent', 0)) : ctx.lookup.nursing_percent;\nconst rate = healthRate + careRate;\nconst elected = get(facts, 'statutory.HEALTH.elections.standard_monthly_remuneration', null);\nconst base = elected !== null ? Number(elected) : bracket(round(get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN'), ctx.lookup.remuneration_grades);\nconst total = base * rate / 100;\nreturn round(total, 1, 'DOWN') - round(total * share - 0.0001, 1, 'HALF_UP');",
+		"lookup": {},
+		"eligibility": "// js\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', 'NONE');\nconst facts = ctx.subject.employment.employee_extension_data;\n// 高齢者医療確保法 arts.50, 52: cover ends on the 75th birthday itself, not its eve (the pension and care ages).\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), ctx.run.salary_coverage.to);\nif (!['SOCIAL_AND_EMPLOYMENT', 'SOCIAL_ONLY'].includes(category)) return false;\nif (get(facts, 'statutory.HEALTH.elections.social_security_agreement_exempt', false) === true) return false;\nif (!(age < ctx.lookup.health_maximum_age_years)) return false;\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\n// 健康保険法 art.156(3), 厚生年金保険法 art.19(1): cover is lost the day after the exit, and that month is not charged.\nreturn end == null || end >= ctx.run.salary_coverage.to;",
+		"employee_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst region = get(facts, 'insured_office_region', get(ctx.subject.employer.entity_extension_data, 'region', ''));\nconst society = get(ctx.subject.employer.entity_extension_data, 'health_insurer', 'KYOKAI') === 'SOCIETY';\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), add_days(ctx.run.salary_coverage.to, 1));\nconst nursing = age >= ctx.lookup.nursing_minimum_age_years && age < ctx.lookup.nursing_maximum_age_years && get(facts, 'statutory.HEALTH.elections.care_exempt', false) !== true;\nconst share = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_employee_share', ctx.lookup.employee_share)) : ctx.lookup.employee_share;\nconst healthRate = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_health_rate_percent', 0)) : ctx.lookup.prefecture_rate_percent[region];\nlet careRate = 0;\nif (nursing) careRate = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_care_rate_percent', 0)) : ctx.lookup.nursing_percent;\nconst rate = healthRate + careRate;\nconst elected = get(facts, 'statutory.HEALTH.elections.standard_monthly_remuneration', null);\nconst base = elected !== null ? Number(elected) : bracket(round(get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN'), ctx.lookup.remuneration_grades);\nconst total = base * rate / 100 * Number(get(facts, 'statutory.HEALTH.elections.apportionment_ratio', 1));\nreturn round(total * share - 0.0001, 1, 'HALF_UP');",
+		"employer_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst region = get(facts, 'insured_office_region', get(ctx.subject.employer.entity_extension_data, 'region', ''));\nconst society = get(ctx.subject.employer.entity_extension_data, 'health_insurer', 'KYOKAI') === 'SOCIETY';\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), add_days(ctx.run.salary_coverage.to, 1));\nconst nursing = age >= ctx.lookup.nursing_minimum_age_years && age < ctx.lookup.nursing_maximum_age_years && get(facts, 'statutory.HEALTH.elections.care_exempt', false) !== true;\nconst share = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_employee_share', ctx.lookup.employee_share)) : ctx.lookup.employee_share;\nconst healthRate = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_health_rate_percent', 0)) : ctx.lookup.prefecture_rate_percent[region];\nlet careRate = 0;\nif (nursing) careRate = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_care_rate_percent', 0)) : ctx.lookup.nursing_percent;\nconst rate = healthRate + careRate;\nconst elected = get(facts, 'statutory.HEALTH.elections.standard_monthly_remuneration', null);\nconst base = elected !== null ? Number(elected) : bracket(round(get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN'), ctx.lookup.remuneration_grades);\nconst total = base * rate / 100 * Number(get(facts, 'statutory.HEALTH.elections.apportionment_ratio', 1));\nreturn round(total, 1, 'DOWN') - round(total * share - 0.0001, 1, 'HALF_UP');",
 		"references": [
 			{
 				"title": "健康保険法",
@@ -284,69 +27,12 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": ["HEALTH"],
 		"subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
-		"employer_cost_subtotal_id": "85e29e06-589d-5f8e-835d-ca602229b97b",
+		"employer_cost_subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
 		"off_cycle_eligible": false,
-		"lookup": {
-			"prefecture_rate_percent": {
-				"HOKKAIDO": 10.28,
-				"AOMORI": 9.85,
-				"IWATE": 9.51,
-				"MIYAGI": 10.1,
-				"AKITA": 10.01,
-				"YAMAGATA": 9.75,
-				"FUKUSHIMA": 9.5,
-				"IBARAKI": 9.52,
-				"TOCHIGI": 9.82,
-				"GUNMA": 9.68,
-				"SAITAMA": 9.67,
-				"CHIBA": 9.73,
-				"TOKYO": 9.85,
-				"KANAGAWA": 9.92,
-				"NIIGATA": 9.21,
-				"TOYAMA": 9.59,
-				"ISHIKAWA": 9.7,
-				"FUKUI": 9.71,
-				"YAMANASHI": 9.55,
-				"NAGANO": 9.63,
-				"GIFU": 9.8,
-				"SHIZUOKA": 9.61,
-				"AICHI": 9.93,
-				"MIE": 9.77,
-				"SHIGA": 9.88,
-				"KYOTO": 9.89,
-				"OSAKA": 10.13,
-				"HYOGO": 10.12,
-				"NARA": 9.91,
-				"WAKAYAMA": 10.06,
-				"TOTTORI": 9.86,
-				"SHIMANE": 9.94,
-				"OKAYAMA": 10.05,
-				"HIROSHIMA": 9.78,
-				"YAMAGUCHI": 10.15,
-				"TOKUSHIMA": 10.24,
-				"KAGAWA": 10.02,
-				"EHIME": 9.98,
-				"KOCHI": 10.05,
-				"FUKUOKA": 10.11,
-				"SAGA": 10.55,
-				"NAGASAKI": 10.06,
-				"KUMAMOTO": 10.08,
-				"OITA": 10.08,
-				"MIYAZAKI": 9.77,
-				"KAGOSHIMA": 10.13,
-				"OKINAWA": 9.44
-			},
-			"nursing_percent": 1.62,
-			"nursing_minimum_age_years": 40,
-			"nursing_maximum_age_years": 65,
-			"maximum_age_years": 75,
-			"employee_share": 0.5,
-			"thousand_units": 1000,
-			"annual_bonus_salary_ceiling": 5730000
-		},
-		"eligibility": "// js\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', 'NONE');\nconst facts = ctx.subject.employment.employee_extension_data;\n// 高齢者医療確保法 arts.50, 52: cover ends on the 75th birthday itself, not its eve (the pension and care ages).\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), ctx.run.salary_coverage.to);\nif (!['SOCIAL_AND_EMPLOYMENT', 'SOCIAL_ONLY'].includes(category)) return false;\nif (get(facts, 'statutory.HEALTH.elections.social_security_agreement_exempt', false) === true) return false;\nif (!(age < ctx.lookup.maximum_age_years)) return false;\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (end != null && !(end >= ctx.run.salary_coverage.from)) return false;\nreturn get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0) > 0;",
-		"employee_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst region = get(facts, 'insured_office_region', get(ctx.subject.employer.entity_extension_data, 'region', ''));\nconst society = get(ctx.subject.employer.entity_extension_data, 'health_insurer', 'KYOKAI') === 'SOCIETY';\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), add_days(ctx.run.salary_coverage.to, 1));\nconst nursing = age >= ctx.lookup.nursing_minimum_age_years && age < ctx.lookup.nursing_maximum_age_years && get(facts, 'statutory.HEALTH.elections.care_exempt', false) !== true;\nconst share = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_employee_share', ctx.lookup.employee_share)) : ctx.lookup.employee_share;\nconst healthRate = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_health_rate_percent', 0)) : ctx.lookup.prefecture_rate_percent[region];\nlet careRate = 0;\nif (nursing) careRate = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_care_rate_percent', 0)) : ctx.lookup.nursing_percent;\nconst rate = healthRate + careRate;\nconst covered = String(get(get(ctx.run, 'salary_coverage', {}), 'from', ''));\nconst fiscal = (period) => Number(String(period).slice(0, 4)) - (Number(String(period).slice(5, 7)) < 4 ? 1 : 0);\nconst month = covered.slice(0, 7);\nconst prior = sum_field(get(ctx.history, 'payslips', []).filter((slip) => {\n\tconst period = String(get(slip, 'period', ''));\n\treturn period.slice(0, 7) <= month && fiscal(period) === fiscal(covered);\n}), 'additional_wages');\nconst remaining = Math.max(0, ctx.lookup.annual_bonus_salary_ceiling - prior);\nconst raw = round(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0), ctx.lookup.thousand_units, 'DOWN');\nconst base = Math.min(raw, remaining);\nconst total = base * rate / 100;\nreturn round(total * share - 0.0001, 1, 'HALF_UP');",
-		"employer_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst region = get(facts, 'insured_office_region', get(ctx.subject.employer.entity_extension_data, 'region', ''));\nconst society = get(ctx.subject.employer.entity_extension_data, 'health_insurer', 'KYOKAI') === 'SOCIETY';\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), add_days(ctx.run.salary_coverage.to, 1));\nconst nursing = age >= ctx.lookup.nursing_minimum_age_years && age < ctx.lookup.nursing_maximum_age_years && get(facts, 'statutory.HEALTH.elections.care_exempt', false) !== true;\nconst share = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_employee_share', ctx.lookup.employee_share)) : ctx.lookup.employee_share;\nconst healthRate = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_health_rate_percent', 0)) : ctx.lookup.prefecture_rate_percent[region];\nlet careRate = 0;\nif (nursing) careRate = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_care_rate_percent', 0)) : ctx.lookup.nursing_percent;\nconst rate = healthRate + careRate;\nconst covered = String(get(get(ctx.run, 'salary_coverage', {}), 'from', ''));\nconst fiscal = (period) => Number(String(period).slice(0, 4)) - (Number(String(period).slice(5, 7)) < 4 ? 1 : 0);\nconst month = covered.slice(0, 7);\nconst prior = sum_field(get(ctx.history, 'payslips', []).filter((slip) => {\n\tconst period = String(get(slip, 'period', ''));\n\treturn period.slice(0, 7) <= month && fiscal(period) === fiscal(covered);\n}), 'additional_wages');\nconst remaining = Math.max(0, ctx.lookup.annual_bonus_salary_ceiling - prior);\nconst raw = round(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0), ctx.lookup.thousand_units, 'DOWN');\nconst base = Math.min(raw, remaining);\nconst total = base * rate / 100;\nreturn round(total, 1, 'DOWN') - round(total * share - 0.0001, 1, 'HALF_UP');",
+		"lookup": {},
+		"eligibility": "// js\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', 'NONE');\nconst facts = ctx.subject.employment.employee_extension_data;\n// 高齢者医療確保法 arts.50, 52: cover ends on the 75th birthday itself, not its eve (the pension and care ages).\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), ctx.run.salary_coverage.to);\nif (!['SOCIAL_AND_EMPLOYMENT', 'SOCIAL_ONLY'].includes(category)) return false;\nif (get(facts, 'statutory.HEALTH.elections.social_security_agreement_exempt', false) === true) return false;\nif (!(age < ctx.lookup.health_maximum_age_years)) return false;\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\n// 健康保険法 art.156(3), 厚生年金保険法 art.19(1): cover is lost the day after the exit, and that month is not charged.\nif (end != null && !(end >= ctx.run.salary_coverage.to)) return false;\nif (get(ctx.subject.employment.employee_extension_data, 'statutory.HEALTH.elections.bonus_as_remuneration', false) === true) return false;\nreturn get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0) > 0;",
+		"employee_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst region = get(facts, 'insured_office_region', get(ctx.subject.employer.entity_extension_data, 'region', ''));\nconst society = get(ctx.subject.employer.entity_extension_data, 'health_insurer', 'KYOKAI') === 'SOCIETY';\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), add_days(ctx.run.salary_coverage.to, 1));\nconst nursing = age >= ctx.lookup.nursing_minimum_age_years && age < ctx.lookup.nursing_maximum_age_years && get(facts, 'statutory.HEALTH.elections.care_exempt', false) !== true;\nconst share = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_employee_share', ctx.lookup.employee_share)) : ctx.lookup.employee_share;\nconst healthRate = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_health_rate_percent', 0)) : ctx.lookup.prefecture_rate_percent[region];\nlet careRate = 0;\nif (nursing) careRate = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_care_rate_percent', 0)) : ctx.lookup.nursing_percent;\nconst rate = healthRate + careRate;\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\n// 健康保険法 art.45: the ceiling runs April to March, on each month's bonus to the thousand.\nconst paidIn = Number(paidMonth.slice(5, 7));\nconst april = String(Number(paidMonth.slice(0, 4)) - (paidIn < 4 ? 1 : 0)) + '-04';\nlet prior = 0;\nfor (let paid = april; paid <= paidMonth; paid = add_months(paid + '-01', 1).slice(0, 7)) {\n\tprior += round(heldIn(paid, 'ADDITIONAL_WAGES') - heldIn(paid, 'ORDINARY_WAGES'), 1000, 'DOWN');\n}\nconst remaining = Math.max(0, ctx.lookup.annual_bonus_salary_ceiling - prior);\nconst raw = round(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN');\nconst base = Math.min(raw, remaining);\nconst total = base * rate / 100;\nreturn round(total * share - 0.0001, 1, 'HALF_UP');",
+		"employer_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst region = get(facts, 'insured_office_region', get(ctx.subject.employer.entity_extension_data, 'region', ''));\nconst society = get(ctx.subject.employer.entity_extension_data, 'health_insurer', 'KYOKAI') === 'SOCIETY';\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), add_days(ctx.run.salary_coverage.to, 1));\nconst nursing = age >= ctx.lookup.nursing_minimum_age_years && age < ctx.lookup.nursing_maximum_age_years && get(facts, 'statutory.HEALTH.elections.care_exempt', false) !== true;\nconst share = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_employee_share', ctx.lookup.employee_share)) : ctx.lookup.employee_share;\nconst healthRate = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_health_rate_percent', 0)) : ctx.lookup.prefecture_rate_percent[region];\nlet careRate = 0;\nif (nursing) careRate = society ? Number(get(ctx.subject.employer.entity_extension_data, 'society_care_rate_percent', 0)) : ctx.lookup.nursing_percent;\nconst rate = healthRate + careRate;\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\n// 健康保険法 art.45: the ceiling runs April to March, on each month's bonus to the thousand.\nconst paidIn = Number(paidMonth.slice(5, 7));\nconst april = String(Number(paidMonth.slice(0, 4)) - (paidIn < 4 ? 1 : 0)) + '-04';\nlet prior = 0;\nfor (let paid = april; paid <= paidMonth; paid = add_months(paid + '-01', 1).slice(0, 7)) {\n\tprior += round(heldIn(paid, 'ADDITIONAL_WAGES') - heldIn(paid, 'ORDINARY_WAGES'), 1000, 'DOWN');\n}\nconst remaining = Math.max(0, ctx.lookup.annual_bonus_salary_ceiling - prior);\nconst raw = round(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN');\nconst base = Math.min(raw, remaining);\nconst total = base * rate / 100;\nreturn round(total, 1, 'DOWN') - round(total * share - 0.0001, 1, 'HALF_UP');",
 		"references": [
 			{
 				"title": "健康保険法",
@@ -366,220 +52,12 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": ["HEALTH"],
 		"subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
-		"employer_cost_subtotal_id": "85e29e06-589d-5f8e-835d-ca602229b97b",
+		"employer_cost_subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
 		"off_cycle_eligible": false,
-		"lookup": {
-			"combined_rate": 0.0023,
-			"employee_share": 0.5,
-			"maximum_age_years": 75,
-			"remuneration_grades": [
-				{
-					"up_to": 62999,
-					"amount": 58000
-				},
-				{
-					"up_to": 72999,
-					"amount": 68000
-				},
-				{
-					"up_to": 82999,
-					"amount": 78000
-				},
-				{
-					"up_to": 92999,
-					"amount": 88000
-				},
-				{
-					"up_to": 100999,
-					"amount": 98000
-				},
-				{
-					"up_to": 106999,
-					"amount": 104000
-				},
-				{
-					"up_to": 113999,
-					"amount": 110000
-				},
-				{
-					"up_to": 121999,
-					"amount": 118000
-				},
-				{
-					"up_to": 129999,
-					"amount": 126000
-				},
-				{
-					"up_to": 137999,
-					"amount": 134000
-				},
-				{
-					"up_to": 145999,
-					"amount": 142000
-				},
-				{
-					"up_to": 154999,
-					"amount": 150000
-				},
-				{
-					"up_to": 164999,
-					"amount": 160000
-				},
-				{
-					"up_to": 174999,
-					"amount": 170000
-				},
-				{
-					"up_to": 184999,
-					"amount": 180000
-				},
-				{
-					"up_to": 194999,
-					"amount": 190000
-				},
-				{
-					"up_to": 209999,
-					"amount": 200000
-				},
-				{
-					"up_to": 229999,
-					"amount": 220000
-				},
-				{
-					"up_to": 249999,
-					"amount": 240000
-				},
-				{
-					"up_to": 269999,
-					"amount": 260000
-				},
-				{
-					"up_to": 289999,
-					"amount": 280000
-				},
-				{
-					"up_to": 309999,
-					"amount": 300000
-				},
-				{
-					"up_to": 329999,
-					"amount": 320000
-				},
-				{
-					"up_to": 349999,
-					"amount": 340000
-				},
-				{
-					"up_to": 369999,
-					"amount": 360000
-				},
-				{
-					"up_to": 394999,
-					"amount": 380000
-				},
-				{
-					"up_to": 424999,
-					"amount": 410000
-				},
-				{
-					"up_to": 454999,
-					"amount": 440000
-				},
-				{
-					"up_to": 484999,
-					"amount": 470000
-				},
-				{
-					"up_to": 514999,
-					"amount": 500000
-				},
-				{
-					"up_to": 544999,
-					"amount": 530000
-				},
-				{
-					"up_to": 574999,
-					"amount": 560000
-				},
-				{
-					"up_to": 604999,
-					"amount": 590000
-				},
-				{
-					"up_to": 634999,
-					"amount": 620000
-				},
-				{
-					"up_to": 664999,
-					"amount": 650000
-				},
-				{
-					"up_to": 694999,
-					"amount": 680000
-				},
-				{
-					"up_to": 729999,
-					"amount": 710000
-				},
-				{
-					"up_to": 769999,
-					"amount": 750000
-				},
-				{
-					"up_to": 809999,
-					"amount": 790000
-				},
-				{
-					"up_to": 854999,
-					"amount": 830000
-				},
-				{
-					"up_to": 904999,
-					"amount": 880000
-				},
-				{
-					"up_to": 954999,
-					"amount": 930000
-				},
-				{
-					"up_to": 1004999,
-					"amount": 980000
-				},
-				{
-					"up_to": 1054999,
-					"amount": 1030000
-				},
-				{
-					"up_to": 1114999,
-					"amount": 1090000
-				},
-				{
-					"up_to": 1174999,
-					"amount": 1150000
-				},
-				{
-					"up_to": 1234999,
-					"amount": 1210000
-				},
-				{
-					"up_to": 1294999,
-					"amount": 1270000
-				},
-				{
-					"up_to": 1354999,
-					"amount": 1330000
-				},
-				{
-					"up_to": null,
-					"amount": 1390000
-				}
-			],
-			"minimum_salary_class": 58000,
-			"maximum_salary_class": 1390000
-		},
-		"eligibility": "// js\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', 'NONE');\nconst facts = ctx.subject.employment.employee_extension_data;\n// 高齢者医療確保法 arts.50, 52: cover ends on the 75th birthday itself, not its eve (the pension and care ages).\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), ctx.run.salary_coverage.to);\nif (!['SOCIAL_AND_EMPLOYMENT', 'SOCIAL_ONLY'].includes(category)) return false;\nif (get(facts, 'statutory.HEALTH.elections.social_security_agreement_exempt', false) === true) return false;\nif (!(age < ctx.lookup.maximum_age_years)) return false;\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn end == null || end >= ctx.run.salary_coverage.from;",
-		"employee_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst elected = get(facts, 'statutory.HEALTH.elections.standard_monthly_remuneration', null);\nconst grade = elected !== null ? Number(elected) : bracket(round(get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN'), ctx.lookup.remuneration_grades);\nconst base = clamp(grade, ctx.lookup.minimum_salary_class, ctx.lookup.maximum_salary_class);\nconst total = base * ctx.lookup.combined_rate;\nreturn round(total * ctx.lookup.employee_share - 0.0001, 1, 'HALF_UP');",
-		"employer_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst elected = get(facts, 'statutory.HEALTH.elections.standard_monthly_remuneration', null);\nconst grade = elected !== null ? Number(elected) : bracket(round(get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN'), ctx.lookup.remuneration_grades);\nconst base = clamp(grade, ctx.lookup.minimum_salary_class, ctx.lookup.maximum_salary_class);\nconst total = base * ctx.lookup.combined_rate;\nreturn round(total, 1, 'DOWN') - round(total * ctx.lookup.employee_share - 0.0001, 1, 'HALF_UP');",
+		"lookup": {},
+		"eligibility": "// js\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', 'NONE');\nconst facts = ctx.subject.employment.employee_extension_data;\n// 高齢者医療確保法 arts.50, 52: cover ends on the 75th birthday itself, not its eve (the pension and care ages).\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), ctx.run.salary_coverage.to);\nif (!['SOCIAL_AND_EMPLOYMENT', 'SOCIAL_ONLY'].includes(category)) return false;\nif (get(facts, 'statutory.HEALTH.elections.social_security_agreement_exempt', false) === true) return false;\nif (!(age < ctx.lookup.health_maximum_age_years)) return false;\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\n// 健康保険法 art.156(3), 厚生年金保険法 art.19(1): cover is lost the day after the exit, and that month is not charged.\nreturn end == null || end >= ctx.run.salary_coverage.to;",
+		"employee_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst elected = get(facts, 'statutory.HEALTH.elections.standard_monthly_remuneration', null);\nconst grade = elected !== null ? Number(elected) : bracket(round(get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN'), ctx.lookup.remuneration_grades);\nconst base = clamp(grade, ctx.lookup.health_minimum_grade, ctx.lookup.health_maximum_grade);\nconst levy = get(ctx.subject.employer.entity_extension_data, 'health_insurer', 'KYOKAI') === 'SOCIETY' ? Number(get(ctx.subject.employer.entity_extension_data, 'society_support_levy_rate_percent', ctx.lookup.support_rate * 100)) / 100 : ctx.lookup.support_rate;\nconst total = base * levy * Number(get(facts, 'statutory.HEALTH.elections.apportionment_ratio', 1));\nreturn round(total * ctx.lookup.employee_share - 0.0001, 1, 'HALF_UP');",
+		"employer_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst elected = get(facts, 'statutory.HEALTH.elections.standard_monthly_remuneration', null);\nconst grade = elected !== null ? Number(elected) : bracket(round(get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN'), ctx.lookup.remuneration_grades);\nconst base = clamp(grade, ctx.lookup.health_minimum_grade, ctx.lookup.health_maximum_grade);\nconst levy = get(ctx.subject.employer.entity_extension_data, 'health_insurer', 'KYOKAI') === 'SOCIETY' ? Number(get(ctx.subject.employer.entity_extension_data, 'society_support_levy_rate_percent', ctx.lookup.support_rate * 100)) / 100 : ctx.lookup.support_rate;\nconst total = base * levy * Number(get(facts, 'statutory.HEALTH.elections.apportionment_ratio', 1));\nreturn round(total, 1, 'DOWN') - round(total * ctx.lookup.employee_share - 0.0001, 1, 'HALF_UP');",
 		"references": [
 			{
 				"title": "健康保険法; 子ども・子育て支援法",
@@ -598,221 +76,12 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": ["CHILD_SUPPORT"],
 		"subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
-		"employer_cost_subtotal_id": "85e29e06-589d-5f8e-835d-ca602229b97b",
+		"employer_cost_subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
 		"off_cycle_eligible": false,
-		"lookup": {
-			"combined_rate": 0.0023,
-			"employee_share": 0.5,
-			"maximum_age_years": 75,
-			"remuneration_grades": [
-				{
-					"up_to": 62999,
-					"amount": 58000
-				},
-				{
-					"up_to": 72999,
-					"amount": 68000
-				},
-				{
-					"up_to": 82999,
-					"amount": 78000
-				},
-				{
-					"up_to": 92999,
-					"amount": 88000
-				},
-				{
-					"up_to": 100999,
-					"amount": 98000
-				},
-				{
-					"up_to": 106999,
-					"amount": 104000
-				},
-				{
-					"up_to": 113999,
-					"amount": 110000
-				},
-				{
-					"up_to": 121999,
-					"amount": 118000
-				},
-				{
-					"up_to": 129999,
-					"amount": 126000
-				},
-				{
-					"up_to": 137999,
-					"amount": 134000
-				},
-				{
-					"up_to": 145999,
-					"amount": 142000
-				},
-				{
-					"up_to": 154999,
-					"amount": 150000
-				},
-				{
-					"up_to": 164999,
-					"amount": 160000
-				},
-				{
-					"up_to": 174999,
-					"amount": 170000
-				},
-				{
-					"up_to": 184999,
-					"amount": 180000
-				},
-				{
-					"up_to": 194999,
-					"amount": 190000
-				},
-				{
-					"up_to": 209999,
-					"amount": 200000
-				},
-				{
-					"up_to": 229999,
-					"amount": 220000
-				},
-				{
-					"up_to": 249999,
-					"amount": 240000
-				},
-				{
-					"up_to": 269999,
-					"amount": 260000
-				},
-				{
-					"up_to": 289999,
-					"amount": 280000
-				},
-				{
-					"up_to": 309999,
-					"amount": 300000
-				},
-				{
-					"up_to": 329999,
-					"amount": 320000
-				},
-				{
-					"up_to": 349999,
-					"amount": 340000
-				},
-				{
-					"up_to": 369999,
-					"amount": 360000
-				},
-				{
-					"up_to": 394999,
-					"amount": 380000
-				},
-				{
-					"up_to": 424999,
-					"amount": 410000
-				},
-				{
-					"up_to": 454999,
-					"amount": 440000
-				},
-				{
-					"up_to": 484999,
-					"amount": 470000
-				},
-				{
-					"up_to": 514999,
-					"amount": 500000
-				},
-				{
-					"up_to": 544999,
-					"amount": 530000
-				},
-				{
-					"up_to": 574999,
-					"amount": 560000
-				},
-				{
-					"up_to": 604999,
-					"amount": 590000
-				},
-				{
-					"up_to": 634999,
-					"amount": 620000
-				},
-				{
-					"up_to": 664999,
-					"amount": 650000
-				},
-				{
-					"up_to": 694999,
-					"amount": 680000
-				},
-				{
-					"up_to": 729999,
-					"amount": 710000
-				},
-				{
-					"up_to": 769999,
-					"amount": 750000
-				},
-				{
-					"up_to": 809999,
-					"amount": 790000
-				},
-				{
-					"up_to": 854999,
-					"amount": 830000
-				},
-				{
-					"up_to": 904999,
-					"amount": 880000
-				},
-				{
-					"up_to": 954999,
-					"amount": 930000
-				},
-				{
-					"up_to": 1004999,
-					"amount": 980000
-				},
-				{
-					"up_to": 1054999,
-					"amount": 1030000
-				},
-				{
-					"up_to": 1114999,
-					"amount": 1090000
-				},
-				{
-					"up_to": 1174999,
-					"amount": 1150000
-				},
-				{
-					"up_to": 1234999,
-					"amount": 1210000
-				},
-				{
-					"up_to": 1294999,
-					"amount": 1270000
-				},
-				{
-					"up_to": 1354999,
-					"amount": 1330000
-				},
-				{
-					"up_to": null,
-					"amount": 1390000
-				}
-			],
-			"minimum_salary_class": 58000,
-			"maximum_salary_class": 1390000,
-			"annual_bonus_salary_ceiling": 5730000
-		},
-		"eligibility": "// js\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', 'NONE');\nconst facts = ctx.subject.employment.employee_extension_data;\n// 高齢者医療確保法 arts.50, 52: cover ends on the 75th birthday itself, not its eve (the pension and care ages).\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), ctx.run.salary_coverage.to);\nif (!['SOCIAL_AND_EMPLOYMENT', 'SOCIAL_ONLY'].includes(category)) return false;\nif (get(facts, 'statutory.HEALTH.elections.social_security_agreement_exempt', false) === true) return false;\nif (!(age < ctx.lookup.maximum_age_years)) return false;\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (end != null && !(end >= ctx.run.salary_coverage.from)) return false;\nreturn get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0) > 0;",
-		"employee_amount": "// js\nconst covered = String(get(get(ctx.run, 'salary_coverage', {}), 'from', ''));\nconst fiscal = (period) => Number(String(period).slice(0, 4)) - (Number(String(period).slice(5, 7)) < 4 ? 1 : 0);\nconst month = covered.slice(0, 7);\nconst prior = sum_field(get(ctx.history, 'payslips', []).filter((slip) => {\n\tconst period = String(get(slip, 'period', ''));\n\treturn period.slice(0, 7) <= month && fiscal(period) === fiscal(covered);\n}), 'additional_wages');\nconst remaining = Math.max(0, ctx.lookup.annual_bonus_salary_ceiling - prior);\nconst raw = round(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN');\nconst base = Math.min(raw, remaining);\nconst total = base * ctx.lookup.combined_rate;\nreturn round(total * ctx.lookup.employee_share - 0.0001, 1, 'HALF_UP');",
-		"employer_amount": "// js\nconst covered = String(get(get(ctx.run, 'salary_coverage', {}), 'from', ''));\nconst fiscal = (period) => Number(String(period).slice(0, 4)) - (Number(String(period).slice(5, 7)) < 4 ? 1 : 0);\nconst month = covered.slice(0, 7);\nconst prior = sum_field(get(ctx.history, 'payslips', []).filter((slip) => {\n\tconst period = String(get(slip, 'period', ''));\n\treturn period.slice(0, 7) <= month && fiscal(period) === fiscal(covered);\n}), 'additional_wages');\nconst remaining = Math.max(0, ctx.lookup.annual_bonus_salary_ceiling - prior);\nconst raw = round(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN');\nconst base = Math.min(raw, remaining);\nconst total = base * ctx.lookup.combined_rate;\nreturn round(total, 1, 'DOWN') - round(total * ctx.lookup.employee_share - 0.0001, 1, 'HALF_UP');",
+		"lookup": {},
+		"eligibility": "// js\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', 'NONE');\nconst facts = ctx.subject.employment.employee_extension_data;\n// 高齢者医療確保法 arts.50, 52: cover ends on the 75th birthday itself, not its eve (the pension and care ages).\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), ctx.run.salary_coverage.to);\nif (!['SOCIAL_AND_EMPLOYMENT', 'SOCIAL_ONLY'].includes(category)) return false;\nif (get(facts, 'statutory.HEALTH.elections.social_security_agreement_exempt', false) === true) return false;\nif (!(age < ctx.lookup.health_maximum_age_years)) return false;\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\n// 健康保険法 art.156(3), 厚生年金保険法 art.19(1): cover is lost the day after the exit, and that month is not charged.\nif (end != null && !(end >= ctx.run.salary_coverage.to)) return false;\nif (get(ctx.subject.employment.employee_extension_data, 'statutory.HEALTH.elections.bonus_as_remuneration', false) === true) return false;\nreturn get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0) > 0;",
+		"employee_amount": "// js\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\n// 健康保険法 art.45: the ceiling runs April to March, on each month's bonus to the thousand.\nconst paidIn = Number(paidMonth.slice(5, 7));\nconst april = String(Number(paidMonth.slice(0, 4)) - (paidIn < 4 ? 1 : 0)) + '-04';\nlet prior = 0;\nfor (let paid = april; paid <= paidMonth; paid = add_months(paid + '-01', 1).slice(0, 7)) {\n\tprior += round(heldIn(paid, 'ADDITIONAL_WAGES') - heldIn(paid, 'ORDINARY_WAGES'), 1000, 'DOWN');\n}\nconst remaining = Math.max(0, ctx.lookup.annual_bonus_salary_ceiling - prior);\nconst raw = round(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN');\nconst base = Math.min(raw, remaining);\nconst levy = get(ctx.subject.employer.entity_extension_data, 'health_insurer', 'KYOKAI') === 'SOCIETY' ? Number(get(ctx.subject.employer.entity_extension_data, 'society_support_levy_rate_percent', ctx.lookup.support_rate * 100)) / 100 : ctx.lookup.support_rate;\nconst total = base * levy;\nreturn round(total * ctx.lookup.employee_share - 0.0001, 1, 'HALF_UP');",
+		"employer_amount": "// js\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\n// 健康保険法 art.45: the ceiling runs April to March, on each month's bonus to the thousand.\nconst paidIn = Number(paidMonth.slice(5, 7));\nconst april = String(Number(paidMonth.slice(0, 4)) - (paidIn < 4 ? 1 : 0)) + '-04';\nlet prior = 0;\nfor (let paid = april; paid <= paidMonth; paid = add_months(paid + '-01', 1).slice(0, 7)) {\n\tprior += round(heldIn(paid, 'ADDITIONAL_WAGES') - heldIn(paid, 'ORDINARY_WAGES'), 1000, 'DOWN');\n}\nconst remaining = Math.max(0, ctx.lookup.annual_bonus_salary_ceiling - prior);\nconst raw = round(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN');\nconst base = Math.min(raw, remaining);\nconst levy = get(ctx.subject.employer.entity_extension_data, 'health_insurer', 'KYOKAI') === 'SOCIETY' ? Number(get(ctx.subject.employer.entity_extension_data, 'society_support_levy_rate_percent', ctx.lookup.support_rate * 100)) / 100 : ctx.lookup.support_rate;\nconst total = base * levy;\nreturn round(total, 1, 'DOWN') - round(total * ctx.lookup.employee_share - 0.0001, 1, 'HALF_UP');",
 		"references": [
 			{
 				"title": "健康保険法",
@@ -832,220 +101,12 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": ["HEALTH"],
 		"subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
-		"employer_cost_subtotal_id": "85e29e06-589d-5f8e-835d-ca602229b97b",
+		"employer_cost_subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
 		"off_cycle_eligible": false,
-		"lookup": {
-			"minimum_salary_class": 88000,
-			"maximum_salary_class": 680000,
-			"combined_rate": 0.183,
-			"maximum_age_years": 70,
-			"employee_share": 0.5,
-			"remuneration_grades": [
-				{
-					"up_to": 62999,
-					"amount": 58000
-				},
-				{
-					"up_to": 72999,
-					"amount": 68000
-				},
-				{
-					"up_to": 82999,
-					"amount": 78000
-				},
-				{
-					"up_to": 92999,
-					"amount": 88000
-				},
-				{
-					"up_to": 100999,
-					"amount": 98000
-				},
-				{
-					"up_to": 106999,
-					"amount": 104000
-				},
-				{
-					"up_to": 113999,
-					"amount": 110000
-				},
-				{
-					"up_to": 121999,
-					"amount": 118000
-				},
-				{
-					"up_to": 129999,
-					"amount": 126000
-				},
-				{
-					"up_to": 137999,
-					"amount": 134000
-				},
-				{
-					"up_to": 145999,
-					"amount": 142000
-				},
-				{
-					"up_to": 154999,
-					"amount": 150000
-				},
-				{
-					"up_to": 164999,
-					"amount": 160000
-				},
-				{
-					"up_to": 174999,
-					"amount": 170000
-				},
-				{
-					"up_to": 184999,
-					"amount": 180000
-				},
-				{
-					"up_to": 194999,
-					"amount": 190000
-				},
-				{
-					"up_to": 209999,
-					"amount": 200000
-				},
-				{
-					"up_to": 229999,
-					"amount": 220000
-				},
-				{
-					"up_to": 249999,
-					"amount": 240000
-				},
-				{
-					"up_to": 269999,
-					"amount": 260000
-				},
-				{
-					"up_to": 289999,
-					"amount": 280000
-				},
-				{
-					"up_to": 309999,
-					"amount": 300000
-				},
-				{
-					"up_to": 329999,
-					"amount": 320000
-				},
-				{
-					"up_to": 349999,
-					"amount": 340000
-				},
-				{
-					"up_to": 369999,
-					"amount": 360000
-				},
-				{
-					"up_to": 394999,
-					"amount": 380000
-				},
-				{
-					"up_to": 424999,
-					"amount": 410000
-				},
-				{
-					"up_to": 454999,
-					"amount": 440000
-				},
-				{
-					"up_to": 484999,
-					"amount": 470000
-				},
-				{
-					"up_to": 514999,
-					"amount": 500000
-				},
-				{
-					"up_to": 544999,
-					"amount": 530000
-				},
-				{
-					"up_to": 574999,
-					"amount": 560000
-				},
-				{
-					"up_to": 604999,
-					"amount": 590000
-				},
-				{
-					"up_to": 634999,
-					"amount": 620000
-				},
-				{
-					"up_to": 664999,
-					"amount": 650000
-				},
-				{
-					"up_to": 694999,
-					"amount": 680000
-				},
-				{
-					"up_to": 729999,
-					"amount": 710000
-				},
-				{
-					"up_to": 769999,
-					"amount": 750000
-				},
-				{
-					"up_to": 809999,
-					"amount": 790000
-				},
-				{
-					"up_to": 854999,
-					"amount": 830000
-				},
-				{
-					"up_to": 904999,
-					"amount": 880000
-				},
-				{
-					"up_to": 954999,
-					"amount": 930000
-				},
-				{
-					"up_to": 1004999,
-					"amount": 980000
-				},
-				{
-					"up_to": 1054999,
-					"amount": 1030000
-				},
-				{
-					"up_to": 1114999,
-					"amount": 1090000
-				},
-				{
-					"up_to": 1174999,
-					"amount": 1150000
-				},
-				{
-					"up_to": 1234999,
-					"amount": 1210000
-				},
-				{
-					"up_to": 1294999,
-					"amount": 1270000
-				},
-				{
-					"up_to": 1354999,
-					"amount": 1330000
-				},
-				{
-					"up_to": null,
-					"amount": 1390000
-				}
-			]
-		},
-		"eligibility": "// js\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', 'NONE');\nconst exempt = get(ctx.subject.employment.employee_extension_data, 'statutory.HEALTH.elections.social_security_agreement_exempt', false) === true;\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), add_days(ctx.run.salary_coverage.to, 1));\nif (!['SOCIAL_AND_EMPLOYMENT', 'SOCIAL_ONLY'].includes(category)) return false;\nif (exempt) return false;\nif (!(age < ctx.lookup.maximum_age_years)) return false;\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn end == null || end >= ctx.run.salary_coverage.from;",
-		"employee_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst elected = get(facts, 'statutory.HEALTH.elections.standard_monthly_remuneration', null);\nconst grade = elected !== null ? Number(elected) : bracket(round(get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN'), ctx.lookup.remuneration_grades);\nconst base = clamp(grade, ctx.lookup.minimum_salary_class, ctx.lookup.maximum_salary_class);\nconst total = base * ctx.lookup.combined_rate;\nreturn round(total * ctx.lookup.employee_share - 0.0001, 1, 'HALF_UP');",
-		"employer_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst elected = get(facts, 'statutory.HEALTH.elections.standard_monthly_remuneration', null);\nconst grade = elected !== null ? Number(elected) : bracket(round(get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN'), ctx.lookup.remuneration_grades);\nconst base = clamp(grade, ctx.lookup.minimum_salary_class, ctx.lookup.maximum_salary_class);\nconst total = base * ctx.lookup.combined_rate;\nreturn round(total, 1, 'DOWN') - round(total * ctx.lookup.employee_share - 0.0001, 1, 'HALF_UP');",
+		"lookup": {},
+		"eligibility": "// js\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', 'NONE');\nconst exempt = get(ctx.subject.employment.employee_extension_data, 'statutory.HEALTH.elections.social_security_agreement_exempt', false) === true;\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), add_days(ctx.run.salary_coverage.to, 1));\nif (!['SOCIAL_AND_EMPLOYMENT', 'SOCIAL_ONLY'].includes(category)) return false;\nif (exempt) return false;\nif (!(age < ctx.lookup.pension_maximum_age_years)) return false;\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\n// 健康保険法 art.156(3), 厚生年金保険法 art.19(1): cover is lost the day after the exit, and that month is not charged.\nreturn end == null || end >= ctx.run.salary_coverage.to;",
+		"employee_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst elected = get(facts, 'statutory.HEALTH.elections.standard_monthly_remuneration', null);\nconst grade = elected !== null ? Number(elected) : bracket(round(get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN'), ctx.lookup.remuneration_grades);\nconst base = clamp(grade, ctx.lookup.pension_minimum_grade, ctx.lookup.pension_maximum_grade);\nconst total = base * ctx.lookup.pension_rate * Number(get(facts, 'statutory.PENSION.elections.apportionment_ratio', 1));\nreturn round(total * ctx.lookup.employee_share - 0.0001, 1, 'HALF_UP');",
+		"employer_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst elected = get(facts, 'statutory.HEALTH.elections.standard_monthly_remuneration', null);\nconst grade = elected !== null ? Number(elected) : bracket(round(get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN'), ctx.lookup.remuneration_grades);\nconst base = clamp(grade, ctx.lookup.pension_minimum_grade, ctx.lookup.pension_maximum_grade);\nconst total = base * ctx.lookup.pension_rate * Number(get(facts, 'statutory.PENSION.elections.apportionment_ratio', 1));\nreturn round(total, 1, 'DOWN') - round(total * ctx.lookup.employee_share - 0.0001, 1, 'HALF_UP');",
 		"references": [
 			{
 				"title": "厚生年金保険法",
@@ -1063,17 +124,12 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": ["PENSION"],
 		"subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
-		"employer_cost_subtotal_id": "85e29e06-589d-5f8e-835d-ca602229b97b",
+		"employer_cost_subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
 		"off_cycle_eligible": false,
-		"lookup": {
-			"combined_rate": 0.183,
-			"maximum_age_years": 70,
-			"employee_share": 0.5,
-			"bonus_salary_ceiling": 1500000
-		},
-		"eligibility": "// js\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', 'NONE');\nconst exempt = get(ctx.subject.employment.employee_extension_data, 'statutory.HEALTH.elections.social_security_agreement_exempt', false) === true;\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), add_days(ctx.run.salary_coverage.to, 1));\nif (!['SOCIAL_AND_EMPLOYMENT', 'SOCIAL_ONLY'].includes(category)) return false;\nif (exempt) return false;\nif (!(age < ctx.lookup.maximum_age_years)) return false;\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (end != null && !(end >= ctx.run.salary_coverage.from)) return false;\nreturn get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0) > 0;",
-		"employee_amount": "// js\nconst covered = String(get(get(ctx.run, 'salary_coverage', {}), 'from', ''));\nconst month = covered.slice(0, 7);\nconst prior = sum_field(get(ctx.history, 'payslips', []).filter((slip) => String(get(slip, 'period', '')).slice(0, 7) === month), 'additional_wages');\nconst raw = round(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN');\nconst remaining = Math.max(0, ctx.lookup.bonus_salary_ceiling - prior);\nconst base = Math.min(raw, remaining);\nconst total = base * ctx.lookup.combined_rate;\nreturn round(total * ctx.lookup.employee_share - 0.0001, 1, 'HALF_UP');",
-		"employer_amount": "// js\nconst covered = String(get(get(ctx.run, 'salary_coverage', {}), 'from', ''));\nconst month = covered.slice(0, 7);\nconst prior = sum_field(get(ctx.history, 'payslips', []).filter((slip) => String(get(slip, 'period', '')).slice(0, 7) === month), 'additional_wages');\nconst raw = round(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN');\nconst remaining = Math.max(0, ctx.lookup.bonus_salary_ceiling - prior);\nconst base = Math.min(raw, remaining);\nconst total = base * ctx.lookup.combined_rate;\nreturn round(total, 1, 'DOWN') - round(total * ctx.lookup.employee_share - 0.0001, 1, 'HALF_UP');",
+		"lookup": {},
+		"eligibility": "// js\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', 'NONE');\nconst exempt = get(ctx.subject.employment.employee_extension_data, 'statutory.HEALTH.elections.social_security_agreement_exempt', false) === true;\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), add_days(ctx.run.salary_coverage.to, 1));\nif (!['SOCIAL_AND_EMPLOYMENT', 'SOCIAL_ONLY'].includes(category)) return false;\nif (exempt) return false;\nif (!(age < ctx.lookup.pension_maximum_age_years)) return false;\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\n// 健康保険法 art.156(3), 厚生年金保険法 art.19(1): cover is lost the day after the exit, and that month is not charged.\nif (end != null && !(end >= ctx.run.salary_coverage.to)) return false;\nif (get(ctx.subject.employment.employee_extension_data, 'statutory.HEALTH.elections.bonus_as_remuneration', false) === true) return false;\nreturn get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0) > 0;",
+		"employee_amount": "// js\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\n// 厚生年金保険法 art.24の4: the ceiling takes every bonus paid in the month together.\nconst prior = round(heldIn(paidMonth, 'ADDITIONAL_WAGES') - heldIn(paidMonth, 'ORDINARY_WAGES'), 1000, 'DOWN');\nconst raw = round(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN');\nconst base = Math.min(raw, Math.max(0, ctx.lookup.bonus_salary_ceiling - prior));\nconst total = base * ctx.lookup.pension_rate;\nreturn round(total * ctx.lookup.employee_share - 0.0001, 1, 'HALF_UP');",
+		"employer_amount": "// js\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst paidMonth = String(ctx.run.pay_date).slice(0, 7);\n// 厚生年金保険法 art.24の4: the ceiling takes every bonus paid in the month together.\nconst prior = round(heldIn(paidMonth, 'ADDITIONAL_WAGES') - heldIn(paidMonth, 'ORDINARY_WAGES'), 1000, 'DOWN');\nconst raw = round(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN');\nconst base = Math.min(raw, Math.max(0, ctx.lookup.bonus_salary_ceiling - prior));\nconst total = base * ctx.lookup.pension_rate;\nreturn round(total, 1, 'DOWN') - round(total * ctx.lookup.employee_share - 0.0001, 1, 'HALF_UP');",
 		"references": [
 			{
 				"title": "厚生年金保険法",
@@ -1093,220 +149,14 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": ["PENSION"],
 		"subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
-		"employer_cost_subtotal_id": "85e29e06-589d-5f8e-835d-ca602229b97b",
+		"employer_cost_subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
 		"off_cycle_eligible": false,
 		"lookup": {
-			"employer_rate": 0.0036,
-			"maximum_age_years": 70,
-			"minimum_salary_class": 88000,
-			"maximum_salary_class": 680000,
-			"bonus_salary_ceiling": 1500000,
-			"remuneration_grades": [
-				{
-					"up_to": 62999,
-					"amount": 58000
-				},
-				{
-					"up_to": 72999,
-					"amount": 68000
-				},
-				{
-					"up_to": 82999,
-					"amount": 78000
-				},
-				{
-					"up_to": 92999,
-					"amount": 88000
-				},
-				{
-					"up_to": 100999,
-					"amount": 98000
-				},
-				{
-					"up_to": 106999,
-					"amount": 104000
-				},
-				{
-					"up_to": 113999,
-					"amount": 110000
-				},
-				{
-					"up_to": 121999,
-					"amount": 118000
-				},
-				{
-					"up_to": 129999,
-					"amount": 126000
-				},
-				{
-					"up_to": 137999,
-					"amount": 134000
-				},
-				{
-					"up_to": 145999,
-					"amount": 142000
-				},
-				{
-					"up_to": 154999,
-					"amount": 150000
-				},
-				{
-					"up_to": 164999,
-					"amount": 160000
-				},
-				{
-					"up_to": 174999,
-					"amount": 170000
-				},
-				{
-					"up_to": 184999,
-					"amount": 180000
-				},
-				{
-					"up_to": 194999,
-					"amount": 190000
-				},
-				{
-					"up_to": 209999,
-					"amount": 200000
-				},
-				{
-					"up_to": 229999,
-					"amount": 220000
-				},
-				{
-					"up_to": 249999,
-					"amount": 240000
-				},
-				{
-					"up_to": 269999,
-					"amount": 260000
-				},
-				{
-					"up_to": 289999,
-					"amount": 280000
-				},
-				{
-					"up_to": 309999,
-					"amount": 300000
-				},
-				{
-					"up_to": 329999,
-					"amount": 320000
-				},
-				{
-					"up_to": 349999,
-					"amount": 340000
-				},
-				{
-					"up_to": 369999,
-					"amount": 360000
-				},
-				{
-					"up_to": 394999,
-					"amount": 380000
-				},
-				{
-					"up_to": 424999,
-					"amount": 410000
-				},
-				{
-					"up_to": 454999,
-					"amount": 440000
-				},
-				{
-					"up_to": 484999,
-					"amount": 470000
-				},
-				{
-					"up_to": 514999,
-					"amount": 500000
-				},
-				{
-					"up_to": 544999,
-					"amount": 530000
-				},
-				{
-					"up_to": 574999,
-					"amount": 560000
-				},
-				{
-					"up_to": 604999,
-					"amount": 590000
-				},
-				{
-					"up_to": 634999,
-					"amount": 620000
-				},
-				{
-					"up_to": 664999,
-					"amount": 650000
-				},
-				{
-					"up_to": 694999,
-					"amount": 680000
-				},
-				{
-					"up_to": 729999,
-					"amount": 710000
-				},
-				{
-					"up_to": 769999,
-					"amount": 750000
-				},
-				{
-					"up_to": 809999,
-					"amount": 790000
-				},
-				{
-					"up_to": 854999,
-					"amount": 830000
-				},
-				{
-					"up_to": 904999,
-					"amount": 880000
-				},
-				{
-					"up_to": 954999,
-					"amount": 930000
-				},
-				{
-					"up_to": 1004999,
-					"amount": 980000
-				},
-				{
-					"up_to": 1054999,
-					"amount": 1030000
-				},
-				{
-					"up_to": 1114999,
-					"amount": 1090000
-				},
-				{
-					"up_to": 1174999,
-					"amount": 1150000
-				},
-				{
-					"up_to": 1234999,
-					"amount": 1210000
-				},
-				{
-					"up_to": 1294999,
-					"amount": 1270000
-				},
-				{
-					"up_to": 1354999,
-					"amount": 1330000
-				},
-				{
-					"up_to": null,
-					"amount": 1390000
-				}
-			]
+			"employer_rate": 0.0036
 		},
-		"eligibility": "// js\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', 'NONE');\nconst exempt = get(ctx.subject.employment.employee_extension_data, 'statutory.HEALTH.elections.social_security_agreement_exempt', false) === true;\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), add_days(ctx.run.salary_coverage.to, 1));\nif (!['SOCIAL_AND_EMPLOYMENT', 'SOCIAL_ONLY'].includes(category)) return false;\nif (exempt) return false;\nif (!(age < ctx.lookup.maximum_age_years)) return false;\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn end == null || end >= ctx.run.salary_coverage.from;",
+		"eligibility": "// js\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', 'NONE');\nconst exempt = get(ctx.subject.employment.employee_extension_data, 'statutory.HEALTH.elections.social_security_agreement_exempt', false) === true;\nconst age = age_on(get(ctx.subject.employment, 'payroll.date_of_birth', ''), add_days(ctx.run.salary_coverage.to, 1));\nif (!['SOCIAL_AND_EMPLOYMENT', 'SOCIAL_ONLY'].includes(category)) return false;\nif (exempt) return false;\nif (!(age < ctx.lookup.pension_maximum_age_years)) return false;\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\n// 健康保険法 art.156(3), 厚生年金保険法 art.19(1): cover is lost the day after the exit, and that month is not charged.\nreturn end == null || end >= ctx.run.salary_coverage.to;",
 		"employee_amount": "// js\nreturn 0;",
-		"employer_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst elected = get(facts, 'statutory.HEALTH.elections.standard_monthly_remuneration', null);\nconst grade = elected !== null ? Number(elected) : bracket(round(get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN'), ctx.lookup.remuneration_grades);\nconst base = clamp(grade, ctx.lookup.minimum_salary_class, ctx.lookup.maximum_salary_class);\nconst bonus = get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0);\nconst raw = round(bonus, 1000, 'DOWN');\nconst cappedBonus = raw > ctx.lookup.bonus_salary_ceiling ? ctx.lookup.bonus_salary_ceiling : raw;\nreturn round((base + cappedBonus) * ctx.lookup.employer_rate, 1, 'DOWN');",
+		"employer_amount": "// js\nconst facts = ctx.subject.employment.employee_extension_data;\nconst elected = get(facts, 'statutory.HEALTH.elections.standard_monthly_remuneration', null);\nconst grade = elected !== null ? Number(elected) : bracket(round(get(ctx.subtotals, 'ORDINARY_WAGES', 0), 1000, 'DOWN'), ctx.lookup.remuneration_grades);\nconst base = clamp(grade, ctx.lookup.pension_minimum_grade, ctx.lookup.pension_maximum_grade);\nconst paid = get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0);\nconst bonus = get(facts, 'statutory.HEALTH.elections.bonus_as_remuneration', false) === true ? 0 : paid;\nconst raw = round(bonus, 1000, 'DOWN');\nconst cappedBonus = raw > ctx.lookup.bonus_salary_ceiling ? ctx.lookup.bonus_salary_ceiling : raw;\nreturn round((base + cappedBonus) * ctx.lookup.employer_rate, 1, 'DOWN');",
 		"references": [
 			{
 				"title": "子ども・子育て支援法; 子ども・子育て支援法施行令",
@@ -1324,23 +174,12 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
-		"employer_cost_subtotal_id": "85e29e06-589d-5f8e-835d-ca602229b97b",
+		"employer_cost_subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
 		"off_cycle_eligible": false,
-		"lookup": {
-			"employee_rate": {
-				"GENERAL": 0.005,
-				"AGRICULTURE_SAKE": 0.006,
-				"CONSTRUCTION": 0.006
-			},
-			"employer_rate": {
-				"GENERAL": 0.0085,
-				"AGRICULTURE_SAKE": 0.0095,
-				"CONSTRUCTION": 0.0105
-			}
-		},
+		"lookup": {},
 		"eligibility": "// js\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', 'NONE');\nif (!['SOCIAL_AND_EMPLOYMENT', 'EMPLOYMENT_ONLY'].includes(category)) return false;\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nreturn end == null || end >= ctx.run.salary_coverage.from;",
 		"employee_amount": "// js\nconst kind = get(ctx.subject.employer.entity_extension_data, 'ei_industry_class', 'GENERAL');\nreturn round(get(ctx.subtotals, 'ORDINARY_WAGES', 0) * ctx.lookup.employee_rate[kind] - 0.0001, 1, 'HALF_UP');",
-		"employer_amount": "// js\nconst kind = get(ctx.subject.employer.entity_extension_data, 'ei_industry_class', 'GENERAL');\nreturn round(get(ctx.subtotals, 'ORDINARY_WAGES', 0) * ctx.lookup.employer_rate[kind], 1, 'DOWN');",
+		"employer_amount": "// js\nconst kind = get(ctx.subject.employer.entity_extension_data, 'ei_industry_class', 'GENERAL');\nreturn round(get(ctx.subtotals, 'ORDINARY_WAGES', 0) * ctx.lookup.ei_employer_rate[kind], 1, 'DOWN');",
 		"references": [
 			{
 				"title": "労働保険の保険料の徴収等に関する法律",
@@ -1358,23 +197,12 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": ["EI"],
 		"subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
-		"employer_cost_subtotal_id": "85e29e06-589d-5f8e-835d-ca602229b97b",
+		"employer_cost_subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
 		"off_cycle_eligible": false,
-		"lookup": {
-			"employee_rate": {
-				"GENERAL": 0.005,
-				"AGRICULTURE_SAKE": 0.006,
-				"CONSTRUCTION": 0.006
-			},
-			"employer_rate": {
-				"GENERAL": 0.0085,
-				"AGRICULTURE_SAKE": 0.0095,
-				"CONSTRUCTION": 0.0105
-			}
-		},
+		"lookup": {},
 		"eligibility": "// js\nconst category = get(ctx.subject.employment.terms, 'statutory_work_category', 'NONE');\nif (!['SOCIAL_AND_EMPLOYMENT', 'EMPLOYMENT_ONLY'].includes(category)) return false;\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (end != null && !(end >= ctx.run.salary_coverage.from)) return false;\nreturn get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0) > 0;",
 		"employee_amount": "// js\nconst kind = get(ctx.subject.employer.entity_extension_data, 'ei_industry_class', 'GENERAL');\nconst bonus = get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0);\nreturn round(bonus * ctx.lookup.employee_rate[kind] - 0.0001, 1, 'HALF_UP');",
-		"employer_amount": "// js\nconst kind = get(ctx.subject.employer.entity_extension_data, 'ei_industry_class', 'GENERAL');\nconst bonus = get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0);\nreturn round(bonus * ctx.lookup.employer_rate[kind], 1, 'DOWN');",
+		"employer_amount": "// js\nconst kind = get(ctx.subject.employer.entity_extension_data, 'ei_industry_class', 'GENERAL');\nconst bonus = get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0);\nreturn round(bonus * ctx.lookup.ei_employer_rate[kind], 1, 'DOWN');",
 		"references": [
 			{
 				"title": "労働保険の保険料の徴収等に関する法律; 雇用保険法",
@@ -1391,7 +219,7 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
-		"employer_cost_subtotal_id": "85e29e06-589d-5f8e-835d-ca602229b97b",
+		"employer_cost_subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
 		"off_cycle_eligible": false,
 		"lookup": {},
 		"eligibility": "// js\nconst classification = get(ctx.subject.employment.terms, 'work_classification', 'EMPLOYEE');\nreturn classification !== 'OFFICER' && get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) > 0;",
@@ -1413,7 +241,7 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
-		"employer_cost_subtotal_id": "85e29e06-589d-5f8e-835d-ca602229b97b",
+		"employer_cost_subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
 		"off_cycle_eligible": false,
 		"lookup": {
 			"rate": 2e-5
@@ -1447,7 +275,7 @@
 			"CHILD_SUPPORT_BONUS"
 		],
 		"subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
-		"employer_cost_subtotal_id": "85e29e06-589d-5f8e-835d-ca602229b97b",
+		"employer_cost_subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
 		"off_cycle_eligible": false,
 		"lookup": {
 			"salary_income_deduction": [
@@ -1544,18 +372,21 @@
 			"dependant_monthly_deduction": 31667,
 			"otsu_small_salary_rate": 0.03063,
 			"otsu_small_salary_ceiling": 111000,
-			"nonresident_rate": 0.2042,
-			"ten_units": 10
+			"ten_units": 10,
+			"otsu_dependant_deduction": 1610,
+			"bonus_prior_pay_multiple": 10,
+			"bonus_divisor": 6,
+			"bonus_long_period_divisor": 12
 		},
 		"eligibility": "// js\nconst residency = get(ctx.subject.employment.terms, 'residency_status', 'RESIDENT');\nif (!(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) > 0)) return false;\nif (get(ctx.subject.employment.employee_extension_data, 'statutory.INCOME_TAX.elections.treaty_exempt', false) === true) return false;\nreturn residency !== '';",
-		"employee_amount": "// js\nconst pick = (rows, value) => {\n\tfor (const row of rows) if (row.up_to == null || value <= row.up_to) return row;\n\treturn rows[rows.length - 1];\n};\nconst facts = ctx.subject.employment.employee_extension_data;\nconst elections = get(facts, 'statutory.INCOME_TAX.elections', {});\nif (get(elections, 'treaty_exempt', false) === true) return 0;\nif (get(ctx.subject.employment.terms, 'residency_status', 'RESIDENT') === 'NON_RESIDENT') return round(get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) * ctx.lookup.nonresident_rate, 1, 'DOWN');\nconst dependants = Number(get(elections, 'withholding_dependants', 0));\nconst declared = get(elections, 'dependency_declaration_filed', false) === true;\nconst social = (code) => get(ctx.statutory, code + '.employee', 0);\nconst salarySocial = social('HEALTH') + social('PENSION') + social('EI') + social('CHILD_SUPPORT');\nconst bonusSocial = social('HEALTH_BONUS') + social('PENSION_BONUS') + social('EI_BONUS') + social('CHILD_SUPPORT_BONUS');\nconst taxableOf = (amount, contributions) => {\n\tconst afterSocial = amount - contributions;\n\tconst deduction = pick(ctx.lookup.salary_income_deduction, afterSocial);\n\tconst basic = pick(ctx.lookup.basic_deduction, afterSocial);\n\tconst taxable = afterSocial - round(afterSocial * deduction.rate + deduction.offset, 1, 'UP') - (afterSocial * basic.rate + basic.offset) - ctx.lookup.dependant_monthly_deduction * dependants;\n\treturn taxable;\n};\nconst taxOn = (amount, contributions) => {\n\tconst taxable = taxableOf(amount, contributions);\n\tif (taxable <= 0) return 0;\n\tconst band = pick(ctx.lookup.monthly_tax, taxable);\n\treturn round(taxable * band.rate + band.offset, ctx.lookup.ten_units, 'HALF_UP');\n};\nconst bonus = get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0);\nconst salary = get(ctx.subtotals, 'ORDINARY_WAGES', 0);\nconst net = salary - salarySocial;\nif (declared !== true && ctx.lookup.otsu_small_salary_ceiling !== null && net < ctx.lookup.otsu_small_salary_ceiling) return round(net * ctx.lookup.otsu_small_salary_rate, 1, 'DOWN');\nconst salaryTax = salary > 0 ? taxOn(salary, salarySocial) : 0;\nconst bonusTax = bonus > 0 ? 6 * taxOn(bonus / 6, bonusSocial / 6) : 0;\nreturn round(salaryTax + bonusTax, ctx.lookup.ten_units, 'HALF_UP');",
+		"employee_amount": "// js\nconst pick = (rows, value) => {\n\tfor (const row of rows) if (row.up_to == null || value <= row.up_to) return row;\n\treturn rows[rows.length - 1];\n};\nconst facts = ctx.subject.employment.employee_extension_data;\nconst terms = ctx.subject.employment.terms;\nconst elections = get(facts, 'statutory.INCOME_TAX.elections', {});\nif (get(elections, 'treaty_exempt', false) === true) return 0;\n// 所得税法 art.9(1)(v), 所得税基本通達 28-1: pay in NON_TAXABLE_PAY, above BASIC, is outside the base.\nconst exempt = get(ctx.subtotals, 'NON_TAXABLE_PAY', 0) - get(ctx.subtotals, 'BASIC', 0);\nconst ordinary = get(ctx.subtotals, 'ORDINARY_WAGES', 0);\nconst salary = ordinary - exempt;\nconst bonus = get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - ordinary;\nif (get(terms, 'residency_status', 'RESIDENT') === 'NON_RESIDENT') return round((salary + bonus) * ctx.lookup.nonresident_rate, 1, 'DOWN');\nconst declared = get(elections, 'dependency_declaration_filed', false) === true;\nconst dependants = Number(get(elections, 'withholding_dependants', 0));\nconst social = (code) => get(ctx.statutory, code + '.employee', 0);\nconst salaryCodes = ['HEALTH', 'PENSION', 'EI', 'CHILD_SUPPORT'];\nconst salarySocial = sum(salaryCodes.map(social));\nconst bonusSocial = sum(['HEALTH_BONUS', 'PENSION_BONUS', 'EI_BONUS', 'CHILD_SUPPORT_BONUS'].map(social));\n// 甲欄 by the 電算機計算の特例 (平成24年財務省告示第116号).\nconst ko = (net) => {\n\tconst deduction = pick(ctx.lookup.salary_income_deduction, net);\n\tconst basic = pick(ctx.lookup.basic_deduction, net);\n\tconst taxable = net - round(net * deduction.rate + deduction.offset, 1, 'UP') - (net * basic.rate + basic.offset) - ctx.lookup.dependant_monthly_deduction * dependants;\n\tif (taxable <= 0) return 0;\n\tconst band = pick(ctx.lookup.monthly_tax, taxable);\n\treturn round(taxable * band.rate + band.offset, ctx.lookup.ten_units, 'HALF_UP');\n};\n// 乙欄 and 丙欄: under the first row a share, then the table, then a fixed sum plus a rate on the excess.\nconst banded = (amount, table, excess) => {\n\tconst top = excess.filter((row) => amount > row.from).at(-1);\n\tif (top != null) return round(top.base + (amount - top.from) * top.rate, 1, 'DOWN');\n\treturn bracket(amount, table);\n};\nconst otsu = (net) => {\n\tconst amount = round(net, 1, 'DOWN');\n\tif (amount < ctx.lookup.otsu_small_salary_ceiling) return round(amount * ctx.lookup.otsu_small_salary_rate, 1, 'DOWN');\n\tconst tax = banded(amount, ctx.lookup.otsu_monthly_tax, ctx.lookup.otsu_excess);\n\treturn Math.max(0, tax - Number(get(elections, 'secondary_dependants', 0)) * ctx.lookup.otsu_dependant_deduction);\n};\nconst table = (net) => {\n\tif (net <= 0) return 0;\n\treturn declared ? ko(net) : otsu(net);\n};\nconst salaryTax = () => {\n\tif (salary <= 0) return 0;\n\tif (get(facts, 'daily_wage_earner', false) !== true) return table(salary - salarySocial);\n\t// 所得税法 art.185(1)(iii): 日雇 pay is taxed day by day on the 丙欄.\n\tconst worked = get(ctx, 'work.days', []).filter((day) => get(day, 'worked', false) === true).length;\n\tconst rate = Number(get(terms, 'rate.amount', 0));\n\tconst days = get(terms, 'rate.unit', '') === 'DAILY' && rate > 0 ? round(salary / rate, 1, 'UP') : Math.max(worked, 1);\n\tconst perDay = round((salary - salarySocial) / days, 1, 'DOWN');\n\tif (perDay <= 0) return 0;\n\treturn days * banded(perDay, ctx.lookup.hei_daily_tax, ctx.lookup.hei_excess);\n};\n// 所得税法 art.186: the bonus rate turns on the previous month's pay after premiums.\nconst month = get(ctx.balances, 'month', {});\nconst heldIn = (paid, code) => (Object.hasOwn(month, paid + '.' + code) ? Number(month[paid + '.' + code]) : 0);\nconst lastMonth = add_months(String(ctx.run.pay_date).slice(0, 7) + '-01', -1).slice(0, 7);\nconst heldLast = (code) => heldIn(lastMonth, code);\nconst prior = heldLast('ORDINARY_WAGES') - Math.max(0, heldLast('NON_TAXABLE_PAY') - heldLast('BASIC')) - sum(salaryCodes.map((code) => heldLast(code + '.employee')));\nconst bonusTax = () => {\n\tconst net = bonus - bonusSocial;\n\tif (net <= 0) return 0;\n\tif (prior > 0 && net <= prior * ctx.lookup.bonus_prior_pay_multiple) {\n\t\tconst rows = declared ? ctx.lookup.bonus_rate_ko[Math.min(dependants, ctx.lookup.bonus_rate_ko.length - 1)] : ctx.lookup.bonus_rate_otsu;\n\t\treturn round(net * bracket(round(prior, 1, 'DOWN'), rows), 1, 'DOWN');\n\t}\n\t// No prior pay, or over ten times it: the 月額表 on a sixth of the bonus, a twelfth for a period over six months.\n\tconst long = get(ctx.subtotals, 'LONG_PERIOD_BONUS', 0) - ordinary > 0;\n\tconst months = long ? ctx.lookup.bonus_long_period_divisor : ctx.lookup.bonus_divisor;\n\tconst base = Math.max(0, prior);\n\treturn months * (table(round(net / months, 1, 'DOWN') + base) - table(base));\n};\nreturn round(salaryTax() + bonusTax(), 1, 'DOWN');",
 		"employer_amount": "// js\nreturn 0;",
 		"references": [
 			{
 				"title": "所得税法; 復興財源確保法",
 				"locator": "所得税法183条、185条、186条; 復興財源確保法28〜31条",
 				"url": "https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2027/data/18.pdf",
-				"quote": "2027 月額表 (防衛特別所得税 from 2027, combined rates unchanged): 甲欄 when the 給与所得者の扶養控除等申告書 is filed with this employer (art.194), by the 電算機計算の特例; without the declaration only the 乙欄 band under 111,000 in the 2027 table is computed: 3.063% of the pay after social insurance, truncated to the yen. The rest of the 乙欄, the 丙欄 and the bonus rate table (別表第三) are not implemented. Base: the payment's salary less the social insurance premiums deducted from it (art.185(1)(i)); the non-taxable commuting allowance is not yet taken out. Tables apply to pay payable from 1 January (art.185); the table year follows the pay day."
+				"quote": "2027 月額表 (防衛特別所得税 from 2027, combined rates unchanged): 甲欄 when the 給与所得者の扶養控除等申告書 is filed with this employer (art.194), by the 電算機計算の特例; without it the 乙欄, less 1,610 yen for each dependant on a 従たる給与 declaration; 日雇 pay on the 丙欄 (art.185(1)(iii)). A bonus goes by the 算出率の表 (別表第三) on the previous month's pay after premiums, or by the 月額表 with no such pay or a bonus over ten times it, on a sixth, or a twelfth for a period over six months (art.186). Base: the payment's taxable pay less the premiums deducted from it (art.185(1)(i)); NON_TAXABLE_PAY stays out (art.9(1)(v), 所得税基本通達 28-1). Tables apply to pay payable from 1 January (art.185); the table year follows the pay day."
 			}
 		],
 		"id": "d1d77952-4dde-5e21-9a30-d24bb227ae16",
@@ -1567,136 +398,18 @@
 		"kind": "TAX",
 		"depends_on": ["INCOME_TAX", "HEALTH", "PENSION", "EI"],
 		"subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
-		"employer_cost_subtotal_id": "85e29e06-589d-5f8e-835d-ca602229b97b",
+		"employer_cost_subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
 		"off_cycle_eligible": false,
-		"lookup": {
-			"salary_income_deduction": [
-				{
-					"up_to": 2190999,
-					"rate": 0,
-					"offset": 740000
-				},
-				{
-					"up_to": 2192999,
-					"rate": 1,
-					"offset": -1451000
-				},
-				{
-					"up_to": 2195999,
-					"rate": 1,
-					"offset": -1453000
-				},
-				{
-					"up_to": 2199999,
-					"rate": 1,
-					"offset": -1456000
-				},
-				{
-					"up_to": 3599999,
-					"rate": 0.3,
-					"offset": 80000
-				},
-				{
-					"up_to": 6599999,
-					"rate": 0.2,
-					"offset": 440000
-				},
-				{
-					"up_to": 8499999,
-					"rate": 0.1,
-					"offset": 1100000
-				},
-				{
-					"up_to": null,
-					"rate": 0,
-					"offset": 1950000
-				}
-			],
-			"basic_deduction": [
-				{
-					"up_to": 4890000,
-					"rate": 0,
-					"offset": 1040000
-				},
-				{
-					"up_to": 6550000,
-					"rate": 0,
-					"offset": 670000
-				},
-				{
-					"up_to": 23500000,
-					"rate": 0,
-					"offset": 620000
-				},
-				{
-					"up_to": 24000000,
-					"rate": 0,
-					"offset": 480000
-				},
-				{
-					"up_to": 24500000,
-					"rate": 0,
-					"offset": 320000
-				},
-				{
-					"up_to": 25000000,
-					"rate": 0,
-					"offset": 160000
-				},
-				{
-					"up_to": null,
-					"rate": 0,
-					"offset": 0
-				}
-			],
-			"annual_tax": [
-				{
-					"up_to": 1950000,
-					"rate": 0.05,
-					"offset": 0
-				},
-				{
-					"up_to": 3300000,
-					"rate": 0.1,
-					"offset": -97500
-				},
-				{
-					"up_to": 6950000,
-					"rate": 0.2,
-					"offset": -427500
-				},
-				{
-					"up_to": 9000000,
-					"rate": 0.23,
-					"offset": -636000
-				},
-				{
-					"up_to": 18000000,
-					"rate": 0.33,
-					"offset": -1536000
-				},
-				{
-					"up_to": 40000000,
-					"rate": 0.4,
-					"offset": -2796000
-				},
-				{
-					"up_to": null,
-					"rate": 0.45,
-					"offset": -4796000
-				}
-			],
-			"reconstruction_multiplier": 1.021
-		},
-		"eligibility": "// js\nif (ctx.run.period.substring(5, 7) !== '12') return false;\nif (get(ctx.subject.employment.terms, 'residency_status', 'RESIDENT') !== 'RESIDENT') return false;\nreturn get(ctx.subject.employment.employee_extension_data, 'statutory.INCOME_TAX.elections.dependency_declaration_filed', false) === true;",
-		"employee_amount": "// js\nconst pick = (rows, value) => {\n\tfor (const row of rows) if (row.up_to == null || value <= row.up_to) return row;\n\treturn rows[rows.length - 1];\n};\nconst year = ctx.run.period.substring(0, 4);\nconst slips = get(ctx.history, 'payslips', []).filter((slip) => String(get(slip, 'period', '')).slice(0, 4) === year);\nconst elections = get(ctx.subject.employment.employee_extension_data, 'statutory.YEAR_END_ADJUSTMENT.elections', {});\nconst salary = sum_field(slips, 'ordinary_wages') + sum_field(slips, 'additional_wages') + get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) + Number(get(elections, 'prior_employer_income', 0));\n// 所得税法 art.190: pay above 20,000,000 is settled on the employee's own return.\nif (salary <= 0 || salary > 20000000) return 0;\nconst band = pick(ctx.lookup.salary_income_deduction, salary);\n// 所得税法 別表第五: under 6,600,000 the graduated bands apply to the lower bound of the table's 4,000-yen row.\nconst stepped = band.rate > 0 && band.rate < 1 && salary < 6600000;\nconst row = stepped ? round(salary / 4, 1000, 'DOWN') * 4 : salary;\nconst income = Math.max(0, row - round(row * band.rate + band.offset, 1, 'UP') - Number(get(elections, 'yea_income_adjustment', 0)));\nconst basic = pick(ctx.lookup.basic_deduction, income + Number(get(elections, 'yea_other_income', 0)));\nconst thisRun = ['HEALTH', 'HEALTH_BONUS', 'PENSION', 'PENSION_BONUS', 'EI', 'EI_BONUS', 'CHILD_SUPPORT', 'CHILD_SUPPORT_BONUS'].map((code) => get(ctx.statutory, code + '.employee', 0));\nconst social = sum_field(slips, 'employee_statutory') + sum(thisRun);\nconst declared = sum(['prior_employer_social_insurance', 'yea_other_social_insurance', 'yea_insurance_deductions', 'yea_spouse_deduction', 'yea_specific_relative_deduction', 'yea_dependant_deduction', 'yea_personal_deductions'].map((key) => Number(get(elections, key, 0))));\nconst withheld = sum_field(get(ctx.history, 'statutory', []).filter((row) => row.code === 'INCOME_TAX'), 'employee') + get(ctx.statutory, 'INCOME_TAX.employee', 0) + Number(get(elections, 'prior_employer_tax', 0));\nconst taxable = round(income - social - declared - basic.offset, 1000, 'DOWN');\nif (taxable <= 0) return -withheld;\nconst tax = pick(ctx.lookup.annual_tax, taxable);\nconst adjusted = Math.max(0, taxable * tax.rate + tax.offset - Number(get(elections, 'yea_housing_loan_credit', 0)));\nreturn round(adjusted * ctx.lookup.reconstruction_multiplier, 100, 'DOWN') - withheld;",
+		"lookup": {},
+		"eligibility": "// js\nif (get(ctx.subject.employment.terms, 'residency_status', 'RESIDENT') !== 'RESIDENT') return false;\nconst facts = ctx.subject.employment.employee_extension_data;\nif (get(facts, 'statutory.INCOME_TAX.elections.dependency_declaration_filed', false) !== true) return false;\n// 所得税法 art.190: the year's last pay falls in December. The balance turns over by pay date, so this reads the pay date too.\nif (ctx.run.pay_date.substring(5, 7) === '12') return true;\n// 年末調整のしかた: a leaver is adjusted at the exit on departure abroad, or with no further salary expected after a disability exit or on low pay.\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (end == null) return false;\nif (end < ctx.run.salary_coverage.from || end > ctx.run.salary_coverage.to) return false;\nif (get(facts, 'departure_abroad', false) === true) return true;\nif (get(facts, 'further_salary_expected_this_year', true) !== false) return false;\nif (get(facts, 'severe_disability_prevents_reemployment', false) === true) return true;\nconst earned = (code) => get(ctx, 'balances.ytd.' + code, 0) + get(ctx.subtotals, code, 0);\nreturn earned('ADDITIONAL_WAGES') - earned('NON_TAXABLE_PAY') + earned('BASIC') <= ctx.lookup.midyear_salary_limit;",
+		"employee_amount": "// js\nconst pick = (rows, value) => {\n\tfor (const row of rows) if (row.up_to == null || value <= row.up_to) return row;\n\treturn rows[rows.length - 1];\n};\nconst elections = get(ctx.subject.employment.employee_extension_data, 'statutory.YEAR_END_ADJUSTMENT.elections', {});\nconst held = get(ctx, 'balances.statutory_contribution', {});\nconst earned = (code) => get(ctx, 'balances.ytd.' + code, 0) + get(ctx.subtotals, code, 0);\nconst paid = (code) => (Object.hasOwn(held, code + '.employee') ? held[code + '.employee'] : 0) + get(ctx.statutory, code + '.employee', 0);\n// 所得税法 art.9(1)(v): NON_TAXABLE_PAY, above BASIC, is not the year's pay.\nconst salary = earned('ADDITIONAL_WAGES') - earned('NON_TAXABLE_PAY') + earned('BASIC') + Number(get(elections, 'prior_employer_income', 0));\n// 所得税法 art.190: pay above 20,000,000 is settled on the employee's own return.\nif (salary <= 0 || salary > 20000000) return 0;\nconst band = pick(ctx.lookup.annual_salary_income_deduction, salary);\n// 所得税法 別表第五: under 6,600,000 the graduated bands apply to the lower bound of the table's 4,000-yen row.\nconst stepped = band.rate > 0 && band.rate < 1 && salary < 6600000;\nconst row = stepped ? round(salary / 4, 1000, 'DOWN') * 4 : salary;\nconst income = Math.max(0, row - round(row * band.rate + band.offset, 1, 'UP') - Number(get(elections, 'yea_income_adjustment', 0)));\nconst basic = pick(ctx.lookup.annual_basic_deduction, income + Number(get(elections, 'yea_other_income', 0)));\nconst social = sum(['HEALTH', 'HEALTH_BONUS', 'PENSION', 'PENSION_BONUS', 'EI', 'EI_BONUS', 'CHILD_SUPPORT', 'CHILD_SUPPORT_BONUS'].map(paid));\nconst declared = sum(['prior_employer_social_insurance', 'yea_other_social_insurance', 'yea_insurance_deductions', 'yea_spouse_deduction', 'yea_specific_relative_deduction', 'yea_dependant_deduction', 'yea_personal_deductions'].map((key) => Number(get(elections, key, 0))));\n// The balance keeps each scheme apart, so resident tax never counts as income tax withheld.\nconst withheld = paid('INCOME_TAX') + paid('YEAR_END_ADJUSTMENT') + Number(get(elections, 'prior_employer_tax', 0));\nconst taxable = round(income - social - declared - basic.offset, 1000, 'DOWN');\nconst tax = pick(ctx.lookup.annual_tax, taxable);\nconst adjusted = taxable <= 0 ? 0 : Math.max(0, taxable * tax.rate + tax.offset - Number(get(elections, 'yea_housing_loan_credit', 0)));\nconst difference = round(adjusted * ctx.lookup.reconstruction_multiplier, 100, 'DOWN') - withheld;\nreturn difference;",
 		"employer_amount": "// js\nreturn 0;",
 		"references": [
 			{
 				"title": "所得税法",
 				"locator": "190〜193条",
 				"url": "https://www.nta.go.jp/publication/pamph/gensen/nencho2026/pdf/nencho_all.pdf",
-				"quote": "At the last salary payment of the year (a pay day in December, or the exit month of a leaver who dies, leaves in December or departs abroad, or the month of a departure abroad) the employer settles the year's tax of a resident who filed the 扶養控除等申告書 and earned 20,000,000 or less. 令和8・9年分 tables (令和8年度改正, in force 1 December 2026 for 令和8年分): 給与所得控除 at least 740,000, 基礎控除 1,040,000 at 4,890,000 or less, 670,000 at 6,550,000 or less, else 620,000 to 23,500,000. Tax: the 速算表 on the taxable income (1,000 yen down) less the housing loan credit, times 102.1%, 100 yen down; the adjustment is that annual tax less the year's withholding (a refund when negative). Only the December run is computed here; the year's withholding reads the all-time statutory history."
+				"quote": "At the last salary payment of the year (a pay day in December, or the exit month of a leaver who dies, leaves in December or departs abroad, or the month of a departure abroad) the employer settles the year's tax of a resident who filed the 扶養控除等申告書 and earned 20,000,000 or less. 令和8・9年分 tables (令和8年度改正, in force 1 December 2026 for 令和8年分): 給与所得控除 at least 740,000, 基礎控除 1,040,000 at 4,890,000 or less, 670,000 at 6,550,000 or less, else 620,000 to 23,500,000. Tax: the 速算表 on the taxable income (1,000 yen down) less the housing loan credit, times 102.1%, 100 yen down; the adjustment is that annual tax less the year's withholding (a refund when negative). Computed on a December pay day and at a qualifying exit (年末調整のしかた 令和8年分 pp.5-6: departure abroad, or no further salary expected after a disability exit or with the year's pay at most the row's limit). Year figures read the balance, each scheme apart, so resident tax stays out. YEAR_END_REFUND returns an over-withholding."
 			}
 		],
 		"id": "1e8e3ac9-7a36-5c4d-b09d-d69d4c3424f2",
@@ -1708,62 +421,20 @@
 		"kind": "TAX",
 		"depends_on": [],
 		"subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
-		"employer_cost_subtotal_id": "85e29e06-589d-5f8e-835d-ca602229b97b",
+		"employer_cost_subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
 		"off_cycle_eligible": false,
 		"lookup": {
-			"minimum_service_deduction": 800000,
-			"annual_service_deduction": 400000,
-			"breakpoint_deduction": 8000000,
-			"extended_annual_service_deduction": 700000,
-			"taxable_share": 0.5,
-			"reconstruction_multiplier": 1.021,
-			"annual_tax": [
-				{
-					"up_to": 1950000,
-					"rate": 0.05,
-					"offset": 0
-				},
-				{
-					"up_to": 3300000,
-					"rate": 0.1,
-					"offset": -97500
-				},
-				{
-					"up_to": 6950000,
-					"rate": 0.2,
-					"offset": -427500
-				},
-				{
-					"up_to": 9000000,
-					"rate": 0.23,
-					"offset": -636000
-				},
-				{
-					"up_to": 18000000,
-					"rate": 0.33,
-					"offset": -1536000
-				},
-				{
-					"up_to": 40000000,
-					"rate": 0.4,
-					"offset": -2796000
-				},
-				{
-					"up_to": null,
-					"rate": 0.45,
-					"offset": -4796000
-				}
-			]
+			"no_declaration_rate": 0.2042
 		},
 		"eligibility": "// js\nconst residency = get(ctx.subject.employment.terms, 'residency_status', '');\nreturn get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) > 0 && ['RESIDENT', 'NON_RESIDENT'].includes(residency);",
-		"employee_amount": "// js\nconst pick = (rows, value) => {\n\tfor (const row of rows) if (row.up_to == null || value <= row.up_to) return row;\n\treturn rows[rows.length - 1];\n};\nconst allowance = get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0);\nconst start = get(ctx.subject.employment, 'effective_range.from', ctx.run.salary_coverage.from);\n// 所得税法施行令 art.69: service runs to the retirement day and a part year counts as a whole year.\nconst after = add_days(get(ctx.subject.employment, 'effective_range.to', ctx.run.pay_date), 1);\nconst months = calendar_completed_months(start, after);\nconst years = divide_round(add_months(start, months) < after ? months + 1 : months, 12, 0, 'UP');\nconst deduction = years <= 20 ? Math.max(years * ctx.lookup.annual_service_deduction, ctx.lookup.minimum_service_deduction) : ctx.lookup.breakpoint_deduction + (years - 20) * ctx.lookup.extended_annual_service_deduction;\nconst remainder = allowance - deduction;\nif (remainder <= 0) return 0;\n// 所得税法 art.30(2): five years of service or less: no half for an officer, and only the first 3,000,000 halved for others.\nlet income = remainder * ctx.lookup.taxable_share;\nif (years <= 5 && get(ctx.subject.employment.terms, 'work_classification', '') === 'OFFICER') income = remainder;\nelse if (years <= 5 && remainder > 3000000) income = remainder - 1500000;\nconst taxable = round(income, 1000, 'DOWN');\nconst band = pick(ctx.lookup.annual_tax, taxable);\nreturn round((taxable * band.rate + band.offset) * ctx.lookup.reconstruction_multiplier, 1, 'DOWN');",
+		"employee_amount": "// js\nconst pick = (rows, value) => {\n\tfor (const row of rows) if (row.up_to == null || value <= row.up_to) return row;\n\treturn rows[rows.length - 1];\n};\nconst allowance = get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0);\n// 所得税法 art.212: a non-resident's retirement pay is taxed flat.\nif (get(ctx.subject.employment.terms, 'residency_status', '') === 'NON_RESIDENT') return round(allowance * ctx.lookup.nonresident_rate, 1, 'DOWN');\n// 所得税法 art.201(3): without the 退職所得の受給に関する申告書 the payment is taxed flat, with no deduction.\nconst undeclared = get(ctx.subtotals, 'RETIREMENT_UNDECLARED', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0);\nconst flat = round(undeclared * ctx.lookup.no_declaration_rate, 1, 'DOWN');\nconst start = get(ctx.subject.employment, 'effective_range.from', ctx.run.salary_coverage.from);\n// 所得税法施行令 art.69: service runs to the retirement day and a part year counts as a whole year.\nconst after = add_days(get(ctx.subject.employment, 'effective_range.to', ctx.run.pay_date), 1);\nconst months = calendar_completed_months(start, after);\nconst years = divide_round(add_months(start, months) < after ? months + 1 : months, 12, 0, 'UP');\nconst deduction = years <= 20 ? Math.max(years * ctx.lookup.annual_service_deduction, ctx.lookup.minimum_service_deduction) : ctx.lookup.breakpoint_deduction + (years - 20) * ctx.lookup.extended_annual_service_deduction;\nconst remainder = allowance - undeclared - deduction;\nif (remainder <= 0) return flat;\n// 所得税法 art.30(2): five years of service or less: no half for an officer, and only the first 3,000,000 halved for others.\nlet income = remainder * ctx.lookup.taxable_share;\nif (years <= 5 && get(ctx.subject.employment.terms, 'work_classification', '') === 'OFFICER') income = remainder;\nelse if (years <= 5 && remainder > 3000000) income = remainder - 1500000;\nconst taxable = round(income, 1000, 'DOWN');\nconst band = pick(ctx.lookup.annual_tax, taxable);\nreturn flat + round((taxable * band.rate + band.offset) * ctx.lookup.reconstruction_multiplier, 1, 'DOWN');",
 		"employer_amount": "// js\nreturn 0;",
 		"references": [
 			{
 				"title": "所得税法",
 				"locator": "30条（退職所得）、89条（税率）、203条（源泉徴収）",
 				"url": "https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1420.htm",
-				"quote": "退職所得の金額は、退職手当等の収入金額から退職所得控除額を控除した残額の二分の一に相当する金額とする。 Service years round a part year up. Five years or less: an officer gets no half (特定役員退職手当等); for others only the first 3,000,000 of the remainder is halved (短期退職手当等). The taxable amount drops to the 1,000 yen; the tax to the yen. Without the 退職所得の受給に関する申告書 the rate is 20.42%, not implemented here."
+				"quote": "退職所得の金額は、退職手当等の収入金額から退職所得控除額を控除した残額の二分の一に相当する金額とする。 Service years round a part year up. Five years or less: an officer gets no half (特定役員退職手当等); for others only the first 3,000,000 of the remainder is halved (短期退職手当等). The taxable amount drops to the 1,000 yen; the tax to the yen. Without the 退職所得の受給に関する申告書 the payment is withheld at 20.42% (art.201(3)): RETIREMENT_ALLOWANCE_UNDECLARED. A non-resident is withheld at 20.42% (art.212). 解雇予告手当 is retirement income (所得税基本通達 30-5)."
 			}
 		],
 		"id": "6f1bac54-2f71-5890-ae41-515c53f0713e",
@@ -1775,14 +446,9 @@
 		"kind": "TAX",
 		"depends_on": ["RETIREMENT_TAX"],
 		"subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
-		"employer_cost_subtotal_id": "85e29e06-589d-5f8e-835d-ca602229b97b",
+		"employer_cost_subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
 		"off_cycle_eligible": false,
 		"lookup": {
-			"minimum_service_deduction": 800000,
-			"annual_service_deduction": 400000,
-			"breakpoint_deduction": 8000000,
-			"extended_annual_service_deduction": 700000,
-			"taxable_share": 0.5,
 			"municipal_rate": 0.06,
 			"prefectural_rate": 0.04
 		},
@@ -1806,11 +472,11 @@
 		"kind": "TAX",
 		"depends_on": [],
 		"subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
-		"employer_cost_subtotal_id": "85e29e06-589d-5f8e-835d-ca602229b97b",
+		"employer_cost_subtotal_id": "0d616af4-d40a-5721-9a48-1f905cd0940e",
 		"off_cycle_eligible": false,
 		"lookup": {},
 		"eligibility": "// js\nconst monthly = Number(get(ctx.subject.employment.employee_extension_data, 'statutory.RESIDENT_TAX.elections.monthly_amount', 0));\nreturn monthly > 0 && get(ctx.subtotals, 'ORDINARY_WAGES', 0) > 0;",
-		"employee_amount": "// js\nconst elections = get(ctx.subject.employment.employee_extension_data, 'statutory.RESIDENT_TAX.elections', {});\nconst monthly = Number(get(elections, 'monthly_amount', 0));\nif (monthly <= 0) return 0;\nconst month = Number(ctx.run.salary_coverage.from.substring(5, 7));\nconst current = month === 6 ? Number(get(elections, 'june_amount', monthly)) : monthly;\nconst exitDate = get(ctx.subject.employment, 'effective_range.to', null);\nconst leaver = exitDate != null && exitDate >= ctx.run.salary_coverage.from && exitDate <= ctx.run.salary_coverage.to;\nif (leaver !== true || get(elections, 'lump_sum_on_exit', false) !== true) return current;\nconst remaining = month <= 5 ? 5 - month : 17 - month;\nreturn current + monthly * remaining;",
+		"employee_amount": "// js\nconst elections = get(ctx.subject.employment.employee_extension_data, 'statutory.RESIDENT_TAX.elections', {});\nconst monthly = Number(get(elections, 'monthly_amount', 0));\nif (monthly <= 0) return 0;\nconst month = Number(ctx.run.salary_coverage.from.substring(5, 7));\nconst current = month === 6 ? Number(get(elections, 'june_amount', monthly)) : monthly;\nconst exitDate = get(ctx.subject.employment, 'effective_range.to', null);\nconst leaver = exitDate != null && exitDate >= ctx.run.salary_coverage.from && exitDate <= ctx.run.salary_coverage.to;\nif (leaver !== true) return current;\nconst remaining = month <= 5 ? 5 - month : 17 - month;\nif (get(elections, 'lump_sum_on_exit', false) === true) return current + monthly * remaining;\n// 地方税法 art.321の5(2): from January to April the rest falls due unasked, where the pay covers it.\nif (month > 4 || get(ctx.subtotals, 'ORDINARY_WAGES', 0) <= monthly * remaining) return current;\nreturn current + monthly * remaining;",
 		"employer_amount": "// js\nreturn 0;",
 		"references": [
 			{

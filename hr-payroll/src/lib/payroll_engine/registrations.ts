@@ -1,8 +1,8 @@
 import { Effect, Schema } from 'effect';
 import type { EffectCtx } from '@norbital-ai/bolt';
 import { evaluate } from './expressions.js';
-import { Refusal, isJsonObject, type Json } from './foundation.js';
-import type { JsonObject } from './contracts.js';
+import { Refusal, isJsonObject, jsonObject, type Json } from './foundation.js';
+import { JsonObject } from './contracts.js';
 import { queryRows, type Reader } from './reads.js';
 import { ReadRequestSchema } from '@norbital-ai/bolt/protocol';
 
@@ -120,6 +120,100 @@ export const resolveRead = (value: Json, data: Record<string, unknown>): Json =>
 	return value;
 };
 
+const SUBJECT_CONTRACT = [
+	'id',
+	'employee_id',
+	'entity_id',
+	'input_schema_version_id',
+	'effective_range',
+	'terms',
+	'payroll',
+	'engagement',
+	'employee_extension_data'
+] as const;
+const SUBJECT_EMPLOYER = [
+	'id',
+	'entity_id',
+	'effective_range',
+	'time_zone',
+	'payment_schedule',
+	'pay_cutoff_day',
+	'entity_extension_data',
+	'registrations'
+] as const;
+const latestVersion = (rows: readonly JsonObject[]): JsonObject | undefined => {
+	const start = (row: JsonObject): string =>
+		isJsonObject(row.effective_range) && typeof row.effective_range.from === 'string'
+			? row.effective_range.from
+			: '';
+	return rows.toSorted((a, b) => start(a).localeCompare(start(b))).at(-1);
+};
+type SubjectCache = {
+	contracts: Map<string, JsonObject>;
+	employers: Map<string, JsonObject>;
+	employees: Map<string, JsonObject>;
+};
+const idsIn = (values: readonly (string | undefined)[]): readonly string[] => [
+	...new Set(values.flatMap((value) => (value === undefined ? [] : [value])))
+];
+/** One read per kind for the whole batch: `subjectValue` then answers every row from the cache. */
+const primeSubjects = Effect.fnUntraced(function* (
+	read: Reader,
+	rows: readonly JsonObject[],
+	cache: SubjectCache,
+	needs: { employer: boolean; employee: boolean }
+) {
+	const contracts = idsIn(rows.map((row) => refId(row.employment_id))).filter(
+		(id) => !cache.contracts.has(id)
+	);
+	if (contracts.length > 0) {
+		const found = yield* queryRows(read, {
+			employee_contract: {
+				where: { id: { in: [...contracts] } },
+				fields: [...SUBJECT_CONTRACT],
+				limit: 10000
+			}
+		});
+		for (const row of found.employee_contract ?? []) cache.contracts.set(String(row.id), row);
+	}
+	const held = [...cache.contracts.values()];
+	const entities = idsIn([...rows, ...held].map((row) => refId(row.entity_id))).filter(
+		(id) => !cache.employers.has(id)
+	);
+	const employees = idsIn(held.map((row) => refId(row.employee_id))).filter(
+		(id) => !cache.employees.has(id)
+	);
+	const wanted = {
+		...(needs.employer && entities.length > 0
+			? {
+					entity_profile_version: {
+						where: { entity_id: { in: [...entities] }, status: { eq: 'SEALED' } },
+						fields: [...SUBJECT_EMPLOYER],
+						limit: 10000
+					}
+				}
+			: {}),
+		...(needs.employee && employees.length > 0
+			? {
+					employee_profile: {
+						where: { id: { in: [...employees] } },
+						fields: ['id', 'name', 'email', 'phone', 'user_id'],
+						limit: 10000
+					}
+				}
+			: {})
+	};
+	if (Object.keys(wanted).length === 0) return;
+	const found = yield* queryRows(read, wanted);
+	for (const id of entities) {
+		const version = latestVersion(
+			(found.entity_profile_version ?? []).filter((row) => row.entity_id === id)
+		);
+		if (version !== undefined) cache.employers.set(id, version);
+	}
+	for (const row of found.employee_profile ?? []) cache.employees.set(String(row.id), row);
+});
+
 const subjectValue = Effect.fnUntraced(function* (
 	read: Reader,
 	collection: string,
@@ -139,16 +233,7 @@ const subjectValue = Effect.fnUntraced(function* (
 			const found = yield* queryRows(read, {
 				employee_contract: {
 					where: { id: { eq: employmentId } },
-					fields: [
-						'id',
-						'employee_id',
-						'entity_id',
-						'input_schema_version_id',
-						'effective_range',
-						'terms',
-						'payroll',
-						'employee_extension_data'
-					],
+					fields: [...SUBJECT_CONTRACT],
 					limit: 1
 				}
 			});
@@ -165,26 +250,11 @@ const subjectValue = Effect.fnUntraced(function* (
 			const found = yield* queryRows(read, {
 				entity_profile_version: {
 					where: { entity_id: { eq: employerId }, status: { eq: 'SEALED' } },
-					fields: [
-						'id',
-						'entity_id',
-						'effective_range',
-						'time_zone',
-						'payment_schedule',
-						'pay_cutoff_day',
-						'entity_extension_data',
-						'registrations'
-					],
+					fields: [...SUBJECT_EMPLOYER],
 					limit: 100
 				}
 			});
-			const start = (row: JsonObject): string =>
-				isJsonObject(row.effective_range) && typeof row.effective_range.from === 'string'
-					? row.effective_range.from
-					: '';
-			employer = found.entity_profile_version
-				?.toSorted((a, b) => start(a).localeCompare(start(b)))
-				.at(-1);
+			employer = latestVersion(found.entity_profile_version ?? []);
 			if (employer !== undefined) cache.employers.set(employerId, employer);
 		}
 	}
@@ -205,6 +275,118 @@ const subjectValue = Effect.fnUntraced(function* (
 		}
 	}
 	return { employment: employment ?? {}, employer: employer ?? {}, employee: employee ?? {} };
+});
+
+type Layer = { readonly [key: string]: Json };
+const whereOf = (layer: Layer): Layer => (isJsonObject(layer.where) ? layer.where : {});
+/**
+ * The reads a batch of rows declares, in one read per root: rows that differ only by `eq` values gather into one `in`,
+ * and the answer is dealt back by those values. A shape that cannot gather reads once per distinct request.
+ */
+const batchRead = Effect.fnUntraced(function* (
+	read: Reader,
+	requests: readonly JsonObject[],
+	cache: Map<string, readonly JsonObject[]>
+) {
+	const fetch = Effect.fnUntraced(function* (name: string, layer: Layer) {
+		const key = JSON.stringify({ [name]: layer });
+		const held = cache.get(key);
+		if (held !== undefined) return held;
+		const found = yield* queryRows(
+			read,
+			Schema.decodeUnknownSync(ReadRequestSchema)({ [name]: layer })
+		);
+		const rows = found[name] ?? [];
+		cache.set(key, rows);
+		return rows;
+	});
+	const answers: Record<string, readonly JsonObject[]>[] = requests.map(() => ({}));
+	for (const name of new Set(requests.flatMap((request) => Object.keys(request)))) {
+		const layers = requests.map((request) => {
+			const layer = request[name];
+			return isJsonObject(layer) ? layer : {};
+		});
+		const first = layers[0] ?? {};
+		const fields = Object.keys(whereOf(first));
+		const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+		const varying = fields.filter((field) =>
+			layers.some((layer) => !same(whereOf(layer)[field], whereOf(first)[field]))
+		);
+		const eqOf = (layer: Layer, field: string): Json | undefined => {
+			const test = whereOf(layer)[field];
+			return isJsonObject(test) && Object.keys(test).length === 1 ? test.eq : undefined;
+		};
+		const gathers =
+			varying.length > 0 &&
+			varying.every((field) => layers.every((layer) => eqOf(layer, field) !== undefined));
+		if (!gathers) {
+			for (const [index, layer] of layers.entries()) {
+				const answer = answers[index];
+				if (answer !== undefined) answer[name] = yield* fetch(name, layer);
+			}
+			continue;
+		}
+		const where = Object.fromEntries(
+			fields.map((field) => [
+				field,
+				varying.includes(field)
+					? {
+							in: [
+								...new Set(
+									layers.flatMap((layer) => {
+										const value = eqOf(layer, field);
+										return value === undefined ? [] : [value];
+									})
+								)
+							]
+						}
+					: (whereOf(first)[field] ?? null)
+			])
+		);
+		const { limit: _limit, ...rest } = first;
+		const declared = Array.isArray(first.fields) ? first.fields : undefined;
+		const rows = yield* fetch(name, {
+			...rest,
+			where,
+			limit: 10000,
+			...(declared === undefined ? {} : { fields: [...new Set([...declared, ...varying])] })
+		});
+		const byValues = Map.groupBy(rows, (row) => JSON.stringify(varying.map((field) => row[field])));
+		for (const [index, layer] of layers.entries()) {
+			const answer = answers[index];
+			if (answer === undefined) continue;
+			const own = byValues.get(JSON.stringify(varying.map((field) => eqOf(layer, field)))) ?? [];
+			answer[name] = typeof layer.limit === 'number' ? own.slice(0, layer.limit) : own;
+		}
+	}
+	return answers;
+});
+
+/** A rule or effect that reads a lookup key it does not hold reads the jurisdiction's. */
+const usesGlobalLookup = (row: JsonObject): boolean => {
+	const own = isJsonObject(row.lookup) ? row.lookup : {};
+	const source = `${String(row.condition ?? '')}\n${String(row.validate ?? row.effects ?? '')}`;
+	return [...source.matchAll(/ctx\.lookup\.(\w+)|get\(ctx\.lookup, '(\w+)'/g)].some(
+		(match) => !(String(match[1] ?? match[2]) in own)
+	);
+};
+
+/** The jurisdiction lookup is global; a row's own lookup is local and wins. Read only when used. */
+const globalLookups = Effect.fn('payroll.globalLookups')(function* (
+	read: Reader,
+	rows: readonly JsonObject[]
+) {
+	const ids = [...new Set(rows.filter(usesGlobalLookup).map((row) => String(row.settings_id)))];
+	if (ids.length === 0) return new Map<string, JsonObject>();
+	const found = yield* queryRows(read, {
+		jurisdiction_settings: { where: { id: { in: ids } }, fields: ['id', 'lookup'], limit: 10000 }
+	});
+	return new Map(
+		(found.jurisdiction_settings ?? []).map((row) => [
+			String(row.id),
+			isJsonObject(row.lookup) ? row.lookup : {}
+		])
+	);
 });
 
 /** Every sealed rule registered for this collection and operation validates the proposed rows. */
@@ -271,6 +453,7 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 						'id',
 						'employee_id',
 						'entity_id',
+						'engagement',
 						'input_schema_version_id',
 						'effective_range',
 						'terms',
@@ -301,6 +484,7 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 	const rules = (data.registered_rule ?? []).toSorted(
 		(left, right) => Number(left.order ?? 0) - Number(right.order ?? 0)
 	);
+	const globals = yield* globalLookups(read, rules);
 	const source = rules
 		.map(
 			(rule) =>
@@ -311,6 +495,7 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 		employer: source.includes('ctx.subject.employer'),
 		employee: source.includes('ctx.subject.employee')
 	};
+	yield* primeSubjects(read, rows, cache, needs);
 	const subjects = new Map<JsonObject, Record<string, unknown>>();
 	for (const row of rows)
 		subjects.set(row, yield* subjectValue(read, collection, row, cache, needs));
@@ -349,7 +534,10 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 				event: { operation, collection },
 				subject,
 				reads,
-				lookup: isJsonObject(rule.lookup) ? rule.lookup : {}
+				lookup: {
+					...globals.get(String(rule.settings_id)),
+					...(isJsonObject(rule.lookup) ? rule.lookup : {})
+				}
 			};
 			const condition = rule.condition;
 			if (typeof condition === 'string' && condition.trim() !== '') {
@@ -398,56 +586,76 @@ export const applyRegisteredEffects = Effect.fn('payroll.applyRegisteredEffects'
 			limit: 10000
 		}
 	});
-	const effectCache = {
+	const effects = data.registered_effect ?? [];
+	if (effects.length === 0) return;
+	const globals = yield* globalLookups(ctx.query, effects);
+	const written = (change: { readonly before?: object; readonly after?: object }): JsonObject => {
+		const row: JsonObject = {
+			...(isJsonObject(change.before) ? change.before : {}),
+			...(isJsonObject(change.after) ? change.after : {})
+		};
+		return Object.fromEntries(
+			Object.entries(row).map(([key, value]) => [key, rangeObject(value) ?? value])
+		);
+	};
+	const entries = changes.map(written);
+	const source = effects
+		.map(
+			(row) => `${JSON.stringify(row.reads ?? {})}\n${row.condition ?? ''}\n${row.effects ?? ''}`
+		)
+		.join('\n');
+	const needs = {
+		employer: source.includes('subject.employer'),
+		employee: source.includes('subject.employee')
+	};
+	const cache = {
 		contracts: new Map<string, JsonObject>(),
 		employers: new Map<string, JsonObject>(),
 		employees: new Map<string, JsonObject>()
 	};
-	for (const effect of data.registered_effect ?? []) {
+	yield* primeSubjects(ctx.query, entries, cache, needs);
+	const subjects: { employment: JsonObject; employer: JsonObject; employee: JsonObject }[] = [];
+	for (const entry of entries)
+		subjects.push(yield* subjectValue(ctx.query, collection, entry, cache, needs));
+	const readCache = new Map<string, readonly JsonObject[]>();
+	for (const effect of effects) {
 		const code = String(effect.code ?? '');
 		const action = effect.target_action;
-		if (action !== 'create' && action !== 'update' && action !== 'delete') continue;
 		const target = effect.target_collection;
+		if (action !== 'create' && action !== 'update' && action !== 'delete') continue;
 		if (typeof target !== 'string' || target === '') continue;
-		for (const change of changes) {
-			const rawEntry: JsonObject = {
-				...(isJsonObject(change.before) ? change.before : {}),
-				...(isJsonObject(change.after) ? change.after : {})
-			};
-			const normalized: Record<string, Json> = {};
-			for (const [key, value] of Object.entries(rawEntry)) {
-				const range = rangeObject(value);
-				normalized[key] = range ?? value;
-			}
-			const entry: JsonObject = normalized;
-			const subject = yield* subjectValue(ctx.query, collection, entry, effectCache);
-			const declared = isJsonObject(effect.reads) ? effect.reads : {};
-			const resolved = resolveRead(declared, { entry, subject });
-			const request =
-				isJsonObject(resolved) && Object.keys(resolved).length === 0
-					? {}
-					: Schema.decodeUnknownSync(ReadRequestSchema)(resolved);
-			const reads = Object.keys(request).length === 0 ? {} : yield* queryRows(ctx.query, request);
+		const declared = isJsonObject(effect.reads) ? effect.reads : {};
+		const requests = entries.map((entry, index) =>
+			jsonObject(resolveRead(declared, { entry, subject: subjects[index] }))
+		);
+		const reads = yield* batchRead(ctx.query, requests, readCache);
+		const lookup = {
+			...globals.get(String(effect.settings_id)),
+			...(isJsonObject(effect.lookup) ? effect.lookup : {})
+		};
+		const condition = effect.condition;
+		const body = effect.effects;
+		if (typeof body !== 'string' || body.trim() === '')
+			throw new Refusal({ message: `${code}: a registered effect needs its expression.` });
+		const input: JsonObject[] = [];
+		for (const [index, entry] of entries.entries()) {
+			const change = changes[index];
 			const context = {
 				entry,
-				before: change.before ?? null,
-				after: change.after ?? null,
+				before: change?.before ?? null,
+				after: change?.after ?? null,
 				event: { operation, collection },
-				subject,
-				reads,
-				lookup: isJsonObject(effect.lookup) ? effect.lookup : {}
+				subject: subjects[index],
+				reads: reads[index] ?? {},
+				lookup
 			};
-			const condition = effect.condition;
 			if (typeof condition === 'string' && condition.trim() !== '') {
-				const gate = evaluate(condition, 'CALCULATION', context, `${code}.condition`);
-				if (!truth(gate)) continue;
+				if (!truth(evaluate(condition, 'CALCULATION', context, `${code}.condition`))) continue;
 			}
-			const source = effect.effects;
-			if (typeof source !== 'string' || source.trim() === '')
-				throw new Refusal({ message: `${code}: a registered effect needs its expression.` });
-			const result = evaluate(source, 'CALCULATION', context, `${code}.effects`);
-			if (!Array.isArray(result) || result.length === 0) continue;
-			yield* ctx.act.checked([{ callable: `${target}.${action}`, input: result }]);
+			const result = evaluate(body, 'CALCULATION', context, `${code}.effects`);
+			if (Array.isArray(result))
+				input.push(...Schema.decodeUnknownSync(Schema.Array(JsonObject))(result));
 		}
+		if (input.length > 0) yield* ctx.act.checked([{ callable: `${target}.${action}`, input }]);
 	}
 });

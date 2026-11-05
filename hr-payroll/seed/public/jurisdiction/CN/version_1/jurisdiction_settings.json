@@ -52,32 +52,13 @@
 							"type": "boolean",
 							"default": false,
 							"title": "Joins the housing provident fund voluntarily (foreign / HK / MO / TW)",
-							"description": "上海市住房公积金缴存管理办法; 建金〔2017〕237号."
-						},
-						"non_domiciled_resident": {
-							"type": "boolean",
-							"default": false,
-							"title": "Resident without domicile in China",
-							"description": "财政部 税务总局公告2019年第35号 第二条: wages apportioned by the China-workday share."
+							"description": "上海市住房公积金缴存管理办法; 建金〔2017〕237号. A tax non-resident joins only with this choice."
 						},
 						"minor_employment_approved": {
 							"type": "boolean",
 							"default": false,
 							"title": "Approved employment under 16 (文艺、体育、特种工艺)",
 							"description": "劳动法 第十五条: an arts, sports or special-crafts unit may employ a person under 16 with approval."
-						},
-						"offshore_paid_share": {
-							"type": "number",
-							"minimum": 0,
-							"maximum": 1,
-							"title": "Share of wages paid from abroad (境外支付工资 ÷ 境内外工资总额)",
-							"description": "财政部 税务总局公告2019年第35号 二(二): only wages paid from abroad for work abroad are excluded. 0 when the PRC entity pays everything."
-						},
-						"consecutive_resident_years": {
-							"type": "integer",
-							"minimum": 0,
-							"title": "Completed consecutive 183-day years before this one",
-							"description": "公告2019年第35号 二(二)2: from the 7th consecutive year all wages are taxed."
 						},
 						"statutory": {
 							"type": "object",
@@ -291,7 +272,7 @@
 							"type": "boolean",
 							"default": false,
 							"title": "Outdoor or uncooled work in summer (Shanghai)",
-							"description": "沪人社规〔2019〕19号."
+							"description": "防暑降温措施管理办法 第十七条; 上海 300 a month, June to September (HIGH_TEMPERATURE_ALLOWANCE)."
 						},
 						"social_insurance_waived": {
 							"type": "boolean",
@@ -617,7 +598,197 @@
 		},
 		"lookup": {
 			"rounding": "HALF_UP",
-			"rounding_scale": 2
+			"rounding_scale": 2,
+			"monthly_divisor": 21.75,
+			"daily_hours": 8,
+			"day_rate_allowances": [
+				"FIXED_ALLOWANCE",
+				"FOREIGN_LANGUAGE_ALLOWANCE",
+				"FOREIGN_CHILD_EDUCATION_ALLOWANCE"
+			],
+			"day_rate": "// 人社部发〔2008〕3号: 月计薪天数 (365 − 104) ÷ 12 = 21.75. A paid day leaves out rest days, and no statute sets another rule for an incomplete month, so proration_basis is WORKING_DAYS.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\nconst hours = ctx.lookup.daily_hours;\nif (unit === 'DAILY') return amount;\nif (unit === 'HOURLY' || unit === 'PIECE') return amount * hours;\nconst fixed = ctx.lookup.day_rate_allowances.reduce(\n\t(total, code) => total + Number(get(terms, `allowances.${code}.amount`, 0)),\n\t0\n);\nreturn (amount + fixed) / ctx.lookup.monthly_divisor;",
+			"proration_basis": "WORKING_DAYS",
+			"preparatory": {
+				"SH": "ORGANISATION",
+				"KM": "NO_UNION"
+			},
+			"months_per_year": 12,
+			"full_year_min_months": 6,
+			"compensation_max_years": 12,
+			"statutory_holiday_kinds": ["PUBLIC_HOLIDAY"],
+			"part_time_daily_hours": 4,
+			"part_time_weekly_hours": 24,
+			"retirement": [
+				{
+					"category": "MALE",
+					"base_years": 60,
+					"cutoff": "1965-01-01",
+					"max_deferral_months": 36,
+					"birth_months_per_step": 4
+				},
+				{
+					"category": "FEMALE_55",
+					"base_years": 55,
+					"cutoff": "1970-01-01",
+					"max_deferral_months": 36,
+					"birth_months_per_step": 4
+				},
+				{
+					"category": "FEMALE_50",
+					"base_years": 50,
+					"cutoff": "1975-01-01",
+					"max_deferral_months": 60,
+					"birth_months_per_step": 2
+				}
+			],
+			"minimum_wage": [
+				{
+					"region": "SH",
+					"zone": "1",
+					"monthly": 2740,
+					"hourly": 25,
+					"default_zone": "1",
+					"excludes_employee_contributions": true
+				},
+				{
+					"region": "KM",
+					"zone": "1",
+					"monthly": 2170,
+					"hourly": 21,
+					"default_zone": "1",
+					"excludes_employee_contributions": false
+				},
+				{
+					"region": "KM",
+					"zone": "2",
+					"monthly": 2020,
+					"hourly": 20,
+					"default_zone": "1",
+					"excludes_employee_contributions": false
+				},
+				{
+					"region": "KM",
+					"zone": "3",
+					"monthly": 1870,
+					"hourly": 19,
+					"default_zone": "1",
+					"excludes_employee_contributions": false
+				}
+			],
+			"si_base": [
+				{
+					"code": "SH",
+					"floor": 7460,
+					"ceiling": 37302
+				},
+				{
+					"code": "KM",
+					"floor": 4357,
+					"ceiling": 21789
+				}
+			],
+			"hpf_regions": [
+				{
+					"code": "SH",
+					"floor": 2690,
+					"rate_min": 5,
+					"rate_max": 7,
+					"supp_min": 1,
+					"supp_max": 5
+				},
+				{
+					"code": "KM",
+					"floor": null,
+					"rate_min": 5,
+					"rate_max": 12,
+					"supp_min": null,
+					"supp_max": null
+				}
+			],
+			"average_wage_cap": [
+				{
+					"code": "SH",
+					"monthly": 37302
+				},
+				{
+					"code": "KM",
+					"monthly": 32470
+				}
+			],
+			"annual_ladder": [
+				{
+					"up_to": 36000,
+					"rate": 0.03,
+					"quick": 0
+				},
+				{
+					"up_to": 144000,
+					"rate": 0.1,
+					"quick": 2520
+				},
+				{
+					"up_to": 300000,
+					"rate": 0.2,
+					"quick": 16920
+				},
+				{
+					"up_to": 420000,
+					"rate": 0.25,
+					"quick": 31920
+				},
+				{
+					"up_to": 660000,
+					"rate": 0.3,
+					"quick": 52920
+				},
+				{
+					"up_to": 960000,
+					"rate": 0.35,
+					"quick": 85920
+				},
+				{
+					"up_to": null,
+					"rate": 0.45,
+					"quick": 181920
+				}
+			],
+			"monthly_ladder": [
+				{
+					"up_to": 3000,
+					"rate": 0.03,
+					"quick": 0
+				},
+				{
+					"up_to": 12000,
+					"rate": 0.1,
+					"quick": 210
+				},
+				{
+					"up_to": 25000,
+					"rate": 0.2,
+					"quick": 1410
+				},
+				{
+					"up_to": 35000,
+					"rate": 0.25,
+					"quick": 2660
+				},
+				{
+					"up_to": 55000,
+					"rate": 0.3,
+					"quick": 4410
+				},
+				{
+					"up_to": 80000,
+					"rate": 0.35,
+					"quick": 7160
+				},
+				{
+					"up_to": null,
+					"rate": 0.45,
+					"quick": 15160
+				}
+			]
 		},
 		"status": "SEALED",
 		"id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
