@@ -270,7 +270,8 @@
 							"SICK_LEAVE",
 							"HOSPITALISED_SICK_LEAVE",
 							"MENSTRUAL_LEAVE",
-							"MENSTRUAL_LEAVE_UNPAID"
+							"MENSTRUAL_LEAVE_UNPAID",
+							"SICK_LEAVE_UNPAID"
 						]
 					}
 				},
@@ -294,10 +295,12 @@
 		"lookup": {
 			"sick_pool_days": 30,
 			"menstrual_free_days": 3,
-			"menstrual_days_per_month": 1
+			"menstrual_days_per_month": 1,
+			"hospital_codes": ["HOSPITALISED_SICK_LEAVE", "SICK_LEAVE_UNPAID"],
+			"hospital_pool_days": 365
 		},
 		"condition": "// js\nif (get(ctx.entry, 'is_reversal', false) === true) return false;\nreturn ctx.reads.leave_catalog.some((row) => row.id === ctx.entry.catalog_id);",
-		"validate": "// 勞工請假規則 §4(1), (3): half wages for thirty sick days a calendar year, hospitalised days and menstrual days past three included.\n// 性別平等工作法 §14: one menstrual day a calendar month. The days beyond are SICK_LEAVE_UNPAID and MENSTRUAL_LEAVE_UNPAID.\nconst codes = Object.fromEntries(ctx.reads.leave_catalog.map((row) => [row.id, row.code]));\nconst rows = ctx.reads.leave_catalog_entry\n  .filter((row) => row.id !== get(ctx.entry, 'id', ''))\n  .concat([ctx.entry]);\nconst taken = (names, prefix) => sum(\n  rows\n    .filter((row) => names.includes(get(codes, row.catalog_id, '')))\n    .map((row) => {\n      const held = row.days.filter((slot) => slot.date.startsWith(prefix)).length / 2;\n      return get(row, 'is_reversal', false) === true ? -held : held;\n    })\n);\nconst months = ctx.entry.days\n  .map((slot) => slot.date.substring(0, 7))\n  .filter((month, index, all) => all.indexOf(month) === index);\nreturn months.every((month) => {\n  if (taken(['MENSTRUAL_LEAVE', 'MENSTRUAL_LEAVE_UNPAID'], month) > ctx.lookup.menstrual_days_per_month) return false;\n  const year = month.substring(0, 4);\n  const menstrual = Math.max(0, taken(['MENSTRUAL_LEAVE'], year) - ctx.lookup.menstrual_free_days);\n  return taken(['SICK_LEAVE', 'HOSPITALISED_SICK_LEAVE'], year) + menstrual <= ctx.lookup.sick_pool_days;\n});",
+		"validate": "// 勞工請假規則 §4(1), (3): half wages for thirty sick days a calendar year, hospitalised days and menstrual days past three included.\n// 性別平等工作法 §14: one menstrual day a calendar month. The days beyond are SICK_LEAVE_UNPAID and MENSTRUAL_LEAVE_UNPAID.\nconst codes = Object.fromEntries(ctx.reads.leave_catalog.map((row) => [row.id, row.code]));\nconst rows = ctx.reads.leave_catalog_entry\n  .filter((row) => row.id !== get(ctx.entry, 'id', ''))\n  .concat([ctx.entry]);\nconst taken = (names, prefix) => sum(\n  rows\n    .filter((row) => names.includes(get(codes, row.catalog_id, '')))\n    .map((row) => {\n      const held = row.days.filter((slot) => slot.date.startsWith(prefix)).length / 2;\n      return get(row, 'is_reversal', false) === true ? -held : held;\n    })\n);\n// 勞工請假規則 §4(2): hospitalised sick leave totals at most one year within any two years, its unpaid days included.\nif (ctx.lookup.hospital_codes.includes(get(codes, ctx.entry.catalog_id, ''))) {\n  const last = ctx.entry.days.map((slot) => String(slot.date)).toSorted().at(-1);\n  const since = String(add_months(last, -24));\n  const spell = sum(\n    rows\n      .filter((row) => ctx.lookup.hospital_codes.includes(get(codes, row.catalog_id, '')))\n      .map((row) => {\n        const held = row.days.filter((slot) => String(slot.date) > since && String(slot.date) <= last).length / 2;\n        return get(row, 'is_reversal', false) === true ? -held : held;\n      })\n  );\n  if (spell > ctx.lookup.hospital_pool_days)\n    throw 'Hospitalised sick leave would pass the ' + ctx.lookup.hospital_pool_days + ' days allowed within two years.';\n}\nconst months = ctx.entry.days\n  .map((slot) => slot.date.substring(0, 7))\n  .filter((month, index, all) => all.indexOf(month) === index);\nreturn months.every((month) => {\n  if (taken(['MENSTRUAL_LEAVE', 'MENSTRUAL_LEAVE_UNPAID'], month) > ctx.lookup.menstrual_days_per_month) return false;\n  const year = month.substring(0, 4);\n  const menstrual = Math.max(0, taken(['MENSTRUAL_LEAVE'], year) - ctx.lookup.menstrual_free_days);\n  return taken(['SICK_LEAVE', 'HOSPITALISED_SICK_LEAVE'], year) + menstrual <= ctx.lookup.sick_pool_days;\n});",
 		"references": [
 			{
 				"title": "勞工請假規則 §4; 性別平等工作法 §14",

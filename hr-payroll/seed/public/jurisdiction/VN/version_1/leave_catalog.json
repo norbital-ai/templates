@@ -51,7 +51,25 @@
 					"days": 22
 				}
 			],
-			"proration": "COMPLETED_MONTHS"
+			"proration": "COMPLETED_MONTHS",
+			"extra_days": [
+				{
+					"fact": "minor_listed_job",
+					"days": 2
+				},
+				{
+					"fact": "disabled",
+					"days": 2
+				},
+				{
+					"category": "HEAVY_HAZARDOUS",
+					"days": 2
+				},
+				{
+					"category": "ESPECIALLY_HEAVY_HAZARDOUS",
+					"days": 4
+				}
+			]
 		},
 		"off_cycle_eligible": false,
 		"subtotal_id": null,

@@ -171,6 +171,49 @@ describe('a no-pay day', () => {
 	});
 });
 
+describe('an allowance and its prorate switch', () => {
+	const SUA = { SUA: { amount: 300 } };
+	const switched = (prorate: boolean): Seed => {
+		const seed = malaysia(SUA);
+		return {
+			...seed,
+			allowance_catalog: (seed.allowance_catalog ?? []).map((row) =>
+				row.code === 'SUA' ? { ...row, prorate } : row
+			),
+			employee_contract: (seed.employee_contract ?? []).map((row) => ({
+				...row,
+				effective_range: { from: '2026-06-16', to: null }
+			}))
+		};
+	};
+	it.live('on, a joiner’s allowance takes the days employed', () => {
+		const seed = switched(true);
+		return Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* run(t, '2026-06');
+			assert.equal((yield* paid(t, '2026-06'))['SUA'], 150);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
+	});
+	it.live('off, it pays whole', () => {
+		const seed = switched(false);
+		return Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* run(t, '2026-06');
+			assert.equal((yield* paid(t, '2026-06'))['SUA'], 300);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
+	});
+	it.live('no-pay leave leaves the allowance whole and takes its share in the no-pay line', () => {
+		const seed = malaysia(SUA);
+		return Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* entry(t, seed, whole('2026-06-10'));
+			yield* run(t, '2026-06');
+			// (3,120 + 300) ÷ 30 days
+			assert.deepEqual(yield* paid(t, '2026-06'), { BASIC: 3120, SUA: 300, UNPAID_LEAVE: -114 });
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
+	});
+});
+
 describe('an allowance across a month of contracts', () => {
 	const SUA = { SUA: { amount: 300 } };
 	const OTHER = idOf('entity', uuid(900));

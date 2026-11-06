@@ -301,6 +301,22 @@ per_months                         held + new; nothing lapses
 
 Carry reaches one window back: taking the smaller of held and applied means days carried last time lapse if they are still unused.
 
+A row can also say:
+
+```text
+KEY                                 EFFECT
+─────────────────────────────────   ──────────────────────────────────────────────
+part_time_pro_rata                  a part-timer takes hours ÷ full_time_weekly_hours
+grant_days_by_normal_days_per_week  few weekly days and hours take the statute's table
+extra_days                          a class of work or a contract fact adds days
+rolling_months                      a window of several years opens once in the span
+first_year_proration_days           the first year counts the calendar days left
+state_owned_employer                only a state-owned employer's staff qualify
+consumes_code                       the entry also draws on that row's account
+```
+
+A contract's `annual_leave_carry_limit_days` caps what it carries. A limit that spans rows or years is a registered rule: Singapore's sick and hospitalisation days share 60, and Taiwan's hospitalised days total a year within any two. A write may make 10 reads, so a new check joins an existing rule's reads where it can.
+
 An account opened before this keeps what it holds, and only its window starts counting. `applied` is kept per leave type in the balance's `leave_window` family as `<code>.granted`, beside the window it belongs to. Each movement is a dated ledger entry, like any other.
 
 ## 5. Catalogue contract

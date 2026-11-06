@@ -56,7 +56,7 @@ const attempt = (t: Kit, code: unknown, write: Effect.Effect<unknown, unknown>, 
 		Effect.andThen(t.runDue()),
 		Effect.catch((error) =>
 			Effect.sync(() => {
-				if (/\.effects|\.condition|Missing or unavailable/.test(String(error)))
+				if (/\.effects|\.condition|Missing or unavailable|crossings/.test(String(error)))
 					failed.push(`${String(code)}: ${String(error).slice(0, 200)}`);
 			})
 		)

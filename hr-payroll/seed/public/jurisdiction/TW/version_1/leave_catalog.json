@@ -85,7 +85,9 @@
 					"service_months": 288,
 					"days": 30
 				}
-			]
+			],
+			"part_time_pro_rata": true,
+			"full_time_weekly_hours": 40
 		},
 		"references": [
 			{

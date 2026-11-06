@@ -692,7 +692,7 @@
 			"marital_status": "UNMARRIED",
 			"window": "CALENDAR_YEAR",
 			"eligibility": {
-				"marital_status": "SINGLE"
+				"marital_status": "UNMARRIED"
 			}
 		},
 		"references": [
@@ -720,7 +720,9 @@
 			"grant_days": 45,
 			"state_owned_employer": true,
 			"marital_status": "UNMARRIED",
-			"no_cap": true
+			"eligibility": {
+				"marital_status": "UNMARRIED"
+			}
 		},
 		"references": [
 			{
@@ -743,7 +745,9 @@
 			"grant_days": 20,
 			"state_owned_employer": true,
 			"marital_status": "MARRIED",
-			"no_cap": true
+			"eligibility": {
+				"marital_status": "MARRIED"
+			}
 		},
 		"references": [
 			{
