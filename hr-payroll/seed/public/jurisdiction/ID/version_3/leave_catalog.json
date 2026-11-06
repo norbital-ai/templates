@@ -89,7 +89,7 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "PP 36/2021 arts.40(3)(a), 41(1): 100% of the wage for the first four months of illness, 75% for the next four, 50% for the next four and 25% thereafter until dismissal (`paid_share` by month_index; PARTIAL_PAY_LEAVE).",
+				"title": "PP 36/2021 arts.40(3)(a), 41(1): 100% of the wage for the first four months of illness (this row), 75% for the next four (MEDICAL_LEAVE_75), 50% for the next four (MEDICAL_LEAVE_50) and 25% thereafter until dismissal (MEDICAL_LEAVE_25). Each row takes its own share of the day.",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			}
 		],
@@ -99,19 +99,142 @@
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
 	},
 	{
+		"code": "MEDICAL_LEAVE_75",
+		"name": "Medical leave, months five to eight (75%)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"unpaid_share": 0.25,
+			"prorated_allowances": ["CAR_ALLOWANCE", "HOUSE_ALLOWANCE", "SPECIAL_ALLOWANCE"],
+			"no_cap": true
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 art.41(1): 75% of the wage for months five to eight of an illness.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": "f600adc2-8acb-5a9e-ad67-130efdace4a5",
+		"off_cycle_eligible": false,
+		"id": "31e0e777-f5b3-58e5-bda2-4fc517836a94",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// PP 36/2021 art.41(1): months five to eight of an illness pay 75%, so this line takes the other quarter of each working day.\n// PAID so this line, not the salary basis, takes its share, and a reversal entry on this item pays it back. The dates are the entry's, so a weekend picked with them costs nothing.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// A reversal gives back what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nconst lost = Math.min(ctx.entry.days.filter((row) => worksOn(row.date)).length / 2, days);\nconst agreed = get(terms, 'allowances', {});\nconst fixed = sum(\n\tctx.lookup.prorated_allowances\n\t\t.filter((code) => get(agreed, code + '.variability', 'FIXED') !== 'VARIABLE')\n\t\t.map((code) => Number(get(agreed, code + '.amount', 0)))\n);\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\n// A day or hour rate pays the day itself; day_rate is the art.32 overtime base, never a day's wage.\nconst salary =\n\tunit === 'DAILY'\n\t\t? amount * lost\n\t\t: unit === 'HOURLY'\n\t\t\t? amount * Number(get(terms, 'normal_hours_per_day', 8)) * lost\n\t\t\t: (amount * lost) / days;\nreturn (salary + (fixed * lost) / days) * ctx.lookup.unpaid_share;"
+	},
+	{
+		"code": "MEDICAL_LEAVE_50",
+		"name": "Medical leave, months nine to twelve (50%)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"unpaid_share": 0.5,
+			"prorated_allowances": ["CAR_ALLOWANCE", "HOUSE_ALLOWANCE", "SPECIAL_ALLOWANCE"],
+			"no_cap": true
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 art.41(1): 50% of the wage for months nine to twelve of an illness.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": "f600adc2-8acb-5a9e-ad67-130efdace4a5",
+		"off_cycle_eligible": false,
+		"id": "59e13ca5-afa4-55c4-8458-e02d92e5e265",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// PP 36/2021 art.41(1): months nine to twelve of an illness pay 50%, so this line takes the other half of each working day.\n// PAID so this line, not the salary basis, takes its share, and a reversal entry on this item pays it back. The dates are the entry's, so a weekend picked with them costs nothing.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// A reversal gives back what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nconst lost = Math.min(ctx.entry.days.filter((row) => worksOn(row.date)).length / 2, days);\nconst agreed = get(terms, 'allowances', {});\nconst fixed = sum(\n\tctx.lookup.prorated_allowances\n\t\t.filter((code) => get(agreed, code + '.variability', 'FIXED') !== 'VARIABLE')\n\t\t.map((code) => Number(get(agreed, code + '.amount', 0)))\n);\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\n// A day or hour rate pays the day itself; day_rate is the art.32 overtime base, never a day's wage.\nconst salary =\n\tunit === 'DAILY'\n\t\t? amount * lost\n\t\t: unit === 'HOURLY'\n\t\t\t? amount * Number(get(terms, 'normal_hours_per_day', 8)) * lost\n\t\t\t: (amount * lost) / days;\nreturn (salary + (fixed * lost) / days) * ctx.lookup.unpaid_share;"
+	},
+	{
+		"code": "MEDICAL_LEAVE_25",
+		"name": "Medical leave, after twelve months (25%)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"unpaid_share": 0.75,
+			"prorated_allowances": ["CAR_ALLOWANCE", "HOUSE_ALLOWANCE", "SPECIAL_ALLOWANCE"],
+			"no_cap": true
+		},
+		"references": [
+			{
+				"title": "PP 36/2021 art.41(1): 25% of the wage after twelve months of illness, until dismissal.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": "f600adc2-8acb-5a9e-ad67-130efdace4a5",
+		"off_cycle_eligible": false,
+		"id": "12c9165c-90b5-5d22-874d-c8051642e8bf",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// PP 36/2021 art.41(1): an illness past twelve months pays 25% until dismissal, so this line takes the other three quarters of each working day.\n// PAID so this line, not the salary basis, takes its share, and a reversal entry on this item pays it back. The dates are the entry's, so a weekend picked with them costs nothing.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// A reversal gives back what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nconst lost = Math.min(ctx.entry.days.filter((row) => worksOn(row.date)).length / 2, days);\nconst agreed = get(terms, 'allowances', {});\nconst fixed = sum(\n\tctx.lookup.prorated_allowances\n\t\t.filter((code) => get(agreed, code + '.variability', 'FIXED') !== 'VARIABLE')\n\t\t.map((code) => Number(get(agreed, code + '.amount', 0)))\n);\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\n// A day or hour rate pays the day itself; day_rate is the art.32 overtime base, never a day's wage.\nconst salary =\n\tunit === 'DAILY'\n\t\t? amount * lost\n\t\t: unit === 'HOURLY'\n\t\t\t? amount * Number(get(terms, 'normal_hours_per_day', 8)) * lost\n\t\t\t: (amount * lost) / days;\nreturn (salary + (fixed * lost) / days) * ctx.lookup.unpaid_share;"
+	},
+	{
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "EVENT",
+			"grant_days": 90,
+			"eligibility": {
+				"gender": "FEMALE"
+			}
+		},
 		"references": [
 			{
-				"title": "UU 13/2003 art.82(1); UU 4/2024 (KIA) art.4(3)(a): three months of maternity leave, and up to three more where a doctor certifies a special condition of mother or child (`leave.facts.special_condition_certified`); art.5(2): paid in full for the first four months and 75% for the fifth and sixth. Months beyond the entitlement are unpaid (paid_share 0). PP 36/2021 art.40(5)(d)."
+				"title": "UU 13/2003 art.82(1); UU 4/2024 (KIA) art.4(3)(a): three months of maternity leave, read as 90 days of dates, and up to three more where a doctor certifies a special condition of mother or child (MATERNITY_EXTENSION_LEAVE, then MATERNITY_EXTENSION_PARTIAL_LEAVE); art.5(2): paid in full for the first four months and 75% for the fifth and sixth. Days beyond the entitlement go on UNPAID_LEAVE. PP 36/2021 art.40(5)(d)."
 			}
 		],
 		"subtotal_id": null,
 		"off_cycle_eligible": false,
 		"id": "e35bb314-bf93-5695-93b4-e78ad97cab7e",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "MATERNITY_EXTENSION_LEAVE",
+		"name": "Maternity extension, fourth month (certified)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"window": "EVENT",
+			"grant_days": 30,
+			"eligibility": {
+				"gender": "FEMALE"
+			}
+		},
+		"references": [
+			{
+				"title": "UU 4/2024 art.4(3)(a): up to three more months where a doctor certifies a special condition of mother or child; art.5(2): the fourth month is paid in full."
+			}
+		],
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"id": "c3a362d6-d06c-5888-be28-94c60eeb62bd",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "MATERNITY_EXTENSION_PARTIAL_LEAVE",
+		"name": "Maternity extension, fifth and sixth months (certified, 75%)",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"unpaid_share": 0.25,
+			"prorated_allowances": ["CAR_ALLOWANCE", "HOUSE_ALLOWANCE", "SPECIAL_ALLOWANCE"],
+			"window": "EVENT",
+			"grant_days": 60,
+			"eligibility": {
+				"gender": "FEMALE"
+			}
+		},
+		"references": [
+			{
+				"title": "UU 4/2024 art.5(2): 75% of the wage for the fifth and sixth months where a doctor certifies a special condition of mother or child.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			}
+		],
+		"subtotal_id": "f600adc2-8acb-5a9e-ad67-130efdace4a5",
+		"off_cycle_eligible": false,
+		"id": "7158ad4e-fff9-587e-ac4c-a20c76191fca",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// UU 4/2024 art.5(2): the fifth and sixth months of maternity leave pay 75%, so this line takes the other quarter of each working day.\n// PAID so this line, not the salary basis, takes its share, and a reversal entry on this item pays it back. The dates are the entry's, so a weekend picked with them costs nothing.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// A reversal gives back what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nconst lost = Math.min(ctx.entry.days.filter((row) => worksOn(row.date)).length / 2, days);\nconst agreed = get(terms, 'allowances', {});\nconst fixed = sum(\n\tctx.lookup.prorated_allowances\n\t\t.filter((code) => get(agreed, code + '.variability', 'FIXED') !== 'VARIABLE')\n\t\t.map((code) => Number(get(agreed, code + '.amount', 0)))\n);\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\n// A day or hour rate pays the day itself; day_rate is the art.32 overtime base, never a day's wage.\nconst salary =\n\tunit === 'DAILY'\n\t\t? amount * lost\n\t\t: unit === 'HOURLY'\n\t\t\t? amount * Number(get(terms, 'normal_hours_per_day', 8)) * lost\n\t\t\t: (amount * lost) / days;\nreturn (salary + (fixed * lost) / days) * ctx.lookup.unpaid_share;"
 	},
 	{
 		"code": "PATERNITY_LEAVE",
@@ -368,7 +491,7 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "PP 36/2021 arts.40(4)(a), 42: a worker performing a duty to the state for at most one year is paid the shortfall between the state’s pay and the usual wage (`leave.facts.state_income_share`, the state’s pay as a share of that wage; paid_share 1 − share); the worker notifies in writing (art.42(3)).",
+				"title": "PP 36/2021 arts.40(4)(a), 42: a worker performing a duty to the state for at most one year is paid the shortfall between the state’s pay and the usual wage (the HR controller enters the state’s pay on the Deduction item); the worker notifies in writing (art.42(3)).",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			}
 		],

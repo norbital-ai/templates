@@ -588,7 +588,13 @@
 		"target_collection": "leave_catalog_entry",
 		"events": ["create"],
 		"lookup": {
-			"no_pay": ["UNPAID_LEAVE"]
+			"no_pay": [
+				"UNPAID_LEAVE",
+				"MEDICAL_LEAVE_75",
+				"MEDICAL_LEAVE_50",
+				"MEDICAL_LEAVE_25",
+				"MATERNITY_EXTENSION_PARTIAL_LEAVE"
+			]
 		},
 		"references": [
 			{

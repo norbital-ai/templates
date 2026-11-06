@@ -233,7 +233,9 @@ describe('an overpaid contribution', () => {
 				(row) => row.title
 			);
 			assert.ok(
-				titles.includes('CPF overpaid in 2026: enter 200 on Statutory refund'),
+				titles.includes(
+					'CPF overpaid in 2026: enter 200 on Statutory refund; any employer share comes back from the agency'
+				),
 				titles.join(' | ')
 			);
 			yield* enter(t, seed, 'STATUTORY_REFUND', 200, '2026-12-15');

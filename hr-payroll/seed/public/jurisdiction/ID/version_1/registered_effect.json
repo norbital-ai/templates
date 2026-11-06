@@ -1939,7 +1939,7 @@
 		"condition": "// js\nreturn get(ctx.entry, 'breakdown.statutory', []).some((row) => Number(get(row, 'overpaid', 0)) > 0);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\n// Tax or a contribution came out overpaid. The HR controller pays it back with an entry on the Statutory refund item, in Events.\nif (ctx.reads.obligation.length > 0) return [];\nconst year = String(get(first(ctx.reads.payroll_run), 'pay_date', '')).slice(0, 4);\nconst over = get(ctx.entry, 'breakdown.statutory', []).filter((row) => Number(get(row, 'overpaid', 0)) > 0);\nconst overpaid = sum(over.map((row) => Number(get(row, 'overpaid', 0))));\nconst what = over.every((row) => row.kind === 'TAX') ? 'Tax' : over.map((row) => row.code).join(', ');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: what + ' overpaid in ' + year + ': enter ' + overpaid + ' on Statutory refund',\n\toccurrence_key: occurrence_key(['ID', 'TAX_REFUND', ctx.entry.id])\n}];",
+		"effects": "// js\n// Tax or a contribution came out overpaid. The HR controller pays it back with an entry on the Statutory refund item, in Events.\nif (ctx.reads.obligation.length > 0) return [];\nconst year = String(get(first(ctx.reads.payroll_run), 'pay_date', '')).slice(0, 4);\nconst over = get(ctx.entry, 'breakdown.statutory', []).filter((row) => Number(get(row, 'overpaid', 0)) > 0);\nconst overpaid = sum(over.map((row) => Number(get(row, 'overpaid', 0))));\nconst what = over.every((row) => row.kind === 'TAX') ? 'Tax' : over.map((row) => row.code).join(', ');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: what + ' overpaid in ' + year + ': enter ' + overpaid + ' on Statutory refund' + (what === 'Tax' ? '' : '; any employer share comes back from the agency'),\n\toccurrence_key: occurrence_key(['ID', 'TAX_REFUND', ctx.entry.id])\n}];",
 		"id": "a533aeae-ae83-517e-917e-f3c156fc38d9",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
 	},
@@ -2063,5 +2063,91 @@
 		"effects": "// js\n// A row that consumes another draws on that row's account: the entry posted its own, and this moves the one it draws on.\nconst code = get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', '');\nconst balance = first(ctx.reads.employee_balance);\nif (balance == null) return [];\nconst days = ctx.entry.days.length / 2;\nconst back = get(ctx.entry, 'is_reversal', false) === true;\nconst leave = get(balance.account, 'leave', {});\nconst held = Number(get(leave, code, 0));\nreturn [{ target: balance.id, set: { account: { ...balance.account, leave: { ...leave, [code]: Math.max(0, held + (back ? days : -days)) } } } }];",
 		"id": "8feb79b9-11d1-53f9-bf62-6cd29521abb4",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "BENEFIT_PAID_LEDGER",
+		"name": "Post the benefit a paid run paid",
+		"lookup": {},
+		"source_collection": "payroll_run",
+		"events": ["update"],
+		"condition": "// js\nreturn ctx.entry.state === 'PAID';",
+		"references": [
+			{
+				"title": "PP 68/2009 arts.2(2), 6: severance and pension benefits paid across the first two calendar years are one benefit on the final ladder.",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm"
+			}
+		],
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
+		"reads": {
+			"payslip": {
+				"where": {
+					"payroll_run_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["employee_id", "breakdown"],
+				"limit": 10000
+			},
+			"employee_balance": {
+				"fields": ["id", "employee_id", "account"],
+				"limit": 10000
+			},
+			"ledger_entry": {
+				"where": {
+					"account": {
+						"eq": "benefit_paid"
+					},
+					"effective_on": {
+						"eq": {
+							"var": "ctx.entry.pay_date"
+						}
+					}
+				},
+				"fields": ["source_id"],
+				"limit": 10000
+			}
+		},
+		"target_collection": "ledger_entry",
+		"target_action": "create",
+		"effects": "// js\n// PP 68/2009 arts.2(2), 6: a benefit's first two calendar years are one benefit on the ladder, and the balance keeps twelve months. What a paid run paid stays in `benefit_paid` by pay month: a paid run is final, so this never needs undoing.\nconst month = String(ctx.entry.pay_date).slice(0, 7);\nconst stop = (slip, code) => Number(get(first(get(slip, 'breakdown.checkpoints', []).filter((row) => row.code === code)), 'value', 0));\nconst tax = (slip, code) => {\n\tconst row = first(get(slip, 'breakdown.statutory', []).filter((item) => item.code === code));\n\treturn Number(get(row, 'employee', 0)) - Number(get(row, 'overpaid', 0));\n};\nconst paid = (slip) =>\n\t[\n\t\t['SEVERANCE', stop(slip, 'SEVERANCE') - stop(slip, 'ADDITIONAL_WAGES')],\n\t\t['PENSION_BENEFIT', stop(slip, 'PENSION_BENEFIT') - stop(slip, 'SEVERANCE')],\n\t\t['PPH21_FINAL_SEVERANCE.employee', tax(slip, 'PPH21_FINAL_SEVERANCE')],\n\t\t['PPH21_FINAL_PENSION.employee', tax(slip, 'PPH21_FINAL_PENSION')]\n\t].filter((move) => move[1] !== 0);\nconst balanceOf = (slip) => first(ctx.reads.employee_balance.filter((row) => row.employee_id === slip.employee_id));\n// An effect can run again after a crash: what this run posted is already here.\nif (ctx.reads.ledger_entry.some((row) => get(row, 'source_id.id', '') === ctx.entry.id)) return [];\nreturn ctx.reads.payslip.flatMap((slip) => {\n\tconst balance = balanceOf(slip);\n\tif (balance == null) return [];\n\treturn paid(slip).map((move) => ({\n\t\tbalance_id: balance.id,\n\t\toperation: move[1] > 0 ? 'ADD' : 'DEDUCT',\n\t\taccount: 'benefit_paid',\n\t\tcode: month + '.' + move[0],\n\t\tamount: Math.abs(move[1]),\n\t\tunit: 'MONEY',\n\t\teffective_on: ctx.entry.pay_date,\n\t\tsource_id: { model: 'payroll_run', id: ctx.entry.id }\n\t}));\n});",
+		"id": "a2a834b4-369c-5430-a84b-1e3a150267d3"
+	},
+	{
+		"code": "BENEFIT_PAID",
+		"name": "Keep the benefit a paid run paid",
+		"lookup": {},
+		"source_collection": "payroll_run",
+		"events": ["update"],
+		"condition": "// js\nreturn ctx.entry.state === 'PAID';",
+		"references": [
+			{
+				"title": "PP 68/2009 arts.2(2), 6: severance and pension benefits paid across the first two calendar years are one benefit on the final ladder.",
+				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm"
+			}
+		],
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
+		"reads": {
+			"payslip": {
+				"where": {
+					"payroll_run_id": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["employee_id", "breakdown"],
+				"limit": 10000
+			},
+			"employee_balance": {
+				"fields": ["id", "employee_id", "account"],
+				"limit": 10000
+			}
+		},
+		"target_collection": "employee_balance",
+		"target_action": "update",
+		"effects": "// js\n// PP 68/2009 arts.2(2), 6: a benefit's first two calendar years are one benefit on the ladder, and the balance keeps twelve months. What a paid run paid stays in `benefit_paid` by pay month: a paid run is final, so this never needs undoing.\nconst month = String(ctx.entry.pay_date).slice(0, 7);\nconst stop = (slip, code) => Number(get(first(get(slip, 'breakdown.checkpoints', []).filter((row) => row.code === code)), 'value', 0));\nconst tax = (slip, code) => {\n\tconst row = first(get(slip, 'breakdown.statutory', []).filter((item) => item.code === code));\n\treturn Number(get(row, 'employee', 0)) - Number(get(row, 'overpaid', 0));\n};\nconst paid = (slip) =>\n\t[\n\t\t['SEVERANCE', stop(slip, 'SEVERANCE') - stop(slip, 'ADDITIONAL_WAGES')],\n\t\t['PENSION_BENEFIT', stop(slip, 'PENSION_BENEFIT') - stop(slip, 'SEVERANCE')],\n\t\t['PPH21_FINAL_SEVERANCE.employee', tax(slip, 'PPH21_FINAL_SEVERANCE')],\n\t\t['PPH21_FINAL_PENSION.employee', tax(slip, 'PPH21_FINAL_PENSION')]\n\t].filter((move) => move[1] !== 0);\nconst balanceOf = (slip) => first(ctx.reads.employee_balance.filter((row) => row.employee_id === slip.employee_id));\nreturn ctx.reads.payslip.flatMap((slip) => {\n\tconst balance = balanceOf(slip);\n\tconst moves = paid(slip);\n\tif (balance == null || moves.length === 0) return [];\n\tconst held = get(balance.account, 'benefit_paid', {});\n\t// An effect can run again after a crash: the balance remembers each run it took.\n\tif (Object.hasOwn(held, 'run.' + ctx.entry.id)) return [];\n\tconst next = moves.reduce((total, move) => {\n\t\tconst key = month + '.' + move[0];\n\t\treturn { ...total, [key]: (Object.hasOwn(total, key) ? Number(total[key]) : 0) + move[1] };\n\t}, { ...held, ['run.' + ctx.entry.id]: 1 });\n\treturn [{ target: balance.id, set: { account: { ...balance.account, benefit_paid: next } } }];\n});",
+		"id": "b5ddc38b-bf77-59c7-9150-26b0b24f01c6"
 	}
 ]

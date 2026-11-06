@@ -453,6 +453,26 @@
 		"settings_id": "9a8f3abb-412b-568c-b068-065d6033be69"
 	},
 	{
+		"code": "SOCIAL_INSURANCE_REFUND",
+		"name": "Social insurance refund",
+		"references": [
+			{
+				"title": "健康保険法 art.167, 厚生年金保険法 art.84, 労働保険徴収法 art.32: premiums come out of pay. 所得税法 art.74: the deduction is what the employee bore, so a premium paid back on this item leaves the year-end adjustment. Tax goes on Statutory refund."
+			}
+		],
+		"description": "The entry quantity is the premium paid back; the schemes are not re-run.",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "9b347999-acc6-5aa7-9b14-da9a065e4016",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "6beb68a7-1aaa-57dd-817d-bfa479fa3804",
+		"settings_id": "9a8f3abb-412b-568c-b068-065d6033be69"
+	},
+	{
 		"code": "WAGE_ADJUSTMENT",
 		"name": "給与の過不足訂正 (wage adjustment)",
 		"description": "The entry quantity is salary short-paid, or with a reversal entry salary paid too much. It is pay of the month it is paid in, paid with the salary or off-cycle.",

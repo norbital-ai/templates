@@ -434,6 +434,98 @@ describe('corrected in the next month', () => {
 	});
 });
 
+describe('a benefit over two calendar years', () => {
+	// thirteen months apart, past what the balance keeps by month
+	const LATER = '2027-04-20T02:00:00.000Z';
+	const ITEM = 'PENSION_LUMPSUM';
+	const seed = seedOf(INDONESIA, terms(10_000_000), {
+		facts: { pension_tax_history: { first_payment_year: 2026 } }
+	});
+	const pension = (t: Kit, period: string) =>
+		runs(t, period).pipe(
+			Effect.map(([slip]) => slip?.statutory.find((row) => row.code === 'PPH21_FINAL_PENSION'))
+		);
+	const pay = (t: Kit, period: string) =>
+		Effect.gen(function* () {
+			yield* onCycle(t, period);
+			const run = (yield* t.storedQuery({ payroll_run: { limit: 100 } })).payroll_run.rows.find(
+				(row) => row.period === period
+			);
+			assert.ok(run !== undefined);
+			yield* t.as(t.admin).act('payroll_run.update', [{ target: run.id, set: { state: 'PAID' } }]);
+			yield* t.runDue();
+		});
+	const posted = (t: Kit) =>
+		t
+			.storedQuery({
+				ledger_entry: { where: { account: { eq: 'benefit_paid' } }, limit: 100 }
+			})
+			.pipe(
+				Effect.map(({ ledger_entry }) =>
+					Object.fromEntries(
+						ledger_entry.rows.map((row) => [row.code, row.amount?.toNumber() ?? 0])
+					)
+				)
+			);
+
+	it.live('the second year stands on the first year’s ladder', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* enter(t, seed, ITEM, 100_000_000, '2026-03-10');
+			yield* pay(t, '2026-03');
+			assert.equal((yield* pension(t, '2026-03'))?.employee, 2_500_000);
+			yield* enter(t, seed, ITEM, 100_000_000, '2027-04-10');
+			yield* pay(t, '2027-04');
+			assert.equal((yield* pension(t, '2027-04'))?.employee, 5_000_000);
+			assert.deepEqual(yield* posted(t), {
+				'2026-03.PENSION_BENEFIT': 100_000_000,
+				'2026-03.PPH21_FINAL_PENSION.employee': 2_500_000,
+				'2027-04.PENSION_BENEFIT': 100_000_000,
+				'2027-04.PPH21_FINAL_PENSION.employee': 5_000_000
+			});
+		}).pipe(Effect.provide(workspace({ seed, now: LATER })))
+	);
+	it.live('a reversal in the second year takes it back off the ladder', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* enter(t, seed, ITEM, 100_000_000, '2026-03-10');
+			yield* pay(t, '2026-03');
+			yield* enter(t, seed, ITEM, 50_000_000, '2027-04-10', true);
+			yield* pay(t, '2027-04');
+			assert.equal((yield* pension(t, '2027-04'))?.overpaid, 2_500_000);
+		}).pipe(Effect.provide(workspace({ seed, now: LATER })))
+	);
+	it.live('severance posts what sits above additional wages', () => {
+		const leaving = seedOf(INDONESIA, terms(10_000_000), {
+			facts: { severance_tax_history: { first_payment_year: 2026 }, hired_at_other_place: true }
+		});
+		const last = {
+			...leaving,
+			employee_contract: (leaving.employee_contract ?? []).map((row) => ({
+				...row,
+				effective_range: { from: '2026-01-01', to: '2026-03-31' }
+			}))
+		};
+		return Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* enter(t, last, 'UPH_TRAVEL_HOME', 100_000_000, '2026-03-31');
+			yield* pay(t, '2026-03');
+			assert.deepEqual(yield* posted(t), {
+				'2026-03.SEVERANCE': 100_000_000,
+				'2026-03.PPH21_FINAL_SEVERANCE.employee': 2_500_000
+			});
+		}).pipe(Effect.provide(workspace({ seed: last, now: LATER })));
+	});
+	it.live('an unpaid run posts nothing', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* enter(t, seed, ITEM, 100_000_000, '2026-03-10');
+			yield* onCycle(t, '2026-03');
+			assert.deepEqual(yield* posted(t), {});
+		}).pipe(Effect.provide(workspace({ seed, now: LATER })))
+	);
+});
+
 describe('a lump sum across a month’s runs', () => {
 	const folder = 'seed/public/jurisdiction/ID/version_3';
 	const [settings] = read(join(folder, 'jurisdiction_settings.json'));
@@ -441,7 +533,8 @@ describe('a lump sum across a month’s runs', () => {
 	const owed = (
 		code: string,
 		subtotals: Readonly<Record<string, number>>,
-		month: Readonly<Record<string, number>>
+		month: Readonly<Record<string, number>>,
+		paid: Readonly<Record<string, number>> = {}
 	) => {
 		const scheme = read(join(folder, 'statutory_contribution_catalog.json')).find(
 			(one) => one.code === code
@@ -451,7 +544,11 @@ describe('a lump sum across a month’s runs', () => {
 			String(scheme.employee_amount),
 			'CALCULATION',
 			{
-				subject: { employment: { employee_extension_data: {} } },
+				subject: {
+					employment: {
+						employee_extension_data: { severance_tax_history: { first_payment_year: 2026 } }
+					}
+				},
 				lookup: { ...lookupOf(settings), ...lookupOf(scheme) },
 				run: {
 					kind: 'OFF_CYCLE',
@@ -460,7 +557,7 @@ describe('a lump sum across a month’s runs', () => {
 				},
 				as_of: '2026-06-30',
 				subtotals,
-				balances: { month }
+				balances: { month, benefit_paid: paid }
 			},
 			code
 		);
@@ -470,6 +567,17 @@ describe('a lump sum across a month’s runs', () => {
 	it('Indonesia: severance paid in two parts is one payment on the ladder', () => {
 		const wages = { ADDITIONAL_WAGES: 0, SEVERANCE: 50_000_000 };
 		assert.equal(owed('PPH21_FINAL_SEVERANCE', wages, FORTY_PAID), 2_000_000);
+	});
+	it('Indonesia: severance counts the months paid before, from the first payment’s year', () => {
+		const paid = {
+			'2025-03.SEVERANCE': 400_000_000,
+			'2025-03.PPH21_FINAL_SEVERANCE.employee': 57_500_000,
+			'2026-03.SEVERANCE': 100_000_000,
+			'2026-03.PPH21_FINAL_SEVERANCE.employee': 2_500_000,
+			'run.a-paid-run': 1
+		};
+		const wages = { ADDITIONAL_WAGES: 0, SEVERANCE: 100_000_000 };
+		assert.equal(owed('PPH21_FINAL_SEVERANCE', wages, {}, paid), 15_000_000);
 	});
 	it('Indonesia: severance reversed comes off what the month charged', () => {
 		const wages = { ADDITIONAL_WAGES: 0, SEVERANCE: -50_000_000 };
@@ -526,6 +634,13 @@ describe('a month’s second salary stands alone', () => {
 });
 
 const ID_NO_PAY = ['UNPAID_LEAVE'];
+/** Rows that keep part of the day's pay, and the share of the day each takes. */
+const ID_STEPS = [
+	['MEDICAL_LEAVE_75', 0.25],
+	['MEDICAL_LEAVE_50', 0.5],
+	['MEDICAL_LEAVE_25', 0.75],
+	['MATERNITY_EXTENSION_PARTIAL_LEAVE', 0.25]
+] as const;
 const TH_NO_PAY = [
 	'SICK_LEAVE_UNPAID',
 	'TRAINING_LEAVE',
@@ -639,6 +754,49 @@ describe('a no-pay day in Indonesia', () => {
 		}).pipe(Effect.provide(workspace({ seed: ID_SEED, now: AUGUST })))
 	);
 	it.live('an entry not yet paid is deleted, not reversed', () => notYetPaid(ID_SEED, code));
+});
+
+describe('pay that steps down in Indonesia', () => {
+	const balance = {
+		account: { leave: Object.fromEntries(ID_STEPS.map(([code]) => [code, 40])) }
+	};
+	const seed = seedOf(
+		INDONESIA,
+		terms(10_000_000, { HOUSE_ALLOWANCE: { amount: 1_000_000, variability: 'FIXED' } }),
+		balance
+	);
+	for (const [code, share] of ID_STEPS)
+		it.live(`${code}: takes its share of a working day, paid back by a reversal`, () =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* take(t, seed, code, whole('2026-06-10'));
+				yield* onCycle(t, '2026-06');
+				assert.equal(yield* takenIn(t, '2026-06', code), -500_000 * share);
+				yield* take(t, seed, code, whole('2026-07-06'), true);
+				yield* onCycle(t, '2026-07');
+				assert.equal(yield* takenIn(t, '2026-07', code), 500_000 * share);
+			}).pipe(Effect.provide(workspace({ seed, now: AUGUST })))
+		);
+	it.live('a weekend picked with the dates costs nothing', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const days = ['2026-06-12', '2026-06-13', '2026-06-14', '2026-06-15'].flatMap(whole);
+			yield* take(t, seed, 'MATERNITY_EXTENSION_PARTIAL_LEAVE', days);
+			yield* onCycle(t, '2026-06');
+			assert.equal(yield* takenIn(t, '2026-06', 'MATERNITY_EXTENSION_PARTIAL_LEAVE'), -250_000);
+		}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
+	);
+	it('the months of maternity leave each have a figure', () => {
+		const leave = read(join('seed/public/jurisdiction/ID/version_3', 'leave_catalog.json'));
+		const days = (code: string) =>
+			(leave.find((one) => one.code === code)?.lookup as { grant_days?: number }).grant_days;
+		assert.deepEqual(
+			['MATERNITY_LEAVE', 'MATERNITY_EXTENSION_LEAVE', 'MATERNITY_EXTENSION_PARTIAL_LEAVE'].map(
+				days
+			),
+			[90, 30, 60]
+		);
+	});
 });
 
 const notYetPaid = (seed: Seed, code: string) =>
@@ -789,9 +947,9 @@ describe('a no-pay line owes what the salary basis owed', () => {
 
 describe('the catalogs', () => {
 	const root = 'seed/public/jurisdiction';
-	for (const [code, rows] of [
-		['ID', ID_NO_PAY],
-		['TH', TH_NO_PAY]
+	for (const [code, rows, taken] of [
+		['ID', ID_NO_PAY, [...ID_NO_PAY, ...ID_STEPS.map(([item]) => item)]],
+		['TH', TH_NO_PAY, TH_NO_PAY]
 	] as const)
 		it(`${code}: every version carries the lines and their rule`, () => {
 			for (const version of readdirSync(join(root, code))) {
@@ -813,7 +971,7 @@ describe('the catalogs', () => {
 				}
 				const rules = read(join(root, code, version, 'registered_rule.json'));
 				const rule = rules.find((one) => one.code === 'NO_PAY_OPEN_PERIOD');
-				assert.deepEqual(rule?.lookup, { no_pay: rows }, version);
+				assert.deepEqual(rule?.lookup, { no_pay: taken }, version);
 			}
 		});
 });
