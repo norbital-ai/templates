@@ -7,6 +7,7 @@ documents describe its contracts and the gates that keep it honest.
 
 | Document                                                                 | Owns                                                             |
 | ------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| [0000 — How this HRMS works](0000-hrms-principles.md)                    | The principles in plain language, for HR professionals           |
 | [0001 — Calculation architecture](0001-hrms-calculation-architecture.md) | The fixed design; ledger, base pay, subtotal chain and posting   |
 | [0002 — Model specification](0002-model-specification.md)                | Model fields, ownership, relationships and the final source tree |
 | [0003 — Jurisdiction seed](0003-jurisdiction-seed-specification.md)      | Seed pack integrity, replacement procedure and authoring rules   |

@@ -56,12 +56,12 @@ const scheduledDays = (lookup: JsonObject, person: LeavePerson, months: number, 
 	const week = Number(person.terms?.normal_days_per_week ?? 5);
 	if (!Array.isArray(table) || hours <= 0 || hours >= Number(lookup.full_time_weekly_hours))
 		return null;
-	if (week > 4 || months < offset) return null;
-	const year = Math.min(Math.floor((months - offset) / 12) + 1, 7);
-	const row = table.find(
-		(item) => isJsonObject(item) && item.normal_days_per_week === week && item.service_year === year
-	);
-	return isJsonObject(row) ? Number(row.days) : null;
+	if (months < offset) return null;
+	const rows = table.filter(isJsonObject);
+	const longest = Math.max(...rows.map((item) => Number(item.service_year)));
+	const year = Math.min(Math.floor((months - offset) / 12) + 1, longest);
+	const row = rows.find((item) => item.normal_days_per_week === week && item.service_year === year);
+	return row === undefined ? null : Number(row.days);
 };
 /** Days a class of work or a fact on the contract adds to the row. */
 const extraDays = (lookup: JsonObject, person: LeavePerson) =>

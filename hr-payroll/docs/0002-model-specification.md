@@ -78,19 +78,21 @@ The first row (`previous_id = null`) computes base pay. Later rows accumulate em
 
 ### Definition shape
 
-| Field                                                      | Applies to    | Contract                                                                                          |
-| ---------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------- |
-| `code`, `name`                                             | all           | Unique per `settings_id`; `code` is the accounting code                                           |
-| `settings_id`                                              | all           | Owned sealed jurisdiction version                                                                 |
-| `lookup`                                                   | all           | Flat constants and rates for this definition                                                      |
-| `references`                                               | all           | Research/legal provenance; never on entries                                                       |
-| `off_cycle_eligible`                                       | all           | An `OFF_CYCLE` run includes optional producers only when true; statutory schemes are not filtered |
-| `prorate`                                                  | allowance     | On: the line takes the share of the period paid. Off: it pays whole                               |
-| `subtotal_id`                                              | pay producers | Nullable: null when the definition creates no pay line                                            |
-| `eligibility`, `conversion`, `incurred_on`                 | pay producers | JS expressions; `conversion` is a nonnegative monetary magnitude                                  |
-| `direction`, `party`                                       | pay producers | `ADD`/`DEDUCT`; `EMPLOYEE`/`EMPLOYER`                                                             |
-| `pay_treatment`                                            | leave         | `PAID` or `UNPAID`; `UNPAID` prorates base pay                                                    |
-| `kind`, `depends_on`, `employee_amount`, `employer_amount` | statutory     | `CONTRIBUTION`/`TAX`; scheme codes; JS amounts                                                    |
+| Field                                                      | Applies to     | Contract                                                                                                                               |
+| ---------------------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `code`, `name`                                             | all            | Unique per `settings_id`; `code` is the accounting code                                                                                |
+| `settings_id`                                              | all            | Owned sealed jurisdiction version                                                                                                      |
+| `lookup`                                                   | all            | Flat constants and rates for this definition                                                                                           |
+| `references`                                               | all            | Research/legal provenance; never on entries                                                                                            |
+| `off_cycle_eligible`                                       | all            | An `OFF_CYCLE` run includes optional producers only when true; statutory schemes are not filtered                                      |
+| `prorate`                                                  | allowance      | On: the line takes the share of the period paid. Off: it pays whole                                                                    |
+| `subtotal_id`                                              | pay producers  | Nullable: null when the definition creates no pay line                                                                                 |
+| `eligibility`, `conversion`, `incurred_on`                 | pay producers  | JS expressions; `conversion` is a nonnegative monetary magnitude                                                                       |
+| `direction`, `party`                                       | pay producers  | `ADD`/`DEDUCT`; `EMPLOYEE`/`EMPLOYER`                                                                                                  |
+| `lookup.grants`                                            | workplace case | The leave rows a confirmed case opens, with `days` to override a row's `grant_days`, and `keep_start` to leave the event's start alone |
+| `lookup.pay_steps`                                         | leave          | What share of a day each stretch of an event loses, by `until_month` from the day its case began                                       |
+| `pay_treatment`                                            | leave          | `PAID` or `UNPAID`; `UNPAID` prorates base pay                                                                                         |
+| `kind`, `depends_on`, `employee_amount`, `employer_amount` | statutory      | `CONTRIBUTION`/`TAX`; scheme codes; JS amounts                                                                                         |
 
 `work_interruption_catalog` and `workplace_case_catalog` carry `events` and a nullable `subtotal_id`; they create a payroll line only when that target is set.
 
