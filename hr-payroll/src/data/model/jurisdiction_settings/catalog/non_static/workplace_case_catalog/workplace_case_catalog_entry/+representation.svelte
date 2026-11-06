@@ -20,6 +20,11 @@
 	const waiting = $derived(
 		record !== null && record.inputs.employment_id != null && record.inputs.decision == null
 	);
+	/** A rule's refusal reads as the sentence it wrote, without the rule's code. */
+	const messageOf = (error: unknown) =>
+		error instanceof Error
+			? error.message.replace(/^[A-Z0-9_]+\.validate: /, '')
+			: bolt.t('component.error');
 	const reversible = $derived(
 		record !== null &&
 			record.inputs.employment_id != null &&
@@ -48,11 +53,7 @@
 				])
 				.pipe(
 					Effect.tap((outcome) => Effect.sync(() => notifyOutcome(bolt, outcome))),
-					Effect.catch((error) =>
-						Effect.sync(() =>
-							toast.error(error instanceof Error ? error.message : bolt.t('component.error'))
-						)
-					)
+					Effect.catch((error) => Effect.sync(() => toast.error(messageOf(error))))
 				)
 		);
 	};
@@ -65,11 +66,7 @@
 				])
 				.pipe(
 					Effect.tap((outcome) => Effect.sync(() => notifyOutcome(bolt, outcome))),
-					Effect.catch((error) =>
-						Effect.sync(() =>
-							toast.error(error instanceof Error ? error.message : bolt.t('component.error'))
-						)
-					)
+					Effect.catch((error) => Effect.sync(() => toast.error(messageOf(error))))
 				)
 		);
 	};
