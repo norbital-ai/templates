@@ -1,5 +1,7 @@
 # HRMS calculation architecture
 
+[How this HRMS works](0000-hrms-principles.md) is the plain-language version, for HR professionals.
+
 Status: normative. Section 0 is the owner's fixed design. [The model contract](0002-model-specification.md) defines the models, [the seed contract](0003-jurisdiction-seed-specification.md) the seed replacement and [verification](0004-verification-gates.md) the gates. The source tree is the final authority; these documents describe it and never create a second implementation plan.
 
 ## 0. The design is fixed
@@ -25,7 +27,7 @@ This is the owner's design. Every agent working on this workspace reads this sec
 
 ### Ledger and balance
 
-- Ledger entries are emitted at three moments only: when a leave, claim, adhoc or loan entry is created, during payroll, and when a leave entitlement changes. None repeats another's movement.
+- Ledger entries are emitted at four moments only: when a leave, claim, adhoc or loan entry is created, during payroll, when a leave entitlement changes, and when the HR controller confirms a workplace case that opens leave. None repeats another's movement.
 - The ledger is append-only and an amount is never negative.
 - `employee_balance` is one row per person: the projection of the ledger, keyed by family and then code. Its accounts are data, not fixed columns.
 - Whatever a formula needs from earlier runs comes from the balance. There is no payroll history read: no `ctx.history`, no statutory history, no looking back through payslips.
@@ -98,7 +100,7 @@ Every payroll expression reads `ctx.day_rate`, so a jurisdiction prices overtime
 
 Rounding is the same kind of constant: `lookup.rounding` (`HALF_UP`, `HALF_EVEN`, `UP`, `DOWN`, `TRUNCATE`) and `lookup.rounding_scale` (integer 0–12), defaulting to `HALF_UP` at 2.
 
-## 2. One ledger, three writers
+## 2. One ledger, four writers
 
 ```text
 EVENT TIME (approval)                          PAYROLL TIME (run)
@@ -123,6 +125,7 @@ Event time writes the employee balance immediately; payroll time writes money an
 | loan repayment approved | `DEDUCT loan.<loan entry id> <amount>`            |
 | reversal                | inverse operation with `is_reversal`              |
 | leave entitlement moves | `ADD` or `DEDUCT leave.<catalog code> <diff>`     |
+| leave case confirmed    | `ADD` or `DEDUCT leave.<catalog code> <days>`     |
 | benefit run marked paid | `ADD` or `DEDUCT benefit_paid.<month>.<code>`     |
 
 Indonesia's severance and pension benefits run on one ladder across two calendar years, longer than a balance keeps its months, so a catalog effect keeps them in `benefit_paid` when the run is marked paid. A paid run is final, so nothing there ever needs undoing. An earlier run not marked paid yet still counts, from the months the balance keeps. Japan's premiums paid back or collected late go on their own items, on a subtotal of their own that the year-end adjustment reads, so the deduction is what the employee bore.

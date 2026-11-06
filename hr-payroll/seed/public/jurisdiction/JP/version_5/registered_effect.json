@@ -34,7 +34,7 @@
 		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_months)), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'SOCIAL_INSURANCE_PAYMENT', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"健康保険・厚生年金保険料の納付 (social insurance premium payment)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_months)), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'SOCIAL_INSURANCE_PAYMENT', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"健康保険・厚生年金保険料の納付 (social insurance premium payment)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"date_offset_months": 1
 		},
@@ -95,7 +95,7 @@
 		"condition": "return get(first(ctx.reads.entity_profile_version), 'entity_extension_data.withholding_semiannual_special', false) !== true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.pay_date), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'WITHHOLDING_TAX_PAYMENT', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"源泉所得税の納付 (withholding tax payment)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.pay_date), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'WITHHOLDING_TAX_PAYMENT', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"源泉所得税の納付 (withholding tax payment)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"date_offset_days": 10
 		},
@@ -156,7 +156,7 @@
 		"condition": "return get(first(ctx.reads.entity_profile_version), 'entity_extension_data.resident_tax_semiannual_special', false) !== true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.pay_date), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'RESIDENT_TAX_PAYMENT', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"住民税特別徴収税額の納入 (resident tax payment)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.pay_date), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'RESIDENT_TAX_PAYMENT', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"住民税特別徴収税額の納入 (resident tax payment)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"date_offset_days": 10
 		},
@@ -217,7 +217,7 @@
 		"condition": "return get(first(ctx.reads.entity_profile_version), 'entity_extension_data.withholding_semiannual_special', false) === true && ['06', '12'].includes(ctx.entry.period.substring(5, 7));",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.salary_coverage.from), ctx.entry.period.substring(5, 7) === '06' ? ctx.lookup.days_after_june : ctx.lookup.days_after_december), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'WITHHOLDING_TAX_SEMIANNUAL', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"源泉所得税の納期の特例による納付 (semi-annual withholding payment)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.salary_coverage.from), ctx.entry.period.substring(5, 7) === '06' ? ctx.lookup.days_after_june : ctx.lookup.days_after_december), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'WITHHOLDING_TAX_SEMIANNUAL', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"源泉所得税の納期の特例による納付 (semi-annual withholding payment)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"days_after_june": 10,
 			"days_after_december": 20
@@ -280,7 +280,7 @@
 		"condition": "return get(first(ctx.reads.entity_profile_version), 'entity_extension_data.resident_tax_semiannual_special', false) === true && ['05', '11'].includes(ctx.entry.period.substring(5, 7));",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.salary_coverage.from), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'RESIDENT_TAX_SEMIANNUAL', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"住民税特別徴収の納期の特例による納入 (semi-annual resident tax payment)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.salary_coverage.from), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'RESIDENT_TAX_SEMIANNUAL', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"住民税特別徴収の納期の特例による納入 (semi-annual resident tax payment)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"date_offset_days": 10
 		},
@@ -327,7 +327,7 @@
 		"condition": "return true;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.pay_date), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'RESIDENT_TAX_RETIREMENT_PAYMENT', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"退職所得に係る住民税の納入 (resident tax on retirement income)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.pay_date), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'RESIDENT_TAX_RETIREMENT_PAYMENT', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"退職所得に係る住民税の納入 (resident tax on retirement income)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"date_offset_days": 10
 		},
@@ -357,7 +357,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "// js\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.length > 0) return false;\nreturn true;",
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = ctx.entry.salary_coverage.to;\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"賃金台帳の記入 (wage ledger entry)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'WAGE_LEDGER', ctx.entry.entity_id, ctx.entry.period])\n}];",
@@ -405,7 +405,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '06';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.salary_coverage.from), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'LABOUR_INSURANCE_ANNUAL_DECLARATION', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"労働保険 年度更新 (labour insurance annual declaration and payment)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.salary_coverage.from), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'LABOUR_INSURANCE_ANNUAL_DECLARATION', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"労働保険 年度更新 (labour insurance annual declaration and payment)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"date_offset_days": 10
 		},
@@ -452,7 +452,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '07';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(add_days(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'SANTEI_KISO_REPORT', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"算定基礎届 (standard remuneration annual report)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(add_days(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'SANTEI_KISO_REPORT', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"算定基礎届 (standard remuneration annual report)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"date_offset_days": 9
 		},
@@ -482,7 +482,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "// js\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.length > 0) return false;\nreturn ctx.entry.period.substring(5, 7) === '12';",
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nreturn ctx.entry.period.substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = ctx.entry.salary_coverage.to;\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"年末調整 (year-end adjustment)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'YEAR_END_ADJUSTMENT', ctx.entry.entity_id, ctx.entry.period])\n}];",
@@ -513,7 +513,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "// js\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.length > 0) return false;\nreturn ctx.entry.period.substring(5, 7) === '01';",
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nreturn ctx.entry.period.substring(5, 7) === '01';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = add_days(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_days);\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"源泉徴収票の交付 (withholding slips to employees)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'WITHHOLDING_SLIPS_TO_EMPLOYEES', ctx.entry.entity_id, ctx.entry.period])\n}];",
@@ -563,7 +563,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '01';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(add_days(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'STATUTORY_RETURNS_SUMMARY', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"法定調書合計表の提出 (statutory returns to the tax office)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(add_days(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'STATUTORY_RETURNS_SUMMARY', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"法定調書合計表の提出 (statutory returns to the tax office)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"date_offset_days": 30
 		},
@@ -610,7 +610,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '01';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(add_days(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'SALARY_PAYMENT_REPORT', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"給与支払報告書の提出 (salary payment reports to municipalities)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(add_days(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'SALARY_PAYMENT_REPORT', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"給与支払報告書の提出 (salary payment reports to municipalities)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"date_offset_days": 30
 		},
@@ -914,7 +914,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '06' && Number(get(first(ctx.reads.entity_profile_version), 'entity_extension_data.regular_employee_count', 0)) >= ctx.lookup.employee_count_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.salary_coverage.from), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'DISABILITY_EMPLOYMENT_REPORT', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"障害者雇用状況報告 (disability employment status report)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.salary_coverage.from), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'DISABILITY_EMPLOYMENT_REPORT', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"障害者雇用状況報告 (disability employment status report)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"employee_count_threshold": 37.5,
 			"date_offset_days": 15
@@ -962,7 +962,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '06';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.salary_coverage.from), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'ELDERLY_EMPLOYMENT_REPORT', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"高年齢者雇用状況等報告 (older workers employment report)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(add_days(month_end(ctx.entry.salary_coverage.from), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'ELDERLY_EMPLOYMENT_REPORT', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"高年齢者雇用状況等報告 (older workers employment report)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"date_offset_days": 15
 		},
@@ -1023,7 +1023,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '05' && Number(get(first(ctx.reads.entity_profile_version), 'entity_extension_data.regular_employee_count', 0)) > ctx.lookup.employee_count_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(add_days(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'DISABILITY_LEVY_DECLARATION', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"障害者雇用納付金申告 (disability employment levy declaration)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(add_days(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'DISABILITY_LEVY_DECLARATION', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"障害者雇用納付金申告 (disability employment levy declaration)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"employee_count_threshold": 100,
 			"date_offset_days": 14
@@ -1471,7 +1471,7 @@
 		"condition": "return Number(get(first(ctx.reads.entity_profile_version), 'entity_extension_data.regular_employee_count', 0)) > ctx.lookup.employee_count_threshold && Number(ctx.entry.period.substring(5, 7)) === (ctx.lookup.business_year_end_month % 12) + 1;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_months)), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'WOMEN_ADVANCEMENT_PUBLICATION', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"女性の活躍に関する情報公表 (women's advancement information publication)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_months)), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'WOMEN_ADVANCEMENT_PUBLICATION', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"女性の活躍に関する情報公表 (women's advancement information publication)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"employee_count_threshold": 100,
 			"date_offset_months": 2
@@ -1554,7 +1554,7 @@
 		"condition": "const until = get(first(ctx.reads.entity_profile_version), 'entity_extension_data.overtime_agreement_to', '');\nif (until === '') return false;\nconst next = add_months(ctx.entry.salary_coverage.from, 1);\nif (!(until >= month_start(next))) return false;\nreturn until <= month_end(next);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(get(first(ctx.reads.entity_profile_version), 'entity_extension_data.overtime_agreement_to', ctx.entry.salary_coverage.to), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'OVERTIME_AGREEMENT_RENEWAL', ctx.entry.entity_id, get(first(ctx.reads.entity_profile_version), 'entity_extension_data.overtime_agreement_to', '')]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"36協定の締結・届出 (overtime agreement renewal and filing)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(get(first(ctx.reads.entity_profile_version), 'entity_extension_data.overtime_agreement_to', ctx.entry.salary_coverage.to), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'OVERTIME_AGREEMENT_RENEWAL', ctx.entry.entity_id, get(first(ctx.reads.entity_profile_version), 'entity_extension_data.overtime_agreement_to', '')]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"36協定の締結・届出 (overtime agreement renewal and filing)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {},
 		"references": [
 			{
@@ -1613,7 +1613,7 @@
 		"condition": "return get(first(ctx.reads.entity_profile_version), 'entity_extension_data.labour_insurance_instalments', false) === true && ctx.entry.period.substring(5, 7) === '10';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = (get(first(ctx.reads.entity_profile_version), 'entity_extension_data.labour_insurance_association', false) === true ? add_working_days(add_days(add_days(month_end(ctx.entry.salary_coverage.from), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]) : month_end(ctx.entry.salary_coverage.from));\nconst key = occurrence_key(['JP', 'LABOUR_INSURANCE_INSTALMENT_2', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"労働保険料 延納 第2期 (labour insurance instalment 2)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = (get(first(ctx.reads.entity_profile_version), 'entity_extension_data.labour_insurance_association', false) === true ? add_working_days(add_days(add_days(month_end(ctx.entry.salary_coverage.from), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]) : month_end(ctx.entry.salary_coverage.from));\nconst key = occurrence_key(['JP', 'LABOUR_INSURANCE_INSTALMENT_2', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"労働保険料 延納 第2期 (labour insurance instalment 2)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"date_offset_days": 14
 		},
@@ -1674,7 +1674,7 @@
 		"condition": "return get(first(ctx.reads.entity_profile_version), 'entity_extension_data.labour_insurance_instalments', false) === true && ctx.entry.period.substring(5, 7) === '01';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = (get(first(ctx.reads.entity_profile_version), 'entity_extension_data.labour_insurance_association', false) === true ? add_working_days(add_days(add_days(month_end(ctx.entry.salary_coverage.from), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]) : month_end(ctx.entry.salary_coverage.from));\nconst key = occurrence_key(['JP', 'LABOUR_INSURANCE_INSTALMENT_3', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"労働保険料 延納 第3期 (labour insurance instalment 3)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = (get(first(ctx.reads.entity_profile_version), 'entity_extension_data.labour_insurance_association', false) === true ? add_working_days(add_days(add_days(month_end(ctx.entry.salary_coverage.from), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]) : month_end(ctx.entry.salary_coverage.from));\nconst key = occurrence_key(['JP', 'LABOUR_INSURANCE_INSTALMENT_3', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"労働保険料 延納 第3期 (labour insurance instalment 3)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"date_offset_days": 14
 		},
@@ -2061,7 +2061,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "// js\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.length > 0) return false;\nreturn true;",
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = ctx.entry.pay_date;\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"給与支払明細書の交付 (pay statement delivery)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'PAYSLIP_DELIVERY', ctx.entry.entity_id, ctx.entry.period])\n}];",
@@ -2123,7 +2123,7 @@
 		"condition": "return ctx.entry.period.substring(5, 7) === '01' && Number(get(first(ctx.reads.entity_profile_version), 'entity_extension_data.statutory_return_count_two_years_prior', 0)) >= ctx.lookup.return_count_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(add_days(month_start(ctx.entry.salary_coverage.from), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'STATUTORY_RETURNS_E_FILING', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"法定調書の電子提出義務 (mandatory e-filing of statutory returns)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(add_days(month_start(ctx.entry.salary_coverage.from), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'STATUTORY_RETURNS_E_FILING', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"法定調書の電子提出義務 (mandatory e-filing of statutory returns)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"return_count_threshold": 100,
 			"date_offset_days": 30
@@ -2216,7 +2216,7 @@
 		"condition": "return Number(get(first(ctx.reads.entity_profile_version), 'entity_extension_data.regular_employee_count', 0)) >= ctx.lookup.employee_count_threshold && get(first(ctx.reads.entity_profile_version), 'entity_extension_data.work_rules_filed_on', '') === '';",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(ctx.entry.salary_coverage.to, -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'WORK_RULES_FILING', ctx.entry.entity_id]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"就業規則の作成・届出 (work rules filing)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(ctx.entry.salary_coverage.to, -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'WORK_RULES_FILING', ctx.entry.entity_id]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"就業規則の作成・届出 (work rules filing)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"employee_count_threshold": 10
 		},
@@ -2400,7 +2400,7 @@
 		"condition": "return Number(get(first(ctx.reads.entity_profile_version), 'entity_extension_data.regular_employee_count', 0)) > ctx.lookup.employee_count_threshold && Number(ctx.entry.period.substring(5, 7)) === (ctx.lookup.business_year_end_month % 12) + 1;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_months)), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'MALE_CHILDCARE_LEAVE_PUBLICATION', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"男性の育児休業等取得状況の公表 (publication of men's childcare leave)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_months)), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'MALE_CHILDCARE_LEAVE_PUBLICATION', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"男性の育児休業等取得状況の公表 (publication of men's childcare leave)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"employee_count_threshold": 300,
 			"date_offset_months": 2
@@ -2462,7 +2462,7 @@
 		"condition": "const profile = first(ctx.reads.entity_profile_version);\nif (!(Number(get(profile, 'entity_extension_data.regular_employee_count', 0)) > ctx.lookup.employee_count_threshold)) return false;\nconst until = get(profile, 'entity_extension_data.next_generation_plan_until', '');\nreturn until === '' || until < ctx.entry.salary_coverage.from;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(ctx.entry.salary_coverage.to, -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'NEXT_GENERATION_ACTION_PLAN', ctx.entry.entity_id, get(first(ctx.reads.entity_profile_version), 'entity_extension_data.next_generation_plan_until', '')]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"次世代法 一般事業主行動計画の策定・届出 (next-generation action plan)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(ctx.entry.salary_coverage.to, -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'NEXT_GENERATION_ACTION_PLAN', ctx.entry.entity_id, get(first(ctx.reads.entity_profile_version), 'entity_extension_data.next_generation_plan_until', '')]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"次世代法 一般事業主行動計画の策定・届出 (next-generation action plan)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"employee_count_threshold": 100
 		},
@@ -2523,7 +2523,7 @@
 		"condition": "const profile = first(ctx.reads.entity_profile_version);\nif (!(Number(get(profile, 'entity_extension_data.regular_employee_count', 0)) > ctx.lookup.employee_count_threshold)) return false;\nconst until = get(profile, 'entity_extension_data.women_action_plan_until', '');\nreturn until === '' || until < ctx.entry.salary_coverage.from;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(ctx.entry.salary_coverage.to, -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'WOMEN_ACTION_PLAN', ctx.entry.entity_id, get(first(ctx.reads.entity_profile_version), 'entity_extension_data.women_action_plan_until', '')]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"女性活躍推進法 一般事業主行動計画の策定・届出 (women's advancement action plan)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(ctx.entry.salary_coverage.to, -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'WOMEN_ACTION_PLAN', ctx.entry.entity_id, get(first(ctx.reads.entity_profile_version), 'entity_extension_data.women_action_plan_until', '')]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"女性活躍推進法 一般事業主行動計画の策定・届出 (women's advancement action plan)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"employee_count_threshold": 100
 		},
@@ -2584,7 +2584,7 @@
 		"condition": "return Number(get(first(ctx.reads.entity_profile_version), 'entity_extension_data.regular_employee_count', 0)) > ctx.lookup.employee_count_threshold && Number(ctx.entry.period.substring(5, 7)) === (ctx.lookup.business_year_end_month % 12) + 1;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_months)), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'MID_CAREER_HIRING_PUBLICATION', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"中途採用比率の公表 (publication of the mid-career hiring ratio)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_months)), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'MID_CAREER_HIRING_PUBLICATION', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"中途採用比率の公表 (publication of the mid-career hiring ratio)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"employee_count_threshold": 300,
 			"date_offset_months": 2
@@ -2797,7 +2797,7 @@
 		"condition": "return Number(get(first(ctx.reads.entity_profile_version), 'entity_extension_data.regular_employee_count', 0)) >= ctx.lookup.employee_count_threshold && Number(ctx.entry.period.substring(5, 7)) === Number(get(first(ctx.reads.entity_profile_version), 'entity_extension_data.health_check_month', 0));",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(ctx.entry.salary_coverage.to, -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'HEALTH_CHECK_REPORT', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"定期健康診断結果報告書 (health check result report)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(ctx.entry.salary_coverage.to, -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'HEALTH_CHECK_REPORT', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"定期健康診断結果報告書 (health check result report)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"employee_count_threshold": 50
 		},
@@ -2858,7 +2858,7 @@
 		"condition": "return Number(get(first(ctx.reads.entity_profile_version), 'entity_extension_data.regular_employee_count', 0)) >= ctx.lookup.employee_count_threshold && Number(ctx.entry.period.substring(5, 7)) === Number(get(first(ctx.reads.entity_profile_version), 'entity_extension_data.health_check_month', 0));",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const due = add_working_days(add_days(ctx.entry.salary_coverage.to, -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'STRESS_CHECK', ctx.entry.entity_id, ctx.entry.period]);\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"ストレスチェックの実施・報告 (stress check and report)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
+		"effects": "const due = add_working_days(add_days(ctx.entry.salary_coverage.to, -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'STRESS_CHECK', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"ストレスチェックの実施・報告 (stress check and report)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"employee_count_threshold": 50
 		},
@@ -2888,7 +2888,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "// js\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.length > 0) return false;\nreturn ctx.entry.period.substring(5, 7) === '12';",
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nreturn ctx.entry.period.substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = ctx.entry.salary_coverage.to;\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"扶養控除等申告書の受理 (dependant declaration for the coming year)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'DEPENDANT_DECLARATION_COLLECTION', ctx.entry.entity_id, ctx.entry.period])\n}];",
@@ -3188,7 +3188,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "// js\n// A second run in the period finds the task the first raised.\nif (ctx.reads.obligation.length > 0) return false;\nreturn ctx.entry.period.substring(5, 7) === '12';",
+		"condition": "// js\nif (ctx.reads.obligation.length > 0) return false;\nreturn ctx.entry.period.substring(5, 7) === '12';",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = ctx.entry.pay_date;\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"年末調整の各種申告書の受理 (year-end declarations)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'YEAR_END_DECLARATIONS_COLLECTION', ctx.entry.entity_id, ctx.entry.period])\n}];",
@@ -4682,8 +4682,13 @@
 		"condition": "// js\nreturn get(ctx.entry, 'breakdown.statutory', []).some((row) => Number(get(row, 'overpaid', 0)) > 0);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\n// Tax or a premium came out overpaid. The HR controller pays it back in Events: tax on Statutory refund, a premium on Social insurance refund.\nif (ctx.reads.obligation.length > 0) return [];\nconst year = String(get(first(ctx.reads.payroll_run), 'pay_date', '')).slice(0, 4);\nconst over = get(ctx.entry, 'breakdown.statutory', []).filter((row) => Number(get(row, 'overpaid', 0)) > 0);\nconst owed = (rows) => sum(rows.map((row) => Number(get(row, 'overpaid', 0))));\nconst taxes = over.filter((row) => row.kind === 'TAX');\nconst premiums = over.filter((row) => row.kind !== 'TAX');\nconst notes = [\n\t...(taxes.length > 0 ? ['Tax overpaid in ' + year + ': enter ' + owed(taxes) + ' on Statutory refund'] : []),\n\t...(premiums.length > 0 ? [premiums.map((row) => row.code).join(', ') + ' overpaid in ' + year + ': enter ' + owed(premiums) + ' on Social insurance refund; any employer share comes back from the agency'] : [])\n];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: notes.join('. '),\n\toccurrence_key: occurrence_key(['JP', 'TAX_REFUND', ctx.entry.id])\n}];",
+		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst year = String(get(first(ctx.reads.payroll_run), 'pay_date', '')).slice(0, 4);\nconst over = get(ctx.entry, 'breakdown.statutory', []).filter((row) => Number(get(row, 'overpaid', 0)) > 0);\nconst owed = (rows) => sum(rows.map((row) => Number(get(row, 'overpaid', 0))));\nconst taxes = over.filter((row) => row.kind === 'TAX');\nconst premiums = over.filter((row) => row.kind !== 'TAX');\nconst notes = [\n\t...(taxes.length > 0 ? ['Tax overpaid in ' + year + ': enter ' + owed(taxes) + ' on Statutory refund'] : []),\n\t...(premiums.length > 0 ? [premiums.map((row) => row.code).join(', ') + ' overpaid in ' + year + ': enter ' + owed(premiums) + ' on Social insurance refund; any employer share comes back from the agency'] : [])\n];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: notes.join('. '),\n\toccurrence_key: occurrence_key(['JP', 'TAX_REFUND', ctx.entry.id])\n}];",
 		"id": "f209ba90-4fb3-5973-aae7-f3b3ca09addb",
-		"settings_id": "23937fac-c333-5f41-a60a-8c0852a0ac5f"
+		"settings_id": "23937fac-c333-5f41-a60a-8c0852a0ac5f",
+		"references": [
+			{
+				"title": "An overpaid year raises a task for the HR controller, who pays it back on the correction item."
+			}
+		]
 	}
 ]

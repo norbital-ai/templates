@@ -2065,9 +2065,14 @@
 		"condition": "// js\nreturn get(ctx.entry, 'breakdown.statutory', []).some((row) => Number(get(row, 'overpaid', 0)) > 0);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\n// Tax or a contribution came out overpaid. The HR controller pays it back with an entry on the Statutory refund item, in Events.\nif (ctx.reads.obligation.length > 0) return [];\nconst year = String(get(first(ctx.reads.payroll_run), 'pay_date', '')).slice(0, 4);\nconst over = get(ctx.entry, 'breakdown.statutory', []).filter((row) => Number(get(row, 'overpaid', 0)) > 0);\nconst overpaid = sum(over.map((row) => Number(get(row, 'overpaid', 0))));\nconst what = over.every((row) => row.kind === 'TAX') ? 'Tax' : over.map((row) => row.code).join(', ');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: what + ' overpaid in ' + year + ': enter ' + overpaid + ' on Statutory refund' + (what === 'Tax' ? '' : '; any employer share comes back from the agency'),\n\toccurrence_key: occurrence_key(['ID', 'TAX_REFUND', ctx.entry.id])\n}];",
+		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst year = String(get(first(ctx.reads.payroll_run), 'pay_date', '')).slice(0, 4);\nconst over = get(ctx.entry, 'breakdown.statutory', []).filter((row) => Number(get(row, 'overpaid', 0)) > 0);\nconst overpaid = sum(over.map((row) => Number(get(row, 'overpaid', 0))));\nconst what = over.every((row) => row.kind === 'TAX') ? 'Tax' : over.map((row) => row.code).join(', ');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: what + ' overpaid in ' + year + ': enter ' + overpaid + ' on Statutory refund' + (what === 'Tax' ? '' : '; any employer share comes back from the agency'),\n\toccurrence_key: occurrence_key(['ID', 'TAX_REFUND', ctx.entry.id])\n}];",
 		"id": "a533aeae-ae83-517e-917e-f3c156fc38d9",
-		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
+		"references": [
+			{
+				"title": "An overpaid year raises a task for the HR controller, who pays it back on the correction item."
+			}
+		]
 	},
 	{
 		"code": "LATE_WAGE_FINE",
@@ -2121,7 +2126,11 @@
 		"code": "CONSUMED_LEAVE_LEDGER",
 		"name": "Post what a leave row draws from another",
 		"lookup": {},
-		"references": [],
+		"references": [
+			{
+				"title": "Leave that draws on another account moves that account."
+			}
+		],
 		"source_collection": "leave_catalog_entry",
 		"events": ["create"],
 		"reads": {
@@ -2151,7 +2160,7 @@
 		"condition": "// js\nreturn get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', null) != null;",
 		"target_collection": "ledger_entry",
 		"target_action": "create",
-		"effects": "// js\n// A row that consumes another draws on that row's account: the entry posted its own, and this moves the one it draws on.\nconst code = get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', '');\nconst balance = first(ctx.reads.employee_balance);\nif (balance == null) return [];\nconst days = ctx.entry.days.length / 2;\nconst back = get(ctx.entry, 'is_reversal', false) === true;\nreturn [{\n\tbalance_id: balance.id,\n\toperation: back ? 'ADD' : 'DEDUCT',\n\taccount: 'leave',\n\tcode,\n\tamount: days,\n\tunit: 'DAY',\n\teffective_on: ctx.entry.days[0].date\n}];",
+		"effects": "// js\nconst code = get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', '');\nconst balance = first(ctx.reads.employee_balance);\nif (balance == null) return [];\nconst days = ctx.entry.days.length / 2;\nconst back = get(ctx.entry, 'is_reversal', false) === true;\nreturn [{\n\tbalance_id: balance.id,\n\toperation: back ? 'ADD' : 'DEDUCT',\n\taccount: 'leave',\n\tcode,\n\tamount: days,\n\tunit: 'DAY',\n\teffective_on: ctx.entry.days[0].date\n}];",
 		"id": "2312fa1d-4bf2-5fa1-8390-6e20a2eb8eee",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
 	},
@@ -2159,7 +2168,11 @@
 		"code": "CONSUMED_LEAVE",
 		"name": "Draw from the account a leave row consumes",
 		"lookup": {},
-		"references": [],
+		"references": [
+			{
+				"title": "Leave that draws on another account moves that account."
+			}
+		],
 		"source_collection": "leave_catalog_entry",
 		"events": ["create"],
 		"reads": {
@@ -2189,7 +2202,7 @@
 		"condition": "// js\nreturn get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', null) != null;",
 		"target_collection": "employee_balance",
 		"target_action": "update",
-		"effects": "// js\n// A row that consumes another draws on that row's account: the entry posted its own, and this moves the one it draws on.\nconst code = get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', '');\nconst balance = first(ctx.reads.employee_balance);\nif (balance == null) return [];\nconst days = ctx.entry.days.length / 2;\nconst back = get(ctx.entry, 'is_reversal', false) === true;\nconst leave = get(balance.account, 'leave', {});\nconst held = Number(get(leave, code, 0));\nreturn [{ target: balance.id, set: { account: { ...balance.account, leave: { ...leave, [code]: Math.max(0, held + (back ? days : -days)) } } } }];",
+		"effects": "// js\nconst code = get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', '');\nconst balance = first(ctx.reads.employee_balance);\nif (balance == null) return [];\nconst days = ctx.entry.days.length / 2;\nconst back = get(ctx.entry, 'is_reversal', false) === true;\nconst leave = get(balance.account, 'leave', {});\nconst held = Number(get(leave, code, 0));\nreturn [{ target: balance.id, set: { account: { ...balance.account, leave: { ...leave, [code]: Math.max(0, held + (back ? days : -days)) } } } }];",
 		"id": "8feb79b9-11d1-53f9-bf62-6cd29521abb4",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
 	},
@@ -2240,7 +2253,7 @@
 		},
 		"target_collection": "ledger_entry",
 		"target_action": "create",
-		"effects": "// js\n// PP 68/2009 arts.2(2), 6: a benefit's first two calendar years are one benefit on the ladder, and the balance keeps twelve months. What a paid run paid stays in `benefit_paid` by pay month: a paid run is final, so this never needs undoing.\nconst month = String(ctx.entry.pay_date).slice(0, 7);\nconst stop = (slip, code) => Number(get(first(get(slip, 'breakdown.checkpoints', []).filter((row) => row.code === code)), 'value', 0));\nconst tax = (slip, code) => {\n\tconst row = first(get(slip, 'breakdown.statutory', []).filter((item) => item.code === code));\n\treturn Number(get(row, 'employee', 0)) - Number(get(row, 'overpaid', 0));\n};\nconst paid = (slip) =>\n\t[\n\t\t['SEVERANCE', stop(slip, 'SEVERANCE') - stop(slip, 'ADDITIONAL_WAGES')],\n\t\t['PENSION_BENEFIT', stop(slip, 'PENSION_BENEFIT') - stop(slip, 'SEVERANCE')],\n\t\t['PPH21_FINAL_SEVERANCE.employee', tax(slip, 'PPH21_FINAL_SEVERANCE')],\n\t\t['PPH21_FINAL_PENSION.employee', tax(slip, 'PPH21_FINAL_PENSION')]\n\t].filter((move) => move[1] !== 0);\nconst balanceOf = (slip) => first(ctx.reads.employee_balance.filter((row) => row.employee_id === slip.employee_id));\n// An effect can run again after a crash: what this run posted is already here.\nif (ctx.reads.ledger_entry.some((row) => get(row, 'source_id.id', '') === ctx.entry.id)) return [];\nreturn ctx.reads.payslip.flatMap((slip) => {\n\tconst balance = balanceOf(slip);\n\tif (balance == null) return [];\n\treturn paid(slip).map((move) => ({\n\t\tbalance_id: balance.id,\n\t\toperation: move[1] > 0 ? 'ADD' : 'DEDUCT',\n\t\taccount: 'benefit_paid',\n\t\tcode: month + '.' + move[0],\n\t\tamount: Math.abs(move[1]),\n\t\tunit: 'MONEY',\n\t\teffective_on: ctx.entry.pay_date,\n\t\tsource_id: { model: 'payroll_run', id: ctx.entry.id }\n\t}));\n});",
+		"effects": "// js\n// PP 68/2009 arts.2(2), 6: a benefit's first two calendar years are one benefit on the ladder, and the balance keeps twelve months. What a paid run paid stays in `benefit_paid` by pay month: a paid run is final, so this never needs undoing.\nconst month = String(ctx.entry.pay_date).slice(0, 7);\nconst stop = (slip, code) => Number(get(first(get(slip, 'breakdown.checkpoints', []).filter((row) => row.code === code)), 'value', 0));\nconst tax = (slip, code) => {\n\tconst row = first(get(slip, 'breakdown.statutory', []).filter((item) => item.code === code));\n\treturn Number(get(row, 'employee', 0)) - Number(get(row, 'overpaid', 0));\n};\nconst paid = (slip) =>\n\t[\n\t\t['SEVERANCE', stop(slip, 'SEVERANCE') - stop(slip, 'ADDITIONAL_WAGES')],\n\t\t['PENSION_BENEFIT', stop(slip, 'PENSION_BENEFIT') - stop(slip, 'SEVERANCE')],\n\t\t['PPH21_FINAL_SEVERANCE.employee', tax(slip, 'PPH21_FINAL_SEVERANCE')],\n\t\t['PPH21_FINAL_PENSION.employee', tax(slip, 'PPH21_FINAL_PENSION')]\n\t].filter((move) => move[1] !== 0);\nconst balanceOf = (slip) => first(ctx.reads.employee_balance.filter((row) => row.employee_id === slip.employee_id));\nif (ctx.reads.ledger_entry.some((row) => get(row, 'source_id.id', '') === ctx.entry.id)) return [];\nreturn ctx.reads.payslip.flatMap((slip) => {\n\tconst balance = balanceOf(slip);\n\tif (balance == null) return [];\n\treturn paid(slip).map((move) => ({\n\t\tbalance_id: balance.id,\n\t\toperation: move[1] > 0 ? 'ADD' : 'DEDUCT',\n\t\taccount: 'benefit_paid',\n\t\tcode: month + '.' + move[0],\n\t\tamount: Math.abs(move[1]),\n\t\tunit: 'MONEY',\n\t\teffective_on: ctx.entry.pay_date,\n\t\tsource_id: { model: 'payroll_run', id: ctx.entry.id }\n\t}));\n});",
 		"id": "a2a834b4-369c-5430-a84b-1e3a150267d3"
 	},
 	{
@@ -2276,7 +2289,7 @@
 		},
 		"target_collection": "employee_balance",
 		"target_action": "update",
-		"effects": "// js\n// PP 68/2009 arts.2(2), 6: a benefit's first two calendar years are one benefit on the ladder, and the balance keeps twelve months. What a paid run paid stays in `benefit_paid` by pay month: a paid run is final, so this never needs undoing.\nconst month = String(ctx.entry.pay_date).slice(0, 7);\nconst stop = (slip, code) => Number(get(first(get(slip, 'breakdown.checkpoints', []).filter((row) => row.code === code)), 'value', 0));\nconst tax = (slip, code) => {\n\tconst row = first(get(slip, 'breakdown.statutory', []).filter((item) => item.code === code));\n\treturn Number(get(row, 'employee', 0)) - Number(get(row, 'overpaid', 0));\n};\nconst paid = (slip) =>\n\t[\n\t\t['SEVERANCE', stop(slip, 'SEVERANCE') - stop(slip, 'ADDITIONAL_WAGES')],\n\t\t['PENSION_BENEFIT', stop(slip, 'PENSION_BENEFIT') - stop(slip, 'SEVERANCE')],\n\t\t['PPH21_FINAL_SEVERANCE.employee', tax(slip, 'PPH21_FINAL_SEVERANCE')],\n\t\t['PPH21_FINAL_PENSION.employee', tax(slip, 'PPH21_FINAL_PENSION')]\n\t].filter((move) => move[1] !== 0);\nconst balanceOf = (slip) => first(ctx.reads.employee_balance.filter((row) => row.employee_id === slip.employee_id));\nreturn ctx.reads.payslip.flatMap((slip) => {\n\tconst balance = balanceOf(slip);\n\tconst moves = paid(slip);\n\tif (balance == null || moves.length === 0) return [];\n\tconst held = get(balance.account, 'benefit_paid', {});\n\t// An effect can run again after a crash: the balance remembers each run it took.\n\tif (Object.hasOwn(held, 'run.' + ctx.entry.id)) return [];\n\tconst next = moves.reduce((total, move) => {\n\t\tconst key = month + '.' + move[0];\n\t\treturn { ...total, [key]: (Object.hasOwn(total, key) ? Number(total[key]) : 0) + move[1] };\n\t}, { ...held, ['run.' + ctx.entry.id]: 1 });\n\treturn [{ target: balance.id, set: { account: { ...balance.account, benefit_paid: next } } }];\n});",
+		"effects": "// js\n// PP 68/2009 arts.2(2), 6: a benefit's first two calendar years are one benefit on the ladder, and the balance keeps twelve months. What a paid run paid stays in `benefit_paid` by pay month: a paid run is final, so this never needs undoing.\nconst month = String(ctx.entry.pay_date).slice(0, 7);\nconst stop = (slip, code) => Number(get(first(get(slip, 'breakdown.checkpoints', []).filter((row) => row.code === code)), 'value', 0));\nconst tax = (slip, code) => {\n\tconst row = first(get(slip, 'breakdown.statutory', []).filter((item) => item.code === code));\n\treturn Number(get(row, 'employee', 0)) - Number(get(row, 'overpaid', 0));\n};\nconst paid = (slip) =>\n\t[\n\t\t['SEVERANCE', stop(slip, 'SEVERANCE') - stop(slip, 'ADDITIONAL_WAGES')],\n\t\t['PENSION_BENEFIT', stop(slip, 'PENSION_BENEFIT') - stop(slip, 'SEVERANCE')],\n\t\t['PPH21_FINAL_SEVERANCE.employee', tax(slip, 'PPH21_FINAL_SEVERANCE')],\n\t\t['PPH21_FINAL_PENSION.employee', tax(slip, 'PPH21_FINAL_PENSION')]\n\t].filter((move) => move[1] !== 0);\nconst balanceOf = (slip) => first(ctx.reads.employee_balance.filter((row) => row.employee_id === slip.employee_id));\nreturn ctx.reads.payslip.flatMap((slip) => {\n\tconst balance = balanceOf(slip);\n\tconst moves = paid(slip);\n\tif (balance == null || moves.length === 0) return [];\n\tconst held = get(balance.account, 'benefit_paid', {});\n\tif (Object.hasOwn(held, 'run.' + ctx.entry.id)) return [];\n\tconst next = moves.reduce((total, move) => {\n\t\tconst key = month + '.' + move[0];\n\t\treturn { ...total, [key]: (Object.hasOwn(total, key) ? Number(total[key]) : 0) + move[1] };\n\t}, { ...held, ['run.' + ctx.entry.id]: 1 });\n\treturn [{ target: balance.id, set: { account: { ...balance.account, benefit_paid: next } } }];\n});",
 		"id": "b5ddc38b-bf77-59c7-9150-26b0b24f01c6"
 	},
 	{
@@ -2338,8 +2351,13 @@
 		},
 		"target_collection": "ledger_entry",
 		"target_action": "create",
-		"effects": "// js\n// The case is the event: confirmed, it opens the days its leave rows give for one event, once.\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nconst person = ctx.subject.employment;\n// A reversal is the same case again, marked: it takes back exactly what the case gave.\nconst sign = get(ctx.entry, 'inputs.is_reversal', false) === true ? -1 : 1;\nconst moves = grants.flatMap((grant) => {\n\tconst row = first(ctx.reads.leave_catalog.filter((item) => item.code === grant.code));\n\tif (row == null) return [];\n\tconst wanted = get(row, 'lookup.eligibility.gender', null);\n\tif (wanted != null && wanted !== get(person, 'payroll.gender', null)) return [];\n\treturn [{ code: grant.code, row, keep: get(grant, 'keep_start', false), days: get(grant, 'days', get(row, 'lookup.grant_days', 0)) }];\n});\nif (balance == null || ctx.reads.ledger_entry.length > 0) return [];\nconst on = ctx.entry.opened_on;\nreturn [\n\t{ balance_id: balance.id, operation: 'ADD', account: 'leave_case', code: ctx.entry.id, amount: 1, unit: 'COUNT', effective_on: on },\n\t...moves.filter((move) => move.days > 0).map((move) => ({ balance_id: balance.id, operation: sign > 0 ? 'ADD' : 'DEDUCT', account: 'leave', code: move.code, amount: move.days, unit: 'DAY', effective_on: on }))\n];",
-		"id": "9361e129-559e-594a-bb42-f3f8be9d3ce8"
+		"effects": "// js\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nconst person = ctx.subject.employment;\nconst sign = get(ctx.entry, 'inputs.is_reversal', false) === true ? -1 : 1;\nconst moves = grants.flatMap((grant) => {\n\tconst row = first(ctx.reads.leave_catalog.filter((item) => item.code === grant.code));\n\tif (row == null) return [];\n\tconst wanted = get(row, 'lookup.eligibility.gender', null);\n\tif (wanted != null && wanted !== get(person, 'payroll.gender', null)) return [];\n\treturn [{ code: grant.code, row, keep: get(grant, 'keep_start', false), days: get(grant, 'days', get(row, 'lookup.grant_days', 0)) }];\n});\nif (balance == null || ctx.reads.ledger_entry.length > 0) return [];\nconst on = ctx.entry.opened_on;\nreturn [\n\t{ balance_id: balance.id, operation: 'ADD', account: 'leave_case', code: ctx.entry.id, amount: 1, unit: 'COUNT', effective_on: on },\n\t...moves.filter((move) => move.days > 0).map((move) => ({ balance_id: balance.id, operation: sign > 0 ? 'ADD' : 'DEDUCT', account: 'leave', code: move.code, amount: move.days, unit: 'DAY', effective_on: on }))\n];",
+		"id": "9361e129-559e-594a-bb42-f3f8be9d3ce8",
+		"references": [
+			{
+				"title": "A confirmed case opens the days its leave rows give for one event."
+			}
+		]
 	},
 	{
 		"lookup": {},
@@ -2386,8 +2404,13 @@
 		},
 		"target_collection": "employee_balance",
 		"target_action": "update",
-		"effects": "// js\n// The case is the event: confirmed, it opens the days its leave rows give for one event, once.\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nconst person = ctx.subject.employment;\n// A reversal is the same case again, marked: it takes back exactly what the case gave.\nconst sign = get(ctx.entry, 'inputs.is_reversal', false) === true ? -1 : 1;\nconst moves = grants.flatMap((grant) => {\n\tconst row = first(ctx.reads.leave_catalog.filter((item) => item.code === grant.code));\n\tif (row == null) return [];\n\tconst wanted = get(row, 'lookup.eligibility.gender', null);\n\tif (wanted != null && wanted !== get(person, 'payroll.gender', null)) return [];\n\treturn [{ code: grant.code, row, keep: get(grant, 'keep_start', false), days: get(grant, 'days', get(row, 'lookup.grant_days', 0)) }];\n});\nif (balance == null) return [];\nconst done = get(balance.account, 'leave_case', {});\nif (Object.hasOwn(done, ctx.entry.id)) return [];\nconst leave = get(balance.account, 'leave', {});\nconst stamp = Number(String(ctx.entry.opened_on).replaceAll('-', ''));\nconst held = (code) => (Object.hasOwn(leave, code) ? Number(leave[code]) : 0);\n// A row that steps its pay counts from the day the event began.\nconst stepped = moves.filter((move) => get(move.row, 'lookup.pay_steps', null) != null && move.keep !== true);\nconst started = sign > 0 ? stepped : [];\nconst reverses = get(ctx.entry, 'inputs.reverses', '');\nconst gone = sign > 0 ? [] : stepped.map((move) => move.code + '.from');\nconst windows = Object.fromEntries(Object.entries(get(balance.account, 'leave_window', {})).filter((pair) => !gone.includes(pair[0])));\nreturn [{\n\ttarget: balance.id,\n\tset: {\n\t\taccount: {\n\t\t\t...balance.account,\n\t\t\tleave: { ...leave, ...Object.fromEntries(moves.map((move) => [move.code, held(move.code) + sign * move.days])) },\n\t\t\tleave_window: { ...windows, ...Object.fromEntries(started.map((move) => [move.code + '.from', stamp])) },\n\t\t\tleave_case: { ...done, [ctx.entry.id]: 1, ...Object.fromEntries(moves.map((move) => [ctx.entry.id + '.' + move.code, move.days])), ...(reverses === '' ? {} : { ['reversed.' + reverses]: 1 }) }\n\t\t}\n\t}\n}];",
-		"id": "e5e3df6c-c5a9-5487-b2f2-6d6ac45677ed"
+		"effects": "// js\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nconst person = ctx.subject.employment;\nconst sign = get(ctx.entry, 'inputs.is_reversal', false) === true ? -1 : 1;\nconst moves = grants.flatMap((grant) => {\n\tconst row = first(ctx.reads.leave_catalog.filter((item) => item.code === grant.code));\n\tif (row == null) return [];\n\tconst wanted = get(row, 'lookup.eligibility.gender', null);\n\tif (wanted != null && wanted !== get(person, 'payroll.gender', null)) return [];\n\treturn [{ code: grant.code, row, keep: get(grant, 'keep_start', false), days: get(grant, 'days', get(row, 'lookup.grant_days', 0)) }];\n});\nif (balance == null) return [];\nconst done = get(balance.account, 'leave_case', {});\nif (Object.hasOwn(done, ctx.entry.id)) return [];\nconst leave = get(balance.account, 'leave', {});\nconst stamp = Number(String(ctx.entry.opened_on).replaceAll('-', ''));\nconst held = (code) => (Object.hasOwn(leave, code) ? Number(leave[code]) : 0);\nconst stepped = moves.filter((move) => get(move.row, 'lookup.pay_steps', null) != null && move.keep !== true);\nconst started = sign > 0 ? stepped : [];\nconst reverses = get(ctx.entry, 'inputs.reverses', '');\nconst gone = sign > 0 ? [] : stepped.map((move) => move.code + '.from');\nconst windows = Object.fromEntries(Object.entries(get(balance.account, 'leave_window', {})).filter((pair) => !gone.includes(pair[0])));\nreturn [{\n\ttarget: balance.id,\n\tset: {\n\t\taccount: {\n\t\t\t...balance.account,\n\t\t\tleave: { ...leave, ...Object.fromEntries(moves.map((move) => [move.code, held(move.code) + sign * move.days])) },\n\t\t\tleave_window: { ...windows, ...Object.fromEntries(started.map((move) => [move.code + '.from', stamp])) },\n\t\t\tleave_case: { ...done, [ctx.entry.id]: 1, ...Object.fromEntries(moves.map((move) => [ctx.entry.id + '.' + move.code, move.days])), ...(reverses === '' ? {} : { ['reversed.' + reverses]: 1 }) }\n\t\t}\n\t}\n}];",
+		"id": "e5e3df6c-c5a9-5487-b2f2-6d6ac45677ed",
+		"references": [
+			{
+				"title": "A confirmed case opens the days its leave rows give for one event."
+			}
+		]
 	},
 	{
 		"lookup": {},
@@ -2423,8 +2446,13 @@
 		},
 		"target_collection": "employee_balance",
 		"target_action": "update",
-		"effects": "// js\n// A closed case ends the event: the next day of this leave stands at full pay again.\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nif (balance == null) return [];\nconst windows = get(balance.account, 'leave_window', {});\nconst keys = grants.map((grant) => grant.code + '.from');\nif (!keys.some((key) => Object.hasOwn(windows, key))) return [];\nreturn [{ target: balance.id, set: { account: { ...balance.account, leave_window: Object.fromEntries(Object.entries(windows).filter((pair) => !keys.includes(pair[0]))) } } }];",
-		"id": "de45aa3a-29c3-5cb0-9377-f2f18495a1b4"
+		"effects": "// js\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nif (balance == null) return [];\nconst windows = get(balance.account, 'leave_window', {});\nconst keys = grants.map((grant) => grant.code + '.from');\nif (!keys.some((key) => Object.hasOwn(windows, key))) return [];\nreturn [{ target: balance.id, set: { account: { ...balance.account, leave_window: Object.fromEntries(Object.entries(windows).filter((pair) => !keys.includes(pair[0]))) } } }];",
+		"id": "de45aa3a-29c3-5cb0-9377-f2f18495a1b4",
+		"references": [
+			{
+				"title": "Closing a case ends the event."
+			}
+		]
 	},
 	{
 		"code": "LONG_ILLNESS_REMINDER",
@@ -2493,7 +2521,7 @@
 		},
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\n// A long spell of sick days with no case stays at full pay: the law steps it down, so HR is told to open one.\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || item.code !== ctx.lookup.leave_code) return [];\nconst windows = get(first(ctx.reads.employee_balance), 'account.leave_window', {});\nif (Object.hasOwn(windows, item.code + '.from')) return [];\nconst dates = ctx.reads.leave_catalog_entry.flatMap((entry) => entry.days.map((day) => day.date));\nconst sorted = dates.toSorted();\nconst latest = sorted[sorted.length - 1];\nconst near = dates.filter((date, index) => dates.indexOf(date) === index && calendar_distance_days(date, latest) <= ctx.lookup.within_days);\nif (near.length < ctx.lookup.sick_days) return [];\nif (ctx.reads.obligation.length > 0) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.title,\n\toccurrence_key: occurrence_key(['ID', 'LONG_ILLNESS_REMINDER', ctx.entry.employment_id])\n}];",
+		"effects": "// js\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || item.code !== ctx.lookup.leave_code) return [];\nconst windows = get(first(ctx.reads.employee_balance), 'account.leave_window', {});\nif (Object.hasOwn(windows, item.code + '.from')) return [];\nconst dates = ctx.reads.leave_catalog_entry.flatMap((entry) => entry.days.map((day) => day.date));\nconst sorted = dates.toSorted();\nconst latest = sorted[sorted.length - 1];\nconst near = dates.filter((date, index) => dates.indexOf(date) === index && calendar_distance_days(date, latest) <= ctx.lookup.within_days);\nif (near.length < ctx.lookup.sick_days) return [];\nif (ctx.reads.obligation.length > 0) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.title,\n\toccurrence_key: occurrence_key(['ID', 'LONG_ILLNESS_REMINDER', ctx.entry.employment_id])\n}];",
 		"references": [
 			{
 				"title": "PP 36/2021 art.41(1): pay steps down by the months of an illness, so a long spell needs its case."
