@@ -257,5 +257,116 @@
 		"lookup": {},
 		"id": "35ace939-ffdb-5b7c-88c7-0fa0dd6cde8e",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
+	},
+	{
+		"code": "NO_PAY_OPEN_PERIOD",
+		"target_collection": "leave_catalog_entry",
+		"events": ["create"],
+		"lookup": {
+			"no_pay": [
+				"UNPAID_INFANT_CARE_LEAVE",
+				"NS_LEAVE",
+				"UNPAID_LEAVE",
+				"WORK_INJURY_MEDICAL_LEAVE",
+				"WORK_INJURY_HOSPITALISATION_LEAVE"
+			]
+		},
+		"references": [
+			{
+				"title": "A no-pay entry or its reversal is dated in the period that will pay it. A correction to a period already paid is a reversal entry on the same catalog item, dated in the next period to run."
+			}
+		],
+		"reads": {
+			"leave_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["code"],
+				"limit": 1
+			},
+			"payroll_run": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"kind": {
+						"eq": "ON_CYCLE"
+					}
+				},
+				"fields": ["period"],
+				"limit": 10000
+			},
+			"leave_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					},
+					"catalog_id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					},
+					"payroll_run_id": {
+						"isNull": true
+					},
+					"is_reversal": {
+						"eq": false
+					}
+				},
+				"fields": ["days"],
+				"limit": 1000
+			}
+		},
+		"validate": "// js\n// A run prices only its own dates, so an entry dated in a period that has run would never reach a payslip.\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || !ctx.lookup.no_pay.includes(item.code)) return true;\nconst employer = ctx.subject.employer;\nconst cutoff = Number(get(employer, 'pay_cutoff_day', 1));\nconst halves = get(employer, 'payment_schedule.frequency', 'MONTHLY') === 'SEMI_MONTHLY';\nconst shifted = (month, by) => add_months(month + '-01', by).slice(0, 7);\nconst periodOf = (date) => {\n\tconst month = date.slice(0, 7);\n\tconst dayOf = Number(date.slice(8, 10));\n\tconst part = dayOf <= 15 ? 1 : 2;\n\tif (!halves) return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;\n\tif (cutoff <= 1) return month + '-' + part;\n\treturn part === 1 ? month + '-2' : shifted(month, 1) + '-1';\n};\n// A reversal gives back what has been paid. An entry still open has not been paid, so it is deleted instead.\nconst dates = ctx.entry.days.map((day) => day.date);\nif (get(ctx.entry, 'is_reversal', false) === true && ctx.reads.leave_catalog_entry.some((row) => row.days.some((day) => dates.includes(day.date))))\n\tthrow 'That day has not been paid yet. Delete the entry instead of reversing it.';\nconst ran = ctx.reads.payroll_run.map((run) => run.period);\nconst closed = ctx.entry.days.find((day) => ran.includes(periodOf(day.date)));\nif (closed != null)\n\tthrow closed.date + ' is in a period that has already run. Date this entry in the next period to run, and that run takes it.';\nreturn true;",
+		"order": 900,
+		"id": "a588b42a-bdc9-5138-b88a-e59f97f6c3f6",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
+	},
+	{
+		"code": "SICK_WITHIN_HOSPITALISATION",
+		"target_collection": "leave_catalog_entry",
+		"events": ["create"],
+		"lookup": {
+			"hospitalisation": "HOSPITALIZATION_LEAVE"
+		},
+		"references": [
+			{
+				"title": "Employment Act 1968 s.89(1): hospitalisation leave of up to 60 days a year includes outpatient sick leave of up to 14 days."
+			}
+		],
+		"reads": {
+			"leave_catalog": {
+				"where": {
+					"code": {
+						"in": ["SICK_LEAVE", "HOSPITALIZATION_LEAVE"]
+					}
+				},
+				"fields": ["code", "lookup"],
+				"limit": 100
+			},
+			"leave_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					}
+				},
+				"fields": ["catalog_id", "days", "is_reversal"],
+				"limit": 1000
+			}
+		},
+		"validate": "// js\n// Employment Act s.89(1): the 60 days of hospitalisation leave include the 14 days of outpatient sick leave.\nconst shared = ctx.reads.leave_catalog;\nconst item = shared.find((row) => row.id === ctx.entry.catalog_id);\nif (item == null) return true;\nconst year = String(ctx.entry.days[0].date).slice(0, 4);\nconst ids = shared.map((row) => row.id);\nconst within = (days) => days.filter((day) => String(day.date).slice(0, 4) === year).length / 2;\nconst taken = ctx.reads.leave_catalog_entry\n\t.filter((row) => ids.includes(row.catalog_id))\n\t.reduce((total, row) => total + (get(row, 'is_reversal', false) === true ? -1 : 1) * within(row.days), 0);\nconst wanted = get(ctx.entry, 'is_reversal', false) === true ? 0 : within(ctx.entry.days);\nconst hospital = shared.find((row) => row.code === ctx.lookup.hospitalisation);\nconst months = calendar_completed_months(String(ctx.subject.employment.effective_range.from), String(ctx.entry.days[0].date));\nconst cap = get(hospital.lookup, 'service_bands', []).filter((band) => band.service_months <= months).reduce((best, band) => Math.max(best, band.days), 0);\nif (taken + wanted > cap) throw 'Sick and hospitalisation leave together would pass the ' + cap + ' days the year allows.';\nreturn true;",
+		"order": 901,
+		"id": "dd35be5e-23d6-5136-9a6b-f98d9b63a4d4",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
 	}
 ]

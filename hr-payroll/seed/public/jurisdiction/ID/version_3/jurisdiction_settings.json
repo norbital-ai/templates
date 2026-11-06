@@ -585,12 +585,19 @@
 		},
 		"lookup": {
 			"month_balance": [
+				"BASIC",
 				"ORDINARY_WAGES",
 				"ADDITIONAL_WAGES",
+				"SEVERANCE",
+				"PENSION_BENEFIT",
 				"JKK.employer",
 				"JKM.employer",
 				"KESEHATAN.employer",
-				"PPH21.employee"
+				"PPH21.employee",
+				"PPH21_BUKAN_PEGAWAI.employee",
+				"PPH21_FINAL_SEVERANCE.employee",
+				"PPH21_FINAL_PENSION.employee",
+				"PPH21_BENEFIT_NONFINAL.employee"
 			],
 			"rounding": "HALF_UP",
 			"rounding_scale": 2,

@@ -1905,5 +1905,42 @@
 		"effects": "return [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.employment_id,\n  title: ctx.lookup.title,\n  due_on: first(ctx.reads.payroll_run).pay_date,\n  occurrence_key: 'CN_ANNUAL_LEAVE_REVIEW:' + ctx.entry.employment_id + ':' + first(ctx.reads.payroll_run).salary_coverage.from.slice(0, 4)\n}];",
 		"id": "de87ca8b-5372-4f8c-b0ec-3babe993ad9d",
 		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
+	},
+	{
+		"code": "TAX_REFUND",
+		"name": "Refund overpaid tax",
+		"lookup": {},
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['CN', 'TAX_REFUND', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"fields": ["pay_date"],
+				"limit": 1
+			}
+		},
+		"condition": "// js\nreturn get(ctx.entry, 'breakdown.statutory', []).some((row) => Number(get(row, 'overpaid', 0)) > 0);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\n// Tax or a contribution came out overpaid. The HR controller pays it back with an entry on the Statutory refund item, in Events.\nif (ctx.reads.obligation.length > 0) return [];\nconst year = String(get(first(ctx.reads.payroll_run), 'pay_date', '')).slice(0, 4);\nconst over = get(ctx.entry, 'breakdown.statutory', []).filter((row) => Number(get(row, 'overpaid', 0)) > 0);\nconst overpaid = sum(over.map((row) => Number(get(row, 'overpaid', 0))));\nconst what = over.every((row) => row.kind === 'TAX') ? 'Tax' : over.map((row) => row.code).join(', ');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: what + ' overpaid in ' + year + ': enter ' + overpaid + ' on Statutory refund',\n\toccurrence_key: occurrence_key(['CN', 'TAX_REFUND', ctx.entry.id])\n}];",
+		"id": "de4f19f5-2e81-5c51-a95a-86d9919dcf25",
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
 	}
 ]

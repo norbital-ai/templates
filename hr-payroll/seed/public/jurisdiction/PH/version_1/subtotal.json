@@ -8,9 +8,16 @@
 		"calculation": "// js\n// Labor Code art.103: a monthly salary paid twice a month pays half each run. A day rate pays the working days of the period,\n// less the holidays that HOLIDAY_WORK, SPECIAL_HOLIDAY_WORK and DAILY_HOLIDAY_PAY price at their own full multiple; an unworked\n// special day is no work, no pay. ctx.base_pay has already taken off unpaid days, joiners and leavers.\nconst terms = ctx.subject.employment.terms;\nconst employer = ctx.subject.employer;\nconst coverage = ctx.run.salary_coverage;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nif (unit === 'MONTHLY') return get(employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY' ? ctx.base_pay / 2 : ctx.base_pay;\nif (unit !== 'DAILY' || ctx.lookup.premium_excluded_categories.includes(get(terms, 'statutory_work_category', ''))) return ctx.base_pay;\nconst facts = get(employer, 'entity_extension_data', {});\nconst off = get(employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst small = get(facts, 'retail_or_service_establishment', false) === true && get(facts, 'small_establishment', false) === true;\nconst priced = ctx.work.days.filter((d) => {\n\tconst kind = get(d, 'holiday_kind', '');\n\tif (kind === '' || get(d, 'day_type', '') !== 'WORK') return false;\n\tif (d.date < coverage.from || d.date > coverage.to || off.includes(weekday(d.date))) return false;\n\treturn ['SPECIAL_HOLIDAY', 'DOUBLE_SPECIAL'].includes(kind) || !small;\n}).length;\nreturn Math.max(0, ctx.base_pay - Number(get(terms, 'rate.amount', 0)) * priced);"
 	},
 	{
+		"code": "BASIC_AFTER_UNPAID_LEAVE",
+		"name": "Basic pay after unpaid leave",
+		"previous_id": "e4659642-6dbe-5369-b1a3-c3648d0ddbb0",
+		"id": "6404fd6e-1a63-5a5f-a1f1-2f7934a149cb",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
 		"code": "STATUTORY_WAGES",
 		"name": "Overtime, holiday, night and hazard pay",
-		"previous_id": "e4659642-6dbe-5369-b1a3-c3648d0ddbb0",
+		"previous_id": "6404fd6e-1a63-5a5f-a1f1-2f7934a149cb",
 		"id": "8d9391da-6bdd-4d28-aa0e-c38368a02ae0",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},

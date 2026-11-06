@@ -96,11 +96,24 @@ export default model('adhoc_catalog_entry', {
 
 	effect: {
 		created: function* (rows, ctx) {
+			// an entry reaches its version's registered effects through the catalog row it was raised on
+			const versions = yield* ctx.query({
+				adhoc_catalog: {
+					where: { id: { in: rows.map((row) => row.catalog_id) } },
+					fields: ['settings_id'],
+					limit: 10000
+				}
+			});
+			const settingsOf = new Map(
+				versions.adhoc_catalog.rows.map((row) => [row.id, row.settings_id])
+			);
 			yield* tap(
 				ctx,
 				'create',
 				{ collection: 'adhoc_catalog_entry', ids: rows.map((row) => row.id) },
-				rows.map((after) => ({ after }))
+				rows.map((after) => ({
+					after: { ...after, settings_id: settingsOf.get(after.catalog_id) }
+				}))
 			);
 		},
 		updated: function* (changes, ctx) {

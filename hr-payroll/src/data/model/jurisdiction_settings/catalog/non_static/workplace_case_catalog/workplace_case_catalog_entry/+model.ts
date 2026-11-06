@@ -91,19 +91,50 @@ export default model('workplace_case_catalog_entry', {
 	},
 	effect: {
 		created: function* (rows, ctx) {
+			// an entry reaches its version's registered effects through the catalog row it was raised on
+			const versions = yield* ctx.query({
+				workplace_case_catalog: {
+					where: { id: { in: rows.map((row) => row.catalog_id) } },
+					fields: ['settings_id'],
+					limit: 10000
+				}
+			});
+			const settingsOf = new Map(
+				versions.workplace_case_catalog.rows.map((row) => [row.id, row.settings_id])
+			);
 			yield* tap(
 				ctx,
 				'create',
 				{ collection: 'workplace_case_catalog_entry', ids: rows.map((r) => r.id) },
-				rows.map((after) => ({ after }))
+				rows.map((after) => ({
+					after: { ...after, settings_id: settingsOf.get(after.catalog_id) }
+				}))
 			);
 		},
 		updated: function* (changes, ctx) {
+			// sealing into a run is not an edit of the entry
+			const edited = changes.filter(
+				({ before, after }) => before.payroll_run_id === after.payroll_run_id
+			);
+			if (edited.length === 0) return;
+			const versions = yield* ctx.query({
+				workplace_case_catalog: {
+					where: { id: { in: edited.map(({ after }) => after.catalog_id) } },
+					fields: ['settings_id'],
+					limit: 10000
+				}
+			});
+			const settingsOf = new Map(
+				versions.workplace_case_catalog.rows.map((row) => [row.id, row.settings_id])
+			);
 			yield* tap(
 				ctx,
 				'update',
-				{ collection: 'workplace_case_catalog_entry', ids: changes.map((c) => c.after.id) },
-				changes
+				{ collection: 'workplace_case_catalog_entry', ids: edited.map((c) => c.after.id) },
+				edited.map((change) => ({
+					...change,
+					after: { ...change.after, settings_id: settingsOf.get(change.after.catalog_id) }
+				}))
 			);
 		},
 		deleted: function* (rows, ctx) {

@@ -107,7 +107,7 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 			limit: 1
 		},
 		subtotal: { ...inVersion, fields: ['id', 'code', 'name', 'previous_id', 'calculation'] },
-		allowance_catalog: { ...inVersion, fields: CATALOG },
+		allowance_catalog: { ...inVersion, fields: [...CATALOG, 'prorate'] },
 		overtime_catalog: { ...inVersion, fields: CATALOG },
 		statutory_contribution_catalog: {
 			...inVersion,

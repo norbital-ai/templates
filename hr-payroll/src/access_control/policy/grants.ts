@@ -184,4 +184,8 @@ export const HR_OPERATIONS = {
 	},
 	obligation: { ...READ_ALL.obligation, create: true, update: true, delete: true, moves: 'all' }
 } as const;
-export const PAYROLL_STARTS = ['statutory_research', 'statutory_materialize'] as const;
+export const PAYROLL_STARTS = [
+	'statutory_research',
+	'statutory_materialize',
+	'leave_entitlement'
+] as const;

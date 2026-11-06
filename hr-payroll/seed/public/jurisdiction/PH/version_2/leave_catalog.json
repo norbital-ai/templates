@@ -4,19 +4,21 @@
 		"name": "Public holiday in lieu",
 		"references": [
 			{
-				"title": "Labor Code art.94; Omnibus Rules Book III Rule IV ss.3-4: Philippine law has no in-lieu day: a regular holiday is paid where it falls, and one on a rest day is priced by HOLIDAY_WORK or the Rules, not moved. So the default is unpaid and not encashable. A company that grants a day in lieu and pays it sets `pay_treatment`, or a cash `conversion` with a `subtotal_id`, on its own row."
+				"title": "Labor Code art.94; Omnibus Rules Book III Rule IV ss.3-4: Philippine law has no in-lieu day: a regular holiday is paid where it falls, and one on a rest day is priced by HOLIDAY_WORK or the Rules, not moved. So the default is unpaid and not encashable. A company that grants a day in lieu and pays it clears this row's `conversion` and `subtotal_id`, or sets a cash `conversion` of its own, on its own row."
 			}
 		],
 		"lookup": {
-			"can_encash": false
+			"can_encash": false,
+			"no_cap": true
 		},
-		"pay_treatment": "UNPAID",
+		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"direction": "ADD",
+		"subtotal_id": "1a2bad9a-b63d-563d-b693-ca45abeae2ed",
+		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "0dac5715-2429-5a10-93de-20520b2ca979",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"conversion": "// js\n// DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I, no work, no pay: the wage of a day taken off, over the working days of the period (proration_basis WORKING_DAYS).\n// Fixed allowances fall with BASIC_AFTER_UNPAID_LEAVE, each in its own de minimis or wage checkpoint.\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item, dated in the next period, pays them back at the period it corrects.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nif (unit === 'DAILY' || unit === 'HOURLY') return ctx.day_rate * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst pay = unit === 'MONTHLY' && halves ? rate / 2 : rate;\nreturn working > 0 ? (pay * ctx.entry.quantity) / working : 0;"
 	},
 	{
 		"code": "VAWC_LEAVE",
@@ -44,19 +46,21 @@
 		"name": "Medical leave",
 		"references": [
 			{
-				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. A company that pays it sets `pay_treatment`, or a cash `conversion` with a `subtotal_id`, on its own row."
+				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. A company that pays it clears this row's `conversion` and `subtotal_id`, or sets a cash `conversion` of its own, on its own row."
 			}
 		],
 		"lookup": {
-			"can_encash": false
+			"can_encash": false,
+			"no_cap": true
 		},
-		"pay_treatment": "UNPAID",
+		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"direction": "ADD",
+		"subtotal_id": "1a2bad9a-b63d-563d-b693-ca45abeae2ed",
+		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "98d51a56-1647-52e2-9403-05baea68bda4",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"conversion": "// js\n// DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I, no work, no pay: the wage of a day taken off, over the working days of the period (proration_basis WORKING_DAYS).\n// Fixed allowances fall with BASIC_AFTER_UNPAID_LEAVE, each in its own de minimis or wage checkpoint.\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item, dated in the next period, pays them back at the period it corrects.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nif (unit === 'DAILY' || unit === 'HOURLY') return ctx.day_rate * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst pay = unit === 'MONTHLY' && halves ? rate / 2 : rate;\nreturn working > 0 ? (pay * ctx.entry.quantity) / working : 0;"
 	},
 	{
 		"code": "PATERNITY_LEAVE",
@@ -66,7 +70,11 @@
 			"max_events": 4,
 			"allocation_days": 7,
 			"window": "EVENT",
-			"can_encash": false
+			"can_encash": false,
+			"eligibility": {
+				"gender": "MALE",
+				"marital_status": "MARRIED"
+			}
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -89,7 +97,10 @@
 			"grant_days": 60,
 			"service_months": 6,
 			"window": "EVENT",
-			"can_encash": false
+			"can_encash": false,
+			"eligibility": {
+				"gender": "FEMALE"
+			}
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -109,19 +120,21 @@
 		"name": "Emergency leave",
 		"references": [
 			{
-				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. A company that pays it sets `pay_treatment`, or a cash `conversion` with a `subtotal_id`, on its own row."
+				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. A company that pays it clears this row's `conversion` and `subtotal_id`, or sets a cash `conversion` of its own, on its own row."
 			}
 		],
 		"lookup": {
-			"can_encash": false
+			"can_encash": false,
+			"no_cap": true
 		},
-		"pay_treatment": "UNPAID",
+		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"direction": "ADD",
+		"subtotal_id": "1a2bad9a-b63d-563d-b693-ca45abeae2ed",
+		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "ff5621b2-777e-5ed2-8c82-388ce391de8b",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"conversion": "// js\n// DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I, no work, no pay: the wage of a day taken off, over the working days of the period (proration_basis WORKING_DAYS).\n// Fixed allowances fall with BASIC_AFTER_UNPAID_LEAVE, each in its own de minimis or wage checkpoint.\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item, dated in the next period, pays them back at the period it corrects.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nif (unit === 'DAILY' || unit === 'HOURLY') return ctx.day_rate * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst pay = unit === 'MONTHLY' && halves ? rate / 2 : rate;\nreturn working > 0 ? (pay * ctx.entry.quantity) / working : 0;"
 	},
 	{
 		"code": "ANNUAL_LEAVE",
@@ -152,19 +165,21 @@
 		"name": "Compassionate leave",
 		"references": [
 			{
-				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. A company that pays it sets `pay_treatment`, or a cash `conversion` with a `subtotal_id`, on its own row."
+				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. A company that pays it clears this row's `conversion` and `subtotal_id`, or sets a cash `conversion` of its own, on its own row."
 			}
 		],
 		"lookup": {
-			"can_encash": false
+			"can_encash": false,
+			"no_cap": true
 		},
-		"pay_treatment": "UNPAID",
+		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"direction": "ADD",
+		"subtotal_id": "1a2bad9a-b63d-563d-b693-ca45abeae2ed",
+		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "6b7cda7f-20cd-5c7f-9416-818a75c6d3c9",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"conversion": "// js\n// DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I, no work, no pay: the wage of a day taken off, over the working days of the period (proration_basis WORKING_DAYS).\n// Fixed allowances fall with BASIC_AFTER_UNPAID_LEAVE, each in its own de minimis or wage checkpoint.\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item, dated in the next period, pays them back at the period it corrects.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nif (unit === 'DAILY' || unit === 'HOURLY') return ctx.day_rate * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst pay = unit === 'MONTHLY' && halves ? rate / 2 : rate;\nreturn working > 0 ? (pay * ctx.entry.quantity) / working : 0;"
 	},
 	{
 		"code": "MATERNITY_LEAVE",
@@ -175,12 +190,13 @@
 			"termination_days": 60,
 			"allocation_days": 7,
 			"window": "EVENT",
-			"can_encash": false
+			"can_encash": false,
+			"no_cap": true
 		},
-		"pay_treatment": "UNPAID",
+		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"direction": "ADD",
+		"subtotal_id": "1a2bad9a-b63d-563d-b693-ca45abeae2ed",
+		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"references": [
 			{
@@ -189,26 +205,29 @@
 			}
 		],
 		"id": "d6e938c2-50f6-5592-bd57-b7b12a2792b1",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"conversion": "// js\n// DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I, no work, no pay: the wage of a day taken off, over the working days of the period (proration_basis WORKING_DAYS).\n// Fixed allowances fall with BASIC_AFTER_UNPAID_LEAVE, each in its own de minimis or wage checkpoint.\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item, dated in the next period, pays them back at the period it corrects.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nif (unit === 'DAILY' || unit === 'HOURLY') return ctx.day_rate * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst pay = unit === 'MONTHLY' && halves ? rate / 2 : rate;\nreturn working > 0 ? (pay * ctx.entry.quantity) / working : 0;"
 	},
 	{
 		"code": "HOSPITALIZATION_LEAVE",
 		"name": "Hospitalization leave",
 		"references": [
 			{
-				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. A company that pays it sets `pay_treatment`, or a cash `conversion` with a `subtotal_id`, on its own row."
+				"title": "No statute grants this leave. The general statutory cover is the five days of service incentive leave, usable for sick, vacation and other purposes (DOLE Handbook 2024 ch.7 §A); emergency and similar leave appears only as a company or CBA benefit (ch.9 §C, ch.10 §C). So the default is unpaid and not encashable: no work, no pay. A company that pays it clears this row's `conversion` and `subtotal_id`, or sets a cash `conversion` of its own, on its own row."
 			}
 		],
 		"lookup": {
-			"can_encash": false
+			"can_encash": false,
+			"no_cap": true
 		},
-		"pay_treatment": "UNPAID",
+		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"direction": "ADD",
+		"subtotal_id": "1a2bad9a-b63d-563d-b693-ca45abeae2ed",
+		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "bd23f88d-0c0e-5081-be8b-78e2b4751c38",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"conversion": "// js\n// DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I, no work, no pay: the wage of a day taken off, over the working days of the period (proration_basis WORKING_DAYS).\n// Fixed allowances fall with BASIC_AFTER_UNPAID_LEAVE, each in its own de minimis or wage checkpoint.\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item, dated in the next period, pays them back at the period it corrects.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nif (unit === 'DAILY' || unit === 'HOURLY') return ctx.day_rate * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst pay = unit === 'MONTHLY' && halves ? rate / 2 : rate;\nreturn working > 0 ? (pay * ctx.entry.quantity) / working : 0;"
 	},
 	{
 		"code": "SOLO_PARENT_LEAVE",
@@ -242,15 +261,17 @@
 			}
 		],
 		"lookup": {
-			"can_encash": false
+			"can_encash": false,
+			"no_cap": true
 		},
-		"pay_treatment": "UNPAID",
+		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"direction": "ADD",
+		"subtotal_id": "1a2bad9a-b63d-563d-b693-ca45abeae2ed",
+		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "59ff4fe3-c2f1-5284-a541-ba4c3236a32c",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"conversion": "// js\n// DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I, no work, no pay: the wage of a day taken off, over the working days of the period (proration_basis WORKING_DAYS).\n// Fixed allowances fall with BASIC_AFTER_UNPAID_LEAVE, each in its own de minimis or wage checkpoint.\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item, dated in the next period, pays them back at the period it corrects.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nif (unit === 'DAILY' || unit === 'HOURLY') return ctx.day_rate * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst pay = unit === 'MONTHLY' && halves ? rate / 2 : rate;\nreturn working > 0 ? (pay * ctx.entry.quantity) / working : 0;"
 	},
 	{
 		"code": "ANNUAL_LEAVE_DOMESTIC",
@@ -280,12 +301,13 @@
 		"lookup": {
 			"grant_days": 30,
 			"window": "EVENT",
-			"can_encash": false
+			"can_encash": false,
+			"no_cap": true
 		},
-		"pay_treatment": "UNPAID",
+		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
-		"subtotal_id": null,
-		"direction": "ADD",
+		"subtotal_id": "1a2bad9a-b63d-563d-b693-ca45abeae2ed",
+		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"references": [
 			{
@@ -294,7 +316,8 @@
 			}
 		],
 		"id": "29e58329-e54c-58d8-9098-90accad4c966",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"conversion": "// js\n// DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I, no work, no pay: the wage of a day taken off, over the working days of the period (proration_basis WORKING_DAYS).\n// Fixed allowances fall with BASIC_AFTER_UNPAID_LEAVE, each in its own de minimis or wage checkpoint.\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item, dated in the next period, pays them back at the period it corrects.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nif (unit === 'DAILY' || unit === 'HOURLY') return ctx.day_rate * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst pay = unit === 'MONTHLY' && halves ? rate / 2 : rate;\nreturn working > 0 ? (pay * ctx.entry.quantity) / working : 0;"
 	},
 	{
 		"code": "MATERNITY_ALLOCATION_LEAVE",

@@ -107,7 +107,8 @@
 					'subtotal_id',
 					'direction',
 					'party',
-					'off_cycle_eligible'
+					'off_cycle_eligible',
+					'prorate'
 				]}
 			/>
 		{:else if selected === 'overtime_catalog'}<Table

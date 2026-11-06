@@ -566,7 +566,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 			if (!eligible(producer.eligibility, context, `${code}.eligibility`)) continue;
 			const raw = evaluateNumber(producer.conversion, context, `${code}.conversion`);
 			const value =
-				lookup.prorate === true
+				producer.prorate === true
 					? raw * paidShare(input, coverage, settingsLookup.proration_basis)
 					: raw;
 			if (value === 0) continue;

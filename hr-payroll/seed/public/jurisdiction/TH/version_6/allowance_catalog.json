@@ -24,9 +24,7 @@
 	{
 		"code": "FIXED_ALLOWANCE",
 		"name": "Fixed monthly allowance",
-		"lookup": {
-			"prorate": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.5; Social Security Act B.E. 2533 (1990) s.5",
@@ -43,6 +41,7 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "2a2465ea-0204-5d79-89e4-c70b48b7aa72",
-		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c"
+		"settings_id": "99c29160-514b-5c95-8ba6-e8c8e530974c",
+		"prorate": true
 	}
 ]

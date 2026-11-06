@@ -144,6 +144,15 @@
 		const code = lookup.consumes_code ?? row.code;
 		return Number(leaveAccount[code] ?? 0) + (record?.catalog_id === row.id ? recordDays : 0);
 	};
+	// a row with no figure has no cap: its account opens too large to count down
+	const isNoCap = (row: { readonly lookup?: unknown }) => {
+		const lookup = (row.lookup ?? {}) as {
+			readonly no_cap?: boolean;
+			readonly grant_days?: number;
+			readonly service_bands?: unknown;
+		};
+		return lookup.no_cap === true || (lookup.grant_days == null && lookup.service_bands == null);
+	};
 	const catalogRows = $derived(catalogs?.current?.leave_catalog.rows ?? []);
 	let reversal = $state(false);
 	const catalogOptions = $derived(
@@ -152,7 +161,7 @@
 			.map((row) => ({
 				value: row.id,
 				label: `${row.code} · ${row.name}`,
-				suffix: reversal ? '' : `${availableFor(row)} d`
+				suffix: reversal || isNoCap(row) ? '' : `${availableFor(row)} d`
 			}))
 	);
 	const monthKey = $derived(
@@ -258,7 +267,12 @@
 				Effect.tap(() => Effect.sync(() => onDone())),
 				Effect.catch((error) =>
 					Effect.sync(() =>
-						toast.error(error instanceof Error ? error.message : bolt.t('component.error'))
+						// a registered rule speaks to the HR controller; its code is for the log
+						toast.error(
+							error instanceof Error
+								? error.message.replace(/^[A-Z0-9_]+\.validate: /, '')
+								: bolt.t('component.error')
+						)
 					)
 				),
 				Effect.ensuring(Effect.sync(() => (saving = false)))
@@ -329,7 +343,7 @@
 					limitNotice = null;
 				}}
 			/>
-			{#if chosenCatalog !== null && !reversal}<span
+			{#if chosenCatalog !== null && !reversal && !isNoCap(chosenCatalog)}<span
 					class="pointer-events-none absolute top-6 right-9 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground"
 					>{availableDays} d left</span
 				>{/if}

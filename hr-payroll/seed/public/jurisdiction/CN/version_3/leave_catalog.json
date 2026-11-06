@@ -40,11 +40,16 @@
 			"paid_personal_leave_disqualification_days": 20,
 			"school_vacation_offset": true,
 			"monthly_divisor_days": 21.75,
-			"encashment_factor": 2
+			"encashment_factor": 2,
+			"window": "CALENDAR_YEAR"
 		},
 		"references": [
 			{
 				"title": "职工带薪年休假条例 第二条、第三条: 累计工作满1年不满10年5天, 满10年不满20年10天, 满20年15天; 国家法定休假日、休息日不计入."
+			},
+			{
+				"title": "职工带薪年休假条例 (国务院令第514号) 第三条: 5, 10 or 15 days a year by cumulative service. 第五条: arranged within the year, 一般不跨年度安排; the employer may arrange it across one year only where its work requires.",
+				"url": "https://rst.hunan.gov.cn/rst/xzfg/202211/t20221110_29122241.html"
 			}
 		],
 		"off_cycle_eligible": true,
@@ -112,7 +117,7 @@
 		"code": "MATERNITY_LEAVE",
 		"name": "产假 (statutory maternity leave)",
 		"description": "Fund-paid (生育津贴): the employer does not pay salary for the days; where the allowance is lower than the salary the city rules decide any top-up (not priced). Metered per birth (`facts.event_id`): 98 days, +15 for a difficult birth (`facts.difficult_birth`), +15 for each further baby (`facts.babies`); a miscarriage (`facts.miscarriage_months`) 15 days under 4 months, 42 from 4.",
-		"pay_treatment": "UNPAID",
+		"pay_treatment": "PAID",
 		"lookup": {
 			"fund_paid": true,
 			"grant_days": 98,
@@ -120,7 +125,8 @@
 			"additional_baby_extra_days": 15,
 			"miscarriage_month_threshold": 4,
 			"miscarriage_under_threshold_days": 15,
-			"miscarriage_from_threshold_days": 42
+			"miscarriage_from_threshold_days": 42,
+			"no_cap": true
 		},
 		"references": [
 			{
@@ -128,15 +134,18 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": null,
+		"subtotal_id": "8fff9288-4187-5ee2-b66e-a3d01a44891a",
 		"id": "ad214a22-0ca9-5ee8-b58b-58bffe7a838b",
-		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// 女职工劳动保护特别规定 第八条: the fund pays 生育津贴, and the employer no salary for these days.\n// No statute sets another rule for an incomplete month: a day is the month's salary ÷ the person's working days in it; FIXED_ALLOWANCE falls with BASIC.\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item pays them back.\nconst terms = ctx.subject.employment.terms;\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// A reversal gives back what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nconst pay = Number(get(terms, 'rate.amount', 0));\nreturn (pay * Math.min(ctx.entry.quantity, days)) / days;"
 	},
 	{
 		"code": "MATERNITY_EXTENSION",
 		"name": "延长产假 (city extension of maternity leave)",
 		"description": "60 days on top of MATERNITY_LEAVE (158 in all), with the same fund-paid treatment. | 60 days on top of MATERNITY_LEAVE (158 in all). Fund-paid with the maternity allowance.",
-		"pay_treatment": "UNPAID",
+		"pay_treatment": "PAID",
 		"lookup": {
 			"fund_paid": true,
 			"days_by_region": [
@@ -149,7 +158,8 @@
 					"days": 60
 				}
 			],
-			"miscarriage_days": 0
+			"miscarriage_days": 0,
+			"no_cap": true
 		},
 		"references": [
 			{
@@ -157,9 +167,12 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": null,
+		"subtotal_id": "8fff9288-4187-5ee2-b66e-a3d01a44891a",
 		"id": "80671651-c6cc-5da2-bea8-8067c306f5de",
-		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// 上海市人口与计划生育条例 第三十一条; 云南省人口与计划生育条例 第十八条: 产假 treatment, so the fund pays and the employer no salary.\n// No statute sets another rule for an incomplete month: a day is the month's salary ÷ the person's working days in it; FIXED_ALLOWANCE falls with BASIC.\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item pays them back.\nconst terms = ctx.subject.employment.terms;\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// A reversal gives back what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nconst pay = Number(get(terms, 'rate.amount', 0));\nreturn (pay * Math.min(ctx.entry.quantity, days)) / days;"
 	},
 	{
 		"code": "PATERNITY_LEAVE",
@@ -194,11 +207,16 @@
 		"description": "Up to 3 days at full pay.",
 		"pay_treatment": "PAID",
 		"lookup": {
-			"grant_days": 3
+			"grant_days": 3,
+			"window": "EVENT"
 		},
 		"references": [
 			{
 				"title": "(80)劳总薪字29号 第一条: 婚丧假1至3天, 工资照发."
+			},
+			{
+				"title": "关于国营企业职工请婚丧假和路程假问题的通知 ((80)劳总薪字29号): 酌情给予一至三天的婚丧假, per event.",
+				"url": "http://rst.fujian.gov.cn/wz/cjwt/ldgx/qywhqt/202311/t20231113_6295543.htm"
 			}
 		],
 		"off_cycle_eligible": false,
@@ -298,11 +316,16 @@
 		"description": "Up to 3 days at full pay.",
 		"pay_treatment": "PAID",
 		"lookup": {
-			"grant_days": 3
+			"grant_days": 3,
+			"window": "EVENT"
 		},
 		"references": [
 			{
 				"title": "(80)劳总薪字29号 第一条: 直系亲属死亡, 酌情给予1至3天丧假, 工资照发."
+			},
+			{
+				"title": "关于国营企业职工请婚丧假和路程假问题的通知 ((80)劳总薪字29号): 酌情给予一至三天的婚丧假, per event.",
+				"url": "http://rst.fujian.gov.cn/wz/cjwt/ldgx/qywhqt/202311/t20231113_6295543.htm"
 			}
 		],
 		"off_cycle_eligible": false,
@@ -313,18 +336,23 @@
 	{
 		"code": "UNPAID_LEAVE",
 		"name": "事假 (unpaid personal leave by agreement)",
-		"description": "Unpaid; priced as no-pay days by the NO_PAY_LEAVE work line.",
-		"pay_treatment": "UNPAID",
-		"lookup": {},
+		"description": "Unpaid; this line takes the days.",
+		"pay_treatment": "PAID",
+		"lookup": {
+			"no_cap": true
+		},
 		"references": [
 			{
 				"title": "工资支付暂行规定 第十一条、第十二条: 仅法定休假和假期支付工资; 事假由双方约定, 无薪."
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": null,
+		"subtotal_id": "8fff9288-4187-5ee2-b66e-a3d01a44891a",
 		"id": "28777b23-9697-559b-8c61-40a3da0c4000",
-		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
+		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// 工资支付暂行规定 第十一条: 事假 is by agreement and carries no wage.\n// No statute sets another rule for an incomplete month: a day is the month's salary ÷ the person's working days in it; FIXED_ALLOWANCE falls with BASIC.\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item pays them back.\nconst terms = ctx.subject.employment.terms;\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// A reversal gives back what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nconst pay = Number(get(terms, 'rate.amount', 0));\nreturn (pay * Math.min(ctx.entry.quantity, days)) / days;"
 	},
 	{
 		"code": "PERSONAL_LEAVE_PAID",
@@ -631,11 +659,19 @@
 			"service_months": 12,
 			"rolling_months": 12,
 			"grant_days": 30,
-			"state_owned_employer": true
+			"state_owned_employer": true,
+			"window": "CALENDAR_YEAR",
+			"eligibility": {
+				"marital_status": "MARRIED"
+			}
 		},
 		"references": [
 			{
 				"title": "国发〔1981〕36号 第三条、第五条: 探望配偶每年一次30天, 路程假另给, 按本人标准工资发给."
+			},
+			{
+				"title": "国务院关于职工探亲待遇的规定 (国发〔1981〕36号) 第二条、第三条: after one year’s work, a visit to the spouse once a year, 30 days.",
+				"url": "https://rsj.sh.gov.cn/tgwyxzfgwj_17255/20200617/t0035_1388263.html"
 			}
 		],
 		"off_cycle_eligible": false,
@@ -653,11 +689,19 @@
 			"rolling_months": 12,
 			"grant_days": 20,
 			"state_owned_employer": true,
-			"marital_status": "UNMARRIED"
+			"marital_status": "UNMARRIED",
+			"window": "CALENDAR_YEAR",
+			"eligibility": {
+				"marital_status": "SINGLE"
+			}
 		},
 		"references": [
 			{
 				"title": "国发〔1981〕36号 第三条、第五条: 未婚职工探望父母每年一次20天, 路程假另给, 按本人标准工资发给."
+			},
+			{
+				"title": "国务院关于职工探亲待遇的规定 (国发〔1981〕36号) 第二条、第三条: after one year’s work, an unmarried worker visits parents once a year, 20 days.",
+				"url": "https://rsj.sh.gov.cn/tgwyxzfgwj_17255/20200617/t0035_1388263.html"
 			}
 		],
 		"off_cycle_eligible": false,
@@ -675,7 +719,8 @@
 			"rolling_months": 24,
 			"grant_days": 45,
 			"state_owned_employer": true,
-			"marital_status": "UNMARRIED"
+			"marital_status": "UNMARRIED",
+			"no_cap": true
 		},
 		"references": [
 			{
@@ -697,7 +742,8 @@
 			"rolling_months": 48,
 			"grant_days": 20,
 			"state_owned_employer": true,
-			"marital_status": "MARRIED"
+			"marital_status": "MARRIED",
+			"no_cap": true
 		},
 		"references": [
 			{

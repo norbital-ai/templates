@@ -222,7 +222,7 @@ describe('linear payroll engine', () => {
 					direction: 'ADD',
 					party: 'EMPLOYEE',
 					conversion: 'return 300;',
-					lookup: { prorate: true }
+					prorate: true
 				})
 			],
 			entries: {

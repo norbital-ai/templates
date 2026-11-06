@@ -563,7 +563,7 @@
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn get(ctx.subject.employment, 'terms.statutory_work_category', '') !== 'DOMESTIC';",
-		"conversion": "// js\nreturn Math.min(ctx.entry.quantity, ctx.lookup.max_share_of_basic * ctx.subtotals.BASIC);",
+		"conversion": "// js\nreturn Math.min(ctx.entry.quantity, ctx.lookup.max_share_of_basic * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE);",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "722f641b-8e0a-525f-abac-783aba5b6fc4",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"

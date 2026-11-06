@@ -3738,7 +3738,16 @@
 				"HEALTH.employee",
 				"PENSION.employee",
 				"EI.employee",
-				"CHILD_SUPPORT.employee"
+				"CHILD_SUPPORT.employee",
+				"EI.employer",
+				"EI_BONUS.employee",
+				"EI_BONUS.employer",
+				"HEALTH_BONUS.employee",
+				"CHILD_SUPPORT_BONUS.employee",
+				"PENSION_BONUS.employee",
+				"WORKERS_ACCIDENT.employer",
+				"ASBESTOS_LEVY.employer",
+				"INCOME_TAX.employee"
 			]
 		},
 		"status": "SEALED",

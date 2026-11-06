@@ -37,10 +37,22 @@
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "SERVICE_YEAR",
+			"service_months": 12,
+			"grant_days": 12,
+			"carry": {
+				"windows": 1,
+				"max_days": 5
+			}
+		},
 		"references": [
 			{
 				"title": "Law 13/2003 Art. 79(3) as amended by Law 6/2023 Window: each year of service (`SERVICE_YEAR`): UU 13/2003 art.79(3) grants 12 days after each 12 months of continuous work. Owner ruling (ID): the balance resets each leave year and at most 5 unused days carry into the next (`carry_forward`), once. On exit the unused, unlapsed balance is paid (PP 35/2021 art.40(4)(a))."
+			},
+			{
+				"title": "UU 13/2003 art.79(3) as amended by UU 6/2023 art.81 angka 25 — at least 12 working days after 12 months of continuous work; art.79(4) leaves how it is taken to the employment agreement, company regulation or collective agreement",
+				"url": "https://peraturan.bpk.go.id/Details/246523/uu-no-6-tahun-2023"
 			}
 		],
 		"subtotal_id": null,
@@ -51,18 +63,24 @@
 	{
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
-		"pay_treatment": "UNPAID",
-		"lookup": {},
+		"pay_treatment": "PAID",
+		"lookup": {
+			"no_cap": true,
+			"prorated_allowances": ["CAR_ALLOWANCE", "HOUSE_ALLOWANCE", "SPECIAL_ALLOWANCE"]
+		},
 		"references": [
 			{
 				"title": "PP 36/2021 art.40(1): no wage for a day not worked — except the absences art.40(2)–(5) pays (illness, menstruation, family events, state duty, religious duty, union duty, company training, work withheld by the employer, rest and leave) and a suspension during dismissal (UU 13/2003 art.157A); an unpaid absence recorded with one of those reasons is refused. Breastfeeding time is working time (UU 13/2003 art.83; UU 4/2024 art.4(1)(c)) and is never booked as unpaid.",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			}
 		],
-		"subtotal_id": null,
+		"subtotal_id": "334b119b-0dac-5a5b-9f3a-3671936014cc",
 		"off_cycle_eligible": false,
 		"id": "47fd8146-bb17-5ab2-beb9-a0f25a153b24",
-		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// PP 36/2021 art.40(1): no wage for a day not worked, fixed allowances with it. proration_basis WORKING_DAYS: art.17 values a day by working days.\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item pays them back.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// A reversal gives back what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nconst lost = Math.min(ctx.entry.quantity, days);\nconst agreed = get(terms, 'allowances', {});\nconst fixed = sum(\n\tctx.lookup.prorated_allowances\n\t\t.filter((code) => get(agreed, code + '.variability', 'FIXED') !== 'VARIABLE')\n\t\t.map((code) => Number(get(agreed, code + '.amount', 0)))\n);\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\n// A day or hour rate pays the day itself; day_rate is the art.32 overtime base, never a day's wage.\nconst salary =\n\tunit === 'DAILY'\n\t\t? amount * lost\n\t\t: unit === 'HOURLY'\n\t\t\t? amount * Number(get(terms, 'normal_hours_per_day', 8)) * lost\n\t\t\t: (amount * lost) / days;\nreturn salary + (fixed * lost) / days;"
 	},
 	{
 		"code": "MEDICAL_LEAVE",
@@ -99,11 +117,22 @@
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "EVENT",
+			"grant_days": 2,
+			"eligibility": {
+				"gender": "MALE",
+				"marital_status": "MARRIED"
+			}
+		},
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(3)(c)(5), 41(3)(e): two paid days when the wife gives birth or miscarries; UU 4/2024 art.6(1): two days for a birth, which may be extended by up to three more days or as agreed (PATERNITY_EXTENSION_LEAVE), two days for a miscarriage. Window EVENT.",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			},
+			{
+				"title": "UU 4/2024 art.6(2); PP 36/2021 art.41(3)(e) — 2 days when the wife gives birth or miscarries",
+				"url": "https://peraturan.bpk.go.id/Download/349268/UU%20Nomor%204%20Tahun%202024.pdf"
 			}
 		],
 		"subtotal_id": null,
@@ -115,10 +144,17 @@
 		"code": "MARRIAGE_LEAVE",
 		"name": "Marriage leave",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "EVENT",
+			"grant_days": 3
+		},
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(3)(c), 41(3)(a): the paid days per event (3; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			},
+			{
+				"title": "PP 36/2021 art.41(3)(a) — 3 paid days when the worker marries",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			}
 		],
@@ -131,10 +167,17 @@
 		"code": "CHILD_MARRIAGE_LEAVE",
 		"name": "Child's marriage leave",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "EVENT",
+			"grant_days": 2
+		},
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(3)(c), 41(3)(b): the paid days per event (2; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			},
+			{
+				"title": "PP 36/2021 art.41(3)(b) — 2 paid days when the worker’s child marries",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			}
 		],
@@ -147,10 +190,17 @@
 		"code": "CHILD_CIRCUMCISION_LEAVE",
 		"name": "Child's circumcision leave",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "EVENT",
+			"grant_days": 2
+		},
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(3)(c), 41(3)(c): the paid days per event (2; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			},
+			{
+				"title": "PP 36/2021 art.41(3)(c) — 2 paid days for a child’s circumcision",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			}
 		],
@@ -163,10 +213,17 @@
 		"code": "CHILD_BAPTISM_LEAVE",
 		"name": "Child's baptism leave",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "EVENT",
+			"grant_days": 2
+		},
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(3)(c), 41(3)(d): the paid days per event (2; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			},
+			{
+				"title": "PP 36/2021 art.41(3)(d) — 2 paid days for a child’s baptism",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			}
 		],
@@ -179,10 +236,17 @@
 		"code": "BEREAVEMENT_LEAVE",
 		"name": "Bereavement leave (immediate family)",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "EVENT",
+			"grant_days": 2
+		},
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(3)(c), 41(3)(f): the paid days per event (2; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			},
+			{
+				"title": "PP 36/2021 art.41(3)(f) — 2 paid days on the death of a spouse, parent, parent-in-law, child or child-in-law",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			}
 		],
@@ -195,10 +259,17 @@
 		"code": "BEREAVEMENT_HOUSEHOLD_LEAVE",
 		"name": "Bereavement leave (household member)",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "EVENT",
+			"grant_days": 1
+		},
 		"references": [
 			{
 				"title": "PP 36/2021 arts.40(3)(c), 41(3)(g): the paid days per event (1; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
+			},
+			{
+				"title": "PP 36/2021 art.41(3)(g) — 1 paid day on the death of another member of the household",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			}
 		],
@@ -373,10 +444,21 @@
 		"code": "PATERNITY_EXTENSION_LEAVE",
 		"name": "Paternity leave extension",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "EVENT",
+			"grant_days": 3,
+			"eligibility": {
+				"gender": "MALE",
+				"marital_status": "MARRIED"
+			}
+		},
 		"references": [
 			{
 				"title": "UU 4/2024 art.6(1)(a): the two days of a birth may be followed by up to three more days, or as agreed with the employer (`entry.facts.employer_agreed`); window EVENT, 3 days."
+			},
+			{
+				"title": "UU 4/2024 art.6(2)(a) — up to 3 more days after the two of a birth, or as agreed",
+				"url": "https://peraturan.bpk.go.id/Download/349268/UU%20Nomor%204%20Tahun%202024.pdf"
 			}
 		],
 		"subtotal_id": null,

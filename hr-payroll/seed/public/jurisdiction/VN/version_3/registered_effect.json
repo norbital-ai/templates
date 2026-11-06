@@ -1207,24 +1207,36 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2025/8/45798/58141-1-20251073-1074219-2025-nd-cp.pdf"
 			}
 		],
-		"source_collection": "employee_contract",
-		"events": ["daily"],
+		"source_collection": "payslip",
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'WORK_PERMIT_EXTENSION:' + ctx.entry.employment_id"
 						}
 					}
 				},
-				"limit": 1000
+				"fields": ["occurrence_key"],
+				"limit": 1
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"fields": ["pay_date"],
+				"limit": 1
 			}
 		},
-		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (!(ctx.event.day < ctx.lookup.commencement)) return false;\nif (get(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) == null) return false;\nreturn ctx.event.day === add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_days);",
+		"condition": "const today = String(get(first(ctx.reads.payroll_run), 'pay_date', ''));\nif (ctx.subject.employment.effective_range.to == null) return false;\nif (!(today < ctx.lookup.commencement)) return false;\nif (get(ctx.subject.employment.employee_extension_data, 'term_facts.pass_type', null) == null) return false;\nreturn today >= add_days(ctx.subject.employment.effective_range.to, -ctx.lookup.advance_days);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// The contract term bounds the authorisation; the record carries no permit expiry.\nconst key = 'WORK_PERMIT_EXTENSION:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_days(ctx.entry.effective_range.to, -ctx.lookup.due_days),\n\t\toccurrence_key: key\n\t}\n];",
+		"effects": "// The contract term bounds the authorisation; the record carries no permit expiry.\nconst key = 'WORK_PERMIT_EXTENSION:' + ctx.entry.employment_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_days(ctx.subject.employment.effective_range.to, -ctx.lookup.due_days),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "bd8231e2-cd17-5046-8ce0-5703cedefbd3",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
@@ -1909,24 +1921,36 @@
 				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
 			}
 		],
-		"source_collection": "employee_contract",
-		"events": ["daily"],
+		"source_collection": "payslip",
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'FOREIGN_WORKER_NEW_DECREE_TRANSITION:' + ctx.entry.employment_id"
 						}
 					}
 				},
-				"limit": 1000
+				"fields": ["occurrence_key"],
+				"limit": 1
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"fields": ["pay_date"],
+				"limit": 1
 			}
 		},
-		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.event.day !== ctx.lookup.commencement) return false;\nreturn get(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null;",
+		"condition": "const today = String(get(first(ctx.reads.payroll_run), 'pay_date', ''));\nif (today < ctx.lookup.commencement) return false;\nreturn get(ctx.subject.employment.employee_extension_data, 'term_facts.pass_type', null) != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'FOREIGN_WORKER_NEW_DECREE_TRANSITION:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.event.day,\n\t\toccurrence_key: key\n\t}\n];",
+		"effects": "const today = String(get(first(ctx.reads.payroll_run), 'pay_date', ''));\nconst key = 'FOREIGN_WORKER_NEW_DECREE_TRANSITION:' + ctx.entry.employment_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: today,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "5f0f4720-b957-523c-b080-cbe7009bcc12",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
@@ -1944,24 +1968,36 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2025/8/45798/58141-1-20251073-1074219-2025-nd-cp.pdf"
 			}
 		],
-		"source_collection": "employee_contract",
-		"events": ["daily"],
+		"source_collection": "payslip",
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'WORK_PERMIT_TRANSITION_REVIEW:' + ctx.entry.employment_id"
 						}
 					}
 				},
-				"limit": 1000
+				"fields": ["occurrence_key"],
+				"limit": 1
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"fields": ["pay_date"],
+				"limit": 1
 			}
 		},
-		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (!(ctx.event.day < ctx.lookup.commencement)) return false;\nif (!(ctx.event.day >= add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_days))) return false;\nreturn get(ctx.entry, 'terms.work_authorisation_category', null) != null;",
+		"condition": "const today = String(get(first(ctx.reads.payroll_run), 'pay_date', ''));\nif (ctx.subject.employment.effective_range.to == null) return false;\nif (!(today < ctx.lookup.commencement)) return false;\nif (!(today >= add_days(ctx.subject.employment.effective_range.to, -ctx.lookup.advance_days))) return false;\nreturn get(ctx.subject.employment, 'terms.work_authorisation_category', null) != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst key = 'WORK_PERMIT_TRANSITION_REVIEW:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.event.day,\n\t\toccurrence_key: key\n\t}\n];",
+		"effects": "const today = String(get(first(ctx.reads.payroll_run), 'pay_date', ''));\n// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst key = 'WORK_PERMIT_TRANSITION_REVIEW:' + ctx.entry.employment_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: today,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "9bb93664-a388-5f01-bb79-994a2ab201d7",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
@@ -2149,18 +2185,19 @@
 				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
 			}
 		],
-		"source_collection": "employee_contract",
-		"events": ["daily"],
+		"source_collection": "payslip",
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'WORK_AUTHORISATION_EXTENSION_393:' + ctx.entry.employment_id"
 						}
 					}
 				},
-				"limit": 1000
+				"fields": ["occurrence_key"],
+				"limit": 1
 			},
 			"holiday": {
 				"where": {
@@ -2169,13 +2206,26 @@
 							"var": "ctx.entry.entity_id"
 						}
 					}
-				}
+				},
+				"fields": ["date"],
+				"limit": 10000
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"fields": ["pay_date"],
+				"limit": 1
 			}
 		},
-		"condition": "const kind = get(ctx.entry, 'terms.work_authorisation_category', null);\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (!(ctx.event.day >= ctx.lookup.commencement)) return false;\nif (!['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(kind)) return false;\nif (get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_extension_count', null) !== 0) return false;\nif (get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_application_submitted_on', null) != null) return false;\nreturn ctx.event.day >= add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_days);",
+		"condition": "const today = String(get(first(ctx.reads.payroll_run), 'pay_date', ''));\nconst kind = get(ctx.subject.employment, 'terms.work_authorisation_category', null);\nif (ctx.subject.employment.effective_range.to == null) return false;\nif (!(today >= ctx.lookup.commencement)) return false;\nif (!['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(kind)) return false;\nif (get(ctx.subject.employment.employee_extension_data, 'term_facts.work_authorisation_extension_count', null) !== 0) return false;\nif (get(ctx.subject.employment.employee_extension_data, 'term_facts.work_authorisation_application_submitted_on', null) != null) return false;\nreturn today >= add_days(ctx.subject.employment.effective_range.to, -ctx.lookup.advance_days);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// The contract term bounds the authorisation; the record carries no permit expiry.\nconst key = 'WORK_AUTHORISATION_EXTENSION_393:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(ctx.entry.effective_range.to, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];",
+		"effects": "// The contract term bounds the authorisation; the record carries no permit expiry.\nconst key = 'WORK_AUTHORISATION_EXTENSION_393:' + ctx.entry.employment_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(ctx.subject.employment.effective_range.to, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "2e716ca2-5f42-5570-85ae-1cd1574fa426",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
@@ -2195,18 +2245,19 @@
 				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
 			}
 		],
-		"source_collection": "employee_contract",
-		"events": ["daily"],
+		"source_collection": "payslip",
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'WORK_AUTHORISATION_FRESH_ISSUE_393:' + ctx.entry.employment_id"
 						}
 					}
 				},
-				"limit": 1000
+				"fields": ["occurrence_key"],
+				"limit": 1
 			},
 			"holiday": {
 				"where": {
@@ -2215,13 +2266,26 @@
 							"var": "ctx.entry.entity_id"
 						}
 					}
-				}
+				},
+				"fields": ["date"],
+				"limit": 10000
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"fields": ["pay_date"],
+				"limit": 1
 			}
 		},
-		"condition": "const kind = get(ctx.entry, 'terms.work_authorisation_category', null);\nconst count = get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_extension_count', null);\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (!(ctx.event.day >= ctx.lookup.commencement)) return false;\nif (!['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(kind)) return false;\nif (count == null) return false;\nif (!(count >= 1)) return false;\nif (get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_application_submitted_on', null) != null) return false;\nreturn ctx.event.day >= add_days(ctx.entry.effective_range.to, -ctx.lookup.advance_days);",
+		"condition": "const today = String(get(first(ctx.reads.payroll_run), 'pay_date', ''));\nconst kind = get(ctx.subject.employment, 'terms.work_authorisation_category', null);\nconst count = get(ctx.subject.employment.employee_extension_data, 'term_facts.work_authorisation_extension_count', null);\nif (ctx.subject.employment.effective_range.to == null) return false;\nif (!(today >= ctx.lookup.commencement)) return false;\nif (!['PERMIT', 'EXEMPTION_CERTIFICATE'].includes(kind)) return false;\nif (count == null) return false;\nif (!(count >= 1)) return false;\nif (get(ctx.subject.employment.employee_extension_data, 'term_facts.work_authorisation_application_submitted_on', null) != null) return false;\nreturn today >= add_days(ctx.subject.employment.effective_range.to, -ctx.lookup.advance_days);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// The contract term bounds the authorisation; the record carries no permit expiry.\nconst key = 'WORK_AUTHORISATION_FRESH_ISSUE_393:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(ctx.entry.effective_range.to, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];",
+		"effects": "// The contract term bounds the authorisation; the record carries no permit expiry.\nconst key = 'WORK_AUTHORISATION_FRESH_ISSUE_393:' + ctx.entry.employment_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(ctx.subject.employment.effective_range.to, -ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "38a63860-3504-502c-8a0f-2e96ed278196",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
@@ -2330,18 +2394,19 @@
 				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
 			}
 		],
-		"source_collection": "employee_contract",
-		"events": ["daily"],
+		"source_collection": "payslip",
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
-						"eq": {
-							"var": "ctx.entry.entity_id"
+					"occurrence_key": {
+						"in": {
+							"var": "['-06-04', '-12-04'].map((due) => 'FOREIGN_WORKER_REPORT_393:' + ctx.entry.entity_id + ':' + ctx.entry.period.substring(0, 4) + due)"
 						}
 					}
 				},
-				"limit": 1000
+				"fields": ["occurrence_key"],
+				"limit": 2
 			},
 			"entity_profile_version": {
 				"where": {
@@ -2353,13 +2418,51 @@
 					"status": {
 						"eq": "SEALED"
 					}
-				}
+				},
+				"fields": ["effective_range", "entity_extension_data"],
+				"limit": 10000
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"fields": ["pay_date"],
+				"limit": 1
+			},
+			"payslip": {
+				"where": {
+					"payroll_run_id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"fields": ["employment_id"],
+				"limit": 10000
+			},
+			"employee_contract": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"status": {
+						"eq": "SEALED"
+					}
+				},
+				"fields": ["id", "employee_extension_data"],
+				"limit": 10000
 			}
 		},
-		"condition": "const profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.event.day && (version.effective_range.to == null || version.effective_range.to >= ctx.event.day));\nif (ctx.entry.status !== 'SEALED') return false;\nif (!(ctx.event.day >= ctx.lookup.commencement)) return false;\nif (get(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) == null) return false;\nreturn !(get(profile, 'entity_extension_data.foreign_worker_database_available', false) === true);",
+		"condition": "const today = String(get(first(ctx.reads.payroll_run), 'pay_date', ''));\nconst profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= today && (version.effective_range.to == null || version.effective_range.to >= today));\nif (!(today >= ctx.lookup.commencement)) return false;\n// One report for the employer: the run's first foreign worker raises it.\nconst foreign = get(ctx, 'reads.employee_contract', []).filter((row) => get(row.employee_extension_data, 'term_facts.pass_type', null) != null).map((row) => row.id);\nconst paid = get(ctx, 'reads.payslip', []).map((row) => row.employment_id).filter((id) => foreign.includes(id)).toSorted();\nif (paid[0] !== ctx.entry.employment_id) return false;\nreturn !(get(profile, 'entity_extension_data.foreign_worker_database_available', false) === true);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= ctx.event.day && (version.effective_range.to == null || version.effective_range.to >= ctx.event.day));\nconst day = ctx.event.day;\nconst year = day.substring(0, 4);\nconst due = day.substring(5, 10) <= '06-04' ? year + ctx.lookup.half_year_due[0] : year + ctx.lookup.half_year_due[1];\nconst key = 'FOREIGN_WORKER_REPORT_393:' + ctx.entry.entity_id + ':' + due;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: due,\n\t\toccurrence_key: key\n\t}\n];",
+		"effects": "const today = String(get(first(ctx.reads.payroll_run), 'pay_date', ''));\n// pass_type records a foreign work-authorisation route; the contract carries no nationality.\nconst profile = get(ctx, 'reads.entity_profile_version', []).find((version) => version.effective_range.from <= today && (version.effective_range.to == null || version.effective_range.to >= today));\nconst year = ctx.entry.period.substring(0, 4);\nconst due = ctx.entry.period.substring(5, 7) <= '05' ? year + ctx.lookup.half_year_due[0] : year + ctx.lookup.half_year_due[1];\nconst key = 'FOREIGN_WORKER_REPORT_393:' + ctx.entry.entity_id + ':' + due;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: due,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "deadac7b-6e38-5ed2-b09a-e2300a32debb",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
@@ -2377,24 +2480,36 @@
 				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf"
 			}
 		],
-		"source_collection": "employee_contract",
-		"events": ["daily"],
+		"source_collection": "payslip",
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'WORK_AUTHORISATION_EXPIRY_INPUTS_393:' + ctx.entry.employment_id"
 						}
 					}
 				},
-				"limit": 1000
+				"fields": ["occurrence_key"],
+				"limit": 1
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"fields": ["pay_date"],
+				"limit": 1
 			}
 		},
-		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (!(ctx.event.day >= ctx.lookup.commencement)) return false;\nif (get(ctx.entry, 'terms.work_authorisation_category', null) == null) return false;\nreturn get(ctx.entry.employee_extension_data, 'term_facts.work_authorisation_extension_count', null) == null;",
+		"condition": "const today = String(get(first(ctx.reads.payroll_run), 'pay_date', ''));\nif (!(today >= ctx.lookup.commencement)) return false;\nif (get(ctx.subject.employment, 'terms.work_authorisation_category', null) == null) return false;\nreturn get(ctx.subject.employment.employee_extension_data, 'term_facts.work_authorisation_extension_count', null) == null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const key = 'WORK_AUTHORISATION_EXPIRY_INPUTS_393:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: ctx.event.day,\n\t\toccurrence_key: key\n\t}\n];",
+		"effects": "const today = String(get(first(ctx.reads.payroll_run), 'pay_date', ''));\nconst key = 'WORK_AUTHORISATION_EXPIRY_INPUTS_393:' + ctx.entry.employment_id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployee_id: ctx.entry.employee_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: today,\n\t\toccurrence_key: key\n\t}\n];",
 		"id": "4b0b5376-8d3e-5528-8c5f-977f40ff3d41",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	},
@@ -2431,7 +2546,7 @@
 		"condition": "// js\nreturn get(ctx.entry, 'breakdown.statutory', []).some((row) => Number(get(row, 'overpaid', 0)) > 0);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\n// The year came out overpaid. The HR controller pays it back with an entry on the Statutory refund item, in Events.\nif (ctx.reads.obligation.length > 0) return [];\nconst year = String(get(first(ctx.reads.payroll_run), 'pay_date', '')).slice(0, 4);\nconst overpaid = sum(get(ctx.entry, 'breakdown.statutory', []).map((row) => Number(get(row, 'overpaid', 0))));\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: 'Tax overpaid in ' + year + ': enter ' + overpaid + ' on Statutory refund',\n\toccurrence_key: occurrence_key(['VN', 'TAX_REFUND', ctx.entry.id])\n}];",
+		"effects": "// js\n// Tax or a contribution came out overpaid. The HR controller pays it back with an entry on the Statutory refund item, in Events.\nif (ctx.reads.obligation.length > 0) return [];\nconst year = String(get(first(ctx.reads.payroll_run), 'pay_date', '')).slice(0, 4);\nconst over = get(ctx.entry, 'breakdown.statutory', []).filter((row) => Number(get(row, 'overpaid', 0)) > 0);\nconst overpaid = sum(over.map((row) => Number(get(row, 'overpaid', 0))));\nconst what = over.every((row) => row.kind === 'TAX') ? 'Tax' : over.map((row) => row.code).join(', ');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: what + ' overpaid in ' + year + ': enter ' + overpaid + ' on Statutory refund',\n\toccurrence_key: occurrence_key(['VN', 'TAX_REFUND', ctx.entry.id])\n}];",
 		"id": "869f2d5b-3817-5ac1-a7e8-5b06627f7eb8",
 		"settings_id": "f0f10d90-dc52-54b2-b7a9-fd6c87df3f45"
 	}

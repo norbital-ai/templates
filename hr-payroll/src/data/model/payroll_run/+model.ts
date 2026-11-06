@@ -226,6 +226,47 @@ export default model('payroll_run', {
 						`Merge the confirmed ${code} law taking effect ${String(unmerged.effective_from)} before this run.`
 					);
 				const result = yield* calculateRun(data, jsonObject(row), frame);
+				// an off-cycle run seals what it pays: an entry with no payslip here would never be paid
+				const paid = new Set(result.payslips.map((slip) => slip.employment_id));
+				if (
+					frame.pays !== undefined &&
+					[...(data.adhoc_catalog_entry ?? []), ...(data.claim_catalog_entry ?? [])].some(
+						(entry) => !paid.has(String(entry.employment_id))
+					)
+				)
+					return yield* ctx.refuse(
+						'Someone in this run was not employed in its period. Run it on the period of their last day.'
+					);
+				if (frame.pays !== undefined) {
+					// nothing negative posts to a balance, so a reversal that outruns the run waits for the next on-cycle run
+					if (result.payslips.some((slip) => Number(slip.net_pay) < 0))
+						return yield* ctx.refuse(
+							'This run would take someone below zero. A reversal goes in the next on-cycle run.'
+						);
+					// the month's totals hold both companies: on-cycle, each stands alone
+					const { from, to } = row.salary_coverage;
+					const moved = yield* ctx.db.query({
+						employee_contract: {
+							where: {
+								employee_id: {
+									in: result.payslips.map((slip) => idOf('employee_profile', slip.employee_id))
+								}
+							},
+							fields: ['entity_id', 'effective_range'],
+							limit: 10000
+						}
+					});
+					const both = moved.employee_contract.rows.some(
+						({ entity_id, effective_range: range }) =>
+							entity_id !== row.entity_id &&
+							String(range.from) <= String(to) &&
+							(range.to == null || String(range.to) >= String(from))
+					);
+					if (both)
+						return yield* ctx.refuse(
+							'Someone in this run moved between companies this month. Pay this on the on-cycle run.'
+						);
+				}
 				calculated.push({
 					...row,
 					payslips: result.payslips.map((slip) => ({
@@ -287,6 +328,9 @@ export default model('payroll_run', {
 			);
 		},
 		updated: function* (changes, ctx) {
+			// service bands and anniversaries move on no event of their own: every paid run looks
+			if (changes.some(({ before, after }) => before.state !== 'PAID' && after.state === 'PAID'))
+				yield* ctx.schedule('leave_entitlement', {}, { key: 'leave_entitlement' });
 			yield* tap(
 				ctx,
 				'update',

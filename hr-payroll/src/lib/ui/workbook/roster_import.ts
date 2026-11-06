@@ -13,7 +13,11 @@ import {
 	type RosterShift,
 	type RosterStored
 } from '../../payroll_engine/roster_workbook.js';
-import { runWorkbookImportSteps, workbookImportError } from './workbook_import.js';
+import {
+	WorkbookImportError,
+	runWorkbookImportSteps,
+	workbookImportError
+} from './workbook_import.js';
 
 const zoneOn = <V>(
 	versions: readonly V[],
@@ -212,6 +216,11 @@ export const runRosterImport = (options: {
 									)
 									.pipe(Effect.andThen(written)),
 							{ concurrency: 4, discard: true }
+						)
+					),
+					Effect.catchTag('ActUnknown', () =>
+						Effect.fail(
+							new WorkbookImportError({ message: bolt.t('roster.import_interrupted'), detail: [] })
 						)
 					),
 					Effect.ensuring(Effect.sync(() => toast.dismiss(shown)))

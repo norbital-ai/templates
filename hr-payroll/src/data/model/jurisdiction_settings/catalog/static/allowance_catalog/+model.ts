@@ -30,6 +30,7 @@ export default model('allowance_catalog', {
 		direction: { kind: 'enum', values: ['ADD', 'DEDUCT'] },
 		party: { kind: 'enum', values: ['EMPLOYEE', 'EMPLOYER'], default: 'EMPLOYEE' },
 		off_cycle_eligible: { kind: 'bool' },
+		prorate: { kind: 'bool', default: false },
 		settings_id: {
 			kind: 'ref',
 			to: 'jurisdiction_settings',
@@ -57,6 +58,7 @@ export default model('allowance_catalog', {
 				'direction',
 				'party',
 				'off_cycle_eligible',
+				'prorate',
 				'settings_id'
 			]
 		},
@@ -83,7 +85,8 @@ export default model('allowance_catalog', {
 				'incurred_on',
 				'direction',
 				'party',
-				'off_cycle_eligible'
+				'off_cycle_eligible',
+				'prorate'
 			]
 		},
 		transform: function* (changes, ctx) {

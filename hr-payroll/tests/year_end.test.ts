@@ -128,8 +128,8 @@ describe('a December refund', () => {
 			() =>
 				Effect.gen(function* () {
 					const t = yield* TestWorkspace;
-					yield* pay(t, seed, spike, amount, '2026-02-10');
-					for (const period of months(2026)) yield* run(t, period);
+					yield* pay(t, seed, spike, amount, '2026-10-10');
+					for (const period of ['2026-10', '2026-11', '2026-12']) yield* run(t, period);
 					const december = (yield* slips(t)).find((row) => row.period === '2026-12');
 					const overpaid = (december?.breakdown.statutory ?? []).reduce(
 						(sum, row) => sum + (row.overpaid ?? 0),

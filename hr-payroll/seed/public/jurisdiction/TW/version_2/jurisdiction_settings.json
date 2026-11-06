@@ -579,7 +579,16 @@
 			"daily_limit_minutes": 720,
 			"normal_minutes_per_day": 480,
 			"break_after_minutes": 240,
-			"break_minutes": 30
+			"break_minutes": 30,
+			"month_balance": [
+				"BASIC",
+				"SALARY_INCOME",
+				"ORDINARY_WAGES",
+				"ADDITIONAL_WAGES",
+				"LABOR_PENSION.employee",
+				"INCOME_TAX.employee",
+				"INCOME_TAX_NON_RESIDENT.employee"
+			]
 		},
 		"status": "SEALED",
 		"id": "4fb2c75c-a856-55d1-a07a-97dba4ac962c"

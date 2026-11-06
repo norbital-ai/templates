@@ -87,7 +87,7 @@
 		"party": "EMPLOYEE",
 		"id": "d94933b2-a1e7-5ab5-9207-bcbe02ac6f15",
 		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734",
-		"description": "Paid on top of ordinary wages: accumulates in ADDITIONAL_WAGES; SSO, PVD and WCF read ORDINARY_WAGES less overtime; PND1 withholds the tax this bonus adds in the month it is paid."
+		"description": "Paid on top of ordinary wages: accumulates in ADDITIONAL_WAGES; SSO, PVD and WCF read ORDINARY_WAGES; PND1 withholds the tax this bonus adds in the month it is paid."
 	},
 	{
 		"code": "SPECIAL_SEVERANCE_TECHNOLOGY",
@@ -275,6 +275,26 @@
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
 		"id": "4035e829-10ae-5815-89e2-5d7240b309d9",
+		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
+	},
+	{
+		"code": "STATUTORY_REFUND",
+		"name": "Statutory refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Tax or a contribution overpaid, paid back to the employee. The entry quantity is the refund; the statutory schemes are not re-run.",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "42975af4-33c6-5112-bf20-496b8d83cf77",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "13083dd4-5410-5ef4-b8dd-a2a105868d7e",
 		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
 	}
 ]

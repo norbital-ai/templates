@@ -4,11 +4,25 @@
 	import { EmptyState, Table } from '@norbital-ai/ui';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';
+	import { entityTimeZone } from '../../../lib/ui/scopes/create_scope.js';
+	import { paidOn } from '../../../lib/ui/format/calendar.js';
 	import { periodLabel } from '../../../lib/ui/payroll/pay_periods.js';
 	import RunCreate from '../../../lib/ui/payroll/run_create.svelte';
 
 	const scope = companyScope();
 	let creating = $state(false);
+	const version = $derived(
+		scope.company == null
+			? null
+			: bolt.query({
+					jurisdiction_settings: {
+						where: { code: { eq: scope.company.settings_code } },
+						fields: ['timezone'],
+						limit: 1
+					}
+				})
+	);
+	const zone = $derived(entityTimeZone(null, version?.current?.jurisdiction_settings.rows[0]));
 </script>
 
 {#snippet periodCell({ value }: { value: unknown })}
@@ -18,9 +32,8 @@
 	})}
 {/snippet}
 
-<!-- a paid run is locked, so its last write is the moment it was marked paid -->
 {#snippet payDateCell({ row, value }: { row: { state: string }; value: unknown })}
-	{row.state === 'PAID' ? new Date(String(value)).toLocaleDateString('en-CA') : ''}
+	{row.state === 'PAID' ? paidOn(value, zone) : ''}
 {/snippet}
 
 <AppShell

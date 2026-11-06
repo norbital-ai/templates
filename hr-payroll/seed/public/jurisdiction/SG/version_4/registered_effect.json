@@ -768,20 +768,35 @@
 				"url": "https://www.mom.gov.sg/~/media/mom/documents/employment-practices/guidelines/tripartite-guidelines-on-re-employment-of-older-employees.pdf?la=en"
 			}
 		],
-		"source_collection": "calendar",
-		"events": ["daily"],
+		"source_collection": "payslip",
+		"events": ["create"],
 		"reads": {
 			"obligation": {
-				"where": {}
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					}
+				},
+				"limit": 1000
 			},
-			"employee_contract": {
-				"where": {}
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"fields": ["pay_date"],
+				"limit": 1
 			}
 		},
-		"condition": "// js\nreturn get(ctx, 'as_of', null) != null;",
+		"condition": "// js\nreturn get(ctx.subject.employment, 'payroll.date_of_birth', null) != null;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst day = get(ctx, 'as_of', null);\nif (day == null) return [];\nreturn get(ctx, 'reads.employee_contract', []).flatMap((contract) => {\n\tif (contract.status !== 'SEALED') return [];\n\tconst born = get(contract, 'payroll.date_of_birth', null);\n\tif (born == null) return [];\n\tconst years = born >= ctx.lookup.effective_date ? ctx.lookup.revised_age : ctx.lookup.prior_age;\n\tconst retirement = add_years(born, years);\n\tif (day !== add_months(retirement, -ctx.lookup.advance_months)) return [];\n\tconst key = 'SG:REEMPLOYMENT_OFFER:' + contract.id + ':' + retirement;\n\tif (get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key)) return [];\n\treturn [{\n\t\tentity_id: contract.entity_id,\n\t\temployee_id: contract.employee_id,\n\t\temployment_id: contract.id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_months(retirement, -ctx.lookup.offer_months),\n\t\toccurrence_key: key\n\t}];\n});",
+		"effects": "// js\n// Retirement and Re-employment Act s.7A: checked at every run, so the offer is raised from the run on or after the notice date.\nconst contract = ctx.subject.employment;\nconst day = String(first(ctx.reads.payroll_run).pay_date);\nconst born = contract.payroll.date_of_birth;\nconst years = born >= ctx.lookup.effective_date ? ctx.lookup.revised_age : ctx.lookup.prior_age;\nconst retirement = add_years(born, years);\nif (day < add_months(retirement, -ctx.lookup.advance_months) || day > retirement) return [];\nconst key = 'SG:REEMPLOYMENT_OFFER:' + contract.id + ':' + retirement;\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: contract.entity_id,\n\temployee_id: contract.employee_id,\n\temployment_id: contract.id,\n\ttitle: ctx.lookup.title,\n\tdue_on: add_months(retirement, -ctx.lookup.offer_months),\n\toccurrence_key: key\n}];",
 		"id": "b65adfc2-5ad8-58fc-a9ad-6a9e3b37a75a",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
 	},
@@ -2302,6 +2317,43 @@
 		"target_action": "create",
 		"effects": "// js\n// CPF Board Step 2: in December or the last month of employment, re-calculate the AW ceiling on the actual OW. The balance holds AW paid, not AW charged, so the difference is raised rather than charged\nconst run = ctx.entry;\nconst to = run.salary_coverage.to;\nconst month = Number(to.slice(5, 7));\nconst contracts = get(ctx, 'reads.employee_contract', []);\nconst balances = get(ctx, 'reads.employee_balance', []);\nreturn get(ctx, 'reads.payslip', []).flatMap((slip) => {\n\tif (!get(slip, 'breakdown.statutory', []).some((scheme) => scheme.code === 'CPF')) return [];\n\tconst contract = contracts.find((row) => row.id === slip.employment_id);\n\tconst leaving = String(get(contract, 'effective_range.to', ''));\n\tif (month !== ctx.lookup.months_per_year && (leaving === '' || leaving > month_end(to))) return [];\n\tconst account = get(balances.find((row) => row.employee_id === slip.employee_id), 'account', {});\n\tconst ordinary = Number(get(account, 'ytd.ORDINARY_WAGES', 0));\n\tconst additional = Number(get(account, 'ytd.ADDITIONAL_WAGES', 0)) - ordinary;\n\t// no estimate can fall under the ceiling less twelve capped months: AW within it was charged in full\n\tif (additional <= ctx.lookup.annual_ceiling - ctx.lookup.months_per_year * ctx.lookup.ordinary_ceiling) return [];\n\tconst started = String(get(contract, 'effective_range.from', ''));\n\tconst opening = started.slice(0, 4) === to.slice(0, 4) ? Number(started.slice(5, 7)) : 1;\n\tconst months = month - opening + 1;\n\t// a steady year to December: Step 1's estimate was the actual\n\tif (month === ctx.lookup.months_per_year && ordinary === Number(slip.ordinary_wages) * months) return [];\n\tconst ceiling = ctx.lookup.annual_ceiling - Math.min(ordinary, ctx.lookup.ordinary_ceiling * months);\n\treturn [{\n\t\tentity_id: run.entity_id,\n\t\temployee_id: slip.employee_id,\n\t\temployment_id: slip.employment_id,\n\t\ttitle: ctx.lookup.title + ': ceiling $' + ceiling.toFixed(2) + ', AW paid $' + additional.toFixed(2),\n\t\tdue_on: add_days(month_end(to), ctx.lookup.offset_days),\n\t\toccurrence_key: 'SG:CPF_AW_YEAR_END_RECALCULATION:' + run.id + ':' + slip.employment_id\n\t}];\n});",
 		"id": "5c504c25-d214-55f5-90c4-321c5a93293d",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "TAX_REFUND",
+		"name": "Refund overpaid tax",
+		"lookup": {},
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['SG', 'TAX_REFUND', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"payroll_run": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.payroll_run_id"
+						}
+					}
+				},
+				"fields": ["pay_date"],
+				"limit": 1
+			}
+		},
+		"condition": "// js\nreturn get(ctx.entry, 'breakdown.statutory', []).some((row) => Number(get(row, 'overpaid', 0)) > 0);",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\n// Tax or a contribution came out overpaid. The HR controller pays it back with an entry on the Statutory refund item, in Events.\nif (ctx.reads.obligation.length > 0) return [];\nconst year = String(get(first(ctx.reads.payroll_run), 'pay_date', '')).slice(0, 4);\nconst over = get(ctx.entry, 'breakdown.statutory', []).filter((row) => Number(get(row, 'overpaid', 0)) > 0);\nconst overpaid = sum(over.map((row) => Number(get(row, 'overpaid', 0))));\nconst what = over.every((row) => row.kind === 'TAX') ? 'Tax' : over.map((row) => row.code).join(', ');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: what + ' overpaid in ' + year + ': enter ' + overpaid + ' on Statutory refund',\n\toccurrence_key: occurrence_key(['SG', 'TAX_REFUND', ctx.entry.id])\n}];",
+		"id": "5de4ebe0-74ce-5267-83be-4ad5377440dd",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
 	}
 ]

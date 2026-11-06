@@ -657,7 +657,16 @@
 				"UI.employee",
 				"PIT_TAXABLE_INCOME.employer",
 				"PIT_PENSION_DEDUCTION.employer",
-				"PIT.employee"
+				"PIT.employee",
+				"BASIC",
+				"MEAL_PAY",
+				"WORK_EXPENSE_PAY",
+				"SI.employer",
+				"HI.employer",
+				"UI.employer",
+				"UNION_FEE.employer",
+				"UNION_DUES.employee",
+				"PIT.employer"
 			]
 		},
 		"status": "SEALED",
