@@ -144,6 +144,65 @@ describe('a birth case', () => {
 			assert.equal((yield* leaveOf(t))['MATERNITY_LEAVE'], 180);
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
+	const reverse = (t: Kit, reverses: string) =>
+		open(t, WOMAN, 'CHILD_BIRTH', '2026-04-01', {
+			decision: 'CONFIRMED',
+			is_reversal: true,
+			reverses
+		});
+	const firstCase = (t: Kit) =>
+		t.storedQuery({ workplace_case_catalog_entry: { limit: 1 } }).pipe(
+			Effect.map(({ workplace_case_catalog_entry }) => {
+				const row = workplace_case_catalog_entry.rows[0];
+				assert.ok(row !== undefined);
+				return row.id;
+			})
+		);
+	it.live('reversed, the same case takes back what it gave, once', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* open(t, WOMAN, 'CHILD_BIRTH', '2026-03-02', { decision: 'CONFIRMED' });
+			yield* t.runDue();
+			const id = yield* firstCase(t);
+			yield* reverse(t, id);
+			yield* t.runDue();
+			assert.equal((yield* leaveOf(t))['MATERNITY_LEAVE'], 0);
+			const moved = (yield* t.storedQuery({
+				ledger_entry: { where: { code: { eq: 'MATERNITY_LEAVE' } }, limit: 5 }
+			})).ledger_entry.rows.map((row) => row.operation);
+			assert.deepEqual(moved.toSorted(), ['ADD', 'DEDUCT']);
+			const again = yield* Effect.flip(reverse(t, id));
+			assert.match(String(again), /already been reversed/);
+		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
+	);
+	it.live('days already taken are reversed first', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* open(t, WOMAN, 'CHILD_BIRTH', '2026-03-02', { decision: 'CONFIRMED' });
+			yield* t.runDue();
+			yield* t.as(t.admin).act('leave_catalog_entry.create', [
+				{
+					entity_id: ENTITY,
+					employment_id: CONTRACT,
+					catalog_id: idOf('leave_catalog', inVersion(WOMAN, 'leave_catalog', 'MATERNITY_LEAVE')),
+					days: [
+						{ date: PlainDate('2026-03-03'), part: 'AM' },
+						{ date: PlainDate('2026-03-03'), part: 'PM' }
+					]
+				}
+			]);
+			yield* t.runDue();
+			const refused = yield* Effect.flip(reverse(t, yield* firstCase(t)));
+			assert.match(String(refused), /Reverse the leave already taken first/);
+		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
+	);
+	it.live('a case that gave nothing cannot be reversed', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const refused = yield* Effect.flip(reverse(t, 'nothing'));
+			assert.match(String(refused), /Only a confirmed case/);
+		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
+	);
 	it.live('a complication needs its certificate before it is confirmed', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;

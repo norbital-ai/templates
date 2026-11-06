@@ -704,6 +704,7 @@ export default messages({
 	'app.leave_case.waiting': '稍后决定',
 	'app.leave_case.confirm': '确认',
 	'app.leave_case.reject': '驳回',
+	'app.leave_case.reverse': '冲销此案件',
 	'app.leave.computing': '正在根据目录计算此人的假期。',
 	'settings_form.version': '版本',
 	'settings_form.calendar': '货币与日历',

@@ -3,6 +3,10 @@ import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
 import { jsonObject } from '../../../../../../../lib/payroll_engine/foundation.js';
 import { validateRegistered } from '../../../../../../../lib/payroll_engine/registrations.js';
 
+/** A case about one person names them in its inputs: its rules and effects read them as their subject. */
+const subjectOf = ({ inputs }: { readonly inputs?: { readonly [key: string]: unknown } }) =>
+	inputs?.employment_id == null ? {} : { employment_id: inputs.employment_id };
+
 export default model('workplace_case_catalog_entry', {
 	description:
 		'Employer-scoped source data for one declared case variant, validated before acceptance and protected when captured by payroll.',
@@ -53,7 +57,7 @@ export default model('workplace_case_catalog_entry', {
 				ctx.db.query,
 				'workplace_case_catalog_entry',
 				'create',
-				rows.map((row) => jsonObject(row))
+				rows.map((row) => jsonObject({ ...row, ...subjectOf(row) }))
 			);
 			return rows;
 		}
@@ -71,7 +75,10 @@ export default model('workplace_case_catalog_entry', {
 				ctx.db.query,
 				'workplace_case_catalog_entry',
 				'update',
-				changes.map((change) => jsonObject({ ...change.before, ...change.set }))
+				changes.map((change) => {
+					const row = { ...change.before, ...change.set };
+					return jsonObject({ ...row, ...subjectOf(row) });
+				})
 			);
 			return changes.map((change) => change.set);
 		},
@@ -110,7 +117,7 @@ export default model('workplace_case_catalog_entry', {
 					after: {
 						...after,
 						settings_id: settingsOf.get(after.catalog_id),
-						employment_id: after.inputs.employment_id
+						...subjectOf(after)
 					}
 				}))
 			);
@@ -140,7 +147,7 @@ export default model('workplace_case_catalog_entry', {
 					after: {
 						...change.after,
 						settings_id: settingsOf.get(change.after.catalog_id),
-						employment_id: change.after.inputs.employment_id
+						...subjectOf(change.after)
 					}
 				}))
 			);

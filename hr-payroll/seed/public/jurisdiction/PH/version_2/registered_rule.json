@@ -317,9 +317,20 @@
 				},
 				"fields": ["lookup"],
 				"limit": 1
+			},
+			"employee_balance": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "get(ctx.subject, 'employment.employee_id', '00000000-0000-0000-0000-000000000000')"
+						}
+					}
+				},
+				"fields": ["account"],
+				"limit": 1
 			}
 		},
-		"validate": "// js\n// A leave event names its employee and, where the law asks, carries its certificate before it is confirmed.\nconst item = first(ctx.reads.workplace_case_catalog);\nif (get(item, 'lookup.grants', null) == null) return true;\nif (get(ctx.entry, 'inputs.employment_id', null) == null) throw 'Choose the employee this case is for.';\nconst decision = get(ctx.entry, 'inputs.decision', '');\nif (!['', 'CONFIRMED', 'REJECTED'].includes(decision)) throw 'A case is confirmed or rejected.';\nif (decision === 'CONFIRMED' && get(item, 'lookup.certificate', false) === true && get(ctx.entry, 'evidence_file', null) == null)\n\tthrow 'Attach the certificate before confirming this case.';\nreturn true;",
+		"validate": "// js\n// A leave event names its employee and, where the law asks, carries its certificate before it is confirmed.\n// A reversal is the same case again: it takes back a confirmed case once, while the days are still there.\nconst item = first(ctx.reads.workplace_case_catalog);\nif (get(item, 'lookup.grants', null) == null) return true;\nif (get(ctx.entry, 'inputs.employment_id', null) == null) throw 'Choose the employee this case is for.';\nconst decision = get(ctx.entry, 'inputs.decision', '');\nif (!['', 'CONFIRMED', 'REJECTED'].includes(decision)) throw 'A case is confirmed or rejected.';\nif (get(ctx.entry, 'inputs.is_reversal', false) === true) {\n\tconst account = get(first(ctx.reads.employee_balance), 'account', {});\n\tconst done = get(account, 'leave_case', {});\n\tconst original = get(ctx.entry, 'inputs.reverses', '');\n\tif (!Object.hasOwn(done, original)) throw 'Only a confirmed case can be reversed.';\n\tif (Object.hasOwn(done, 'reversed.' + original)) throw 'This case has already been reversed.';\n\tconst leave = get(account, 'leave', {});\n\tconst short = get(item, 'lookup.grants', []).filter((grant) => {\n\t\tconst key = original + '.' + grant.code;\n\t\tconst given = Object.hasOwn(done, key) ? Number(done[key]) : 0;\n\t\treturn given > 0 && Number(Object.hasOwn(leave, grant.code) ? leave[grant.code] : 0) < given;\n\t});\n\tif (short.length > 0) throw 'Reverse the leave already taken first: ' + short[0].code + ' has fewer days left than this case gave.';\n\treturn true;\n}\nif (decision === 'CONFIRMED' && get(item, 'lookup.certificate', false) === true && get(ctx.entry, 'evidence_file', null) == null)\n\tthrow 'Attach the certificate before confirming this case.';\nreturn true;",
 		"order": 902,
 		"references": [
 			{
