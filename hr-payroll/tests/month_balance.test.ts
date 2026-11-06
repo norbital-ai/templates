@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from '@effect/vitest';
+import { applyOperations } from '../src/lib/payroll_engine/balance.ts';
 import { calculatePayroll, type PayrollInput } from '../src/lib/payroll_engine/engine.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 
@@ -81,6 +82,26 @@ describe('month balance', () => {
 			ledger.some((row) => row.account === 'month' && row.operation === 'DEDUCT'),
 			false
 		);
+	});
+});
+
+describe('closing a code', () => {
+	it('float dust neither blocks a removal nor reads as a shortfall', () => {
+		const held = 1234.56 + 789.01;
+		const stored = Number(held.toFixed(12));
+		const close = (amount: number) =>
+			applyOperations({ month: { key: held } }, [
+				{ operation: 'DEDUCT', account: 'month', code: 'key', amount, effective_on: '2027-02-25' },
+				{
+					operation: 'REMOVE',
+					account: 'month',
+					code: 'key',
+					amount: 0,
+					effective_on: '2027-02-25'
+				}
+			]);
+		assert.deepEqual(close(stored), { month: {} });
+		assert.deepEqual(close(stored + 1e-12), { month: {} });
 	});
 });
 

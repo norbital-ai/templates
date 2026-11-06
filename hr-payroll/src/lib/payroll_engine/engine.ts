@@ -419,7 +419,16 @@ const closeBalance = (
 		codes.flatMap((code) => {
 			const value = accountOf(held, family)[code];
 			return typeof value === 'number' && value > 0 && code !== 'LAST_RUN'
-				? [{ operation: 'DEDUCT' as const, account: family, code, amount: value, effective_on }]
+				? [
+						{
+							operation: 'DEDUCT' as const,
+							account: family,
+							code,
+							// the balance is a sum of floats; the ledger keeps fewer digits
+							amount: Number(value.toFixed(8)),
+							effective_on
+						}
+					]
 				: [];
 		});
 	const oldest = String(addMonths(`${month}-01`, -12)).slice(0, 7);

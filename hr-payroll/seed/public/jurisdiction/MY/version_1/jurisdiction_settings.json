@@ -812,6 +812,7 @@
 			"monthly_divisor": 26,
 			"normal_hours_per_day": 8,
 			"months_per_year": 12,
+			"month_balance": ["BASIC"],
 			"fixed_allowances_in_ordinary_pay": true,
 			"excluded_allowances": [],
 			"day_rate": "// Employment Act 1955 s.60I(1a): a monthly rate over 26, fixed cash allowances included. A piece rate has no day rate: s.60I(1c) needs the preceding wage period.\n// proration_basis CALENDAR_DAYS, s.18A (AGC reprint): monthly wages / number of days of the particular wage period x days eligible.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\nconst hours = Number(get(terms, 'normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nif (unit === 'DAILY') return amount;\nif (unit === 'HOURLY') return amount * hours;\nif (unit !== 'MONTHLY') return 0;\nif (!ctx.lookup.fixed_allowances_in_ordinary_pay) return amount / ctx.lookup.monthly_divisor;\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, entry) =>\n\t\tget(entry[1], 'variability', 'FIXED') === 'VARIABLE' ||\n\t\tctx.lookup.excluded_allowances.includes(entry[0])\n\t\t\t? total\n\t\t\t: total + Number(get(entry[1], 'amount', 0)),\n\t0\n);\nreturn (amount + fixed) / ctx.lookup.monthly_divisor;",

@@ -362,10 +362,12 @@
 							scope="col"
 							title={holiday}
 							class={cn(
-								'sticky top-0 z-20 h-10 border-b text-center font-medium',
+								'sticky top-0 z-20 h-10 border-b bg-card text-center font-medium',
 								isWeekend(date) && 'bg-muted',
-								holiday != null && 'bg-warning/10',
-								date === today && 'bg-brand/10',
+								// a tint is an image over the solid colour: rows scroll beneath this header
+								(holiday != null || date === today) && 'bg-linear-to-b',
+								holiday != null && 'from-warning/10 to-warning/10',
+								date === today && 'from-brand/10 to-brand/10',
 								date < today && 'text-muted-foreground'
 							)}
 						>
