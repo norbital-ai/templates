@@ -1,16 +1,12 @@
 import { checkExpression } from '../src/lib/payroll_engine/expressions.ts';
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
-import { Effect } from 'effect';
 import {
 	calculatePayroll,
 	subtotalChain,
 	statutoryOrder,
 	type PayrollInput
 } from '../src/lib/payroll_engine/engine.ts';
-import { applyOperations } from '../src/lib/payroll_engine/balance.ts';
-import { assertApprovalBalance } from '../src/lib/payroll_engine/approval_posting.ts';
-import type { Reader } from '../src/lib/payroll_engine/reads.ts';
 
 const subtotal = (id: string, code: string, previous_id: string | null) => ({
 	id,
@@ -71,8 +67,6 @@ const input = (): PayrollInput => ({
 	balance: {
 		id: 'balance-1',
 		account: {
-			leave: { ANNUAL_LEAVE: 10 },
-			ytd: { TAX_YEAR: 2026, 'LAW.SG': 1 },
 			statutory_contribution: { 'CPF.employee': 1000, 'CPF.employer': 850 }
 		}
 	},
@@ -123,18 +117,6 @@ describe('linear payroll engine', () => {
 			employee_ytd: 2000,
 			employer_ytd: 1700
 		});
-		assert.deepEqual(
-			result.ledger.map((row) => [row.account, row.code, row.operation, row.amount]),
-			[
-				['ytd', 'BASE', 'ADD', 4545.45],
-				['ytd', 'GROSS', 'ADD', 4999.99],
-				['ytd', 'CPF', 'ADD', 3999.99],
-				['ytd', 'NET', 'ADD', 3999.99],
-				['payroll', 'NET_PAY', 'ADD', 3999.99],
-				['statutory_contribution', 'CPF.employee', 'ADD', 1000],
-				['statutory_contribution', 'CPF.employer', 'ADD', 850]
-			]
-		);
 	});
 
 	it('pays only a flagged annual-leave encashment in FINAL_PAY', () => {
@@ -280,81 +262,12 @@ describe('linear payroll engine', () => {
 		);
 	});
 
-	it('closes year-to-date with dated entries on the first run of a tax year', () => {
-		const base = input();
-		const result = calculatePayroll({
-			...base,
-			run: { ...base.run, pay_date: '2027-01-28' },
-			balance: {
-				id: 'balance-1',
-				account: {
-					ytd: { TAX_YEAR: 2026, GROSS: 60000 },
-					statutory_contribution: { 'CPF.employee': 12000 }
-				}
-			}
-		});
-		assert.deepEqual(
-			result.ledger.slice(0, 3).map((row) => [row.code, row.operation, row.amount]),
-			[
-				['TAX_YEAR', 'DEDUCT', 2026],
-				['GROSS', 'DEDUCT', 60000],
-				['CPF.employee', 'DEDUCT', 12000]
-			]
-		);
-		assert.equal(result.ledger[3]?.code, 'TAX_YEAR');
-		assert.equal(result.statutory[0]?.employee_ytd, 1000);
-	});
-
-	it('closes year-to-date when someone moves to another jurisdiction', () => {
-		const base = input();
-		const result = calculatePayroll({
-			...base,
-			balance: {
-				id: 'balance-1',
-				account: {
-					leave: { ANNUAL_LEAVE: 10 },
-					ytd: { TAX_YEAR: 2026, 'LAW.MY': 1, GROSS: 15000 },
-					statutory_contribution: { 'EPF.employee': 3000 }
-				}
-			}
-		});
-		assert.deepEqual(
-			result.ledger.filter((row) => row.operation === 'DEDUCT').map((row) => row.code),
-			['TAX_YEAR', 'LAW.MY', 'GROSS', 'EPF.employee']
-		);
-		assert.equal(result.statutory[0]?.employee_ytd, 1000);
-	});
-
 	it('carries the balance through a transfer inside one jurisdiction', () => {
 		const result = calculatePayroll({
 			...input(),
 			run: { ...input().run, entity_id: 'entity-2' }
 		});
 		assert.equal(result.statutory[0]?.employee_ytd, 2000);
-		assert.equal(
-			result.ledger.some((row) => row.operation === 'DEDUCT'),
-			false
-		);
-	});
-
-	it('reports an overpaid year and posts no negative line or ledger entry', () => {
-		const base = input();
-		const [scheme] = base.statutory;
-		assert.ok(scheme !== undefined);
-		const result = calculatePayroll({
-			...base,
-			statutory: [{ ...scheme, employee_amount: 'return -300;', employer_amount: 'return 0;' }]
-		});
-		assert.equal(result.statutory[0]?.employee, 0);
-		assert.equal(result.statutory[0]?.overpaid, 300);
-		assert.equal(
-			result.lines.some((line) => line.code === 'CPF'),
-			false
-		);
-		assert.equal(
-			result.ledger.some((row) => row.account === 'statutory_contribution'),
-			false
-		);
 	});
 
 	it('accepts a subtotal the version declares and refuses an unknown one', () => {
@@ -522,101 +435,5 @@ describe('linear payroll engine', () => {
 			subtotalChain([subtotal('a', 'A', null), subtotal('b', 'B', 'a'), subtotal('c', 'C', 'a')])
 		);
 		assert.throws(() => subtotalChain([subtotal('a', 'A', 'b'), subtotal('b', 'B', 'a')]));
-	});
-});
-
-describe('balance projection', () => {
-	it('applies approval operations immediately and inverse operations on reversal', () => {
-		const start = { leave: { ANNUAL_LEAVE: 10 } };
-		const deducted = applyOperations(start, [
-			{
-				operation: 'DEDUCT',
-				account: 'leave',
-				code: 'ANNUAL_LEAVE',
-				amount: 2,
-				effective_on: '2026-03-01'
-			}
-		]);
-		assert.deepEqual(deducted, { leave: { ANNUAL_LEAVE: 8 } });
-		const restored = applyOperations(deducted, [
-			{
-				operation: 'ADD',
-				account: 'leave',
-				code: 'ANNUAL_LEAVE',
-				amount: 2,
-				effective_on: '2026-03-02'
-			}
-		]);
-		assert.deepEqual(restored, start);
-	});
-
-	it('refuses a leave approval that would overdraw the account', async () => {
-		const read: Reader = () =>
-			Effect.succeed({
-				employee_contract: {
-					rows: [{ id: 'c1', employee_id: 'e1', entity_id: 'x1' }],
-					next: null,
-					total: 1
-				},
-				leave_catalog: {
-					rows: [{ id: 'cat1', code: 'ANNUAL_LEAVE' }],
-					next: null,
-					total: 1
-				},
-				employee_balance: {
-					rows: [{ id: 'b1', employee_id: 'e1', account: { leave: { ANNUAL_LEAVE: 1 } } }],
-					next: null,
-					total: 1
-				}
-			});
-		const entry = {
-			id: 'l1',
-			employment_id: 'c1',
-			catalog_id: 'cat1',
-			days: [
-				{ date: '2026-12-20', part: 'AM' },
-				{ date: '2026-12-20', part: 'PM' },
-				{ date: '2026-12-21', part: 'AM' },
-				{ date: '2026-12-21', part: 'PM' }
-			]
-		};
-		await assert.rejects(() =>
-			Effect.runPromise(assertApprovalBalance(read, 'leave', [entry], '2026-12-20'))
-		);
-	});
-
-	it('creates accounts and refuses invalid remove/insufficient deduction', () => {
-		const created = applyOperations({}, [
-			{
-				operation: 'CREATE',
-				account: 'loan',
-				code: 'LOAN-1',
-				amount: 1000,
-				effective_on: '2026-03-01'
-			}
-		]);
-		assert.deepEqual(created, { loan: { 'LOAN-1': 1000 } });
-		assert.throws(() =>
-			applyOperations(created, [
-				{
-					operation: 'REMOVE',
-					account: 'loan',
-					code: 'LOAN-1',
-					amount: 0,
-					effective_on: '2026-03-01'
-				}
-			])
-		);
-		assert.throws(() =>
-			applyOperations(created, [
-				{
-					operation: 'DEDUCT',
-					account: 'loan',
-					code: 'LOAN-1',
-					amount: 1001,
-					effective_on: '2026-03-01'
-				}
-			])
-		);
 	});
 });

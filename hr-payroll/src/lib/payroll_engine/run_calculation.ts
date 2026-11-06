@@ -8,17 +8,10 @@ import type { PayWindow } from './pay_cycle.js';
 import { idOf, objectValue, queryRows, type Reader } from './reads.js';
 import { Refusal, isJsonObject } from './foundation.js';
 import { breakdownOf, type PayslipBreakdown } from './payslip_breakdown.js';
+import { accountsOf, viewOf } from '../ledger/core.js';
+import { claimLeft, claimWanted, startedOn } from '../ledger/service.js';
 
 /** One payslip row the run's create transform attaches as a child. */
-export interface CalculatedLedger {
-	readonly balance_id: string;
-	readonly operation: 'CREATE' | 'REMOVE' | 'ADD' | 'DEDUCT';
-	readonly account: string;
-	readonly code: string;
-	readonly amount: number;
-	readonly unit?: Unit;
-	readonly effective_on: string;
-}
 
 export interface CalculatedPayslip {
 	readonly employee_id: string;
@@ -79,6 +72,70 @@ const CODE_OF_CATALOG = { fields: ['code'] };
  * Everything a run needs, read once before any payslip: the window's rows and nothing outside it.
  * It is one request, so one statement, and neither the calculation nor the attachments read again.
  */
+const refOf = (value: unknown) => String(isJsonObject(value) ? value.id : value);
+
+/**
+ * A claim on a limited row pays what it posted: the ledger, not the entry, knows what was left when it came in. One with
+ * no movement found nothing left or is on its way, so it pays what posting it would.
+ */
+const claimsAsPosted = Effect.fn('payroll.claimsAsPosted')(function* (
+	read: Reader,
+	data: Readonly<Record<string, readonly JsonObject[]>>
+) {
+	const limited = new Map(
+		(data.claim_catalog ?? [])
+			.filter((row) => objectValue(row.lookup).annual_limit != null)
+			.map((row) => [String(row.id), { code: String(row.code), lookup: objectValue(row.lookup) }])
+	);
+	const claims = (data.claim_catalog_entry ?? []).filter((row) =>
+		limited.has(refOf(row.catalog_id))
+	);
+	if (claims.length === 0) return data;
+	const { ledger_entry: rows = [] } = yield* queryRows(read, {
+		ledger_entry: {
+			where: { source: { in: claims.map((row) => `claim_catalog_entry:${String(row.id)}`) } },
+			fields: ['source', 'operation', 'amount'],
+			limit: 10000
+		}
+	});
+	const posted = new Map<string, number>();
+	for (const row of rows)
+		posted.set(
+			String(row.source),
+			(posted.get(String(row.source)) ?? 0) +
+				(row.operation === 'DEDUCT' ? -1 : 1) * Number(row.amount ?? 0)
+		);
+	const contract = new Map((data.employee_contract ?? []).map((row) => [String(row.id), row]));
+	const balance = new Map(
+		(data.employee_balance ?? []).map((row) => [String(row.employee_id), row])
+	);
+	const scope = String(data.jurisdiction_settings?.[0]?.code);
+	const drawn = new Map<string, number>();
+	return {
+		...data,
+		claim_catalog_entry: (data.claim_catalog_entry ?? []).map((row) => {
+			const amount = posted.get(`claim_catalog_entry:${String(row.id)}`);
+			if (amount !== undefined) return { ...row, quantity: Math.abs(amount) };
+			const catalog = limited.get(refOf(row.catalog_id));
+			const employment = contract.get(refOf(row.employment_id));
+			if (catalog === undefined || employment === undefined || row.is_reversal === true) return row;
+			const employee = String(employment.employee_id);
+			const accounts = accountsOf(balance.get(employee)?.account);
+			const keyOf = (period: string) => `${employee}/${catalog.code}/${period}`;
+			const [wanted] = claimWanted(
+				row,
+				catalog,
+				{ scope, started: startedOn(employment), events: [] },
+				undefined,
+				(period) => claimLeft(accounts, catalog, period) - (drawn.get(keyOf(period)) ?? 0)
+			);
+			if (wanted === undefined) return row;
+			drawn.set(keyOf(wanted.period), (drawn.get(keyOf(wanted.period)) ?? 0) + wanted.amount);
+			return { ...row, quantity: wanted.amount };
+		})
+	};
+});
+
 export const loadRun = Effect.fn('payroll.loadRun')(function* (
 	read: Reader,
 	run: JsonObject,
@@ -100,7 +157,7 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 		pays === undefined
 			? { ...own, payroll_run_id: { isNull: true }, [field]: { gte: since, lte: attendance.to } }
 			: { id: { in: [...pays] } };
-	return yield* queryRows(read, {
+	const data = yield* queryRows(read, {
 		jurisdiction_settings: {
 			where: { id: { eq: settingsId } },
 			fields: ['id', 'code', 'status', 'timezone', 'tax_year_start_month', 'lookup'],
@@ -190,6 +247,7 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 			limit: 10000
 		}
 	});
+	return yield* claimsAsPosted(read, data);
 });
 
 export type RunData = Readonly<Record<string, readonly JsonObject[]>>;
@@ -268,7 +326,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 	const covering = (data.employee_contract ?? []).filter((row) =>
 		covers(row.effective_range, from, to)
 	);
-	if (covering.length === 0) return { payslips: [], ledger: [] };
+	if (covering.length === 0) return { payslips: [] };
 	// one payslip a person: a renewal inside the period pays on the contract in force at its end
 	const startOf = (row: JsonObject) => String(objectValue(row.effective_range).from ?? '');
 	const contracts = [
@@ -402,7 +460,6 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 	};
 
 	const paid: CalculatedPayslip[] = [];
-	const ledger: CalculatedLedger[] = [];
 	for (const contract of contracts) {
 		const employmentId = String(contract.id),
 			employeeId = String(contract.employee_id);
@@ -440,7 +497,14 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 					employee,
 					employment: contract,
 					employer,
-					balance: balance ?? { account: {} },
+					balance: {
+						account: viewOf(
+							accountsOf(balance?.account),
+							String(settings.code),
+							Number(settings.tax_year_start_month ?? 1),
+							String(run.pay_date ?? objectValue(run.salary_coverage).to)
+						)
+					},
 					entries: {
 						leave_catalog_entry: inRunVersion(
 							leaveWithin(entries(data.leave_catalog_entry)),
@@ -476,17 +540,6 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		const deductions = result.lines
 			.filter((line) => line.party === 'EMPLOYEE' && line.direction === 'DEDUCT')
 			.reduce((total, line) => total + line.amount, 0);
-		if (balance !== undefined)
-			for (const movement of result.ledger)
-				ledger.push({
-					balance_id: String(balance.id),
-					operation: movement.operation,
-					account: movement.account,
-					code: movement.code,
-					amount: movement.amount,
-					...(movement.unit === undefined ? {} : { unit: movement.unit }),
-					effective_on: movement.effective_on
-				});
 		const money = (value: number) => Math.round(value * 1e12) / 1e12;
 		const subtotalValue = (code: unknown): number => {
 			if (typeof code !== 'string') return 0;
@@ -514,11 +567,11 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			// a deduction entry can exceed the period's pay; reported wages stop at zero
 			ordinary_wages: money(Math.max(0, ordinary)),
 			additional_wages: money(additional),
-			employee_statutory: money(employeeStatutory),
+			employee_statutory: money(Math.max(0, employeeStatutory)),
 			employer_statutory: money(employerStatutory),
-			tax_withheld: money(taxWithheld),
+			tax_withheld: money(Math.max(0, taxWithheld)),
 			breakdown: breakdownOf(result)
 		});
 	}
-	return { payslips: paid, ledger };
+	return { payslips: paid };
 });

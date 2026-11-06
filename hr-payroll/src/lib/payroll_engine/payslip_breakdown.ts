@@ -28,8 +28,7 @@ export const PayslipBreakdown = Schema.Struct({
 			code: Schema.String,
 			kind: Schema.String,
 			employee: Schema.Number,
-			employer: Schema.Number,
-			overpaid: Schema.optional(Schema.Number)
+			employer: Schema.Number
 		})
 	)
 });
@@ -57,11 +56,10 @@ export const breakdownOf = (result: PayrollResult): PayslipBreakdown => ({
 			...(unit === undefined ? {} : { unit })
 		})
 	),
-	statutory: result.statutory.map(({ code, kind, employee, employer, overpaid }) => ({
+	statutory: result.statutory.map(({ code, kind, employee, employer }) => ({
 		code,
 		kind,
 		employee,
-		employer,
-		...(overpaid === undefined ? {} : { overpaid })
+		employer
 	}))
 });

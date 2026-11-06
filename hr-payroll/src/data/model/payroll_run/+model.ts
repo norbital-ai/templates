@@ -12,7 +12,7 @@ import {
 import { idOf, objectValue, queryRows } from '../../../lib/payroll_engine/reads.js';
 
 import type { FileSyncCtx } from '@norbital-ai/bolt';
-import { postRunToBalances, reverseRunInBalances } from '../../../lib/payroll_engine/balance.js';
+import { runPosted, runsTakenBack } from '../../../lib/ledger/service.js';
 import {
 	attachmentsOf,
 	calculateRun,
@@ -95,7 +95,6 @@ export default model('payroll_run', {
 	read: {
 		payroll_run: { fields: 'all' },
 		'payroll_run.payslips': { fields: 'all' },
-		'payroll_run.ledger_entries': { fields: 'all' },
 		'payroll_run.entity_id': { fields: 'all' },
 		'payroll_run.settings_id': { fields: 'all' }
 	},
@@ -122,6 +121,22 @@ export default model('payroll_run', {
 		filled: { payroll_run: ['settings_id', 'salary_coverage', 'pay_date'] },
 		transform: function* (input, ctx) {
 			const entityIds = [...new Set(input.map((row) => row.entity_id))];
+			const { payroll_run: latest } = yield* ctx.db.query({
+				payroll_run: {
+					where: { entity_id: { in: entityIds } },
+					fields: ['id', 'run_number'],
+					orderBy: { run_number: 'desc' },
+					limit: entityIds.length
+				}
+			});
+			if (
+				!(yield* runPosted(
+					ctx.db.query,
+					latest.rows.map(({ id }) => id)
+				)) ||
+				!(yield* runsTakenBack(ctx.db.query))
+			)
+				return yield* ctx.refuse('The last run is still posting. Try again in a moment.');
 			const known = yield* ctx.db.query({
 				entity_profile_version: {
 					where: { entity_id: { in: entityIds }, status: { eq: 'SEALED' } },
@@ -287,16 +302,7 @@ export default model('payroll_run', {
 						tax_withheld: slip.tax_withheld,
 						breakdown: slip.breakdown
 					})),
-					attaches: attachmentsOf(data, frame),
-					ledger_entries: result.ledger.map((movement) => ({
-						balance_id: idOf('employee_balance', movement.balance_id),
-						operation: movement.operation,
-						account: movement.account,
-						code: movement.code,
-						amount: movement.amount,
-						...(movement.unit === undefined ? {} : { unit: movement.unit }),
-						effective_on: movement.effective_on
-					}))
+					attaches: attachmentsOf(data, frame)
 				});
 			}
 			return calculated;
@@ -312,63 +318,25 @@ export default model('payroll_run', {
 				changes.map((change) => jsonObject({ ...change.before, ...change.set }))
 			);
 			const paying = changes.filter(({ set }) => set.state === 'PAID').map(({ before }) => before);
-			if (paying.length > 0) {
-				const { payslip: slips = [] } = yield* queryRows(ctx.db.query, {
-					payslip: {
-						where: { payroll_run_id: { in: paying.map(({ id }) => id) } },
-						fields: ['employee_id'],
-						limit: 10000
-					}
-				});
-				const { employee_balance: balances = [] } = yield* queryRows(ctx.db.query, {
-					employee_balance: {
-						where: { employee_id: { in: slips.map((slip) => String(slip.employee_id)) } },
-						fields: ['account'],
-						limit: 10000
-					}
-				});
-				const { payroll_run: runs = [] } = yield* queryRows(ctx.db.query, {
-					payroll_run: {
-						where: { id: { in: paying.map(({ id }) => id) } },
-						fields: ['run_number'],
-						limit: 100
-					}
-				});
-				const run = Math.max(...runs.map(({ run_number }) => Number(run_number)));
-				const posted = (account: unknown) => {
-					const { ytd } = objectValue(account);
-					return isJsonObject(ytd) && Number(ytd.LAST_RUN ?? 0) >= run;
-				};
-				if (balances.some(({ account }) => !posted(account)))
-					return yield* ctx.refuse(
-						'This run is still posting. Try again in a moment, or delete it and run it again.'
-					);
-			}
+			if (
+				paying.length > 0 &&
+				!(yield* runPosted(
+					ctx.db.query,
+					paying.map(({ id }) => id)
+				))
+			)
+				return yield* ctx.refuse(
+					'This run is still posting. Try again in a moment, or delete it and run it again.'
+				);
 			return changes.map((change) => change.set);
 		}
 	},
 	effect: {
 		deleted: function* (rows, ctx) {
-			yield* reverseRunInBalances(ctx, rows);
-			// a month back at nothing holds no account: a first run closes the months it finds, and would close this one as it posts it
-			const { employee_balance: balances = [] } = yield* queryRows(ctx.query, {
-				employee_balance: { fields: ['id', 'account'], limit: 10000 }
-			});
-			const input = balances.flatMap(({ id, account }) => {
-				const held = objectValue(account);
-				const month = isJsonObject(held.month) ? Object.entries(held.month) : [];
-				const kept = month.filter(([, value]) => Math.abs(Number(value)) > 1e-8);
-				return kept.length === month.length
-					? []
-					: [
-							{ target: String(id), set: { account: { ...held, month: Object.fromEntries(kept) } } }
-						];
-			});
-			if (input.length > 0)
-				yield* ctx.act.checked([{ callable: 'employee_balance.update', input }]);
+			yield* ctx.schedule('ledger', { post: rows.map((row) => `payroll_run:${row.id}`) });
 		},
 		created: function* (rows, ctx) {
-			yield* postRunToBalances(ctx, rows);
+			yield* ctx.schedule('ledger', { post: rows.map((row) => `payroll_run:${row.id}`) });
 			yield* tap(
 				ctx,
 				'create',
@@ -385,7 +353,7 @@ export default model('payroll_run', {
 			);
 			// service bands and anniversaries move on no event of their own: every paid run looks
 			if (changes.some(({ before, after }) => before.state !== 'PAID' && after.state === 'PAID'))
-				yield* ctx.schedule('leave_entitlement', {}, { key: 'leave_entitlement' });
+				yield* ctx.schedule('ledger', {}, { key: 'ledger' });
 		}
 	},
 	delete: {

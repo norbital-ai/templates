@@ -780,6 +780,37 @@
 						}
 					},
 					"title": "Departure compliance details"
+				},
+				"events": {
+					"type": "array",
+					"title": "Life events",
+					"description": "What happened to this person that the law gives leave or a claim for. One item per event, with its document uploaded on the employee profile.",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["kind", "on"],
+						"properties": {
+							"kind": {
+								"type": "string",
+								"enum": ["CHILD_BIRTH", "CHILD_BIRTH_NO_ALLOWANCE"],
+								"title": "What happened"
+							},
+							"on": {
+								"type": "string",
+								"format": "date",
+								"title": "Date"
+							},
+							"ended_on": {
+								"type": "string",
+								"format": "date",
+								"title": "Ended on"
+							},
+							"document": {
+								"type": "string",
+								"title": "Document on the profile"
+							}
+						}
+					}
 				}
 			},
 			"description": "Additional local compliance data on the sealed contract, stored as employee_extension_data. facts carries payroll facts; term_facts carries agreed-term facts; exit_facts carries departure facts. Shared salary, allowances, work classifications, dates and work arrangements are native fields."

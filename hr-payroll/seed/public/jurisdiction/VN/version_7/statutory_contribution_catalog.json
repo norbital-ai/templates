@@ -4,7 +4,8 @@
 		"name": "Social Insurance (Bảo hiểm xã hội)",
 		"lookup": {
 			"employee_rate": 0.08,
-			"employer_reduced_rate": 0.173
+			"employer_reduced_rate": 0.173,
+			"below_zero": "REFUND"
 		},
 		"references": [
 			{
@@ -92,7 +93,8 @@
 		"code": "HI",
 		"name": "Health Insurance (Bảo hiểm y tế)",
 		"lookup": {
-			"employee_rate": 0.015
+			"employee_rate": 0.015,
+			"below_zero": "REFUND"
 		},
 		"references": [
 			{
@@ -183,7 +185,8 @@
 			"employee_rate": 0.01,
 			"disabled_new_hire_relief": true,
 			"disabled_new_hire_months": 12,
-			"disabled_new_hire_start": "2026-01-01"
+			"disabled_new_hire_start": "2026-01-01",
+			"below_zero": "REFUND"
 		},
 		"references": [
 			{
@@ -370,7 +373,8 @@
 			"pension_cap": 3000000,
 			"non_resident_rate": 0.2,
 			"short_term_rate": 0.1,
-			"short_term_threshold": 5000000
+			"short_term_threshold": 5000000,
+			"below_zero": "REFUND"
 		},
 		"references": [
 			{
@@ -450,7 +454,8 @@
 		"name": "Đoàn phí công đoàn (union membership dues)",
 		"lookup": {
 			"employee_rate": 0.005,
-			"cap": 253000
+			"cap": 253000,
+			"below_zero": "REFUND"
 		},
 		"references": [
 			{

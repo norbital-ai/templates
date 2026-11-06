@@ -3,10 +3,6 @@ import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
 import { jsonObject } from '../../../../../../../lib/payroll_engine/foundation.js';
 import { validateRegistered } from '../../../../../../../lib/payroll_engine/registrations.js';
 
-/** A case about one person names them in its inputs: its rules and effects read them as their subject. */
-const subjectOf = ({ inputs }: { readonly inputs?: { readonly [key: string]: unknown } }) =>
-	inputs?.employment_id == null ? {} : { employment_id: inputs.employment_id };
-
 export default model('workplace_case_catalog_entry', {
 	description:
 		'Employer-scoped source data for one declared case variant, validated before acceptance and protected when captured by payroll.',
@@ -57,7 +53,7 @@ export default model('workplace_case_catalog_entry', {
 				ctx.db.query,
 				'workplace_case_catalog_entry',
 				'create',
-				rows.map((row) => jsonObject({ ...row, ...subjectOf(row) }))
+				rows.map((row) => jsonObject(row))
 			);
 			return rows;
 		}
@@ -75,10 +71,7 @@ export default model('workplace_case_catalog_entry', {
 				ctx.db.query,
 				'workplace_case_catalog_entry',
 				'update',
-				changes.map((change) => {
-					const row = { ...change.before, ...change.set };
-					return jsonObject({ ...row, ...subjectOf(row) });
-				})
+				changes.map((change) => jsonObject({ ...change.before, ...change.set }))
 			);
 			return changes.map((change) => change.set);
 		},
@@ -98,28 +91,11 @@ export default model('workplace_case_catalog_entry', {
 	},
 	effect: {
 		created: function* (rows, ctx) {
-			// an entry reaches its version's registered effects through the catalog row it was raised on
-			const versions = yield* ctx.query({
-				workplace_case_catalog: {
-					where: { id: { in: rows.map((row) => row.catalog_id) } },
-					fields: ['settings_id'],
-					limit: 10000
-				}
-			});
-			const settingsOf = new Map(
-				versions.workplace_case_catalog.rows.map((row) => [row.id, row.settings_id])
-			);
 			yield* tap(
 				ctx,
 				'create',
 				{ collection: 'workplace_case_catalog_entry', ids: rows.map((r) => r.id) },
-				rows.map((after) => ({
-					after: {
-						...after,
-						settings_id: settingsOf.get(after.catalog_id),
-						...subjectOf(after)
-					}
-				}))
+				rows.map((after) => ({ after }))
 			);
 		},
 		updated: function* (changes, ctx) {
@@ -128,28 +104,11 @@ export default model('workplace_case_catalog_entry', {
 				({ before, after }) => before.payroll_run_id === after.payroll_run_id
 			);
 			if (edited.length === 0) return;
-			const versions = yield* ctx.query({
-				workplace_case_catalog: {
-					where: { id: { in: edited.map(({ after }) => after.catalog_id) } },
-					fields: ['settings_id'],
-					limit: 10000
-				}
-			});
-			const settingsOf = new Map(
-				versions.workplace_case_catalog.rows.map((row) => [row.id, row.settings_id])
-			);
 			yield* tap(
 				ctx,
 				'update',
 				{ collection: 'workplace_case_catalog_entry', ids: edited.map((c) => c.after.id) },
-				edited.map((change) => ({
-					...change,
-					after: {
-						...change.after,
-						settings_id: settingsOf.get(change.after.catalog_id),
-						...subjectOf(change.after)
-					}
-				}))
+				edited
 			);
 		},
 		deleted: function* (rows, ctx) {

@@ -102,6 +102,19 @@ export const CONFIGURATION = {
 	registered_rule: { read: true, create: true, update: true, delete: true },
 	registered_effect: { read: true, create: true, update: true, delete: true }
 } as const;
+/** A reversal is the HR controller's alone; automations act under their own policy. */
+const REVERSAL = {
+	check: function* (
+		rows: readonly { readonly is_reversal?: boolean }[],
+		ctx: Pick<Judge, 'allow' | 'deny'> & { readonly policies: readonly string[] }
+	) {
+		return rows.some((row) => row.is_reversal === true) &&
+			!ctx.policies.includes('hr_controller') &&
+			!ctx.policies.includes('payroll_execution')
+			? ctx.deny('Only the HR controller makes a reversal.')
+			: ctx.allow();
+	}
+};
 export const HR_OPERATIONS = {
 	entity: { ...READ_ALL.entity, create: true, update: true },
 	entity_profile_version: {
@@ -111,7 +124,6 @@ export const HR_OPERATIONS = {
 		moves: 'all'
 	},
 	employee_profile: { ...READ_ALL.employee_profile, create: true, update: true },
-	ledger_entry: { ...READ_ALL.ledger_entry, create: true },
 	employee_contract: {
 		...READ_ALL.employee_contract,
 		create: true,
@@ -120,19 +132,19 @@ export const HR_OPERATIONS = {
 	},
 	leave_catalog_entry: {
 		...READ_ALL.leave_catalog_entry,
-		create: true,
+		create: REVERSAL,
 		update: true,
 		delete: true
 	},
 	claim_catalog_entry: {
 		...READ_ALL.claim_catalog_entry,
-		create: true,
+		create: REVERSAL,
 		update: true,
 		delete: true
 	},
 	adhoc_catalog_entry: {
 		...READ_ALL.adhoc_catalog_entry,
-		create: true,
+		create: REVERSAL,
 		update: true,
 		delete: true
 	},
@@ -184,8 +196,4 @@ export const HR_OPERATIONS = {
 	},
 	obligation: { ...READ_ALL.obligation, create: true, update: true, delete: true, moves: 'all' }
 } as const;
-export const PAYROLL_STARTS = [
-	'statutory_research',
-	'statutory_materialize',
-	'leave_entitlement'
-] as const;
+export const PAYROLL_STARTS = ['statutory_research', 'statutory_materialize', 'ledger'] as const;

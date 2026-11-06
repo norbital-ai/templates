@@ -556,6 +556,57 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 	}
 });
 
+const CATALOG_ENTRY = /^(.*_catalog)_entry$/;
+/**
+ * The versions of the law a write answers to, whatever its model: its own, the catalog row it was raised on, its
+ * contract, the person's contracts, or its employer's sealed version. Every model dispatches through this one path.
+ */
+const versionsOf = Effect.fn('payroll.versionsOf')(function* (
+	read: Reader,
+	collection: string,
+	rows: readonly JsonObject[]
+) {
+	const ids = (field: string) => [
+		...new Set(
+			rows.flatMap((row) =>
+				typeof refId(row[field]) === 'string' ? [String(refId(row[field]))] : []
+			)
+		)
+	];
+	const direct = [...ids('settings_id'), ...ids('input_schema_version_id')];
+	if (direct.length > 0) return new Set(direct);
+	const catalog = CATALOG_ENTRY.exec(collection)?.[1];
+	if (catalog !== undefined && ids('catalog_id').length > 0) {
+		const found = yield* queryRows(read, {
+			[catalog]: { where: { id: { in: ids('catalog_id') } }, fields: ['settings_id'], limit: 10000 }
+		});
+		return new Set((found[catalog] ?? []).map((row) => String(row.settings_id)));
+	}
+	const employees = collection === 'employee_profile' ? ids('id') : ids('employee_id');
+	const contract =
+		ids('employment_id').length > 0
+			? { id: { in: ids('employment_id') } }
+			: employees.length > 0
+				? { employee_id: { in: employees } }
+				: null;
+	if (contract !== null) {
+		const { employee_contract: found = [] } = yield* queryRows(read, {
+			employee_contract: { where: contract, fields: ['input_schema_version_id'], limit: 10000 }
+		});
+		return new Set(found.map((row) => String(row.input_schema_version_id)));
+	}
+	const entities = collection === 'entity' ? ids('id') : ids('entity_id');
+	if (entities.length === 0) return new Set<string>();
+	const { entity_profile_version: found = [] } = yield* queryRows(read, {
+		entity_profile_version: {
+			where: { entity_id: { in: entities }, status: { eq: 'SEALED' } },
+			fields: ['input_schema_version_id'],
+			limit: 10000
+		}
+	});
+	return new Set(found.map((row) => String(row.input_schema_version_id)));
+});
+
 /**
  * A registered effect runs after the commit: its expression returns the records its declared
  * target action writes. Models call it through `tap`.
@@ -566,15 +617,13 @@ export const applyRegisteredEffects = Effect.fn('payroll.applyRegisteredEffects'
 	collection: string,
 	changes: readonly { readonly before?: object; readonly after?: object }[]
 ) {
-	const settings = new Set<string>();
-	for (const change of changes) {
-		const row = {
+	const rows = changes.map((change) =>
+		jsonObject({
 			...(isJsonObject(change.before) ? change.before : {}),
 			...(isJsonObject(change.after) ? change.after : {})
-		} as JsonObject;
-		const id = refId(row.settings_id ?? row.input_schema_version_id);
-		if (id !== undefined) settings.add(id);
-	}
+		})
+	);
+	const settings = yield* versionsOf(ctx.query, collection, rows);
 	if (settings.size === 0) return;
 	const data = yield* queryRows(ctx.query, {
 		registered_effect: {

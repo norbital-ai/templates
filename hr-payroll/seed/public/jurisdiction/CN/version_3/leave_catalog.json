@@ -208,7 +208,10 @@
 		"pay_treatment": "PAID",
 		"lookup": {
 			"grant_days": 3,
-			"window": "EVENT"
+			"window": "EVENT",
+			"opened_by": {
+				"MARRIAGE": {}
+			}
 		},
 		"references": [
 			{
@@ -317,7 +320,10 @@
 		"pay_treatment": "PAID",
 		"lookup": {
 			"grant_days": 3,
-			"window": "EVENT"
+			"window": "EVENT",
+			"opened_by": {
+				"BEREAVEMENT": {}
+			}
 		},
 		"references": [
 			{

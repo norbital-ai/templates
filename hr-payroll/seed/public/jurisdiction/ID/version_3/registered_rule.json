@@ -8508,96 +8508,11 @@
 				},
 				"fields": ["days"],
 				"limit": 1000
-			},
-			"employee_balance": {
-				"where": {
-					"employee_id": {
-						"eq": {
-							"var": "subject.employment.employee_id"
-						}
-					}
-				},
-				"fields": ["account"],
-				"limit": 1
 			}
 		},
-		"validate": "// js\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || !ctx.lookup.no_pay.includes(item.code)) return true;\nconst steps = get(item.lookup, 'pay_steps', []);\nconst windows = get(first(ctx.reads.employee_balance), 'account.leave_window', {});\nconst held = Object.hasOwn(windows, item.code + '.from') ? String(windows[item.code + '.from']) : '';\nif (steps.length > 0 && held === '') return true;\nconst from = held.slice(0, 4) + '-' + held.slice(4, 6) + '-' + held.slice(6, 8);\nif (steps.length > 0 && !ctx.entry.days.some((day) => calendar_completed_months(from, day.date) >= steps[0].until_month)) return true;\nconst employer = ctx.subject.employer;\nconst cutoff = Number(get(employer, 'pay_cutoff_day', 1));\nconst halves = get(employer, 'payment_schedule.frequency', 'MONTHLY') === 'SEMI_MONTHLY';\nconst shifted = (month, by) => add_months(month + '-01', by).slice(0, 7);\nconst periodOf = (date) => {\n\tconst month = date.slice(0, 7);\n\tconst dayOf = Number(date.slice(8, 10));\n\tconst part = dayOf <= 15 ? 1 : 2;\n\tif (!halves) return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;\n\tif (cutoff <= 1) return month + '-' + part;\n\treturn part === 1 ? month + '-2' : shifted(month, 1) + '-1';\n};\nconst dates = ctx.entry.days.map((day) => day.date);\nif (get(ctx.entry, 'is_reversal', false) === true && ctx.reads.leave_catalog_entry.some((row) => row.days.some((day) => dates.includes(day.date))))\n\tthrow 'That day has not been paid yet. Delete the entry instead of reversing it.';\nconst ran = ctx.reads.payroll_run.map((run) => run.period);\nconst closed = ctx.entry.days.find((day) => ran.includes(periodOf(day.date)));\nif (closed != null)\n\tthrow closed.date + ' is in a period that has already run. Date this entry in the next period to run, and that run takes it.';\nreturn true;",
+		"validate": "// js\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || !ctx.lookup.no_pay.includes(item.code)) return true;\nconst steps = get(item.lookup, 'pay_steps', []);\nconst events = get(ctx.subject.employment, 'employee_extension_data.events', []).filter((event) => Object.hasOwn(get(item.lookup, 'opened_by', {}), event.kind));\nconst stepping = (date) => events.some((event) => event.on <= date && (get(event, 'ended_on', null) == null || date <= event.ended_on) && calendar_completed_months(event.on, date) >= steps[0].until_month);\nif (steps.length > 0 && !ctx.entry.days.some((day) => stepping(day.date))) return true;\nconst employer = ctx.subject.employer;\nconst cutoff = Number(get(employer, 'pay_cutoff_day', 1));\nconst halves = get(employer, 'payment_schedule.frequency', 'MONTHLY') === 'SEMI_MONTHLY';\nconst shifted = (month, by) => add_months(month + '-01', by).slice(0, 7);\nconst periodOf = (date) => {\n\tconst month = date.slice(0, 7);\n\tconst dayOf = Number(date.slice(8, 10));\n\tconst part = dayOf <= 15 ? 1 : 2;\n\tif (!halves) return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;\n\tif (cutoff <= 1) return month + '-' + part;\n\treturn part === 1 ? month + '-2' : shifted(month, 1) + '-1';\n};\nconst dates = ctx.entry.days.map((day) => day.date);\nif (get(ctx.entry, 'is_reversal', false) === true && ctx.reads.leave_catalog_entry.some((row) => row.days.some((day) => dates.includes(day.date))))\n\tthrow 'That day has not been paid yet. Delete the entry instead of reversing it.';\nconst ran = ctx.reads.payroll_run.map((run) => run.period);\nconst closed = ctx.entry.days.find((day) => ran.includes(periodOf(day.date)));\nif (closed != null)\n\tthrow closed.date + ' is in a period that has already run. Date this entry in the next period to run, and that run takes it.';\nreturn true;",
 		"order": 900,
 		"id": "c449cebd-10e8-57d1-8f5e-f3b54d3c4f7b",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
-	},
-	{
-		"code": "CONSUMED_LEAVE_HELD",
-		"target_collection": "leave_catalog_entry",
-		"events": ["create"],
-		"lookup": {},
-		"references": [],
-		"reads": {
-			"leave_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["lookup"],
-				"limit": 1
-			},
-			"employee_balance": {
-				"where": {
-					"employee_id": {
-						"eq": {
-							"var": "subject.employment.employee_id"
-						}
-					}
-				},
-				"fields": ["account"],
-				"limit": 1
-			}
-		},
-		"validate": "// js\n// A row that consumes another needs the days on that row's account.\nconst code = get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', null);\nif (code == null || get(ctx.entry, 'is_reversal', false) === true) return true;\nconst held = Number(get(get(first(ctx.reads.employee_balance), 'account.leave', {}), code, 0));\nif (held < ctx.entry.days.length / 2) throw 'Only ' + held + ' days of ' + code + ' are left.';\nreturn true;",
-		"order": 903,
-		"id": "73e84560-51c4-5d59-8458-de19c04953a7",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
-	},
-	{
-		"code": "LEAVE_CASE_DECISION",
-		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
-		"lookup": {},
-		"reads": {
-			"workplace_case_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["lookup"],
-				"limit": 1
-			},
-			"employee_balance": {
-				"where": {
-					"employee_id": {
-						"eq": {
-							"var": "get(ctx.subject, 'employment.employee_id', '00000000-0000-0000-0000-000000000000')"
-						}
-					}
-				},
-				"fields": ["account"],
-				"limit": 1
-			}
-		},
-		"validate": "// js\nconst item = first(ctx.reads.workplace_case_catalog);\nif (get(item, 'lookup.grants', null) == null) return true;\nif (get(ctx.entry, 'inputs.employment_id', null) == null) throw 'Choose the employee this case is for.';\nconst decision = get(ctx.entry, 'inputs.decision', '');\nif (!['', 'CONFIRMED', 'REJECTED'].includes(decision)) throw 'A case is confirmed or rejected.';\nif (get(ctx.entry, 'inputs.is_reversal', false) === true) {\n\tconst account = get(first(ctx.reads.employee_balance), 'account', {});\n\tconst done = get(account, 'leave_case', {});\n\tconst original = get(ctx.entry, 'inputs.reverses', '');\n\tif (!Object.hasOwn(done, original)) throw 'Only a confirmed case can be reversed.';\n\tif (Object.hasOwn(done, 'reversed.' + original)) throw 'This case has already been reversed.';\n\tconst leave = get(account, 'leave', {});\n\tconst short = get(item, 'lookup.grants', []).filter((grant) => {\n\t\tconst key = original + '.' + grant.code;\n\t\tconst given = Object.hasOwn(done, key) ? Number(done[key]) : 0;\n\t\treturn given > 0 && Number(Object.hasOwn(leave, grant.code) ? leave[grant.code] : 0) < given;\n\t});\n\tif (short.length > 0) throw 'Reverse the leave already taken first: ' + short[0].code + ' has fewer days left than this case gave.';\n\treturn true;\n}\nif (decision === 'CONFIRMED' && get(item, 'lookup.certificate', false) === true && get(ctx.entry, 'evidence_file', null) == null)\n\tthrow 'Attach the certificate before confirming this case.';\nreturn true;",
-		"order": 902,
-		"references": [
-			{
-				"title": "A leave event names its employee and carries its certificate before HR confirms it."
-			}
-		],
-		"id": "46dc518b-6874-528a-8300-ece6cc8c8d48",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
 	}
 ]

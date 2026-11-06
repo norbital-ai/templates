@@ -127,11 +127,11 @@ export default model('jurisdiction_settings', {
 				if (before.status !== 'SEALED' && after.status === 'SEALED') {
 					const from = String(after.effective_range.from);
 					yield* ctx.schedule(
-						'leave_entitlement',
+						'ledger',
 						{},
 						from > String(ctx.today)
-							? { at: Instant(`${from}T00:00:00Z`), key: `leave_entitlement:${from}` }
-							: { key: 'leave_entitlement' }
+							? { at: Instant(`${from}T00:00:00Z`), key: `ledger:${from}` }
+							: { key: 'ledger' }
 					);
 				}
 			yield* tap(

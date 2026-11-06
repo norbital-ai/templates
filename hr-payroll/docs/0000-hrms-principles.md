@@ -24,16 +24,16 @@ A catalog is a list of items, and each item describes how one thing behaves: a l
 
 An item says who it applies to, how much it is worth, where it sits in the calculation, and whether it adds to pay or takes from it.
 
-| Catalog        | Holds                                                | Example                            |
-| -------------- | ---------------------------------------------------- | ---------------------------------- |
-| Leave          | Leave types, their entitlement and how a day is paid | Annual leave, unpaid leave         |
-| Allowance      | Fixed pay on the contract, and whether it prorates   | Transport, meal                    |
-| Overtime       | Overtime rates                                       | Rest day overtime                  |
-| Claim          | What staff can claim back                            | Medical claim                      |
-| Adhoc          | One-off pay and deductions                           | Bonus, severance, statutory refund |
-| Statutory      | Tax and contributions, with their tables and rates   | Income tax, pension, health        |
-| Loan           | Loans and how they are repaid                        | Staff loan                         |
-| Workplace case | Things that happen and need a decision               | Child birth, long illness          |
+| Catalog        | Holds                                                | Example                      |
+| -------------- | ---------------------------------------------------- | ---------------------------- |
+| Leave          | Leave types, their entitlement and how a day is paid | Annual leave, unpaid leave   |
+| Allowance      | Fixed pay on the contract, and whether it prorates   | Transport, meal              |
+| Overtime       | Overtime rates                                       | Rest day overtime            |
+| Claim          | What staff can claim back                            | Medical claim                |
+| Adhoc          | One-off pay and deductions                           | Bonus, severance, EPF refund |
+| Statutory      | Tax and contributions, with their tables and rates   | Income tax, pension, health  |
+| Loan           | Loans and how they are repaid                        | Staff loan                   |
+| Workplace case | Things filed at work                                 | A complaint, an accident     |
 
 **Why this matters.** When the law changes, or your company's policy does, you change a catalog item. The way the system calculates does not change. A new law becomes a new dated version of the country's settings, and earlier periods stay on the rules that applied at the time.
 
@@ -77,14 +77,14 @@ A run is either unpaid or paid. An unpaid run can be deleted, and its entries go
 
 When something happens, an **effect** can raise a task for HR or start an automation. The catalogs say which effects exist, so they are visible and can be changed like any other rule.
 
-| When this happens                     | This follows                                            |
-| ------------------------------------- | ------------------------------------------------------- |
-| A payroll run is created              | Remittance and filing tasks for the period              |
-| A payslip comes out overpaid          | A task telling HR how much to refund, and on which item |
-| A contract is sealed                  | That person's leave is worked out                       |
-| A country's rules change              | Everyone's leave is worked out again                    |
-| A workplace case is confirmed         | The leave it gives is opened on the balance             |
-| 30 sick days in 45, with no open case | A task to open a Long illness case                      |
+| When this happens                   | This follows                                    |
+| ----------------------------------- | ----------------------------------------------- |
+| A payroll run is created            | Remittance and filing tasks for the period      |
+| A contribution is corrected         | A task to settle it with the fund               |
+| A contract is sealed                | That person's leave is worked out               |
+| A country's rules change            | Everyone's leave is worked out again            |
+| A life event is added to a contract | The leave it gives is opened on the balance     |
+| 30 sick days in 45, with no illness | A task to record a long illness on the contract |
 
 **Rules** are the other half. A rule checks an entry before it is accepted and refuses it with a plain reason, such as a date in a period that has already run.
 
@@ -92,7 +92,7 @@ When something happens, an **effect** can raise a task for HR or start an automa
 
 A balance holds what a person has so far: leave left, year-to-date pay, contributions paid. Payroll reads these totals, so it never has to look back through old payslips, and a run stays fast.
 
-Behind every balance is the **ledger**, a permanent record of every movement. Every day and every amount in a balance comes from a movement in the ledger, and movements are never edited or removed.
+A balance holds accumulated values and entitlements, and nothing else. Behind every balance is the **ledger**, a permanent record of every movement. Every day and every amount in a balance comes from a movement in the ledger, and movements are never edited or removed. A movement and its balance are saved together, so they cannot disagree. If the system stops part-way and repeats a step, nothing moves twice.
 
 Leave entitlement moves as a difference. If the entitlement rises from 14 days to 18, the balance rises by 4, and days already taken stay taken. At a new year the balance starts again, with carry-forward where the catalog allows it.
 
@@ -109,47 +109,44 @@ June    Unpaid leave, 1 day               pay down by one day
 July    Unpaid leave, 1 day, reversal     pay back the same amount
 ```
 
-**An adjustment entry corrects a statutory figure.** Tax and contributions are worked out by law, so they are not reversed. The catalog has its own item that **is** the correction, entered as an ordinary adhoc entry.
+**An adjustment entry corrects a contribution for a closed month.** Each month's contribution stands alone and the money is already at the fund, so the catalog has an item for each scheme that **is** the correction.
 
 ```text
-Tax overpaid across the year
-  -> the system raises a task with the amount
-  -> HR enters it on Statutory refund
-  -> the next run pays it
+June's EPF used the wrong rate: RM100 too much
+  -> HR enters EPF refund, 100, dated June
+  -> the next run pays the employee
+  -> a task reminds HR to claim it back from the fund
 ```
 
-| What was wrong                      | Use                                    | Example                          |
-| ----------------------------------- | -------------------------------------- | -------------------------------- |
-| An entry that has already been paid | Reversal entry on the same item        | A leave day that was never taken |
-| Tax or contributions overpaid       | Adjustment entry: Statutory refund     | Overpaid tax at year end         |
-| Tax or contributions underpaid      | Adjustment entry: Statutory adjustment | A contribution short in March    |
-| An entry not yet paid               | Delete it                              | A wrong date on an open entry    |
-| A workplace case confirmed in error | Reverse this case, on the case itself  | Case raised on the wrong person  |
+**Tax needs no entry.** Each tax row settles the year by its own law. Where the law has the employer repay, the run pays a refund line by itself. Where it does not, the row stops at zero and the next run nets it.
 
-Some countries have their own adjustment items. Japan's premiums paid back or collected late go on Social insurance refund and Social insurance collected late, so the year-end adjustment deducts what the employee actually bore.
+| What was wrong                      | Use                                      | Example                               |
+| ----------------------------------- | ---------------------------------------- | ------------------------------------- |
+| An entry that has already been paid | Reversal entry on the same item          | A leave day that was never taken      |
+| A wage                              | Reversal entry; the contribution follows | A bonus paid twice                    |
+| A contribution rate, month closed   | Adjustment entry for that scheme         | EPF at the wrong rate in March        |
+| An entry not yet paid               | Delete it                                | A wrong date on an open entry         |
+| A fact on a contract                | A new version without it                 | An event recorded on the wrong person |
 
 **Corrections carry through.** The next run's statutory figures count the total actually paid in the month. If a wrong payment moved someone across a contribution band, the next cycle works from the corrected total, so the statutory position comes right without a separate fix.
 
-## 7. Events are workplace cases
+## 7. Life events are facts on the contract
 
-Some leave depends on something happening: a birth, a marriage, a bereavement, a long illness. A balance cannot tell one birth from the next, so each event is a **workplace case**, and HR decides it.
+Some leave depends on something happening: a birth, a marriage, a bereavement, a long illness. The contract is sealed and is what payroll reads, so these facts live there, and the document is uploaded on the employee profile.
 
 ```text
-Employee hands HR the notice or doctor's letter
+HR adds the event to the contract and seals it
         |
-HR opens a case on the person's Leave tab
-  What happened:  Child birth
-  Decision:       Confirmed, Rejected, or Decide later
-  Document:       attached
+The leave it gives opens on the balance
         |
-        +-- Rejected       nothing moves
-        +-- Decide later   nothing moves until HR confirms or rejects it
-        +-- Confirmed      the leave it gives is opened on the balance
+Leave taken against it is a normal leave entry
 ```
 
-The leave type gives no days by itself, and nothing refills it by the calendar. A second birth is a second case.
+The leave type gives no days by itself, and nothing refills it by the calendar. A second birth is a second event, and leftover days do not stack.
 
-**Pay that steps down** stays on one leave type. Indonesia pays long illness at 100% for four months, 75% for four, 50% for four, then 25%. Sick days stay at full pay until HR confirms a Long illness case, which starts the count. Each day is then priced by how far it falls from the start of the illness. Closing the case ends the count.
+**Pay that steps down** stays on one leave type. Indonesia pays long illness at 100% for four months, 75% for four, 50% for four, then 25%. Sick days stay at full pay until HR records the illness on the contract, which starts the count. Ending it ends the count.
+
+**Workplace cases** file things that happen at work: a complaint, an accident, a request, a dispute. They never change a balance. If one changes pay, HR makes the entry.
 
 ## 8. What the system will not do
 
@@ -170,7 +167,7 @@ The leave type gives no days by itself, and nothing refills it by the calendar. 
 | Ledger            | The permanent record of every movement                             |
 | Balance           | A person's running totals, built from the ledger                   |
 | Reversal entry    | A new entry on the same item that undoes a mistake                 |
-| Adjustment entry  | An entry on an item that is itself the statutory correction        |
-| Workplace case    | Something that happened and needs HR's decision                    |
+| Adjustment entry  | An entry on an item that is itself the contribution correction     |
+| Workplace case    | Something filed at work: an incident, request or notice            |
 | On-cycle payroll  | The regular run for a pay period                                   |
 | Off-cycle payroll | A run for adjustment entries and one-off lump sums                 |

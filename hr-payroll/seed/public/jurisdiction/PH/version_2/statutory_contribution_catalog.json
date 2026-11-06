@@ -2,7 +2,9 @@
 	{
 		"code": "SSS",
 		"name": "Social Security System",
-		"lookup": {},
+		"lookup": {
+			"below_zero": "REFUND"
+		},
 		"references": [
 			{
 				"title": "Republic Act 11199 (Social Security Act of 2018)",
@@ -54,7 +56,9 @@
 	{
 		"code": "SSS_MPF",
 		"name": "SSS Mandatory Provident Fund (WISP)",
-		"lookup": {},
+		"lookup": {
+			"below_zero": "REFUND"
+		},
 		"references": [
 			{
 				"title": "Republic Act 11199 (Social Security Act of 2018)",
@@ -225,7 +229,8 @@
 			"maximum_salary_base": 10000,
 			"lower_employee_rate_salary_ceiling": 1500,
 			"lower_employee_rate": 0.01,
-			"higher_employee_and_employer_rate": 0.02
+			"higher_employee_and_employer_rate": 0.02,
+			"below_zero": "REFUND"
 		},
 		"references": [
 			{
@@ -405,7 +410,8 @@
 					"up_to": null,
 					"rate": 0.35
 				}
-			]
+			],
+			"below_zero": "REFUND"
 		},
 		"references": [
 			{
@@ -420,7 +426,7 @@
 				"title": "Revenue Regulations 11-2018",
 				"locator": "s.2.79(A), (B)(5)(b) Steps 1-4; s.2.78.1(B)",
 				"url": "https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf",
-				"quote": "Withholding on compensation. Each period withholds on its own Annex E column; the last pay date of the calendar year and the exit run annualise: the year's taxable compensation, plus a previous employer's (from its Form 2316), less the year's withholding; a negative result refunds through WTAX_REFUND. The year-end deficiency is withheld from the last payment of compensation for the year. Exclusions (s.2.78.1(B)): the employee shares of SSS, MPF, PhilHealth and Pag-IBIG as charged and union dues ((B)(12)); 13th-month pay, other benefits and de minimis excess to PHP90,000 ((B)(11)); minimum wage earner ((B)(13)): exempt on the statutory minimum wage, holiday, overtime, night-shift and hazard pay when the contract's rate for an 8-hour day is at or below the regional daily floor of the workplace in force on the period's last day; a certified BMBE has no floor. Additional compensation paid to a minimum wage earner, such as commissions, fringe benefits, benefits over PHP90,000 and taxable allowances, is taxed alone (s.2.79(A)): \"taxable only on such additional compensation received\". Fringe benefits: rank-and-file compensation; for supervisory and managerial staff the FBT scheme's instead."
+				"quote": "Withholding on compensation. Each period withholds on its own Annex E column; the last pay date of the calendar year and the exit run annualise: the year's taxable compensation, plus a previous employer's (from its Form 2316), less the year's withholding; a negative result is refunded on the payslip. The year-end deficiency is withheld from the last payment of compensation for the year. Exclusions (s.2.78.1(B)): the employee shares of SSS, MPF, PhilHealth and Pag-IBIG as charged and union dues ((B)(12)); 13th-month pay, other benefits and de minimis excess to PHP90,000 ((B)(11)); minimum wage earner ((B)(13)): exempt on the statutory minimum wage, holiday, overtime, night-shift and hazard pay when the contract's rate for an 8-hour day is at or below the regional daily floor of the workplace in force on the period's last day; a certified BMBE has no floor. Additional compensation paid to a minimum wage earner, such as commissions, fringe benefits, benefits over PHP90,000 and taxable allowances, is taxed alone (s.2.79(A)): \"taxable only on such additional compensation received\". Fringe benefits: rank-and-file compensation; for supervisory and managerial staff the FBT scheme's instead."
 			},
 			{
 				"title": "Revenue Regulations 11-2018, Annex E (withholding tax tables)",
