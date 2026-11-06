@@ -35,7 +35,8 @@ export function applyOperations(
 				family[operation.code] = (current ?? 0) + operation.amount;
 				break;
 			case 'DEDUCT': {
-				const value = (current ?? 0) - operation.amount;
+				// the ledger keeps fewer digits than a sum of floats: dust must not read as a shortfall or a remainder
+				const value = Number(((current ?? 0) - operation.amount).toFixed(8));
 				if (value < 0)
 					throw new Refusal({ message: `${operation.code}: insufficient account balance.` });
 				family[operation.code] = value;
@@ -101,13 +102,19 @@ export const postRunToBalances = Effect.fn('payroll.postRunToBalances')(function
 		const own = entries.filter((row) => row.balance_id === balance.id && row.account !== 'payroll');
 		const posted = applyOperations(
 			account,
-			own.map((row) => ({
-				operation: row.operation as LedgerOperation['operation'],
-				account: String(row.account),
-				code: String(row.code),
-				amount: Number(row.amount),
-				effective_on: String(row.effective_on)
-			}))
+			// a read has no order and a code can only leave at zero, so what closes a code goes after what empties it
+			own
+				.toSorted(
+					(left, right) =>
+						Number(left.operation === 'REMOVE') - Number(right.operation === 'REMOVE')
+				)
+				.map((row) => ({
+					operation: row.operation as LedgerOperation['operation'],
+					account: String(row.account),
+					code: String(row.code),
+					amount: Number(row.amount),
+					effective_on: String(row.effective_on)
+				}))
 		);
 		return [
 			{
@@ -143,7 +150,9 @@ export const reverseRunInBalances = Effect.fn('payroll.reverseRunInBalances')(fu
 		if (row.operation !== 'ADD' && row.operation !== 'DEDUCT') continue;
 		const key = JSON.stringify([row.balance_id, row.account, row.code, row.effective_on]);
 		const held = nets.get(key) ?? { row, net: 0 };
-		held.net += row.operation === 'ADD' ? Number(row.amount) : -Number(row.amount);
+		held.net = Number(
+			(held.net + (row.operation === 'ADD' ? Number(row.amount) : -Number(row.amount))).toFixed(8)
+		);
 		nets.set(key, held);
 	}
 	const inverse = [...nets.values()].flatMap(({ row, net }) =>
