@@ -107,7 +107,8 @@ jobs:
       - name: Pack the release
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: '"${{ matrix.template }}/node_modules/.bin/bolt" templates publish --filter "${{ matrix.template }}" --out "$RUNNER_TEMP/releases"'
-      # every object is named by its digest: an upload never replaces a different release
+      # a part is named by its digest and never changes. A release's record is named by its bundle, so a
+      # catalog-only release keeps that name and size, and only an explicit copy replaces the record.
       - name: Upload to R2
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         env:
@@ -119,5 +120,6 @@ jobs:
         run: |
           for bucket in $R2_RELEASE_BUCKETS; do
             aws s3 sync "$RUNNER_TEMP/releases" "s3://$bucket/releases/" --endpoint-url "$R2_ENDPOINT" --size-only
+            aws s3 cp "$RUNNER_TEMP/releases/template" "s3://$bucket/releases/template/" --recursive --endpoint-url "$R2_ENDPOINT"
           done
           cat "$RUNNER_TEMP"/releases/template/*/*.json
