@@ -138,6 +138,26 @@
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
 	{
+		"code": "STATUTORY_REFUND",
+		"name": "Statutory refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Tax or a contribution overpaid, paid back to the employee. The entry quantity is the refund; the statutory schemes are not re-run.",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "8204e46e-203c-5404-a985-4127e984b5ae",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
 		"code": "THIRTEENTH_MONTH_PAY",
 		"name": "13th month pay",
 		"description": "The entry quantity is the 13th-month amount due for the entitlement year; the engine posts it as gross earnings. Practical treatment: SSS/MPF/EC and HDMF use ordinary wages; PHIC uses basic salary; 13th month and Christmas bonus are outside all four monthly bases. The SSS IRR expressly excludes Christmas bonus and does not name 13th month. WTAX uses final gross and includes both in the 90,000 aggregate benefits pool. If a written SSS ruling requires 13th-month inclusion, change only the SSS checkpoint routing.",

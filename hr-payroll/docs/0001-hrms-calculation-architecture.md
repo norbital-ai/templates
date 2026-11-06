@@ -19,7 +19,7 @@ This is the owner's design. Every agent working on this workspace reads this sec
 
 - A **catalog** row captures behaviour per family: eligibility, conversion, target subtotal, party, direction and lookup. Allowance, overtime and statutory catalogs are definitions only. Leave, claim, adhoc, loan, work interruption and workplace case catalogs take entries.
 - A **catalog entry** is one dated event against a catalog item. It records what happened, never how it is priced.
-- A **reversal entry** (`is_reversal`) reverses a mistake: a new entry against the same catalog item. Leave, claim, adhoc and loan repayment entries all carry it. Nothing posted is edited or deleted. Its ledger movement is the inverse, and its pay line flips direction.
+- A **reversal entry** (`is_reversal`) reverses a mistake: a new entry against the same catalog item, created only by the HR controller from the Events tab. Nothing raises one automatically. Leave, claim, adhoc and loan repayment entries all carry it. Nothing posted is edited or deleted. Its ledger movement is the inverse, and its pay line flips direction.
 - A refund or correction is a reversal entry or an adjustment entry against a catalog item, and nothing else. No payslip line and no ledger amount is negative. A refund gets no statutory row, no account of its own and no ledger trick.
 - A company's own policy goes on the existing row, through `pay_treatment` or a cash `conversion`.
 
@@ -56,6 +56,7 @@ This is the owner's design. Every agent working on this workspace reads this sec
 - `payroll_run` is thin. An on-cycle run takes the cycle, and the entity comes from the page scope. An off-cycle run takes who and what it is for.
 - Off-cycle payroll is for adjustment entries and bonus runs, with one-off lump sums such as severance. Recurring items are on-cycle only: a tax instalment, zakat, rent, a benefit in kind, an allowance or overtime never runs off-cycle. `off_cycle_eligible` on the catalog row decides.
 - Everything else derives from the entity's schedule, its cutoff day and the law in force. None of it is typed.
+- `pay_date` is the day the schedule pays, and the calculation reads it. The pay date people see is the moment the run moved to `PAID`: a paid run is locked, so that is its last write. It shows only then and is never typed.
 - A run is `UNPAID` or `PAID`, and payment is per run. A payslip has no status and is read-only forever.
 - An unpaid run can be deleted. That deletes its payslips and nothing else: every entry it sealed keeps its row and its `payroll_run_id` goes to null, and the balance returns to where it stood through inverse ledger entries. A paid run is locked.
 - Year-to-date only moves forward. A run a later run counted cannot be deleted, for anyone paid in both, so runs come off newest first; and a skipped on-cycle period cannot run behind a later one.
@@ -143,7 +144,9 @@ The first subtotal has `previous_id = null`. With no `calculation`, it is the de
 
 Joiners, leavers, unpaid leave and `ABS` days all pass through one rule, the share of the period paid. A salary follows `proration_basis`; a day or hour rate pays the working days. On `WORKING_DAYS` the share is the person's own working days from their shift pattern. On `CALENDAR_DAYS` it is calendar days, and a rest day falling between two missed work days counts as missed. Each `UNPAID` leave slot removes half of one day and a reversal restores it. Paid leave creates no cash line.
 
-An allowance with `lookup.prorate` takes the same share.
+An allowance with `lookup.prorate` takes the same share. A fixed recurring cash allowance prorates; a claim, overtime, a bonus, a benefit in kind, an attendance bonus, a per-event payment and an allowance tied to the person rather than to the days do not.
+
+A leave row that must pay back after its period has run is `PAID` with `direction: DEDUCT` and a `conversion`, so its line takes the days instead of the salary basis. A correction after payment is then a reversal entry the HR controller enters on the same catalog item, dated in the next period to run: the line flips and that run pays it. Malaysia's no-pay rows work this way, and their line carries the fixed allowances with the salary.
 
 There is no base-pay producer model and no implicit BASE stage. Base pay is readable by every payroll expression.
 
@@ -173,7 +176,7 @@ A catalogue whose definition creates no payroll line has a null `subtotal_id` â€
 
 Schemes evaluate in topological `depends_on` order and see only earlier finalised schemes; a cycle is refused. Each scheme evaluates `eligibility`, `employee_amount` and an optional `employer_amount`.
 
-An employee amount on a payslip is never negative. A tax row that finds the year overpaid reports the figure, and the `TAX_REFUND` registered effect raises a reversal entry on the jurisdiction's `STATUTORY_ADJUSTMENT` item. The next run, or an off-cycle run, pays it.
+An employee amount on a payslip is never negative. A tax row that finds the year overpaid reports the figure, and the `TAX_REFUND` registered effect raises an obligation. The HR controller enters the amount on the adhoc `STATUTORY_REFUND` item, and the next run, or an off-cycle run, pays it. A statutory correction is an adhoc entry whose item is the correction, so it takes no `is_reversal`; its direction and subtotal are set on the catalog row like any other.
 
 ### 3.5 Creation is finalisation
 
@@ -191,6 +194,8 @@ Ledger rows are created inline with the run, and an effect on the run then appli
 | `statutory_contribution` | `<scheme>.employer` | `ADD` employer amount |
 
 A jurisdiction's `lookup.month_balance` lists the subtotal and `<scheme>.<side>` codes its formulas need by month. Those also post to the `month` account as `<pay month>.<code>`, so a formula reads what this month has paid, what last month paid, or a year that runs April to March.
+
+Where a statute fixes an amount on the month's total, a month's runs are one month: the formula reads what earlier runs of the month paid and charges the rest, so a bonus owes the same inside the on-cycle run or off-cycle, before or after it. Contributions follow the wage month, so a whole-month salary already in the pay month is another wage month's or another employer's and the run stands alone; tax follows the pay month and combines them. A scheme charged on salary alone charges nothing on an off-cycle run. A tax that projects the year stands an off-cycle run on the salary to come, and withholds only what the run adds.
 
 Year to date lives in the balance and nowhere else. A formula that needs earlier runs reads `ctx.balances.ytd` and `ctx.balances.statutory_contribution`; there is no payroll history read.
 

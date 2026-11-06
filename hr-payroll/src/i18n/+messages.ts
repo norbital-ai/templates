@@ -756,6 +756,7 @@ export default messages({
 	'roster.no_employments': 'No employment contracts on this company in this month.',
 	'roster.open_punch': 'Open punch',
 	'roster.download_workbook': 'Download workbook',
+	'roster.importing': 'Importing {done} of {total} people',
 	'roster.person': 'Person',
 	'roster.planned_overtime_hours': 'Overtime {hours}',
 	'roster.public_holiday': 'Public holiday',

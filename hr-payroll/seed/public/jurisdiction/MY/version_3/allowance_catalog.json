@@ -3,7 +3,8 @@
 		"code": "CHILDCARE_ALLOWANCE",
 		"name": "Child care allowance (children aged 12 and under)",
 		"lookup": {
-			"allowance": "CHILDCARE_ALLOWANCE"
+			"allowance": "CHILDCARE_ALLOWANCE",
+			"prorate": true
 		},
 		"references": [
 			{
@@ -13,7 +14,7 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": "ebcd5c62-e906-5a6d-bfc5-c4bd313677c3",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst start = get(ctx.subject.employment, 'effective_range.from', coverage.from);\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst from = coverage.from > start ? coverage.from : start;\nconst to = end === null || coverage.to < end ? coverage.to : end;\nif (from > to) return 0;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(from, to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -24,7 +25,8 @@
 		"code": "MEAL_ALLOWANCE",
 		"name": "Meal allowance (regular, same rate for all)",
 		"lookup": {
-			"allowance": "MEAL_ALLOWANCE"
+			"allowance": "MEAL_ALLOWANCE",
+			"prorate": true
 		},
 		"references": [
 			{
@@ -34,7 +36,7 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": "d613af19-ba4d-57be-86ca-cdd30fd751cb",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst start = get(ctx.subject.employment, 'effective_range.from', coverage.from);\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst from = coverage.from > start ? coverage.from : start;\nconst to = end === null || coverage.to < end ? coverage.to : end;\nif (from > to) return 0;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(from, to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -45,7 +47,8 @@
 		"code": "ONCALL",
 		"name": "On-call allowance",
 		"lookup": {
-			"allowance": "ONCALL"
+			"allowance": "ONCALL",
+			"prorate": true
 		},
 		"references": [
 			{
@@ -56,7 +59,7 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": "3d060c7e-bd89-50ed-ad92-448afc9d764e",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst start = get(ctx.subject.employment, 'effective_range.from', coverage.from);\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst from = coverage.from > start ? coverage.from : start;\nconst to = end === null || coverage.to < end ? coverage.to : end;\nif (from > to) return 0;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(from, to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -67,7 +70,8 @@
 		"code": "PARKING_ALLOWANCE",
 		"name": "Parking allowance",
 		"lookup": {
-			"allowance": "PARKING_ALLOWANCE"
+			"allowance": "PARKING_ALLOWANCE",
+			"prorate": true
 		},
 		"references": [
 			{
@@ -77,7 +81,7 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": "d613af19-ba4d-57be-86ca-cdd30fd751cb",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst start = get(ctx.subject.employment, 'effective_range.from', coverage.from);\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst from = coverage.from > start ? coverage.from : start;\nconst to = end === null || coverage.to < end ? coverage.to : end;\nif (from > to) return 0;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(from, to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -88,7 +92,8 @@
 		"code": "SUA",
 		"name": "Scale-up allowance",
 		"lookup": {
-			"allowance": "SUA"
+			"allowance": "SUA",
+			"prorate": true
 		},
 		"references": [
 			{
@@ -98,7 +103,7 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": "3d060c7e-bd89-50ed-ad92-448afc9d764e",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst start = get(ctx.subject.employment, 'effective_range.from', coverage.from);\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nconst from = coverage.from > start ? coverage.from : start;\nconst to = end === null || coverage.to < end ? coverage.to : end;\nif (from > to) return 0;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(from, to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(\n\tget(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)\n);\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",

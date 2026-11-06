@@ -1,4 +1,4 @@
-// An overpaid year comes back as a reversal entry on the adjustment item, once.
+// An overpaid year flags the HR controller, once. The refund is an entry they make on the Statutory refund item, in Events.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from '@effect/vitest';
@@ -10,44 +10,31 @@ const effects: readonly { code: string; effects: string }[] = JSON.parse(
 const refund = effects.find((row) => row.code === 'TAX_REFUND');
 assert.ok(refund !== undefined);
 
-const raised = (earlier: readonly object[]) =>
+const raised = (obligation: readonly object[]) =>
 	evaluate(
 		refund.effects,
 		'CALCULATION',
 		{
 			entry: {
+				id: 'slip',
 				entity_id: 'entity',
+				employee_id: 'person',
 				employment_id: 'contract',
 				breakdown: {
 					statutory: [{ code: 'PIT', kind: 'TAX', employee: 0, employer: 0, overpaid: 500 }]
 				}
 			},
-			reads: {
-				adhoc_catalog: [{ id: 'item' }],
-				payroll_run: [{ pay_date: '2026-12-25' }],
-				adhoc_catalog_entry: earlier
-			}
+			reads: { payroll_run: [{ pay_date: '2026-12-25' }], obligation }
 		},
 		'TAX_REFUND'
 	);
 
 describe('tax refund', () => {
-	it('raises a reversal entry for the overpaid amount', () => {
-		assert.deepEqual(raised([]), [
-			{
-				entity_id: 'entity',
-				employment_id: 'contract',
-				catalog_id: 'item',
-				description: 'Tax overpaid in 2026',
-				quantity: 500,
-				unit: 'MONEY',
-				incurred_on: '2026-12-25',
-				is_reversal: true
-			}
-		]);
+	it('raises an obligation, never an entry', () => {
+		const [row] = raised([]) as readonly { title: string }[];
+		assert.equal(row?.title, 'Tax overpaid in 2026: enter 500 on Statutory refund');
 	});
-	it('raises only what this year has not raised', () => {
-		const earlier = { catalog_id: 'item', quantity: 500, incurred_on: '2026-12-25' };
-		assert.deepEqual(raised([earlier]), []);
+	it('flags a payslip once', () => {
+		assert.deepEqual(raised([{ id: 'held' }]), []);
 	});
 });

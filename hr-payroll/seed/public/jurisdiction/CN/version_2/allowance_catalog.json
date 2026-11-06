@@ -21,7 +21,9 @@
 	{
 		"code": "FIXED_ALLOWANCE",
 		"name": "Fixed allowance (固定津贴补贴)",
-		"lookup": {},
+		"lookup": {
+			"prorate": true
+		},
 		"references": [
 			{
 				"title": "国家统计局《关于工资总额组成的规定》第四条、第八条: 津贴和补贴属于工资总额; 个人所得税法实施条例 第六条第一项."

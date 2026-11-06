@@ -3,6 +3,7 @@ import type { Id } from '@norbital-ai/bolt';
 import { PlainDate, monthOf } from '@norbital-ai/std/date';
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
 import { bolt } from '$bolt';
+import { toast } from '@norbital-ai/ui';
 import {
 	planRosterUpload,
 	rosterMonth,
@@ -182,13 +183,39 @@ export const runRosterImport = (options: {
 					}
 					return [...groups.values()];
 				};
-				for (const group of byEmployment(plan.creates))
-					yield* bolt.act('roster_entry.create', group);
-				for (const group of byEmployment(plan.updates))
-					yield* bolt.act(
-						'roster_entry.update',
-						group.map((update) => ({ target: update.target, set: update.set }))
-					);
+				const creates = byEmployment(plan.creates);
+				const updates = byEmployment(plan.updates);
+				const total = creates.length + updates.length;
+				const notice = (done: number) =>
+					toast.info(bolt.t('roster.importing', { done, total }), { duration: 600_000 });
+				let done = 0;
+				let shown = notice(0);
+				const written = Effect.sync(() => {
+					done += 1;
+					if (done % 10 !== 0) return;
+					toast.dismiss(shown);
+					shown = notice(done);
+				});
+				yield* Effect.forEach(
+					creates,
+					(group) => bolt.act('roster_entry.create', group).pipe(Effect.andThen(written)),
+					{ concurrency: 4, discard: true }
+				).pipe(
+					Effect.andThen(
+						Effect.forEach(
+							updates,
+							(group) =>
+								bolt
+									.act(
+										'roster_entry.update',
+										group.map((update) => ({ target: update.target, set: update.set }))
+									)
+									.pipe(Effect.andThen(written)),
+							{ concurrency: 4, discard: true }
+						)
+					),
+					Effect.ensuring(Effect.sync(() => toast.dismiss(shown)))
+				);
 				return {
 					imported: plan.count,
 					overwritten: plan.overwritten,

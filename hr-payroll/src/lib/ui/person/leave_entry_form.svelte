@@ -12,11 +12,14 @@
 		entityId,
 		employmentId: initialEmployment,
 		record = null,
+		allowReversal = false,
 		onDone
 	}: {
 		entityId: Id<'entity'>;
 		employmentId?: Id<'employee_contract'> | null;
 		record?: Row<'leave_catalog_entry'> | null;
+		/** The HR controller corrects what has been paid with a reversal entry on the same item. */
+		allowReversal?: boolean;
 		onDone: () => void;
 	} = $props();
 
@@ -61,7 +64,7 @@
 	const contractOptions = $derived(
 		(contracts.current?.employee_contract.rows ?? []).map((row) => ({
 			value: row.id,
-			label: `${row.employee_name} · ${row.employee_number}`
+			label: `${row.employee_name} · ${row.employee_number} · ${row.effective_range.from} to ${row.effective_range.to ?? 'now'}`
 		}))
 	);
 	const contract = $derived(
@@ -142,13 +145,14 @@
 		return Number(leaveAccount[code] ?? 0) + (record?.catalog_id === row.id ? recordDays : 0);
 	};
 	const catalogRows = $derived(catalogs?.current?.leave_catalog.rows ?? []);
+	let reversal = $state(false);
 	const catalogOptions = $derived(
 		catalogRows
-			.filter((row) => availableFor(row) > 0)
+			.filter((row) => reversal || availableFor(row) > 0)
 			.map((row) => ({
 				value: row.id,
 				label: `${row.code} · ${row.name}`,
-				suffix: `${availableFor(row)} d`
+				suffix: reversal ? '' : `${availableFor(row)} d`
 			}))
 	);
 	const monthKey = $derived(
@@ -204,16 +208,16 @@
 	const chosenCatalog = $derived(catalogRows.find((row) => row.id === catalog) ?? null);
 	const availableDays = $derived(chosenCatalog === null ? 0 : availableFor(chosenCatalog));
 	const selectedDays = $derived(sessions.length / 2);
-	const overLimit = $derived(selectedDays > availableDays);
+	const overLimit = $derived(!reversal && selectedDays > availableDays);
 	let limitNotice = $state<string | null>(null);
 	const toggle = (date: string, part: 'AM' | 'PM') => {
-		if (catalog === null || blocked(date) || occupied.has(`${date}:${part}`)) return;
+		if (catalog === null || blocked(date) || (!reversal && occupied.has(`${date}:${part}`))) return;
 		if (selected(date, part)) {
 			sessions = sessions.filter((row) => row.date !== date || row.part !== part);
 			limitNotice = null;
 			return;
 		}
-		if (selectedDays + 0.5 > availableDays) {
+		if (!reversal && selectedDays + 0.5 > availableDays) {
 			limitNotice = `Only ${availableDays} day(s) available for this leave type.`;
 			return;
 		}
@@ -234,7 +238,7 @@
 								date: PlainDate(session.date),
 								part: session.part
 							})),
-							is_reversal: false
+							is_reversal: reversal
 						}
 					])
 				: bolt.act('leave_catalog_entry.update', [
@@ -275,6 +279,28 @@
 </script>
 
 <Stack gap="md">
+	{#if allowReversal && record === null}
+		<label class="flex items-start gap-2 text-sm">
+			<input
+				type="checkbox"
+				class="mt-1"
+				checked={reversal}
+				onchange={(event) => {
+					reversal = event.currentTarget.checked;
+					catalog = null;
+					sessions = [];
+					limitNotice = null;
+				}}
+			/>
+			<span>
+				Reversal of leave already paid
+				<span class="block text-xs text-muted-foreground">
+					Pick the same leave type and the days, dated in the next period to run. That run pays it
+					back.
+				</span>
+			</span>
+		</label>
+	{/if}
 	<div class="grid gap-3 sm:grid-cols-2">
 		<Stack gap="xs">
 			<span class="text-xs font-medium text-muted-foreground">Employment</span>
@@ -303,7 +329,7 @@
 					limitNotice = null;
 				}}
 			/>
-			{#if chosenCatalog !== null}<span
+			{#if chosenCatalog !== null && !reversal}<span
 					class="pointer-events-none absolute top-6 right-9 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground"
 					>{availableDays} d left</span
 				>{/if}
@@ -341,8 +367,9 @@
 								aria-pressed={selected(date, part)}
 								disabled={catalog === null ||
 									blocked(date) ||
-									occupied.has(`${date}:${part}`) ||
-									(!selected(date, part) && selectedDays >= availableDays)}
+									(!reversal &&
+										(occupied.has(`${date}:${part}`) ||
+											(!selected(date, part) && selectedDays >= availableDays)))}
 								class="min-h-8 flex-1 rounded border px-0.5 py-1 text-[10px] transition-colors {selected(
 									date,
 									part
@@ -366,7 +393,10 @@
 				? 'text-xs text-destructive'
 				: 'text-xs text-muted-foreground'}
 		>
-			{limitNotice ?? `${selectedDays} of ${availableDays} day(s) selected`}
+			{limitNotice ??
+				(reversal
+					? `${selectedDays} day(s) to reverse`
+					: `${selectedDays} of ${availableDays} day(s) selected`)}
 		</span>
 		<Cluster gap="sm">
 			<Button variant="secondary" onclick={onDone} disabled={saving}>Cancel</Button>
@@ -374,7 +404,7 @@
 				onclick={submit}
 				disabled={saving || sessions.length === 0 || catalog === null || overLimit}
 			>
-				{record === null ? 'Request leave' : 'Save days'}
+				{record !== null ? 'Save days' : reversal ? 'Reverse leave' : 'Request leave'}
 			</Button>
 		</Cluster>
 	</Cluster>

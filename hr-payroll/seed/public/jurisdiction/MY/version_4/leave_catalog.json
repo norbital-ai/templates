@@ -72,8 +72,8 @@
 	{
 		"code": "MATERNITY_LEAVE_NO_ALLOWANCE",
 		"name": "Maternity leave without allowance",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "50720ac7-cbf0-55c2-8c90-8c5c527f9ea7",
 		"lookup": {
 			"unit": "CALENDAR_DAY",
 			"window": "EVENT",
@@ -89,7 +89,10 @@
 		],
 		"off_cycle_eligible": false,
 		"id": "327cd901-48ad-5347-b03e-da222edd65f7",
-		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// EA s.18A: a no-pay day is the month's wages ÷ the days of the wage period, fixed allowances with them (s.2 wages).\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item pays them back.\nconst coverage = ctx.run.salary_coverage;\nif (get(ctx.subject.employment.terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst off = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : get(day, 'day_type', 'WORK') === 'WORK';\n};\n// a rest day between two missed work days is not earned\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst monthDays = calendar_distance_days(coverage.from, coverage.to) + 1;\nreturn (ctx.day_rate * ctx.lookup.monthly_divisor * Math.min(ctx.entry.quantity + rest, monthDays)) / monthDays;"
 	},
 	{
 		"code": "HOSPITALIZATION_LEAVE",
@@ -286,8 +289,8 @@
 	{
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "50720ac7-cbf0-55c2-8c90-8c5c527f9ea7",
 		"lookup": {
 			"unit": "DAY"
 		},
@@ -301,13 +304,16 @@
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"quote": "An employee on a monthly rate who takes unpaid leave is paid the monthly wages divided by the days of the wage period for the days eligible."
 			}
-		]
+		],
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// EA s.18A: a no-pay day is the month's wages ÷ the days of the wage period, fixed allowances with them (s.2 wages).\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item pays them back.\nconst coverage = ctx.run.salary_coverage;\nif (get(ctx.subject.employment.terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst off = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : get(day, 'day_type', 'WORK') === 'WORK';\n};\n// a rest day between two missed work days is not earned\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst monthDays = calendar_distance_days(coverage.from, coverage.to) + 1;\nreturn (ctx.day_rate * ctx.lookup.monthly_divisor * Math.min(ctx.entry.quantity + rest, monthDays)) / monthDays;"
 	},
 	{
 		"code": "NATIONAL_SERVICE_LEAVE",
 		"name": "National service leave",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "50720ac7-cbf0-55c2-8c90-8c5c527f9ea7",
 		"lookup": {
 			"unit": "DAY"
 		},
@@ -319,13 +325,16 @@
 		],
 		"off_cycle_eligible": false,
 		"id": "36792562-33f0-5166-bfab-12a51fd85777",
-		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// EA s.18A: a no-pay day is the month's wages ÷ the days of the wage period, fixed allowances with them (s.2 wages).\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item pays them back.\nconst coverage = ctx.run.salary_coverage;\nif (get(ctx.subject.employment.terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst off = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : get(day, 'day_type', 'WORK') === 'WORK';\n};\n// a rest day between two missed work days is not earned\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst monthDays = calendar_distance_days(coverage.from, coverage.to) + 1;\nreturn (ctx.day_rate * ctx.lookup.monthly_divisor * Math.min(ctx.entry.quantity + rest, monthDays)) / monthDays;"
 	},
 	{
 		"code": "COURT_CUSTODY_ABSENCE",
 		"name": "Court or custody absence",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "50720ac7-cbf0-55c2-8c90-8c5c527f9ea7",
 		"lookup": {
 			"unit": "DAY",
 			"excluded_grounds": ["EMPLOYER_WITNESS"]
@@ -338,6 +347,9 @@
 		],
 		"off_cycle_eligible": false,
 		"id": "2f2b69f2-a1b9-52a8-ad63-3182052d7a0e",
-		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// EA s.18A: a no-pay day is the month's wages ÷ the days of the wage period, fixed allowances with them (s.2 wages).\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item pays them back.\nconst coverage = ctx.run.salary_coverage;\nif (get(ctx.subject.employment.terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst off = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : get(day, 'day_type', 'WORK') === 'WORK';\n};\n// a rest day between two missed work days is not earned\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst monthDays = calendar_distance_days(coverage.from, coverage.to) + 1;\nreturn (ctx.day_rate * ctx.lookup.monthly_divisor * Math.min(ctx.entry.quantity + rest, monthDays)) / monthDays;"
 	}
 ]

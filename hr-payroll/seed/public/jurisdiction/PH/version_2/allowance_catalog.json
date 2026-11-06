@@ -24,7 +24,8 @@
 		"code": "LAUNDRY_ALLOWANCE",
 		"name": "Laundry allowance",
 		"lookup": {
-			"allowance": "LAUNDRY_ALLOWANCE"
+			"allowance": "LAUNDRY_ALLOWANCE",
+			"prorate": true
 		},
 		"references": [
 			{
@@ -50,7 +51,8 @@
 			}
 		],
 		"lookup": {
-			"allowance": "allowance"
+			"allowance": "allowance",
+			"prorate": true
 		},
 		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
@@ -71,7 +73,8 @@
 			}
 		],
 		"lookup": {
-			"allowance": "communication"
+			"allowance": "communication",
+			"prorate": true
 		},
 		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
@@ -92,7 +95,8 @@
 			}
 		],
 		"lookup": {
-			"allowance": "corporate_duty_allowance"
+			"allowance": "corporate_duty_allowance",
+			"prorate": true
 		},
 		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
@@ -113,7 +117,8 @@
 			}
 		],
 		"lookup": {
-			"allowance": "duty_allowance"
+			"allowance": "duty_allowance",
+			"prorate": true
 		},
 		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
@@ -134,7 +139,8 @@
 			}
 		],
 		"lookup": {
-			"allowance": "leader"
+			"allowance": "leader",
+			"prorate": true
 		},
 		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
@@ -150,7 +156,8 @@
 		"code": "meal",
 		"name": "Meal allowance (rice subsidy)",
 		"lookup": {
-			"allowance": "meal"
+			"allowance": "meal",
+			"prorate": true
 		},
 		"references": [
 			{
@@ -176,7 +183,8 @@
 			}
 		],
 		"lookup": {
-			"allowance": "position"
+			"allowance": "position",
+			"prorate": true
 		},
 		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
@@ -197,7 +205,8 @@
 			}
 		],
 		"lookup": {
-			"allowance": "transport"
+			"allowance": "transport",
+			"prorate": true
 		},
 		"subtotal_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",

@@ -487,6 +487,7 @@
 			}
 		},
 		"lookup": {
+			"month_balance": ["BASIC"],
 			"rounding": "HALF_UP",
 			"rounding_scale": 2,
 			"monthly_divisor": 30,
