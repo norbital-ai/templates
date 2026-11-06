@@ -105,43 +105,70 @@ describe('a December refund', () => {
 			pack('PH', 'Asia/Manila', terms(60_000), {}, [], [], '2026-06-15'),
 			'bonus',
 			2_000_000
+		],
+		[
+			'Vietnam, with finalisation authorised',
+			pack(
+				'VN',
+				'Asia/Ho_Chi_Minh',
+				terms(60_000_000),
+				{ facts: { statutory: { PIT: { elections: { finalisation_authorised: true } } } } },
+				[],
+				[],
+				'2026-06-15'
+			),
+			'BONUS',
+			3_000_000_000
 		]
 	] as const;
 
 	for (const [name, seed, spike, amount] of CASES)
-		it.live(`${name}: an overpaid year raises one reversal entry, paid by the next run`, () =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				yield* pay(t, seed, spike, amount, '2026-02-10');
-				for (const period of months(2026)) yield* run(t, period);
-				const december = (yield* slips(t)).find((row) => row.period === '2026-12');
-				const overpaid = (december?.breakdown.statutory ?? []).reduce(
-					(sum, row) => sum + (row.overpaid ?? 0),
-					0
-				);
-				assert.ok(overpaid > 0, `${name}: December overpaid nothing`);
-				const entries = (yield* t.storedQuery({
-					adhoc_catalog_entry: { where: { is_reversal: { eq: true } }, limit: 10 }
-				})).adhoc_catalog_entry.rows;
-				assert.equal(entries.length, 1);
-				assert.equal(Number(String(entries[0]?.quantity)), overpaid);
-				assert.equal(
-					(seed.adhoc_catalog ?? []).find((row) => row.id === entries[0]?.catalog_id)?.code,
-					'STATUTORY_ADJUSTMENT'
-				);
-				assert.equal(entries[0]?.payroll_run_id, null);
-				yield* run(t, '2027-01');
-				const january = (yield* slips(t)).find((row) => row.period === '2027-01');
-				const line = january?.breakdown.lines.find((row) => row.code === 'STATUTORY_ADJUSTMENT');
-				assert.equal(line?.amount, overpaid);
-				// the refund is paid once: nothing is left for the next run, and no second entry appears
-				yield* run(t, '2027-02');
-				const february = (yield* slips(t)).find((row) => row.period === '2027-02');
-				assert.equal(
-					february?.breakdown.lines.some((row) => row.code === 'STATUTORY_ADJUSTMENT'),
-					false
-				);
-			}).pipe(Effect.provide(workspace({ seed, now: '2027-02-20T02:00:00.000Z' })))
+		it.live(
+			`${name}: an overpaid year flags HR, whose Statutory refund entry the next run pays`,
+			() =>
+				Effect.gen(function* () {
+					const t = yield* TestWorkspace;
+					yield* pay(t, seed, spike, amount, '2026-02-10');
+					for (const period of months(2026)) yield* run(t, period);
+					const december = (yield* slips(t)).find((row) => row.period === '2026-12');
+					const overpaid = (december?.breakdown.statutory ?? []).reduce(
+						(sum, row) => sum + (row.overpaid ?? 0),
+						0
+					);
+					assert.ok(overpaid > 0, `${name}: December overpaid nothing`);
+					// nothing pays it by itself: the obligation tells the HR controller to enter it
+					const entries = (yield* t.storedQuery({
+						adhoc_catalog_entry: { where: { is_reversal: { eq: true } }, limit: 10 }
+					})).adhoc_catalog_entry.rows;
+					assert.deepEqual(entries, []);
+					const flagged = (yield* t.storedQuery({
+						obligation: { limit: 10000 }
+					})).obligation.rows.filter((row) => row.title.startsWith('Tax overpaid in 2026'));
+					assert.equal(flagged.length, 1);
+					yield* t.as(t.admin).act('adhoc_catalog_entry.create', [
+						{
+							entity_id: ENTITY,
+							employment_id: CONTRACT,
+							catalog_id: idOf('adhoc_catalog', itemId(seed, 'adhoc_catalog', 'STATUTORY_REFUND')),
+							description: 'Tax overpaid in 2026',
+							quantity: overpaid,
+							unit: 'MONEY',
+							incurred_on: PlainDate('2027-01-05')
+						}
+					]);
+					yield* run(t, '2027-01');
+					const january = (yield* slips(t)).find((row) => row.period === '2027-01');
+					const line = january?.breakdown.lines.find((row) => row.code === 'STATUTORY_REFUND');
+					assert.equal(line?.amount, overpaid);
+					assert.equal(line?.direction, 'ADD');
+					// the refund is paid once
+					yield* run(t, '2027-02');
+					const february = (yield* slips(t)).find((row) => row.period === '2027-02');
+					assert.equal(
+						february?.breakdown.lines.some((row) => row.code === 'STATUTORY_REFUND'),
+						false
+					);
+				}).pipe(Effect.provide(workspace({ seed, now: '2027-02-20T02:00:00.000Z' })))
 		);
 });
 

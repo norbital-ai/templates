@@ -462,6 +462,18 @@
 			}
 		},
 		"lookup": {
+			"month_balance": [
+				"BASIC",
+				"ORDINARY_WAGES",
+				"ADDITIONAL_WAGES",
+				"CPF.employee",
+				"CPF.employer",
+				"SDL.employer",
+				"CDAC.employee",
+				"ECF.employee",
+				"MBMF.employee",
+				"SINDA.employee"
+			],
 			"rounding": "HALF_UP",
 			"rounding_scale": 2,
 			"statutory_work_categories": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],

@@ -144,7 +144,8 @@ describe('overtime bands', () => {
 				'Asia/Kuala_Lumpur',
 				(paid) => {
 					// one unpaid day of February's twenty weekdays, not the three on the entry
-					near(paid, 'BASIC', (3120 * 27) / 28);
+					near(paid, 'BASIC', 3120);
+					near(paid, 'UNPAID_LEAVE', 3120 / 28);
 					near(paid, 'MEDICAL_CLAIM', 40);
 				}
 			);
@@ -308,7 +309,7 @@ describe('overtime bands', () => {
 				]
 			},
 			'Asia/Kuala_Lumpur',
-			(paid) => near(paid, 'BASIC', (2800 * 27) / 28)
+			(paid) => near(paid, 'UNPAID_LEAVE', 2800 / 28)
 		);
 	});
 
@@ -628,16 +629,12 @@ describe('overtime bands', () => {
 				);
 				yield* month(t, '02', '28');
 				const got = yield* t.storedQuery({ payslip: { limit: 10 } });
-				const basic = got.payslip.rows
+				const lines = got.payslip.rows
 					.filter((row) => row.period === '2026-02')
-					.map(
-						(row) =>
-							Schema.decodeUnknownSync(PayslipBreakdown)(row.breakdown).lines.find(
-								(line) => line.code === 'BASIC'
-							)?.amount
-					);
+					.flatMap((row) => Schema.decodeUnknownSync(PayslipBreakdown)(row.breakdown).lines);
 				// half of one of February's 28 days (Employment Act s.18A), taken from the entry the January run sealed
-				assert.deepEqual(basic, [3120 * (27.5 / 28)]);
+				const line = lines.find((row) => row.code === 'UNPAID_LEAVE');
+				assert.ok(Math.abs((line?.amount ?? 0) - 3120 / 28 / 2) < 0.01);
 			}).pipe(
 				Effect.provide(
 					workspace({

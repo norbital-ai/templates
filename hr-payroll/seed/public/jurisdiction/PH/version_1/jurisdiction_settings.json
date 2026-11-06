@@ -1103,12 +1103,15 @@
 			],
 			"month_balance": [
 				"ORDINARY_WAGES",
+				"ADDITIONAL_WAGES",
 				"SSS.employee",
 				"SSS.employer",
 				"SSS_MPF.employee",
 				"SSS_MPF.employer",
 				"HDMF.employee",
-				"HDMF.employer"
+				"HDMF.employer",
+				"WTAX.employee",
+				"WTAX_TAXABLE_PAY.employer"
 			]
 		},
 		"status": "SEALED"

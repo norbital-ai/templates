@@ -145,5 +145,5 @@
 		open
 		onOpenChange={(open) => !open && (creating = false)}
 		title={bolt.t('v2.leave_requests')}
-		><LeaveEntryForm entityId={scope.id} onDone={() => (creating = false)} /></Sheet
+		><LeaveEntryForm allowReversal entityId={scope.id} onDone={() => (creating = false)} /></Sheet
 	>{/if}

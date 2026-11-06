@@ -119,7 +119,10 @@
 				currency: String(context?.current?.jurisdiction_settings.rows[0]?.currency ?? ''),
 				period: String(record.period ?? ''),
 				runKind: String(record.kind ?? 'ON_CYCLE'),
-				payDate: String(record.pay_date ?? ''),
+				payDate:
+					record.state === 'PAID'
+						? new Date(String(record.updated_at)).toLocaleDateString('en-CA')
+						: '',
 				runReference: String(record.run_number ?? record.id),
 				rows
 			});

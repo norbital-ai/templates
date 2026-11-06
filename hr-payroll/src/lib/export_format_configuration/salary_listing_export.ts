@@ -129,7 +129,7 @@ export const downloadSalaryListing = async (input: {
 	sheet.getRow(1).height = 28;
 	sheet.getCell(2, 1).value = `${input.period} | ${input.currency} | ${
 		input.runKind === 'OFF_CYCLE' ? 'Off-cycle payroll' : 'On-cycle payroll'
-	} | Pay date: ${input.payDate} | Run: ${input.runReference}`;
+	}${input.payDate === '' ? '' : ` | Pay date: ${input.payDate}`} | Run: ${input.runReference}`;
 	sheet.getCell(3, 1).value =
 		'Each pay line is one column. Employee deductions are negative; statutory and employer cost are shown separately.';
 

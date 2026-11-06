@@ -694,6 +694,7 @@ export default messages({
 	'roster.no_employments': '该公司本月无任职记录。',
 	'roster.open_punch': '打卡未关闭',
 	'roster.download_workbook': '下载工作簿',
+	'roster.importing': '正在导入 {done} / {total} 人',
 	'roster.person': '人员',
 	'roster.planned_overtime_hours': '加班 {hours}',
 	'roster.public_holiday': '公共假日',

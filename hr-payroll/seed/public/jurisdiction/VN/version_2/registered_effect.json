@@ -2418,15 +2418,12 @@
 		"source_collection": "payslip",
 		"events": ["create"],
 		"reads": {
-			"adhoc_catalog": {
+			"obligation": {
 				"where": {
-					"settings_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.settings_id"
+							"var": "occurrence_key(['VN', 'TAX_REFUND', ctx.entry.id])"
 						}
-					},
-					"code": {
-						"eq": "STATUTORY_ADJUSTMENT"
 					}
 				},
 				"fields": ["id"],
@@ -2442,26 +2439,12 @@
 				},
 				"fields": ["pay_date"],
 				"limit": 1
-			},
-			"adhoc_catalog_entry": {
-				"where": {
-					"employment_id": {
-						"eq": {
-							"var": "ctx.entry.employment_id"
-						}
-					},
-					"is_reversal": {
-						"eq": true
-					}
-				},
-				"fields": ["catalog_id", "quantity", "incurred_on"],
-				"limit": 1000
 			}
 		},
 		"condition": "// js\nreturn get(ctx.entry, 'breakdown.statutory', []).some((row) => Number(get(row, 'overpaid', 0)) > 0);",
-		"target_collection": "adhoc_catalog_entry",
+		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\n// An overpaid year comes back as a reversal entry on the adjustment item. What this year already raised is not raised again.\nconst item = first(ctx.reads.adhoc_catalog);\nconst run = first(ctx.reads.payroll_run);\nif (item == null || run == null) return [];\nconst year = String(run.pay_date).slice(0, 4);\nconst raised = sum(\n\tctx.reads.adhoc_catalog_entry\n\t\t.filter((row) => row.catalog_id === item.id && String(row.incurred_on).slice(0, 4) === year)\n\t\t.map((row) => Number(row.quantity))\n);\nconst overpaid = sum(get(ctx.entry, 'breakdown.statutory', []).map((row) => Number(get(row, 'overpaid', 0))));\nif (overpaid <= raised) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployment_id: ctx.entry.employment_id,\n\tcatalog_id: item.id,\n\tdescription: 'Tax overpaid in ' + year,\n\tquantity: overpaid - raised,\n\tunit: 'MONEY',\n\tincurred_on: run.pay_date,\n\tis_reversal: true\n}];",
+		"effects": "// js\n// The year came out overpaid. The HR controller pays it back with an entry on the Statutory refund item, in Events.\nif (ctx.reads.obligation.length > 0) return [];\nconst year = String(get(first(ctx.reads.payroll_run), 'pay_date', '')).slice(0, 4);\nconst overpaid = sum(get(ctx.entry, 'breakdown.statutory', []).map((row) => Number(get(row, 'overpaid', 0))));\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: 'Tax overpaid in ' + year + ': enter ' + overpaid + ' on Statutory refund',\n\toccurrence_key: occurrence_key(['VN', 'TAX_REFUND', ctx.entry.id])\n}];",
 		"id": "53fe66aa-4ddc-540c-abd8-362c48eca55d",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc"
 	}

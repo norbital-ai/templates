@@ -578,6 +578,14 @@
 			}
 		},
 		"lookup": {
+			"month_balance": [
+				"ORDINARY_WAGES",
+				"ADDITIONAL_WAGES",
+				"JKK.employer",
+				"JKM.employer",
+				"KESEHATAN.employer",
+				"PPH21.employee"
+			],
 			"rounding": "HALF_UP",
 			"rounding_scale": 2,
 			"statutory_work_categories": ["NON_MANUAL", "PIECE_RATE", "TASK_BASIS"],

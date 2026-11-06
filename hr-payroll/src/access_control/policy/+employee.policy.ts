@@ -13,10 +13,9 @@ const claimColumns = [
 	'catalog_id',
 	'quantity',
 	'incurred_on',
-	'evidence_file',
-	'is_reversal'
+	'evidence_file'
 ] as const;
-const claimUpdateColumns = ['quantity', 'incurred_on', 'evidence_file', 'is_reversal'] as const;
+const claimUpdateColumns = ['quantity', 'incurred_on', 'evidence_file'] as const;
 export default policy({
 	description:
 		'Own identity, admitted requests, work, loans, balances, immutable ledger and payslips. User identity is the linked member ID.',

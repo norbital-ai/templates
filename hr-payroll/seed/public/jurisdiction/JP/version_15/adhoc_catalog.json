@@ -431,5 +431,25 @@
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "fc0fc666-755d-504d-9dfa-fa165b6004e2",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b"
+	},
+	{
+		"code": "STATUTORY_REFUND",
+		"name": "Statutory refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Tax or a contribution overpaid, paid back to the employee. The entry quantity is the refund; the statutory schemes are not re-run.",
+		"lookup": {},
+		"off_cycle_eligible": true,
+		"subtotal_id": "00f4d34c-7b5f-5759-9989-c751c2b59e57",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "475f7a81-8230-56e3-a94f-ff46f7be2002",
+		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b"
 	}
 ]

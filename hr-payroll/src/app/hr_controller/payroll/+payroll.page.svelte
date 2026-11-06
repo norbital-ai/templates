@@ -18,6 +18,11 @@
 	})}
 {/snippet}
 
+<!-- a paid run is locked, so its last write is the moment it was marked paid -->
+{#snippet payDateCell({ row, value }: { row: { state: string }; value: unknown })}
+	{row.state === 'PAID' ? new Date(String(value)).toLocaleDateString('en-CA') : ''}
+{/snippet}
+
 <AppShell
 	icon="lucide:receipt"
 	title={bolt.t('app.payroll.runs_title')}
@@ -41,7 +46,11 @@
 			columns={[
 				{ field: 'period', label: bolt.t('app.payroll.period'), cell: periodCell },
 				'kind',
-				'pay_date',
+				{
+					field: 'updated_at',
+					label: bolt.t('models.payroll_run.fields.pay_date'),
+					cell: payDateCell
+				},
 				'state'
 			]}
 		/>
