@@ -534,6 +534,7 @@ describe('overtime bands', () => {
 				yield* t
 					.as(t.admin)
 					.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]);
+				yield* t.runDue();
 				const rerun = (yield* t.storedQuery({ payroll_run: { limit: 1 } })).payroll_run.rows[0];
 				assert.ok(rerun !== undefined);
 				yield* t

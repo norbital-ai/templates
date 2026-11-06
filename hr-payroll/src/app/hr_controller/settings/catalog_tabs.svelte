@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Id } from '@norbital-ai/bolt';
-	import { CodeEditor, highlightedLine, Sheet, Table } from '@norbital-ai/ui';
+	import { highlightedLine, Table, Tabs } from '@norbital-ai/ui';
 
 	let {
 		versionId,
@@ -33,66 +33,30 @@
 		workplace_case_catalog: 'Workplace cases'
 	};
 	let selected = $state<(typeof families)[number]>('allowance_catalog');
-	let codeOpen = $state(false);
-	let code = $state('');
-	let codeLanguage = $state<'javascript' | 'json' | 'plaintext'>('javascript');
 	const firstLine = (value: unknown): string =>
 		String(value ?? '')
 			.split('\n')
 			.map((line) => line.trim())
 			.find((line) => line !== '' && line !== '// js' && !line.startsWith('//')) ?? '';
-	const openCode = (value: unknown, language: 'javascript' | 'json' | 'plaintext') => {
-		code = String(value ?? '');
-		codeLanguage = language;
-		codeOpen = true;
-	};
 </script>
 
 {#snippet codeCell({ value }: { value: unknown })}
-	<button
-		type="button"
-		class="max-w-[18rem] truncate text-left hover:opacity-80"
-		title="Open expression"
-		onclick={() => openCode(value, 'javascript')}
+	<code
+		class="bg-muted block max-w-[18rem] truncate rounded-sm px-1.5 py-0.5 font-mono text-xs"
+		data-cel
+		>{#each highlightedLine(firstLine(value)) as token, i (i)}<span class={token.class || undefined}
+				>{token.text}</span
+			>{/each}</code
 	>
-		<code class="bg-muted rounded-sm px-1.5 py-0.5 font-mono text-xs" data-cel
-			>{#each highlightedLine(firstLine(value)) as token, i (i)}<span
-					class={token.class || undefined}>{token.text}</span
-				>{/each}</code
-		>
-	</button>
 {/snippet}
 
 {#snippet jsonCell({ value }: { value: unknown })}
-	<button
-		type="button"
-		class="max-w-[18rem] truncate text-left font-mono text-xs text-muted-foreground hover:text-foreground"
-		title="Open JSON"
-		onclick={() => openCode(JSON.stringify(value ?? {}, null, 2), 'json')}
+	<span class="block max-w-[18rem] truncate font-mono text-xs text-muted-foreground"
+		>{firstLine(JSON.stringify(value ?? {}))}</span
 	>
-		{firstLine(JSON.stringify(value ?? {}))}
-	</button>
 {/snippet}
 
-<div class="grid min-h-[34rem] gap-6 md:grid-cols-[14rem_minmax(0,1fr)]">
-	<nav
-		class="flex flex-col gap-0.5 border-b pb-2 md:border-b-0 md:border-r md:pr-8"
-		aria-label="Catalog families"
-	>
-		{#each families as family (family)}
-			<button
-				type="button"
-				class="h-7 border-b px-3 text-left text-xs font-medium transition-colors {selected ===
-				family
-					? 'border-foreground text-foreground'
-					: 'border-transparent text-muted-foreground hover:text-foreground'}"
-				aria-current={selected === family ? 'page' : undefined}
-				onclick={() => (selected = family)}
-			>
-				{labels[family]}
-			</button>
-		{/each}
-	</nav>
+{#snippet catalog()}
 	<section class="min-w-0">
 		{#if selected === 'allowance_catalog'}<Table
 				of="allowance_catalog"
@@ -234,10 +198,14 @@
 				]}
 			/>{/if}
 	</section>
-</div>
+{/snippet}
 
-<Sheet bind:open={codeOpen} title="Expression">
-	<div class="min-h-[18rem]">
-		<CodeEditor value={code} language={codeLanguage} readonly wrap minHeight="18rem" />
-	</div>
-</Sheet>
+<Tabs
+	orientation="vertical"
+	class="min-h-[34rem]"
+	tabs={families.map((name) => ({ name, title: labels[name], body: catalog }))}
+	value={selected}
+	onValueChange={(next) => {
+		selected = families.find((family) => family === next) ?? selected;
+	}}
+/>

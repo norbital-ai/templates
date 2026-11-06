@@ -516,6 +516,21 @@ describe('a benefit over two calendar years', () => {
 			});
 		}).pipe(Effect.provide(workspace({ seed: last, now: LATER })));
 	});
+	it.live('a run cannot be paid until its balances have it', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const admin = t.as(t.admin);
+			yield* admin.act('payroll_run.create', [
+				{ entity_id: ENTITY, period: '2026-03', kind: 'ON_CYCLE' }
+			]);
+			const run = (yield* t.storedQuery({ payroll_run: { limit: 1 } })).payroll_run.rows[0];
+			assert.ok(run !== undefined);
+			const paid = admin.act('payroll_run.update', [{ target: run.id, set: { state: 'PAID' } }]);
+			assert.match(String(yield* Effect.flip(paid)), /still posting/);
+			yield* t.runDue();
+			yield* paid;
+		}).pipe(Effect.provide(workspace({ seed, now: LATER })))
+	);
 	it.live('an unpaid run posts nothing', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;

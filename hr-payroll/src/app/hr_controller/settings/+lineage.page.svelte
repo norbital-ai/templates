@@ -4,7 +4,6 @@
 	import { AppShell, Cluster, Stack } from '@norbital-ai/ui/layout';
 	import {
 		Button,
-		CodeEditor,
 		Combobox,
 		EmptyState,
 		highlightedLine,
@@ -36,9 +35,6 @@
 		all.current?.jurisdiction_settings.rows.find((r) => r.id === scope?.versionId)
 	);
 	const draft = $derived(version?.status === 'DRAFT');
-	let codeOpen = $state(false);
-	let code = $state('');
-	let codeLanguage = $state<'javascript' | 'json' | 'plaintext'>('javascript');
 	let voiding = $state(false);
 	let voidReason = $state('');
 	let voidSaving = $state(false);
@@ -48,11 +44,6 @@
 			.split('\n')
 			.map((line) => line.trim())
 			.find((line) => line !== '' && line !== '// js' && !line.startsWith('//')) ?? '';
-	const openCode = (value: unknown, language: 'javascript' | 'json' | 'plaintext') => {
-		code = String(value ?? '');
-		codeLanguage = language;
-		codeOpen = true;
-	};
 	/** Payroll reads only what `statutory_materialize` seals, so sealing a draft runs as that automation. */
 	function seal(row: NonNullable<typeof version>) {
 		starting = true;
@@ -102,29 +93,19 @@
 </script>
 
 {#snippet codeCell({ value }: { value: unknown })}
-	<button
-		type="button"
-		class="max-w-[16rem] truncate text-left hover:opacity-80"
-		title="Open expression"
-		onclick={() => openCode(value, 'javascript')}
+	<code
+		class="bg-muted block max-w-[16rem] truncate rounded-sm px-1.5 py-0.5 font-mono text-xs"
+		data-cel
+		>{#each highlightedLine(firstLine(value)) as token, i (i)}<span class={token.class || undefined}
+				>{token.text}</span
+			>{/each}</code
 	>
-		<code class="bg-muted rounded-sm px-1.5 py-0.5 font-mono text-xs" data-cel
-			>{#each highlightedLine(firstLine(value)) as token, i (i)}<span
-					class={token.class || undefined}>{token.text}</span
-				>{/each}</code
-		>
-	</button>
 {/snippet}
 
 {#snippet jsonCell({ value }: { value: unknown })}
-	<button
-		type="button"
-		class="max-w-[16rem] truncate text-left font-mono text-xs text-muted-foreground hover:text-foreground"
-		title="Open JSON"
-		onclick={() => openCode(JSON.stringify(value ?? {}, null, 2), 'json')}
+	<span class="block max-w-[16rem] truncate font-mono text-xs text-muted-foreground"
+		>{JSON.stringify(value ?? {})}</span
 	>
-		{JSON.stringify(value ?? {})}
-	</button>
 {/snippet}
 
 {#snippet general()}{#if version}<RecordShell of="jurisdiction_settings" id={version.id}>
@@ -261,10 +242,4 @@
 			>
 		</Cluster>
 	</Stack>
-</Sheet>
-
-<Sheet bind:open={codeOpen} title="Expression">
-	<div class="min-h-[18rem]">
-		<CodeEditor value={code} language={codeLanguage} readonly wrap minHeight="18rem" />
-	</div>
 </Sheet>
