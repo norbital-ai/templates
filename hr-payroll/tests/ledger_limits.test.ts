@@ -199,6 +199,32 @@ describe('the pure rules', () => {
 			[[period, 'entitled', 10]]
 		);
 	});
+	it('a row can state its own statutory test', () => {
+		const lookup = {
+			opened_by: { CHILD_BIRTH: {} },
+			extra: 15,
+			entitlement:
+				"return 98 + (get(ctx.subject.employment, 'employee_extension_data.facts.difficult_birth', false) ? ctx.lookup.extra : 0);"
+		};
+		const person = (difficult: boolean) => ({
+			started: subject.started,
+			partTime: false,
+			gender: null,
+			maritalStatus: null,
+			employment: { employee_extension_data: { facts: { difficult_birth: difficult } } }
+		});
+		const days = (difficult: boolean) =>
+			entitlementPlans(
+				[{ account: 'leave', code: 'MATERNITY_LEAVE', lookup }],
+				person(difficult),
+				{ ...subject, events: [{ kind: 'CHILD_BIRTH', on: '2026-03-02' }] },
+				'balance',
+				{},
+				'2026-03-10'
+			)[0]?.wanted[0]?.amount;
+		assert.equal(days(false), 98);
+		assert.equal(days(true), 113);
+	});
 	it('a statutory adjustment reversed counts in the year of what it reverses', () => {
 		const wanted = adhocWanted(
 			{ incurred_on: '2027-01-05', is_reversal: true, quantity: 10 },
