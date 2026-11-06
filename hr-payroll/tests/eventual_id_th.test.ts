@@ -594,6 +594,15 @@ describe('a lump sum across a month’s runs', () => {
 		const wages = { ADDITIONAL_WAGES: 0, SEVERANCE: 100_000_000 };
 		assert.equal(owed('PPH21_FINAL_SEVERANCE', wages, {}, paid), 15_000_000);
 	});
+	it('Indonesia: severance counts an earlier run not marked paid yet', () => {
+		const month = {
+			'2026-05.ADDITIONAL_WAGES': 10_000_000,
+			'2026-05.SEVERANCE': 110_000_000,
+			'2026-05.PPH21_FINAL_SEVERANCE.employee': 2_500_000
+		};
+		const wages = { ADDITIONAL_WAGES: 0, SEVERANCE: 100_000_000 };
+		assert.equal(owed('PPH21_FINAL_SEVERANCE', wages, month), 15_000_000);
+	});
 	it('Indonesia: severance reversed comes off what the month charged', () => {
 		const wages = { ADDITIONAL_WAGES: 0, SEVERANCE: -50_000_000 };
 		const month = {
