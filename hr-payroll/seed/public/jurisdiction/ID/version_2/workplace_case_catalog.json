@@ -1184,5 +1184,206 @@
 				"effective_from": "2009-11-16"
 			}
 		]
+	},
+	{
+		"code": "CHILD_BIRTH",
+		"name": "Child birth",
+		"lookup": {
+			"grants": [
+				{
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"code": "PATERNITY_EXTENSION_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "7db83830-48f7-5f4f-ac7a-a47c1ab1af6a",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "BIRTH_COMPLICATION",
+		"name": "Birth complication, doctor certified",
+		"lookup": {
+			"grants": [
+				{
+					"code": "MATERNITY_LEAVE",
+					"days": 90,
+					"keep_start": true
+				}
+			],
+			"certificate": true
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "c5b15e8c-b2f5-537c-a5d9-4f42a6d51596",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "LONG_ILLNESS",
+		"name": "Long illness",
+		"lookup": {
+			"grants": [
+				{
+					"code": "MEDICAL_LEAVE",
+					"days": 0
+				}
+			],
+			"ends_on_close": true,
+			"certificate": true
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "a8e26d90-2979-58f4-8d50-d94b3b822174",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "MARRIAGE",
+		"name": "Marriage",
+		"lookup": {
+			"grants": [
+				{
+					"code": "MARRIAGE_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "997595bf-6e87-545c-bc6c-71df868588fa",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "CHILD_MARRIAGE",
+		"name": "Child marriage",
+		"lookup": {
+			"grants": [
+				{
+					"code": "CHILD_MARRIAGE_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "ad6b66a3-ed2d-51a6-b0ff-f1d7cdab47a5",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "CHILD_CIRCUMCISION",
+		"name": "Child circumcision",
+		"lookup": {
+			"grants": [
+				{
+					"code": "CHILD_CIRCUMCISION_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "082dcfdd-8b43-5152-9319-0cdf0e14b75a",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "CHILD_BAPTISM",
+		"name": "Child baptism",
+		"lookup": {
+			"grants": [
+				{
+					"code": "CHILD_BAPTISM_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "3525950a-37b2-5cfd-94e1-9010cfeca275",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "BEREAVEMENT",
+		"name": "Bereavement",
+		"lookup": {
+			"grants": [
+				{
+					"code": "BEREAVEMENT_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "0c6143a3-76f3-5ab9-818a-2a6642f8c4d9",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "BEREAVEMENT_HOUSEHOLD",
+		"name": "Bereavement in the household",
+		"lookup": {
+			"grants": [
+				{
+					"code": "BEREAVEMENT_HOUSEHOLD_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "7ca8f302-ea33-5c2f-b53f-4813798f683a",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	}
 ]

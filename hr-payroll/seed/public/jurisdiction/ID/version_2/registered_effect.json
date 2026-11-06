@@ -20,6 +20,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -77,6 +80,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -142,6 +148,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -198,6 +207,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -261,6 +273,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -307,6 +322,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -342,6 +360,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -373,6 +394,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -405,6 +429,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -460,6 +487,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -503,6 +533,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -548,6 +581,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -592,6 +628,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -634,6 +673,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -680,6 +722,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -728,6 +773,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -770,6 +818,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -817,6 +868,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -848,6 +902,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -896,6 +953,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -943,6 +1003,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -1002,6 +1065,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -1051,6 +1117,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -1088,6 +1157,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -1140,6 +1212,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -1185,6 +1260,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -1229,6 +1307,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -1273,6 +1354,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -1335,6 +1419,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -1386,6 +1473,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -1418,6 +1508,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -1450,6 +1543,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -1495,6 +1591,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -1550,6 +1649,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -1594,6 +1696,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -1646,6 +1751,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -1680,6 +1788,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -1714,6 +1825,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -1749,6 +1863,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -1808,6 +1925,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -1851,6 +1971,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -1894,6 +2017,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"limit": 10000
@@ -1965,6 +2091,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": false
 					}
 				},
 				"limit": 10000
@@ -2149,5 +2278,152 @@
 		"target_action": "update",
 		"effects": "// js\n// PP 68/2009 arts.2(2), 6: a benefit's first two calendar years are one benefit on the ladder, and the balance keeps twelve months. What a paid run paid stays in `benefit_paid` by pay month: a paid run is final, so this never needs undoing.\nconst month = String(ctx.entry.pay_date).slice(0, 7);\nconst stop = (slip, code) => Number(get(first(get(slip, 'breakdown.checkpoints', []).filter((row) => row.code === code)), 'value', 0));\nconst tax = (slip, code) => {\n\tconst row = first(get(slip, 'breakdown.statutory', []).filter((item) => item.code === code));\n\treturn Number(get(row, 'employee', 0)) - Number(get(row, 'overpaid', 0));\n};\nconst paid = (slip) =>\n\t[\n\t\t['SEVERANCE', stop(slip, 'SEVERANCE') - stop(slip, 'ADDITIONAL_WAGES')],\n\t\t['PENSION_BENEFIT', stop(slip, 'PENSION_BENEFIT') - stop(slip, 'SEVERANCE')],\n\t\t['PPH21_FINAL_SEVERANCE.employee', tax(slip, 'PPH21_FINAL_SEVERANCE')],\n\t\t['PPH21_FINAL_PENSION.employee', tax(slip, 'PPH21_FINAL_PENSION')]\n\t].filter((move) => move[1] !== 0);\nconst balanceOf = (slip) => first(ctx.reads.employee_balance.filter((row) => row.employee_id === slip.employee_id));\nreturn ctx.reads.payslip.flatMap((slip) => {\n\tconst balance = balanceOf(slip);\n\tconst moves = paid(slip);\n\tif (balance == null || moves.length === 0) return [];\n\tconst held = get(balance.account, 'benefit_paid', {});\n\t// An effect can run again after a crash: the balance remembers each run it took.\n\tif (Object.hasOwn(held, 'run.' + ctx.entry.id)) return [];\n\tconst next = moves.reduce((total, move) => {\n\t\tconst key = month + '.' + move[0];\n\t\treturn { ...total, [key]: (Object.hasOwn(total, key) ? Number(total[key]) : 0) + move[1] };\n\t}, { ...held, ['run.' + ctx.entry.id]: 1 });\n\treturn [{ target: balance.id, set: { account: { ...balance.account, benefit_paid: next } } }];\n});",
 		"id": "46c6716c-73a7-5108-aaf3-63689824356c"
+	},
+	{
+		"lookup": {},
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
+		"code": "LEAVE_CASE_LEDGER",
+		"name": "Post the days a confirmed case gives",
+		"condition": "// js\nreturn get(ctx.entry, 'inputs.decision', '') === 'CONFIRMED' && get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', null) != null;",
+		"reads": {
+			"workplace_case_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			},
+			"leave_catalog": {
+				"where": {
+					"settings_id": {
+						"eq": {
+							"var": "ctx.entry.settings_id"
+						}
+					}
+				},
+				"fields": ["code", "lookup"],
+				"limit": 200
+			},
+			"employee_balance": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "get(ctx.subject, 'employment.employee_id', ctx.entry.id)"
+						}
+					}
+				},
+				"fields": ["account"],
+				"limit": 1
+			},
+			"ledger_entry": {
+				"where": {
+					"account": {
+						"eq": "leave_case"
+					},
+					"code": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			}
+		},
+		"target_collection": "ledger_entry",
+		"target_action": "create",
+		"effects": "// js\n// The case is the event: confirmed, it opens the days its leave rows give for one event, once.\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nconst person = ctx.subject.employment;\nconst moves = grants.flatMap((grant) => {\n\tconst row = first(ctx.reads.leave_catalog.filter((item) => item.code === grant.code));\n\tif (row == null) return [];\n\tconst wanted = get(row, 'lookup.eligibility.gender', null);\n\tif (wanted != null && wanted !== get(person, 'payroll.gender', null)) return [];\n\treturn [{ code: grant.code, row, keep: get(grant, 'keep_start', false), days: get(grant, 'days', get(row, 'lookup.grant_days', 0)) }];\n});\nif (balance == null || ctx.reads.ledger_entry.length > 0) return [];\nconst on = ctx.entry.opened_on;\nreturn [\n\t{ balance_id: balance.id, operation: 'ADD', account: 'leave_case', code: ctx.entry.id, amount: 1, unit: 'COUNT', effective_on: on },\n\t...moves.filter((move) => move.days > 0).map((move) => ({ balance_id: balance.id, operation: 'ADD', account: 'leave', code: move.code, amount: move.days, unit: 'DAY', effective_on: on }))\n];",
+		"id": "5c6ab14a-0b1d-5773-890d-44a485941268"
+	},
+	{
+		"lookup": {},
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
+		"code": "LEAVE_CASE",
+		"name": "Open the days a confirmed case gives",
+		"condition": "// js\nreturn get(ctx.entry, 'inputs.decision', '') === 'CONFIRMED' && get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', null) != null;",
+		"reads": {
+			"workplace_case_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			},
+			"leave_catalog": {
+				"where": {
+					"settings_id": {
+						"eq": {
+							"var": "ctx.entry.settings_id"
+						}
+					}
+				},
+				"fields": ["code", "lookup"],
+				"limit": 200
+			},
+			"employee_balance": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "get(ctx.subject, 'employment.employee_id', ctx.entry.id)"
+						}
+					}
+				},
+				"fields": ["account"],
+				"limit": 1
+			}
+		},
+		"target_collection": "employee_balance",
+		"target_action": "update",
+		"effects": "// js\n// The case is the event: confirmed, it opens the days its leave rows give for one event, once.\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nconst person = ctx.subject.employment;\nconst moves = grants.flatMap((grant) => {\n\tconst row = first(ctx.reads.leave_catalog.filter((item) => item.code === grant.code));\n\tif (row == null) return [];\n\tconst wanted = get(row, 'lookup.eligibility.gender', null);\n\tif (wanted != null && wanted !== get(person, 'payroll.gender', null)) return [];\n\treturn [{ code: grant.code, row, keep: get(grant, 'keep_start', false), days: get(grant, 'days', get(row, 'lookup.grant_days', 0)) }];\n});\nif (balance == null) return [];\nconst done = get(balance.account, 'leave_case', {});\nif (Object.hasOwn(done, ctx.entry.id)) return [];\nconst leave = get(balance.account, 'leave', {});\nconst stamp = Number(String(ctx.entry.opened_on).replaceAll('-', ''));\nconst held = (code) => (Object.hasOwn(leave, code) ? Number(leave[code]) : 0);\n// A row that steps its pay counts from the day the event began.\nconst started = moves.filter((move) => get(move.row, 'lookup.pay_steps', null) != null && move.keep !== true);\nreturn [{\n\ttarget: balance.id,\n\tset: {\n\t\taccount: {\n\t\t\t...balance.account,\n\t\t\tleave: { ...leave, ...Object.fromEntries(moves.map((move) => [move.code, held(move.code) + move.days])) },\n\t\t\tleave_window: { ...get(balance.account, 'leave_window', {}), ...Object.fromEntries(started.map((move) => [move.code + '.from', stamp])) },\n\t\t\tleave_case: { ...done, [ctx.entry.id]: 1 }\n\t\t}\n\t}\n}];",
+		"id": "e56d9622-de62-5507-b466-b7cd2f2465f2"
+	},
+	{
+		"lookup": {},
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["update"],
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
+		"code": "LEAVE_CASE_ENDED",
+		"name": "End the event when its case closes",
+		"condition": "// js\nreturn ctx.entry.closed_on != null && get(first(ctx.reads.workplace_case_catalog), 'lookup.ends_on_close', false) === true;",
+		"reads": {
+			"workplace_case_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			},
+			"employee_balance": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "get(ctx.subject, 'employment.employee_id', ctx.entry.id)"
+						}
+					}
+				},
+				"fields": ["account"],
+				"limit": 1
+			}
+		},
+		"target_collection": "employee_balance",
+		"target_action": "update",
+		"effects": "// js\n// A closed case ends the event: the next day of this leave stands at full pay again.\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nif (balance == null) return [];\nconst windows = get(balance.account, 'leave_window', {});\nconst keys = grants.map((grant) => grant.code + '.from');\nif (!keys.some((key) => Object.hasOwn(windows, key))) return [];\nreturn [{ target: balance.id, set: { account: { ...balance.account, leave_window: Object.fromEntries(Object.entries(windows).filter((pair) => !keys.includes(pair[0]))) } } }];",
+		"id": "c33a7450-ad31-5897-91fc-0120bbfd5e1b"
 	}
 ]

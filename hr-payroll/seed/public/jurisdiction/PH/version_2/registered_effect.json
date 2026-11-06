@@ -1354,5 +1354,115 @@
 		"effects": "// js\n// Tax or a contribution came out overpaid. The HR controller pays it back with an entry on the Statutory refund item, in Events.\nif (ctx.reads.obligation.length > 0) return [];\nconst year = String(get(first(ctx.reads.payroll_run), 'pay_date', '')).slice(0, 4);\nconst over = get(ctx.entry, 'breakdown.statutory', []).filter((row) => Number(get(row, 'overpaid', 0)) > 0);\nconst overpaid = sum(over.map((row) => Number(get(row, 'overpaid', 0))));\nconst what = over.every((row) => row.kind === 'TAX') ? 'Tax' : over.map((row) => row.code).join(', ');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: what + ' overpaid in ' + year + ': enter ' + overpaid + ' on Statutory refund' + (what === 'Tax' ? '' : '; any employer share comes back from the agency'),\n\toccurrence_key: occurrence_key(['PH', 'TAX_REFUND', ctx.entry.id])\n}];",
 		"id": "d79cc1b8-2ac4-5d9b-b97c-4f81d5d74083",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"lookup": {},
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"code": "LEAVE_CASE_LEDGER",
+		"name": "Post the days a confirmed case gives",
+		"condition": "// js\nreturn get(ctx.entry, 'inputs.decision', '') === 'CONFIRMED' && get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', null) != null;",
+		"reads": {
+			"workplace_case_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			},
+			"leave_catalog": {
+				"where": {
+					"settings_id": {
+						"eq": {
+							"var": "ctx.entry.settings_id"
+						}
+					}
+				},
+				"fields": ["code", "lookup"],
+				"limit": 200
+			},
+			"employee_balance": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "get(ctx.subject, 'employment.employee_id', ctx.entry.id)"
+						}
+					}
+				},
+				"fields": ["account"],
+				"limit": 1
+			},
+			"ledger_entry": {
+				"where": {
+					"account": {
+						"eq": "leave_case"
+					},
+					"code": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			}
+		},
+		"target_collection": "ledger_entry",
+		"target_action": "create",
+		"effects": "// js\n// The case is the event: confirmed, it opens the days its leave rows give for one event, once.\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nconst person = ctx.subject.employment;\nconst moves = grants.flatMap((grant) => {\n\tconst row = first(ctx.reads.leave_catalog.filter((item) => item.code === grant.code));\n\tif (row == null) return [];\n\tconst wanted = get(row, 'lookup.eligibility.gender', null);\n\tif (wanted != null && wanted !== get(person, 'payroll.gender', null)) return [];\n\treturn [{ code: grant.code, row, keep: get(grant, 'keep_start', false), days: get(grant, 'days', get(row, 'lookup.grant_days', 0)) }];\n});\nif (balance == null || ctx.reads.ledger_entry.length > 0) return [];\nconst on = ctx.entry.opened_on;\nreturn [\n\t{ balance_id: balance.id, operation: 'ADD', account: 'leave_case', code: ctx.entry.id, amount: 1, unit: 'COUNT', effective_on: on },\n\t...moves.filter((move) => move.days > 0).map((move) => ({ balance_id: balance.id, operation: 'ADD', account: 'leave', code: move.code, amount: move.days, unit: 'DAY', effective_on: on }))\n];",
+		"id": "ddc3384f-c982-5e1f-81a7-98a39749b0cc"
+	},
+	{
+		"lookup": {},
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"code": "LEAVE_CASE",
+		"name": "Open the days a confirmed case gives",
+		"condition": "// js\nreturn get(ctx.entry, 'inputs.decision', '') === 'CONFIRMED' && get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', null) != null;",
+		"reads": {
+			"workplace_case_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			},
+			"leave_catalog": {
+				"where": {
+					"settings_id": {
+						"eq": {
+							"var": "ctx.entry.settings_id"
+						}
+					}
+				},
+				"fields": ["code", "lookup"],
+				"limit": 200
+			},
+			"employee_balance": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "get(ctx.subject, 'employment.employee_id', ctx.entry.id)"
+						}
+					}
+				},
+				"fields": ["account"],
+				"limit": 1
+			}
+		},
+		"target_collection": "employee_balance",
+		"target_action": "update",
+		"effects": "// js\n// The case is the event: confirmed, it opens the days its leave rows give for one event, once.\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nconst person = ctx.subject.employment;\nconst moves = grants.flatMap((grant) => {\n\tconst row = first(ctx.reads.leave_catalog.filter((item) => item.code === grant.code));\n\tif (row == null) return [];\n\tconst wanted = get(row, 'lookup.eligibility.gender', null);\n\tif (wanted != null && wanted !== get(person, 'payroll.gender', null)) return [];\n\treturn [{ code: grant.code, row, keep: get(grant, 'keep_start', false), days: get(grant, 'days', get(row, 'lookup.grant_days', 0)) }];\n});\nif (balance == null) return [];\nconst done = get(balance.account, 'leave_case', {});\nif (Object.hasOwn(done, ctx.entry.id)) return [];\nconst leave = get(balance.account, 'leave', {});\nconst stamp = Number(String(ctx.entry.opened_on).replaceAll('-', ''));\nconst held = (code) => (Object.hasOwn(leave, code) ? Number(leave[code]) : 0);\n// A row that steps its pay counts from the day the event began.\nconst started = moves.filter((move) => get(move.row, 'lookup.pay_steps', null) != null && move.keep !== true);\nreturn [{\n\ttarget: balance.id,\n\tset: {\n\t\taccount: {\n\t\t\t...balance.account,\n\t\t\tleave: { ...leave, ...Object.fromEntries(moves.map((move) => [move.code, held(move.code) + move.days])) },\n\t\t\tleave_window: { ...get(balance.account, 'leave_window', {}), ...Object.fromEntries(started.map((move) => [move.code + '.from', stamp])) },\n\t\t\tleave_case: { ...done, [ctx.entry.id]: 1 }\n\t\t}\n\t}\n}];",
+		"id": "58c136ab-9558-5224-a463-27802c56f381"
 	}
 ]

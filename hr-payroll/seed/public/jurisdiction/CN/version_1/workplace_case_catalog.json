@@ -1156,5 +1156,47 @@
 		],
 		"id": "dc947968-2c2a-51cd-8075-d7c502ae0f54",
 		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "MARRIAGE",
+		"name": "Marriage",
+		"lookup": {
+			"grants": [
+				{
+					"code": "MARRIAGE_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "94fc8d82-49fc-5e4b-b7c0-6d6af581ee61",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "BEREAVEMENT",
+		"name": "Bereavement",
+		"lookup": {
+			"grants": [
+				{
+					"code": "BEREAVEMENT_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "5ba6bd37-b7db-5d6c-b090-7f5659596b3e",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
 	}
 ]

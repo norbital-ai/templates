@@ -228,10 +228,21 @@ describe('a new window', () => {
 
 describe('an event row', () => {
 	const row = { code: 'BEREAVEMENT', lookup: { grant_days: 3, window: 'EVENT' } };
-	it('refills for the next event, within the same year', () => {
-		const used = take(settleLeave([row], PERSON, EMPTY, '2026-03-01'), 'BEREAVEMENT', 3);
-		assert.equal(settleLeave([row], PERSON, used, '2026-03-20').leave['BEREAVEMENT'], 0);
-		assert.equal(settleLeave([row], PERSON, used, '2026-04-01').leave['BEREAVEMENT'], 3);
+	const opened = {
+		leave: { BEREAVEMENT: 3 },
+		windows: { BEREAVEMENT: 0, 'BEREAVEMENT.granted': 0 }
+	};
+	it('gives nothing by itself: a confirmed case opens its days', () => {
+		assert.equal(settleLeave([row], PERSON, EMPTY, '2026-03-01').leave['BEREAVEMENT'], 0);
+	});
+	it('keeps what a case opened, month after month', () => {
+		assert.equal(settleLeave([row], PERSON, opened, '2026-04-01').leave['BEREAVEMENT'], 3);
+		assert.deepEqual(settleLeave([row], PERSON, opened, '2027-01-01').moves, []);
+	});
+	it('days taken stay taken: nothing refills them', () => {
+		const used = take(opened, 'BEREAVEMENT', 3);
+		assert.equal(settleLeave([row], PERSON, used, '2026-04-01').leave['BEREAVEMENT'], 0);
+		assert.equal(settleLeave([row], PERSON, used, '2027-01-01').leave['BEREAVEMENT'], 0);
 	});
 });
 

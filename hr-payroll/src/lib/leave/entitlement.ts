@@ -106,6 +106,8 @@ export const entitlementOf = (
 			: lookup.service_bands
 	);
 	if (lookup.no_cap === true || (bands.length === 0 && lookup.grant_days == null)) return null;
+	// an event's days come from its confirmed case, not the calendar: nothing here gives or takes them
+	if (lookup.window === 'EVENT') return { days: 0, window: 0 };
 	const offset = Number(lookup.service_offset_months ?? 0);
 	const window =
 		lookup.rolling_months != null
@@ -114,10 +116,7 @@ export const entitlementOf = (
 				? Math.floor((months - offset) / 12)
 				: lookup.window === 'CALENDAR_YEAR'
 					? Number(on.slice(0, 4))
-					: // a balance cannot tell one event from the next: an event's days refill month by month
-						lookup.window === 'EVENT'
-						? Number(on.slice(0, 7).replace('-', ''))
-						: 0;
+					: 0;
 	if (!fits(lookup, person)) return { days: 0, window };
 	const first = bands[0];
 	// until the first band, a share of it by completed months of service

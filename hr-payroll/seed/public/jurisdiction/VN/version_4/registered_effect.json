@@ -11,13 +11,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'retract-exit-effects:' + ctx.entry.id + ':exit:' + ctx.entry.effective_range.to"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.entry.final_pay_due_on != null;",
@@ -39,13 +39,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'encash-leave-on-exit:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.entry.final_pay_due_on != null;",
@@ -71,13 +71,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'SI_HI_UI_MONTHLY_REMITTANCE:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return true;",
@@ -104,13 +104,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'PIT_WITHHOLDING_DECLARATION:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return true;",
@@ -144,13 +144,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'UNION_FEE_REMITTANCE:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			},
 			"entity_profile_version": {
 				"where": {
@@ -194,13 +194,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'UNION_DUES_TRANSFER:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return true;",
@@ -222,13 +222,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'encash-leave-at-window-end:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
@@ -255,13 +255,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'SI_HI_UI_REGISTRATION:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.status === 'SEALED';",
@@ -289,13 +289,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'SI_HI_UI_CHANGE_DECLARATION:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return true;",
@@ -324,13 +324,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.employment_id"
+							"var": "'SI_BENEFIT_CLAIMS:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			},
 			"holiday": {
 				"where": {
@@ -376,13 +376,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'INSURANCE_EQUIVALENT_PAYMENT:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return true;",
@@ -410,13 +410,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'LABOUR_CONTRACT:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.status === 'SEALED';",
@@ -448,13 +448,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'LABOUR_MANAGEMENT_BOOK:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.status === 'SEALED';",
@@ -488,13 +488,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'LABOUR_USE_REPORT:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.period.substring(5, 7) === '05' || ctx.entry.period.substring(5, 7) === '11';",
@@ -522,13 +522,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'INTERNAL_LABOUR_RULES:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
@@ -556,13 +556,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'WAGE_SCALE_AND_NORMS:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
@@ -593,13 +593,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'MINIMUM_WAGE:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return true;",
@@ -627,13 +627,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'WAGE_PAYMENT_TIMING:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return true;",
@@ -661,13 +661,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'WAGE_STATEMENT:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return true;",
@@ -695,13 +695,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'WAGE_DEDUCTION_LIMIT:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return true;",
@@ -734,13 +734,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'OVERTIME_CONSENT_AND_LIMITS:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return true;",
@@ -767,13 +767,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'NIGHT_OVERTIME_STATEMENT:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return true;",
@@ -806,13 +806,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'ANNUAL_LEAVE_SCHEDULE:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.period.substring(5, 7) === '01';",
@@ -840,13 +840,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'WORKPLACE_DIALOGUE:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
@@ -876,13 +876,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'TERMINATION_NOTICE:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			},
 			"holiday": {
 				"where": {
@@ -920,13 +920,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'RESTRUCTURING_LABOUR_PLAN:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.entry.final_pay_due_on != null;",
@@ -961,13 +961,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'FINAL_SETTLEMENT:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			},
 			"holiday": {
 				"where": {
@@ -1011,13 +1011,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'SI_CONFIRMATION_ON_TERMINATION:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			},
 			"holiday": {
 				"where": {
@@ -1053,13 +1053,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'PIT_TAX_REGISTRATION:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.status === 'SEALED';",
@@ -1087,13 +1087,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'PIT_SHORT_CONTRACT_COMMITMENT:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return true;",
@@ -1120,13 +1120,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'PIT_ANNUAL_FINALISATION:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
@@ -1152,13 +1152,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'PIT_WITHHOLDING_CERTIFICATE:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.entry.final_pay_due_on != null;",
@@ -1190,13 +1190,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'FOREIGN_WORK_PERMIT:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return (\n\tctx.entry.status === 'SEALED' &&\n\tget(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null\n);",
@@ -1284,13 +1284,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'WORK_PERMIT_RETURN:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			},
 			"holiday": {
 				"where": {
@@ -1325,13 +1325,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'OCCUPATIONAL_HEALTH_CHECK:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			},
 			"entity_profile_version": {
 				"where": {
@@ -1376,13 +1376,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'OCCUPATIONAL_ACCIDENT_REPORT:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.period.substring(5, 7) === '06' || ctx.entry.period.substring(5, 7) === '12';",
@@ -1410,13 +1410,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'OSH_ANNUAL_REPORT:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
@@ -1451,13 +1451,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'RECORD_RETENTION:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.period.substring(5, 7) === '12';",
@@ -1483,13 +1483,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'PDPL_CONSENT:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.status === 'SEALED';",
@@ -1517,13 +1517,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'PDPL_RECRUITMENT_AND_EMPLOYMENT:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.entry.final_pay_due_on != null;",
@@ -1555,13 +1555,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'PDPL_IMPACT_ASSESSMENT:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			},
 			"entity_profile_version": {
 				"where": {
@@ -1606,13 +1606,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'PDPL_BREACH_NOTIFICATION:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.kind === 'PERSONAL_DATA_BREACH';",
@@ -1640,13 +1640,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'PDPL_DATA_PROTECTION_PERSONNEL:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			},
 			"entity_profile_version": {
 				"where": {
@@ -1685,13 +1685,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'LABOUR_USE_DECLARATION:' + ctx.entry.entity_id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.status === 'SEALED';",
@@ -1717,13 +1717,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'FOREIGN_EXIT_PIT_FINALISATION:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (ctx.entry.final_pay_due_on == null) return false;\nreturn get(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) != null;",
@@ -1749,13 +1749,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'OSH_INDUCTION_TRAINING:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.status === 'SEALED';",
@@ -1789,13 +1789,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'PERSONAL_DATA_DISPOSAL:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.entry.final_pay_due_on != null;",
@@ -1823,13 +1823,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.employment_id"
+							"var": "'SI_BENEFIT_FILE_RECEIPT_REVIEW:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			},
 			"leave_catalog": {
 				"where": {
@@ -1871,13 +1871,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'PDPL_INITIAL_IMPACT_FILING:' + ctx.entry.entity_id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.status === 'SEALED';",
@@ -1905,13 +1905,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'FOREIGN_WORKER_NEW_DECREE_REVIEW:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) == null) return false;\nreturn ctx.entry.effective_range.from >= ctx.lookup.commencement;",
@@ -2039,13 +2039,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'WORK_PERMIT_RETURN_TRANSITION_REVIEW:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (ctx.entry.final_pay_due_on == null) return false;\nif (get(ctx.entry.employee_extension_data, 'term_facts.pass_type', null) == null) return false;\nif (!(ctx.entry.effective_range.to < ctx.lookup.commencement)) return false;\nreturn add_days(ctx.entry.effective_range.to, ctx.lookup.calendar_days) >= ctx.lookup.commencement;",
@@ -2077,13 +2077,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'PDPL_PROCESSING_START_REVIEW:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			}
 		},
 		"condition": "return ctx.entry.status === 'SEALED';",
@@ -2113,13 +2113,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'WORK_AUTHORISATION_APPLICATION_393:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			},
 			"holiday": {
 				"where": {
@@ -2158,13 +2158,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'WORK_AUTHORISATION_EXEMPT_NOTICE_393:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			},
 			"holiday": {
 				"where": {
@@ -2323,13 +2323,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'WORK_AUTHORISATION_LOCATION_NOTICE_393:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			},
 			"holiday": {
 				"where": {
@@ -2368,13 +2368,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"employment_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.id"
+							"var": "'WORK_AUTHORISATION_INVALIDATION_RETURN_393:' + ctx.entry.id"
 						}
 					}
 				},
-				"limit": 1000
+				"limit": 1
 			},
 			"holiday": {
 				"where": {
@@ -2563,5 +2563,115 @@
 		"effects": "// js\n// Tax or a contribution came out overpaid. The HR controller pays it back with an entry on the Statutory refund item, in Events.\nif (ctx.reads.obligation.length > 0) return [];\nconst year = String(get(first(ctx.reads.payroll_run), 'pay_date', '')).slice(0, 4);\nconst over = get(ctx.entry, 'breakdown.statutory', []).filter((row) => Number(get(row, 'overpaid', 0)) > 0);\nconst overpaid = sum(over.map((row) => Number(get(row, 'overpaid', 0))));\nconst what = over.every((row) => row.kind === 'TAX') ? 'Tax' : over.map((row) => row.code).join(', ');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: what + ' overpaid in ' + year + ': enter ' + overpaid + ' on Statutory refund' + (what === 'Tax' ? '' : '; any employer share comes back from the agency'),\n\toccurrence_key: occurrence_key(['VN', 'TAX_REFUND', ctx.entry.id])\n}];",
 		"id": "6a420e34-1a78-57d8-a89a-7552cd3fbfba",
 		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"lookup": {},
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d",
+		"code": "LEAVE_CASE_LEDGER",
+		"name": "Post the days a confirmed case gives",
+		"condition": "// js\nreturn get(ctx.entry, 'inputs.decision', '') === 'CONFIRMED' && get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', null) != null;",
+		"reads": {
+			"workplace_case_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			},
+			"leave_catalog": {
+				"where": {
+					"settings_id": {
+						"eq": {
+							"var": "ctx.entry.settings_id"
+						}
+					}
+				},
+				"fields": ["code", "lookup"],
+				"limit": 200
+			},
+			"employee_balance": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "get(ctx.subject, 'employment.employee_id', ctx.entry.id)"
+						}
+					}
+				},
+				"fields": ["account"],
+				"limit": 1
+			},
+			"ledger_entry": {
+				"where": {
+					"account": {
+						"eq": "leave_case"
+					},
+					"code": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			}
+		},
+		"target_collection": "ledger_entry",
+		"target_action": "create",
+		"effects": "// js\n// The case is the event: confirmed, it opens the days its leave rows give for one event, once.\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nconst person = ctx.subject.employment;\nconst moves = grants.flatMap((grant) => {\n\tconst row = first(ctx.reads.leave_catalog.filter((item) => item.code === grant.code));\n\tif (row == null) return [];\n\tconst wanted = get(row, 'lookup.eligibility.gender', null);\n\tif (wanted != null && wanted !== get(person, 'payroll.gender', null)) return [];\n\treturn [{ code: grant.code, row, keep: get(grant, 'keep_start', false), days: get(grant, 'days', get(row, 'lookup.grant_days', 0)) }];\n});\nif (balance == null || ctx.reads.ledger_entry.length > 0) return [];\nconst on = ctx.entry.opened_on;\nreturn [\n\t{ balance_id: balance.id, operation: 'ADD', account: 'leave_case', code: ctx.entry.id, amount: 1, unit: 'COUNT', effective_on: on },\n\t...moves.filter((move) => move.days > 0).map((move) => ({ balance_id: balance.id, operation: 'ADD', account: 'leave', code: move.code, amount: move.days, unit: 'DAY', effective_on: on }))\n];",
+		"id": "8fc57bf2-8030-5ad9-9cf4-055420bdbefc"
+	},
+	{
+		"lookup": {},
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d",
+		"code": "LEAVE_CASE",
+		"name": "Open the days a confirmed case gives",
+		"condition": "// js\nreturn get(ctx.entry, 'inputs.decision', '') === 'CONFIRMED' && get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', null) != null;",
+		"reads": {
+			"workplace_case_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			},
+			"leave_catalog": {
+				"where": {
+					"settings_id": {
+						"eq": {
+							"var": "ctx.entry.settings_id"
+						}
+					}
+				},
+				"fields": ["code", "lookup"],
+				"limit": 200
+			},
+			"employee_balance": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "get(ctx.subject, 'employment.employee_id', ctx.entry.id)"
+						}
+					}
+				},
+				"fields": ["account"],
+				"limit": 1
+			}
+		},
+		"target_collection": "employee_balance",
+		"target_action": "update",
+		"effects": "// js\n// The case is the event: confirmed, it opens the days its leave rows give for one event, once.\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nconst person = ctx.subject.employment;\nconst moves = grants.flatMap((grant) => {\n\tconst row = first(ctx.reads.leave_catalog.filter((item) => item.code === grant.code));\n\tif (row == null) return [];\n\tconst wanted = get(row, 'lookup.eligibility.gender', null);\n\tif (wanted != null && wanted !== get(person, 'payroll.gender', null)) return [];\n\treturn [{ code: grant.code, row, keep: get(grant, 'keep_start', false), days: get(grant, 'days', get(row, 'lookup.grant_days', 0)) }];\n});\nif (balance == null) return [];\nconst done = get(balance.account, 'leave_case', {});\nif (Object.hasOwn(done, ctx.entry.id)) return [];\nconst leave = get(balance.account, 'leave', {});\nconst stamp = Number(String(ctx.entry.opened_on).replaceAll('-', ''));\nconst held = (code) => (Object.hasOwn(leave, code) ? Number(leave[code]) : 0);\n// A row that steps its pay counts from the day the event began.\nconst started = moves.filter((move) => get(move.row, 'lookup.pay_steps', null) != null && move.keep !== true);\nreturn [{\n\ttarget: balance.id,\n\tset: {\n\t\taccount: {\n\t\t\t...balance.account,\n\t\t\tleave: { ...leave, ...Object.fromEntries(moves.map((move) => [move.code, held(move.code) + move.days])) },\n\t\t\tleave_window: { ...get(balance.account, 'leave_window', {}), ...Object.fromEntries(started.map((move) => [move.code + '.from', stamp])) },\n\t\t\tleave_case: { ...done, [ctx.entry.id]: 1 }\n\t\t}\n\t}\n}];",
+		"id": "6092ca89-c790-5ba7-ba16-42f8c1f502fb"
 	}
 ]

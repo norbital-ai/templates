@@ -1252,5 +1252,96 @@
 		"events": {},
 		"id": "2845d703-2f00-5af7-96c5-6c579e251fec",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "CHILD_BIRTH",
+		"name": "Child birth",
+		"lookup": {
+			"grants": [
+				{
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"code": "MATERNITY_ALLOCATION_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "bf8b7211-058b-5201-a32b-e2e7893ba0a9",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "BIRTH_EXTENSION",
+		"name": "Maternity extension",
+		"lookup": {
+			"grants": [
+				{
+					"code": "MATERNITY_LEAVE_EXTENSION"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "a8827bfb-de61-5a2a-b98d-45a75640805c",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "VAWC",
+		"name": "Violence against women and children",
+		"lookup": {
+			"grants": [
+				{
+					"code": "VAWC_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "f5ff5bc9-1ffe-5e0b-8c2c-ff2375641b3d",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+	},
+	{
+		"code": "GYNECOLOGICAL_SURGERY",
+		"name": "Gynecological surgery",
+		"lookup": {
+			"grants": [
+				{
+					"code": "SPECIAL_LEAVE_FOR_WOMEN"
+				}
+			],
+			"certificate": true
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "a41754d6-0561-5d2c-bf38-856809aff4b9",
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	}
 ]
