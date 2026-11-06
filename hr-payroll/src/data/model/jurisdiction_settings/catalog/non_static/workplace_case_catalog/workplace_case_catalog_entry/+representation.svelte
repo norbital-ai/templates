@@ -10,6 +10,8 @@
 	import { Cluster } from '@norbital-ai/ui/layout';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
+	import { PlainDate } from '@norbital-ai/std/date';
+	import { todayKey } from '../../../../../../../lib/ui/format/calendar.js';
 	import { bolt } from '$bolt';
 	let { view }: { view: RecordView<'workplace_case_catalog_entry'> } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
@@ -18,6 +20,42 @@
 	const waiting = $derived(
 		record !== null && record.inputs.employment_id != null && record.inputs.decision == null
 	);
+	const reversible = $derived(
+		record !== null &&
+			record.inputs.employment_id != null &&
+			record.inputs.decision === 'CONFIRMED' &&
+			record.inputs.is_reversal !== true
+	);
+	/** A reversal is the same case again, marked: it takes back exactly what this one gave. */
+	const reverse = () => {
+		const employment = record?.inputs.employment_id;
+		if (record === null || employment === undefined) return;
+		fork(
+			bolt
+				.act('workplace_case_catalog_entry.create', [
+					{
+						catalog_id: record.catalog_id,
+						entity_id: record.entity_id,
+						kind: record.kind,
+						opened_on: PlainDate(todayKey()),
+						inputs: {
+							employment_id: employment,
+							decision: 'CONFIRMED',
+							is_reversal: true,
+							reverses: record.id
+						}
+					}
+				])
+				.pipe(
+					Effect.tap((outcome) => Effect.sync(() => notifyOutcome(bolt, outcome))),
+					Effect.catch((error) =>
+						Effect.sync(() =>
+							toast.error(error instanceof Error ? error.message : bolt.t('component.error'))
+						)
+					)
+				)
+		);
+	};
 	const decide = (decision: 'CONFIRMED' | 'REJECTED') => {
 		if (record === null) return;
 		fork(
@@ -43,6 +81,10 @@
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
 	badge={sealed ? bolt.t('entry.included_in_payroll') : undefined}
 >
+	{#if reversible}<Cluster justify="end"
+			><Button variant="outline" onclick={reverse}>{bolt.t('app.leave_case.reverse')}</Button
+			></Cluster
+		>{/if}
 	{#if waiting}<Cluster justify="end"
 			><Button variant="outline" onclick={() => decide('REJECTED')}
 				>{bolt.t('app.leave_case.reject')}</Button

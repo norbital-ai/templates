@@ -767,6 +767,7 @@ export default messages({
 	'app.leave_case.waiting': 'Decide later',
 	'app.leave_case.confirm': 'Confirm',
 	'app.leave_case.reject': 'Reject',
+	'app.leave_case.reverse': 'Reverse this case',
 	'app.leave.computing': 'Computing this person’s leave from the catalog.',
 	'settings_form.version': 'Version',
 	'settings_form.calendar': 'Currency and calendar',

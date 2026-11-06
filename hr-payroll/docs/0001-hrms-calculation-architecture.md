@@ -366,6 +366,8 @@ BIRTH_COMPLICATION confirmed     149     ledger: ADD 90, needs the certificate
 Next birth, a new case           +90     a second event is a second case
 ```
 
+A case confirmed in error is reversed like any other entry: **Reverse this case** opens the same case again with `is_reversal`, and the effects take back exactly what it gave. Days already taken must be reversed first, so a balance never goes below what was used, and a case reverses once.
+
 Pay that steps down is one row. `pay_steps` on the leave row says what share each month of the event loses, and the confirmed case stamps when the event began in `leave_window.<code>.from`. The row's `conversion` prices each day by its date from that stamp, so the order days were entered does not move it.
 
 ```text
