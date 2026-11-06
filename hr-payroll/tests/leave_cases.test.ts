@@ -305,6 +305,54 @@ describe('pay that steps down, on one row', () => {
 			assert.equal(yield* taken(t, 'MEDICAL_LEAVE'), 0);
 		}).pipe(Effect.provide(workspace({ seed: evidence, now: NOW })));
 	});
+	it.live('a reversal gives back the month it corrects, at that month’s share', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* open(t, WOMAN, 'CHILD_BIRTH', '2026-02-02', { decision: 'CONFIRMED' });
+			yield* t.runDue();
+			yield* take(t, WOMAN, 'MATERNITY_LEAVE', ['2026-06-09']);
+			yield* t.runDue();
+			yield* run(t, '2026-06');
+			const before = yield* taken(t, 'MATERNITY_LEAVE');
+			assert.equal(before, 125_000);
+			yield* t.as(t.admin).act('leave_catalog_entry.create', [
+				{
+					entity_id: ENTITY,
+					employment_id: CONTRACT,
+					catalog_id: idOf('leave_catalog', inVersion(WOMAN, 'leave_catalog', 'MATERNITY_LEAVE')),
+					days: whole('2026-07-06'),
+					is_reversal: true
+				}
+			]);
+			yield* t.runDue();
+			yield* run(t, '2026-07');
+			assert.equal(yield* taken(t, 'MATERNITY_LEAVE'), 2 * before);
+		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
+	);
+	it.live('a long sick spell with no case asks HR to open one, once', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const spell = Array.from(
+				{ length: 31 },
+				(_, day) => `2026-03-${String(day + 1).padStart(2, '0')}`
+			);
+			yield* take(t, WOMAN, 'MEDICAL_LEAVE', spell.slice(0, 29));
+			yield* t.runDue();
+			const raised = t
+				.storedQuery({ obligation: { limit: 200 } })
+				.pipe(
+					Effect.map(({ obligation }) =>
+						obligation.rows.filter(({ title }) => /Long illness case/.test(title))
+					)
+				);
+			assert.equal((yield* raised).length, 0);
+			yield* take(t, WOMAN, 'MEDICAL_LEAVE', [spell[29] ?? '']);
+			yield* t.runDue();
+			yield* take(t, WOMAN, 'MEDICAL_LEAVE', [spell[30] ?? '']);
+			yield* t.runDue();
+			assert.equal((yield* raised).length, 1);
+		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
+	);
 	it.live('maternity: the fourth month is full, the fifth takes a quarter of each day', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;

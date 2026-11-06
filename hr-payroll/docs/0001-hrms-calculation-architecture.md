@@ -125,7 +125,7 @@ Event time writes the employee balance immediately; payroll time writes money an
 | leave entitlement moves | `ADD` or `DEDUCT leave.<catalog code> <diff>`     |
 | benefit run marked paid | `ADD` or `DEDUCT benefit_paid.<month>.<code>`     |
 
-Indonesia's severance and pension benefits run on one ladder across two calendar years, longer than a balance keeps its months, so a catalog effect keeps them in `benefit_paid` when the run is marked paid. A paid run is final, so nothing there ever needs undoing. Japan's premiums paid back or collected late go on their own items, on a subtotal of their own that the year-end adjustment reads, so the deduction is what the employee bore.
+Indonesia's severance and pension benefits run on one ladder across two calendar years, longer than a balance keeps its months, so a catalog effect keeps them in `benefit_paid` when the run is marked paid. A paid run is final, so nothing there ever needs undoing. An earlier run not marked paid yet still counts, from the months the balance keeps. Japan's premiums paid back or collected late go on their own items, on a subtotal of their own that the year-end adjustment reads, so the deduction is what the employee bore.
 
 Run effects look for their own task before raising it: raising one twice would fail every effect after it, so a second run in a period finds the first's task and raises nothing.
 
@@ -378,6 +378,8 @@ MEDICAL_LEAVE, Indonesia (PP 36/2021 art.41(1))
     month 13+     25%
   case closed (closed_on)          the count ends, the next sick day is at full pay
 ```
+
+A reversal on such a row gives back the month it corrects, at that month's share. Thirty sick days within 45 with no open case raise a task for the HR controller (`LONG_ILLNESS_REMINDER`), so a missed case cannot quietly overpay.
 
 ## 5. Catalogue contract
 

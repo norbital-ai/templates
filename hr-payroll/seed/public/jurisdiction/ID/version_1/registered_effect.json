@@ -2425,5 +2425,82 @@
 		"target_action": "update",
 		"effects": "// js\n// A closed case ends the event: the next day of this leave stands at full pay again.\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nif (balance == null) return [];\nconst windows = get(balance.account, 'leave_window', {});\nconst keys = grants.map((grant) => grant.code + '.from');\nif (!keys.some((key) => Object.hasOwn(windows, key))) return [];\nreturn [{ target: balance.id, set: { account: { ...balance.account, leave_window: Object.fromEntries(Object.entries(windows).filter((pair) => !keys.includes(pair[0]))) } } }];",
 		"id": "de45aa3a-29c3-5cb0-9377-f2f18495a1b4"
+	},
+	{
+		"code": "LONG_ILLNESS_REMINDER",
+		"name": "Remind HR to open a long illness case",
+		"lookup": {
+			"leave_code": "MEDICAL_LEAVE",
+			"sick_days": 30,
+			"within_days": 45,
+			"title": "Long sick spell with no case: open a Long illness case so pay steps down from the start of the illness"
+		},
+		"source_collection": "leave_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"leave_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["code"],
+				"limit": 1
+			},
+			"leave_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					},
+					"catalog_id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					},
+					"is_reversal": {
+						"eq": false
+					}
+				},
+				"fields": ["days"],
+				"limit": 500
+			},
+			"employee_balance": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "subject.employment.employee_id"
+						}
+					}
+				},
+				"fields": ["account"],
+				"limit": 1
+			},
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['ID', 'LONG_ILLNESS_REMINDER', ctx.entry.employment_id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			}
+		},
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\n// A long spell of sick days with no case stays at full pay: the law steps it down, so HR is told to open one.\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || item.code !== ctx.lookup.leave_code) return [];\nconst windows = get(first(ctx.reads.employee_balance), 'account.leave_window', {});\nif (Object.hasOwn(windows, item.code + '.from')) return [];\nconst dates = ctx.reads.leave_catalog_entry.flatMap((entry) => entry.days.map((day) => day.date));\nconst sorted = dates.toSorted();\nconst latest = sorted[sorted.length - 1];\nconst near = dates.filter((date, index) => dates.indexOf(date) === index && calendar_distance_days(date, latest) <= ctx.lookup.within_days);\nif (near.length < ctx.lookup.sick_days) return [];\nif (ctx.reads.obligation.length > 0) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.title,\n\toccurrence_key: occurrence_key(['ID', 'LONG_ILLNESS_REMINDER', ctx.entry.employment_id])\n}];",
+		"references": [
+			{
+				"title": "PP 36/2021 art.41(1): pay steps down by the months of an illness, so a long spell needs its case."
+			}
+		],
+		"id": "3c13ec22-9419-5e5d-b29d-86be41fe3911",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
+		"condition": "// js\nreturn get(first(ctx.reads.leave_catalog), 'code', '') === ctx.lookup.leave_code;"
 	}
 ]
