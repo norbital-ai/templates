@@ -451,5 +451,25 @@
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "475f7a81-8230-56e3-a94f-ff46f7be2002",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b"
+	},
+	{
+		"code": "WAGE_ADJUSTMENT",
+		"name": "給与の過不足訂正 (wage adjustment)",
+		"description": "The entry quantity is salary short-paid, or with a reversal entry salary paid too much. It is pay of the month it is paid in, paid with the salary or off-cycle.",
+		"lookup": {},
+		"references": [
+			{
+				"title": "労働基準法 art.24(1): wages are paid in full. A correction is salary income (所得税法 art.28), remuneration (健保法 art.3(5)) and a labour-insurance wage (徴収法 art.2(2)) in the month it is paid. Entry: quantity = the amount short or over."
+			}
+		],
+		"off_cycle_eligible": true,
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nreturn ctx.entry.unit === 'MONEY' && ctx.entry.quantity > 0;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"subtotal_id": "16a20b2e-6e3a-50fa-86b8-56e00e509d7f",
+		"id": "fcb1a904-e74e-584d-98ef-90cfbfa90800",
+		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b"
 	}
 ]

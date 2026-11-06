@@ -85,9 +85,7 @@
 	{
 		"code": "FIXED_ALLOWANCE",
 		"name": "役職手当・固定手当 (fixed allowance)",
-		"lookup": {
-			"prorate": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "健康保険法 art.3(5) and 厚生年金保険法 art.3(1)(iii) (報酬), 雇用保険法 art.4(4) (賃金) and 所得税法 art.28 (給与所得): a fixed allowance is remuneration, salary income and in the overtime base. A sub-monthly entity (SEMI_MONTHLY, TEN_DAY, WEEKLY) pays the monthly amount spread evenly over the month’s parts (period.parts), each prorated by the part’s own paid days."
@@ -101,7 +99,8 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "eb307b73-3ae1-5ee9-a9a2-911fa50c704f",
-		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7"
+		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7",
+		"prorate": true
 	},
 	{
 		"code": "HOUSING_ALLOWANCE",

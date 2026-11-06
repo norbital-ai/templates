@@ -25,7 +25,7 @@ This is the owner's design. Every agent working on this workspace reads this sec
 
 ### Ledger and balance
 
-- Ledger entries are emitted at two moments only: when a leave, claim, adhoc or loan entry is created, and during payroll. Neither repeats the other's movement.
+- Ledger entries are emitted at three moments only: when a leave, claim, adhoc or loan entry is created, during payroll, and when a leave entitlement changes. None repeats another's movement.
 - The ledger is append-only and an amount is never negative.
 - `employee_balance` is one row per person: the projection of the ledger, keyed by family and then code. Its accounts are data, not fixed columns.
 - Whatever a formula needs from earlier runs comes from the balance. There is no payroll history read: no `ctx.history`, no statutory history, no looking back through payslips.
@@ -98,7 +98,7 @@ Every payroll expression reads `ctx.day_rate`, so a jurisdiction prices overtime
 
 Rounding is the same kind of constant: `lookup.rounding` (`HALF_UP`, `HALF_EVEN`, `UP`, `DOWN`, `TRUNCATE`) and `lookup.rounding_scale` (integer 0–12), defaulting to `HALF_UP` at 2.
 
-## 2. One ledger, two writers
+## 2. One ledger, three writers
 
 ```text
 EVENT TIME (approval)                          PAYROLL TIME (run)
@@ -112,7 +112,7 @@ deducts balance now                          computes pay + statutory + YTD
              ledger_entry (append-only) + employee_balance.account
 ```
 
-Event time writes the employee balance immediately; payroll time writes money and statutory movements. Neither writer repeats the other's movement.
+Event time writes the employee balance immediately; payroll time writes money and statutory movements; a leave entitlement change writes its diff (section 4.1). No writer repeats another's movement.
 
 | Event                   | Operation                                         |
 | ----------------------- | ------------------------------------------------- |
@@ -122,6 +122,7 @@ Event time writes the employee balance immediately; payroll time writes money an
 | loan approved           | `CREATE loan.<loan entry id> <principal>`         |
 | loan repayment approved | `DEDUCT loan.<loan entry id> <amount>`            |
 | reversal                | inverse operation with `is_reversal`              |
+| leave entitlement moves | `ADD` or `DEDUCT leave.<catalog code> <diff>`     |
 
 Creating an entry posts it: once access control has approved the write, the model's `created` effect posts ledger rows and updates the balance projection. A reversal uses the recorded original amount, never today's rates.
 
@@ -144,9 +145,11 @@ The first subtotal has `previous_id = null`. With no `calculation`, it is the de
 
 Joiners, leavers, unpaid leave and `ABS` days all pass through one rule, the share of the period paid. A salary follows `proration_basis`; a day or hour rate pays the working days. On `WORKING_DAYS` the share is the person's own working days from their shift pattern. On `CALENDAR_DAYS` it is calendar days, and a rest day falling between two missed work days counts as missed. Each `UNPAID` leave slot removes half of one day and a reversal restores it. Paid leave creates no cash line.
 
-An allowance with `lookup.prorate` takes the same share. A fixed recurring cash allowance prorates; a claim, overtime, a bonus, a benefit in kind, an attendance bonus, a per-event payment and an allowance tied to the person rather than to the days do not.
+An allowance row with `prorate` on takes the same share. A fixed recurring cash allowance prorates; a claim, overtime, a bonus, a benefit in kind, an attendance bonus, a per-event payment and an allowance tied to the person rather than to the days do not.
 
-A leave row that must pay back after its period has run is `PAID` with `direction: DEDUCT` and a `conversion`, so its line takes the days instead of the salary basis. A correction after payment is then a reversal entry the HR controller enters on the same catalog item, dated in the next period to run: the line flips and that run pays it. Malaysia's no-pay rows work this way, and their line carries the fixed allowances with the salary.
+A leave row that must pay back after its period has run is `PAID` with `direction: DEDUCT` and a `conversion`, so its line takes the days instead of the salary basis. Every no-pay row in every jurisdiction has this shape: its line is the monthly pay (salary and the allowances with `prorate` on) ÷ the `proration_basis` days × the days missed, so a month pays what the salary basis would have paid. A correction after payment is then a reversal entry the HR controller enters in Events, on the same catalog item, dated in the next period to run. Its conversion prices it on the month before that run, so it gives back what was taken. The `NO_PAY_OPEN_PERIOD` rule refuses a no-pay entry dated in a period that has run, and a reversal of a day not yet paid: that entry is deleted instead.
+
+A no-pay row carries `lookup.no_cap`. No statute caps it, so its account opens large enough never to refuse, and the days taken still post to it. See section 4.1.
 
 There is no base-pay producer model and no implicit BASE stage. Base pay is readable by every payroll expression.
 
@@ -193,9 +196,13 @@ Ledger rows are created inline with the run, and an effect on the run then appli
 | `statutory_contribution` | `<scheme>.employee` | `ADD` employee amount |
 | `statutory_contribution` | `<scheme>.employer` | `ADD` employer amount |
 
+A wrong payment corrects itself through later cycles, with no automatic entry. HR corrects the pay, and the next run's statutory rows count the total paid: a row with a band, ceiling or threshold computes on the pay month's total and charges the difference from what the month has charged. Below zero on the employee side, the row reports `overpaid` and pays no negative line. The employer side stops at zero. A row on a base fixed for a period does not move with the month's pay, and a cumulative tax settles itself.
+
+Singapore's AW ceiling works the same way across the year. `CPF_AW` records the additional wages that attracted CPF, and the ceiling counts each month's OW at that month's ceiling, so a raise past the ceiling stops counting the excess. The last month of the year or of the employment settles on the actual OW: AW the estimate left out attracts CPF, and an excess comes off that month's CPF.
+
 A jurisdiction's `lookup.month_balance` lists the subtotal and `<scheme>.<side>` codes its formulas need by month. Those also post to the `month` account as `<pay month>.<code>`, so a formula reads what this month has paid, what last month paid, or a year that runs April to March.
 
-Where a statute fixes an amount on the month's total, a month's runs are one month: the formula reads what earlier runs of the month paid and charges the rest, so a bonus owes the same inside the on-cycle run or off-cycle, before or after it. Contributions follow the wage month, so a whole-month salary already in the pay month is another wage month's or another employer's and the run stands alone; tax follows the pay month and combines them. A scheme charged on salary alone charges nothing on an off-cycle run. A tax that projects the year stands an off-cycle run on the salary to come, and withholds only what the run adds.
+Where a statute fixes an amount on the month's total, a month's runs are one month: the formula reads what earlier runs of the month paid and charges the rest, so a bonus owes the same inside the on-cycle run or off-cycle, before or after it. Contributions follow the wage month, so a whole-month salary already in the pay month is another wage month's or another employer's and the run stands alone; tax follows the pay month and combines them. An off-cycle run in a transfer month reads both companies' month, so a bonus that month goes on-cycle, where each company stands alone. A scheme charged on salary alone charges nothing on an off-cycle run. A tax that projects the year stands an off-cycle run on the salary to come, and withholds only what the run adds.
 
 Year to date lives in the balance and nowhere else. A formula that needs earlier runs reads `ctx.balances.ytd` and `ctx.balances.statutory_contribution`; there is no payroll history read.
 
@@ -219,6 +226,82 @@ The map is keyed by account family, then account code:
 ```
 
 The projection is rebuildable from `ledger_entry` and is written only by the posting service. A correction appends an inverse or a new movement; it never edits history.
+
+### 4.1 Leave entitlement
+
+Everyone's leave is computed by default from the catalog row. The balance is never recalculated from scratch: it moves by the difference between the entitlement last applied and the new one, so days already taken stay taken.
+
+```text
+entitlement = catalog row + the person     what they should have
+applied     = last entitlement on the balance sheet
+balance     = applied − days taken         what is left
+```
+
+The row's `lookup` holds the figure: `grant_days`, or `service_bands` by completed months of service, for its `window`. Eligibility, part-time bands, a first-year share by completed months and carry-forward come from the same lookup. A row with `no_cap`, or with no figure, has no cap to hold.
+
+The `leave_entitlement` automation does this for everyone, and `src/lib/leave/entitlement.ts` holds the rule. It computes when any of these happens:
+
+One service, scoped by what it is given:
+
+```text
+WHEN                     CALLED BY              INPUT        WHO        WHAT MOVES
+───────────────────────  ─────────────────────  ───────────  ─────────  ─────────────────────────
+A contract is created    contract effect        employees    them       new − 0
+or changes                                                              new − applied
+HR runs it               employee profile       employees    them       whatever is due
+A catalog change         sealed version effect  none         everyone   new − applied
+A run marked paid        run effect             none         everyone   a service band
+1 January                yearly cron            none         everyone   a new window: reset, carry
+```
+
+It is idempotent. Each run compares what is owed with what was applied and writes only the difference, so a run with nothing to do writes nothing, and a repeat changes nothing. A person's movements and their balance commit together, and a lost race reads again, so what already landed is never repeated.
+
+```text
+  newcomer, or catalog change
+              │
+              ▼
+  compute new entitlement from the catalog row
+              │
+              ▼
+       diff = new − applied
+              │
+     ┌────────┼────────┐
+     ▼        ▼        ▼
+   diff=0   diff>0   diff<0
+   nothing  ledger   ledger
+            ADD      DEDUCT
+              │        │
+              └───┬────┘
+                  ▼
+     balance moves by diff
+     applied = new
+```
+
+```text
+EVENT                         APPLIED   DIFF   TAKEN   BALANCE
+───────────────────────────   ───────   ────   ─────   ───────
+Joins, entitled to 14            14     +14      0       14
+Takes 3 days                     14       –      3       11
+Catalog raises it to 18          18      +4      3       15
+Catalog lowers it to 16          16      −2      3       13
+```
+
+A new sealed version is the catalog change. In force now, its diff applies straight away; dated later, it applies on the day it starts. A cut stops the balance at zero: days already taken are never clawed back.
+
+A new window starts the balance again rather than moving it by a diff, because days used come back. A calendar year turns on 1 January, a service year on the anniversary, picked up by the first paid run on or after it. An `EVENT` row refills month by month: a balance cannot tell one event from the next, so the HR controller judges a second event in the same month.
+
+```text
+NEW WINDOW, RULE ON THE ROW        NEXT BALANCE
+─────────────────────────────────  ───────────────────────────────────────
+no carry                           new entitlement; unused days lapse
+carry: { windows: 1 }              new + the smaller of held and applied
+carry: { windows: 1, max_days: n } as above, the carried part at most n
+per_months                         held + new; nothing lapses
+```
+
+Carry reaches one window back: taking the smaller of held and applied means days carried last time lapse if they are still unused.
+
+An account opened before this keeps what it holds, and only its window starts counting. `applied` is kept per leave type in the balance's `leave_window` family as `<code>.granted`, beside the window it belongs to. Each movement is a dated ledger entry, like any other.
 
 ## 5. Catalogue contract
 
@@ -262,6 +345,10 @@ commit ──► registered_effect (target_collection, events) ──┴──�
 ## 7. Obligations
 
 `obligation` is a free-form task or reminder raised by an event: `entity_id`, optional employee/employment, `title`, optional `due_on` and `fulfilled_on`, `occurrence_key`, optional evidence and waiver reason, and the state `OPEN → FULFILLED | WAIVED`. It stores no financial fields and posts no ledger movement.
+
+A registered effect on an entry reaches its version through the catalog row the entry was raised on, which the entry's model passes on; sealing an entry into a run is not an edit and fires nothing. A check with a deadline ahead, a permit or a retirement date, sits on `payslip` and runs at every run: nothing wakes a tenant database on a timer, and its `occurrence_key` keeps it to one obligation.
+
+An off-cycle run pays the contracts in its period, so a leaver's goes on the period of their last day, and a run that would seal an entry with no payslip refuses.
 
 ## 8. Expression context
 

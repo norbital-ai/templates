@@ -70,10 +70,14 @@
 			? bolt.query({
 					adhoc_catalog_entry: openEntry,
 					'adhoc_catalog_entry.catalog_id': { fields: ['name', 'off_cycle_eligible'] },
-					'adhoc_catalog_entry.employment_id': { fields: ['employee_number', 'employee_name'] },
+					'adhoc_catalog_entry.employment_id': {
+						fields: ['employee_number', 'employee_name', 'effective_range']
+					},
 					claim_catalog_entry: openEntry,
 					'claim_catalog_entry.catalog_id': { fields: ['name', 'off_cycle_eligible'] },
-					'claim_catalog_entry.employment_id': { fields: ['employee_number', 'employee_name'] }
+					'claim_catalog_entry.employment_id': {
+						fields: ['employee_number', 'employee_name', 'effective_range']
+					}
 				})
 			: null
 	);
@@ -96,6 +100,7 @@
 							adhoc,
 							claim,
 							who: String(row.employment_id.id),
+							employed: row.employment_id.effective_range,
 							person: `${row.employment_id.employee_name} (${row.employment_id.employee_number})`,
 							what: row.catalog_id.name
 						}
@@ -144,8 +149,17 @@
 		if (cycle !== null) create({ entity_id: companyId, period: cycle, kind: 'ON_CYCLE' });
 	};
 	const runOffCycle = () => {
-		const period = cycleOn(schedule, today)?.key;
-		if (period === undefined || paying.length === 0) return;
+		// a run pays the contracts in its period: a leaver is paid on the period of their last day
+		const day = [today, ...paying.flatMap((row) => row.employed.to ?? [])]
+			.map(String)
+			.toSorted()[0];
+		if (day === undefined || paying.length === 0) return;
+		if (paying.some((row) => String(row.employed.from) > day)) {
+			toast.error(bolt.t('app.payroll.separate_runs'));
+			return;
+		}
+		const period = cycleOn(schedule, day)?.key;
+		if (period === undefined) return;
 		create({
 			entity_id: companyId,
 			period,

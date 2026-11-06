@@ -14,7 +14,7 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": "80293069-f8dd-5da4-a4b0-df6b7a9ff21f",
+		"subtotal_id": "86c11c0a-dbb4-59c3-a067-b8e154925285",
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '') !== 'MANAGER';",
 		"conversion": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst work = get(terms, 'statutory_work_category', '');\nconst overtime_category = get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours =\n\tnormal != null\n\t\t? Number(normal)\n\t\t: work === 'HAZARDOUS'\n\t\t\t? ctx.lookup.hazardous_normal_hours_per_day\n\t\t\t: ctx.lookup.normal_hours_per_day;\n// LPA s.68: the monthly wage, fixed allowance included (s.5), over 30 normal days.\nconst unit_wage = ctx.day_rate / day_hours;\nconst multiple =\n\tovertime_category === 'SECTION_65_OTHER' ? 1 : ctx.lookup.multiple;\n// LPA s.61: hours past the normal day, every hour of a day off.\nconst plain = get(ctx, 'work.days', []).filter((day) => get(day, 'holiday_kind', '') === '' && ['WORK', 'OFF'].includes(day.day_type));\nconst quantity = sum(plain.map((day) => Number(get(day, day.day_type === 'OFF' ? 'worked_hours' : 'overtime_hours', 0))));\nreturn unit_wage * multiple * quantity;",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
@@ -36,7 +36,7 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": "80293069-f8dd-5da4-a4b0-df6b7a9ff21f",
+		"subtotal_id": "86c11c0a-dbb4-59c3-a067-b8e154925285",
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '') !== 'MANAGER';",
 		"conversion": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst work = get(terms, 'statutory_work_category', '');\nconst overtime_category = get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours =\n\tnormal != null\n\t\t? Number(normal)\n\t\t: work === 'HAZARDOUS'\n\t\t\t? ctx.lookup.hazardous_normal_hours_per_day\n\t\t\t: ctx.lookup.normal_hours_per_day;\n// LPA s.68: the monthly wage, fixed allowance included (s.5), over 30 normal days.\nconst unit_wage = ctx.day_rate / day_hours;\nconst off = (day) => day.day_type === 'REST' || get(day, 'holiday_kind', '') !== '';\n// LPA s.62: normal hours on a holiday or rest day. A monthly wage already pays the day, so it adds one times; a daily or hourly wage does not, so two.\nconst hours = sum(get(ctx, 'work.days', []).filter(off).map((day) => Math.min(Number(get(day, 'worked_hours', 0)), day_hours)));\nconst multiple = get(terms, 'rate.unit', 'MONTHLY') === 'MONTHLY' ? ctx.lookup.paid_multiple : ctx.lookup.unpaid_multiple;\nreturn unit_wage * multiple * hours;",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
@@ -60,7 +60,7 @@
 			}
 		],
 		"off_cycle_eligible": false,
-		"subtotal_id": "80293069-f8dd-5da4-a4b0-df6b7a9ff21f",
+		"subtotal_id": "86c11c0a-dbb4-59c3-a067-b8e154925285",
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '') !== 'MANAGER';",
 		"conversion": "// js\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst work = get(terms, 'statutory_work_category', '');\nconst overtime_category = get(ctx.subject.employment, 'employee_extension_data.term_facts.overtime_category', '');\nconst normal = get(terms, 'normal_hours_per_day', null);\nconst day_hours =\n\tnormal != null\n\t\t? Number(normal)\n\t\t: work === 'HAZARDOUS'\n\t\t\t? ctx.lookup.hazardous_normal_hours_per_day\n\t\t\t: ctx.lookup.normal_hours_per_day;\n// LPA s.68: the monthly wage, fixed allowance included (s.5), over 30 normal days.\nconst unit_wage = ctx.day_rate / day_hours;\nconst multiple =\n\tovertime_category === 'SECTION_65_OTHER' ? 1 : ctx.lookup.multiple;\nconst off = (day) => day.day_type === 'REST' || get(day, 'holiday_kind', '') !== '';\n// LPA s.63: hours past the normal day on a holiday or rest day.\nconst quantity = sum(get(ctx, 'work.days', []).filter(off).map((day) => Math.max(0, Number(get(day, 'worked_hours', 0)) - day_hours)));\nreturn unit_wage * multiple * quantity;",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",

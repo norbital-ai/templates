@@ -21,9 +21,7 @@
 	{
 		"code": "MEAL_ALLOWANCE",
 		"name": "伙食津貼 (meal allowance)",
-		"lookup": {
-			"prorate": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "勞動基準法 §2(3) with 施行細則 §10: a monthly meal allowance (伙食津貼) is paid for work and is none of §10's exclusions, so it is 工資 — inside the insured salary (LI, EI, occupational injury, NHI, 勞退條例 §14 wage) and the §56 reserve wage. 營利事業所得稅查核準則 §88(2)(1) (amended 11 December 2023, from 1 January 2023; https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): 按月定額發給員工伙食代金…免視為員工之薪資所得 up to NT$3,000 a month, and the part above 應轉列員工之薪資所得 — so INCOME_TAX, INCOME_TAX_NON_RESIDENT, NHI_PART_TIME and the NHI_EMPLOYER_SUPPLEMENTARY_PREMIUM effect (all read 所得稅法 §14 薪資所得) take only the part above NT$3,000, the MEAL_ALLOWANCE_TAXABLE row on SALARY_INCOME.",
@@ -33,19 +31,18 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": "54e639a8-bb8a-50ea-9f05-27db6de5f1ad",
 		"eligibility": "return ctx.subject.employment.engagement !== 'PAYEE' && get(ctx.subject.employment.terms, 'allowances.MEAL_ALLOWANCE.amount', 0) !== 0;",
-		"conversion": "// 營利事業所得稅查核準則 §88(2)(1): up to NT$3,000 a month is not salary income; this row stays out of SALARY_INCOME.\nreturn Math.min(Number(get(ctx.subject.employment.terms, 'allowances.MEAL_ALLOWANCE.amount', 0)), ctx.lookup.meal_exempt_monthly);",
+		"conversion": "// 營利事業所得稅查核準則 §88(2)(1): up to NT$3,000 a month is not salary income; this row stays out of SALARY_INCOME.\n// 勞工請假規則 §7: no wage for a no-pay day, so the exempt meal falls and returns with BASIC_AFTER_UNPAID_LEAVE and the days stay out of SALARY_INCOME.\nconst basic = ctx.subtotals.BASIC;\nconst taken = ctx.subtotals.BASIC_AFTER_PARENTAL_LEAVE - ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE;\nconst left = basic > 0 ? Math.max(0, 1 - taken / basic) : 1;\nreturn Math.min(Number(get(ctx.subject.employment.terms, 'allowances.MEAL_ALLOWANCE.amount', 0)), ctx.lookup.meal_exempt_monthly) * left;",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "7eeb02b9-b32f-5d2d-928e-91fa373b5d7a",
-		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6",
+		"prorate": true
 	},
 	{
 		"code": "MEAL_ALLOWANCE_TAXABLE",
 		"name": "伙食津貼 (above the exempt NT$3,000)",
-		"lookup": {
-			"prorate": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "營利事業所得稅查核準則 §88(2)(1)",
@@ -56,11 +53,12 @@
 		"off_cycle_eligible": false,
 		"subtotal_id": "9360f4c5-fa5d-4958-a32d-2e1bb0272574",
 		"eligibility": "return ctx.subject.employment.engagement !== 'PAYEE' && Number(get(ctx.subject.employment.terms, 'allowances.MEAL_ALLOWANCE.amount', 0)) > ctx.lookup.meal_exempt_monthly;",
-		"conversion": "return Number(get(ctx.subject.employment.terms, 'allowances.MEAL_ALLOWANCE.amount', 0)) - ctx.lookup.meal_exempt_monthly;",
+		"conversion": "// 勞工請假規則 §7: no wage for a no-pay day; the part above the exempt meal falls and returns with BASIC_AFTER_UNPAID_LEAVE.\nconst basic = ctx.subtotals.BASIC;\nconst taken = ctx.subtotals.BASIC_AFTER_PARENTAL_LEAVE - ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE;\nconst left = basic > 0 ? Math.max(0, 1 - taken / basic) : 1;\nreturn (Number(get(ctx.subject.employment.terms, 'allowances.MEAL_ALLOWANCE.amount', 0)) - ctx.lookup.meal_exempt_monthly) * left;",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "a70a4f76-3b03-4fef-abe4-7c4c50435a59",
-		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6",
+		"prorate": true
 	}
 ]

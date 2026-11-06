@@ -1,5 +1,6 @@
 import { tap } from '../../../lib/payroll_engine/taps.js';
 import { model } from '@norbital-ai/bolt';
+import { Instant } from '@norbital-ai/std/date';
 import { sealConfiguration } from '../../../lib/payroll_engine/sealing.js';
 
 export default model('jurisdiction_settings', {
@@ -121,6 +122,18 @@ export default model('jurisdiction_settings', {
 			);
 		},
 		updated: function* (changes, ctx) {
+			// the catalog changed: now if the version is in force, else on the day it starts
+			for (const { before, after } of changes)
+				if (before.status !== 'SEALED' && after.status === 'SEALED') {
+					const from = String(after.effective_range.from);
+					yield* ctx.schedule(
+						'leave_entitlement',
+						{},
+						from > String(ctx.today)
+							? { at: Instant(`${from}T00:00:00Z`), key: `leave_entitlement:${from}` }
+							: { key: 'leave_entitlement' }
+					);
+				}
 			yield* tap(
 				ctx,
 				'update',

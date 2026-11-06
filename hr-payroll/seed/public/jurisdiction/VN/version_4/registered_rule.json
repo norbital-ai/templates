@@ -113,7 +113,7 @@
 				}
 			}
 		},
-		"condition": "// js\nconst catalog = ctx.reads.adhoc_catalog[0];\nif (get(catalog, 'code', '') !== 'PROPERTY_DAMAGE_COMPENSATION') return false;\nif (ctx.entry.unit !== 'MONEY') return false;\nreturn ctx.entry.is_reversal !== true;",
+		"condition": "// js\nconst catalog = ctx.reads.adhoc_catalog[0];\nif (get(catalog, 'code', '') !== 'PROPERTY_DAMAGE_COMPENSATION') return false;\nif (ctx.entry.unit !== 'MONEY') return false;\nreturn get(ctx.entry, 'is_reversal', false) !== true;",
 		"validate": "// js\nconst slip = ctx.reads.payslip[0];\nif (slip === null || slip === undefined) return true;\nconst statutory = sum(\n\tctx.reads.ledger_entry\n\t\t.filter((entry) => entry.account === 'statutory_contribution' && entry.code.endsWith('.employee'))\n\t\t.map((entry) => get(entry, 'amount', 0))\n);\nreturn ctx.entry.quantity <= ctx.lookup.deduction_share * (get(slip, 'gross_earnings', 0) - statutory);",
 		"order": 4,
 		"lookup": {},
@@ -592,7 +592,7 @@
 				}
 			}
 		},
-		"condition": "// js\nconst catalog = ctx.reads.leave_catalog[0];\nconst contract = ctx.subject.employment;\nif (get(catalog, 'lookup.can_encash', false) !== true) return false;\nif (ctx.entry.is_reversal === true) return false;\nreturn get(contract, 'effective_range.to', null) !== null;",
+		"condition": "// js\nconst catalog = ctx.reads.leave_catalog[0];\nconst contract = ctx.subject.employment;\nif (get(catalog, 'lookup.can_encash', false) !== true) return false;\nif (get(ctx.entry, 'is_reversal', false) === true) return false;\nreturn get(contract, 'effective_range.to', null) !== null;",
 		"validate": "// js\nconst contract = ctx.subject.employment;\nconst exit = contract.effective_range.to;\nconst review = get(contract, 'employee_extension_data.term_facts.encashment_review', null);\nreturn (\n\treview !== null &&\n\tget(review, 'month', '') === add_months(month_start(exit), -1).substring(0, 7)\n);",
 		"order": 23,
 		"lookup": {},
@@ -778,6 +778,84 @@
 			}
 		},
 		"id": "2728ec39-ebb1-5342-95ab-426ed87ddc5e",
+		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
+	},
+	{
+		"code": "NO_PAY_OPEN_PERIOD",
+		"target_collection": "leave_catalog_entry",
+		"events": ["create"],
+		"lookup": {
+			"no_pay": [
+				"SICK_LEAVE",
+				"MATERNITY_LEAVE",
+				"PATERNITY_LEAVE",
+				"BEREAVEMENT_LEAVE_UNPAID",
+				"UNPAID_LEAVE",
+				"STOPPAGE_WORKER_FAULT",
+				"CHILD_SICK_CARE",
+				"PRENATAL_CHECKUP",
+				"MISCARRIAGE_LEAVE",
+				"CONTRACEPTION_LEAVE",
+				"CONVALESCENCE_LEAVE"
+			]
+		},
+		"references": [
+			{
+				"title": "A no-pay entry or its reversal is dated in the period that will pay it. A correction to a period already paid is a reversal entry on the same catalog item, dated in the next period to run."
+			}
+		],
+		"reads": {
+			"leave_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["code"],
+				"limit": 1
+			},
+			"payroll_run": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"kind": {
+						"eq": "ON_CYCLE"
+					}
+				},
+				"fields": ["period"],
+				"limit": 10000
+			},
+			"leave_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					},
+					"catalog_id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					},
+					"payroll_run_id": {
+						"isNull": true
+					},
+					"is_reversal": {
+						"eq": false
+					}
+				},
+				"fields": ["days"],
+				"limit": 1000
+			}
+		},
+		"validate": "// js\n// A run prices only its own dates, so an entry dated in a period that has run would never reach a payslip.\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || !ctx.lookup.no_pay.includes(item.code)) return true;\nconst employer = ctx.subject.employer;\nconst cutoff = Number(get(employer, 'pay_cutoff_day', 1));\nconst halves = get(employer, 'payment_schedule.frequency', 'MONTHLY') === 'SEMI_MONTHLY';\nconst shifted = (month, by) => add_months(month + '-01', by).slice(0, 7);\nconst periodOf = (date) => {\n\tconst month = date.slice(0, 7);\n\tconst dayOf = Number(date.slice(8, 10));\n\tconst part = dayOf <= 15 ? 1 : 2;\n\tif (!halves) return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;\n\tif (cutoff <= 1) return month + '-' + part;\n\treturn part === 1 ? month + '-2' : shifted(month, 1) + '-1';\n};\n// A reversal gives back what has been paid. An entry still open has not been paid, so it is deleted instead.\nconst dates = ctx.entry.days.map((day) => day.date);\nif (get(ctx.entry, 'is_reversal', false) === true && ctx.reads.leave_catalog_entry.some((row) => row.days.some((day) => dates.includes(day.date))))\n\tthrow 'That day has not been paid yet. Delete the entry instead of reversing it.';\nconst ran = ctx.reads.payroll_run.map((run) => run.period);\nconst closed = ctx.entry.days.find((day) => ran.includes(periodOf(day.date)));\nif (closed != null)\n\tthrow closed.date + ' is in a period that has already run. Date this entry in the next period to run, and that run takes it.';\nreturn true;",
+		"order": 900,
+		"id": "0e1e53ae-3210-5ad3-8497-6928f2bd95db",
 		"settings_id": "fa129d24-b3c5-5e68-a6df-2ac2474f924d"
 	}
 ]

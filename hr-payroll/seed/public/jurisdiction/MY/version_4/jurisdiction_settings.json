@@ -863,7 +863,12 @@
 				"EPF_PR.employee",
 				"EPF_PR.employer",
 				"EPF_NON_CITIZEN.employee",
-				"EPF_NON_CITIZEN.employer"
+				"EPF_NON_CITIZEN.employer",
+				"SOCSO.employee",
+				"SOCSO.employer",
+				"SKBBK.employee",
+				"EIS.employee",
+				"EIS.employer"
 			],
 			"fixed_allowances_in_ordinary_pay": true,
 			"excluded_allowances": [],

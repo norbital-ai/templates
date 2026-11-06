@@ -1111,7 +1111,9 @@
 				"HDMF.employee",
 				"HDMF.employer",
 				"WTAX.employee",
-				"WTAX_TAXABLE_PAY.employer"
+				"WTAX_TAXABLE_PAY.employer",
+				"BASIC",
+				"SSS_EC.employer"
 			]
 		},
 		"status": "SEALED"

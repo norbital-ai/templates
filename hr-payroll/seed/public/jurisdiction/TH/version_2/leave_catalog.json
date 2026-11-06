@@ -3,13 +3,23 @@
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "SERVICE_YEAR",
+			"service_months": 12,
+			"grant_days": 6
+		},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.30, 56, 67",
 				"locator": "ss.30, 56, 67",
 				"url": "https://faolex.fao.org/docs/pdf/tha220781.pdf",
 				"quote": "At least 6 working days of annual leave a year after one full year of service; current-year leave is pro-rated on qualifying termination and accumulated leave is paid on either-party termination."
+			},
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.30",
+				"locator": "s.30",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf",
+				"quote": "At least 6 working days a year after one full year of service; unused days carry only where employer and employee agreed in advance."
 			}
 		],
 		"subtotal_id": null,
@@ -21,13 +31,22 @@
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (ลาป่วย)",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "CALENDAR_YEAR",
+			"grant_days": 30
+		},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.32, 57",
 				"locator": "ss.32, 57",
 				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
 				"quote": "Sick leave is for actual illness; wages are owed for up to 30 working days a year."
+			},
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.57",
+				"locator": "s.57",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf",
+				"quote": "Wages for sick leave up to 30 working days a year."
 			}
 		],
 		"subtotal_id": null,
@@ -38,8 +57,10 @@
 	{
 		"code": "SICK_LEAVE_UNPAID",
 		"name": "Sick leave beyond 30 paid days",
-		"pay_treatment": "UNPAID",
-		"lookup": {},
+		"pay_treatment": "PAID",
+		"lookup": {
+			"no_cap": true
+		},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.32, 57",
@@ -48,16 +69,22 @@
 				"quote": "Sick leave beyond 30 paid working days a year is unpaid."
 			}
 		],
-		"subtotal_id": null,
+		"subtotal_id": "db7d5516-5385-5a68-bf9c-61d42a2b4d14",
 		"off_cycle_eligible": false,
 		"id": "3d462078-a945-5141-80bf-3e87049033a3",
-		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56"
+		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// LPA ss.32, 57: sick leave past thirty paid working days carries no wage.\n// LPA s.5: the fixed allowance is wage and goes with the days. proration_basis CALENDAR_DAYS: s.56(1) pays a month through its weekly holidays and s.68 counts it in days.\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item pays them back.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// a rest day between two missed work days is not earned\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\n// A reversal gives back what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst days = calendar_distance_days(from, to) + 1;\nconst lost = Math.min(ctx.entry.quantity + rest, days);\nconst calendar = calendar_distance_days(month_start(from), month_end(from)) + 1;\nconst allowance = (Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0)) * lost) / calendar;\n// a day or hour rate pays the working day; only a salary follows the calendar\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity + allowance;\nreturn (Number(get(terms, 'rate.amount', 0)) * lost) / days + allowance;"
 	},
 	{
 		"code": "PERSONAL_BUSINESS_LEAVE",
 		"name": "Personal business leave (ลากิจ)",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "CALENDAR_YEAR",
+			"grant_days": 3
+		},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.34, 57/1",
@@ -93,13 +120,22 @@
 		"code": "MILITARY_LEAVE",
 		"name": "Military service leave (ลารับราชการทหาร)",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "CALENDAR_YEAR",
+			"grant_days": 60
+		},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.35, 58",
 				"locator": "ss.35, 58",
 				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
 				"quote": "Leave is allowed for military inspection, call-up or training, with wages for up to 60 days a year."
+			},
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.58",
+				"locator": "s.58",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf",
+				"quote": "Wages for military service leave up to 60 days a year."
 			}
 		],
 		"subtotal_id": null,
@@ -110,8 +146,10 @@
 	{
 		"code": "TRAINING_LEAVE",
 		"name": "Training leave (ลาฝึกอบรม)",
-		"pay_treatment": "UNPAID",
-		"lookup": {},
+		"pay_treatment": "PAID",
+		"lookup": {
+			"no_cap": true
+		},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.36",
@@ -120,16 +158,22 @@
 				"quote": "Training or development leave is allowed under the Ministerial Regulation; the Act does not require wages."
 			}
 		],
-		"subtotal_id": null,
+		"subtotal_id": "db7d5516-5385-5a68-bf9c-61d42a2b4d14",
 		"off_cycle_eligible": false,
 		"id": "42e5c56b-3b81-58f9-ac2a-78be4902cd33",
-		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56"
+		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// LPA s.36: training leave carries no wage under the Act.\n// LPA s.5: the fixed allowance is wage and goes with the days. proration_basis CALENDAR_DAYS: s.56(1) pays a month through its weekly holidays and s.68 counts it in days.\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item pays them back.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// a rest day between two missed work days is not earned\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\n// A reversal gives back what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst days = calendar_distance_days(from, to) + 1;\nconst lost = Math.min(ctx.entry.quantity + rest, days);\nconst calendar = calendar_distance_days(month_start(from), month_end(from)) + 1;\nconst allowance = (Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0)) * lost) / calendar;\n// a day or hour rate pays the working day; only a salary follows the calendar\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity + allowance;\nreturn (Number(get(terms, 'rate.amount', 0)) * lost) / days + allowance;"
 	},
 	{
 		"code": "YOUNG_WORKER_TRAINING_LEAVE",
 		"name": "Training or meeting leave for an employee under 18 (ลาของลูกจ้างซึ่งเป็นเด็ก)",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "CALENDAR_YEAR",
+			"grant_days": 30
+		},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.52",
@@ -147,13 +191,25 @@
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave, employer-paid days (ลาคลอด)",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "EVENT",
+			"grant_days": 60,
+			"eligibility": {
+				"gender": "FEMALE"
+			}
+		},
 		"references": [
 			{
 				"title": "Labour Protection Act (No. 9) B.E. 2568 s.41 para 1 and s.59",
 				"locator": "s.41 para 1; s.59",
 				"url": "https://ratchakitcha.soc.go.th/documents/89818.pdf",
 				"quote": "Up to 120 days of maternity leave per pregnancy including holidays; wages for up to 60 days. In force 7 December 2025."
+			},
+			{
+				"title": "Labour Protection Act (No. 9) B.E. 2568 s.59",
+				"locator": "s.59",
+				"url": "https://ratchakitcha.soc.go.th/documents/89818.pdf",
+				"quote": "Wages for up to 60 days of the maternity leave under s.41 para 1."
 			}
 		],
 		"subtotal_id": null,
@@ -164,8 +220,10 @@
 	{
 		"code": "MATERNITY_LEAVE_SSO",
 		"name": "Maternity leave, days without employer pay",
-		"pay_treatment": "UNPAID",
-		"lookup": {},
+		"pay_treatment": "PAID",
+		"lookup": {
+			"no_cap": true
+		},
 		"references": [
 			{
 				"title": "Labour Protection Act (No. 9) B.E. 2568 s.41; Social Security Act B.E. 2533 (1990) s.67",
@@ -174,22 +232,34 @@
 				"quote": "120 days of maternity leave less 60 employer-paid days; the Social Security Fund pays a maternity benefit at 50 percent of wages for 90 days."
 			}
 		],
-		"subtotal_id": null,
+		"subtotal_id": "db7d5516-5385-5a68-bf9c-61d42a2b4d14",
 		"off_cycle_eligible": false,
 		"id": "8f5f2030-930e-54e8-b76a-e6abc8cccec2",
-		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56"
+		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// LPA s.41; SSA s.67: days past the employer-paid days carry no wage, and the Social Security Fund pays the benefit.\n// LPA s.5: the fixed allowance is wage and goes with the days. proration_basis CALENDAR_DAYS: s.56(1) pays a month through its weekly holidays and s.68 counts it in days.\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item pays them back.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// a rest day between two missed work days is not earned\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\n// A reversal gives back what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst days = calendar_distance_days(from, to) + 1;\nconst lost = Math.min(ctx.entry.quantity + rest, days);\nconst calendar = calendar_distance_days(month_start(from), month_end(from)) + 1;\nconst allowance = (Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0)) * lost) / calendar;\n// a day or hour rate pays the working day; only a salary follows the calendar\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity + allowance;\nreturn (Number(get(terms, 'rate.amount', 0)) * lost) / days + allowance;"
 	},
 	{
 		"code": "PUBLIC_HOLIDAY",
 		"name": "Traditional holidays (วันหยุดตามประเพณี)",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "CALENDAR_YEAR",
+			"grant_days": 13
+		},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.29, 56(2)",
 				"locator": "ss.29, 56(2)",
 				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
 				"quote": "At least 13 traditional holidays a year, announced in advance, with wages."
+			},
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.29",
+				"locator": "s.29",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf",
+				"quote": "At least 13 traditional holidays a year, National Labour Day among them."
 			}
 		],
 		"subtotal_id": null,
@@ -200,8 +270,10 @@
 	{
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave by agreement",
-		"pay_treatment": "UNPAID",
-		"lookup": {},
+		"pay_treatment": "PAID",
+		"lookup": {
+			"no_cap": true
+		},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) ss.5, 70",
@@ -210,17 +282,25 @@
 				"quote": "Wages are owed for work and the paid leave the Act lists; other leave agreed with the employer is unpaid."
 			}
 		],
-		"subtotal_id": null,
+		"subtotal_id": "db7d5516-5385-5a68-bf9c-61d42a2b4d14",
 		"off_cycle_eligible": false,
 		"id": "370e8f25-28fd-5634-b3e9-b47a67970f60",
-		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56"
+		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// LPA ss.5, 70: leave agreed outside the paid leave of the Act carries no wage.\n// LPA s.5: the fixed allowance is wage and goes with the days. proration_basis CALENDAR_DAYS: s.56(1) pays a month through its weekly holidays and s.68 counts it in days.\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item pays them back.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// a rest day between two missed work days is not earned\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\n// A reversal gives back what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst days = calendar_distance_days(from, to) + 1;\nconst lost = Math.min(ctx.entry.quantity + rest, days);\nconst calendar = calendar_distance_days(month_start(from), month_end(from)) + 1;\nconst allowance = (Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0)) * lost) / calendar;\n// a day or hour rate pays the working day; only a salary follows the calendar\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity + allowance;\nreturn (Number(get(terms, 'rate.amount', 0)) * lost) / days + allowance;"
 	},
 	{
 		"code": "CHILD_CARE_LEAVE",
 		"name": "Child-care leave after maternity (ลาเพื่อดูแลบุตร)",
 		"pay_treatment": "PAID",
 		"lookup": {
-			"paid_share": 0.5
+			"paid_share": 0.5,
+			"window": "EVENT",
+			"grant_days": 15,
+			"eligibility": {
+				"gender": "FEMALE"
+			}
 		},
 		"references": [
 			{
@@ -228,6 +308,12 @@
 				"locator": "s.41 para 4; s.59/1",
 				"url": "https://ratchakitcha.soc.go.th/documents/89818.pdf",
 				"quote": "Up to 15 further consecutive days after maternity leave where the child is ill, at risk, abnormal or disabled, on a medical certificate; wages at 50 percent."
+			},
+			{
+				"title": "Labour Protection Act (No. 9) B.E. 2568 s.41 para 4",
+				"locator": "s.41 para 4",
+				"url": "https://ratchakitcha.soc.go.th/documents/89818.pdf",
+				"quote": "Up to 15 more days after maternity leave for a child who is ill, abnormal or disabled."
 			}
 		],
 		"subtotal_id": "ce9866cb-b5f9-5a75-96cf-f64d55e63baa",
@@ -241,13 +327,25 @@
 		"code": "PATERNITY_LEAVE",
 		"name": "Leave to support a spouse at childbirth (ลาไปช่วยเหลือคู่สมรส)",
 		"pay_treatment": "PAID",
-		"lookup": {},
+		"lookup": {
+			"window": "EVENT",
+			"grant_days": 15,
+			"eligibility": {
+				"marital_status": "MARRIED"
+			}
+		},
 		"references": [
 			{
 				"title": "Labour Protection Act (No. 9) B.E. 2568 s.41/1 and s.59/2",
 				"locator": "s.41/1; s.59/2",
 				"url": "https://ratchakitcha.soc.go.th/documents/89818.pdf",
 				"quote": "Up to 15 days of leave to support a spouse who gives birth, before or within 90 days after the birth, with wages."
+			},
+			{
+				"title": "Labour Protection Act (No. 9) B.E. 2568 ss.41/1, 59/2",
+				"locator": "ss.41/1, 59/2",
+				"url": "https://ratchakitcha.soc.go.th/documents/89818.pdf",
+				"quote": "Up to 15 days to support a spouse giving birth, taken within 90 days of the birth, on full wages."
 			}
 		],
 		"subtotal_id": null,
@@ -258,8 +356,10 @@
 	{
 		"code": "WORK_INJURY_LEAVE",
 		"name": "Work-injury absence (WCF compensation)",
-		"pay_treatment": "UNPAID",
-		"lookup": {},
+		"pay_treatment": "PAID",
+		"lookup": {
+			"no_cap": true
+		},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 (1998) s.32 para 3; Workmen's Compensation Act B.E. 2537 s.18(1)",
@@ -268,17 +368,22 @@
 				"quote": "A work injury or work illness is not sick leave; the Workmen's Compensation Fund pays 70 percent of the monthly wage while the employee cannot work."
 			}
 		],
-		"subtotal_id": null,
+		"subtotal_id": "db7d5516-5385-5a68-bf9c-61d42a2b4d14",
 		"off_cycle_eligible": false,
 		"id": "7b7a3f13-b934-5296-a2fb-2e328c439a06",
-		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56"
+		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// LPA s.32 para 3; WCA s.18(1): a work injury is not sick leave, and the Workmen's Compensation Fund pays while the employee cannot work.\n// LPA s.5: the fixed allowance is wage and goes with the days. proration_basis CALENDAR_DAYS: s.56(1) pays a month through its weekly holidays and s.68 counts it in days.\n// PAID so this line, not the salary basis, takes the days, and a reversal entry on this item pays them back.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// a rest day between two missed work days is not earned\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\n// A reversal gives back what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst days = calendar_distance_days(from, to) + 1;\nconst lost = Math.min(ctx.entry.quantity + rest, days);\nconst calendar = calendar_distance_days(month_start(from), month_end(from)) + 1;\nconst allowance = (Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0)) * lost) / calendar;\n// a day or hour rate pays the working day; only a salary follows the calendar\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity + allowance;\nreturn (Number(get(terms, 'rate.amount', 0)) * lost) / days + allowance;"
 	},
 	{
 		"code": "SUSPENSION",
 		"name": "Suspension pending investigation (at least 50% pay)",
 		"pay_treatment": "PAID",
 		"lookup": {
-			"paid_share": 0.5
+			"paid_share": 0.5,
+			"window": "EVENT",
+			"grant_days": 7
 		},
 		"references": [
 			{
@@ -286,6 +391,12 @@
 				"locator": "ss.116-117",
 				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf",
 				"quote": "Suspension pending an investigation is at most 7 days and paid at not less than 50 percent of the working-day wage; a cleared employee gets the full wage plus 15 percent a year interest."
+			},
+			{
+				"title": "Labour Protection Act B.E. 2541 (1998) s.116",
+				"locator": "s.116",
+				"url": "https://www.mol.go.th/wp-content/uploads/sites/2/1998/01/labour_protection_2541_new62.pdf",
+				"quote": "A suspension order runs no more than 7 days."
 			}
 		],
 		"subtotal_id": "ce9866cb-b5f9-5a75-96cf-f64d55e63baa",

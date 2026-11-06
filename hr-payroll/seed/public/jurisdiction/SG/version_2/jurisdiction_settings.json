@@ -472,7 +472,8 @@
 				"CDAC.employee",
 				"ECF.employee",
 				"MBMF.employee",
-				"SINDA.employee"
+				"SINDA.employee",
+				"CPF_AW.employer"
 			],
 			"rounding": "HALF_UP",
 			"rounding_scale": 2,

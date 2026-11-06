@@ -122,7 +122,7 @@
 		"target_collection": "leave_catalog_entry",
 		"events": ["create", "update", "approve"],
 		"order": 10,
-		"validate": "const catalog = ctx.reads.leave_catalog[0];\nif (catalog == null || catalog.code !== 'SICK_LEAVE') return true;\nconst used =\n  sum(\n    (ctx.reads.leave_catalog_entry ?? [])\n      .filter(\n        (e) =>\n          e.id !== ctx.entry.id &&\n          !e.is_reversal &&\n          e.catalog_id === ctx.entry.catalog_id,\n      )\n      .map((e) => (e.days ?? []).length / 2),\n  ) +\n  (ctx.entry.days ?? []).length / 2;\nif (used <= ctx.lookup.review_after_days) return true;\nconst contract = ctx.subject.employment;\nreturn get(get(contract, 'employee_extension_data', {}), 'medical_period_review', null) != null;",
+		"validate": "const catalog = ctx.reads.leave_catalog[0];\nif (catalog == null || catalog.code !== 'SICK_LEAVE') return true;\nconst used =\n  sum(\n    (ctx.reads.leave_catalog_entry ?? [])\n      .filter(\n        (e) =>\n          e.id !== get(ctx.entry, 'id', '') &&\n          !e.is_reversal &&\n          e.catalog_id === ctx.entry.catalog_id,\n      )\n      .map((e) => (e.days ?? []).length / 2),\n  ) +\n  (ctx.entry.days ?? []).length / 2;\nif (used <= ctx.lookup.review_after_days) return true;\nconst contract = ctx.subject.employment;\nreturn get(get(contract, 'employee_extension_data', {}), 'medical_period_review', null) != null;",
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -143,7 +143,7 @@
 						}
 					}
 				},
-				"fields": ["catalog_id", "days", "is_reversal", "status"],
+				"fields": ["catalog_id", "days", "is_reversal"],
 				"limit": 10000
 			},
 			"employee_contract": {
@@ -169,7 +169,7 @@
 		"target_collection": "leave_catalog_entry",
 		"events": ["create", "update", "approve"],
 		"order": 11,
-		"validate": "const catalog = ctx.reads.leave_catalog[0];\nif (catalog == null || catalog.code !== 'WORK_INJURY_LEAVE') return true;\nconst used =\n  sum(\n    (ctx.reads.leave_catalog_entry ?? [])\n      .filter(\n        (e) =>\n          e.id !== ctx.entry.id &&\n          !e.is_reversal &&\n          e.catalog_id === ctx.entry.catalog_id,\n      )\n      .map((e) => (e.days ?? []).length / 2),\n  ) +\n  (ctx.entry.days ?? []).length / 2;\nif (used <= ctx.lookup.maximum_days) return true;\nconst contract = ctx.subject.employment;\nreturn get(get(contract, 'employee_extension_data', {}), 'work_injury_leave_extension', null) != null;",
+		"validate": "const catalog = ctx.reads.leave_catalog[0];\nif (catalog == null || catalog.code !== 'WORK_INJURY_LEAVE') return true;\nconst used =\n  sum(\n    (ctx.reads.leave_catalog_entry ?? [])\n      .filter(\n        (e) =>\n          e.id !== get(ctx.entry, 'id', '') &&\n          !e.is_reversal &&\n          e.catalog_id === ctx.entry.catalog_id,\n      )\n      .map((e) => (e.days ?? []).length / 2),\n  ) +\n  (ctx.entry.days ?? []).length / 2;\nif (used <= ctx.lookup.maximum_days) return true;\nconst contract = ctx.subject.employment;\nreturn get(get(contract, 'employee_extension_data', {}), 'work_injury_leave_extension', null) != null;",
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -190,7 +190,7 @@
 						}
 					}
 				},
-				"fields": ["catalog_id", "days", "is_reversal", "status"],
+				"fields": ["catalog_id", "days", "is_reversal"],
 				"limit": 10000
 			},
 			"employee_contract": {
@@ -369,7 +369,7 @@
 		"events": ["create", "update"],
 		"order": 22,
 		"condition": "return get(ctx.entry.terms, 'probation_period', null) != null;",
-		"validate": "const from = ctx.entry.terms.probation_period.from;\nconst prior = (ctx.reads.employee_contract ?? []).filter(\n  (c) =>\n    c.id !== ctx.entry.id &&\n    c.status === 'SEALED' &&\n    get(c.terms, 'probation_period', null) != null,\n);\nreturn !prior.some((c) => c.terms.probation_period.from !== from);",
+		"validate": "const from = ctx.entry.terms.probation_period.from;\nconst prior = (ctx.reads.employee_contract ?? []).filter(\n  (c) =>\n    c.id !== get(ctx.entry, 'id', '') &&\n    c.status === 'SEALED' &&\n    get(c.terms, 'probation_period', null) != null,\n);\nreturn !prior.some((c) => c.terms.probation_period.from !== from);",
 		"reads": {
 			"employee_contract": {
 				"where": {
@@ -402,7 +402,7 @@
 		"events": ["create", "update"],
 		"order": 23,
 		"condition": "return ctx.entry.signed_contract_period != null;",
-		"validate": "const prior = (ctx.reads.employee_contract ?? []).filter(\n  (c) => c.id !== ctx.entry.id && c.status === 'SEALED',\n);\nconst earliest = prior\n  .map((c) => c.effective_range.from)\n  .concat([ctx.entry.effective_range.from])\n  .toSorted()[0];\nconst service = calendar_completed_months(earliest, ctx.entry.signed_contract_period.from);\nconst required =\n  service >= ctx.lookup.service_months ||\n  prior.filter((c) => c.signed_contract_period != null).length >=\n    ctx.lookup.prior_fixed_terms;\nif (!required) return true;\nreturn (ctx.reads.workplace_case_catalog_entry ?? []).some(\n  (c) =>\n    c.kind === 'FIXED_TERM_CONTRACT_REQUEST' &&\n    get(c, 'employment_id', null) === ctx.entry.id &&\n    c.opened_on <= get(c.inputs, 'signed_on', '') &&\n    get(c.inputs, 'contract_start', '') === ctx.entry.signed_contract_period.from &&\n    get(c.inputs, 'contract_end', '') === ctx.entry.signed_contract_period.to,\n);",
+		"validate": "const prior = (ctx.reads.employee_contract ?? []).filter(\n  (c) => c.id !== get(ctx.entry, 'id', '') && c.status === 'SEALED',\n);\nconst earliest = prior\n  .map((c) => c.effective_range.from)\n  .concat([ctx.entry.effective_range.from])\n  .toSorted()[0];\nconst service = calendar_completed_months(earliest, ctx.entry.signed_contract_period.from);\nconst required =\n  service >= ctx.lookup.service_months ||\n  prior.filter((c) => c.signed_contract_period != null).length >=\n    ctx.lookup.prior_fixed_terms;\nif (!required) return true;\nreturn (ctx.reads.workplace_case_catalog_entry ?? []).some(\n  (c) =>\n    c.kind === 'FIXED_TERM_CONTRACT_REQUEST' &&\n    get(c, 'employment_id', null) === get(ctx.entry, 'id', '') &&\n    c.opened_on <= get(c.inputs, 'signed_on', '') &&\n    get(c.inputs, 'contract_start', '') === ctx.entry.signed_contract_period.from &&\n    get(c.inputs, 'contract_end', '') === ctx.entry.signed_contract_period.to,\n);",
 		"reads": {
 			"employee_contract": {
 				"where": {
@@ -603,6 +603,72 @@
 		"validate": "// 劳动法 art.50: wages are paid at least monthly, so a pay date never falls over a month after the period it pays.\nreturn String(ctx.entry.pay_date) <= add_months(String(ctx.entry.salary_coverage.to), 1);",
 		"lookup": {},
 		"id": "48c6462c-e9e8-552c-950f-8765f929b5ff",
+		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+	},
+	{
+		"code": "NO_PAY_OPEN_PERIOD",
+		"target_collection": "leave_catalog_entry",
+		"events": ["create"],
+		"lookup": {
+			"no_pay": ["MATERNITY_LEAVE", "MATERNITY_EXTENSION", "UNPAID_LEAVE"]
+		},
+		"references": [
+			{
+				"title": "A no-pay entry or its reversal is dated in the period that will pay it. A correction to a period already paid is a reversal entry on the same catalog item, dated in the next period to run."
+			}
+		],
+		"reads": {
+			"leave_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["code"],
+				"limit": 1
+			},
+			"payroll_run": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"kind": {
+						"eq": "ON_CYCLE"
+					}
+				},
+				"fields": ["period"],
+				"limit": 10000
+			},
+			"leave_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					},
+					"catalog_id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					},
+					"payroll_run_id": {
+						"isNull": true
+					},
+					"is_reversal": {
+						"eq": false
+					}
+				},
+				"fields": ["days"],
+				"limit": 1000
+			}
+		},
+		"validate": "// js\n// A run prices only its own dates, so an entry dated in a period that has run would never reach a payslip.\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || !ctx.lookup.no_pay.includes(item.code)) return true;\nconst employer = ctx.subject.employer;\nconst cutoff = Number(get(employer, 'pay_cutoff_day', 1));\nconst halves = get(employer, 'payment_schedule.frequency', 'MONTHLY') === 'SEMI_MONTHLY';\nconst shifted = (month, by) => add_months(month + '-01', by).slice(0, 7);\nconst periodOf = (date) => {\n\tconst month = date.slice(0, 7);\n\tconst dayOf = Number(date.slice(8, 10));\n\tconst part = dayOf <= 15 ? 1 : 2;\n\tif (!halves) return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;\n\tif (cutoff <= 1) return month + '-' + part;\n\treturn part === 1 ? month + '-2' : shifted(month, 1) + '-1';\n};\n// A reversal gives back what has been paid. An entry still open has not been paid, so it is deleted instead.\nconst dates = ctx.entry.days.map((day) => day.date);\nif (get(ctx.entry, 'is_reversal', false) === true && ctx.reads.leave_catalog_entry.some((row) => row.days.some((day) => dates.includes(day.date))))\n\tthrow 'That day has not been paid yet. Delete the entry instead of reversing it.';\nconst ran = ctx.reads.payroll_run.map((run) => run.period);\nconst closed = ctx.entry.days.find((day) => ran.includes(periodOf(day.date)));\nif (closed != null)\n\tthrow closed.date + ' is in a period that has already run. Date this entry in the next period to run, and that run takes it.';\nreturn true;",
+		"order": 900,
+		"id": "7b0d21c1-84d9-5b05-91cf-38b904182706",
 		"settings_id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
 	}
 ]

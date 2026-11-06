@@ -30,7 +30,19 @@
 	const t = bolt.t;
 	const caseName = listedKindNames('case_kinds');
 	let enrolling = $state(false),
-		saving = $state(false);
+		saving = $state(false),
+		computing = $state(false);
+	/** Safe to press at any time: it writes only what differs from what is already applied. */
+	const computeLeave = () => {
+		if (record === null) return;
+		computing = true;
+		fork(
+			bolt.start('leave_entitlement', { employees: [record.id] }).pipe(
+				Effect.tap(() => Effect.sync(() => toast.success(t('app.leave.computing')))),
+				Effect.ensuring(Effect.sync(() => (computing = false)))
+			)
+		);
+	};
 	function status(value: 'APPROVED' | 'NONE' | 'SUSPENDED') {
 		if (record === null || saving) return;
 		const id = record.id;
@@ -168,13 +180,19 @@
 			>{/if}{/if}{/snippet}
 {#snippet leavesTab()}{#if record}{#if contractIds.length === 0}<EmptyState
 				title={t('app.leave.title')}
-			/>{:else}<Table
-				of="leave_catalog_entry"
-				key="person-leave"
-				where={{ employment_id: { in: contractIds } }}
-				toolbar={{ new: false, title: t('app.leave.title') }}
-				columns={['catalog_id', 'days', 'payroll_run_id']}
-			/>{/if}{/if}{/snippet}
+			/>{:else}<Stack gap="md"
+				><Cluster justify="end"
+					><Button variant="outline" disabled={computing} onclick={computeLeave}
+						>{t('app.leave.compute')}</Button
+					></Cluster
+				><Table
+					of="leave_catalog_entry"
+					key="person-leave"
+					where={{ employment_id: { in: contractIds } }}
+					toolbar={{ new: false, title: t('app.leave.title') }}
+					columns={['catalog_id', 'days', 'payroll_run_id']}
+				/></Stack
+			>{/if}{/if}{/snippet}
 {#snippet finances()}{#if record}<Stack gap="lg"
 			><Table
 				of="employee_balance"

@@ -401,6 +401,8 @@ export default model('employee_contract', {
 				yield* ctx.act.checked([
 					{ callable: 'employee_balance.create', input: [...missing.values()] }
 				]);
+			// after the balance exists: the service writes to it
+			yield* ctx.schedule('leave_entitlement', { employees: [...ids] });
 			yield* tap(
 				ctx,
 				'create',
@@ -592,6 +594,11 @@ export default model('employee_contract', {
 					}
 				]);
 			}
+			const sealed = changes.filter(({ after }) => after.status === 'SEALED');
+			if (sealed.length > 0)
+				yield* ctx.schedule('leave_entitlement', {
+					employees: [...new Set(sealed.map(({ after }) => after.employee_id))]
+				});
 			yield* tap(
 				ctx,
 				'update',

@@ -204,6 +204,10 @@
 						"EMPLOYER"
 					]
 				},
+				"prorate": {
+					"default": false,
+					"kind": "bool"
+				},
 				"references": {
 					"kind": "custom",
 					"of": "references",

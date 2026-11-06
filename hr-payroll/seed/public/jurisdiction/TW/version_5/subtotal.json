@@ -49,9 +49,16 @@
 		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
 	},
 	{
+		"code": "BASIC_AFTER_UNPAID_LEAVE",
+		"name": "Basic salary after no-pay days (無薪假後)",
+		"previous_id": "850b7311-f5bf-423a-bc35-b0f90c75ff9b",
+		"id": "3ef8f2fb-f491-45ec-bb8b-c7af85221e0d",
+		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
+	},
+	{
 		"code": "SALARY_INCOME",
 		"name": "Salary income (薪資所得)",
-		"previous_id": "850b7311-f5bf-423a-bc35-b0f90c75ff9b",
+		"previous_id": "3ef8f2fb-f491-45ec-bb8b-c7af85221e0d",
 		"id": "9360f4c5-fa5d-4958-a32d-2e1bb0272574",
 		"settings_id": "82a48769-8ded-5f5a-a716-6de735b595f6"
 	}

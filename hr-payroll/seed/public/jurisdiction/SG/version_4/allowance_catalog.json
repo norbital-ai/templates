@@ -2,9 +2,7 @@
 	{
 		"code": "FIXED_MONTHLY",
 		"name": "Fixed monthly allowance",
-		"lookup": {
-			"prorate": true
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "CPF Act 1953 s.2(1) and First Schedule — a fixed monthly allowance is an Ordinary Wage",
@@ -21,7 +19,8 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "70761012-b673-59af-ad42-0c5fcb8b6a5e",
-		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
+		"prorate": true
 	},
 	{
 		"code": "PT_ANNUAL_HOURLY_AW",

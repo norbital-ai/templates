@@ -37,7 +37,6 @@
 				}
 			],
 			"service_offset_months": 6,
-			"carry_windows": 1,
 			"attendance_ratio": 0.8,
 			"full_time_weekly_hours": 30,
 			"full_time_days_per_week": 5,
@@ -201,13 +200,21 @@
 					"normal_days_per_year": 169,
 					"days": 4
 				}
-			]
+			],
+			"window": "SERVICE_YEAR",
+			"carry": {
+				"windows": 1
+			}
 		},
 		"references": [
 			{
 				"title": "Automatic statutory grant from complete attendance and grant-date schedule",
 				"url": "https://www.startup-roudou.mhlw.go.jp/qa/zigyonushi/yukyu/q1.html",
 				"quote": "The entire preceding six months/annual grant window is counted. Initial absences are retained, work and whole-day deemed attendance count once, full substitute leave and legally excluded shutdown days leave the denominator. A public holiday scheduled as work remains a working day. Missing or ambiguous evidence refuses rather than accepting a final reviewed grant."
+			},
+			{
+				"title": "労働基準法 art.39(1)–(2): 10 working days after six months’ continuous service, then 11, 12, 14, 16, 18 and 20 from six years six months. art.115: the right lapses two years after it arises, so only the previous year’s unused days carry (厚生労働省 Q&A).",
+				"url": "https://www.check-roudou.mhlw.go.jp/qa/roudousya/yukyu/q6.html"
 			}
 		],
 		"id": "2438b063-fe34-56b2-a35a-baa574f0abdc",
@@ -216,13 +223,14 @@
 	{
 		"code": "PRENATAL_LEAVE",
 		"name": "産前休業 (prenatal leave)",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "e8624935-bf18-5f88-a175-c0ddac0217fe",
 		"off_cycle_eligible": false,
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
 		"lookup": {
 			"days": 42,
-			"multiple_pregnancy_days": 98
+			"multiple_pregnancy_days": 98,
+			"no_cap": true
 		},
 		"references": [
 			{
@@ -230,17 +238,21 @@
 			}
 		],
 		"id": "b18f0a02-4eb2-5beb-920f-081ca999950e",
-		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// 民法 art.624: no work, no wage. 労働基準法 arts.24, 89(ii) leave the unit to the work rules: the month's pay and fixed allowance ÷ the scheduled working days × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// 労働基準法 art.24(1): a reversal gives back in full what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nif (days === 0) return 0;\nconst taken = Math.min(ctx.entry.quantity, days);\nconst kept = (pay) => round((pay * (days - taken)) / days, 1, 'HALF_UP');\nconst salary = Number(get(terms, 'rate.amount', 0));\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn salary + fixed - kept(salary) - kept(fixed);"
 	},
 	{
 		"code": "POSTNATAL_LEAVE",
 		"name": "産後休業 (postnatal leave)",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "e8624935-bf18-5f88-a175-c0ddac0217fe",
 		"off_cycle_eligible": false,
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
 		"lookup": {
-			"days": 56
+			"days": 56,
+			"no_cap": true
 		},
 		"references": [
 			{
@@ -248,13 +260,16 @@
 			}
 		],
 		"id": "cabef6cf-22e0-558d-896e-948d9eba3a99",
-		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// 民法 art.624: no work, no wage. 労働基準法 arts.24, 89(ii) leave the unit to the work rules: the month's pay and fixed allowance ÷ the scheduled working days × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// 労働基準法 art.24(1): a reversal gives back in full what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nif (days === 0) return 0;\nconst taken = Math.min(ctx.entry.quantity, days);\nconst kept = (pay) => round((pay * (days - taken)) / days, 1, 'HALF_UP');\nconst salary = Number(get(terms, 'rate.amount', 0));\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn salary + fixed - kept(salary) - kept(fixed);"
 	},
 	{
 		"code": "CHILDCARE_LEAVE",
 		"name": "育児休業 (childcare leave)",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "e8624935-bf18-5f88-a175-c0ddac0217fe",
 		"off_cycle_eligible": false,
 		"references": [
 			{
@@ -262,16 +277,23 @@
 			}
 		],
 		"id": "13b3f95c-a324-511d-9b08-2749192c7902",
-		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// 民法 art.624: no work, no wage. 労働基準法 arts.24, 89(ii) leave the unit to the work rules: the month's pay and fixed allowance ÷ the scheduled working days × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// 労働基準法 art.24(1): a reversal gives back in full what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nif (days === 0) return 0;\nconst taken = Math.min(ctx.entry.quantity, days);\nconst kept = (pay) => round((pay * (days - taken)) / days, 1, 'HALF_UP');\nconst salary = Number(get(terms, 'rate.amount', 0));\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn salary + fixed - kept(salary) - kept(fixed);",
+		"lookup": {
+			"no_cap": true
+		}
 	},
 	{
 		"code": "POSTNATAL_PATERNITY_LEAVE",
 		"name": "出生時育児休業 (産後パパ育休)",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "e8624935-bf18-5f88-a175-c0ddac0217fe",
 		"off_cycle_eligible": false,
 		"lookup": {
-			"days": 28
+			"days": 28,
+			"no_cap": true
 		},
 		"references": [
 			{
@@ -279,16 +301,20 @@
 			}
 		],
 		"id": "65f528bf-de37-5b17-8efa-3ab176d4cb3d",
-		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// 民法 art.624: no work, no wage. 労働基準法 arts.24, 89(ii) leave the unit to the work rules: the month's pay and fixed allowance ÷ the scheduled working days × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// 労働基準法 art.24(1): a reversal gives back in full what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nif (days === 0) return 0;\nconst taken = Math.min(ctx.entry.quantity, days);\nconst kept = (pay) => round((pay * (days - taken)) / days, 1, 'HALF_UP');\nconst salary = Number(get(terms, 'rate.amount', 0));\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn salary + fixed - kept(salary) - kept(fixed);"
 	},
 	{
 		"code": "FAMILY_CARE_LEAVE",
 		"name": "介護休業 (family care leave)",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "e8624935-bf18-5f88-a175-c0ddac0217fe",
 		"off_cycle_eligible": false,
 		"lookup": {
-			"days": 93
+			"days": 93,
+			"no_cap": true
 		},
 		"references": [
 			{
@@ -296,19 +322,23 @@
 			}
 		],
 		"id": "e3966c22-8ccb-5805-909d-23b3df4949ff",
-		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// 民法 art.624: no work, no wage. 労働基準法 arts.24, 89(ii) leave the unit to the work rules: the month's pay and fixed allowance ÷ the scheduled working days × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// 労働基準法 art.24(1): a reversal gives back in full what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nif (days === 0) return 0;\nconst taken = Math.min(ctx.entry.quantity, days);\nconst kept = (pay) => round((pay * (days - taken)) / days, 1, 'HALF_UP');\nconst salary = Number(get(terms, 'rate.amount', 0));\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn salary + fixed - kept(salary) - kept(fixed);"
 	},
 	{
 		"code": "CHILD_NURSING_LEAVE",
 		"name": "子の看護等休暇 (child nursing leave)",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "e8624935-bf18-5f88-a175-c0ddac0217fe",
 		"off_cycle_eligible": false,
 		"lookup": {
 			"days_one_child": 5,
 			"days_two_or_more": 10,
 			"school_age_limit_years": 9,
-			"fiscal_year_start_month": 4
+			"fiscal_year_start_month": 4,
+			"no_cap": true
 		},
 		"references": [
 			{
@@ -316,18 +346,22 @@
 			}
 		],
 		"id": "26e8b2b7-c644-5bda-9ed1-13abca7349e4",
-		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// 民法 art.624: no work, no wage. 労働基準法 arts.24, 89(ii) leave the unit to the work rules: the month's pay and fixed allowance ÷ the scheduled working days × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// 労働基準法 art.24(1): a reversal gives back in full what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nif (days === 0) return 0;\nconst taken = Math.min(ctx.entry.quantity, days);\nconst kept = (pay) => round((pay * (days - taken)) / days, 1, 'HALF_UP');\nconst salary = Number(get(terms, 'rate.amount', 0));\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn salary + fixed - kept(salary) - kept(fixed);"
 	},
 	{
 		"code": "FAMILY_CARE_DAYS",
 		"name": "介護休暇 (family care days)",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "e8624935-bf18-5f88-a175-c0ddac0217fe",
 		"off_cycle_eligible": false,
 		"lookup": {
 			"days_one_recipient": 5,
 			"days_two_or_more": 10,
-			"recipient_threshold": 2
+			"recipient_threshold": 2,
+			"no_cap": true
 		},
 		"references": [
 			{
@@ -335,13 +369,16 @@
 			}
 		],
 		"id": "51c28cf8-ac9d-5f7b-b5bd-760479f20f91",
-		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// 民法 art.624: no work, no wage. 労働基準法 arts.24, 89(ii) leave the unit to the work rules: the month's pay and fixed allowance ÷ the scheduled working days × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// 労働基準法 art.24(1): a reversal gives back in full what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nif (days === 0) return 0;\nconst taken = Math.min(ctx.entry.quantity, days);\nconst kept = (pay) => round((pay * (days - taken)) / days, 1, 'HALF_UP');\nconst salary = Number(get(terms, 'rate.amount', 0));\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn salary + fixed - kept(salary) - kept(fixed);"
 	},
 	{
 		"code": "MENSTRUAL_LEAVE",
 		"name": "生理休暇 (menstrual leave)",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "e8624935-bf18-5f88-a175-c0ddac0217fe",
 		"off_cycle_eligible": false,
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
 		"references": [
@@ -350,13 +387,19 @@
 			}
 		],
 		"id": "ad8e30b8-2d84-57fb-8f2f-bef0f773fd96",
-		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// 民法 art.624: no work, no wage. 労働基準法 arts.24, 89(ii) leave the unit to the work rules: the month's pay and fixed allowance ÷ the scheduled working days × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// 労働基準法 art.24(1): a reversal gives back in full what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nif (days === 0) return 0;\nconst taken = Math.min(ctx.entry.quantity, days);\nconst kept = (pay) => round((pay * (days - taken)) / days, 1, 'HALF_UP');\nconst salary = Number(get(terms, 'rate.amount', 0));\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn salary + fixed - kept(salary) - kept(fixed);",
+		"lookup": {
+			"no_cap": true
+		}
 	},
 	{
 		"code": "CIVIC_DUTY_LEAVE",
 		"name": "公民権行使の時間 (civic duty time off)",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "e8624935-bf18-5f88-a175-c0ddac0217fe",
 		"off_cycle_eligible": false,
 		"references": [
 			{
@@ -364,13 +407,19 @@
 			}
 		],
 		"id": "3bb6badf-f7db-5dd9-9587-12b7e1a60de7",
-		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// 民法 art.624: no work, no wage. 労働基準法 arts.24, 89(ii) leave the unit to the work rules: the month's pay and fixed allowance ÷ the scheduled working days × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// 労働基準法 art.24(1): a reversal gives back in full what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nif (days === 0) return 0;\nconst taken = Math.min(ctx.entry.quantity, days);\nconst kept = (pay) => round((pay * (days - taken)) / days, 1, 'HALF_UP');\nconst salary = Number(get(terms, 'rate.amount', 0));\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn salary + fixed - kept(salary) - kept(fixed);",
+		"lookup": {
+			"no_cap": true
+		}
 	},
 	{
 		"code": "SICKNESS_ABSENCE",
 		"name": "私傷病欠勤 (sickness absence)",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "e8624935-bf18-5f88-a175-c0ddac0217fe",
 		"off_cycle_eligible": false,
 		"references": [
 			{
@@ -378,13 +427,19 @@
 			}
 		],
 		"id": "9d768d6e-4565-59ec-ac41-6ae0ec05e412",
-		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// 民法 art.624: no work, no wage. 労働基準法 arts.24, 89(ii) leave the unit to the work rules: the month's pay and fixed allowance ÷ the scheduled working days × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// 労働基準法 art.24(1): a reversal gives back in full what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nif (days === 0) return 0;\nconst taken = Math.min(ctx.entry.quantity, days);\nconst kept = (pay) => round((pay * (days - taken)) / days, 1, 'HALF_UP');\nconst salary = Number(get(terms, 'rate.amount', 0));\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn salary + fixed - kept(salary) - kept(fixed);",
+		"lookup": {
+			"no_cap": true
+		}
 	},
 	{
 		"code": "OCCUPATIONAL_INJURY_ABSENCE",
 		"name": "業務災害による休業 (occupational injury absence)",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "e8624935-bf18-5f88-a175-c0ddac0217fe",
 		"off_cycle_eligible": false,
 		"references": [
 			{
@@ -392,13 +447,19 @@
 			}
 		],
 		"id": "a6779b5b-62ca-579a-acc3-f2a502382352",
-		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// 民法 art.624: no work, no wage. 労働基準法 arts.24, 89(ii) leave the unit to the work rules: the month's pay and fixed allowance ÷ the scheduled working days × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// 労働基準法 art.24(1): a reversal gives back in full what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nif (days === 0) return 0;\nconst taken = Math.min(ctx.entry.quantity, days);\nconst kept = (pay) => round((pay * (days - taken)) / days, 1, 'HALF_UP');\nconst salary = Number(get(terms, 'rate.amount', 0));\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn salary + fixed - kept(salary) - kept(fixed);",
+		"lookup": {
+			"no_cap": true
+		}
 	},
 	{
 		"code": "UNPAID_LEAVE",
 		"name": "無給休暇・欠勤 (unpaid leave)",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "e8624935-bf18-5f88-a175-c0ddac0217fe",
 		"off_cycle_eligible": false,
 		"references": [
 			{
@@ -406,7 +467,13 @@
 			}
 		],
 		"id": "3423d54b-ee55-50ec-bc23-5fd1f341912e",
-		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// 民法 art.624: no work, no wage. 労働基準法 arts.24, 89(ii) leave the unit to the work rules: the month's pay and fixed allowance ÷ the scheduled working days × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// 労働基準法 art.24(1): a reversal gives back in full what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nif (days === 0) return 0;\nconst taken = Math.min(ctx.entry.quantity, days);\nconst kept = (pay) => round((pay * (days - taken)) / days, 1, 'HALF_UP');\nconst salary = Number(get(terms, 'rate.amount', 0));\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn salary + fixed - kept(salary) - kept(fixed);",
+		"lookup": {
+			"no_cap": true
+		}
 	},
 	{
 		"code": "ANNUAL_LEAVE_HOURS",
@@ -430,8 +497,8 @@
 	{
 		"code": "NURSING_TIME",
 		"name": "育児時間 (nursing time)",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "e8624935-bf18-5f88-a175-c0ddac0217fe",
 		"off_cycle_eligible": false,
 		"references": [
 			{
@@ -439,13 +506,19 @@
 			}
 		],
 		"id": "d415a52b-29f4-58fa-bd13-055ce442404e",
-		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// 民法 art.624: no work, no wage. 労働基準法 arts.24, 89(ii) leave the unit to the work rules: the month's pay and fixed allowance ÷ the scheduled working days × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// 労働基準法 art.24(1): a reversal gives back in full what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nif (days === 0) return 0;\nconst taken = Math.min(ctx.entry.quantity, days);\nconst kept = (pay) => round((pay * (days - taken)) / days, 1, 'HALF_UP');\nconst salary = Number(get(terms, 'rate.amount', 0));\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn salary + fixed - kept(salary) - kept(fixed);",
+		"lookup": {
+			"no_cap": true
+		}
 	},
 	{
 		"code": "MATERNAL_HEALTH_CHECK",
 		"name": "妊産婦の保健指導・健康診査 (prenatal and postnatal health checks)",
-		"pay_treatment": "UNPAID",
-		"subtotal_id": null,
+		"pay_treatment": "PAID",
+		"subtotal_id": "e8624935-bf18-5f88-a175-c0ddac0217fe",
 		"off_cycle_eligible": false,
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE';",
 		"references": [
@@ -454,7 +527,13 @@
 			}
 		],
 		"id": "edd426e2-f974-5351-b90a-e57d22bf07ce",
-		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"conversion": "// js\n// 民法 art.624: no work, no wage. 労働基準法 arts.24, 89(ii) leave the unit to the work rules: the month's pay and fixed allowance ÷ the scheduled working days × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\n// The contract's working week answers where no roster does.\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\n// 労働基準法 art.24(1): a reversal gives back in full what the month before took, on that month's days.\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nif (days === 0) return 0;\nconst taken = Math.min(ctx.entry.quantity, days);\nconst kept = (pay) => round((pay * (days - taken)) / days, 1, 'HALF_UP');\nconst salary = Number(get(terms, 'rate.amount', 0));\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn salary + fixed - kept(salary) - kept(fixed);",
+		"lookup": {
+			"no_cap": true
+		}
 	},
 	{
 		"code": "SUBSTITUTE_LEAVE_FOR_OVERTIME",

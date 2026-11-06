@@ -13,17 +13,18 @@ const CONTRACT = idOf('employee_contract', uuid(6));
 const NOW = '2026-06-20T02:00:00.000Z';
 const terms = (
 	allowances: Record<string, { readonly amount: number; readonly variability?: string }> = {}
-) => ({
-	rate: { amount: 3120, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 40,
-	normal_days_per_week: 5,
-	statutory_work_category: 'MANUAL_LABOUR',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances
-});
+) =>
+	({
+		rate: { amount: 3120, unit: 'MONTHLY' },
+		normal_hours_per_day: 8,
+		normal_hours_per_week: 40,
+		normal_days_per_week: 5,
+		statutory_work_category: 'MANUAL_LABOUR',
+		work_classification: 'EA_COVERED',
+		residency_status: 'CITIZEN',
+		wage_payment_method: 'BANK',
+		allowances
+	}) as const;
 type Seed = ReturnType<typeof pack>;
 const malaysia = (allowances = {}): Seed => {
 	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(allowances), {}, [], [], '2026-06-15');
@@ -108,16 +109,19 @@ describe('a no-pay day', () => {
 		}).pipe(Effect.provide(inMonth(seed)));
 	});
 
-	it.live('reversed before the run, the month is whole', () => {
+	it.live('an entry not yet paid is deleted, not reversed', () => {
 		const seed = malaysia();
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* entry(t, seed, whole('2026-06-10'));
-			yield* entry(t, seed, whole('2026-06-10'), true);
+			const refused = yield* Effect.flip(entry(t, seed, whole('2026-06-10'), true));
+			assert.match(String(refused), /not been paid yet/);
+			const [open] = (yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } }))
+				.leave_catalog_entry.rows;
+			assert.ok(open !== undefined);
+			yield* t.as(t.admin).act('leave_catalog_entry.delete', [{ target: open.id }]);
 			yield* run(t, '2026-06');
-			const [slip] = (yield* t.storedQuery({ payslip: { limit: 1 } })).payslip.rows;
-			const { checkpoints } = Schema.decodeUnknownSync(PayslipBreakdown)(slip?.breakdown);
-			assert.equal(checkpoints.find((row) => row.code === 'REGULAR_PAY')?.value, 3120);
+			assert.deepEqual(yield* paid(t, '2026-06'), { BASIC: 3120 });
 		}).pipe(Effect.provide(inMonth(seed)));
 	});
 
@@ -129,7 +133,8 @@ describe('a no-pay day', () => {
 			yield* run(t, '2026-06');
 			yield* entry(t, seed, whole('2026-07-06'), true);
 			yield* run(t, '2026-07');
-			assert.ok(Math.abs(((yield* paid(t, '2026-07'))['UNPAID_LEAVE'] ?? 0) - 3120 / 31) < 0.01);
+			// June took a thirtieth; July gives back the same, though it has 31 days
+			assert.equal((yield* paid(t, '2026-07'))['UNPAID_LEAVE'], 104);
 			yield* run(t, '2026-08');
 			assert.equal((yield* paid(t, '2026-08'))['UNPAID_LEAVE'], undefined);
 		}).pipe(Effect.provide(inMonth(seed, '2026-07-20T02:00:00.000Z')));

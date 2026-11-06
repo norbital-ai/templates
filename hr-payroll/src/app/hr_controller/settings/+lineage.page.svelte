@@ -26,6 +26,7 @@
 	import CalculationOverview from './calculation_overview.svelte';
 	import CatalogTabs from './catalog_tabs.svelte';
 	import VersionCompare from './version_compare.svelte';
+	import SettingsForm from '../../../lib/ui/settings/settings_form.svelte';
 	const all = jurisdictionVersions();
 	let chosen = $state<Id<'jurisdiction_settings'> | null>(null);
 	const scope = $derived(
@@ -126,10 +127,9 @@
 	</button>
 {/snippet}
 
-{#snippet general()}{#if version}<RecordShell
-			of="jurisdiction_settings"
-			id={version.id}
-		/>{/if}{/snippet}
+{#snippet general()}{#if version}<RecordShell of="jurisdiction_settings" id={version.id}>
+			{#snippet children(view)}<SettingsForm {view} />{/snippet}
+		</RecordShell>{/if}{/snippet}
 
 {#snippet overview()}{#if version}<CalculationOverview versionId={version.id} />{/if}{/snippet}
 

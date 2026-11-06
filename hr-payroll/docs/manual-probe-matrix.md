@@ -393,3 +393,19 @@ Build `8790bec0e478` (schema `3d2a3d966642`), 90 unit tests.
 | Duplicated row       | the older contract closes before its change                        | IMP001 2026-02-01..2026-07-31 at 3,001, then 2026-08-01.. at 3,501                                             | PASS   |
 | Second upload        | nothing new                                                        | still 2 entities, 60 people, 70 contracts; no failed runs                                                      | PASS   |
 | Dropdowns in Numbers | enums stay selectors                                               | opened via AppleScript: enum cells report `pop up menu`; cells that pick from another sheet report `automatic` | PASS   |
+
+## 15. Corrections across cycles — 2026-11-06
+
+| Probe                                   | Expected                                                   | Actual                                                                            |
+| --------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Roster import, 82 people                | all rows, a progress notice, no stuck notice               | 76 written in 13 s; a run cut short by a tenant restart picks up on the same file |
+| Settings form, sealed                   | single fields, then tables, then schemas; day rate as code | sections in that order, tables and schemas folded, day rate in a code block       |
+| Settings form, draft                    | edit and save one lookup value                             | `rounding_scale` 2 → 3 as a number; every other key unchanged                     |
+| New no-pay entry, seeded person         | accepted, no grant needed, no day count shown              | form lists the no-pay rows; balance 36,500 → 36,499                               |
+| November run with that entry            | the line takes the day                                     | 82 slips; `UNPAID_LEAVE` DEDUCT 57.47                                             |
+| Reversal dated in November after it ran | refused, says why                                          | refused: "in a period that has already run"                                       |
+| Reversal dated in December              | December gives back what November took                     | `UNPAID_LEAVE` ADD 57.47, though December has 31 days                             |
+| Existing staff after reset              | every leave type computed from the catalog                 | medical 18 and hospitalisation 60 by service band; annual kept at its seeded 12   |
+| Two days of medical leave               | the balance moves, one ledger row                          | 18 → 16; one `DEDUCT`                                                             |
+| Contract change                         | that person recomputed, nothing repeated                   | balance revision unchanged; days taken stay taken                                 |
+| Compute leave on the profile            | runs for that person; a repeat writes nothing              | notice shown; no ledger row, revision unchanged                                   |

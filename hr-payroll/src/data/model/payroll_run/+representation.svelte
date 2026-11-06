@@ -14,6 +14,8 @@
 	} from '@norbital-ai/ui';
 	import { downloadSalaryListing } from '../../../lib/export_format_configuration/salary_listing_export.js';
 	import { PayslipBreakdown } from '../../../lib/payroll_engine/payslip_breakdown.js';
+	import { paidOn } from '../../../lib/ui/format/calendar.js';
+	import { entityTimeZone } from '../../../lib/ui/scopes/create_scope.js';
 	let { view }: { view: RecordView<'payroll_run'> } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	let downloading = $state(false);
@@ -57,7 +59,7 @@
 					entity: { where: { id: { eq: record.entity_id } }, fields: ['name'], limit: 1 },
 					jurisdiction_settings: {
 						where: { id: { eq: record.settings_id } },
-						fields: ['currency'],
+						fields: ['currency', 'timezone'],
 						limit: 1
 					}
 				})
@@ -121,7 +123,10 @@
 				runKind: String(record.kind ?? 'ON_CYCLE'),
 				payDate:
 					record.state === 'PAID'
-						? new Date(String(record.updated_at)).toLocaleDateString('en-CA')
+						? paidOn(
+								record.updated_at,
+								entityTimeZone(null, context?.current?.jurisdiction_settings.rows[0])
+							)
 						: '',
 				runReference: String(record.run_number ?? record.id),
 				rows

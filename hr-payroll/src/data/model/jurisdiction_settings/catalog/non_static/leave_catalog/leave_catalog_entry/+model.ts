@@ -133,21 +133,52 @@ export default model('leave_catalog_entry', {
 				'leave',
 				rows.map((row) => jsonObject(row))
 			);
+			// an entry reaches its version's registered effects through the catalog row it was raised on
+			const versions = yield* ctx.query({
+				leave_catalog: {
+					where: { id: { in: rows.map((row) => row.catalog_id) } },
+					fields: ['settings_id'],
+					limit: 10000
+				}
+			});
+			const settingsOf = new Map(
+				versions.leave_catalog.rows.map((row) => [row.id, row.settings_id])
+			);
 			yield* tap(
 				ctx,
 				'create',
 				{ collection: 'leave_catalog_entry', ids: rows.map((row) => row.id) },
-				rows.map((after) => ({ after }))
+				rows.map((after) => ({
+					after: { ...after, settings_id: settingsOf.get(after.catalog_id) }
+				}))
 			);
 		},
 		updated: function* (changes, ctx) {
 			const posted = reconciliation(changes);
 			if (posted.length > 0) yield* postApproval(ctx, 'leave', posted);
+			// sealing into a run is not an edit of the entry
+			const edited = changes.filter(
+				({ before, after }) => before.payroll_run_id === after.payroll_run_id
+			);
+			if (edited.length === 0) return;
+			const versions = yield* ctx.query({
+				leave_catalog: {
+					where: { id: { in: edited.map(({ after }) => after.catalog_id) } },
+					fields: ['settings_id'],
+					limit: 10000
+				}
+			});
+			const settingsOf = new Map(
+				versions.leave_catalog.rows.map((row) => [row.id, row.settings_id])
+			);
 			yield* tap(
 				ctx,
 				'update',
-				{ collection: 'leave_catalog_entry', ids: changes.map((change) => change.after.id) },
-				changes
+				{ collection: 'leave_catalog_entry', ids: edited.map((change) => change.after.id) },
+				edited.map((change) => ({
+					...change,
+					after: { ...change.after, settings_id: settingsOf.get(change.after.catalog_id) }
+				}))
 			);
 		},
 		deleted: function* (rows, ctx) {

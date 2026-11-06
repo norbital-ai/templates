@@ -2,9 +2,7 @@
 	{
 		"code": "CAR_ALLOWANCE",
 		"name": "Car allowance",
-		"lookup": {
-			"prorate": true
-		},
+		"lookup": {},
 		"off_cycle_eligible": false,
 		"subtotal_id": "7522be16-e31f-539d-8d13-6e3053c85f33",
 		"eligibility": "// js\nconst agreed = get(ctx.subject.employment.terms, 'allowances.CAR_ALLOWANCE', null);\nreturn agreed != null && get(agreed, 'variability', null) !== 'VARIABLE';",
@@ -22,14 +20,13 @@
 				"quote": "Komponen Upah ditetapkan dalam Perjanjian Kerja, Peraturan Perusahaan, atau Perjanjian Kerja Bersama.",
 				"effective_from": "2021-02-02"
 			}
-		]
+		],
+		"prorate": true
 	},
 	{
 		"code": "HOUSE_ALLOWANCE",
 		"name": "House allowance",
-		"lookup": {
-			"prorate": true
-		},
+		"lookup": {},
 		"off_cycle_eligible": false,
 		"subtotal_id": "7522be16-e31f-539d-8d13-6e3053c85f33",
 		"eligibility": "// js\nconst agreed = get(ctx.subject.employment.terms, 'allowances.HOUSE_ALLOWANCE', null);\nreturn agreed != null && get(agreed, 'variability', null) !== 'VARIABLE';",
@@ -47,14 +44,13 @@
 				"quote": "Komponen Upah ditetapkan dalam Perjanjian Kerja, Peraturan Perusahaan, atau Perjanjian Kerja Bersama.",
 				"effective_from": "2021-02-02"
 			}
-		]
+		],
+		"prorate": true
 	},
 	{
 		"code": "SPECIAL_ALLOWANCE",
 		"name": "Special allowance",
-		"lookup": {
-			"prorate": true
-		},
+		"lookup": {},
 		"off_cycle_eligible": false,
 		"subtotal_id": "7522be16-e31f-539d-8d13-6e3053c85f33",
 		"eligibility": "// js\nconst agreed = get(ctx.subject.employment.terms, 'allowances.SPECIAL_ALLOWANCE', null);\nreturn agreed != null && get(agreed, 'variability', null) !== 'VARIABLE';",
@@ -72,6 +68,7 @@
 				"quote": "Komponen Upah ditetapkan dalam Perjanjian Kerja, Peraturan Perusahaan, atau Perjanjian Kerja Bersama.",
 				"effective_from": "2021-02-02"
 			}
-		]
+		],
+		"prorate": true
 	}
 ]

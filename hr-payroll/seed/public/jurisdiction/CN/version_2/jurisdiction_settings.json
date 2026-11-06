@@ -788,7 +788,8 @@
 					"rate": 0.45,
 					"quick": 15160
 				}
-			]
+			],
+			"month_balance": ["BASIC", "ADDITIONAL_WAGES", "FOREIGN_ALLOWANCES", "IIT.employee"]
 		},
 		"status": "SEALED",
 		"id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"

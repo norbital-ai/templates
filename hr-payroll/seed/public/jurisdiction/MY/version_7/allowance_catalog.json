@@ -3,8 +3,7 @@
 		"code": "CHILDCARE_ALLOWANCE",
 		"name": "Child care allowance (children aged 12 and under)",
 		"lookup": {
-			"allowance": "CHILDCARE_ALLOWANCE",
-			"prorate": true
+			"allowance": "CHILDCARE_ALLOWANCE"
 		},
 		"references": [
 			{
@@ -19,14 +18,14 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "644a6916-b721-5342-8d29-2e27707ec52f",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"prorate": true
 	},
 	{
 		"code": "MEAL_ALLOWANCE",
 		"name": "Meal allowance (regular, same rate for all)",
 		"lookup": {
-			"allowance": "MEAL_ALLOWANCE",
-			"prorate": true
+			"allowance": "MEAL_ALLOWANCE"
 		},
 		"references": [
 			{
@@ -41,14 +40,14 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "4112b555-a41b-5df3-8574-1ff936d48d55",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"prorate": true
 	},
 	{
 		"code": "ONCALL",
 		"name": "On-call allowance",
 		"lookup": {
-			"allowance": "ONCALL",
-			"prorate": true
+			"allowance": "ONCALL"
 		},
 		"references": [
 			{
@@ -64,14 +63,14 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "20312666-aa80-50f0-b2fe-5a427c8bd3d4",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"prorate": true
 	},
 	{
 		"code": "PARKING_ALLOWANCE",
 		"name": "Parking allowance",
 		"lookup": {
-			"allowance": "PARKING_ALLOWANCE",
-			"prorate": true
+			"allowance": "PARKING_ALLOWANCE"
 		},
 		"references": [
 			{
@@ -86,14 +85,14 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "ad3e1aaa-657d-5335-9634-cbfb06d11de1",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"prorate": true
 	},
 	{
 		"code": "SUA",
 		"name": "Scale-up allowance",
 		"lookup": {
-			"allowance": "SUA",
-			"prorate": true
+			"allowance": "SUA"
 		},
 		"references": [
 			{
@@ -108,6 +107,7 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "3a71f236-a421-5630-93cd-df4cc1679b94",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"prorate": true
 	}
 ]
