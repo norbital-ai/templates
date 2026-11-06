@@ -8514,5 +8514,40 @@
 		"order": 900,
 		"id": "a44397b8-b5a8-5d02-906e-a9bdd54507cc",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "CONSUMED_LEAVE_HELD",
+		"target_collection": "leave_catalog_entry",
+		"events": ["create"],
+		"lookup": {},
+		"references": [],
+		"reads": {
+			"leave_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			},
+			"employee_balance": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "subject.employment.employee_id"
+						}
+					}
+				},
+				"fields": ["account"],
+				"limit": 1
+			}
+		},
+		"validate": "// js\n// A row that consumes another needs the days on that row's account.\nconst code = get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', null);\nif (code == null || get(ctx.entry, 'is_reversal', false) === true) return true;\nconst held = Number(get(get(first(ctx.reads.employee_balance), 'account.leave', {}), code, 0));\nif (held < ctx.entry.days.length / 2) throw 'Only ' + held + ' days of ' + code + ' are left.';\nreturn true;",
+		"order": 903,
+		"id": "7115abac-72e1-5c19-b51a-60001f7afa9a",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	}
 ]

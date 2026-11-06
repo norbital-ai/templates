@@ -475,7 +475,82 @@
 		"code": "ANNUAL_LEAVE_PART_TIME",
 		"name": "Annual leave (part-time, hours)",
 		"lookup": {
-			"eligibility_months": 3
+			"eligibility_months": 3,
+			"window": "SERVICE_YEAR",
+			"service_bands": [
+				{
+					"service_months": 3,
+					"days": 2
+				},
+				{
+					"service_months": 4,
+					"days": 2
+				},
+				{
+					"service_months": 5,
+					"days": 3
+				},
+				{
+					"service_months": 6,
+					"days": 4
+				},
+				{
+					"service_months": 7,
+					"days": 4
+				},
+				{
+					"service_months": 8,
+					"days": 5
+				},
+				{
+					"service_months": 9,
+					"days": 5
+				},
+				{
+					"service_months": 10,
+					"days": 6
+				},
+				{
+					"service_months": 11,
+					"days": 6
+				},
+				{
+					"service_months": 12,
+					"days": 8
+				},
+				{
+					"service_months": 24,
+					"days": 9
+				},
+				{
+					"service_months": 36,
+					"days": 10
+				},
+				{
+					"service_months": 48,
+					"days": 11
+				},
+				{
+					"service_months": 60,
+					"days": 12
+				},
+				{
+					"service_months": 72,
+					"days": 13
+				},
+				{
+					"service_months": 84,
+					"days": 14
+				}
+			],
+			"carry": {
+				"windows": 1
+			},
+			"part_time_pro_rata": true,
+			"full_time_weekly_hours": 44,
+			"eligibility": {
+				"engagement": "PART_TIME"
+			}
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -496,7 +571,31 @@
 		"code": "SICK_LEAVE_PART_TIME",
 		"name": "Outpatient sick leave (part-time)",
 		"lookup": {
-			"eligibility_months": 3
+			"eligibility_months": 3,
+			"window": "CALENDAR_YEAR",
+			"service_bands": [
+				{
+					"service_months": 3,
+					"days": 5
+				},
+				{
+					"service_months": 4,
+					"days": 8
+				},
+				{
+					"service_months": 5,
+					"days": 11
+				},
+				{
+					"service_months": 6,
+					"days": 14
+				}
+			],
+			"part_time_pro_rata": true,
+			"full_time_weekly_hours": 44,
+			"eligibility": {
+				"engagement": "PART_TIME"
+			}
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -517,7 +616,31 @@
 		"code": "HOSPITALIZATION_LEAVE_PART_TIME",
 		"name": "Hospitalization leave (part-time)",
 		"lookup": {
-			"eligibility_months": 3
+			"eligibility_months": 3,
+			"window": "CALENDAR_YEAR",
+			"service_bands": [
+				{
+					"service_months": 3,
+					"days": 15
+				},
+				{
+					"service_months": 4,
+					"days": 30
+				},
+				{
+					"service_months": 5,
+					"days": 45
+				},
+				{
+					"service_months": 6,
+					"days": 60
+				}
+			],
+			"part_time_pro_rata": true,
+			"full_time_weekly_hours": 44,
+			"eligibility": {
+				"engagement": "PART_TIME"
+			}
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,

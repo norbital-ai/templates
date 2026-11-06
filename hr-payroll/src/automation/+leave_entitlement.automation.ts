@@ -9,6 +9,7 @@ const numbers = (value: unknown): Record<string, number> =>
 	Object.fromEntries(
 		Object.entries(isJsonObject(value) ? value : {}).map(([key, item]) => [key, Number(item)])
 	);
+const plain = (value: unknown) => (isJsonObject(value) ? value : {});
 const covers = (range: unknown, day: string) => {
 	const { from, to } = objectValue(range);
 	return String(from) <= day && (typeof to !== 'string' || day <= to);
@@ -41,10 +42,18 @@ export default automation('leave_entitlement', {
 						'employee_id',
 						'effective_range',
 						'service_started_on',
+						'entity_id',
 						'engagement',
 						'payroll',
+						'terms',
+						'employee_extension_data',
 						'input_schema_version_id'
 					],
+					limit: 1000
+				},
+				entity_profile_version: {
+					where: { status: { eq: 'SEALED' } },
+					fields: ['entity_id', 'effective_range', 'entity_extension_data'],
 					limit: 1000
 				},
 				jurisdiction_settings: {
@@ -94,6 +103,15 @@ export default automation('leave_entitlement', {
 					)
 					.map((row) => [String(row.employee_id), row])
 			);
+			const stateOwned = new Set(
+				(read.entity_profile_version ?? [])
+					.filter(
+						(row) =>
+							covers(row.effective_range, day) &&
+							plain(row.entity_extension_data).state_owned === true
+					)
+					.map((row) => String(row.entity_id))
+			);
 			const changes = (read.employee_balance ?? []).flatMap((balance) => {
 				const contract = current.get(String(balance.employee_id));
 				if (contract === undefined) return [];
@@ -111,7 +129,10 @@ export default automation('leave_entitlement', {
 						partTime: contract.engagement === 'PART_TIME',
 						gender: typeof payroll.gender === 'string' ? payroll.gender : null,
 						maritalStatus:
-							typeof payroll.marital_status === 'string' ? payroll.marital_status : null
+							typeof payroll.marital_status === 'string' ? payroll.marital_status : null,
+						terms: plain(contract.terms),
+						facts: plain(plain(contract.employee_extension_data).term_facts),
+						stateOwned: stateOwned.has(String(contract.entity_id))
 					},
 					{ leave: numbers(account.leave), windows },
 					day

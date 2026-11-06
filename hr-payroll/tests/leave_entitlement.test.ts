@@ -276,6 +276,132 @@ describe('carry forward', () => {
 	});
 });
 
+describe('the rules a statute adds', () => {
+	const start = '2024-06-01';
+	it('a part-timer takes hours pro rata', () => {
+		const row = {
+			code: 'ANNUAL',
+			lookup: {
+				window: 'SERVICE_YEAR',
+				grant_days: 10,
+				part_time_pro_rata: true,
+				full_time_weekly_hours: 40
+			}
+		};
+		const person = {
+			...PERSON,
+			started: start,
+			partTime: true,
+			terms: { normal_hours_per_week: 20 }
+		};
+		assert.equal(settleLeave([row], person, EMPTY, '2026-11-01').leave['ANNUAL'], 5);
+		assert.equal(
+			settleLeave([row], { ...person, partTime: false }, EMPTY, '2026-11-01').leave['ANNUAL'],
+			10
+		);
+	});
+	it('a row for part-timers gives a full-timer nothing', () => {
+		const row = {
+			code: 'PT',
+			lookup: { window: 'CALENDAR_YEAR', grant_days: 10, eligibility: { engagement: 'PART_TIME' } }
+		};
+		assert.equal(settleLeave([row], PERSON, EMPTY, '2026-11-01').leave['PT'], 0);
+	});
+	it('few weekly days and hours take the statute’s table by year of service', () => {
+		const row = {
+			code: 'ANNUAL',
+			lookup: {
+				window: 'SERVICE_YEAR',
+				service_offset_months: 6,
+				full_time_weekly_hours: 30,
+				service_bands: [{ service_months: 6, days: 10 }],
+				grant_days_by_normal_days_per_week: [
+					{ normal_days_per_week: 3, service_year: 1, days: 5 },
+					{ normal_days_per_week: 3, service_year: 2, days: 6 }
+				]
+			}
+		};
+		const person = {
+			...PERSON,
+			started: '2025-11-01',
+			terms: { normal_days_per_week: 3, normal_hours_per_week: 18 }
+		};
+		assert.equal(settleLeave([row], person, EMPTY, '2026-05-01').leave['ANNUAL'], 5);
+		const full = { ...person, terms: { normal_days_per_week: 5, normal_hours_per_week: 40 } };
+		assert.equal(settleLeave([row], full, EMPTY, '2026-05-01').leave['ANNUAL'], 10);
+	});
+	it('a class of work or a fact on the contract adds its days', () => {
+		const row = {
+			code: 'ANNUAL',
+			lookup: {
+				window: 'CALENDAR_YEAR',
+				grant_days: 12,
+				extra_days: [
+					{ fact: 'disabled', days: 2 },
+					{ category: 'ESPECIALLY_HEAVY_HAZARDOUS', days: 4 }
+				]
+			}
+		};
+		assert.equal(
+			settleLeave([row], { ...PERSON, facts: { disabled: true } }, EMPTY, '2026-11-01').leave[
+				'ANNUAL'
+			],
+			14
+		);
+		assert.equal(
+			settleLeave(
+				[row],
+				{ ...PERSON, terms: { statutory_work_category: 'ESPECIALLY_HEAVY_HAZARDOUS' } },
+				EMPTY,
+				'2026-11-01'
+			).leave['ANNUAL'],
+			16
+		);
+		assert.equal(settleLeave([row], PERSON, EMPTY, '2026-11-01').leave['ANNUAL'], 12);
+	});
+	it('a window of several years opens once in that span', () => {
+		const row = {
+			code: 'HOME',
+			lookup: { rolling_months: 24, grant_days: 45, state_owned_employer: true }
+		};
+		const person = { ...PERSON, started: '2024-01-01', stateOwned: true };
+		const used = take(settleLeave([row], person, EMPTY, '2026-02-01'), 'HOME', 45);
+		assert.equal(settleLeave([row], person, used, '2027-06-01').leave['HOME'], 0);
+		assert.equal(settleLeave([row], person, used, '2028-02-01').leave['HOME'], 45);
+	});
+	it('a state-sector row gives a private employer nothing', () => {
+		const row = {
+			code: 'HOME',
+			lookup: { window: 'CALENDAR_YEAR', grant_days: 20, state_owned_employer: true }
+		};
+		assert.equal(settleLeave([row], PERSON, EMPTY, '2026-11-01').leave['HOME'], 0);
+	});
+	it('the first year counts the calendar days left, whole days only', () => {
+		const row = {
+			code: 'ANNUAL',
+			lookup: {
+				window: 'CALENDAR_YEAR',
+				qualifying_service_months: 12,
+				first_year_proration_days: 365,
+				service_bands: [{ service_months: 12, days: 5 }]
+			}
+		};
+		const person = { ...PERSON, started: '2025-07-02' };
+		// qualifies on 2 July 2026: 183 days left, so 5 × 183 ÷ 365 is 2 whole days
+		assert.equal(settleLeave([row], person, EMPTY, '2026-08-01').leave['ANNUAL'], 2);
+		assert.equal(settleLeave([row], person, EMPTY, '2027-02-01').leave['ANNUAL'], 5);
+	});
+	it('a contract’s carry limit holds', () => {
+		const person = {
+			...PERSON,
+			started: '2022-07-01',
+			terms: { annual_leave_carry_limit_days: 3 }
+		};
+		const opened = settleLeave([ANNUAL], person, EMPTY, '2026-08-01');
+		assert.equal(settleLeave([ANNUAL], person, opened, '2027-07-01').leave['ANNUAL'], 19);
+	});
+});
+
 describe('an account from before this', () => {
 	const seeded: LeaveAccount = { leave: { ANNUAL: 7 }, windows: {} };
 	it('keeps what it holds, however the figure compares', () => {

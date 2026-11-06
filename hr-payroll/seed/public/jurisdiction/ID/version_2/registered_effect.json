@@ -1987,5 +1987,81 @@
 		"effects": "return ctx.reads.payslip.flatMap((slip) => {\n  const key = occurrence_key(['ID', 'LATE_WAGE_FINE', slip.entity_id, slip.id]);\n  if (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\n  return [{\n    entity_id: slip.entity_id,\n    employee_id: slip.employee_id,\n    employment_id: slip.employment_id,\n    title: 'Late wage: fine owed to the worker',\n    due_on: ctx.entry.pay_date,\n    occurrence_key: key,\n  }];\n});",
 		"id": "0f09b76a-e611-53b0-9ec1-8d69229356e5",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "CONSUMED_LEAVE_LEDGER",
+		"name": "Post what a leave row draws from another",
+		"lookup": {},
+		"references": [],
+		"source_collection": "leave_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"leave_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			},
+			"employee_balance": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "subject.employment.employee_id"
+						}
+					}
+				},
+				"fields": ["account"],
+				"limit": 1
+			}
+		},
+		"condition": "// js\nreturn get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', null) != null;",
+		"target_collection": "ledger_entry",
+		"target_action": "create",
+		"effects": "// js\n// A row that consumes another draws on that row's account: the entry posted its own, and this moves the one it draws on.\nconst code = get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', '');\nconst balance = first(ctx.reads.employee_balance);\nif (balance == null) return [];\nconst days = ctx.entry.days.length / 2;\nconst back = get(ctx.entry, 'is_reversal', false) === true;\nreturn [{\n\tbalance_id: balance.id,\n\toperation: back ? 'ADD' : 'DEDUCT',\n\taccount: 'leave',\n\tcode,\n\tamount: days,\n\tunit: 'DAY',\n\teffective_on: ctx.entry.days[0].date\n}];",
+		"id": "5e1a2a9a-1639-56ea-9640-b8ea9ac3132d",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
+	},
+	{
+		"code": "CONSUMED_LEAVE",
+		"name": "Draw from the account a leave row consumes",
+		"lookup": {},
+		"references": [],
+		"source_collection": "leave_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"leave_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			},
+			"employee_balance": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "subject.employment.employee_id"
+						}
+					}
+				},
+				"fields": ["account"],
+				"limit": 1
+			}
+		},
+		"condition": "// js\nreturn get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', null) != null;",
+		"target_collection": "employee_balance",
+		"target_action": "update",
+		"effects": "// js\n// A row that consumes another draws on that row's account: the entry posted its own, and this moves the one it draws on.\nconst code = get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', '');\nconst balance = first(ctx.reads.employee_balance);\nif (balance == null) return [];\nconst days = ctx.entry.days.length / 2;\nconst back = get(ctx.entry, 'is_reversal', false) === true;\nconst leave = get(balance.account, 'leave', {});\nconst held = Number(get(leave, code, 0));\nreturn [{ target: balance.id, set: { account: { ...balance.account, leave: { ...leave, [code]: Math.max(0, held + (back ? days : -days)) } } } }];",
+		"id": "ac7494f9-8bed-5c0e-a1a0-494ebb0d1d5f",
+		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	}
 ]
