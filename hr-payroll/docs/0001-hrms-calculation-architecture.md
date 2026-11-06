@@ -127,6 +127,8 @@ Event time writes the employee balance immediately; payroll time writes money an
 
 Indonesia's severance and pension benefits run on one ladder across two calendar years, longer than a balance keeps its months, so a catalog effect keeps them in `benefit_paid` when the run is marked paid. A paid run is final, so nothing there ever needs undoing. Japan's premiums paid back go on their own item, whose subtotal the year-end adjustment subtracts from the deduction.
 
+A run posts to balances in its own effect, after it commits, and it cannot be marked paid until every payslip's balance has it. A run's effects and its paid effects would otherwise overlap and lose to each other. Run effects look for their own task before raising it: raising one twice would fail every effect after it, so a second run in a period finds the first's task and raises nothing.
+
 Creating an entry posts it: once access control has approved the write, the model's `created` effect posts ledger rows and updates the balance projection. A reversal uses the recorded original amount, never today's rates.
 
 ## 3. Payroll chain

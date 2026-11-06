@@ -4425,6 +4425,10 @@
 						"anonymous"
 					]
 				},
+				"last_seen": {
+					"kind": "instant",
+					"optional": true
+				},
 				"name": {
 					"kind": "text"
 				},

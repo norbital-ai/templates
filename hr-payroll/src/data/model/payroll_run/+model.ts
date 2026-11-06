@@ -9,7 +9,7 @@ import {
 	payDateOf,
 	type PayWindow
 } from '../../../lib/payroll_engine/pay_cycle.js';
-import { idOf } from '../../../lib/payroll_engine/reads.js';
+import { idOf, objectValue, queryRows } from '../../../lib/payroll_engine/reads.js';
 
 import type { FileSyncCtx } from '@norbital-ai/bolt';
 import { postRunToBalances, reverseRunInBalances } from '../../../lib/payroll_engine/balance.js';
@@ -311,32 +311,83 @@ export default model('payroll_run', {
 				'update',
 				changes.map((change) => jsonObject({ ...change.before, ...change.set }))
 			);
+			const paying = changes.filter(({ set }) => set.state === 'PAID').map(({ before }) => before);
+			if (paying.length > 0) {
+				const { payslip: slips = [] } = yield* queryRows(ctx.db.query, {
+					payslip: {
+						where: { payroll_run_id: { in: paying.map(({ id }) => id) } },
+						fields: ['employee_id'],
+						limit: 10000
+					}
+				});
+				const { employee_balance: balances = [] } = yield* queryRows(ctx.db.query, {
+					employee_balance: {
+						where: { employee_id: { in: slips.map((slip) => String(slip.employee_id)) } },
+						fields: ['account'],
+						limit: 10000
+					}
+				});
+				const { payroll_run: runs = [] } = yield* queryRows(ctx.db.query, {
+					payroll_run: {
+						where: { id: { in: paying.map(({ id }) => id) } },
+						fields: ['run_number'],
+						limit: 100
+					}
+				});
+				const run = Math.max(...runs.map(({ run_number }) => Number(run_number)));
+				const posted = (account: unknown) => {
+					const { ytd } = objectValue(account);
+					return isJsonObject(ytd) && Number(ytd.LAST_RUN ?? 0) >= run;
+				};
+				if (balances.some(({ account }) => !posted(account)))
+					return yield* ctx.refuse(
+						'This run is still posting. Try again in a moment, or delete it and run it again.'
+					);
+			}
 			return changes.map((change) => change.set);
 		}
 	},
 	effect: {
 		deleted: function* (rows, ctx) {
 			yield* reverseRunInBalances(ctx, rows);
+			// a month back at nothing holds no account: a first run closes the months it finds, and would close this one as it posts it
+			const { employee_balance: balances = [] } = yield* queryRows(ctx.query, {
+				employee_balance: { fields: ['id', 'account'], limit: 10000 }
+			});
+			const input = balances.flatMap(({ id, account }) => {
+				const held = objectValue(account);
+				const month = isJsonObject(held.month) ? Object.entries(held.month) : [];
+				const kept = month.filter(([, value]) => Math.abs(Number(value)) > 1e-8);
+				return kept.length === month.length
+					? []
+					: [
+							{ target: String(id), set: { account: { ...held, month: Object.fromEntries(kept) } } }
+						];
+			});
+			if (input.length > 0)
+				yield* ctx.act.checked([{ callable: 'employee_balance.update', input }]);
 		},
 		created: function* (rows, ctx) {
-			yield* postRunToBalances(ctx, rows);
+			yield* postRunToBalances(ctx, rows).pipe(
+				Effect.retry({ times: 3, while: ({ _tag }) => _tag === 'ActConflict' })
+			);
 			yield* tap(
 				ctx,
 				'create',
 				{ collection: 'payroll_run', ids: rows.map((row) => row.id) },
 				rows.map((after) => ({ after }))
-			);
+			).pipe(Effect.retry({ times: 3, while: ({ _tag }) => _tag === 'ActConflict' }));
 		},
 		updated: function* (changes, ctx) {
-			// service bands and anniversaries move on no event of their own: every paid run looks
-			if (changes.some(({ before, after }) => before.state !== 'PAID' && after.state === 'PAID'))
-				yield* ctx.schedule('leave_entitlement', {}, { key: 'leave_entitlement' });
 			yield* tap(
 				ctx,
 				'update',
 				{ collection: 'payroll_run', ids: changes.map(({ after }) => after.id) },
 				changes
-			);
+			).pipe(Effect.retry({ times: 3, while: ({ _tag }) => _tag === 'ActConflict' }));
+			// service bands and anniversaries move on no event of their own: every paid run looks
+			if (changes.some(({ before, after }) => before.state !== 'PAID' && after.state === 'PAID'))
+				yield* ctx.schedule('leave_entitlement', {}, { key: 'leave_entitlement' });
 		}
 	},
 	delete: {

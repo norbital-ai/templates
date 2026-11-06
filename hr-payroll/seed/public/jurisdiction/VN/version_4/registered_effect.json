@@ -351,7 +351,7 @@
 				}
 			}
 		},
-		"condition": "const catalog = first(get(ctx, 'reads.leave_catalog', []));\nif (catalog == null) return false;\nif (!ctx.lookup.benefit_catalogs.includes(catalog.code)) return false;\nreturn ['APPROVED', 'FULFILLED'].includes(ctx.entry.status);",
+		"condition": "const catalog = first(get(ctx, 'reads.leave_catalog', []));\nif (catalog == null) return false;\nif (!ctx.lookup.benefit_catalogs.includes(catalog.code)) return false;\nreturn true;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// The entry records no receipt date; the documented leave end bounds the seven-working-day window.\nconst last = ctx.entry.days.reduce((day, slot) => (slot.date > day ? slot.date : day), '');\nconst key = 'SI_BENEFIT_CLAIMS:' + ctx.entry.id;\nif (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];\nreturn [\n\t{\n\t\tentity_id: ctx.entry.entity_id,\n\t\temployment_id: ctx.entry.employment_id,\n\t\ttitle: ctx.lookup.title,\n\t\tdue_on: add_working_days(last, ctx.lookup.working_days, get(ctx, 'reads.holiday', []).map((h) => h.date), [0, 6]),\n\t\toccurrence_key: key\n\t}\n];",
