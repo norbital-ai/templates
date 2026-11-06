@@ -82,14 +82,14 @@ const claimsAsPosted = Effect.fn('payroll.claimsAsPosted')(function* (
 	read: Reader,
 	data: Readonly<Record<string, readonly JsonObject[]>>
 ) {
+	// by code: an entry keeps the row it was raised on, and a later run reads that code in its own version
 	const limited = new Map(
 		(data.claim_catalog ?? [])
 			.filter((row) => objectValue(row.lookup).annual_limit != null)
-			.map((row) => [String(row.id), { code: String(row.code), lookup: objectValue(row.lookup) }])
+			.map((row) => [String(row.code), { code: String(row.code), lookup: objectValue(row.lookup) }])
 	);
-	const claims = (data.claim_catalog_entry ?? []).filter((row) =>
-		limited.has(refOf(row.catalog_id))
-	);
+	const codeOf = (row: JsonObject) => String(objectValue(row.catalog_id).code);
+	const claims = (data.claim_catalog_entry ?? []).filter((row) => limited.has(codeOf(row)));
 	if (claims.length === 0) return data;
 	const { ledger_entry: rows = [] } = yield* queryRows(read, {
 		ledger_entry: {
@@ -116,7 +116,7 @@ const claimsAsPosted = Effect.fn('payroll.claimsAsPosted')(function* (
 		claim_catalog_entry: (data.claim_catalog_entry ?? []).map((row) => {
 			const amount = posted.get(`claim_catalog_entry:${String(row.id)}`);
 			if (amount !== undefined) return { ...row, quantity: Math.abs(amount) };
-			const catalog = limited.get(refOf(row.catalog_id));
+			const catalog = limited.get(codeOf(row));
 			const employment = contract.get(refOf(row.employment_id));
 			if (catalog === undefined || employment === undefined || row.is_reversal === true) return row;
 			const employee = String(employment.employee_id);
