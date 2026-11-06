@@ -8,7 +8,7 @@
 	"counts": {
 		"models": 36,
 		"apps": 7,
-		"automations": 3
+		"automations": 4
 	},
 	"tags": ["HR", "Finance", "Approvals"],
 	"name_zh": "HR 与薪资",
