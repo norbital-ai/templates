@@ -4,7 +4,6 @@
 		Form,
 		RecordShell,
 		Table,
-		Button,
 		openRecord,
 		label,
 		Show,
@@ -18,10 +17,6 @@
 	} = $props();
 </script>
 
-{#snippet order({ row }: { row: { order: string; number: string } })}<Button
-		variant="link"
-		onclick={() => openRecord('orders', row.order)}>{row.number}</Button
-	>{/snippet}
 {#snippet amount({ value }: { value: ShowProps['value'] })}
 	{#if view.mode !== 'create'}<Show
 			kind={{ kind: 'money', currency: 'currency', optional: true }}
@@ -36,10 +31,11 @@
 			of={view.record.snapshot}
 			key="commission_statement_items"
 			columns={[
-				{ field: 'number', label: label(bolt, 'orders', 'order'), cell: order },
+				{ field: 'number', label: label(bolt, 'orders', 'order') },
 				{ field: 'amount', label: label(bolt, 'orders', 'amount'), cell: amount }
 			]}
 			toolbar={{ new: false, export: true }}
+			onOpen={(row) => openRecord('orders', row.order)}
 		/>
 	{/if}
 {/snippet}

@@ -163,6 +163,5 @@ export default messages({
 	'section.validity': 'Validity',
 	'section.worker': 'Worker',
 	'section.signoff': 'Sign-off',
-	'component.not_signed': 'Not signed',
-	'component.open_document': 'Open'
+	'component.not_signed': 'Not signed'
 });

@@ -237,15 +237,6 @@
 	{/if}
 {/snippet}
 
-{#snippet documentLink({ value }: { value: string | null | undefined })}
-	{#if value}<a
-			href={value}
-			target="_blank"
-			rel="noopener noreferrer"
-			class="text-primary underline-offset-4 hover:underline">{t('component.open_document')}</a
-		>{/if}
-{/snippet}
-
 {#snippet controls()}
 	{#if id}<Stack gap="lg">
 			<Grid minimum="compact">
@@ -296,12 +287,7 @@
 					toolbar={{ title: t('component.project_documents') }}
 					where={{ project_id: { eq: id }, status: { in: ['draft', 'in_review', 'issued'] } }}
 					orderBy={{ updated_at: 'desc' }}
-					columns={[
-						'title',
-						'document_number',
-						'version',
-						{ field: 'document_url', cell: documentLink }
-					]}
+					columns={['title', 'document_number', 'version']}
 				/>
 			</Stack>
 			<Table

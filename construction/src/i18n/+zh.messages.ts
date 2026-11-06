@@ -159,6 +159,5 @@ export default messages({
 	'section.validity': '有效期',
 	'section.worker': '工人',
 	'section.signoff': '签署',
-	'component.not_signed': '未签署',
-	'component.open_document': '打开'
+	'component.not_signed': '未签署'
 });

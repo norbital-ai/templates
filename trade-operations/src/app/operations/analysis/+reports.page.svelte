@@ -141,20 +141,6 @@
 		kind={{ kind: 'date' }}
 		{value}
 	/>{/snippet}
-{#snippet agingOrder({
-	row
-}: {
-	row: { order: string | null; order_number: string };
-})}{#if row.order}<Button variant="link" onclick={() => openRecord('orders', row.order!)}
-			>{row.order_number}</Button
-		>{:else}{row.order_number}{/if}{/snippet}
-{#snippet agingBill({
-	row
-}: {
-	row: { invoice: string | null; invoice_number: string };
-})}{#if row.invoice}<Button variant="link" onclick={() => openRecord('transactions', row.invoice!)}
-			>{row.invoice_number}</Button
-		>{:else}{row.invoice_number}{/if}{/snippet}
 {#snippet salesTab()}<Stack gap="md">
 		{#if invalidSalesRange}<EmptyState tone="danger" title={bolt.t('errors.report_range')} />
 		{:else if detailRows}
@@ -180,8 +166,11 @@
 				layout="grid"
 				of={rows}
 				key="sales_detail"
+				onOpen={(row) => {
+					if (row.order) openRecord('orders', row.order);
+				}}
 				columns={[
-					{ field: 'order_number', label: bolt.t('models.orders.singular'), cell: agingOrder },
+					{ field: 'order_number', label: bolt.t('models.orders.singular') },
 					{ field: 'reference', label: bolt.t('reports.sales.reference') },
 					{ field: 'business_on', label: bolt.t('reports.sales.business_on'), cell: date },
 					{ field: 'party_name', label: label(bolt, 'orders', 'party_name') },
@@ -249,13 +238,16 @@
 				layout="grid"
 				of={rows}
 				key="ar_aging"
+				onOpen={(row) => {
+					if (row.invoice) openRecord('transactions', row.invoice);
+					else if (row.order) openRecord('orders', row.order);
+				}}
 				columns={[
 					{ field: 'bucket_label', label: bolt.t('models.orders.fields.status'), cell: enumCell },
-					{ field: 'order_number', label: bolt.t('models.orders.singular'), cell: agingOrder },
+					{ field: 'order_number', label: bolt.t('models.orders.singular') },
 					{
 						field: 'invoice_number',
-						label: bolt.t('models.source_payments.fields.invoice'),
-						cell: agingBill
+						label: bolt.t('models.source_payments.fields.invoice')
 					},
 					...(['party_name', 'currency'] as const).map((field) => ({
 						field,
@@ -292,11 +284,7 @@
 		{:else}<EmptyState title={bolt.t('component.reports_loading')} />{/if}
 	</Stack>{/snippet}
 {#snippet monthActions({ row }: { row: MonthlyCommission })}
-	{#if row.latest_statement}<Button
-			variant="link"
-			onclick={() => openRecord('commission_statements', row.latest_statement!)}
-			>{row.latest_number}</Button
-		>{/if}
+	{#if row.latest_statement}{row.latest_number}{/if}
 	{#if kinds.catalog?.commission_statements?.create && ['unacknowledged', 'changed'].includes(row.state)}<Button
 			onclick={() => (monthSelection = row)}>{bolt.t('component.commission_acknowledge')}</Button
 		>{/if}
@@ -312,6 +300,9 @@
 					layout="grid"
 					of={rows}
 					key="monthly_commission"
+					onOpen={(row) => {
+						if (row.latest_statement) openRecord('commission_statements', row.latest_statement);
+					}}
 					columns={[
 						{ field: 'owner_name', label: label(bolt, 'orders', 'owner_name') },
 						{ field: 'currency', label: label(bolt, 'orders', 'currency') },
