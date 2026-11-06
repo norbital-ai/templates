@@ -715,5 +715,425 @@
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "40f4330f-b46f-5df3-ac67-8ab7f85565cd",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "LI_REFUND",
+		"name": "Labor Insurance (勞工保險) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects LI for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "LI.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "0da809c3-1eba-525d-ad07-c96839231d24",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "LI_ADJUSTMENT",
+		"name": "Labor Insurance (勞工保險) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects LI for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "LI.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "df6bba7e-e87d-5f03-8c0d-eb4440e89b4f",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "EI_REFUND",
+		"name": "Employment Insurance (就業保險) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects EI for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "EI.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "358766fb-dfa4-56fd-b528-3d616c23db43",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "EI_ADJUSTMENT",
+		"name": "Employment Insurance (就業保險) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects EI for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "EI.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "07ed6138-9907-575d-9dd0-a44f5b238c11",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "NHI_REFUND",
+		"name": "National Health Insurance (全民健康保險) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects NHI for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "NHI.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "0fa3544a-7fc7-5d9a-8cc8-0998d5766500",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "NHI_ADJUSTMENT",
+		"name": "National Health Insurance (全民健康保險) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects NHI for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "NHI.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "667b837a-c62c-5948-9ede-40f62be75053",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "NHI_SUPPLEMENT_REFUND",
+		"name": "健保補充保險費 (NHI supplementary premium) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects NHI_SUPPLEMENT for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "NHI_SUPPLEMENT.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "b6781fb2-3bff-5081-9e28-43c638751d08",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "NHI_SUPPLEMENT_ADJUSTMENT",
+		"name": "健保補充保險費 (NHI supplementary premium) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects NHI_SUPPLEMENT for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "NHI_SUPPLEMENT.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "5a395923-5505-5d33-b5b3-78daa27b0cd1",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "NHI_PART_TIME_REFUND",
+		"name": "健保補充保險費—兼職薪資所得 (NHI supplementary premium on part-time salary) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects NHI_PART_TIME for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "NHI_PART_TIME.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "0f52adb9-82da-567e-942d-0d3ff305517a",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "NHI_PART_TIME_ADJUSTMENT",
+		"name": "健保補充保險費—兼職薪資所得 (NHI supplementary premium on part-time salary) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects NHI_PART_TIME for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "NHI_PART_TIME.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "0b119704-c013-509d-8e6b-44951b509aef",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "LABOR_PENSION_REFUND",
+		"name": "Labor Pension (勞工退休金, new system) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects LABOR_PENSION for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "LABOR_PENSION.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "LABOR_PENSION.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "a97f0577-ac14-5626-8b64-9ceddf9b31e4",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "LABOR_PENSION_ADJUSTMENT",
+		"name": "Labor Pension (勞工退休金, new system) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects LABOR_PENSION for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "LABOR_PENSION.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "LABOR_PENSION.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "0287803a-76ac-573a-8b5b-a2e8c302d501",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "WELFARE_FUND_REFUND",
+		"name": "職工福利金（薪津扣繳） refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects WELFARE_FUND for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "WELFARE_FUND.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "f31b8e87-dea7-5b1d-bc48-52eae59d97b5",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "WELFARE_FUND_ADJUSTMENT",
+		"name": "職工福利金（薪津扣繳） adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects WELFARE_FUND for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "WELFARE_FUND.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "8468d9c0-1d4c-5d3a-ab48-bc6774b5aa19",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
 	}
 ]

@@ -484,6 +484,37 @@
 					},
 					"description": "Stored in employee_extension_data.exit_facts.",
 					"title": "Departure compliance details"
+				},
+				"events": {
+					"type": "array",
+					"title": "Life events",
+					"description": "What happened to this person that the law gives leave or a claim for. One item per event, with its document uploaded on the employee profile.",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["kind", "on"],
+						"properties": {
+							"kind": {
+								"type": "string",
+								"enum": ["BEREAVEMENT", "MARRIAGE"],
+								"title": "What happened"
+							},
+							"on": {
+								"type": "string",
+								"format": "date",
+								"title": "Date"
+							},
+							"ended_on": {
+								"type": "string",
+								"format": "date",
+								"title": "Ended on"
+							},
+							"document": {
+								"type": "string",
+								"title": "Document on the profile"
+							}
+						}
+					}
 				}
 			},
 			"description": "Additional local compliance facts on the sealed contract, stored as employee_extension_data: facts (person), term_facts (contract) and exit_facts (departure). Shared salary, allowances, work classifications, dates and work arrangements are native fields."

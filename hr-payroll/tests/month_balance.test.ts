@@ -2,8 +2,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from '@effect/vitest';
-import { applyOperations } from '../src/lib/payroll_engine/balance.ts';
-import { calculatePayroll, type PayrollInput } from '../src/lib/payroll_engine/engine.ts';
+import { viewOf } from '../src/lib/ledger/core.ts';
+import { payslipWanted } from '../src/lib/ledger/service.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 
 type Row = { readonly code: string; readonly employee_amount: string; readonly lookup?: object };
@@ -20,88 +20,59 @@ const rowOf = (code: string, n: number, scheme: string) => {
 	return { source: row.employee_amount, lookup: { ...settings?.lookup, ...row.lookup } };
 };
 
-const input = (account: PayrollInput['balance']['account']): PayrollInput => ({
-	run: {
-		id: 'run',
-		pay_date: '2026-03-25',
-		salary_coverage: { from: '2026-03-01', to: '2026-03-31' }
-	},
-	settings: { id: 'x', code: 'JP', lookup: { month_balance: ['BASE'] } },
-	subtotals: [{ id: 'base', code: 'BASE', name: 'BASE', previous_id: null, settings_id: 'x' }],
-	allowance: [],
-	overtime: [],
-	statutory: [],
-	leave_catalog: [],
-	claim_catalog: [],
-	adhoc_catalog: [],
-	loan_catalog: [],
-	employee: { id: 'person' },
-	employment: { id: 'contract', terms: { rate: { amount: 1000, unit: 'MONTHLY' } } },
-	employer: { id: 'entity' },
-	balance: { id: 'balance', account },
-	entries: {}
-});
-
 describe('month balance', () => {
-	it('posts what the jurisdiction names under the pay month', () => {
-		const { ledger } = calculatePayroll(input({ ytd: { TAX_YEAR: 2026, 'LAW.JP': 1 }, month: {} }));
+	const slip = { checkpoints: [{ code: 'BASE', value: 1000 }], statutory: [] };
+	const subject = { scope: 'JP', started: '2025-01-01', events: [], taxYearStart: 1 };
+	it('holds what the jurisdiction names under the pay month, beside the year', () => {
+		const wanted = payslipWanted(slip, '2026-03-25', { ...subject, byMonth: ['BASE'] });
 		assert.deepEqual(
-			ledger.filter((row) => row.account === 'month').map((row) => [row.code, row.amount]),
-			[['2026-03.BASE', 1000]]
-		);
-	});
-
-	it('keeps twelve months back and clears anything older with dated entries', () => {
-		const { ledger } = calculatePayroll(
-			input({
-				ytd: { TAX_YEAR: 2026, 'LAW.JP': 1 },
-				month: { '2025-03.BASE': 900, '2025-02.BASE': 800 }
-			})
-		);
-		assert.deepEqual(
-			ledger
-				.filter((row) => row.account === 'month' && row.operation !== 'ADD')
-				.map((row) => [row.operation, row.code]),
+			wanted.map((row) => [row.account, row.code, row.period, row.amount]),
 			[
-				['DEDUCT', '2025-02.BASE'],
-				['REMOVE', '2025-02.BASE']
+				['pay', 'BASE', 'JP.Y.2026-01-01', 1000],
+				['pay', 'BASE', 'JP.M.2026-03-01', 1000]
 			]
 		);
 	});
-
-	it('the January reset leaves the months in place', () => {
-		const { ledger } = calculatePayroll({
-			...input({ ytd: { TAX_YEAR: 2025, 'LAW.JP': 1 }, month: { '2025-12.BASE': 900 } }),
-			run: {
-				id: 'run',
-				pay_date: '2026-01-25',
-				salary_coverage: { from: '2026-01-01', to: '2026-01-31' }
-			}
-		});
-		assert.equal(
-			ledger.some((row) => row.account === 'month' && row.operation === 'DEDUCT'),
-			false
+	it('holds only the year for what it does not name', () => {
+		const wanted = payslipWanted(slip, '2026-03-25', { ...subject, byMonth: [] });
+		assert.deepEqual(
+			wanted.map((row) => row.period),
+			['JP.Y.2026-01-01']
 		);
 	});
-});
-
-describe('closing a code', () => {
-	it('float dust neither blocks a removal nor reads as a shortfall', () => {
-		const held = 1234.56 + 789.01;
-		const stored = Number(held.toFixed(12));
-		const close = (amount: number) =>
-			applyOperations({ month: { key: held } }, [
-				{ operation: 'DEDUCT', account: 'month', code: 'key', amount, effective_on: '2027-02-25' },
-				{
-					operation: 'REMOVE',
-					account: 'month',
-					code: 'key',
-					amount: 0,
-					effective_on: '2027-02-25'
+	it('a formula reads twelve months back and no further', () => {
+		const pay = (period: string, total: number) => ({ [period]: { total } });
+		const view = viewOf(
+			{
+				pay: {
+					BASE: { ...pay('JP.M.2025-03-01', 900), ...pay('JP.M.2025-02-01', 800) }
 				}
-			]);
-		assert.deepEqual(close(stored), { month: {} });
-		assert.deepEqual(close(stored + 1e-12), { month: {} });
+			},
+			'JP',
+			1,
+			'2026-03-25'
+		);
+		assert.deepEqual(view.month, { '2025-03.BASE': 900 });
+	});
+	it('a new year reads as empty, and the months stay', () => {
+		const view = viewOf(
+			{ pay: { BASE: { 'JP.Y.2025-01-01': { total: 900 }, 'JP.M.2025-12-01': { total: 900 } } } },
+			'JP',
+			1,
+			'2026-01-25'
+		);
+		assert.deepEqual(view.ytd, {});
+		assert.deepEqual(view.month, { '2025-12.BASE': 900 });
+		assert.deepEqual(view.years, { '2025': { BASE: 900 } });
+	});
+	it('another country reads as empty', () => {
+		const view = viewOf(
+			{ pay: { BASE: { 'MY.Y.2026-01-01': { total: 900 } } } },
+			'SG',
+			1,
+			'2026-06-25'
+		);
+		assert.deepEqual(view.ytd, {});
 	});
 });
 

@@ -296,5 +296,135 @@
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "f7e883db-a3d1-5b68-a95c-5fe6e10bf325",
 		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
+	},
+	{
+		"code": "SSO_REFUND",
+		"name": "Social Security Fund (กองทุนประกันสังคม) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects SSO for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "SSO.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "SSO.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "b8b56286-1ac1-59e4-a6e0-492607ab62fe",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "509ed040-9678-54f8-9ffa-b41b6eee4c3e",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
+	},
+	{
+		"code": "SSO_ADJUSTMENT",
+		"name": "Social Security Fund (กองทุนประกันสังคม) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects SSO for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "SSO.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "SSO.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "b8b56286-1ac1-59e4-a6e0-492607ab62fe",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "4a63d2a1-1e4e-5f1f-96aa-0bb0e39c5c6c",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
+	},
+	{
+		"code": "PVD_REFUND",
+		"name": "Provident fund (กองทุนสำรองเลี้ยงชีพ) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects PVD for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "PVD.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "b8b56286-1ac1-59e4-a6e0-492607ab62fe",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "47ed8702-f8dc-5955-b1a3-2c2f5d18f14e",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
+	},
+	{
+		"code": "PVD_ADJUSTMENT",
+		"name": "Provident fund (กองทุนสำรองเลี้ยงชีพ) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects PVD for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "PVD.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "b8b56286-1ac1-59e4-a6e0-492607ab62fe",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "6bb378c6-8b5e-560f-b1fa-a0d10cd56de8",
+		"settings_id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
 	}
 ]

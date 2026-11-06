@@ -552,5 +552,365 @@
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "bd8943e0-6401-5dbf-9eca-ba887a2a3d8b",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "CPF_REFUND",
+		"name": "Central Provident Fund refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects CPF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "CPF.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "CPF.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "5fa106fd-cb1e-56cf-90d8-e1f87c1d35c6",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "CPF_ADJUSTMENT",
+		"name": "Central Provident Fund adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects CPF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "CPF.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "CPF.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "ac9330c6-7896-5b0a-8341-f94ff483bb60",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "CDAC_REFUND",
+		"name": "Chinese Development Assistance Council Fund refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects CDAC for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "CDAC.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "CDAC.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "72bf7aab-542c-57a4-a3c0-f1ebc1e83d40",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "CDAC_ADJUSTMENT",
+		"name": "Chinese Development Assistance Council Fund adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects CDAC for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "CDAC.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "CDAC.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "9a0a629c-117a-5c80-ae66-4fd297d4ae2d",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "ECF_REFUND",
+		"name": "Eurasian Community Fund refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects ECF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "ECF.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "ECF.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "41dad73a-4fc0-51dc-9b9e-be8042a29483",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "ECF_ADJUSTMENT",
+		"name": "Eurasian Community Fund adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects ECF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "ECF.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "ECF.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "2a7de77d-97d8-50d9-bbda-b9ff317a72eb",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "MBMF_REFUND",
+		"name": "Mosque Building and Mendaki Fund refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects MBMF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "MBMF.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "MBMF.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "ee19563f-8a03-5f04-9fe3-a7e19fd7ddac",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "MBMF_ADJUSTMENT",
+		"name": "Mosque Building and Mendaki Fund adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects MBMF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "MBMF.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "MBMF.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "78c45c00-8047-577c-b812-f9f62916db6a",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "SINDA_REFUND",
+		"name": "Singapore Indian Development Association Fund refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects SINDA for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "SINDA.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "SINDA.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "c21e13e7-dfbe-582a-808b-e345e345eea6",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "SINDA_ADJUSTMENT",
+		"name": "Singapore Indian Development Association Fund adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects SINDA for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "SINDA.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "SINDA.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "eb5f4446-08b0-5208-bcd1-922fc4cd97b0",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
 	}
 ]

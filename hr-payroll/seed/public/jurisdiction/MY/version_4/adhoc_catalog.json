@@ -502,5 +502,437 @@
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"id": "2816daa1-ab19-532b-ae9e-71e427bc86eb",
 		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "EPF_REFUND",
+		"name": "Employees Provident Fund refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects EPF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "EPF.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "EPF.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "2ac3e273-dee1-5098-85ef-be2a081d6035",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "3810ded3-ce62-5e00-ab28-95155ce31510",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "EPF_ADJUSTMENT",
+		"name": "Employees Provident Fund adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects EPF for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "EPF.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "EPF.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "2ac3e273-dee1-5098-85ef-be2a081d6035",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "f1da8a74-eed5-5625-94de-262e6687f7e5",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "EPF_PR_REFUND",
+		"name": "Employees Provident Fund (permanent residents aged 60 and above) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects EPF_PR for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "EPF_PR.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "EPF_PR.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "2ac3e273-dee1-5098-85ef-be2a081d6035",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "685b4bf8-954e-5a5f-9add-225cb0e22a88",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "EPF_PR_ADJUSTMENT",
+		"name": "Employees Provident Fund (permanent residents aged 60 and above) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects EPF_PR for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "EPF_PR.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "EPF_PR.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "2ac3e273-dee1-5098-85ef-be2a081d6035",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "069f1c73-cf60-5591-981d-f48edf3fd9fa",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "EPF_NON_CITIZEN_REFUND",
+		"name": "Employees Provident Fund (non-citizen employees) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects EPF_NON_CITIZEN for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "EPF_NON_CITIZEN.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "EPF_NON_CITIZEN.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "2ac3e273-dee1-5098-85ef-be2a081d6035",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "bdd1d1fd-4a90-5318-badf-11316867a2a2",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "EPF_NON_CITIZEN_ADJUSTMENT",
+		"name": "Employees Provident Fund (non-citizen employees) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects EPF_NON_CITIZEN for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "EPF_NON_CITIZEN.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "EPF_NON_CITIZEN.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "2ac3e273-dee1-5098-85ef-be2a081d6035",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "eae1c849-b335-535e-990e-328b6b882b33",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "SOCSO_REFUND",
+		"name": "Social Security Organisation (PERKESO) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects SOCSO for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "SOCSO.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "SOCSO.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "2ac3e273-dee1-5098-85ef-be2a081d6035",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "058aa2a7-e2d2-57ec-a315-a25dd6529d4b",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "SOCSO_ADJUSTMENT",
+		"name": "Social Security Organisation (PERKESO) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects SOCSO for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "SOCSO.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "SOCSO.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "2ac3e273-dee1-5098-85ef-be2a081d6035",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "8cb494d0-2069-566c-9fde-0c52c8bf4c42",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "SKBBK_REFUND",
+		"name": "Non-Employment Injury Security Scheme (LINDUNG 24 Jam) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects SKBBK for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "SKBBK.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "SKBBK.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "2ac3e273-dee1-5098-85ef-be2a081d6035",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "e29fdf1f-6ac1-5def-8ec4-a740dec06f67",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "SKBBK_ADJUSTMENT",
+		"name": "Non-Employment Injury Security Scheme (LINDUNG 24 Jam) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects SKBBK for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "SKBBK.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "SKBBK.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "2ac3e273-dee1-5098-85ef-be2a081d6035",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "e83045ca-11f8-5661-89bb-f7445bc52638",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "EIS_REFUND",
+		"name": "Employment Insurance System refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects EIS for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "EIS.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "EIS.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "2ac3e273-dee1-5098-85ef-be2a081d6035",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "e953b288-92ec-551a-84fe-fc977d484c23",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
+	},
+	{
+		"code": "EIS_ADJUSTMENT",
+		"name": "Employment Insurance System adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects EIS for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "EIS.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "EIS.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "2ac3e273-dee1-5098-85ef-be2a081d6035",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "debb31ff-1aed-5c4c-b29f-4fb7cad4c6bc",
+		"settings_id": "cd9cf3cc-2094-51dd-9748-c2f09c0726f6"
 	}
 ]

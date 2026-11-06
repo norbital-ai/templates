@@ -37,21 +37,18 @@
 				},
 				"limit": 10000
 			},
-			"ledger_entry": {
+			"payslip": {
 				"where": {
-					"account": {
-						"eq": "statutory_contribution"
-					},
-					"effective_on": {
+					"payroll_run_id": {
 						"eq": {
-							"var": "ctx.entry.pay_date"
+							"var": "ctx.entry.id"
 						}
 					}
 				},
 				"limit": 10000
 			}
 		},
-		"condition": "const codes = ctx.lookup.scheme_codes;\nconst fromThisRun = (l) => {\n  if (l.source_id == null) return false;\n  if (l.source_id.model !== 'payroll_run') return false;\n  if (l.source_id.id !== ctx.entry.id) return false;\n  if (!(l.amount > 0)) return false;\n  return codes.some((c) => l.code.startsWith(c + '.'));\n};\nreturn ctx.reads.ledger_entry.some(fromThisRun);",
+		"condition": "const codes = ctx.lookup.scheme_codes;\nconst owed = (row) => codes.includes(row.code) && (row.employee > 0 || row.employer > 0);\nreturn ctx.reads.payslip.some((slip) => get(slip.breakdown, 'statutory', []).some(owed));",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_REMITTANCE', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'BPJS Ketenagakerjaan contributions (JHT, JKK, JKM, JP)',\n  due_on: add_working_days(add_days(ctx.entry.salary_coverage.to, ctx.lookup.date_offset_days - 1), 1, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
@@ -97,21 +94,18 @@
 				},
 				"limit": 10000
 			},
-			"ledger_entry": {
+			"payslip": {
 				"where": {
-					"account": {
-						"eq": "statutory_contribution"
-					},
-					"effective_on": {
+					"payroll_run_id": {
 						"eq": {
-							"var": "ctx.entry.pay_date"
+							"var": "ctx.entry.id"
 						}
 					}
 				},
 				"limit": 10000
 			}
 		},
-		"condition": "const codes = ctx.lookup.scheme_codes;\nconst fromThisRun = (l) => {\n  if (l.source_id == null) return false;\n  if (l.source_id.model !== 'payroll_run') return false;\n  if (l.source_id.id !== ctx.entry.id) return false;\n  if (!(l.amount > 0)) return false;\n  return codes.some((c) => l.code.startsWith(c + '.'));\n};\nreturn ctx.reads.ledger_entry.some(fromThisRun);",
+		"condition": "const codes = ctx.lookup.scheme_codes;\nconst owed = (row) => codes.includes(row.code) && (row.employee > 0 || row.employer > 0);\nreturn ctx.reads.payslip.some((slip) => get(slip.breakdown, 'statutory', []).some(owed));",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const key = occurrence_key(['ID', 'BPJS_KESEHATAN_REMITTANCE', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'BPJS Kesehatan contribution',\n  due_on: add_working_days(add_days(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_days - 1), 1, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
@@ -165,21 +159,18 @@
 				},
 				"limit": 10000
 			},
-			"ledger_entry": {
+			"payslip": {
 				"where": {
-					"account": {
-						"eq": "statutory_contribution"
-					},
-					"effective_on": {
+					"payroll_run_id": {
 						"eq": {
-							"var": "ctx.entry.pay_date"
+							"var": "ctx.entry.id"
 						}
 					}
 				},
 				"limit": 10000
 			}
 		},
-		"condition": "const codes = ctx.lookup.scheme_codes;\nconst fromThisRun = (l) => {\n  if (l.source_id == null) return false;\n  if (l.source_id.model !== 'payroll_run') return false;\n  if (l.source_id.id !== ctx.entry.id) return false;\n  if (!(l.amount > 0)) return false;\n  return codes.some((c) => l.code.startsWith(c + '.'));\n};\nreturn ctx.reads.ledger_entry.some(fromThisRun);",
+		"condition": "const codes = ctx.lookup.scheme_codes;\nconst owed = (row) => codes.includes(row.code) && (row.employee > 0 || row.employer > 0);\nreturn ctx.reads.payslip.some((slip) => get(slip.breakdown, 'statutory', []).some(owed));",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const key = occurrence_key(['ID', 'PPH21_PAYMENT', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'PPh 21/26 deposit',\n  due_on: add_working_days(add_days(ctx.entry.salary_coverage.to, ctx.lookup.date_offset_days - 1), 1, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
@@ -224,21 +215,18 @@
 				},
 				"limit": 10000
 			},
-			"ledger_entry": {
+			"payslip": {
 				"where": {
-					"account": {
-						"eq": "statutory_contribution"
-					},
-					"effective_on": {
+					"payroll_run_id": {
 						"eq": {
-							"var": "ctx.entry.pay_date"
+							"var": "ctx.entry.id"
 						}
 					}
 				},
 				"limit": 10000
 			}
 		},
-		"condition": "const codes = ctx.lookup.scheme_codes;\nconst fromThisRun = (l) => {\n  if (l.source_id == null) return false;\n  if (l.source_id.model !== 'payroll_run') return false;\n  if (l.source_id.id !== ctx.entry.id) return false;\n  if (!(l.amount > 0)) return false;\n  return codes.some((c) => l.code.startsWith(c + '.'));\n};\nreturn ctx.reads.ledger_entry.some(fromThisRun);",
+		"condition": "const codes = ctx.lookup.scheme_codes;\nconst owed = (row) => codes.includes(row.code) && (row.employee > 0 || row.employer > 0);\nreturn ctx.reads.payslip.some((slip) => get(slip.breakdown, 'statutory', []).some(owed));",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const key = occurrence_key(['ID', 'DKPTKA_PAYMENT', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  title: 'DKPTKA foreign-worker compensation fund',\n  due_on: ctx.entry.salary_coverage.from,\n  occurrence_key: key,\n}];",
@@ -2033,48 +2021,6 @@
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
 	},
 	{
-		"code": "TAX_REFUND",
-		"name": "Refund overpaid tax",
-		"lookup": {},
-		"source_collection": "payslip",
-		"events": ["create"],
-		"reads": {
-			"obligation": {
-				"where": {
-					"occurrence_key": {
-						"eq": {
-							"var": "occurrence_key(['ID', 'TAX_REFUND', ctx.entry.id])"
-						}
-					}
-				},
-				"fields": ["id"],
-				"limit": 1
-			},
-			"payroll_run": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.payroll_run_id"
-						}
-					}
-				},
-				"fields": ["pay_date"],
-				"limit": 1
-			}
-		},
-		"condition": "// js\nreturn get(ctx.entry, 'breakdown.statutory', []).some((row) => Number(get(row, 'overpaid', 0)) > 0);",
-		"target_collection": "obligation",
-		"target_action": "create",
-		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst year = String(get(first(ctx.reads.payroll_run), 'pay_date', '')).slice(0, 4);\nconst over = get(ctx.entry, 'breakdown.statutory', []).filter((row) => Number(get(row, 'overpaid', 0)) > 0);\nconst overpaid = sum(over.map((row) => Number(get(row, 'overpaid', 0))));\nconst what = over.every((row) => row.kind === 'TAX') ? 'Tax' : over.map((row) => row.code).join(', ');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: what + ' overpaid in ' + year + ': enter ' + overpaid + ' on Statutory refund' + (what === 'Tax' ? '' : '; any employer share comes back from the agency'),\n\toccurrence_key: occurrence_key(['ID', 'TAX_REFUND', ctx.entry.id])\n}];",
-		"id": "b671230b-50d2-5b11-9f52-4c49596774bb",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
-		"references": [
-			{
-				"title": "An overpaid year raises a task for the HR controller, who pays it back on the correction item."
-			}
-		]
-	},
-	{
 		"code": "LATE_WAGE_FINE",
 		"name": "Late wage: fine owed to the worker",
 		"lookup": {
@@ -2123,338 +2069,6 @@
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
 	},
 	{
-		"code": "CONSUMED_LEAVE_LEDGER",
-		"name": "Post what a leave row draws from another",
-		"lookup": {},
-		"references": [
-			{
-				"title": "Leave that draws on another account moves that account."
-			}
-		],
-		"source_collection": "leave_catalog_entry",
-		"events": ["create"],
-		"reads": {
-			"leave_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["lookup"],
-				"limit": 1
-			},
-			"employee_balance": {
-				"where": {
-					"employee_id": {
-						"eq": {
-							"var": "subject.employment.employee_id"
-						}
-					}
-				},
-				"fields": ["account"],
-				"limit": 1
-			}
-		},
-		"condition": "// js\nreturn get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', null) != null;",
-		"target_collection": "ledger_entry",
-		"target_action": "create",
-		"effects": "// js\nconst code = get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', '');\nconst balance = first(ctx.reads.employee_balance);\nif (balance == null) return [];\nconst days = ctx.entry.days.length / 2;\nconst back = get(ctx.entry, 'is_reversal', false) === true;\nreturn [{\n\tbalance_id: balance.id,\n\toperation: back ? 'ADD' : 'DEDUCT',\n\taccount: 'leave',\n\tcode,\n\tamount: days,\n\tunit: 'DAY',\n\teffective_on: ctx.entry.days[0].date\n}];",
-		"id": "a42f704d-cea7-5f6e-9a2f-d4cf29aaa63e",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
-	},
-	{
-		"code": "CONSUMED_LEAVE",
-		"name": "Draw from the account a leave row consumes",
-		"lookup": {},
-		"references": [
-			{
-				"title": "Leave that draws on another account moves that account."
-			}
-		],
-		"source_collection": "leave_catalog_entry",
-		"events": ["create"],
-		"reads": {
-			"leave_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["lookup"],
-				"limit": 1
-			},
-			"employee_balance": {
-				"where": {
-					"employee_id": {
-						"eq": {
-							"var": "subject.employment.employee_id"
-						}
-					}
-				},
-				"fields": ["account"],
-				"limit": 1
-			}
-		},
-		"condition": "// js\nreturn get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', null) != null;",
-		"target_collection": "employee_balance",
-		"target_action": "update",
-		"effects": "// js\nconst code = get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', '');\nconst balance = first(ctx.reads.employee_balance);\nif (balance == null) return [];\nconst days = ctx.entry.days.length / 2;\nconst back = get(ctx.entry, 'is_reversal', false) === true;\nconst leave = get(balance.account, 'leave', {});\nconst held = Number(get(leave, code, 0));\nreturn [{ target: balance.id, set: { account: { ...balance.account, leave: { ...leave, [code]: Math.max(0, held + (back ? days : -days)) } } } }];",
-		"id": "35b183ad-59a4-5494-8598-7bc2d12a008e",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
-	},
-	{
-		"code": "BENEFIT_PAID_LEDGER",
-		"name": "Post the benefit a paid run paid",
-		"lookup": {},
-		"source_collection": "payroll_run",
-		"events": ["update"],
-		"condition": "// js\nreturn ctx.entry.state === 'PAID';",
-		"references": [
-			{
-				"title": "PP 68/2009 arts.2(2), 6: severance and pension benefits paid across the first two calendar years are one benefit on the final ladder.",
-				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm"
-			}
-		],
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
-		"reads": {
-			"payslip": {
-				"where": {
-					"payroll_run_id": {
-						"eq": {
-							"var": "ctx.entry.id"
-						}
-					}
-				},
-				"fields": ["employee_id", "breakdown"],
-				"limit": 10000
-			},
-			"employee_balance": {
-				"fields": ["id", "employee_id", "account"],
-				"limit": 10000
-			},
-			"ledger_entry": {
-				"where": {
-					"account": {
-						"eq": "benefit_paid"
-					},
-					"effective_on": {
-						"eq": {
-							"var": "ctx.entry.pay_date"
-						}
-					}
-				},
-				"fields": ["source_id"],
-				"limit": 10000
-			}
-		},
-		"target_collection": "ledger_entry",
-		"target_action": "create",
-		"effects": "// js\n// PP 68/2009 arts.2(2), 6: a benefit's first two calendar years are one benefit on the ladder, and the balance keeps twelve months. What a paid run paid stays in `benefit_paid` by pay month: a paid run is final, so this never needs undoing.\nconst month = String(ctx.entry.pay_date).slice(0, 7);\nconst stop = (slip, code) => Number(get(first(get(slip, 'breakdown.checkpoints', []).filter((row) => row.code === code)), 'value', 0));\nconst tax = (slip, code) => {\n\tconst row = first(get(slip, 'breakdown.statutory', []).filter((item) => item.code === code));\n\treturn Number(get(row, 'employee', 0)) - Number(get(row, 'overpaid', 0));\n};\nconst paid = (slip) =>\n\t[\n\t\t['SEVERANCE', stop(slip, 'SEVERANCE') - stop(slip, 'ADDITIONAL_WAGES')],\n\t\t['PENSION_BENEFIT', stop(slip, 'PENSION_BENEFIT') - stop(slip, 'SEVERANCE')],\n\t\t['PPH21_FINAL_SEVERANCE.employee', tax(slip, 'PPH21_FINAL_SEVERANCE')],\n\t\t['PPH21_FINAL_PENSION.employee', tax(slip, 'PPH21_FINAL_PENSION')]\n\t].filter((move) => move[1] !== 0);\nconst balanceOf = (slip) => first(ctx.reads.employee_balance.filter((row) => row.employee_id === slip.employee_id));\nif (ctx.reads.ledger_entry.some((row) => get(row, 'source_id.id', '') === ctx.entry.id)) return [];\nreturn ctx.reads.payslip.flatMap((slip) => {\n\tconst balance = balanceOf(slip);\n\tif (balance == null) return [];\n\treturn paid(slip).map((move) => ({\n\t\tbalance_id: balance.id,\n\t\toperation: move[1] > 0 ? 'ADD' : 'DEDUCT',\n\t\taccount: 'benefit_paid',\n\t\tcode: month + '.' + move[0],\n\t\tamount: Math.abs(move[1]),\n\t\tunit: 'MONEY',\n\t\teffective_on: ctx.entry.pay_date,\n\t\tsource_id: { model: 'payroll_run', id: ctx.entry.id }\n\t}));\n});",
-		"id": "c9663d80-cc6d-5157-85e2-3b08263dd27c"
-	},
-	{
-		"code": "BENEFIT_PAID",
-		"name": "Keep the benefit a paid run paid",
-		"lookup": {},
-		"source_collection": "payroll_run",
-		"events": ["update"],
-		"condition": "// js\nreturn ctx.entry.state === 'PAID';",
-		"references": [
-			{
-				"title": "PP 68/2009 arts.2(2), 6: severance and pension benefits paid across the first two calendar years are one benefit on the final ladder.",
-				"url": "https://jdih.kemenkeu.go.id/api/download/fulltext/2009/68TAHUN2009PP.htm"
-			}
-		],
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
-		"reads": {
-			"payslip": {
-				"where": {
-					"payroll_run_id": {
-						"eq": {
-							"var": "ctx.entry.id"
-						}
-					}
-				},
-				"fields": ["employee_id", "breakdown"],
-				"limit": 10000
-			},
-			"employee_balance": {
-				"fields": ["id", "employee_id", "account"],
-				"limit": 10000
-			}
-		},
-		"target_collection": "employee_balance",
-		"target_action": "update",
-		"effects": "// js\n// PP 68/2009 arts.2(2), 6: a benefit's first two calendar years are one benefit on the ladder, and the balance keeps twelve months. What a paid run paid stays in `benefit_paid` by pay month: a paid run is final, so this never needs undoing.\nconst month = String(ctx.entry.pay_date).slice(0, 7);\nconst stop = (slip, code) => Number(get(first(get(slip, 'breakdown.checkpoints', []).filter((row) => row.code === code)), 'value', 0));\nconst tax = (slip, code) => {\n\tconst row = first(get(slip, 'breakdown.statutory', []).filter((item) => item.code === code));\n\treturn Number(get(row, 'employee', 0)) - Number(get(row, 'overpaid', 0));\n};\nconst paid = (slip) =>\n\t[\n\t\t['SEVERANCE', stop(slip, 'SEVERANCE') - stop(slip, 'ADDITIONAL_WAGES')],\n\t\t['PENSION_BENEFIT', stop(slip, 'PENSION_BENEFIT') - stop(slip, 'SEVERANCE')],\n\t\t['PPH21_FINAL_SEVERANCE.employee', tax(slip, 'PPH21_FINAL_SEVERANCE')],\n\t\t['PPH21_FINAL_PENSION.employee', tax(slip, 'PPH21_FINAL_PENSION')]\n\t].filter((move) => move[1] !== 0);\nconst balanceOf = (slip) => first(ctx.reads.employee_balance.filter((row) => row.employee_id === slip.employee_id));\nreturn ctx.reads.payslip.flatMap((slip) => {\n\tconst balance = balanceOf(slip);\n\tconst moves = paid(slip);\n\tif (balance == null || moves.length === 0) return [];\n\tconst held = get(balance.account, 'benefit_paid', {});\n\tif (Object.hasOwn(held, 'run.' + ctx.entry.id)) return [];\n\tconst next = moves.reduce((total, move) => {\n\t\tconst key = month + '.' + move[0];\n\t\treturn { ...total, [key]: (Object.hasOwn(total, key) ? Number(total[key]) : 0) + move[1] };\n\t}, { ...held, ['run.' + ctx.entry.id]: 1 });\n\treturn [{ target: balance.id, set: { account: { ...balance.account, benefit_paid: next } } }];\n});",
-		"id": "c1ee9fdf-f904-59ae-ad67-d8ad1ed137c0"
-	},
-	{
-		"lookup": {},
-		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
-		"code": "LEAVE_CASE_LEDGER",
-		"name": "Post the days a confirmed case gives",
-		"condition": "// js\nreturn get(ctx.entry, 'inputs.decision', '') === 'CONFIRMED' && get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', null) != null;",
-		"reads": {
-			"workplace_case_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["lookup"],
-				"limit": 1
-			},
-			"leave_catalog": {
-				"where": {
-					"settings_id": {
-						"eq": {
-							"var": "ctx.entry.settings_id"
-						}
-					}
-				},
-				"fields": ["code", "lookup"],
-				"limit": 200
-			},
-			"employee_balance": {
-				"where": {
-					"employee_id": {
-						"eq": {
-							"var": "get(ctx.subject, 'employment.employee_id', ctx.entry.id)"
-						}
-					}
-				},
-				"fields": ["account"],
-				"limit": 1
-			},
-			"ledger_entry": {
-				"where": {
-					"account": {
-						"eq": "leave_case"
-					},
-					"code": {
-						"eq": {
-							"var": "ctx.entry.id"
-						}
-					}
-				},
-				"fields": ["id"],
-				"limit": 1
-			}
-		},
-		"target_collection": "ledger_entry",
-		"target_action": "create",
-		"effects": "// js\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nconst person = ctx.subject.employment;\nconst sign = get(ctx.entry, 'inputs.is_reversal', false) === true ? -1 : 1;\nconst moves = grants.flatMap((grant) => {\n\tconst row = first(ctx.reads.leave_catalog.filter((item) => item.code === grant.code));\n\tif (row == null) return [];\n\tconst wanted = get(row, 'lookup.eligibility.gender', null);\n\tif (wanted != null && wanted !== get(person, 'payroll.gender', null)) return [];\n\treturn [{ code: grant.code, row, keep: get(grant, 'keep_start', false), days: get(grant, 'days', get(row, 'lookup.grant_days', 0)) }];\n});\nif (balance == null || ctx.reads.ledger_entry.length > 0) return [];\nconst on = ctx.entry.opened_on;\nreturn [\n\t{ balance_id: balance.id, operation: 'ADD', account: 'leave_case', code: ctx.entry.id, amount: 1, unit: 'COUNT', effective_on: on },\n\t...moves.filter((move) => move.days > 0).map((move) => ({ balance_id: balance.id, operation: sign > 0 ? 'ADD' : 'DEDUCT', account: 'leave', code: move.code, amount: move.days, unit: 'DAY', effective_on: on }))\n];",
-		"id": "a120c073-91cc-5765-929f-6881323a1c4f",
-		"references": [
-			{
-				"title": "A confirmed case opens the days its leave rows give for one event."
-			}
-		]
-	},
-	{
-		"lookup": {},
-		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
-		"code": "LEAVE_CASE",
-		"name": "Open the days a confirmed case gives",
-		"condition": "// js\nreturn get(ctx.entry, 'inputs.decision', '') === 'CONFIRMED' && get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', null) != null;",
-		"reads": {
-			"workplace_case_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["lookup"],
-				"limit": 1
-			},
-			"leave_catalog": {
-				"where": {
-					"settings_id": {
-						"eq": {
-							"var": "ctx.entry.settings_id"
-						}
-					}
-				},
-				"fields": ["code", "lookup"],
-				"limit": 200
-			},
-			"employee_balance": {
-				"where": {
-					"employee_id": {
-						"eq": {
-							"var": "get(ctx.subject, 'employment.employee_id', ctx.entry.id)"
-						}
-					}
-				},
-				"fields": ["account"],
-				"limit": 1
-			}
-		},
-		"target_collection": "employee_balance",
-		"target_action": "update",
-		"effects": "// js\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nconst person = ctx.subject.employment;\nconst sign = get(ctx.entry, 'inputs.is_reversal', false) === true ? -1 : 1;\nconst moves = grants.flatMap((grant) => {\n\tconst row = first(ctx.reads.leave_catalog.filter((item) => item.code === grant.code));\n\tif (row == null) return [];\n\tconst wanted = get(row, 'lookup.eligibility.gender', null);\n\tif (wanted != null && wanted !== get(person, 'payroll.gender', null)) return [];\n\treturn [{ code: grant.code, row, keep: get(grant, 'keep_start', false), days: get(grant, 'days', get(row, 'lookup.grant_days', 0)) }];\n});\nif (balance == null) return [];\nconst done = get(balance.account, 'leave_case', {});\nif (Object.hasOwn(done, ctx.entry.id)) return [];\nconst leave = get(balance.account, 'leave', {});\nconst stamp = Number(String(ctx.entry.opened_on).replaceAll('-', ''));\nconst held = (code) => (Object.hasOwn(leave, code) ? Number(leave[code]) : 0);\nconst stepped = moves.filter((move) => get(move.row, 'lookup.pay_steps', null) != null && move.keep !== true);\nconst started = sign > 0 ? stepped : [];\nconst reverses = get(ctx.entry, 'inputs.reverses', '');\nconst gone = sign > 0 ? [] : stepped.map((move) => move.code + '.from');\nconst windows = Object.fromEntries(Object.entries(get(balance.account, 'leave_window', {})).filter((pair) => !gone.includes(pair[0])));\nreturn [{\n\ttarget: balance.id,\n\tset: {\n\t\taccount: {\n\t\t\t...balance.account,\n\t\t\tleave: { ...leave, ...Object.fromEntries(moves.map((move) => [move.code, held(move.code) + sign * move.days])) },\n\t\t\tleave_window: { ...windows, ...Object.fromEntries(started.map((move) => [move.code + '.from', stamp])) },\n\t\t\tleave_case: { ...done, [ctx.entry.id]: 1, ...Object.fromEntries(moves.map((move) => [ctx.entry.id + '.' + move.code, move.days])), ...(reverses === '' ? {} : { ['reversed.' + reverses]: 1 }) }\n\t\t}\n\t}\n}];",
-		"id": "60ffa983-ff3c-53a4-a15c-5c75b7b108bd",
-		"references": [
-			{
-				"title": "A confirmed case opens the days its leave rows give for one event."
-			}
-		]
-	},
-	{
-		"lookup": {},
-		"source_collection": "workplace_case_catalog_entry",
-		"events": ["update"],
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
-		"code": "LEAVE_CASE_ENDED",
-		"name": "End the event when its case closes",
-		"condition": "// js\nreturn ctx.entry.closed_on != null && get(first(ctx.reads.workplace_case_catalog), 'lookup.ends_on_close', false) === true;",
-		"reads": {
-			"workplace_case_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["lookup"],
-				"limit": 1
-			},
-			"employee_balance": {
-				"where": {
-					"employee_id": {
-						"eq": {
-							"var": "get(ctx.subject, 'employment.employee_id', ctx.entry.id)"
-						}
-					}
-				},
-				"fields": ["account"],
-				"limit": 1
-			}
-		},
-		"target_collection": "employee_balance",
-		"target_action": "update",
-		"effects": "// js\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nif (balance == null) return [];\nconst windows = get(balance.account, 'leave_window', {});\nconst keys = grants.map((grant) => grant.code + '.from');\nif (!keys.some((key) => Object.hasOwn(windows, key))) return [];\nreturn [{ target: balance.id, set: { account: { ...balance.account, leave_window: Object.fromEntries(Object.entries(windows).filter((pair) => !keys.includes(pair[0]))) } } }];",
-		"id": "61f87cda-a6be-566c-a5c5-ab182f4d46d2",
-		"references": [
-			{
-				"title": "Closing a case ends the event."
-			}
-		]
-	},
-	{
 		"code": "LONG_ILLNESS_REMINDER",
 		"name": "Remind HR to open a long illness case",
 		"lookup": {
@@ -2496,17 +2110,6 @@
 				"fields": ["days"],
 				"limit": 500
 			},
-			"employee_balance": {
-				"where": {
-					"employee_id": {
-						"eq": {
-							"var": "subject.employment.employee_id"
-						}
-					}
-				},
-				"fields": ["account"],
-				"limit": 1
-			},
 			"obligation": {
 				"where": {
 					"occurrence_key": {
@@ -2521,7 +2124,7 @@
 		},
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || item.code !== ctx.lookup.leave_code) return [];\nconst windows = get(first(ctx.reads.employee_balance), 'account.leave_window', {});\nif (Object.hasOwn(windows, item.code + '.from')) return [];\nconst dates = ctx.reads.leave_catalog_entry.flatMap((entry) => entry.days.map((day) => day.date));\nconst sorted = dates.toSorted();\nconst latest = sorted[sorted.length - 1];\nconst near = dates.filter((date, index) => dates.indexOf(date) === index && calendar_distance_days(date, latest) <= ctx.lookup.within_days);\nif (near.length < ctx.lookup.sick_days) return [];\nif (ctx.reads.obligation.length > 0) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.title,\n\toccurrence_key: occurrence_key(['ID', 'LONG_ILLNESS_REMINDER', ctx.entry.employment_id])\n}];",
+		"effects": "// js\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || item.code !== ctx.lookup.leave_code) return [];\nconst events = get(ctx.subject.employment, 'employee_extension_data.events', []);\nif (events.some((event) => event.kind === 'LONG_ILLNESS' && get(event, 'ended_on', null) == null)) return [];\nconst dates = ctx.reads.leave_catalog_entry.flatMap((entry) => entry.days.map((day) => day.date));\nconst sorted = dates.toSorted();\nconst latest = sorted[sorted.length - 1];\nconst near = dates.filter((date, index) => dates.indexOf(date) === index && calendar_distance_days(date, latest) <= ctx.lookup.within_days);\nif (near.length < ctx.lookup.sick_days) return [];\nif (ctx.reads.obligation.length > 0) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.title,\n\toccurrence_key: occurrence_key(['ID', 'LONG_ILLNESS_REMINDER', ctx.entry.employment_id])\n}];",
 		"references": [
 			{
 				"title": "PP 36/2021 art.41(1): pay steps down by the months of an illness, so a long spell needs its case."
@@ -2530,5 +2133,47 @@
 		"id": "9d269686-e83e-5ef6-9a88-1b9a2edd34f6",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d",
 		"condition": "// js\nreturn get(first(ctx.reads.leave_catalog), 'code', '') === ctx.lookup.leave_code;"
+	},
+	{
+		"code": "CONTRIBUTION_CORRECTION",
+		"name": "Follow up a contribution corrected for a closed month",
+		"lookup": {},
+		"source_collection": "adhoc_catalog_entry",
+		"events": ["create"],
+		"reads": {
+			"adhoc_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["code", "name", "lookup"],
+				"limit": 1
+			},
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['ID', 'CONTRIBUTION_CORRECTION', ctx.entry.id])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			}
+		},
+		"condition": "// js\nconst row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'is_reversal', false) !== true && get(row, 'lookup.accounts', []).length > 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.name,\n\toccurrence_key: occurrence_key(['ID', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
+		"references": [
+			{
+				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."
+			}
+		],
+		"id": "f7d94e0c-11bd-5850-abec-c5f498c6bb61",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
 	}
 ]

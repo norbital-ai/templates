@@ -138,6 +138,12 @@
 					"min": 0,
 					"scale": 12
 				},
+				"reverses": {
+					"kind": "ref",
+					"onDelete": "restrict",
+					"optional": true,
+					"to": "adhoc_catalog_entry"
+				},
 				"unit": {
 					"kind": "enum",
 					"values": [
@@ -479,6 +485,12 @@
 					"label": "Amount",
 					"min": 0,
 					"scale": 12
+				},
+				"reverses": {
+					"kind": "ref",
+					"onDelete": "restrict",
+					"optional": true,
+					"to": "claim_catalog_entry"
 				},
 				"unit": {
 					"default": "MONEY",
@@ -1742,6 +1754,12 @@
 					"onDelete": "setNull",
 					"optional": true,
 					"to": "payroll_run"
+				},
+				"reverses": {
+					"kind": "ref",
+					"onDelete": "restrict",
+					"optional": true,
+					"to": "leave_catalog_entry"
 				}
 			},
 			"nativeRules": 2,
@@ -1772,6 +1790,11 @@
 				"effective_on": {
 					"kind": "date"
 				},
+				"measure": {
+					"help": "What is held in that window, for example entitled or used.",
+					"kind": "text",
+					"optional": true
+				},
 				"operation": {
 					"kind": "enum",
 					"values": [
@@ -1781,19 +1804,15 @@
 						"DEDUCT"
 					]
 				},
-				"source_id": {
-					"inverse": "ledger_entries",
-					"kind": "ref",
-					"onDelete": "setNull",
-					"optional": true,
-					"to": [
-						"leave_catalog_entry",
-						"claim_catalog_entry",
-						"adhoc_catalog_entry",
-						"loan_catalog_entry",
-						"loan_repayment_entry",
-						"payroll_run"
-					]
+				"period": {
+					"help": "The window the value belongs to, for example MY.S.2026-03-05.",
+					"kind": "text",
+					"optional": true
+				},
+				"source": {
+					"help": "What caused this movement. Plain text, so a movement outlives what caused it.",
+					"kind": "text",
+					"optional": true
 				},
 				"unit": {
 					"kind": "enum",

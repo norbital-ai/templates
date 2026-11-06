@@ -453,6 +453,438 @@
 		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
 	},
 	{
+		"code": "HEALTH_REFUND",
+		"name": "健康保険・介護保険 (Kyokai Kenpo health and nursing care insurance) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects HEALTH for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "HEALTH.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "HEALTH.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "9fbd30b9-3d4f-5913-85ad-ad9272a8da08",
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+	},
+	{
+		"code": "HEALTH_ADJUSTMENT",
+		"name": "健康保険・介護保険 (Kyokai Kenpo health and nursing care insurance) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects HEALTH for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "HEALTH.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "HEALTH.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "6e242ff3-d73f-55e3-a08c-1c460ac34b98",
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+	},
+	{
+		"code": "HEALTH_BONUS_REFUND",
+		"name": "健康保険・介護保険 標準賞与額 (health insurance on bonuses) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects HEALTH_BONUS for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "HEALTH_BONUS.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "HEALTH_BONUS.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "f7301449-0e84-5242-b29d-141d7121f554",
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+	},
+	{
+		"code": "HEALTH_BONUS_ADJUSTMENT",
+		"name": "健康保険・介護保険 標準賞与額 (health insurance on bonuses) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects HEALTH_BONUS for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "HEALTH_BONUS.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "HEALTH_BONUS.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "205bef5b-e76e-5072-858f-a23e2d6e1b7b",
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+	},
+	{
+		"code": "PENSION_REFUND",
+		"name": "厚生年金保険 (employees' pension insurance) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects PENSION for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "PENSION.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "PENSION.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "d8eddf77-7d8e-5c68-8202-f6b6d2008246",
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+	},
+	{
+		"code": "PENSION_ADJUSTMENT",
+		"name": "厚生年金保険 (employees' pension insurance) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects PENSION for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "PENSION.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "PENSION.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "c4534701-13dc-52f9-8615-762663d0e392",
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+	},
+	{
+		"code": "PENSION_BONUS_REFUND",
+		"name": "厚生年金保険 標準賞与額 (pension on bonuses) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects PENSION_BONUS for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "PENSION_BONUS.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "PENSION_BONUS.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "c7fe13dc-9865-560e-a630-96e874086d04",
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+	},
+	{
+		"code": "PENSION_BONUS_ADJUSTMENT",
+		"name": "厚生年金保険 標準賞与額 (pension on bonuses) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects PENSION_BONUS for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "PENSION_BONUS.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "PENSION_BONUS.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "af08a25f-8b45-58f8-a2f0-1e6e5c0791c0",
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+	},
+	{
+		"code": "EI_REFUND",
+		"name": "雇用保険 (employment insurance) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects EI for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "EI.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "EI.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "4140fc1a-f654-52e1-9bd4-2e2b3a1f8f4c",
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+	},
+	{
+		"code": "EI_ADJUSTMENT",
+		"name": "雇用保険 (employment insurance) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects EI for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "EI.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "EI.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "3196a463-60c8-506a-8c2c-4dc0be14dd05",
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+	},
+	{
+		"code": "EI_BONUS_REFUND",
+		"name": "雇用保険 賞与 (employment insurance on bonuses) refund",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects EI_BONUS for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "EI_BONUS.employee",
+					"measure": "paid",
+					"operation": "DEDUCT"
+				},
+				{
+					"account": "statutory",
+					"code": "EI_BONUS.employee",
+					"measure": "paid",
+					"operation": "DEDUCT",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
+		"direction": "ADD",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "76d21c78-b657-590a-8d07-23bdec244960",
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+	},
+	{
+		"code": "EI_BONUS_ADJUSTMENT",
+		"name": "雇用保険 賞与 (employment insurance on bonuses) adjustment",
+		"references": [
+			{
+				"title": "A statutory correction is an adhoc entry on this item: the item is the correction, so no reversal is needed. A year that comes out overpaid raises an obligation for the HR controller to enter it."
+			}
+		],
+		"description": "Corrects EI_BONUS for a closed month: a wrong rate, not a wrong wage. Dated in the month it corrects.",
+		"lookup": {
+			"accounts": [
+				{
+					"account": "statutory",
+					"code": "EI_BONUS.employee",
+					"measure": "paid",
+					"operation": "ADD"
+				},
+				{
+					"account": "statutory",
+					"code": "EI_BONUS.employee",
+					"measure": "paid",
+					"operation": "ADD",
+					"period": "MONTH"
+				}
+			]
+		},
+		"off_cycle_eligible": true,
+		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
+		"direction": "DEDUCT",
+		"party": "EMPLOYEE",
+		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
+		"conversion": "// js\nreturn ctx.entry.quantity;",
+		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
+		"id": "56629a9e-5bde-5e08-b800-ca870f114958",
+		"settings_id": "8f6194fc-6906-568f-a011-30183e86be25"
+	},
+	{
 		"code": "SOCIAL_INSURANCE_REFUND",
 		"name": "Social insurance refund",
 		"references": [

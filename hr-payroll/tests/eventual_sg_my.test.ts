@@ -6,7 +6,8 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, uuid, workspace } from './kit.ts';
+import type { Accounts } from '../src/lib/ledger/core.ts';
+import { ENTITY, accountsIn, pack, uuid, workspace } from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const JUNE = '2026-06-20T02:00:00.000Z';
@@ -37,8 +38,11 @@ const SINGAPORE: Place = {
 };
 const MALAYSIA: Place = { code: 'MY', zone: 'Asia/Kuala_Lumpur', item: 'BPAYBS' };
 
-type Account = NonNullable<Seed['employee_balance']>[number]['account'];
-const seedOf = ({ code, zone, facts = {} }: Place, amount: number, account: Account = {}): Seed => {
+const seedOf = (
+	{ code, zone, facts = {} }: Place,
+	amount: number,
+	account: Accounts = {}
+): Seed => {
 	const seed = pack(code, zone, terms(amount), facts, [], [], '2026-06-15');
 	return {
 		...seed,
@@ -107,15 +111,15 @@ const runs = (t: Kit, period: string) =>
 				})
 		)
 	);
-/** Every row a month charged across its runs, net of what it found overpaid. */
+/** Every row a month charged across its runs: a refund counts against it. */
 const month = (t: Kit, period: string, codes: readonly string[], sides: readonly string[]) =>
 	runs(t, period).pipe(
 		Effect.map((slips) => {
 			const totals = new Map<string, number>();
 			const add = (key: string, value: number) => totals.set(key, (totals.get(key) ?? 0) + value);
-			for (const { code, employee, employer, overpaid = 0 } of slips.flatMap((s) => s.statutory)) {
+			for (const { code, employee, employer } of slips.flatMap((s) => s.statutory)) {
 				if (!codes.includes(code)) continue;
-				add(`${code}.employee`, employee - overpaid);
+				add(`${code}.employee`, employee);
 				add(`${code}.employer`, employer);
 			}
 			return Object.fromEntries(
@@ -217,34 +221,60 @@ describe('paid too much', () => {
 	});
 });
 
-describe('an overpaid contribution', () => {
-	it.live('flags HR, who enters it on Statutory refund', () => {
-		const seed = seedOf(
-			SINGAPORE,
-			10_000,
-			months([7000, 7000, 7000, 10_000, 10_000, 10_000, 10_000, 10_000, 10_000, 10_000, 10_000], {
-				2: { paid: 20_000, attracted: 18_000 }
-			})
-		);
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* onCycle(t, '2026-12');
-			const titles = (yield* t.storedQuery({ obligation: { limit: 50 } })).obligation.rows.map(
+describe('a contribution corrected for a closed month', () => {
+	const scheme = (t: Kit) =>
+		accountsIn(t).pipe(Effect.map((accounts) => accounts.statutory?.['EPF.employee'] ?? {}));
+	const fund = (t: Kit, seed: Seed, item: string) =>
+		Effect.gen(function* () {
+			yield* enter(t, seed, item, 100, '2026-06-30');
+			yield* t.runDue();
+			return (yield* t.storedQuery({ obligation: { limit: 100 } })).obligation.rows.map(
 				(row) => row.title
 			);
-			assert.ok(
-				titles.includes(
-					'CPF overpaid in 2026: enter 200 on Statutory refund; any employer share comes back from the agency'
-				),
-				titles.join(' | ')
-			);
-			yield* enter(t, seed, 'STATUTORY_REFUND', 200, '2026-12-15');
-			const open = (yield* t.storedQuery({
+		});
+	const seed = seedOf(MALAYSIA, 4800);
+	it.live('a refund takes it off the scheme now, and the next run pays it', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* onCycle(t, '2026-06');
+			const paid = (yield* scheme(t))['MY.Y.2026-01-01']?.['paid'] ?? 0;
+			const month = (yield* scheme(t))['MY.M.2026-06-01']?.['paid'] ?? 0;
+			const titles = yield* fund(t, seed, 'EPF_REFUND');
+			assert.ok(titles.some((title) => title.startsWith('Claim 100 back from the fund')));
+			assert.equal((yield* scheme(t))['MY.Y.2026-01-01']?.['paid'], paid - 100);
+			assert.equal((yield* scheme(t))['MY.M.2026-06-01']?.['paid'], month - 100);
+			yield* onCycle(t, '2026-07');
+			const [july] = yield* runs(t, '2026-07');
+			const line = july?.lines.find((row) => row.code === 'EPF_REFUND');
+			assert.equal(line?.direction, 'ADD');
+			assert.equal(line?.amount, 100);
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-07-28T02:00:00.000Z' })))
+	);
+	it.live('an underpayment adds to the scheme, and raises the arrears', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* onCycle(t, '2026-06');
+			const paid = (yield* scheme(t))['MY.Y.2026-01-01']?.['paid'] ?? 0;
+			const titles = yield* fund(t, seed, 'EPF_ADJUSTMENT');
+			assert.ok(titles.some((title) => title.startsWith('Pay 100 in arrears to the fund')));
+			assert.equal((yield* scheme(t))['MY.Y.2026-01-01']?.['paid'], paid + 100);
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-07-28T02:00:00.000Z' })))
+	);
+	it.live('deleted while unpaid, it posts its exact inverse', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* onCycle(t, '2026-06');
+			const held = yield* scheme(t);
+			yield* fund(t, seed, 'EPF_REFUND');
+			const [entry] = (yield* t.storedQuery({
 				adhoc_catalog_entry: { where: { payroll_run_id: { isNull: true } }, limit: 1 }
 			})).adhoc_catalog_entry.rows;
-			assert.equal(open.length, 1);
-		}).pipe(Effect.provide(workspace({ seed, now: DECEMBER })));
-	});
+			assert.ok(entry !== undefined);
+			yield* t.as(t.admin).act('adhoc_catalog_entry.delete', [{ target: entry.id }]);
+			yield* t.runDue();
+			assert.deepEqual(yield* scheme(t), held);
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-07-28T02:00:00.000Z' })))
+	);
 });
 
 describe('a transfer month', () => {
@@ -284,7 +314,7 @@ describe('a transfer month', () => {
 
 describe('someone on a six-day week', () => {
 	it.live('a no-pay day and its reversal count the contract’s days, not the company’s', () => {
-		const base = seedOf(SINGAPORE, 5200, { leave: { UNPAID_LEAVE: 30 } });
+		const base = seedOf(SINGAPORE, 5200);
 		const seed: Seed = {
 			...base,
 			employee_contract: (base.employee_contract ?? []).map((row) => ({
@@ -329,7 +359,12 @@ describe('someone on a six-day week', () => {
 
 describe('sick and hospitalisation leave in Singapore', () => {
 	it.live('share the 60 days the year allows', () => {
-		const base = seedOf(SINGAPORE, 4400, { leave: { SICK_LEAVE: 14, HOSPITALIZATION_LEAVE: 60 } });
+		const base = seedOf(SINGAPORE, 4400, {
+			leave: {
+				SICK_LEAVE: { 'SG.Y.2026-01-01': { entitled: 14 } },
+				HOSPITALIZATION_LEAVE: { 'SG.Y.2026-01-01': { entitled: 60 } }
+			}
+		});
 		const seed: Seed = {
 			...base,
 			employee_contract: (base.employee_contract ?? []).map((row) => ({
@@ -407,15 +442,19 @@ const months = (
 	ordinary: readonly number[],
 	additional: Readonly<Record<number, { readonly paid: number; readonly attracted: number }>> = {}
 ) => {
-	const month: Record<string, number> = {};
+	const pay: Record<string, Record<string, Record<string, number>>> = {
+		ORDINARY_WAGES: {},
+		ADDITIONAL_WAGES: {}
+	};
+	const statutory: Record<string, Record<string, Record<string, number>>> = {};
 	ordinary.forEach((wages, index) => {
-		const key = `2026-${String(index + 1).padStart(2, '0')}`;
+		const period = `SG.M.2026-${String(index + 1).padStart(2, '0')}-01`;
 		const aw = additional[index + 1];
-		month[`${key}.ORDINARY_WAGES`] = wages;
-		month[`${key}.ADDITIONAL_WAGES`] = wages + (aw?.paid ?? 0);
-		if (aw !== undefined) month[`${key}.CPF_AW.employer`] = aw.attracted;
+		(pay['ORDINARY_WAGES'] ??= {})[period] = { total: wages };
+		(pay['ADDITIONAL_WAGES'] ??= {})[period] = { total: wages + (aw?.paid ?? 0) };
+		if (aw !== undefined) (statutory['CPF_AW.employer'] ??= {})[period] = { paid: aw.attracted };
 	});
-	return { month, ytd: { 'LAW.SG': 1, TAX_YEAR: 2026 }, statutory_contribution: {} };
+	return { pay, statutory };
 };
 
 describe('a leaver with no further on-cycle run', () => {
@@ -477,7 +516,7 @@ describe('a raise past the CPF ceiling', () => {
 		}).pipe(Effect.provide(workspace({ seed, now: DECEMBER })));
 	});
 
-	it.live('a bonus before the raise settles in December: the excess CPF comes back', () => {
+	it.live('a bonus before the raise settles in December: the excess stops at zero', () => {
 		const seed = seedOf(
 			SINGAPORE,
 			10_000,
@@ -492,7 +531,6 @@ describe('a raise past the CPF ceiling', () => {
 			const cpf = charged(december, 'CPF');
 			// the actual OW leaves room for 9,000 of the 18,000: 20% of 8,000 less 20% of the 9,000 excess
 			assert.equal(cpf?.employee, 0);
-			assert.equal(cpf?.overpaid, 200);
 			assert.equal(charged(december, 'CPF_AW')?.employer, 0);
 		}).pipe(Effect.provide(workspace({ seed, now: DECEMBER })));
 	});
@@ -540,7 +578,7 @@ describe('no-pay leave in Singapore', () => {
 		]);
 	const line = (slip: PayslipBreakdown | undefined) =>
 		slip?.lines.find((row) => row.code === 'UNPAID_LEAVE');
-	const seed = seedOf(SINGAPORE, 4400, { leave: { UNPAID_LEAVE: 30 } });
+	const seed = seedOf(SINGAPORE, 4400);
 
 	it.live('a day comes off at monthly gross ÷ the month’s working days', () =>
 		Effect.gen(function* () {

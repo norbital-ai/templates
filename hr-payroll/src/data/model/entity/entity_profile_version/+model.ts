@@ -313,6 +313,10 @@ export default model('entity_profile_version', {
 			);
 		},
 		updated: function* (changes, ctx) {
+			if (
+				changes.some(({ before, after }) => before.status !== 'SEALED' && after.status === 'SEALED')
+			)
+				yield* ctx.schedule('ledger', {}, { key: 'ledger' });
 			yield* tap(
 				ctx,
 				'update',

@@ -9,7 +9,7 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, OFF, REST, WORK, pack, read, uuid, workspace } from './kit.ts';
+import { ENTITY, OFF, REST, WORK, accountsIn, pack, read, uuid, workspace } from './kit.ts';
 
 const lines = Effect.fnUntraced(function* (t: Kit) {
 	yield* t
@@ -17,7 +17,7 @@ const lines = Effect.fnUntraced(function* (t: Kit) {
 		.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-02', kind: 'ON_CYCLE' }]);
 	yield* t.runDue();
 	const held = (yield* t.storedQuery({ employee_balance: { limit: 1 } })).employee_balance.rows[0];
-	assert.ok(held !== undefined && 'ytd' in held.account, 'a run posts year-to-date to the balance');
+	assert.ok(held !== undefined && 'pay' in held.account, 'a run posts its totals to the balance');
 	const payslip = (yield* t.storedQuery({ payslip: { limit: 1 } })).payslip.rows[0];
 	const breakdown = Schema.decodeUnknownSync(PayslipBreakdown)(payslip?.breakdown);
 	return Object.fromEntries(breakdown.lines.map((line) => [line.code, line.amount]));
@@ -354,6 +354,7 @@ describe('overtime bands', () => {
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* month(t, '01', '31');
+			yield* t.runDue();
 			yield* t.as(t.admin).act('claim_catalog_entry.create', [
 				{
 					entity_id: ENTITY,
@@ -467,13 +468,8 @@ describe('overtime bands', () => {
 				(row) => row.code === 'MEDICAL_CLAIM' && row.settings_id === version
 			);
 			const balance = (t: Kit) =>
-				t.storedQuery({ employee_balance: { limit: 1 } }).pipe(
-					Effect.map((got) => {
-						const { ytd = {} } = Schema.decodeUnknownSync(
-							Schema.Record(Schema.String, Schema.Record(Schema.String, Schema.Number))
-						)(got.employee_balance.rows[0]?.account);
-						return ytd['NET'] ?? 0;
-					})
+				accountsIn(t).pipe(
+					Effect.map((accounts) => accounts.pay?.['NET']?.['MY.Y.2026-01-01']?.['total'] ?? 0)
 				);
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
@@ -621,13 +617,9 @@ describe('overtime bands', () => {
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
 				yield* month(t, '01', '31');
+				yield* t.runDue();
 				const sealed = yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } });
 				assert.notEqual(sealed.leave_catalog_entry.rows[0]?.payroll_run_id, null);
-				yield* Effect.flip(
-					t
-						.as(t.admin)
-						.act('leave_catalog_entry.update', [{ target: entry, set: { is_reversal: true } }])
-				);
 				yield* month(t, '02', '28');
 				const got = yield* t.storedQuery({ payslip: { limit: 10 } });
 				const lines = got.payslip.rows

@@ -196,6 +196,9 @@
 			"grant_days": 60,
 			"eligibility": {
 				"gender": "FEMALE"
+			},
+			"opened_by": {
+				"CHILD_BIRTH": {}
 			}
 		},
 		"references": [
@@ -300,6 +303,9 @@
 			"grant_days": 15,
 			"eligibility": {
 				"gender": "FEMALE"
+			},
+			"opened_by": {
+				"CHILD_BIRTH": {}
 			}
 		},
 		"references": [
@@ -332,6 +338,9 @@
 			"grant_days": 15,
 			"eligibility": {
 				"marital_status": "MARRIED"
+			},
+			"opened_by": {
+				"CHILD_BIRTH": {}
 			}
 		},
 		"references": [
@@ -383,7 +392,10 @@
 		"lookup": {
 			"paid_share": 0.5,
 			"window": "EVENT",
-			"grant_days": 7
+			"grant_days": 7,
+			"opened_by": {
+				"DISCIPLINARY_SUSPENSION": {}
+			}
 		},
 		"references": [
 			{

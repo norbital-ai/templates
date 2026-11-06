@@ -196,6 +196,9 @@
 			"grant_days": 45,
 			"eligibility": {
 				"gender": "FEMALE"
+			},
+			"opened_by": {
+				"CHILD_BIRTH": {}
 			}
 		},
 		"references": [
@@ -320,7 +323,10 @@
 		"lookup": {
 			"paid_share": 0.5,
 			"window": "EVENT",
-			"grant_days": 7
+			"grant_days": 7,
+			"opened_by": {
+				"DISCIPLINARY_SUSPENSION": {}
+			}
 		},
 		"references": [
 			{

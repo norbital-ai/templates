@@ -29,7 +29,7 @@ const salary = (lookup: JsonObject, absent: readonly string[]) => {
 		employee: {},
 		employment: { id: 'contract', terms: { rate: { amount: 3100, unit: 'MONTHLY' } } },
 		employer: {},
-		balance: { account: { ytd: { TAX_YEAR: 2026, 'LAW.SG': 1 } } },
+		balance: { account: {} },
 		entries: {},
 		work: { days: absent.map((date) => ({ date, day_type: 'ABS' })) },
 		projected_days: march

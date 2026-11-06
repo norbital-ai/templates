@@ -304,53 +304,5 @@
 				"quote": "Severance is measured by continuous service; the record evidences the service behind a benefit award."
 			}
 		]
-	},
-	{
-		"code": "CHILD_BIRTH",
-		"name": "Child birth",
-		"lookup": {
-			"grants": [
-				{
-					"code": "MATERNITY_LEAVE"
-				},
-				{
-					"code": "PATERNITY_LEAVE"
-				},
-				{
-					"code": "CHILD_CARE_LEAVE"
-				}
-			]
-		},
-		"subtotal_id": null,
-		"off_cycle_eligible": false,
-		"events": {},
-		"references": [
-			{
-				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
-			}
-		],
-		"id": "36fe6c89-d012-5647-ab5d-d13e24d193b3",
-		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
-	},
-	{
-		"code": "DISCIPLINARY_SUSPENSION",
-		"name": "Disciplinary suspension",
-		"lookup": {
-			"grants": [
-				{
-					"code": "SUSPENSION"
-				}
-			]
-		},
-		"subtotal_id": null,
-		"off_cycle_eligible": false,
-		"events": {},
-		"references": [
-			{
-				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
-			}
-		],
-		"id": "96f5a0e7-57fd-5aa8-b367-bc4c2801b5b8",
-		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
 	}
 ]

@@ -75,10 +75,6 @@ const seedOf = (
 		employee_contract: (seed.employee_contract ?? []).map((row) => ({
 			...row,
 			effective_range: { from: '2026-01-01', to: null }
-		})),
-		employee_balance: (seed.employee_balance ?? []).map((row) => ({
-			...row,
-			account: { leave: { UNPAID_LEAVE: 30 } }
 		}))
 	};
 };
@@ -140,15 +136,15 @@ const runs = (t: Kit, period: string) =>
 				})
 		)
 	);
-/** What a month's runs charged on these rows, net of what they found overpaid. */
+/** What a month's runs charged on these rows: a refund counts against it. */
 const month = (t: Kit, period: string, codes: readonly string[], sides: readonly string[]) =>
 	runs(t, period).pipe(
 		Effect.map((slips) => {
 			const totals = new Map<string, number>();
 			const add = (key: string, value: number) => totals.set(key, (totals.get(key) ?? 0) + value);
-			for (const { code, employee, employer, overpaid = 0 } of slips.flatMap((s) => s.statutory)) {
+			for (const { code, employee, employer } of slips.flatMap((s) => s.statutory)) {
 				if (!codes.includes(code)) continue;
-				add(`${code}.employee`, employee - overpaid);
+				add(`${code}.employee`, employee);
 				add(`${code}.employer`, employer);
 			}
 			return Object.fromEntries(
@@ -226,8 +222,11 @@ describe('too much, reversed in the next on-cycle run', () => {
 				assert.ok(may !== undefined && slip !== undefined);
 				for (const { code, amount } of [...may.lines, ...slip.lines])
 					assert.ok(amount >= 0, `${code} is negative`);
-				for (const { code, employee } of [...may.statutory, ...slip.statutory])
-					assert.ok(employee >= 0, `${code} is negative`);
+				// a row that repays does so on an ADD line, and only that
+				for (const { code, employee } of slip.statutory)
+					if (employee < 0)
+						assert.equal(slip.lines.find((line) => line.code === code)?.direction, 'ADD', code);
+				assert.ok(may.statutory.every(({ employee }) => employee >= 0));
 				return yield* month(t, '2026-06', FOLLOWING, EMPLOYEE);
 			}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
 			const total = (rows: Readonly<Record<string, number>>) =>
@@ -279,7 +278,7 @@ describe('corrected in the next on-cycle run', () => {
 
 	const NOW = '2026-12-20T02:00:00.000Z';
 	const CODES = ['INCOME_TAX', 'YEAR_END_ADJUSTMENT'];
-	/** Tax the year's last two months took, net of what December found overpaid. */
+	/** Tax the year's last two months took, with what December's adjustment gave back. */
 	const taken = (correct: (t: Kit, seed: Seed) => Effect.Effect<unknown, unknown>) => {
 		const seed = seedOf(SALARY);
 		const late: Seed = {
@@ -340,24 +339,29 @@ describe('corrected in the next on-cycle run', () => {
 			const right = yield* taken((t) =>
 				onCycle(t, '2026-11').pipe(Effect.andThen(onCycle(t, '2026-12')))
 			);
+			const back = yield* taken((t, seed) =>
+				Effect.gen(function* () {
+					yield* onCycle(t, '2026-11');
+					yield* enter(t, seed, 'SOCIAL_INSURANCE_REFUND', 50_000, '2026-12-10');
+					yield* onCycle(t, '2026-12');
+				})
+			);
+			assert.ok(back.year > right.year);
+		})
+	);
+	it.live('a bonus reversed in December refunds its premiums, and the year stands', () =>
+		Effect.gen(function* () {
+			const right = yield* taken((t) =>
+				onCycle(t, '2026-11').pipe(Effect.andThen(onCycle(t, '2026-12')))
+			);
 			const refunded = yield* taken((t, seed) =>
 				Effect.gen(function* () {
 					yield* enter(t, seed, 'BONUS', WRONG, '2026-11-10');
 					yield* onCycle(t, '2026-11');
 					yield* enter(t, seed, 'BONUS', WRONG, '2026-12-10', true);
-					const premiums = yield* month(t, '2026-11', PREMIUMS, EMPLOYEE);
-					const paid = Object.values(premiums).reduce((sum, value) => sum + value, 0);
-					assert.ok(paid > 0);
-					yield* enter(t, seed, 'SOCIAL_INSURANCE_REFUND', paid, '2026-12-10');
 					yield* onCycle(t, '2026-12');
-					const flags = (yield* t.storedQuery({ obligation: { limit: 1000 } })).obligation.rows;
-					assert.ok(
-						flags.some(({ title }) =>
-							/overpaid in 2026: enter \d+ on Social insurance refund; any employer share/.test(
-								title
-							)
-						)
-					);
+					const december = yield* month(t, '2026-12', PREMIUMS, EMPLOYEE);
+					assert.ok(Object.values(december).some((value) => value < 0));
 				})
 			);
 			assert.equal(refunded.year, right.year);

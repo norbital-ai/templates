@@ -1,71 +1,7 @@
 import { model } from '@norbital-ai/bolt';
-import { Effect } from 'effect';
 import { validateRegistered } from '../../../../../../../lib/payroll_engine/registrations.js';
-import {
-	jsonObject,
-	numberOf,
-	Refusal
-} from '../../../../../../../lib/payroll_engine/foundation.js';
-import { queryRows, type Reader } from '../../../../../../../lib/payroll_engine/reads.js';
+import { jsonObject } from '../../../../../../../lib/payroll_engine/foundation.js';
 import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
-
-/** A money claim may not exceed its catalogue's annual limit for that employment. */
-function* assertClaimLimits(read: Reader, rows: readonly Record<string, unknown>[]) {
-	const catalogIds = [
-		...new Set(rows.flatMap((row) => (typeof row.catalog_id === 'string' ? [row.catalog_id] : [])))
-	];
-	if (catalogIds.length === 0) return;
-	const catalogs = yield* queryRows(read, {
-		claim_catalog: { where: { id: { in: catalogIds } }, fields: ['id', 'lookup'], limit: 10000 }
-	});
-	const limits = new Map(
-		(catalogs.claim_catalog ?? []).flatMap((row) => {
-			const limit = Number((row.lookup as { annual_limit?: number } | undefined)?.annual_limit);
-			return Number.isFinite(limit) && limit > 0 ? [[String(row.id), limit] as const] : [];
-		})
-	);
-	if (limits.size === 0) return;
-	const employmentIds = [
-		...new Set(
-			rows.flatMap((row) => (typeof row.employment_id === 'string' ? [row.employment_id] : []))
-		)
-	];
-	const existing = yield* queryRows(read, {
-		claim_catalog_entry: {
-			where: { employment_id: { in: employmentIds } },
-			fields: ['id', 'employment_id', 'catalog_id', 'quantity', 'incurred_on', 'is_reversal'],
-			limit: 10000
-		}
-	});
-	const used = new Map<string, number>();
-	const key = (employment: string, catalog: string, year: string) =>
-		`${employment}:${catalog}:${year}`;
-	for (const row of existing.claim_catalog_entry ?? []) {
-		if (row.is_reversal === true) continue;
-		const at = key(
-			String(row.employment_id),
-			String(row.catalog_id),
-			String(row.incurred_on).slice(0, 4)
-		);
-		used.set(at, (used.get(at) ?? 0) + (numberOf(row.quantity) ?? 0));
-	}
-	for (const row of rows) {
-		const limit = limits.get(String(row.catalog_id));
-		if (limit === undefined) continue;
-		const at = key(
-			String(row.employment_id),
-			String(row.catalog_id),
-			String(row.incurred_on).slice(0, 4)
-		);
-		const own = (existing.claim_catalog_entry ?? []).find((old) => old.id === row.id);
-		const prior = own === undefined ? 0 : (numberOf(own.quantity) ?? 0);
-		if ((used.get(at) ?? 0) - prior + (numberOf(row.quantity) ?? 0) > limit)
-			yield* Effect.fail(
-				new Refusal({ message: `${String(row.catalog_id)}: the annual claim limit is ${limit}.` })
-			);
-		used.set(at, (used.get(at) ?? 0) + (numberOf(row.quantity) ?? 0));
-	}
-}
 
 export default model('claim_catalog_entry', {
 	description: 'One claim against an employment.',
@@ -88,7 +24,8 @@ export default model('claim_catalog_entry', {
 			max: '20MiB',
 			optional: true
 		},
-		is_reversal: { kind: 'bool', default: false }
+		is_reversal: { kind: 'bool', default: false },
+		reverses: { kind: 'ref', to: 'claim_catalog_entry', optional: true, onDelete: 'restrict' }
 	},
 	locked: { payroll_run_id: { isNull: false } },
 	read: {
@@ -106,7 +43,8 @@ export default model('claim_catalog_entry', {
 				'quantity',
 				'incurred_on',
 				'evidence_file',
-				'is_reversal'
+				'is_reversal',
+				'reverses'
 			]
 		},
 		transform: function* (rows, ctx) {
@@ -116,19 +54,12 @@ export default model('claim_catalog_entry', {
 				'create',
 				rows.map((row) => jsonObject(row))
 			);
-			yield* assertClaimLimits(ctx.db.query, rows);
 			return rows;
 		}
 	},
 	update: {
 		columns: {
-			claim_catalog_entry: [
-				'payroll_run_id',
-				'quantity',
-				'incurred_on',
-				'evidence_file',
-				'is_reversal'
-			]
+			claim_catalog_entry: ['payroll_run_id', 'quantity', 'incurred_on', 'evidence_file']
 		},
 		transform: function* (changes, ctx) {
 			if (
@@ -142,7 +73,6 @@ export default model('claim_catalog_entry', {
 			yield* validateRegistered(ctx.db.query, 'claim_catalog_entry', 'update', proposed);
 			if (changes.some((c) => c.before.payroll_run_id != null))
 				return yield* ctx.refuse('This record is locked by a payroll run.');
-			yield* assertClaimLimits(ctx.db.query, proposed);
 			return changes.map((c) => c.set);
 		}
 	},
@@ -161,6 +91,7 @@ export default model('claim_catalog_entry', {
 
 	effect: {
 		created: function* (rows, ctx) {
+			yield* ctx.schedule('ledger', { post: rows.map((row) => `claim_catalog_entry:${row.id}`) });
 			yield* tap(
 				ctx,
 				'create',
@@ -169,12 +100,22 @@ export default model('claim_catalog_entry', {
 			);
 		},
 		updated: function* (changes, ctx) {
+			const edited = changes.filter(
+				({ before, after }) => before.payroll_run_id === after.payroll_run_id
+			);
+			if (edited.length > 0)
+				yield* ctx.schedule('ledger', {
+					post: edited.map(({ after }) => `claim_catalog_entry:${after.id}`)
+				});
 			yield* tap(
 				ctx,
 				'update',
 				{ collection: 'claim_catalog_entry', ids: changes.map((change) => change.after.id) },
 				changes
 			);
+		},
+		deleted: function* (rows, ctx) {
+			yield* ctx.schedule('ledger', { post: rows.map((row) => `claim_catalog_entry:${row.id}`) });
 		}
 	}
 });

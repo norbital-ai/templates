@@ -200,7 +200,7 @@ const offCycle = (t: Kit, seed: Seed, one: Case, period: string, on: string) =>
 		]);
 		yield* t.runDue();
 	});
-/** Every statutory row the month charged, both sides, across its runs, net of what it found overpaid. */
+/** Every statutory row the month charged, both sides, across its runs: a refund counts against it. */
 const month = (t: Kit, period: string) =>
 	t.storedQuery({ payslip: { limit: 100 }, payroll_run: { limit: 100 } }).pipe(
 		Effect.map((got) => {
@@ -210,7 +210,7 @@ const month = (t: Kit, period: string) =>
 				const slip = got.payslip.rows.find((row) => row.payroll_run_id === run.id);
 				const { statutory } = Schema.decodeUnknownSync(PayslipBreakdown)(slip?.breakdown);
 				for (const row of statutory) {
-					add(`${row.code}.employee`, row.employee - (row.overpaid ?? 0));
+					add(`${row.code}.employee`, row.employee);
 					add(`${row.code}.employer`, row.employer);
 				}
 			}

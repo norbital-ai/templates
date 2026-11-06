@@ -20,7 +20,6 @@
 	} from '@norbital-ai/ui';
 	import { Stack, Cluster } from '@norbital-ai/ui/layout';
 	import FaceEnrollFlow from '../../../lib/ui/person/face_enroll_flow.svelte';
-	import LeaveCaseForm from '../../../lib/ui/person/leave_case_form.svelte';
 	import VersionTimeline from '../../../lib/ui/components/version_timeline.svelte';
 	import { formatTermsDates } from '../../../lib/ui/format/display_formatters.js';
 	import { employeeReference } from '../../../lib/export_format_configuration/export_format.js';
@@ -32,14 +31,13 @@
 	const caseName = listedKindNames('case_kinds');
 	let enrolling = $state(false),
 		saving = $state(false),
-		computing = $state(false),
-		openingCase = $state(false);
+		computing = $state(false);
 	/** Safe to press at any time: it writes only what differs from what is already applied. */
 	const computeLeave = () => {
 		if (record === null) return;
 		computing = true;
 		fork(
-			bolt.start('leave_entitlement', { employees: [record.id] }).pipe(
+			bolt.start('ledger', { employees: [record.id] }).pipe(
 				Effect.tap(() => Effect.sync(() => toast.success(t('app.leave.computing')))),
 				Effect.ensuring(Effect.sync(() => (computing = false)))
 			)
@@ -82,21 +80,6 @@
 					'employee_contract.entity_id': { fields: ['name'] }
 				})
 	);
-	/** The contract a leave case belongs to: the latest one in force. */
-	const latestContract = $derived.by(() => {
-		const [latest] = (contracts?.current?.employee_contract.rows ?? [])
-			.filter((row) => row.status === 'SEALED')
-			.toSorted((left, right) =>
-				String(right.effective_range.from).localeCompare(String(left.effective_range.from))
-			);
-		return latest?.entity_id == null
-			? undefined
-			: {
-					id: latest.id,
-					entity_id: latest.entity_id.id,
-					input_schema_version_id: latest.input_schema_version_id
-				};
-	});
 	const contractIds = $derived(
 		(contracts?.current?.employee_contract.rows ?? []).map((row) => row.id)
 	);
@@ -200,8 +183,6 @@
 				title={t('app.leave.title')}
 			/>{:else}<Stack gap="md"
 				><Cluster justify="end"
-					><Button variant="outline" onclick={() => (openingCase = true)}
-						>{t('app.leave_case.open')}</Button
 					><Button variant="outline" disabled={computing} onclick={computeLeave}
 						>{t('app.leave.compute')}</Button
 					></Cluster
@@ -212,12 +193,7 @@
 					toolbar={{ new: false, title: t('app.leave.title') }}
 					columns={['catalog_id', 'days', 'payroll_run_id']}
 				/></Stack
-			>{#if openingCase && latestContract !== undefined}<Sheet
-					open
-					onOpenChange={(open) => !open && (openingCase = false)}
-					title={t('app.leave_case.open')}
-					><LeaveCaseForm contract={latestContract} onDone={() => (openingCase = false)} /></Sheet
-				>{/if}{/if}{/if}{/snippet}
+			>{/if}{/if}{/snippet}
 {#snippet finances()}{#if record}<Stack gap="lg"
 			><Table
 				of="employee_balance"

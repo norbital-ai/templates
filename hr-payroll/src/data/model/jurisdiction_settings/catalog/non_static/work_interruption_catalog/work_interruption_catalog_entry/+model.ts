@@ -58,24 +58,11 @@ export default model('work_interruption_catalog_entry', {
 	},
 	effect: {
 		created: function* (rows, ctx) {
-			// an entry reaches its version's registered effects through the catalog row it was raised on
-			const versions = yield* ctx.query({
-				work_interruption_catalog: {
-					where: { id: { in: rows.map((row) => row.catalog_id) } },
-					fields: ['settings_id'],
-					limit: 10000
-				}
-			});
-			const settingsOf = new Map(
-				versions.work_interruption_catalog.rows.map((row) => [row.id, row.settings_id])
-			);
 			yield* tap(
 				ctx,
 				'create',
 				{ collection: 'work_interruption_catalog_entry', ids: rows.map((r) => r.id) },
-				rows.map((after) => ({
-					after: { ...after, settings_id: settingsOf.get(after.catalog_id) }
-				}))
+				rows.map((after) => ({ after }))
 			);
 		},
 		updated: function* (changes, ctx) {

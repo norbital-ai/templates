@@ -104,10 +104,6 @@ const seedOf = (place: Place, amount: number): Seed => {
 		employee_contract: (seed.employee_contract ?? []).map((row) => ({
 			...row,
 			effective_range: { from: '2026-01-01', to: null }
-		})),
-		employee_balance: (seed.employee_balance ?? []).map((row) => ({
-			...row,
-			account: { leave: { [place.noPay]: 60 } }
 		}))
 	};
 };
@@ -169,15 +165,15 @@ const runs = (t: Kit, period: string) =>
 				})
 		)
 	);
-/** Every row a month charged across its runs, net of what it found overpaid. */
+/** Every row a month charged across its runs: a refund counts against it. */
 const month = (t: Kit, period: string, codes: readonly string[], sides: readonly string[]) =>
 	runs(t, period).pipe(
 		Effect.map((slips) => {
 			const totals = new Map<string, number>();
 			const add = (key: string, value: number) => totals.set(key, (totals.get(key) ?? 0) + value);
-			for (const { code, employee, employer, overpaid = 0 } of slips.flatMap((s) => s.statutory)) {
+			for (const { code, employee, employer } of slips.flatMap((s) => s.statutory)) {
 				if (!codes.includes(code)) continue;
-				add(`${code}.employee`, employee - overpaid);
+				add(`${code}.employee`, employee);
 				add(`${code}.employer`, employer);
 			}
 			return Object.fromEntries(
@@ -258,7 +254,7 @@ const twoMonths = (
 		};
 	}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
 };
-/** June counts the lower wages, and the two months' tax is two right months'. */
+/** A row with no refund route stops at zero: June repays nothing, shows nothing negative and owes no more than it should. */
 const reversed = (
 	place: Place,
 	paid: number,
@@ -269,11 +265,8 @@ const reversed = (
 	Effect.gen(function* () {
 		const wrong = yield* twoMonths(place, paid, item, extra, codes);
 		const right = yield* twoMonths(place, paid, item, 0, codes);
-		assert.ok(wrong.june < right.june);
-		assert.equal(
-			Number((wrong.may + wrong.june).toFixed(2)),
-			Number((right.may + right.june).toFixed(2))
-		);
+		assert.ok(wrong.may > right.may);
+		assert.ok(wrong.june <= right.june);
 	});
 const ownLadder = (place: Place, paid: number, extra: number, code: string) =>
 	Effect.gen(function* () {
@@ -317,10 +310,10 @@ describe('paid short, topped up in the same month', () => {
 });
 
 describe('paid too much, reversed in the next on-cycle run', () => {
-	it.live('China: cumulative tax comes back to two right months, no negative line', () =>
+	it.live('China: cumulative tax stops at zero, no negative line', () =>
 		reversed(CHINA, 30_000, 90_000, ['IIT'])
 	);
-	it.live('China: an annual bonus taxed apart comes back', () =>
+	it.live('China: an annual bonus taxed apart stops at zero', () =>
 		reversed(
 			{
 				...CHINA,
@@ -332,10 +325,10 @@ describe('paid too much, reversed in the next on-cycle run', () => {
 			'ANNUAL_BONUS'
 		)
 	);
-	it.live('China: termination pay past the exemption comes back', () =>
+	it.live('China: termination pay past the exemption stops at zero', () =>
 		reversed(CHINA, 30_000, 600_000, ['IIT', 'IIT_SEVERANCE'], 'PAY_IN_LIEU_OF_NOTICE')
 	);
-	it.live('Taiwan: what the bonus bore comes back, no negative line', () =>
+	it.live('Taiwan: what the bonus bore stops at zero, no negative line', () =>
 		reversed(TAIWAN, 80_000, 240_000, ['INCOME_TAX', 'INCOME_TAX_BONUS', 'NHI_SUPPLEMENT'])
 	);
 	// 个人所得税法 第六条第一款第二项 and 所得稅法 §88: a non-resident's month stands alone, so nothing accumulates across two
@@ -386,25 +379,33 @@ describe('corrected in the next month', () => {
 			assert.equal(late.may + late.june, right.may + right.june);
 		})
 	);
-	it.live('China: a reversal in June brings the two months back to two right ones', () =>
+	it.live('China: a reversal stops June at zero, and July’s cumulative figure counts it', () =>
 		Effect.gen(function* () {
 			const seed = seedOf(CHINA, 30_000);
-			const wrong = yield* Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				yield* enter(t, seed, 'BONUS', 20_000, '2026-05-05');
-				yield* onCycle(t, '2026-05');
-				yield* enter(t, seed, 'BONUS', 20_000, '2026-06-05', true);
-				yield* onCycle(t, '2026-06');
-				return (
-					figure(yield* month(t, '2026-05', ['IIT'], EMPLOYEE), 'IIT.employee') +
-					figure(yield* month(t, '2026-06', ['IIT'], EMPLOYEE), 'IIT.employee')
+			const JULY = '2026-07-28T02:00:00.000Z';
+			const iit = (t: Kit, period: string) =>
+				month(t, period, ['IIT'], EMPLOYEE).pipe(
+					Effect.map((rows) => figure(rows, 'IIT.employee'))
 				);
-			}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
-			const right = yield* months(CHINA, 30_000, none, 'IIT');
-			assert.equal(wrong, right.may + right.june);
+			const taken = (bonus: number) =>
+				Effect.gen(function* () {
+					const t = yield* TestWorkspace;
+					if (bonus > 0) yield* enter(t, seed, 'BONUS', bonus, '2026-05-05');
+					yield* onCycle(t, '2026-05');
+					if (bonus > 0) yield* enter(t, seed, 'BONUS', bonus, '2026-06-05', true);
+					yield* onCycle(t, '2026-06');
+					yield* onCycle(t, '2026-07');
+					return [yield* iit(t, '2026-05'), yield* iit(t, '2026-06'), yield* iit(t, '2026-07')];
+				}).pipe(Effect.provide(workspace({ seed, now: JULY })));
+			const [may = 0, june = 0, july = 0] = yield* taken(20_000);
+			const [rightMay = 0, rightJune = 0, rightJuly = 0] = yield* taken(0);
+			const right = rightMay + rightJune + rightJuly;
+			assert.equal(june, 0);
+			// tax stands at whichever is higher: what May took, or the right cumulative figure
+			assert.equal(Number((may + june + july).toFixed(2)), Number(Math.max(may, right).toFixed(2)));
 		})
 	);
-	it.live('Taiwan: a bonus reversed in June gives back what it bore', () => {
+	it.live('Taiwan: a bonus reversed in June stops at zero: the worker files for the year', () => {
 		const seed = seedOf(TAIWAN, 120_000);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -415,9 +416,9 @@ describe('corrected in the next month', () => {
 			const [may] = yield* runs(t, '2026-05');
 			const [june] = yield* runs(t, '2026-06');
 			assert.equal(charged(may, 'INCOME_TAX_BONUS')?.employee, 5000);
-			assert.equal(charged(june, 'INCOME_TAX_BONUS')?.overpaid, 5000);
+			assert.equal(charged(june, 'INCOME_TAX_BONUS')?.employee, 0);
 			assert.equal(charged(may, 'NHI_SUPPLEMENT')?.employee, 422);
-			assert.equal(charged(june, 'NHI_SUPPLEMENT')?.overpaid, 422);
+			assert.equal(charged(june, 'NHI_SUPPLEMENT')?.employee, 0);
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
 	});
 	it.live('Taiwan, a non-resident: two months’ tax is the right total', () =>

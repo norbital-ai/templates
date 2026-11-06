@@ -7,6 +7,8 @@
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { todayKey } from '../format/calendar.js';
+	import { accountsOf, eventsOf, leftOn } from '../../ledger/core.js';
+	import { isJsonObject, jsonObject } from '../../payroll_engine/foundation.js';
 
 	let {
 		entityId,
@@ -54,7 +56,9 @@
 					'employee_id',
 					'entity_id',
 					'input_schema_version_id',
-					'effective_range'
+					'effective_range',
+					'service_started_on',
+					'employee_extension_data'
 				],
 				orderBy: { employee_number: 'asc' },
 				limit: 10000
@@ -127,12 +131,16 @@
 				})
 	);
 	const leaveAccount = $derived(
-		(
-			(balance?.current?.employee_balance.rows[0]?.account ?? {}) as Record<
-				string,
-				Record<string, number>
-			>
-		).leave ?? {}
+		accountsOf(balance?.current?.employee_balance.rows[0]?.account ?? {})
+	);
+	const subject = $derived(
+		contract === null || inForce == null
+			? null
+			: {
+					scope: String(settings?.current?.jurisdiction_settings.rows[0]?.code),
+					started: String(contract.service_started_on ?? contract.effective_range.from),
+					events: eventsOf(jsonObject(contract))
+				}
 	);
 	const recordDays = $derived((record?.days?.length ?? 0) / 2);
 	const availableFor = (row: {
@@ -140,11 +148,15 @@
 		readonly code: string;
 		readonly lookup?: unknown;
 	}) => {
-		const lookup = (row.lookup ?? {}) as { readonly consumes_code?: string };
-		const code = lookup.consumes_code ?? row.code;
-		return Number(leaveAccount[code] ?? 0) + (record?.catalog_id === row.id ? recordDays : 0);
+		const lookup = jsonObject(row.lookup ?? {});
+		const target = Array.isArray(lookup.accounts) ? lookup.accounts.find(isJsonObject) : undefined;
+		const code = typeof target?.code === 'string' ? target.code : row.code;
+		const counted = jsonObject(catalogRows.find((item) => item.code === code)?.lookup ?? lookup);
+		const left =
+			subject === null ? 0 : leftOn(leaveAccount, 'leave', code, counted, subject, String(today));
+		return left + (record?.catalog_id === row.id ? recordDays : 0);
 	};
-	// a row with no figure has no cap: its account opens too large to count down
+	// a row with no figure has no cap
 	const isNoCap = (row: { readonly lookup?: unknown }) => {
 		const lookup = (row.lookup ?? {}) as {
 			readonly no_cap?: boolean;

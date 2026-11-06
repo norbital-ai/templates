@@ -1,9 +1,6 @@
 import { completedMonths, isJsonObject } from '../payroll_engine/foundation.js';
 import type { JsonObject } from '../payroll_engine/contracts.js';
 
-/** An account no statute caps: too large ever to refuse, and the days taken still post to it. */
-export const NO_CAP_DAYS = 36_500;
-
 export type LeaveRow = { readonly code: string; readonly lookup: JsonObject };
 export type LeavePerson = {
 	readonly started: string;
@@ -15,17 +12,6 @@ export type LeavePerson = {
 	readonly facts?: JsonObject;
 	readonly stateOwned?: boolean;
 };
-/** What a balance holds: days left by code, and in `windows` each code's window and `<code>.granted`, the entitlement applied. */
-export type LeaveAccount = {
-	readonly leave: Readonly<Record<string, number>>;
-	readonly windows: Readonly<Record<string, number>>;
-};
-export type LeaveMove = {
-	readonly code: string;
-	readonly operation: 'ADD' | 'DEDUCT';
-	readonly amount: number;
-};
-
 type Band = { readonly service_months: number; readonly days: number };
 const bandsOf = (value: unknown): readonly Band[] =>
 	(Array.isArray(value) ? value : [])
@@ -40,7 +26,7 @@ const qualifying = ({
 	eligibility_months,
 	qualifying_service_months
 }: JsonObject) => Number(service_months ?? eligibility_months ?? qualifying_service_months ?? 0);
-const fits = (lookup: JsonObject, person: LeavePerson) => {
+export const fits = (lookup: JsonObject, person: LeavePerson) => {
 	const rule = isJsonObject(lookup.eligibility) ? lookup.eligibility : {};
 	return (
 		(rule.gender == null || rule.gender === person.gender) &&
@@ -93,12 +79,12 @@ const firstYear = (lookup: JsonObject, person: LeavePerson, on: string, days: nu
 	return Math.floor((days * left) / basis);
 };
 
-/** The row's entitlement for this person on this day, and the window it belongs to. `null`: no figure, so no cap. */
+/** The row's entitlement for this person on this day. `null`: no figure, so no limit. */
 export const entitlementOf = (
 	lookup: JsonObject,
 	person: LeavePerson,
 	on: string
-): { readonly days: number; readonly window: number } | null => {
+): number | null => {
 	const months = completedMonths(person.started, on);
 	const bands = bandsOf(
 		person.partTime && lookup.part_time_service_bands != null
@@ -106,89 +92,41 @@ export const entitlementOf = (
 			: lookup.service_bands
 	);
 	if (lookup.no_cap === true || (bands.length === 0 && lookup.grant_days == null)) return null;
-	// an event's days come from its confirmed case, not the calendar: nothing here gives or takes them
-	if (lookup.window === 'EVENT') return { days: 0, window: 0 };
+	if (lookup.window === 'EVENT') return 0;
 	const offset = Number(lookup.service_offset_months ?? 0);
-	const window =
-		lookup.rolling_months != null
-			? Math.floor(months / Number(lookup.rolling_months))
-			: lookup.window === 'SERVICE_YEAR' || lookup.per_months != null || offset > 0
-				? Math.floor((months - offset) / 12)
-				: lookup.window === 'CALENDAR_YEAR'
-					? Number(on.slice(0, 4))
-					: 0;
-	if (!fits(lookup, person)) return { days: 0, window };
+	if (!fits(lookup, person)) return 0;
 	const first = bands[0];
 	// until the first band, a share of it by completed months of service
 	if (lookup.proration === 'COMPLETED_MONTHS' && first && months < first.service_months)
-		return { days: Math.round((first.days * months) / first.service_months), window };
+		return Math.round((first.days * months) / first.service_months);
 	const scheduled = scheduledDays(lookup, person, months, offset);
-	if (scheduled !== null) return { days: scheduled, window };
-	if (months < qualifying(lookup)) return { days: 0, window };
+	if (scheduled !== null) return scheduled;
+	if (months < qualifying(lookup)) return 0;
 	const base =
 		bands.length === 0
 			? Number(lookup.grant_days)
 			: (bands.findLast((band) => band.service_months <= months)?.days ?? 0);
 	const days = base === 0 ? 0 : base + extraDays(lookup, person);
-	return { days: firstYear(lookup, person, on, prorated(lookup, person, days)), window };
+	return firstYear(lookup, person, on, prorated(lookup, person, days));
 };
 
-/** What a new window starts from: this window's entitlement, plus what the row says carries over. */
-const opening = (
+/** What carries into a new window: the row's rule, on what the last window left and what it granted. */
+export const carriedOf = (
 	lookup: JsonObject,
 	person: LeavePerson,
-	days: number,
-	held: number,
-	applied: number
-) => {
-	if (lookup.per_months != null) return held + days;
-	if (!isJsonObject(lookup.carry)) return days;
+	left: number,
+	granted: number
+): number => {
+	if (lookup.per_months != null) return left;
+	if (!isJsonObject(lookup.carry)) return 0;
+	if (lookup.carry.statutory_grant_carries === true) {
+		// the statutory days carry in full; the cap holds only for company days above them
+		const field = String(lookup.carry.company_cap_terms_field);
+		const cap = Number(person.facts?.[field] ?? lookup.carry.company_cap_days ?? 0);
+		return Math.min(left, granted) + Math.min(Math.max(0, left - granted), cap);
+	}
 	const limits = [lookup.carry.max_days, person.terms?.annual_leave_carry_limit_days].flatMap(
 		(limit) => (limit == null ? [] : [Number(limit)])
 	);
-	return days + Math.min(held, applied, ...limits);
-};
-
-/**
- * One person's leave on a day. Idempotent: a change moves the balance by the difference from the entitlement already
- * applied, a new window starts it again, and a second call the same day finds nothing to do.
- */
-export const settleLeave = (
-	rows: readonly LeaveRow[],
-	person: LeavePerson,
-	account: LeaveAccount,
-	on: string
-): LeaveAccount & { readonly moves: readonly LeaveMove[] } => {
-	const leave = { ...account.leave };
-	const windows = { ...account.windows };
-	const moves: LeaveMove[] = [];
-	const moveTo = (code: string, next: number) => {
-		const delta = next - (leave[code] ?? 0);
-		if (delta !== 0)
-			moves.push({ code, operation: delta > 0 ? 'ADD' : 'DEDUCT', amount: Math.abs(delta) });
-		leave[code] = next;
-	};
-	for (const { code, lookup } of rows) {
-		const owed = entitlementOf(lookup, person, on);
-		if (owed === null) {
-			if (leave[code] === undefined) moveTo(code, NO_CAP_DAYS);
-			continue;
-		}
-		const held = leave[code];
-		const applied = windows[`${code}.granted`];
-		if (held !== undefined && applied === undefined) {
-			// an account from before keeps what it holds: only its entitlement starts counting
-			windows[code] = owed.window;
-		} else if (held === undefined) {
-			moveTo(code, owed.days);
-			windows[code] = owed.window;
-		} else if (windows[code] !== owed.window) {
-			moveTo(code, opening(lookup, person, owed.days, held, applied ?? 0));
-			windows[code] = owed.window;
-		} else {
-			moveTo(code, Math.max(0, held + owed.days - (applied ?? 0)));
-		}
-		windows[`${code}.granted`] = owed.days;
-	}
-	return { leave, windows, moves };
+	return Math.max(0, Math.min(left, granted, ...limits));
 };

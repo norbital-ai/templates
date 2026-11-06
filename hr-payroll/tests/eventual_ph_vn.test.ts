@@ -73,10 +73,6 @@ const seedOf = (
 	const seed = pack(code, zone, contract, extension, [], [], on);
 	return {
 		...seed,
-		employee_balance: (seed.employee_balance ?? []).map((row) => ({
-			...row,
-			account: { leave: { UNPAID_LEAVE: 30 } }
-		})),
 		employee_contract: (seed.employee_contract ?? []).map((row) => ({
 			...row,
 			effective_range: { from, to: null }
@@ -182,7 +178,7 @@ const slips = (t: Kit, period: string) =>
 				})
 		)
 	);
-/** Every statutory row a period charged, both sides, net of what it found overpaid. */
+/** Every statutory row a period charged, both sides: a refund counts against it. */
 const charged = (t: Kit, period: string) =>
 	slips(t, period).pipe(
 		Effect.map((runs) => {
@@ -190,7 +186,7 @@ const charged = (t: Kit, period: string) =>
 			const add = (key: string, value: number) => totals.set(key, (totals.get(key) ?? 0) + value);
 			for (const { statutory } of runs)
 				for (const row of statutory) {
-					add(`${row.code}.employee`, row.employee - (row.overpaid ?? 0));
+					add(`${row.code}.employee`, row.employee);
 					add(`${row.code}.employer`, row.employer);
 				}
 			return Object.fromEntries(
@@ -323,7 +319,10 @@ describe('paid too much, reversed in the next on-cycle run', () => {
 			const [taken] = yield* slips(t, second);
 			assert.ok(taken !== undefined);
 			assert.ok(taken.lines.every((line) => line.amount >= 0));
-			assert.ok(taken.statutory.every((row) => row.employee >= 0));
+			// a row that repays does so on an ADD line, and only that
+			for (const { code, employee } of taken.statutory)
+				if (employee < 0)
+					assert.equal(taken.lines.find((line) => line.code === code)?.direction, 'ADD', code);
 		});
 	it.live('Philippines: June counts the lower wages, no negative line', () => {
 		const seed = seedOf(one, terms(one.salary), '2026-01-01', {}, '2026-05-15');
@@ -539,7 +538,7 @@ describe('twice a month', () => {
 				const [, second] = yield* slips(t, '2026-06');
 				assert.ok(second !== undefined);
 				within(checkpoint(second.checkpoints, 'ORDINARY_WAGES'), 0);
-				assert.ok(Number(second.statutory.find((row) => row.code === 'WTAX')?.overpaid ?? 0) > 0);
+				assert.ok(Number(second.statutory.find((row) => row.code === 'WTAX')?.employee ?? 0) < 0);
 			})
 		);
 	});

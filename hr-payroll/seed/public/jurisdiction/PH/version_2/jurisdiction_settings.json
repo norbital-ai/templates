@@ -225,6 +225,37 @@
 				"kasambahay_unjustified_departure": {
 					"type": "boolean",
 					"description": "RA 10361 s.32: up to fifteen days’ unpaid salary forfeited."
+				},
+				"events": {
+					"type": "array",
+					"title": "Life events",
+					"description": "What happened to this person that the law gives leave or a claim for. One item per event, with its document uploaded on the employee profile.",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["kind", "on"],
+						"properties": {
+							"kind": {
+								"type": "string",
+								"enum": ["BIRTH_EXTENSION", "CHILD_BIRTH", "GYNECOLOGICAL_SURGERY", "VAWC"],
+								"title": "What happened"
+							},
+							"on": {
+								"type": "string",
+								"format": "date",
+								"title": "Date"
+							},
+							"ended_on": {
+								"type": "string",
+								"format": "date",
+								"title": "Ended on"
+							},
+							"document": {
+								"type": "string",
+								"title": "Document on the profile"
+							}
+						}
+					}
 				}
 			}
 		},

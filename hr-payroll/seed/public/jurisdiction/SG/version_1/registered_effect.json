@@ -2486,170 +2486,50 @@
 		"condition": "// js\nreturn ctx.entry.state === 'PAID' && get(ctx, 'reads.obligation', []).length === 0;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\n// CPF Board Step 2: in December or the last month of employment, re-calculate the AW ceiling on the actual OW. The balance holds AW paid, not AW charged, so the difference is raised rather than charged\nconst run = ctx.entry;\nconst to = run.salary_coverage.to;\nconst month = Number(to.slice(5, 7));\nconst contracts = get(ctx, 'reads.employee_contract', []);\nconst balances = get(ctx, 'reads.employee_balance', []);\nreturn get(ctx, 'reads.payslip', []).flatMap((slip) => {\n\tif (!get(slip, 'breakdown.statutory', []).some((scheme) => scheme.code === 'CPF')) return [];\n\tconst contract = contracts.find((row) => row.id === slip.employment_id);\n\tconst leaving = String(get(contract, 'effective_range.to', ''));\n\tif (month !== ctx.lookup.months_per_year && (leaving === '' || leaving > month_end(to))) return [];\n\tconst account = get(balances.find((row) => row.employee_id === slip.employee_id), 'account', {});\n\tconst ordinary = Number(get(account, 'ytd.ORDINARY_WAGES', 0));\n\tconst additional = Number(get(account, 'ytd.ADDITIONAL_WAGES', 0)) - ordinary;\n\t// no estimate can fall under the ceiling less twelve capped months: AW within it was charged in full\n\tif (additional <= ctx.lookup.annual_ceiling - ctx.lookup.months_per_year * ctx.lookup.ordinary_ceiling) return [];\n\tconst started = String(get(contract, 'effective_range.from', ''));\n\tconst opening = started.slice(0, 4) === to.slice(0, 4) ? Number(started.slice(5, 7)) : 1;\n\tconst months = month - opening + 1;\n\t// a steady year to December: Step 1's estimate was the actual\n\tif (month === ctx.lookup.months_per_year && ordinary === Number(slip.ordinary_wages) * months) return [];\n\tconst ceiling = ctx.lookup.annual_ceiling - Math.min(ordinary, ctx.lookup.ordinary_ceiling * months);\n\treturn [{\n\t\tentity_id: run.entity_id,\n\t\temployee_id: slip.employee_id,\n\t\temployment_id: slip.employment_id,\n\t\ttitle: ctx.lookup.title + ': ceiling $' + ceiling.toFixed(2) + ', AW paid $' + additional.toFixed(2),\n\t\tdue_on: add_days(month_end(to), ctx.lookup.offset_days),\n\t\toccurrence_key: 'SG:CPF_AW_YEAR_END_RECALCULATION:' + run.id + ':' + slip.employment_id\n\t}];\n});",
+		"effects": "// js\n// CPF Board Step 2: in December or the last month of employment, re-calculate the AW ceiling on the actual OW. The balance holds AW paid, not AW charged, so the difference is raised rather than charged\nconst run = ctx.entry;\nconst to = run.salary_coverage.to;\nconst month = Number(to.slice(5, 7));\nconst contracts = get(ctx, 'reads.employee_contract', []);\nconst balances = get(ctx, 'reads.employee_balance', []);\nreturn get(ctx, 'reads.payslip', []).flatMap((slip) => {\n\tif (!get(slip, 'breakdown.statutory', []).some((scheme) => scheme.code === 'CPF')) return [];\n\tconst contract = contracts.find((row) => row.id === slip.employment_id);\n\tconst leaving = String(get(contract, 'effective_range.to', ''));\n\tif (month !== ctx.lookup.months_per_year && (leaving === '' || leaving > month_end(to))) return [];\n\tconst account = get(balances.find((row) => row.employee_id === slip.employee_id), 'account', {});\n\tconst yearly = (code) => {\n\t\tconst periods = get(account, 'pay.' + code, {});\n\t\tconst key = 'SG.Y.' + to.slice(0, 4) + '-01-01';\n\t\treturn Object.hasOwn(periods, key) ? Number(periods[key].total) : 0;\n\t};\n\tconst ordinary = yearly('ORDINARY_WAGES');\n\tconst additional = yearly('ADDITIONAL_WAGES') - ordinary;\n\t// no estimate can fall under the ceiling less twelve capped months: AW within it was charged in full\n\tif (additional <= ctx.lookup.annual_ceiling - ctx.lookup.months_per_year * ctx.lookup.ordinary_ceiling) return [];\n\tconst started = String(get(contract, 'effective_range.from', ''));\n\tconst opening = started.slice(0, 4) === to.slice(0, 4) ? Number(started.slice(5, 7)) : 1;\n\tconst months = month - opening + 1;\n\t// a steady year to December: Step 1's estimate was the actual\n\tif (month === ctx.lookup.months_per_year && ordinary === Number(slip.ordinary_wages) * months) return [];\n\tconst ceiling = ctx.lookup.annual_ceiling - Math.min(ordinary, ctx.lookup.ordinary_ceiling * months);\n\treturn [{\n\t\tentity_id: run.entity_id,\n\t\temployee_id: slip.employee_id,\n\t\temployment_id: slip.employment_id,\n\t\ttitle: ctx.lookup.title + ': ceiling $' + ceiling.toFixed(2) + ', AW paid $' + additional.toFixed(2),\n\t\tdue_on: add_days(month_end(to), ctx.lookup.offset_days),\n\t\toccurrence_key: 'SG:CPF_AW_YEAR_END_RECALCULATION:' + run.id + ':' + slip.employment_id\n\t}];\n});",
 		"id": "5b75b0e1-bb5d-517e-aba6-3774a762b159",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
 	},
 	{
-		"code": "TAX_REFUND",
-		"name": "Refund overpaid tax",
+		"code": "CONTRIBUTION_CORRECTION",
+		"name": "Follow up a contribution corrected for a closed month",
 		"lookup": {},
-		"source_collection": "payslip",
+		"source_collection": "adhoc_catalog_entry",
 		"events": ["create"],
 		"reads": {
+			"adhoc_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["code", "name", "lookup"],
+				"limit": 1
+			},
 			"obligation": {
 				"where": {
 					"occurrence_key": {
 						"eq": {
-							"var": "occurrence_key(['SG', 'TAX_REFUND', ctx.entry.id])"
+							"var": "occurrence_key(['SG', 'CONTRIBUTION_CORRECTION', ctx.entry.id])"
 						}
 					}
 				},
 				"fields": ["id"],
 				"limit": 1
-			},
-			"payroll_run": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.payroll_run_id"
-						}
-					}
-				},
-				"fields": ["pay_date"],
-				"limit": 1
 			}
 		},
-		"condition": "// js\nreturn get(ctx.entry, 'breakdown.statutory', []).some((row) => Number(get(row, 'overpaid', 0)) > 0);",
+		"condition": "// js\nconst row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'is_reversal', false) !== true && get(row, 'lookup.accounts', []).length > 0;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst year = String(get(first(ctx.reads.payroll_run), 'pay_date', '')).slice(0, 4);\nconst over = get(ctx.entry, 'breakdown.statutory', []).filter((row) => Number(get(row, 'overpaid', 0)) > 0);\nconst overpaid = sum(over.map((row) => Number(get(row, 'overpaid', 0))));\nconst what = over.every((row) => row.kind === 'TAX') ? 'Tax' : over.map((row) => row.code).join(', ');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: what + ' overpaid in ' + year + ': enter ' + overpaid + ' on Statutory refund' + (what === 'Tax' ? '' : '; any employer share comes back from the agency'),\n\toccurrence_key: occurrence_key(['SG', 'TAX_REFUND', ctx.entry.id])\n}];",
-		"id": "d453d372-6be8-5db2-a72f-aec4235eb9fd",
-		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
+		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.name,\n\toccurrence_key: occurrence_key(['SG', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",
 		"references": [
 			{
-				"title": "An overpaid year raises a task for the HR controller, who pays it back on the correction item."
+				"title": "A contribution for a closed month sits with the fund, so the employer settles it with the fund itself."
 			}
-		]
-	},
-	{
-		"lookup": {},
-		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
-		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
-		"code": "LEAVE_CASE_LEDGER",
-		"name": "Post the days a confirmed case gives",
-		"condition": "// js\nreturn get(ctx.entry, 'inputs.decision', '') === 'CONFIRMED' && get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', null) != null;",
-		"reads": {
-			"workplace_case_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["lookup"],
-				"limit": 1
-			},
-			"leave_catalog": {
-				"where": {
-					"settings_id": {
-						"eq": {
-							"var": "ctx.entry.settings_id"
-						}
-					}
-				},
-				"fields": ["code", "lookup"],
-				"limit": 200
-			},
-			"employee_balance": {
-				"where": {
-					"employee_id": {
-						"eq": {
-							"var": "get(ctx.subject, 'employment.employee_id', ctx.entry.id)"
-						}
-					}
-				},
-				"fields": ["account"],
-				"limit": 1
-			},
-			"ledger_entry": {
-				"where": {
-					"account": {
-						"eq": "leave_case"
-					},
-					"code": {
-						"eq": {
-							"var": "ctx.entry.id"
-						}
-					}
-				},
-				"fields": ["id"],
-				"limit": 1
-			}
-		},
-		"target_collection": "ledger_entry",
-		"target_action": "create",
-		"effects": "// js\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nconst person = ctx.subject.employment;\nconst sign = get(ctx.entry, 'inputs.is_reversal', false) === true ? -1 : 1;\nconst moves = grants.flatMap((grant) => {\n\tconst row = first(ctx.reads.leave_catalog.filter((item) => item.code === grant.code));\n\tif (row == null) return [];\n\tconst wanted = get(row, 'lookup.eligibility.gender', null);\n\tif (wanted != null && wanted !== get(person, 'payroll.gender', null)) return [];\n\treturn [{ code: grant.code, row, keep: get(grant, 'keep_start', false), days: get(grant, 'days', get(row, 'lookup.grant_days', 0)) }];\n});\nif (balance == null || ctx.reads.ledger_entry.length > 0) return [];\nconst on = ctx.entry.opened_on;\nreturn [\n\t{ balance_id: balance.id, operation: 'ADD', account: 'leave_case', code: ctx.entry.id, amount: 1, unit: 'COUNT', effective_on: on },\n\t...moves.filter((move) => move.days > 0).map((move) => ({ balance_id: balance.id, operation: sign > 0 ? 'ADD' : 'DEDUCT', account: 'leave', code: move.code, amount: move.days, unit: 'DAY', effective_on: on }))\n];",
-		"id": "88753872-eef8-5672-9fce-75cdefc4e110",
-		"references": [
-			{
-				"title": "A confirmed case opens the days its leave rows give for one event."
-			}
-		]
-	},
-	{
-		"lookup": {},
-		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
-		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
-		"code": "LEAVE_CASE",
-		"name": "Open the days a confirmed case gives",
-		"condition": "// js\nreturn get(ctx.entry, 'inputs.decision', '') === 'CONFIRMED' && get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', null) != null;",
-		"reads": {
-			"workplace_case_catalog": {
-				"where": {
-					"id": {
-						"eq": {
-							"var": "ctx.entry.catalog_id"
-						}
-					}
-				},
-				"fields": ["lookup"],
-				"limit": 1
-			},
-			"leave_catalog": {
-				"where": {
-					"settings_id": {
-						"eq": {
-							"var": "ctx.entry.settings_id"
-						}
-					}
-				},
-				"fields": ["code", "lookup"],
-				"limit": 200
-			},
-			"employee_balance": {
-				"where": {
-					"employee_id": {
-						"eq": {
-							"var": "get(ctx.subject, 'employment.employee_id', ctx.entry.id)"
-						}
-					}
-				},
-				"fields": ["account"],
-				"limit": 1
-			}
-		},
-		"target_collection": "employee_balance",
-		"target_action": "update",
-		"effects": "// js\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nconst person = ctx.subject.employment;\nconst sign = get(ctx.entry, 'inputs.is_reversal', false) === true ? -1 : 1;\nconst moves = grants.flatMap((grant) => {\n\tconst row = first(ctx.reads.leave_catalog.filter((item) => item.code === grant.code));\n\tif (row == null) return [];\n\tconst wanted = get(row, 'lookup.eligibility.gender', null);\n\tif (wanted != null && wanted !== get(person, 'payroll.gender', null)) return [];\n\treturn [{ code: grant.code, row, keep: get(grant, 'keep_start', false), days: get(grant, 'days', get(row, 'lookup.grant_days', 0)) }];\n});\nif (balance == null) return [];\nconst done = get(balance.account, 'leave_case', {});\nif (Object.hasOwn(done, ctx.entry.id)) return [];\nconst leave = get(balance.account, 'leave', {});\nconst stamp = Number(String(ctx.entry.opened_on).replaceAll('-', ''));\nconst held = (code) => (Object.hasOwn(leave, code) ? Number(leave[code]) : 0);\nconst stepped = moves.filter((move) => get(move.row, 'lookup.pay_steps', null) != null && move.keep !== true);\nconst started = sign > 0 ? stepped : [];\nconst reverses = get(ctx.entry, 'inputs.reverses', '');\nconst gone = sign > 0 ? [] : stepped.map((move) => move.code + '.from');\nconst windows = Object.fromEntries(Object.entries(get(balance.account, 'leave_window', {})).filter((pair) => !gone.includes(pair[0])));\nreturn [{\n\ttarget: balance.id,\n\tset: {\n\t\taccount: {\n\t\t\t...balance.account,\n\t\t\tleave: { ...leave, ...Object.fromEntries(moves.map((move) => [move.code, held(move.code) + sign * move.days])) },\n\t\t\tleave_window: { ...windows, ...Object.fromEntries(started.map((move) => [move.code + '.from', stamp])) },\n\t\t\tleave_case: { ...done, [ctx.entry.id]: 1, ...Object.fromEntries(moves.map((move) => [ctx.entry.id + '.' + move.code, move.days])), ...(reverses === '' ? {} : { ['reversed.' + reverses]: 1 }) }\n\t\t}\n\t}\n}];",
-		"id": "52248686-f2f6-5ecc-bbbc-3f905a6a0a0b",
-		"references": [
-			{
-				"title": "A confirmed case opens the days its leave rows give for one event."
-			}
-		]
+		],
+		"id": "80566671-cb69-5b04-aacf-e52b34d7f434",
+		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
 	}
 ]
