@@ -123,6 +123,9 @@ Event time writes the employee balance immediately; payroll time writes money an
 | loan repayment approved | `DEDUCT loan.<loan entry id> <amount>`            |
 | reversal                | inverse operation with `is_reversal`              |
 | leave entitlement moves | `ADD` or `DEDUCT leave.<catalog code> <diff>`     |
+| benefit run marked paid | `ADD` or `DEDUCT benefit_paid.<month>.<code>`     |
+
+Indonesia's severance and pension benefits run on one ladder across two calendar years, longer than a balance keeps its months, so a catalog effect keeps them in `benefit_paid` when the run is marked paid. A paid run is final, so nothing there ever needs undoing. Japan's premiums paid back go on their own item, whose subtotal the year-end adjustment subtracts from the deduction.
 
 Creating an entry posts it: once access control has approved the write, the model's `created` effect posts ledger rows and updates the balance projection. A reversal uses the recorded original amount, never today's rates.
 

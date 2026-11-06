@@ -51,7 +51,7 @@
 	{
 		"code": "NET",
 		"name": "差引支給額 (net pay)",
-		"previous_id": "dc303a81-6a50-5e3d-937d-00d358b118c9",
+		"previous_id": "9b347999-acc6-5aa7-9b14-da9a065e4016",
 		"id": "9a9b279d-f9f4-5374-ab58-4f4c32560a1f",
 		"settings_id": "9a8f3abb-412b-568c-b068-065d6033be69"
 	},
@@ -60,6 +60,13 @@
 		"name": "Final pay and non-wage settlements",
 		"previous_id": "62bf2596-2cb0-553d-bb04-ca9ef548d693",
 		"id": "dc303a81-6a50-5e3d-937d-00d358b118c9",
+		"settings_id": "9a8f3abb-412b-568c-b068-065d6033be69"
+	},
+	{
+		"code": "SOCIAL_INSURANCE_REFUND",
+		"name": "社会保険料の還付 (social insurance refund)",
+		"previous_id": "dc303a81-6a50-5e3d-937d-00d358b118c9",
+		"id": "9b347999-acc6-5aa7-9b14-da9a065e4016",
 		"settings_id": "9a8f3abb-412b-568c-b068-065d6033be69"
 	}
 ]

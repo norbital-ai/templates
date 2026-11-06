@@ -39,6 +39,7 @@ const FOLLOWING = [
 	'PENSION_BONUS',
 	'WORKERS_ACCIDENT'
 ];
+const PREMIUMS = ['CHILD_SUPPORT_BONUS', 'EI_BONUS', 'HEALTH_BONUS', 'PENSION_BONUS'];
 const FACTS = {
 	insured_office_region: 'HOKKAIDO',
 	statutory: {
@@ -317,6 +318,34 @@ describe('corrected in the next on-cycle run', () => {
 			// the monthly table is progressive, so the two months alone come out wrong
 			assert.notEqual(over.monthly, right.monthly);
 			assert.equal(over.year, right.year);
+		})
+	);
+	it.live('a premium paid back on its own item leaves the year-end deduction', () =>
+		Effect.gen(function* () {
+			const right = yield* taken((t) =>
+				onCycle(t, '2026-11').pipe(Effect.andThen(onCycle(t, '2026-12')))
+			);
+			const refunded = yield* taken((t, seed) =>
+				Effect.gen(function* () {
+					yield* enter(t, seed, 'BONUS', WRONG, '2026-11-10');
+					yield* onCycle(t, '2026-11');
+					yield* enter(t, seed, 'BONUS', WRONG, '2026-12-10', true);
+					const premiums = yield* month(t, '2026-11', PREMIUMS, EMPLOYEE);
+					const paid = Object.values(premiums).reduce((sum, value) => sum + value, 0);
+					assert.ok(paid > 0);
+					yield* enter(t, seed, 'SOCIAL_INSURANCE_REFUND', paid, '2026-12-10');
+					yield* onCycle(t, '2026-12');
+					const flags = (yield* t.storedQuery({ obligation: { limit: 1000 } })).obligation.rows;
+					assert.ok(
+						flags.some(({ title }) =>
+							/overpaid in 2026: enter \d+ on Social insurance refund; any employer share/.test(
+								title
+							)
+						)
+					);
+				})
+			);
+			assert.equal(refunded.year, right.year);
 		})
 	);
 });
