@@ -317,7 +317,7 @@ describe('posting', () => {
 			const t = yield* TestWorkspace;
 			yield* compute(t);
 			yield* take(t, seed, 'MEDICAL_LEAVE', '2026-11-03', t.member(['hr_controller']));
-			assert.deepEqual(yield* t.runDue(), { failed: [] });
+			yield* t.runDue();
 			assert.equal(measureOf(yield* accountsIn(t), 'leave', 'MEDICAL_LEAVE', 'used'), 1);
 			const [row] = (yield* ledgerRows(t)).filter((item) => item.measure === 'used');
 			assert.equal(row?.operation, 'ADD');

@@ -28,7 +28,14 @@ import {
 	type Unit,
 	type Wanted
 } from './core.js';
-import { carriedOf, entitlementOf, fits, type LeavePerson, type LeaveRow } from './entitlement.js';
+import {
+	carriedOf,
+	entitlementOf,
+	expressed,
+	fits,
+	type LeavePerson,
+	type LeaveRow
+} from './entitlement.js';
 
 /**
  * The only writer of the ledger and the balance. A record says what it should have posted, or a person's facts say what
@@ -296,12 +303,15 @@ export const payslipWanted = (
 };
 
 /** What a person's facts open of a row: each event's period and the days it gives. */
-const grantsOf = (lookup: JsonObject, subject: Subject) => {
+const grantsOf = (lookup: JsonObject, subject: Subject, person: LeavePerson) => {
 	const opens = openedBy(lookup);
 	const grants = new Map<string, { from: string; days: number }>();
 	for (const event of subject.events) {
 		if (!Object.hasOwn(opens, event.kind)) continue;
-		const days = Number(objectValue(opens[event.kind]).days ?? lookup.grant_days ?? 0);
+		const days =
+			typeof lookup.entitlement === 'string'
+				? (expressed(lookup, person, event.on, event) ?? 0)
+				: Number(objectValue(opens[event.kind]).days ?? lookup.grant_days ?? 0);
 		const period = periodKey(
 			subject.scope,
 			{ kind: 'EVENT', on: event.on },
@@ -342,7 +352,7 @@ export const entitlementPlans = (
 		});
 		if (Object.keys(openedBy(lookup)).length > 0) {
 			if (!fits(lookup, person)) return [];
-			const grants = grantsOf(lookup, subject);
+			const grants = grantsOf(lookup, subject, person);
 			// a fact a new version dropped: its period should stand at nothing
 			const dropped = eventPeriods(accounts[account]?.[code], subject.scope).filter(
 				(period) => !grants.has(period)
@@ -385,7 +395,8 @@ export const unlimited = (lookup: JsonObject) =>
 		lookup.part_time_service_bands == null &&
 		lookup.grant_days == null &&
 		lookup.annual_limit == null &&
-		lookup.opened_by == null);
+		lookup.opened_by == null &&
+		lookup.entitlement == null);
 
 type Family = 'leave' | 'claim';
 const CATALOG = { leave: 'leave_catalog', claim: 'claim_catalog' } as const;
@@ -393,6 +404,24 @@ const rowOfCatalog = (row: JsonObject): LeaveRow => ({
 	code: String(row.code),
 	lookup: objectValue(row.lookup)
 });
+/** The facts a leave row can read about a person, from their contract and their employer's sealed profile. */
+const personOf = (contract: JsonObject, employer?: JsonObject): LeavePerson => {
+	const payroll = objectValue(contract.payroll);
+	const { term_facts: facts } = objectValue(contract.employee_extension_data);
+	const extension = objectValue(employer?.entity_extension_data ?? {});
+	return {
+		started: startedOn(contract),
+		partTime: contract.engagement === 'PART_TIME',
+		gender: typeof payroll.gender === 'string' ? payroll.gender : null,
+		maritalStatus: typeof payroll.marital_status === 'string' ? payroll.marital_status : null,
+		terms: objectValue(contract.terms),
+		facts: isJsonObject(facts) ? facts : {},
+		stateOwned: extension.state_owned === true,
+		employment: contract,
+		...(employer === undefined ? {} : { employer })
+	};
+};
+
 /** When the person's service began, which anchors their service windows. */
 export const startedOn = (contract: JsonObject) =>
 	String(contract.service_started_on ?? objectValue(contract.effective_range).from);
@@ -816,7 +845,8 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 	const {
 		leave_catalog: rows = [],
 		jurisdiction_settings: settings = [],
-		employee_balance: balances = []
+		employee_balance: balances = [],
+		entity_profile_version: employerRows = []
 	} = yield* queryRows(read, {
 		leave_catalog: {
 			where: { settings_id: { in: settingsIds } },
@@ -832,9 +862,15 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 			where: { employee_id: { in: uniqueIds(sealing, 'employee_id') } },
 			fields: ['employee_id', 'account'],
 			limit: 10000
+		},
+		entity_profile_version: {
+			where: { entity_id: { in: uniqueIds(sealing, 'entity_id') }, status: { eq: 'SEALED' } },
+			fields: ['entity_id', 'entity_extension_data'],
+			limit: 10000
 		}
 	});
 	const scope = new Map(settings.map((row) => [String(row.id), String(row.code)]));
+	const employers = new Map(employerRows.map((row) => [String(row.entity_id), row]));
 	const rowsOf = Map.groupBy(rows, (row) => String(row.settings_id));
 	const balance = new Map(balances.map((row) => [String(row.employee_id), row]));
 	for (const contract of sealing) {
@@ -847,7 +883,11 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 		const leave = accountsOf(balance.get(String(contract.employee_id))?.account).leave ?? {};
 		for (const row of rowsOf.get(settingsId) ?? []) {
 			const { code, lookup } = rowOfCatalog(row);
-			const grants = grantsOf(lookup, subject);
+			const grants = grantsOf(
+				lookup,
+				subject,
+				personOf(contract, employers.get(String(contract.entity_id)))
+			);
 			for (const period of eventPeriods(leave[code], subject.scope)) {
 				const used = leave[code]?.[period]?.used ?? 0;
 				const grant = grants.get(period);
@@ -963,13 +1003,10 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 			)
 			.map((row) => [String(row.employee_id), row])
 	);
-	const stateOwned = new Set(
+	const employers = new Map(
 		(read.entity_profile_version ?? [])
-			.filter(
-				(row) =>
-					covers(row.effective_range) && objectValue(row.entity_extension_data).state_owned === true
-			)
-			.map((row) => String(row.entity_id))
+			.filter((row) => covers(row.effective_range))
+			.map((row) => [String(row.entity_id), row])
 	);
 	const plans: Plan[] = [];
 	let boundary: string | undefined;
@@ -978,8 +1015,6 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 		if (contract === undefined) continue;
 		const version = inForce.get(String(contract.input_schema_version_id));
 		const rows = rowsOf.get(String(version?.id)) ?? [];
-		const payroll = objectValue(contract.payroll);
-		const { term_facts: facts } = objectValue(contract.employee_extension_data);
 		const subject = {
 			scope: String(version?.code),
 			started: startedOn(contract),
@@ -988,15 +1023,7 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 		plans.push(
 			...entitlementPlans(
 				rows,
-				{
-					started: subject.started,
-					partTime: contract.engagement === 'PART_TIME',
-					gender: typeof payroll.gender === 'string' ? payroll.gender : null,
-					maritalStatus: typeof payroll.marital_status === 'string' ? payroll.marital_status : null,
-					terms: objectValue(contract.terms),
-					facts: isJsonObject(facts) ? facts : {},
-					stateOwned: stateOwned.has(String(contract.entity_id))
-				},
+				personOf(contract, employers.get(String(contract.entity_id))),
 				subject,
 				String(balance.id),
 				accountsOf(balance.account),

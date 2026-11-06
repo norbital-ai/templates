@@ -34,11 +34,14 @@ describe('catalog lookups', () => {
 			.map((path) => readFileSync(path, 'utf8'))
 			.join('\n');
 		const expressions = FILES.flatMap((path) =>
-			rowsOf(path).flatMap((row) =>
-				Object.entries(row).flatMap(([key, value]) =>
+			rowsOf(path).flatMap((row) => [
+				...Object.entries(row).flatMap(([key, value]) =>
 					key === 'lookup' || key === 'references' || typeof value !== 'string' ? [] : [value]
-				)
-			)
+				),
+				...(isObject(row.lookup) && typeof row.lookup.entitlement === 'string'
+					? [row.lookup.entitlement]
+					: [])
+			])
 		).join('\n');
 		const read = new Set(`${code}\n${expressions}`.match(/[A-Za-z_][A-Za-z0-9_]*/g));
 		const declared = new Set(

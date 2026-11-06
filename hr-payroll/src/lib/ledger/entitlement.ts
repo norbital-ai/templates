@@ -1,5 +1,7 @@
+import { evaluate } from '../payroll_engine/expressions.js';
 import { completedMonths, isJsonObject } from '../payroll_engine/foundation.js';
 import type { JsonObject } from '../payroll_engine/contracts.js';
+import type { Event } from './core.js';
 
 export type LeaveRow = { readonly code: string; readonly lookup: JsonObject };
 export type LeavePerson = {
@@ -11,6 +13,9 @@ export type LeavePerson = {
 	readonly terms?: JsonObject;
 	readonly facts?: JsonObject;
 	readonly stateOwned?: boolean;
+	/** The rows a row's own `entitlement` expression reads as `ctx.subject`. */
+	readonly employment?: JsonObject;
+	readonly employer?: JsonObject;
 };
 type Band = { readonly service_months: number; readonly days: number };
 const bandsOf = (value: unknown): readonly Band[] =>
@@ -79,12 +84,35 @@ const firstYear = (lookup: JsonObject, person: LeavePerson, on: string, days: nu
 	return Math.floor((days * left) / basis);
 };
 
+/** A row with a statutory test of its own states it in `lookup.entitlement`: days, or null for no limit. */
+export const expressed = (
+	lookup: JsonObject,
+	person: LeavePerson,
+	on: string,
+	event?: Event
+): number | null => {
+	const days = evaluate(
+		String(lookup.entitlement),
+		'CALCULATION',
+		{
+			lookup,
+			as_of: on,
+			event,
+			subject: { employment: person.employment ?? {}, employer: person.employer ?? {} }
+		},
+		'entitlement'
+	);
+	return days === null || days === undefined ? null : Number(days);
+};
+
 /** The row's entitlement for this person on this day. `null`: no figure, so no limit. */
 export const entitlementOf = (
 	lookup: JsonObject,
 	person: LeavePerson,
 	on: string
 ): number | null => {
+	if (typeof lookup.entitlement === 'string')
+		return fits(lookup, person) ? expressed(lookup, person, on) : 0;
 	const months = completedMonths(person.started, on);
 	const bands = bandsOf(
 		person.partTime && lookup.part_time_service_bands != null
