@@ -125,9 +125,11 @@ Event time writes the employee balance immediately; payroll time writes money an
 | leave entitlement moves | `ADD` or `DEDUCT leave.<catalog code> <diff>`     |
 | benefit run marked paid | `ADD` or `DEDUCT benefit_paid.<month>.<code>`     |
 
-Indonesia's severance and pension benefits run on one ladder across two calendar years, longer than a balance keeps its months, so a catalog effect keeps them in `benefit_paid` when the run is marked paid. A paid run is final, so nothing there ever needs undoing. Japan's premiums paid back go on their own item, whose subtotal the year-end adjustment subtracts from the deduction.
+Indonesia's severance and pension benefits run on one ladder across two calendar years, longer than a balance keeps its months, so a catalog effect keeps them in `benefit_paid` when the run is marked paid. A paid run is final, so nothing there ever needs undoing. Japan's premiums paid back or collected late go on their own items, on a subtotal of their own that the year-end adjustment reads, so the deduction is what the employee bore.
 
-A run posts to balances in its own effect, after it commits, and it cannot be marked paid until every payslip's balance has it. A run's effects and its paid effects would otherwise overlap and lose to each other. Run effects look for their own task before raising it: raising one twice would fail every effect after it, so a second run in a period finds the first's task and raises nothing.
+Run effects look for their own task before raising it: raising one twice would fail every effect after it, so a second run in a period finds the first's task and raises nothing.
+
+A run effect reads only its own task: its exact key where the key is known up front, or the tasks at its own level, entity or person. A read covering every task of the entity would change whenever anything raised one, and the write after it would fail, so a contract sealing beside a run could cost that run its reminders. A run cannot be marked paid until every payslip's balance has it.
 
 Creating an entry posts it: once access control has approved the write, the model's `created` effect posts ledger rows and updates the balance projection. A reversal uses the recorded original amount, never today's rates.
 
@@ -293,7 +295,7 @@ Catalog lowers it to 16          16      −2      3       13
 
 A new sealed version is the catalog change. In force now, its diff applies straight away; dated later, it applies on the day it starts. A cut stops the balance at zero: days already taken are never clawed back.
 
-A new window starts the balance again rather than moving it by a diff, because days used come back. A calendar year turns on 1 January, a service year on the anniversary, picked up by the first paid run on or after it. An `EVENT` row refills month by month: a balance cannot tell one event from the next, so the HR controller judges a second event in the same month.
+A new window starts the balance again rather than moving it by a diff, because days used come back. A calendar year turns on 1 January, a service year on the anniversary, picked up by the first paid run on or after it. An `EVENT` row has no window: nothing gives or takes its days but a confirmed case (section 4.2).
 
 ```text
 NEW WINDOW, RULE ON THE ROW        NEXT BALANCE
@@ -323,6 +325,59 @@ consumes_code                       the entry also draws on that row's account
 A contract's `annual_leave_carry_limit_days` caps what it carries. A limit that spans rows or years is a registered rule: Singapore's sick and hospitalisation days share 60, and Taiwan's hospitalised days total a year within any two. A write may make 10 reads, so a new check joins an existing rule's reads where it can.
 
 An account opened before this keeps what it holds, and only its window starts counting. `applied` is kept per leave type in the balance's `leave_window` family as `<code>.granted`, beside the window it belongs to. Each movement is a dated ledger entry, like any other.
+
+### 4.2 Events are workplace cases
+
+A birth, a marriage, a bereavement or a long illness is something that happened, and a balance cannot tell one from the next. So each one is a row in `workplace_case_catalog`, and HR records it as a case. A registered effect opens the days. Nothing refills them by the calendar, and no code knows what a birth is.
+
+```text
+Employee hands HR the notice or doctor's letter
+        |
+        v
+HR opens a case on the person's Leave tab
+  what happened: CHILD_BIRTH
+  decision:      Confirmed / Rejected / Decide later
+  document:      attached
+        |
+        +-- Rejected ----> nothing moves
+        |
+        +-- Decide later -> nothing moves until HR presses Confirm or Reject on the case
+        |
+        v Confirmed
+registered effects LEAVE_CASE_LEDGER and LEAVE_CASE
+  read the case's lookup.grants and each leave row's grant_days and eligibility
+  post ledger rows and raise the balance, once for this case
+```
+
+| Row                             | Holds                                                                                               |
+| ------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `workplace_case_catalog.lookup` | `grants`: the leave rows it opens, `days` to override, `keep_start`; `certificate`; `ends_on_close` |
+| `leave_catalog.lookup`          | `grant_days`, `eligibility`, `pay_steps`                                                            |
+| `registered_effect`             | `LEAVE_CASE_LEDGER`, `LEAVE_CASE`, `LEAVE_CASE_ENDED`                                               |
+| `registered_rule`               | `LEAVE_CASE_DECISION`: a case names its employee and has its certificate before confirming          |
+
+```text
+                              Balance (MATERNITY_LEAVE, Indonesia)
+Joined                             0     an event row gives nothing by itself
+CHILD_BIRTH confirmed             90     ledger: ADD 90
+Takes 31 days                     59
+Months pass                       59     nothing refills it
+BIRTH_COMPLICATION confirmed     149     ledger: ADD 90, needs the certificate
+Next birth, a new case           +90     a second event is a second case
+```
+
+Pay that steps down is one row. `pay_steps` on the leave row says what share each month of the event loses, and the confirmed case stamps when the event began in `leave_window.<code>.from`. The row's `conversion` prices each day by its date from that stamp, so the order days were entered does not move it.
+
+```text
+MEDICAL_LEAVE, Indonesia (PP 36/2021 art.41(1))
+  no open case                     every day at full pay
+  LONG_ILLNESS confirmed 2 Feb     the count starts
+    month 1-4    100%
+    month 5-8     75%    this line takes the other 25% of each working day
+    month 9-12    50%
+    month 13+     25%
+  case closed (closed_on)          the count ends, the next sick day is at full pay
+```
 
 ## 5. Catalogue contract
 

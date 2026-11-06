@@ -84,5 +84,68 @@
 				"effective_from": "2025-07-01"
 			}
 		]
+	},
+	{
+		"code": "MARRIAGE",
+		"name": "Marriage",
+		"lookup": {
+			"grants": [
+				{
+					"code": "MARRIAGE_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "5d12ac5a-84b9-5ad4-9446-156bec2cdd43",
+		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69"
+	},
+	{
+		"code": "CHILD_MARRIAGE",
+		"name": "Child marriage",
+		"lookup": {
+			"grants": [
+				{
+					"code": "CHILD_MARRIAGE_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "40c6a4aa-34e5-56ed-9608-8b107b7facce",
+		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69"
+	},
+	{
+		"code": "BEREAVEMENT",
+		"name": "Bereavement",
+		"lookup": {
+			"grants": [
+				{
+					"code": "BEREAVEMENT_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "63769fa9-329f-55f8-a8e2-de6890b547ae",
+		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69"
 	}
 ]

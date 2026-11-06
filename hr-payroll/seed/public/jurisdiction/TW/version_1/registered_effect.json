@@ -11,6 +11,9 @@
 						"eq": {
 							"var": "ctx.entry.id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				}
 			}
@@ -41,12 +44,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'INSURANCE_PREMIUM_REMITTANCE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn true;",
@@ -69,12 +73,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'NHI_PREMIUM_REMITTANCE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn true;",
@@ -97,12 +102,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'NHI_SUPPLEMENTARY_PREMIUM_WITHHOLDING:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn true;",
@@ -128,12 +134,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'LABOUR_PENSION_REMITTANCE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn true;",
@@ -160,12 +167,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'WITHHOLDING_TAX_REMITTANCE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			},
 			"payslip": {
 				"where": {
@@ -205,12 +213,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'NHI_EMPLOYER_SUPPLEMENTARY_PREMIUM:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			},
 			"payslip": {
 				"where": {
@@ -262,12 +271,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'WAGE_PAYMENT_AND_PAYSLIP:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn true;",
@@ -290,12 +300,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'ANNUAL_WITHHOLDING_STATEMENTS:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.salary_coverage.from.substring(5, 7) === '01';",
@@ -321,12 +332,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'WITHHOLDING_CERTIFICATE_ISSUE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.salary_coverage.from.substring(5, 7) === '01';",
@@ -349,12 +361,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'NHI_SUPPLEMENTARY_PREMIUM_STATEMENT:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.salary_coverage.from.substring(5, 7) === '01';",
@@ -377,12 +390,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'INSURED_SALARY_ADJUSTMENT_FEBRUARY_JULY:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.salary_coverage.from.substring(5, 7) === '08';",
@@ -405,12 +419,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'INSURED_SALARY_ADJUSTMENT_AUGUST_JANUARY:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.salary_coverage.from.substring(5, 7) === '02';",
@@ -433,12 +448,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'LABOUR_MANAGEMENT_CONFERENCE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ['03', '06', '09', '12'].includes(ctx.entry.salary_coverage.from.substring(5, 7));",
@@ -462,12 +478,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'OLD_SYSTEM_PENSION_RESERVE_ESTIMATE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.salary_coverage.from.substring(5, 7) === '12';",
@@ -490,12 +507,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'OLD_SYSTEM_PENSION_RESERVE_SHORTFALL:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.salary_coverage.from.substring(5, 7) === '03';",
@@ -518,12 +536,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'LABOUR_EMPLOYMENT_INSURANCE_ENROLMENT:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.status === 'SEALED';",
@@ -547,12 +566,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'OCCUPATIONAL_ACCIDENT_INSURANCE_ENROLMENT:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.status === 'SEALED';",
@@ -578,12 +598,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'NHI_ENROLMENT:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.status === 'SEALED';",
@@ -609,12 +630,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'LABOUR_PENSION_REGISTRATION:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.status === 'SEALED';",
@@ -639,12 +661,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'EMPLOYMENT_CONTRACT_TERMS:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.status === 'SEALED';",
@@ -667,12 +690,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'exit:' + ctx.entry.id + ':LABOUR_EMPLOYMENT_INSURANCE_WITHDRAWAL:' + ctx.entry.effective_range.to"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
@@ -696,12 +720,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'exit:' + ctx.entry.id + ':OCCUPATIONAL_ACCIDENT_INSURANCE_WITHDRAWAL:' + ctx.entry.effective_range.to"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
@@ -727,12 +752,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'exit:' + ctx.entry.id + ':NHI_WITHDRAWAL:' + ctx.entry.effective_range.to"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
@@ -758,12 +784,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'exit:' + ctx.entry.id + ':LABOUR_PENSION_DEREGISTRATION:' + ctx.entry.effective_range.to"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
@@ -787,12 +814,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'exit:' + ctx.entry.id + ':FINAL_WAGE_SETTLEMENT:' + ctx.entry.effective_range.to"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
@@ -822,12 +850,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'exit:' + ctx.entry.id + ':UNUSED_ANNUAL_LEAVE_SETTLEMENT:' + ctx.entry.effective_range.to"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
@@ -850,12 +879,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'exit:' + ctx.entry.id + ':OVERTIME_COMP_TIME_SETTLEMENT:' + ctx.entry.effective_range.to"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
@@ -881,12 +911,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'exit:' + ctx.entry.id + ':SEVERANCE_PAYMENT:' + ctx.entry.effective_range.to"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.lookup.severance_grounds.includes(get(ctx.entry.employee_extension_data, 'exit_facts.lsa_termination_ground', 'OTHER'));",
@@ -912,12 +943,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'exit:' + ctx.entry.id + ':RETIREMENT_PAYMENT:' + ctx.entry.effective_range.to"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// 勞基法 §53–55: an exit that owes no severance, by a worker with service on the Act who meets a retirement ground, is a retirement to settle.\nif (ctx.entry.status !== 'SEALED') return false;\nconst to = ctx.entry.effective_range.to;\nif (to == null) return false;\nconst extension = get(ctx.entry, 'employee_extension_data', {});\nconst facts = get(extension, 'facts', {});\nif (ctx.lookup.severance_grounds.includes(get(extension, 'exit_facts.lsa_termination_ground', 'OTHER'))) return false;\nconst start = get(ctx.entry, 'service_started_on', ctx.entry.effective_range.from);\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst foreign = get(ctx.entry, 'terms.residency_status', 'CITIZEN') === 'FOREIGNER' && !spouse && !professional;\nconst lsa = get(facts, 'statutory.LABOR_PENSION.elections.pension_system', 'NEW') === 'LSA';\nconst recorded = Number(get(extension, 'exit_facts.old_system_service_months', 0));\nconst on_the_act = lsa || foreign || recorded > 0 || start < ctx.lookup.old_system_cutoff;\nif (!on_the_act) return false;\nif (get(extension, 'exit_facts.retirement_disability', false) === true) return true;\nconst born = get(ctx.entry, 'payroll.date_of_birth', null);\nif (born == null) return false;\nconst age = age_on(born, to);\nconst months = calendar_completed_months(start, add_days(to, 1));\nreturn ctx.lookup.retirement_eligibility.some((band) => {\n\tif (!(months >= band.months)) return false;\n\treturn band.age == null || age >= band.age;\n});",
@@ -945,12 +977,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'exit:' + ctx.entry.id + ':LAYOFF_REPORT:' + ctx.entry.effective_range.to"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.lookup.notice_grounds.includes(get(ctx.entry.employee_extension_data, 'exit_facts.lsa_termination_ground', 'OTHER'));",
@@ -980,12 +1013,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'exit:' + ctx.entry.id + ':TERMINATION_NOTICE:' + ctx.entry.effective_range.to"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.lookup.notice_grounds.includes(get(ctx.entry.employee_extension_data, 'exit_facts.lsa_termination_ground', 'OTHER'));",
@@ -1011,12 +1045,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'EMPLOYMENT_STABILISATION_FEE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nif (get(ctx.subject.employer, 'entity_extension_data.employment_stabilisation_fee_payer', false) !== true) return false;\nreturn ['02', '05', '08', '11'].includes(ctx.entry.salary_coverage.from.substring(5, 7));",
@@ -1043,12 +1078,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'WORK_RULES_FILING:' + ctx.entry.entity_id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			},
 			"employee_contract": {
 				"where": {
@@ -1085,12 +1121,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'exit:' + ctx.entry.id + ':OCCUPATIONAL_FATALITY_REPORT:' + ctx.entry.effective_range.to"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn get(ctx.entry.employee_extension_data, 'exit_facts.occupational_death', false) === true;",
@@ -1114,12 +1151,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'exit:' + ctx.entry.id + ':SERVICE_CERTIFICATE:' + ctx.entry.effective_range.to"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
@@ -1144,12 +1182,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'exit:' + ctx.entry.id + ':INVOLUNTARY_SEPARATION_CERTIFICATE:' + ctx.entry.effective_range.to"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn ctx.lookup.severance_grounds.includes(get(ctx.entry.employee_extension_data, 'exit_facts.lsa_termination_ground', 'OTHER'));",
@@ -1181,12 +1220,13 @@
 			},
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'PARENTAL_LEAVE_INSURANCE_CONTINUATION:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nconst catalog = ctx.reads.leave_catalog[0];\nif (catalog == null) return false;\nreturn catalog.code === 'PARENTAL_LEAVE';",
@@ -1213,12 +1253,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'exit:' + ctx.entry.id + ':FOREIGN_WORKER_SEPARATION_NOTICE:' + ctx.entry.effective_range.to"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nif (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nreturn get(ctx.entry, 'terms.residency_status', 'CITIZEN') === 'FOREIGNER';",
@@ -1245,12 +1286,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'FOREIGN_WORKER_ABSENCE_NOTICE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.kind === 'FOREIGN_WORKER_ABSENCE';",
@@ -1274,12 +1316,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'PENSION_CONTRIBUTION_NOTICE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn true;",
@@ -1308,12 +1351,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'DISABLED_EMPLOYMENT_QUOTA_LEVY:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			},
 			"employee_contract": {
 				"where": {
@@ -1353,12 +1397,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'WAGE_ROSTER_RETENTION:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn true;",
@@ -1385,12 +1430,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'ATTENDANCE_RECORDS_RETENTION:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn true;",
@@ -1416,12 +1462,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'exit:' + ctx.entry.id + ':INSURANCE_PENSION_RECORDS_RETENTION:' + ctx.entry.effective_range.to"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
@@ -1474,6 +1521,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				}
 			}
@@ -1499,12 +1549,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'EMERGENCY_OVERTIME_NOTICE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// 勞動基準法 §32(4) / §32-1: the case kind decides the obligation.\nreturn get(ctx.entry, 'kind', '') === 'EMERGENCY_OVERTIME';",
@@ -1532,12 +1583,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'WORK_ACCIDENT_REPORT:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// 職業安全衛生法 §37(2): report a fatal or serious accident within eight hours.\nif (get(ctx.entry, 'kind', '') !== 'OCCUPATIONAL_ACCIDENT') return false;\nif (Number(get(ctx.entry, 'inputs.deaths', 0)) >= 1) return true;\nif (Number(get(ctx.entry, 'inputs.hospitalised', 0)) >= 1) return true;\nreturn Number(get(ctx.entry, 'inputs.injured', 0)) >= ctx.lookup.injured_threshold;",
@@ -1565,12 +1617,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'WORK_ACCIDENT_REPORT_UPDATED:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// 職業安全衛生法 §37(2): report a fatal or serious accident within eight hours.\nif (get(ctx.entry, 'kind', '') !== 'OCCUPATIONAL_ACCIDENT') return false;\nif (Number(get(ctx.entry, 'inputs.deaths', 0)) >= 1) return true;\nif (Number(get(ctx.entry, 'inputs.hospitalised', 0)) >= 1) return true;\nreturn Number(get(ctx.entry, 'inputs.injured', 0)) >= ctx.lookup.injured_threshold;",
@@ -1606,12 +1659,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'INSURANCE_PREMIUM_LATE_SURCHARGE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nif (ctx.entry.state !== 'FULFILLED') return false;\nif (!['INSURANCE_PREMIUM_REMITTANCE'].some((prefix) => ctx.entry.occurrence_key.startsWith(prefix + ':'))) return false;\nif (ctx.entry.fulfilled_on == null) return false;\nif (ctx.entry.due_on == null) return false;\nreturn ctx.entry.fulfilled_on > add_days(ctx.entry.due_on, ctx.lookup.grace_days);",
@@ -1639,12 +1693,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'NHI_LATE_SURCHARGE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nif (ctx.entry.state !== 'FULFILLED') return false;\nif (!['NHI_PREMIUM_REMITTANCE', 'NHI_SUPPLEMENTARY_PREMIUM_WITHHOLDING', 'NHI_EMPLOYER_SUPPLEMENTARY_PREMIUM'].some((prefix) => ctx.entry.occurrence_key.startsWith(prefix + ':'))) return false;\nif (ctx.entry.fulfilled_on == null) return false;\nif (ctx.entry.due_on == null) return false;\nreturn ctx.entry.fulfilled_on > add_days(ctx.entry.due_on, ctx.lookup.grace_days);",
@@ -1672,12 +1727,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'LABOUR_PENSION_LATE_SURCHARGE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nif (ctx.entry.state !== 'FULFILLED') return false;\nif (!['LABOUR_PENSION_REMITTANCE'].some((prefix) => ctx.entry.occurrence_key.startsWith(prefix + ':'))) return false;\nif (ctx.entry.fulfilled_on == null) return false;\nif (ctx.entry.due_on == null) return false;\nreturn ctx.entry.fulfilled_on > add_days(ctx.entry.due_on, ctx.lookup.grace_days);",
@@ -1710,12 +1766,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'WITHHOLDING_TAX_LATE_SURCHARGE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nif (ctx.entry.state !== 'FULFILLED') return false;\nif (!['WITHHOLDING_TAX_REMITTANCE'].some((prefix) => ctx.entry.occurrence_key.startsWith(prefix + ':'))) return false;\nif (ctx.entry.fulfilled_on == null) return false;\nif (ctx.entry.due_on == null) return false;\nreturn ctx.entry.fulfilled_on > add_days(ctx.entry.due_on, ctx.lookup.grace_days);",
@@ -1742,12 +1799,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'exit:' + ctx.entry.id + ':PERSONAL_DATA_DISPOSAL:' + ctx.entry.effective_range.to"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
@@ -1771,12 +1829,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'REDUCED_HOURS_NOTICE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			},
 			"work_interruption_catalog": {
 				"where": {
@@ -1824,12 +1883,13 @@
 			},
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'LI_UNIT_CHANGE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nconst versions = ctx.reads.entity_profile_version;\nconst from = ctx.entry.effective_range.from;\nconst earlier = versions.filter(\n\t(version) => version.id !== ctx.entry.id && get(version, 'effective_range.from', '') < from\n);\nconst previous = earlier.filter(\n\t(version) =>\n\t\t!earlier.some(\n\t\t\t(other) =>\n\t\t\t\tother.id !== version.id &&\n\t\t\t\tget(other, 'effective_range.from', '') > get(version, 'effective_range.from', '')\n\t\t)\n);\nif (previous.length !== 1) return false;\nif (get(previous[0], 'name', null) !== get(ctx.entry, 'name', null)) return true;\nif (get(previous[0], 'registered_address', null) !== get(ctx.entry, 'registered_address', null)) return true;\nreturn get(previous[0], 'representative_name', null) !== get(ctx.entry, 'representative_name', null);",
@@ -1865,12 +1925,13 @@
 			},
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'NHI_UNIT_CHANGE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nconst versions = ctx.reads.entity_profile_version;\nconst from = ctx.entry.effective_range.from;\nconst earlier = versions.filter(\n\t(version) => version.id !== ctx.entry.id && get(version, 'effective_range.from', '') < from\n);\nconst previous = earlier.filter(\n\t(version) =>\n\t\t!earlier.some(\n\t\t\t(other) =>\n\t\t\t\tother.id !== version.id &&\n\t\t\t\tget(other, 'effective_range.from', '') > get(version, 'effective_range.from', '')\n\t\t)\n);\nif (previous.length !== 1) return false;\nif (get(previous[0], 'name', null) !== get(ctx.entry, 'name', null)) return true;\nif (get(previous[0], 'registered_address', null) !== get(ctx.entry, 'registered_address', null)) return true;\nreturn get(previous[0], 'representative_name', null) !== get(ctx.entry, 'representative_name', null);",
@@ -1894,12 +1955,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'SEXUAL_HARASSMENT_COMPLAINT_CHANNEL:' + ctx.entry.entity_id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			},
 			"employee_contract": {
 				"where": {
@@ -1940,12 +2002,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'SEXUAL_HARASSMENT_PREVENTION_RULES:' + ctx.entry.entity_id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			},
 			"employee_contract": {
 				"where": {
@@ -1986,12 +2049,13 @@
 		"reads": {
 			"obligation": {
 				"where": {
-					"entity_id": {
+					"occurrence_key": {
 						"eq": {
-							"var": "ctx.entry.entity_id"
+							"var": "'PERSONAL_DATA_COLLECTION_NOTICE:' + ctx.entry.id"
 						}
 					}
-				}
+				},
+				"limit": 1
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.status === 'SEALED';",
@@ -2037,5 +2101,115 @@
 		"effects": "// js\n// Tax or a contribution came out overpaid. The HR controller pays it back with an entry on the Statutory refund item, in Events.\nif (ctx.reads.obligation.length > 0) return [];\nconst year = String(get(first(ctx.reads.payroll_run), 'pay_date', '')).slice(0, 4);\nconst over = get(ctx.entry, 'breakdown.statutory', []).filter((row) => Number(get(row, 'overpaid', 0)) > 0);\nconst overpaid = sum(over.map((row) => Number(get(row, 'overpaid', 0))));\nconst what = over.every((row) => row.kind === 'TAX') ? 'Tax' : over.map((row) => row.code).join(', ');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: what + ' overpaid in ' + year + ': enter ' + overpaid + ' on Statutory refund' + (what === 'Tax' ? '' : '; any employer share comes back from the agency'),\n\toccurrence_key: occurrence_key(['TW', 'TAX_REFUND', ctx.entry.id])\n}];",
 		"id": "3507da22-c166-52e7-9d3e-23f0fde5ff3b",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42"
+	},
+	{
+		"lookup": {},
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
+		"code": "LEAVE_CASE_LEDGER",
+		"name": "Post the days a confirmed case gives",
+		"condition": "// js\nreturn get(ctx.entry, 'inputs.decision', '') === 'CONFIRMED' && get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', null) != null;",
+		"reads": {
+			"workplace_case_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			},
+			"leave_catalog": {
+				"where": {
+					"settings_id": {
+						"eq": {
+							"var": "ctx.entry.settings_id"
+						}
+					}
+				},
+				"fields": ["code", "lookup"],
+				"limit": 200
+			},
+			"employee_balance": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "get(ctx.subject, 'employment.employee_id', ctx.entry.id)"
+						}
+					}
+				},
+				"fields": ["account"],
+				"limit": 1
+			},
+			"ledger_entry": {
+				"where": {
+					"account": {
+						"eq": "leave_case"
+					},
+					"code": {
+						"eq": {
+							"var": "ctx.entry.id"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			}
+		},
+		"target_collection": "ledger_entry",
+		"target_action": "create",
+		"effects": "// js\n// The case is the event: confirmed, it opens the days its leave rows give for one event, once.\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nconst person = ctx.subject.employment;\nconst moves = grants.flatMap((grant) => {\n\tconst row = first(ctx.reads.leave_catalog.filter((item) => item.code === grant.code));\n\tif (row == null) return [];\n\tconst wanted = get(row, 'lookup.eligibility.gender', null);\n\tif (wanted != null && wanted !== get(person, 'payroll.gender', null)) return [];\n\treturn [{ code: grant.code, row, keep: get(grant, 'keep_start', false), days: get(grant, 'days', get(row, 'lookup.grant_days', 0)) }];\n});\nif (balance == null || ctx.reads.ledger_entry.length > 0) return [];\nconst on = ctx.entry.opened_on;\nreturn [\n\t{ balance_id: balance.id, operation: 'ADD', account: 'leave_case', code: ctx.entry.id, amount: 1, unit: 'COUNT', effective_on: on },\n\t...moves.filter((move) => move.days > 0).map((move) => ({ balance_id: balance.id, operation: 'ADD', account: 'leave', code: move.code, amount: move.days, unit: 'DAY', effective_on: on }))\n];",
+		"id": "4117757f-5820-59d1-82cf-28761fef3c05"
+	},
+	{
+		"lookup": {},
+		"source_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42",
+		"code": "LEAVE_CASE",
+		"name": "Open the days a confirmed case gives",
+		"condition": "// js\nreturn get(ctx.entry, 'inputs.decision', '') === 'CONFIRMED' && get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', null) != null;",
+		"reads": {
+			"workplace_case_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			},
+			"leave_catalog": {
+				"where": {
+					"settings_id": {
+						"eq": {
+							"var": "ctx.entry.settings_id"
+						}
+					}
+				},
+				"fields": ["code", "lookup"],
+				"limit": 200
+			},
+			"employee_balance": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "get(ctx.subject, 'employment.employee_id', ctx.entry.id)"
+						}
+					}
+				},
+				"fields": ["account"],
+				"limit": 1
+			}
+		},
+		"target_collection": "employee_balance",
+		"target_action": "update",
+		"effects": "// js\n// The case is the event: confirmed, it opens the days its leave rows give for one event, once.\nconst grants = get(first(ctx.reads.workplace_case_catalog), 'lookup.grants', []);\nconst balance = first(ctx.reads.employee_balance);\nconst person = ctx.subject.employment;\nconst moves = grants.flatMap((grant) => {\n\tconst row = first(ctx.reads.leave_catalog.filter((item) => item.code === grant.code));\n\tif (row == null) return [];\n\tconst wanted = get(row, 'lookup.eligibility.gender', null);\n\tif (wanted != null && wanted !== get(person, 'payroll.gender', null)) return [];\n\treturn [{ code: grant.code, row, keep: get(grant, 'keep_start', false), days: get(grant, 'days', get(row, 'lookup.grant_days', 0)) }];\n});\nif (balance == null) return [];\nconst done = get(balance.account, 'leave_case', {});\nif (Object.hasOwn(done, ctx.entry.id)) return [];\nconst leave = get(balance.account, 'leave', {});\nconst stamp = Number(String(ctx.entry.opened_on).replaceAll('-', ''));\nconst held = (code) => (Object.hasOwn(leave, code) ? Number(leave[code]) : 0);\n// A row that steps its pay counts from the day the event began.\nconst started = moves.filter((move) => get(move.row, 'lookup.pay_steps', null) != null && move.keep !== true);\nreturn [{\n\ttarget: balance.id,\n\tset: {\n\t\taccount: {\n\t\t\t...balance.account,\n\t\t\tleave: { ...leave, ...Object.fromEntries(moves.map((move) => [move.code, held(move.code) + move.days])) },\n\t\t\tleave_window: { ...get(balance.account, 'leave_window', {}), ...Object.fromEntries(started.map((move) => [move.code + '.from', stamp])) },\n\t\t\tleave_case: { ...done, [ctx.entry.id]: 1 }\n\t\t}\n\t}\n}];",
+		"id": "8d843098-a0f7-5e58-966a-1da3247c98d7"
 	}
 ]

@@ -107,7 +107,11 @@ export default model('workplace_case_catalog_entry', {
 				'create',
 				{ collection: 'workplace_case_catalog_entry', ids: rows.map((r) => r.id) },
 				rows.map((after) => ({
-					after: { ...after, settings_id: settingsOf.get(after.catalog_id) }
+					after: {
+						...after,
+						settings_id: settingsOf.get(after.catalog_id),
+						employment_id: after.inputs.employment_id
+					}
 				}))
 			);
 		},
@@ -133,7 +137,11 @@ export default model('workplace_case_catalog_entry', {
 				{ collection: 'workplace_case_catalog_entry', ids: edited.map((c) => c.after.id) },
 				edited.map((change) => ({
 					...change,
-					after: { ...change.after, settings_id: settingsOf.get(change.after.catalog_id) }
+					after: {
+						...change.after,
+						settings_id: settingsOf.get(change.after.catalog_id),
+						employment_id: change.after.inputs.employment_id
+					}
 				}))
 			);
 		},

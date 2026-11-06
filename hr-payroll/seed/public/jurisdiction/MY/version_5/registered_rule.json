@@ -569,5 +569,33 @@
 		"order": 900,
 		"id": "f7dac0e5-38f0-5eb7-b422-2ff81aca330b",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
+	},
+	{
+		"code": "LEAVE_CASE_DECISION",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"lookup": {},
+		"reads": {
+			"workplace_case_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			}
+		},
+		"validate": "// js\n// A leave event names its employee and, where the law asks, carries its certificate before it is confirmed.\nconst item = first(ctx.reads.workplace_case_catalog);\nif (get(item, 'lookup.grants', null) == null) return true;\nif (get(ctx.entry, 'inputs.employment_id', null) == null) throw 'Choose the employee this case is for.';\nconst decision = get(ctx.entry, 'inputs.decision', '');\nif (!['', 'CONFIRMED', 'REJECTED'].includes(decision)) throw 'A case is confirmed or rejected.';\nif (decision === 'CONFIRMED' && get(item, 'lookup.certificate', false) === true && get(ctx.entry, 'evidence_file', null) == null)\n\tthrow 'Attach the certificate before confirming this case.';\nreturn true;",
+		"order": 902,
+		"references": [
+			{
+				"title": "A leave event names its employee and carries its certificate before HR confirms it."
+			}
+		],
+		"id": "50e4e0f9-1af8-5db5-90f5-b0753ed988b4",
+		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
 	}
 ]

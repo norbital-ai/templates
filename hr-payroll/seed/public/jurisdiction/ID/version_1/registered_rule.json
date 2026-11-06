@@ -588,13 +588,7 @@
 		"target_collection": "leave_catalog_entry",
 		"events": ["create"],
 		"lookup": {
-			"no_pay": [
-				"UNPAID_LEAVE",
-				"MEDICAL_LEAVE_75",
-				"MEDICAL_LEAVE_50",
-				"MEDICAL_LEAVE_25",
-				"MATERNITY_EXTENSION_PARTIAL_LEAVE"
-			]
+			"no_pay": ["UNPAID_LEAVE", "MEDICAL_LEAVE", "MATERNITY_LEAVE"]
 		},
 		"references": [
 			{
@@ -610,7 +604,7 @@
 						}
 					}
 				},
-				"fields": ["code"],
+				"fields": ["code", "lookup"],
 				"limit": 1
 			},
 			"payroll_run": {
@@ -648,9 +642,20 @@
 				},
 				"fields": ["days"],
 				"limit": 1000
+			},
+			"employee_balance": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "subject.employment.employee_id"
+						}
+					}
+				},
+				"fields": ["account"],
+				"limit": 1
 			}
 		},
-		"validate": "// js\n// A run prices only its own dates, so an entry dated in a period that has run would never reach a payslip.\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || !ctx.lookup.no_pay.includes(item.code)) return true;\nconst employer = ctx.subject.employer;\nconst cutoff = Number(get(employer, 'pay_cutoff_day', 1));\nconst halves = get(employer, 'payment_schedule.frequency', 'MONTHLY') === 'SEMI_MONTHLY';\nconst shifted = (month, by) => add_months(month + '-01', by).slice(0, 7);\nconst periodOf = (date) => {\n\tconst month = date.slice(0, 7);\n\tconst dayOf = Number(date.slice(8, 10));\n\tconst part = dayOf <= 15 ? 1 : 2;\n\tif (!halves) return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;\n\tif (cutoff <= 1) return month + '-' + part;\n\treturn part === 1 ? month + '-2' : shifted(month, 1) + '-1';\n};\n// A reversal gives back what has been paid. An entry still open has not been paid, so it is deleted instead.\nconst dates = ctx.entry.days.map((day) => day.date);\nif (get(ctx.entry, 'is_reversal', false) === true && ctx.reads.leave_catalog_entry.some((row) => row.days.some((day) => dates.includes(day.date))))\n\tthrow 'That day has not been paid yet. Delete the entry instead of reversing it.';\nconst ran = ctx.reads.payroll_run.map((run) => run.period);\nconst closed = ctx.entry.days.find((day) => ran.includes(periodOf(day.date)));\nif (closed != null)\n\tthrow closed.date + ' is in a period that has already run. Date this entry in the next period to run, and that run takes it.';\nreturn true;",
+		"validate": "// js\n// A run prices only its own dates, so an entry dated in a period that has run would never reach a payslip.\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || !ctx.lookup.no_pay.includes(item.code)) return true;\n// A stepped row's days at full pay cost nothing, so a late sick note is not refused.\nconst steps = get(item.lookup, 'pay_steps', []);\nconst windows = get(first(ctx.reads.employee_balance), 'account.leave_window', {});\nconst held = Object.hasOwn(windows, item.code + '.from') ? String(windows[item.code + '.from']) : '';\nif (steps.length > 0 && held === '') return true;\nconst from = held.slice(0, 4) + '-' + held.slice(4, 6) + '-' + held.slice(6, 8);\nif (steps.length > 0 && !ctx.entry.days.some((day) => calendar_completed_months(from, day.date) >= steps[0].until_month)) return true;\nconst employer = ctx.subject.employer;\nconst cutoff = Number(get(employer, 'pay_cutoff_day', 1));\nconst halves = get(employer, 'payment_schedule.frequency', 'MONTHLY') === 'SEMI_MONTHLY';\nconst shifted = (month, by) => add_months(month + '-01', by).slice(0, 7);\nconst periodOf = (date) => {\n\tconst month = date.slice(0, 7);\n\tconst dayOf = Number(date.slice(8, 10));\n\tconst part = dayOf <= 15 ? 1 : 2;\n\tif (!halves) return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;\n\tif (cutoff <= 1) return month + '-' + part;\n\treturn part === 1 ? month + '-2' : shifted(month, 1) + '-1';\n};\n// A reversal gives back what has been paid. An entry still open has not been paid, so it is deleted instead.\nconst dates = ctx.entry.days.map((day) => day.date);\nif (get(ctx.entry, 'is_reversal', false) === true && ctx.reads.leave_catalog_entry.some((row) => row.days.some((day) => dates.includes(day.date))))\n\tthrow 'That day has not been paid yet. Delete the entry instead of reversing it.';\nconst ran = ctx.reads.payroll_run.map((run) => run.period);\nconst closed = ctx.entry.days.find((day) => ran.includes(periodOf(day.date)));\nif (closed != null)\n\tthrow closed.date + ' is in a period that has already run. Date this entry in the next period to run, and that run takes it.';\nreturn true;",
 		"order": 900,
 		"id": "521c85ce-e1a5-5be0-99ed-56354efbe8b1",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
@@ -688,6 +693,34 @@
 		"validate": "// js\n// A row that consumes another needs the days on that row's account.\nconst code = get(first(ctx.reads.leave_catalog), 'lookup.consumes_code', null);\nif (code == null || get(ctx.entry, 'is_reversal', false) === true) return true;\nconst held = Number(get(get(first(ctx.reads.employee_balance), 'account.leave', {}), code, 0));\nif (held < ctx.entry.days.length / 2) throw 'Only ' + held + ' days of ' + code + ' are left.';\nreturn true;",
 		"order": 903,
 		"id": "f729528e-e21e-506a-b769-12ce2800dbae",
+		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+	},
+	{
+		"code": "LEAVE_CASE_DECISION",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"lookup": {},
+		"reads": {
+			"workplace_case_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			}
+		},
+		"validate": "// js\n// A leave event names its employee and, where the law asks, carries its certificate before it is confirmed.\nconst item = first(ctx.reads.workplace_case_catalog);\nif (get(item, 'lookup.grants', null) == null) return true;\nif (get(ctx.entry, 'inputs.employment_id', null) == null) throw 'Choose the employee this case is for.';\nconst decision = get(ctx.entry, 'inputs.decision', '');\nif (!['', 'CONFIRMED', 'REJECTED'].includes(decision)) throw 'A case is confirmed or rejected.';\nif (decision === 'CONFIRMED' && get(item, 'lookup.certificate', false) === true && get(ctx.entry, 'evidence_file', null) == null)\n\tthrow 'Attach the certificate before confirming this case.';\nreturn true;",
+		"order": 902,
+		"references": [
+			{
+				"title": "A leave event names its employee and carries its certificate before HR confirms it."
+			}
+		],
+		"id": "2fd0aa59-c5f6-51a7-b038-a3a32065b838",
 		"settings_id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
 	}
 ]

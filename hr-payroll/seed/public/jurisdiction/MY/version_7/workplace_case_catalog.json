@@ -104,5 +104,50 @@
 		],
 		"id": "29c90b06-e41b-5f04-9084-c016bd89152b",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+	},
+	{
+		"code": "CHILD_BIRTH",
+		"name": "Child birth",
+		"lookup": {
+			"grants": [
+				{
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"code": "PATERNITY_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "2c27c4cd-f691-5c6e-af4e-0f225d354a83",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+	},
+	{
+		"code": "CHILD_BIRTH_NO_ALLOWANCE",
+		"name": "Child birth, no maternity allowance",
+		"lookup": {
+			"grants": [
+				{
+					"code": "MATERNITY_LEAVE_NO_ALLOWANCE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "2dd79bb7-ffa5-568c-b4a5-4239adfba300",
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	}
 ]

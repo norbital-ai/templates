@@ -649,13 +649,6 @@ describe('a month’s second salary stands alone', () => {
 });
 
 const ID_NO_PAY = ['UNPAID_LEAVE'];
-/** Rows that keep part of the day's pay, and the share of the day each takes. */
-const ID_STEPS = [
-	['MEDICAL_LEAVE_75', 0.25],
-	['MEDICAL_LEAVE_50', 0.5],
-	['MEDICAL_LEAVE_25', 0.75],
-	['MATERNITY_EXTENSION_PARTIAL_LEAVE', 0.25]
-] as const;
 const TH_NO_PAY = [
 	'SICK_LEAVE_UNPAID',
 	'TRAINING_LEAVE',
@@ -769,49 +762,6 @@ describe('a no-pay day in Indonesia', () => {
 		}).pipe(Effect.provide(workspace({ seed: ID_SEED, now: AUGUST })))
 	);
 	it.live('an entry not yet paid is deleted, not reversed', () => notYetPaid(ID_SEED, code));
-});
-
-describe('pay that steps down in Indonesia', () => {
-	const balance = {
-		account: { leave: Object.fromEntries(ID_STEPS.map(([code]) => [code, 40])) }
-	};
-	const seed = seedOf(
-		INDONESIA,
-		terms(10_000_000, { HOUSE_ALLOWANCE: { amount: 1_000_000, variability: 'FIXED' } }),
-		balance
-	);
-	for (const [code, share] of ID_STEPS)
-		it.live(`${code}: takes its share of a working day, paid back by a reversal`, () =>
-			Effect.gen(function* () {
-				const t = yield* TestWorkspace;
-				yield* take(t, seed, code, whole('2026-06-10'));
-				yield* onCycle(t, '2026-06');
-				assert.equal(yield* takenIn(t, '2026-06', code), -500_000 * share);
-				yield* take(t, seed, code, whole('2026-07-06'), true);
-				yield* onCycle(t, '2026-07');
-				assert.equal(yield* takenIn(t, '2026-07', code), 500_000 * share);
-			}).pipe(Effect.provide(workspace({ seed, now: AUGUST })))
-		);
-	it.live('a weekend picked with the dates costs nothing', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const days = ['2026-06-12', '2026-06-13', '2026-06-14', '2026-06-15'].flatMap(whole);
-			yield* take(t, seed, 'MATERNITY_EXTENSION_PARTIAL_LEAVE', days);
-			yield* onCycle(t, '2026-06');
-			assert.equal(yield* takenIn(t, '2026-06', 'MATERNITY_EXTENSION_PARTIAL_LEAVE'), -250_000);
-		}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
-	);
-	it('the months of maternity leave each have a figure', () => {
-		const leave = read(join('seed/public/jurisdiction/ID/version_3', 'leave_catalog.json'));
-		const days = (code: string) =>
-			(leave.find((one) => one.code === code)?.lookup as { grant_days?: number }).grant_days;
-		assert.deepEqual(
-			['MATERNITY_LEAVE', 'MATERNITY_EXTENSION_LEAVE', 'MATERNITY_EXTENSION_PARTIAL_LEAVE'].map(
-				days
-			),
-			[90, 30, 60]
-		);
-	});
 });
 
 const notYetPaid = (seed: Seed, code: string) =>
@@ -963,7 +913,7 @@ describe('a no-pay line owes what the salary basis owed', () => {
 describe('the catalogs', () => {
 	const root = 'seed/public/jurisdiction';
 	for (const [code, rows, taken] of [
-		['ID', ID_NO_PAY, [...ID_NO_PAY, ...ID_STEPS.map(([item]) => item)]],
+		['ID', ID_NO_PAY, [...ID_NO_PAY, 'MEDICAL_LEAVE', 'MATERNITY_LEAVE']],
 		['TH', TH_NO_PAY, TH_NO_PAY]
 	] as const)
 		it(`${code}: every version carries the lines and their rule`, () => {

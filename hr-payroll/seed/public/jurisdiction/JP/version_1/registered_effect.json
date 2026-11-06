@@ -22,6 +22,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -80,6 +83,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -138,6 +144,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -196,6 +205,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -256,6 +268,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -300,6 +315,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -375,6 +393,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -419,6 +440,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -527,6 +551,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -571,6 +598,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -872,6 +902,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -917,6 +950,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -975,6 +1011,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -1420,6 +1459,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -1500,6 +1542,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -1556,6 +1601,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -1614,6 +1662,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -2060,6 +2111,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -2150,6 +2204,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -2331,6 +2388,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -2390,6 +2450,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -2448,6 +2511,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -2506,6 +2572,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -2716,6 +2785,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],
@@ -2774,6 +2846,9 @@
 						"eq": {
 							"var": "ctx.entry.entity_id"
 						}
+					},
+					"employee_id": {
+						"isNull": true
 					}
 				},
 				"fields": ["occurrence_key"],

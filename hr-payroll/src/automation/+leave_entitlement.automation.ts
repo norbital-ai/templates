@@ -172,7 +172,7 @@ export default automation('leave_entitlement', {
 			}
 			return { people: changes.length, cap: NO_CAP_DAYS };
 		});
-		// payroll writes balances too: a lost race reads again, and what already landed is not repeated
-		yield* settle.pipe(Effect.retry({ times: 3, while: (error) => error._tag === 'ActConflict' }));
+		// payroll writes balances too: a lost race ends this run, and the next one starts from what stands
+		yield* settle;
 	}
 });

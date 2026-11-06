@@ -368,15 +368,13 @@ export default model('payroll_run', {
 				yield* ctx.act.checked([{ callable: 'employee_balance.update', input }]);
 		},
 		created: function* (rows, ctx) {
-			yield* postRunToBalances(ctx, rows).pipe(
-				Effect.retry({ times: 3, while: ({ _tag }) => _tag === 'ActConflict' })
-			);
+			yield* postRunToBalances(ctx, rows);
 			yield* tap(
 				ctx,
 				'create',
 				{ collection: 'payroll_run', ids: rows.map((row) => row.id) },
 				rows.map((after) => ({ after }))
-			).pipe(Effect.retry({ times: 3, while: ({ _tag }) => _tag === 'ActConflict' }));
+			);
 		},
 		updated: function* (changes, ctx) {
 			yield* tap(
@@ -384,7 +382,7 @@ export default model('payroll_run', {
 				'update',
 				{ collection: 'payroll_run', ids: changes.map(({ after }) => after.id) },
 				changes
-			).pipe(Effect.retry({ times: 3, while: ({ _tag }) => _tag === 'ActConflict' }));
+			);
 			// service bands and anniversaries move on no event of their own: every paid run looks
 			if (changes.some(({ before, after }) => before.state !== 'PAID' && after.state === 'PAID'))
 				yield* ctx.schedule('leave_entitlement', {}, { key: 'leave_entitlement' });

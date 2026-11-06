@@ -320,6 +320,21 @@ describe('corrected in the next on-cycle run', () => {
 			assert.equal(over.year, right.year);
 		})
 	);
+	it.live('a premium collected late counts at year end', () =>
+		Effect.gen(function* () {
+			const right = yield* taken((t) =>
+				onCycle(t, '2026-11').pipe(Effect.andThen(onCycle(t, '2026-12')))
+			);
+			const late = yield* taken((t, seed) =>
+				Effect.gen(function* () {
+					yield* onCycle(t, '2026-11');
+					yield* enter(t, seed, 'SOCIAL_INSURANCE_ADJUSTMENT', 50_000, '2026-12-10');
+					yield* onCycle(t, '2026-12');
+				})
+			);
+			assert.ok(late.year < right.year);
+		})
+	);
 	it.live('a premium paid back on its own item leaves the year-end deduction', () =>
 		Effect.gen(function* () {
 			const right = yield* taken((t) =>

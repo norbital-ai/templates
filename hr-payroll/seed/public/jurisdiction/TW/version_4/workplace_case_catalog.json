@@ -1266,5 +1266,71 @@
 		],
 		"id": "3199961b-6a99-43bf-b146-b5595e060772",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "MARRIAGE",
+		"name": "Marriage",
+		"lookup": {
+			"grants": [
+				{
+					"code": "MARRIAGE_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "31da0b62-0030-5172-88a9-a1051726746d",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "PREGNANCY",
+		"name": "Pregnancy",
+		"lookup": {
+			"grants": [
+				{
+					"code": "PRENATAL_CHECKUP_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "91c21761-3f81-552e-84b5-f565ac4aee6e",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
+	},
+	{
+		"code": "CHILD_BIRTH",
+		"name": "Child birth",
+		"lookup": {
+			"grants": [
+				{
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"code": "PARENTAL_LEAVE_BY_DAY"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "7dc2b598-b121-5088-acad-07517bad5257",
+		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65"
 	}
 ]

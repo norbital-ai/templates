@@ -1531,5 +1531,53 @@
 				"effective_from": "2027-01-01"
 			}
 		]
+	},
+	{
+		"code": "CHILD_BIRTH",
+		"name": "Child birth",
+		"lookup": {
+			"grants": [
+				{
+					"code": "MATERNITY_LEAVE"
+				},
+				{
+					"code": "PATERNITY_LEAVE"
+				},
+				{
+					"code": "SHARED_PARENTAL_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "bf55a1ae-f190-560c-bac0-b5e1ed71df61",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "ADOPTION",
+		"name": "Adoption",
+		"lookup": {
+			"grants": [
+				{
+					"code": "ADOPTION_LEAVE"
+				}
+			]
+		},
+		"subtotal_id": null,
+		"off_cycle_eligible": false,
+		"events": {},
+		"references": [
+			{
+				"title": "Opening this case and confirming it gives the days the leave rows it names allow for one event. Rejected, it gives nothing."
+			}
+		],
+		"id": "dd25a9f8-b949-5a3f-acf5-3330ebbdcd42",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
 	}
 ]
