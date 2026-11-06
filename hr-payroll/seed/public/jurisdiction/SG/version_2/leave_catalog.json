@@ -220,6 +220,9 @@
 			"grant_days": 112,
 			"eligibility": {
 				"gender": "FEMALE"
+			},
+			"opened_by": {
+				"CHILD_BIRTH": {}
 			}
 		},
 		"pay_treatment": "PAID",
@@ -252,6 +255,9 @@
 			"grant_days": 28,
 			"eligibility": {
 				"gender": "MALE"
+			},
+			"opened_by": {
+				"CHILD_BIRTH": {}
 			}
 		},
 		"pay_treatment": "PAID",
@@ -355,6 +361,9 @@
 			"grant_days": 84,
 			"eligibility": {
 				"gender": "FEMALE"
+			},
+			"opened_by": {
+				"ADOPTION": {}
 			}
 		},
 		"pay_treatment": "PAID",
@@ -384,7 +393,10 @@
 		"lookup": {
 			"eligibility_months": 3,
 			"window": "EVENT",
-			"grant_days": 70
+			"grant_days": 70,
+			"opened_by": {
+				"CHILD_BIRTH": {}
+			}
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,

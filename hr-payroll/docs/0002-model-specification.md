@@ -78,21 +78,23 @@ The first row (`previous_id = null`) computes base pay. Later rows accumulate em
 
 ### Definition shape
 
-| Field                                                      | Applies to     | Contract                                                                                                                               |
-| ---------------------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `code`, `name`                                             | all            | Unique per `settings_id`; `code` is the accounting code                                                                                |
-| `settings_id`                                              | all            | Owned sealed jurisdiction version                                                                                                      |
-| `lookup`                                                   | all            | Flat constants and rates for this definition                                                                                           |
-| `references`                                               | all            | Research/legal provenance; never on entries                                                                                            |
-| `off_cycle_eligible`                                       | all            | An `OFF_CYCLE` run includes optional producers only when true; statutory schemes are not filtered                                      |
-| `prorate`                                                  | allowance      | On: the line takes the share of the period paid. Off: it pays whole                                                                    |
-| `subtotal_id`                                              | pay producers  | Nullable: null when the definition creates no pay line                                                                                 |
-| `eligibility`, `conversion`, `incurred_on`                 | pay producers  | JS expressions; `conversion` is a nonnegative monetary magnitude                                                                       |
-| `direction`, `party`                                       | pay producers  | `ADD`/`DEDUCT`; `EMPLOYEE`/`EMPLOYER`                                                                                                  |
-| `lookup.grants`                                            | workplace case | The leave rows a confirmed case opens, with `days` to override a row's `grant_days`, and `keep_start` to leave the event's start alone |
-| `lookup.pay_steps`                                         | leave          | What share of a day each stretch of an event loses, by `until_month` from the day its case began                                       |
-| `pay_treatment`                                            | leave          | `PAID` or `UNPAID`; `UNPAID` prorates base pay                                                                                         |
-| `kind`, `depends_on`, `employee_amount`, `employer_amount` | statutory      | `CONTRIBUTION`/`TAX`; scheme codes; JS amounts                                                                                         |
+| Field                                                      | Applies to    | Contract                                                                                          |
+| ---------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------- |
+| `code`, `name`                                             | all           | Unique per `settings_id`; `code` is the accounting code                                           |
+| `settings_id`                                              | all           | Owned sealed jurisdiction version                                                                 |
+| `lookup`                                                   | all           | Flat constants and rates for this definition                                                      |
+| `references`                                               | all           | Research/legal provenance; never on entries                                                       |
+| `off_cycle_eligible`                                       | all           | An `OFF_CYCLE` run includes optional producers only when true; statutory schemes are not filtered |
+| `prorate`                                                  | allowance     | On: the line takes the share of the period paid. Off: it pays whole                               |
+| `subtotal_id`                                              | pay producers | Nullable: null when the definition creates no pay line                                            |
+| `eligibility`, `conversion`, `incurred_on`                 | pay producers | JS expressions; `conversion` is a nonnegative monetary magnitude                                  |
+| `direction`, `party`                                       | pay producers | `ADD`/`DEDUCT`; `EMPLOYEE`/`EMPLOYER`                                                             |
+| `lookup.opened_by`                                         | leave         | The contract events that open a row, with `days` to override its `grant_days`                     |
+| `lookup.accounts`                                          | leave, adhoc  | What a row moves instead of its default: `account`, `code`, `measure`, `operation`, `period`      |
+| `lookup.below_zero`                                        | statutory     | `REFUND`: a result below zero pays a refund line. Otherwise the row stops at zero                 |
+| `lookup.pay_steps`                                         | leave         | What share of a day each stretch of an event loses, by `until_month` from the day its event began |
+| `pay_treatment`                                            | leave         | `PAID` or `UNPAID`; `UNPAID` prorates base pay                                                    |
+| `kind`, `depends_on`, `employee_amount`, `employer_amount` | statutory     | `CONTRIBUTION`/`TAX`; scheme codes; JS amounts                                                    |
 
 `work_interruption_catalog` and `workplace_case_catalog` carry `events` and a nullable `subtotal_id`; they create a payroll line only when that target is set.
 
@@ -130,7 +132,7 @@ Every entry has `entity_id`, `employment_id`, `catalog_id`, optional `payroll_ru
 
 `registered_rule` — `settings_id`, `code`, `target_collection`, `events`, `reads`, `condition`, `validate`, `order`, `lookup`, `references`. A model with registry callbacks queries it for its collection and event; a false condition skips the rule, a false validation refuses the write.
 
-`registered_effect` — `settings_id`, `lookup`, `code`, `name`, `references`, `source_collection`, `events`, `reads`, `condition`, `target_collection`, `target_action`, `effects`. After a commit the target model's `tap` queries it; the expression returns the records its `target_action` writes, with no automation or pipeline.
+`registered_effect` — `settings_id`, `lookup`, `code`, `name`, `references`, `source_collection`, `events`, `reads`, `condition`, `target_collection`, `target_action`, `effects`. After a commit the target model's `tap` queries it; the expression returns the records its `target_action` writes, with no automation or pipeline. An effect that targets `ledger_entry` returns movements, and the balance moves with them in one write.
 
 ```text
 write ──► registered_rule (collection, event) ──► refuse | commit
@@ -151,9 +153,9 @@ commit ──► registered_effect (collection, event) ──► target_action w
 
 ## 7. Balances and ledger
 
-`employee_balance` — `employee_id` (unique), `account` JSON map keyed by family then code. One row per employee; projection only. The `leave` family holds what is left; `leave_window` holds the entitlement last applied (architecture section 4.1). **The balance follows the person, not the contract.** Payroll reads it by `employee_id`. A transfer never creates a second balance or edits the projection directly. A same-jurisdiction replacement carries the balance unchanged and repoints the loan and its open repayments to the successor contract/entity. A cross-jurisdiction transfer settles the old leave entitlement first: ending the old contract with a successor in another jurisdiction raises a normal exit encashment, whose approval posts the dated ledger movement and whose conversion pays in the old jurisdiction's final run. Loans transfer to the target when the target settings have a catalogue with the same code (new loan + schedule, dated DEDUCT/ADD `loan` pair), otherwise they settle from final pay; the old open schedule is removed first. Leave encashment is a leave request against the annual-leave catalogue with `encashment: true`; approving it deducts the balance and the payroll engine pays its conversion in `FINAL_PAY` on the next run whose assessment has not closed. A leave entry stamped with a `payroll_run_id` is posted and is never paid again.
+`employee_balance` — `employee_id` (unique), `account` JSON map keyed by family, code, period and measure. One row per employee; projection only. It holds accumulated values and entitlements, and what is left is derived. **The balance follows the person, not the contract.** Payroll reads it by `employee_id`. A transfer never creates a second balance or edits the projection directly. A same-jurisdiction replacement carries the balance unchanged and repoints the loan and its open repayments to the successor contract/entity. A cross-jurisdiction transfer settles the old leave entitlement first: ending the old contract with a successor in another jurisdiction raises a normal exit encashment, whose approval posts the dated ledger movement and whose conversion pays in the old jurisdiction's final run. Loans transfer to the target when the target settings have a catalogue with the same code (new loan + schedule, dated DEDUCT/ADD `loan` pair), otherwise they settle from final pay; the old open schedule is removed first. Leave encashment is a leave request against the annual-leave catalogue with `encashment: true`; approving it deducts the balance and the payroll engine pays its conversion in `FINAL_PAY` on the next run whose assessment has not closed. A leave entry stamped with a `payroll_run_id` is posted and is never paid again.
 
-`ledger_entry` — `balance_id`, `operation` (`CREATE`, `REMOVE`, `ADD`, `DEDUCT`), `account`, `code`, optional `amount` and `unit` (`DAY`, `CALENDAR_DAY`, `HOUR`, `MONEY`, `COUNT`), `effective_on`, optional `source_id` (`leave`, `claim`, `adhoc`, `loan`, `loan_repayment`, `payroll_run`). Rows are immutable.
+`ledger_entry` — `balance_id`, `operation` (`CREATE`, `REMOVE`, `ADD`, `DEDUCT`), `account`, `code`, `period`, `measure`, optional `amount` and `unit` (`DAY`, `CALENDAR_DAY`, `HOUR`, `MONEY`, `COUNT`), `effective_on`, `source` (plain text naming what caused the movement). Rows are immutable.
 
 ## 8. Payroll and output
 

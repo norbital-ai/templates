@@ -1,75 +1,9 @@
 <script lang="ts">
-	import {
-		Button,
-		Form,
-		RecordShell,
-		notifyOutcome,
-		toast,
-		type RecordView
-	} from '@norbital-ai/ui';
-	import { Cluster } from '@norbital-ai/ui/layout';
-	import { fork } from '@norbital-ai/ui/effect';
-	import { Effect } from 'effect';
-	import { PlainDate } from '@norbital-ai/std/date';
-	import { todayKey } from '../../../../../../../lib/ui/format/calendar.js';
+	import { Form, RecordShell, type RecordView } from '@norbital-ai/ui';
 	import { bolt } from '$bolt';
 	let { view }: { view: RecordView<'workplace_case_catalog_entry'> } = $props();
 	const record = $derived(view.mode === 'create' ? null : view.record);
 	const sealed = $derived(record?.payroll_run_id != null);
-	/** A leave case waits for the HR controller: confirmed it opens its days, rejected it gives nothing. */
-	const waiting = $derived(
-		record !== null && record.inputs.employment_id != null && record.inputs.decision == null
-	);
-	/** A rule's refusal reads as the sentence it wrote, without the rule's code. */
-	const messageOf = (error: unknown) =>
-		error instanceof Error
-			? error.message.replace(/^[A-Z0-9_]+\.validate: /, '')
-			: bolt.t('component.error');
-	const reversible = $derived(
-		record !== null &&
-			record.inputs.employment_id != null &&
-			record.inputs.decision === 'CONFIRMED' &&
-			record.inputs.is_reversal !== true
-	);
-	/** A reversal is the same case again, marked: it takes back exactly what this one gave. */
-	const reverse = () => {
-		const employment = record?.inputs.employment_id;
-		if (record === null || employment === undefined) return;
-		fork(
-			bolt
-				.act('workplace_case_catalog_entry.create', [
-					{
-						catalog_id: record.catalog_id,
-						entity_id: record.entity_id,
-						kind: record.kind,
-						opened_on: PlainDate(todayKey()),
-						inputs: {
-							employment_id: employment,
-							decision: 'CONFIRMED',
-							is_reversal: true,
-							reverses: record.id
-						}
-					}
-				])
-				.pipe(
-					Effect.tap((outcome) => Effect.sync(() => notifyOutcome(bolt, outcome))),
-					Effect.catch((error) => Effect.sync(() => toast.error(messageOf(error))))
-				)
-		);
-	};
-	const decide = (decision: 'CONFIRMED' | 'REJECTED') => {
-		if (record === null) return;
-		fork(
-			bolt
-				.act('workplace_case_catalog_entry.update', [
-					{ target: record.id, set: { inputs: { ...record.inputs, decision } } }
-				])
-				.pipe(
-					Effect.tap((outcome) => Effect.sync(() => notifyOutcome(bolt, outcome))),
-					Effect.catch((error) => Effect.sync(() => toast.error(messageOf(error))))
-				)
-		);
-	};
 </script>
 
 <RecordShell
@@ -78,16 +12,6 @@
 	{...record === null ? { values: view.mode === 'create' ? view.values : {} } : { id: record.id }}
 	badge={sealed ? bolt.t('entry.included_in_payroll') : undefined}
 >
-	{#if reversible}<Cluster justify="end"
-			><Button variant="outline" onclick={reverse}>{bolt.t('app.leave_case.reverse')}</Button
-			></Cluster
-		>{/if}
-	{#if waiting}<Cluster justify="end"
-			><Button variant="outline" onclick={() => decide('REJECTED')}
-				>{bolt.t('app.leave_case.reject')}</Button
-			><Button onclick={() => decide('CONFIRMED')}>{bolt.t('app.leave_case.confirm')}</Button
-			></Cluster
-		>{/if}
 	<Form
 		of="workplace_case_catalog_entry"
 		mode={view.mode === 'create' ? 'create' : 'update'}

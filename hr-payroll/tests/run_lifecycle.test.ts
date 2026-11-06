@@ -6,7 +6,7 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, uuid, workspace } from './kit.ts';
+import { ENTITY, accountsIn, ledgerRows, pack, uuid, workspace } from './kit.ts';
 
 const TERMS = {
 	rate: { amount: 2800, unit: 'MONTHLY' },
@@ -99,17 +99,19 @@ const runs = (t: Kit) =>
 		);
 const drop = (t: Kit, id: string) =>
 	t.as(t.admin).act('payroll_run.delete', [{ target: idOf('payroll_run', id) }]);
+/** The year's net pay each person's balance holds. */
 const ytdNet = (t: Kit) =>
-	t.storedQuery({ employee_balance: { limit: 10 } }).pipe(
-		Effect.map((got) =>
-			got.employee_balance.rows.map((row) => {
-				const { ytd = {} } = Schema.decodeUnknownSync(
-					Schema.Record(Schema.String, Schema.Record(Schema.String, Schema.Number))
-				)(row.account);
-				return ytd['NET'] ?? 0;
-			})
-		)
-	);
+	t
+		.storedQuery({ employee_balance: { limit: 10 } })
+		.pipe(
+			Effect.flatMap((got) =>
+				Effect.forEach(got.employee_balance.rows, (row) =>
+					accountsIn(t, row.employee_id).pipe(
+						Effect.map((accounts) => accounts.pay?.['NET']?.['MY.Y.2026-01-01']?.['total'] ?? 0)
+					)
+				)
+			)
+		);
 const catalog = (seed: Seed, family: string, code: string) => {
 	const version = contractOf(seed).input_schema_version_id;
 	const row = (seed[family] ?? []).find(
@@ -241,6 +243,49 @@ describe('deleting a run', () => {
 			yield* drop(t, only.id);
 			yield* t.runDue();
 			assert.deepEqual(yield* ytdNet(t), [0]);
+		}).pipe(Effect.provide(workspace({ seed: base(), now: '2026-03-20T02:00:00.000Z' })))
+	);
+});
+
+describe('the posting gates', () => {
+	const enter = (t: Kit, period: string) =>
+		t.as(t.admin).act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }]);
+	it.live('a new run waits for the last one to post', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* enter(t, '2026-01');
+			assert.match(String(yield* Effect.flip(enter(t, '2026-02'))), /still posting/);
+			yield* t.runDue();
+			yield* enter(t, '2026-02');
+			assert.equal((yield* runs(t)).length, 2);
+		}).pipe(Effect.provide(workspace({ seed: base(), now: '2026-03-20T02:00:00.000Z' })))
+	);
+	it.live('a run is paid only once it has posted', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* enter(t, '2026-01');
+			const [only] = yield* runs(t);
+			assert.ok(only !== undefined);
+			const pay = t
+				.as(t.admin)
+				.act('payroll_run.update', [{ target: only.id, set: { state: 'PAID' } }]);
+			assert.match(String(yield* Effect.flip(pay)), /still posting/);
+			yield* t.runDue();
+			yield* pay;
+			assert.equal((yield* runs(t))[0]?.state, 'PAID');
+		}).pipe(Effect.provide(workspace({ seed: base(), now: '2026-03-20T02:00:00.000Z' })))
+	);
+	it.live('a posted payslip names its run, and is posted once', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* run(t, ENTITY, '2026-01');
+			const [only] = yield* runs(t);
+			const rows = yield* ledgerRows(t);
+			assert.ok(rows.length > 0);
+			assert.ok(rows.every((row) => row.source === `payroll_run:${only?.id}`));
+			yield* t.as(t.admin).start('ledger', { post: [`payroll_run:${only?.id}`] });
+			yield* t.runDue();
+			assert.equal((yield* ledgerRows(t)).length, rows.length);
 		}).pipe(Effect.provide(workspace({ seed: base(), now: '2026-03-20T02:00:00.000Z' })))
 	);
 });

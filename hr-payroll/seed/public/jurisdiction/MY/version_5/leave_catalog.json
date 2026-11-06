@@ -57,6 +57,9 @@
 				"max_surviving_natural_children": 4,
 				"qualifying_service_days": 90,
 				"qualifying_window_months": 9
+			},
+			"opened_by": {
+				"CHILD_BIRTH": {}
 			}
 		},
 		"references": [
@@ -80,7 +83,10 @@
 			"grant_days": 98,
 			"consecutive": true,
 			"maternity_allowance": false,
-			"no_cap": true
+			"no_cap": true,
+			"opened_by": {
+				"CHILD_BIRTH_NO_ALLOWANCE": {}
+			}
 		},
 		"references": [
 			{
@@ -275,6 +281,9 @@
 				"min_service_months": 12,
 				"max_lifetime_confinements": 5,
 				"notification_days_before_confinement": 30
+			},
+			"opened_by": {
+				"CHILD_BIRTH": {}
 			}
 		},
 		"references": [

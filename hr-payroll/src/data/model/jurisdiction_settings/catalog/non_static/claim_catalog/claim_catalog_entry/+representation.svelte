@@ -16,7 +16,15 @@
 			? { values: view.mode === 'create' ? view.values : {} }
 			: { id: record.id, record }}
 		fields={record === null
-			? ['employment_id', 'catalog_id', 'quantity', 'incurred_on', 'evidence_file', 'is_reversal']
-			: ['quantity', 'incurred_on', 'evidence_file', 'is_reversal']}
+			? [
+					'employment_id',
+					'catalog_id',
+					'quantity',
+					'incurred_on',
+					'evidence_file',
+					'is_reversal',
+					'reverses'
+				]
+			: ['quantity', 'incurred_on', 'evidence_file']}
 	/>
 </RecordShell>

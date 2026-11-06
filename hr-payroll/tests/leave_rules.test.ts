@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
-import { Effect, Schema } from 'effect';
-import { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
+import { Effect } from 'effect';
+import type { Accounts } from '../src/lib/ledger/core.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, uuid, workspace } from './kit.ts';
+import { ENTITY, accountsIn, catalogRow, measureOf, pack, uuid, workspace } from './kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -22,21 +22,12 @@ const terms = {
 	allowances: {}
 };
 type Seed = ReturnType<typeof pack>;
-type Account = NonNullable<Seed['employee_balance']>[number]['account'];
-const seedOf = (code: string, zone: string, account: Account): Seed => {
+const seedOf = (code: string, zone: string, account: Accounts): Seed => {
 	const seed = pack(code, zone, terms, {}, [], [], '2026-11-06');
 	return {
 		...seed,
 		employee_balance: (seed.employee_balance ?? []).map((row) => ({ ...row, account }))
 	};
-};
-const rowOf = (seed: Seed, code: string) => {
-	const version = seed.employee_contract?.[0]?.input_schema_version_id;
-	const row = seed.leave_catalog?.find(
-		(item) => item.code === code && item.settings_id === version
-	);
-	assert.ok(row !== undefined, code);
-	return idOf('leave_catalog', String(row.id));
 };
 const dates = (from: string, count: number) =>
 	Array.from({ length: count }, (_, index) => {
@@ -52,47 +43,41 @@ const take = (t: Kit, seed: Seed, code: string, from: string, count: number, is_
 		{
 			entity_id: ENTITY,
 			employment_id: CONTRACT,
-			catalog_id: rowOf(seed, code),
+			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
 			days: dates(from, count),
 			is_reversal
 		}
 	]);
-const leaveOf = (t: Kit) =>
-	t.storedQuery({ employee_balance: { limit: 1 } }).pipe(
-		Effect.map(({ employee_balance }) => {
-			const account = Schema.decodeUnknownSync(JsonObject)(employee_balance.rows[0]?.account);
-			return Schema.decodeUnknownSync(JsonObject)(account.leave ?? {});
-		})
-	);
+const usedOf = (t: Kit, code: string) =>
+	accountsIn(t).pipe(Effect.map((accounts) => measureOf(accounts, 'leave', code, 'used')));
 
 describe('Indonesian joint leave', () => {
+	// the service year a start of 1 January 2025 is in
 	const seed = seedOf('ID', 'Asia/Jakarta', {
-		leave: { ANNUAL_LEAVE: 3, JOINT_LEAVE: 36500 }
+		leave: { ANNUAL_LEAVE: { 'ID.S.2026-01-01': { entitled: 3 } } }
 	});
 	it.live('draws on annual leave, and a reversal gives it back', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* take(t, seed, 'JOINT_LEAVE', '2026-11-02', 2);
 			yield* t.runDue();
-			assert.equal((yield* leaveOf(t))['ANNUAL_LEAVE'], 1);
+			assert.equal(yield* usedOf(t, 'ANNUAL_LEAVE'), 2);
 			yield* take(t, seed, 'JOINT_LEAVE', '2026-11-16', 1, true);
 			yield* t.runDue();
-			assert.equal((yield* leaveOf(t))['ANNUAL_LEAVE'], 2);
+			assert.equal(yield* usedOf(t, 'ANNUAL_LEAVE'), 1);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 	it.live('is refused past what annual leave holds', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const refused = yield* Effect.flip(take(t, seed, 'JOINT_LEAVE', '2026-11-02', 4));
-			assert.match(String(refused), /Only 3 days of ANNUAL_LEAVE/);
+			assert.match(String(refused), /ANNUAL_LEAVE: insufficient balance/);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 });
 
 describe('Taiwan hospitalised sick leave', () => {
-	const seed = seedOf('TW', 'Asia/Taipei', {
-		leave: { HOSPITALISED_SICK_LEAVE: 36500, SICK_LEAVE_UNPAID: 36500 }
-	});
+	const seed = seedOf('TW', 'Asia/Taipei', {});
 	it.live('allows a year within any two years', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;

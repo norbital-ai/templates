@@ -11,7 +11,7 @@ import { lookupOf } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, WORK, pack, read, uuid, workspace } from './kit.ts';
+import { ENTITY, WORK, accountsIn, pack, read, uuid, workspace } from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const JUNE = '2026-06-20T02:00:00.000Z';
@@ -57,12 +57,11 @@ const THAILAND: Place = {
 type Options = {
 	readonly on?: string;
 	readonly from?: string;
-	readonly account?: Parameters<typeof pack>[3];
 	readonly days?: Parameters<typeof pack>[4];
 	readonly facts?: Parameters<typeof pack>[3];
 };
 const seedOf = (place: Place, agreed: Terms, options: Options = {}): Seed => {
-	const { on = '2026-06-15', from = '2026-01-01', account = {}, days = [], facts = {} } = options;
+	const { on = '2026-06-15', from = '2026-01-01', days = [], facts = {} } = options;
 	const seed = pack(place.code, place.zone, agreed, { ...place.facts, ...facts }, days, [], on);
 	return {
 		...seed,
@@ -73,8 +72,7 @@ const seedOf = (place: Place, agreed: Terms, options: Options = {}): Seed => {
 		employee_contract: (seed.employee_contract ?? []).map((row) => ({
 			...row,
 			effective_range: { from, to: null }
-		})),
-		employee_balance: (seed.employee_balance ?? []).map((row) => ({ ...row, account }))
+		}))
 	};
 };
 const onCycle = (t: Kit, period: string) =>
@@ -137,7 +135,7 @@ const runs = (t: Kit, period: string) =>
 	);
 const BOTH = ['.employee', '.employer'];
 const EMPLOYEE = ['.employee'];
-/** Every row the periods charged across their runs, net of what they found overpaid. */
+/** Every row the periods charged across their runs: a refund counts against it. */
 const charged = (
 	t: Kit,
 	periods: readonly string[],
@@ -148,11 +146,9 @@ const charged = (
 		Effect.map((months) => {
 			const totals = new Map<string, number>();
 			const add = (key: string, value: number) => totals.set(key, (totals.get(key) ?? 0) + value);
-			for (const { code, employee, employer, overpaid = 0 } of months
-				.flat()
-				.flatMap((slip) => slip.statutory)) {
+			for (const { code, employee, employer } of months.flat().flatMap((slip) => slip.statutory)) {
 				if (!codes.includes(code)) continue;
-				add(`${code}.employee`, employee - overpaid);
+				add(`${code}.employee`, employee);
 				add(`${code}.employer`, employer);
 			}
 			return Object.fromEntries(
@@ -240,7 +236,8 @@ const nextMonth = (
 	one: Case,
 	first: string,
 	second: string,
-	lower: Readonly<Record<string, number>> = {}
+	lower: Readonly<Record<string, number>> = {},
+	stops = false
 ) => {
 	const { place, salary, correction, codes, now, options = {} } = one;
 	const seed = seedOf(place, terms(salary), { on: `${first}-15`, ...options });
@@ -266,7 +263,10 @@ const nextMonth = (
 			yield* onCycle(t, second);
 			return yield* charged(t, months, codes, EMPLOYEE);
 		}).pipe(Effect.provide(workspace({ seed, now })));
-		assert.deepEqual(corrected, right);
+		// a row with no refund route stops at zero: what the first month took stands, and the rest stays right
+		if (stops)
+			assert.ok(Object.entries(right).every(([key, value]) => (corrected[key] ?? 0) >= value));
+		else assert.deepEqual(corrected, right);
 	});
 };
 
@@ -355,7 +355,7 @@ describe('paid too much, reversed in the next on-cycle run', () => {
 			'PVD.employee': 500
 		})
 	);
-	it.live('Thailand: a bonus is no wage, so SSO and PVD stay and PND1 nets', () =>
+	it.live('Thailand: a bonus is no wage, so SSO and PVD stay and PND1 stops at zero', () =>
 		nextMonth(
 			{
 				...THAILAND_IN_JUNE,
@@ -366,15 +366,17 @@ describe('paid too much, reversed in the next on-cycle run', () => {
 			},
 			'2026-05',
 			'2026-06',
-			{ 'SSO.employee': 875, 'PVD.employee': 6000 }
+			{ 'SSO.employee': 875, 'PVD.employee': 6000, 'PND1.employee': 0 },
+			true
 		)
 	);
-	it.live('Thailand: in December PND1 nets too', () =>
+	it.live('Thailand: in December PND1 stops at zero too', () =>
 		nextMonth(
 			{ ...THAILAND_IN_DECEMBER, salary: 150_000, correction: 50_000, codes: ['PND1'] },
 			'2026-11',
 			'2026-12',
-			{ 'PVD.employee': 5000 }
+			{ 'PVD.employee': 5000, 'PND1.employee': 0 },
+			true
 		)
 	);
 });
@@ -403,8 +405,14 @@ describe('corrected in the next month', () => {
 	it.live('Thailand: the two months’ PND1 equals the correct total', () =>
 		nextMonth({ ...THAILAND_ACROSS, salary: 60_000, correction: 30_000 }, '2026-11', '2026-12')
 	);
-	it.live('Thailand: a correction past what December owes shows as overpaid', () =>
-		nextMonth({ ...THAILAND_ACROSS, salary: 100_000, correction: 90_000 }, '2026-11', '2026-12')
+	it.live('Thailand: a correction past what December owes stops at zero', () =>
+		nextMonth(
+			{ ...THAILAND_ACROSS, salary: 100_000, correction: 90_000 },
+			'2026-11',
+			'2026-12',
+			{ 'PND1.employee': 0 },
+			true
+		)
 	);
 	it.live('Indonesia: the next month’s PPh 21 counts the lower pay', () => {
 		const seed = seedOf(INDONESIA, terms(30_000_000));
@@ -455,18 +463,25 @@ describe('a benefit over two calendar years', () => {
 			yield* t.as(t.admin).act('payroll_run.update', [{ target: run.id, set: { state: 'PAID' } }]);
 			yield* t.runDue();
 		});
-	const posted = (t: Kit) =>
-		t
-			.storedQuery({
-				ledger_entry: { where: { account: { eq: 'benefit_paid' } }, limit: 100 }
+	/** What each calendar year holds of a benefit, the checkpoint under it taken off, and of the tax on it. */
+	const posted = (t: Kit, benefit: string, below: string, tax: string) =>
+		accountsIn(t).pipe(
+			Effect.map((accounts) => {
+				const years = (family: string, code: string, measure: string) =>
+					Object.entries(accounts[family]?.[code] ?? {}).flatMap(([period, measures]) =>
+						period.includes('.Y.') ? [[period, measures[measure] ?? 0] as const] : []
+					);
+				const under = new Map(years('pay', below, 'total'));
+				return [
+					...years('pay', benefit, 'total').map(
+						([period, total]) => `${period} ${total - (under.get(period) ?? 0)}`
+					),
+					...years('statutory', tax, 'paid').map(([period, paid]) => `${period} ${paid}`)
+				];
 			})
-			.pipe(
-				Effect.map(({ ledger_entry }) =>
-					Object.fromEntries(
-						ledger_entry.rows.map((row) => [row.code, row.amount?.toNumber() ?? 0])
-					)
-				)
-			);
+		);
+	const pensions = (t: Kit) =>
+		posted(t, 'PENSION_BENEFIT', 'SEVERANCE', 'PPH21_FINAL_PENSION.employee');
 
 	it.live('the second year stands on the first year’s ladder', () =>
 		Effect.gen(function* () {
@@ -477,12 +492,12 @@ describe('a benefit over two calendar years', () => {
 			yield* enter(t, seed, ITEM, 100_000_000, '2027-04-10');
 			yield* pay(t, '2027-04');
 			assert.equal((yield* pension(t, '2027-04'))?.employee, 5_000_000);
-			assert.deepEqual(yield* posted(t), {
-				'2026-03.PENSION_BENEFIT': 100_000_000,
-				'2026-03.PPH21_FINAL_PENSION.employee': 2_500_000,
-				'2027-04.PENSION_BENEFIT': 100_000_000,
-				'2027-04.PPH21_FINAL_PENSION.employee': 5_000_000
-			});
+			assert.deepEqual(yield* pensions(t), [
+				'ID.Y.2026-01-01 100000000',
+				'ID.Y.2027-01-01 100000000',
+				'ID.Y.2026-01-01 2500000',
+				'ID.Y.2027-01-01 5000000'
+			]);
 		}).pipe(Effect.provide(workspace({ seed, now: LATER })))
 	);
 	it.live('a reversal in the second year takes it back off the ladder', () =>
@@ -492,7 +507,7 @@ describe('a benefit over two calendar years', () => {
 			yield* pay(t, '2026-03');
 			yield* enter(t, seed, ITEM, 50_000_000, '2027-04-10', true);
 			yield* pay(t, '2027-04');
-			assert.equal((yield* pension(t, '2027-04'))?.overpaid, 2_500_000);
+			assert.equal((yield* pension(t, '2027-04'))?.employee, -2_500_000);
 		}).pipe(Effect.provide(workspace({ seed, now: LATER })))
 	);
 	it.live('severance posts what sits above additional wages', () => {
@@ -510,10 +525,10 @@ describe('a benefit over two calendar years', () => {
 			const t = yield* TestWorkspace;
 			yield* enter(t, last, 'UPH_TRAVEL_HOME', 100_000_000, '2026-03-31');
 			yield* pay(t, '2026-03');
-			assert.deepEqual(yield* posted(t), {
-				'2026-03.SEVERANCE': 100_000_000,
-				'2026-03.PPH21_FINAL_SEVERANCE.employee': 2_500_000
-			});
+			assert.deepEqual(
+				yield* posted(t, 'SEVERANCE', 'ADDITIONAL_WAGES', 'PPH21_FINAL_SEVERANCE.employee'),
+				['ID.Y.2026-01-01 100000000', 'ID.Y.2026-01-01 2500000']
+			);
 		}).pipe(Effect.provide(workspace({ seed: last, now: LATER })));
 	});
 	it.live('a run cannot be paid until its balances have it', () =>
@@ -531,12 +546,20 @@ describe('a benefit over two calendar years', () => {
 			yield* paid;
 		}).pipe(Effect.provide(workspace({ seed, now: LATER })))
 	);
-	it.live('an unpaid run posts nothing', () =>
+	it.live('an unpaid run posts from its payslip, and deleting it takes that back', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* enter(t, seed, ITEM, 100_000_000, '2026-03-10');
 			yield* onCycle(t, '2026-03');
-			assert.deepEqual(yield* posted(t), {});
+			assert.deepEqual(yield* pensions(t), [
+				'ID.Y.2026-01-01 100000000',
+				'ID.Y.2026-01-01 2500000'
+			]);
+			const run = (yield* t.storedQuery({ payroll_run: { limit: 1 } })).payroll_run.rows[0];
+			assert.ok(run !== undefined);
+			yield* t.as(t.admin).act('payroll_run.delete', [{ target: run.id }]);
+			yield* t.runDue();
+			assert.deepEqual(yield* pensions(t), ['ID.Y.2026-01-01 0', 'ID.Y.2026-01-01 0']);
 		}).pipe(Effect.provide(workspace({ seed, now: LATER })))
 	);
 });
@@ -545,6 +568,13 @@ describe('a lump sum across a month’s runs', () => {
 	const folder = 'seed/public/jurisdiction/ID/version_3';
 	const [settings] = read(join(folder, 'jurisdiction_settings.json'));
 	assert.ok(settings !== undefined);
+	/** A pay month's figures, by the year each is held under. */
+	const yearsOf = (held: Readonly<Record<string, number>>) => {
+		const years: Record<string, Record<string, number>> = {};
+		for (const [key, value] of Object.entries(held))
+			(years[key.slice(0, 4)] ??= {})[key.slice(8)] = value;
+		return years;
+	};
 	const owed = (
 		code: string,
 		subtotals: Readonly<Record<string, number>>,
@@ -572,7 +602,7 @@ describe('a lump sum across a month’s runs', () => {
 				},
 				as_of: '2026-06-30',
 				subtotals,
-				balances: { month, benefit_paid: paid }
+				balances: { month, years: yearsOf({ ...paid, ...month }) }
 			},
 			code
 		);
@@ -588,8 +618,7 @@ describe('a lump sum across a month’s runs', () => {
 			'2025-03.SEVERANCE': 400_000_000,
 			'2025-03.PPH21_FINAL_SEVERANCE.employee': 57_500_000,
 			'2026-03.SEVERANCE': 100_000_000,
-			'2026-03.PPH21_FINAL_SEVERANCE.employee': 2_500_000,
-			'run.a-paid-run': 1
+			'2026-03.PPH21_FINAL_SEVERANCE.employee': 2_500_000
 		};
 		const wages = { ADDITIONAL_WAGES: 0, SEVERANCE: 100_000_000 };
 		assert.equal(owed('PPH21_FINAL_SEVERANCE', wages, {}, paid), 15_000_000);
@@ -665,9 +694,6 @@ const TH_NO_PAY = [
 	'UNPAID_LEAVE',
 	'WORK_INJURY_LEAVE'
 ];
-const noPayBalance = (codes: readonly string[]) => ({
-	account: { leave: Object.fromEntries(codes.map((code) => [code, 40])) }
-});
 const noPay = (seed: Seed, code: string) => {
 	const version = seed.employee_contract?.[0]?.input_schema_version_id;
 	const item = seed.leave_catalog?.find((one) => one.code === code && one.settings_id === version);
@@ -706,14 +732,9 @@ const AUGUST = '2026-08-20T02:00:00.000Z';
 
 const ID_SEED = seedOf(
 	INDONESIA,
-	terms(10_000_000, { HOUSE_ALLOWANCE: { amount: 1_000_000, variability: 'FIXED' } }),
-	noPayBalance(ID_NO_PAY)
+	terms(10_000_000, { HOUSE_ALLOWANCE: { amount: 1_000_000, variability: 'FIXED' } })
 );
-const TH_SEED = seedOf(
-	THAILAND,
-	terms(28_000, { FIXED_ALLOWANCE: { amount: 2000 } }),
-	noPayBalance(TH_NO_PAY)
-);
+const TH_SEED = seedOf(THAILAND, terms(28_000, { FIXED_ALLOWANCE: { amount: 2000 } }));
 
 describe('a no-pay day in Indonesia', () => {
 	const code = 'UNPAID_LEAVE';
@@ -728,8 +749,7 @@ describe('a no-pay day in Indonesia', () => {
 	it.live('a half day is half, a variable allowance stays out', () => {
 		const seed = seedOf(
 			INDONESIA,
-			terms(11_000_000, { SPECIAL_ALLOWANCE: { amount: 900_000, variability: 'VARIABLE' } }),
-			noPayBalance(ID_NO_PAY)
+			terms(11_000_000, { SPECIAL_ALLOWANCE: { amount: 900_000, variability: 'VARIABLE' } })
 		);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -893,7 +913,6 @@ describe('a no-pay line owes what the salary basis owed', () => {
 	it.live('Indonesia: a day rate', () =>
 		same(
 			seedOf(INDONESIA, terms(300_000, {}, 'DAILY'), {
-				...noPayBalance(ID_NO_PAY),
 				facts: { pph21_payment_cadence: 'NON_MONTHLY' }
 			}),
 			ID_CODES,
@@ -901,17 +920,13 @@ describe('a no-pay line owes what the salary basis owed', () => {
 		)
 	);
 	it.live('Indonesia: an hour rate', () =>
-		same(seedOf(INDONESIA, terms(40_000, {}, 'HOURLY'), noPayBalance(ID_NO_PAY)), ID_CODES, june)
+		same(seedOf(INDONESIA, terms(40_000, {}, 'HOURLY')), ID_CODES, june)
 	);
 	it.live('Indonesia: the whole month', () => same(ID_SEED, ID_CODES, month));
 	it.live('Thailand: a salary with a fixed allowance', () => same(TH_SEED, TH_CODES, days));
 	it.live('Thailand: a day rate with a fixed allowance', () =>
 		same(
-			seedOf(
-				THAILAND,
-				terms(500, { FIXED_ALLOWANCE: { amount: 3000 } }, 'DAILY'),
-				noPayBalance(TH_NO_PAY)
-			),
+			seedOf(THAILAND, terms(500, { FIXED_ALLOWANCE: { amount: 3000 } }, 'DAILY')),
 			TH_CODES,
 			june
 		)

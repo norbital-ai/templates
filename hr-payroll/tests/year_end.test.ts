@@ -4,9 +4,10 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
+import { viewOf } from '../src/lib/ledger/core.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, uuid, workspace } from './kit.ts';
+import { ENTITY, accountsIn, pack, uuid, workspace } from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 
@@ -79,16 +80,18 @@ const statutory = (
 	row: { readonly breakdown: PayslipBreakdown } | undefined,
 	code: string
 ): number => row?.breakdown.statutory.find((one) => one.code === code)?.employee ?? 0;
-const balance = (t: Kit) =>
-	t
-		.storedQuery({ employee_balance: { limit: 1 } })
-		.pipe(
-			Effect.map((got) =>
-				Schema.decodeUnknownSync(
-					Schema.Record(Schema.String, Schema.Record(Schema.String, Schema.Number))
-				)(got.employee_balance.rows[0]?.account)
-			)
-		);
+/** What a formula reads on a pay date, as a run builds it. */
+const view = (t: Kit, scope: string, payDate: string) =>
+	accountsIn(t).pipe(
+		Effect.map((accounts) =>
+			Schema.decodeUnknownSync(
+				Schema.Struct({
+					ytd: Schema.Record(Schema.String, Schema.Number),
+					month: Schema.Record(Schema.String, Schema.Number)
+				})
+			)(viewOf(accounts, scope, 1, payDate))
+		)
+	);
 
 describe('a December refund', () => {
 	// a one-month spike withholds at that month's high rate; December settles the year and comes back negative
@@ -123,52 +126,55 @@ describe('a December refund', () => {
 	] as const;
 
 	for (const [name, seed, spike, amount] of CASES)
-		it.live(
-			`${name}: an overpaid year flags HR, whose Statutory refund entry the next run pays`,
-			() =>
-				Effect.gen(function* () {
-					const t = yield* TestWorkspace;
-					yield* pay(t, seed, spike, amount, '2026-10-10');
-					for (const period of ['2026-10', '2026-11', '2026-12']) yield* run(t, period);
-					const december = (yield* slips(t)).find((row) => row.period === '2026-12');
-					const overpaid = (december?.breakdown.statutory ?? []).reduce(
-						(sum, row) => sum + (row.overpaid ?? 0),
+		it.live(`${name}: the year comes back on December's payslip, and its balance falls`, () =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* pay(t, seed, spike, amount, '2026-10-10');
+				for (const period of ['2026-10', '2026-11', '2026-12']) yield* run(t, period);
+				const paid = yield* slips(t);
+				const december = paid.find((row) => row.period === '2026-12');
+				const refunds = (december?.breakdown.statutory ?? []).filter((row) => row.employee < 0);
+				assert.ok(refunds.length > 0, `${name}: December refunded nothing`);
+				for (const { code, employee } of refunds) {
+					const line = december?.breakdown.lines.find((row) => row.code === code);
+					assert.equal(line?.direction, 'ADD');
+					assert.equal(line?.amount, -employee);
+				}
+				// the balance holds what was withheld less what came back, so nothing repays twice
+				const accounts = yield* accountsIn(t);
+				const scope = String(seed.jurisdiction_settings?.[0]?.code);
+				for (const { code } of refunds) {
+					const charged = paid.reduce(
+						(sum, row) =>
+							sum + (row.breakdown.statutory.find((one) => one.code === code)?.employee ?? 0),
 						0
 					);
-					assert.ok(overpaid > 0, `${name}: December overpaid nothing`);
-					// nothing pays it by itself: the obligation tells the HR controller to enter it
-					const entries = (yield* t.storedQuery({
-						adhoc_catalog_entry: { where: { is_reversal: { eq: true } }, limit: 10 }
-					})).adhoc_catalog_entry.rows;
-					assert.deepEqual(entries, []);
-					const flagged = (yield* t.storedQuery({
-						obligation: { limit: 10000 }
-					})).obligation.rows.filter((row) => row.title.startsWith('Tax overpaid in 2026'));
-					assert.equal(flagged.length, 1);
-					yield* t.as(t.admin).act('adhoc_catalog_entry.create', [
-						{
-							entity_id: ENTITY,
-							employment_id: CONTRACT,
-							catalog_id: idOf('adhoc_catalog', itemId(seed, 'adhoc_catalog', 'STATUTORY_REFUND')),
-							description: 'Tax overpaid in 2026',
-							quantity: overpaid,
-							unit: 'MONEY',
-							incurred_on: PlainDate('2027-01-05')
-						}
-					]);
-					yield* run(t, '2027-01');
-					const january = (yield* slips(t)).find((row) => row.period === '2027-01');
-					const line = january?.breakdown.lines.find((row) => row.code === 'STATUTORY_REFUND');
-					assert.equal(line?.amount, overpaid);
-					assert.equal(line?.direction, 'ADD');
-					// the refund is paid once
-					yield* run(t, '2027-02');
-					const february = (yield* slips(t)).find((row) => row.period === '2027-02');
-					assert.equal(
-						february?.breakdown.lines.some((row) => row.code === 'STATUTORY_REFUND'),
-						false
+					assert.ok(
+						Math.abs(
+							(accounts.statutory?.[`${code}.employee`]?.[`${scope}.Y.2026-01-01`]?.['paid'] ?? 0) -
+								charged
+						) < 0.01
 					);
-				}).pipe(Effect.provide(workspace({ seed, now: '2027-02-20T02:00:00.000Z' })))
+				}
+				// HR has no step: no entry and no task to enter one
+				const { adhoc_catalog_entry: entries } = yield* t.storedQuery({
+					adhoc_catalog_entry: { where: { is_reversal: { eq: true } }, limit: 10 }
+				});
+				assert.deepEqual(entries.rows, []);
+				const { obligation } = yield* t.storedQuery({ obligation: { limit: 10000 } });
+				assert.equal(
+					obligation.rows.some((row) => row.title.startsWith('Tax overpaid')),
+					false
+				);
+				// the refund is paid once
+				yield* run(t, '2027-01');
+				const january = (yield* slips(t)).find((row) => row.period === '2027-01');
+				for (const { code } of refunds)
+					assert.notEqual(
+						january?.breakdown.lines.find((row) => row.code === code)?.direction,
+						'ADD'
+					);
+			}).pipe(Effect.provide(workspace({ seed, now: '2027-02-20T02:00:00.000Z' })))
 		);
 });
 
@@ -246,12 +252,12 @@ describe('figures a month holds, across runs', () => {
 		});
 	});
 
-	it.live('Japan: a month older than twelve leaves the balance with a dated entry', () => {
+	it.live('Japan: a month older than twelve is out of what a formula reads, and stays held', () => {
 		const seed = japan(500_000);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			for (const period of [...months(2026), '2027-01', '2027-02']) yield* run(t, period);
-			const { month = {} } = yield* balance(t);
+			const { month } = yield* view(t, 'JP', '2027-02-25');
 			assert.equal(
 				Object.keys(month).some((key) => key.startsWith('2026-01.')),
 				false
@@ -261,6 +267,7 @@ describe('figures a month holds, across runs', () => {
 				true
 			);
 			assert.equal(month['2027-02.BASIC'], 500_000);
+			assert.equal((yield* accountsIn(t)).pay?.['BASIC']?.['JP.M.2026-01-01']?.['total'], 500_000);
 		}).pipe(Effect.provide(workspace({ seed, now: '2027-03-01T02:00:00.000Z' })));
 	});
 
@@ -269,8 +276,8 @@ describe('figures a month holds, across runs', () => {
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			for (const period of [...months(2026), '2027-01', '2027-02']) yield* run(t, period);
-			const { ytd = {}, month = {} } = yield* balance(t);
-			assert.equal(ytd['TAX_YEAR'], 2027);
+			const { ytd, month } = yield* view(t, 'PH', '2027-02-25');
+			assert.ok(Math.abs((ytd['BASIC'] ?? 0) - 2 * 33_333.33) < 0.01);
 			assert.ok(month['2027-02.ORDINARY_WAGES'] !== undefined);
 			assert.equal(
 				Object.keys(month).some((key) => key.startsWith('2026-01.')),
@@ -280,21 +287,28 @@ describe('figures a month holds, across runs', () => {
 	});
 
 	// a year of RM8,000 sums to 142.80000000000004 of EIS, past the digits the ledger keeps
-	it.live('Malaysia: a balance in float dust closes the year, and that run can still go', () => {
+	it.live('Malaysia: float dust crosses the year, and that run can still go', () => {
 		const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(8000, 'CITIZEN'), {}, [], [], '2026-06-15');
 		const january = (t: Kit) =>
 			t.storedQuery({ payroll_run: { where: { period: { eq: '2027-01' } }, limit: 1 } });
+		const basic = (t: Kit) =>
+			view(t, 'MY', '2027-01-25').pipe(Effect.map(({ ytd }) => ytd['BASIC']));
+		const year2026 = (t: Kit) =>
+			accountsIn(t).pipe(
+				Effect.map((accounts) => accounts.pay?.['BASIC']?.['MY.Y.2026-01-01']?.['total'])
+			);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			for (const period of [...months(2026), '2027-01']) yield* run(t, period);
-			assert.equal((yield* balance(t)).ytd?.['BASIC'], 8000);
+			assert.equal(yield* basic(t), 8000);
 			const target = (yield* january(t)).payroll_run.rows[0]?.id;
 			assert.ok(target !== undefined);
 			yield* t.as(t.admin).act('payroll_run.delete', [{ target: idOf('payroll_run', target) }]);
 			yield* t.runDue();
-			assert.equal((yield* balance(t)).ytd?.['BASIC'], 12 * 8000);
+			assert.equal(yield* year2026(t), 12 * 8000);
+			assert.equal((yield* basic(t)) ?? 0, 0);
 			yield* run(t, '2027-01');
-			assert.equal((yield* balance(t)).ytd?.['BASIC'], 8000);
+			assert.equal(yield* basic(t), 8000);
 		}).pipe(Effect.provide(workspace({ seed, now: '2027-02-01T02:00:00.000Z' })));
 	});
 

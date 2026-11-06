@@ -402,6 +402,47 @@
 					"type": "boolean",
 					"title": "Hired away from home",
 					"description": "The worker was taken on somewhere other than the place of work, so the cost or fare home for the worker and family is part of uang penggantian hak (PP 35/2021 art.40(4)(b))."
+				},
+				"events": {
+					"type": "array",
+					"title": "Life events",
+					"description": "What happened to this person that the law gives leave or a claim for. One item per event, with its document uploaded on the employee profile.",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["kind", "on"],
+						"properties": {
+							"kind": {
+								"type": "string",
+								"enum": [
+									"BEREAVEMENT",
+									"BEREAVEMENT_HOUSEHOLD",
+									"BIRTH_COMPLICATION",
+									"CHILD_BAPTISM",
+									"CHILD_BIRTH",
+									"CHILD_CIRCUMCISION",
+									"CHILD_MARRIAGE",
+									"LONG_ILLNESS",
+									"MARRIAGE"
+								],
+								"title": "What happened"
+							},
+							"on": {
+								"type": "string",
+								"format": "date",
+								"title": "Date"
+							},
+							"ended_on": {
+								"type": "string",
+								"format": "date",
+								"title": "Ended on"
+							},
+							"document": {
+								"type": "string",
+								"title": "Document on the profile"
+							}
+						}
+					}
 				}
 			},
 			"description": "Additional Indonesian compliance facts on the sealed contract, stored as employee_extension_data. Current shared personal data remains structured. PPh21 uses a real contract covering 1 January or the new-resident arrival-month start; where no contract covers that date, a reviewed PTKP historical standing records the actual dated external facts. Shared salary, allowances, work classifications, dates and work arrangements are native fields."

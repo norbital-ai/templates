@@ -1,5 +1,7 @@
 import { Effect } from 'effect';
 import { model } from '@norbital-ai/bolt';
+import { accountsOf, latestLeft } from '../../../../lib/ledger/core.js';
+import { assertFactsHold } from '../../../../lib/ledger/service.js';
 import { dynamicRead } from '@norbital-ai/bolt/protocol';
 import { isJsonObject, jsonObject } from '../../../../lib/payroll_engine/foundation.js';
 import { validateRegistered } from '../../../../lib/payroll_engine/registrations.js';
@@ -258,6 +260,10 @@ export default model('employee_contract', {
 				'create',
 				rows.map((row) => jsonObject(row))
 			);
+			yield* assertFactsHold(
+				ctx.db.query,
+				rows.map((row) => jsonObject(row))
+			);
 			const ids = [...new Set(rows.map((row) => row.input_schema_version_id))];
 			const settings = yield* ctx.db.query({
 				jurisdiction_settings: { where: { id: { in: ids } }, fields: ['lookup'], limit: 10000 }
@@ -339,12 +345,9 @@ export default model('employee_contract', {
 					substantive.map(({ before, set }) => ({ ...before, ...set }))
 				);
 			if (captured !== null) return yield* ctx.refuse(captured, { field: 'effective_range' });
-			yield* validateRegistered(
-				ctx.db.query,
-				'employee_contract',
-				'update',
-				substantive.map((change) => jsonObject({ ...change.before, ...change.set }))
-			);
+			const proposed = substantive.map((change) => jsonObject({ ...change.before, ...change.set }));
+			yield* validateRegistered(ctx.db.query, 'employee_contract', 'update', proposed);
+			yield* assertFactsHold(ctx.db.query, proposed);
 			const ids = [...new Set(changes.map((change) => change.before.input_schema_version_id))];
 			const settings = yield* ctx.db.query({
 				jurisdiction_settings: { where: { id: { in: ids } }, fields: ['lookup'], limit: 10000 }
@@ -383,26 +386,9 @@ export default model('employee_contract', {
 	},
 	effect: {
 		created: function* (rows, ctx) {
-			const ids = [...new Set(rows.map((row) => row.employee_id))];
-			const existing = yield* ctx.query({
-				employee_balance: {
-					where: { employee_id: { in: ids } },
-					fields: ['employee_id'],
-					limit: 10000
-				}
+			yield* ctx.schedule('ledger', {
+				employees: [...new Set(rows.map((row) => row.employee_id))]
 			});
-			const held = new Set(existing.employee_balance.rows.map((row) => row.employee_id));
-			const missing = new Map(
-				rows
-					.filter((row) => !held.has(row.employee_id))
-					.map((row) => [row.employee_id, { employee_id: row.employee_id, account: {} }])
-			);
-			if (missing.size > 0)
-				yield* ctx.act.checked([
-					{ callable: 'employee_balance.create', input: [...missing.values()] }
-				]);
-			// after the balance exists: the service writes to it
-			yield* ctx.schedule('leave_entitlement', { employees: [...ids] });
 			yield* tap(
 				ctx,
 				'create',
@@ -559,9 +545,11 @@ export default model('employee_contract', {
 						}
 					})
 				);
-				const account = balances.employee_balance?.rows?.[0]?.account;
-				const leave = isJsonObject(account) && isJsonObject(account.leave) ? account.leave : {};
-				const days = Number(leave.ANNUAL_LEAVE ?? 0);
+				const days = latestLeft(
+					accountsOf(balances.employee_balance?.rows?.[0]?.account),
+					'leave',
+					'ANNUAL_LEAVE'
+				);
 				if (!Number.isFinite(days) || days <= 0) continue;
 				const employer = yield* ctx.query(
 					dynamicRead({
@@ -596,7 +584,7 @@ export default model('employee_contract', {
 			}
 			const sealed = changes.filter(({ after }) => after.status === 'SEALED');
 			if (sealed.length > 0)
-				yield* ctx.schedule('leave_entitlement', {
+				yield* ctx.schedule('ledger', {
 					employees: [...new Set(sealed.map(({ after }) => after.employee_id))]
 				});
 			yield* tap(

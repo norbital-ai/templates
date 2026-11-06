@@ -21,16 +21,6 @@ export interface PayLine {
 	readonly is_reversal: boolean;
 }
 
-export interface LedgerOperation {
-	readonly operation: 'CREATE' | 'REMOVE' | 'ADD' | 'DEDUCT';
-	readonly account: string;
-	readonly code: string;
-	readonly amount: number;
-	readonly unit?: Unit;
-	readonly effective_on: string;
-	readonly source_id?: { readonly model: string; readonly id: string };
-}
-
 export interface SubtotalResult {
 	readonly id: string;
 	readonly code: string;
@@ -44,7 +34,6 @@ export interface StatutoryResult {
 	readonly kind: string;
 	readonly employee: number;
 	readonly employer: number;
-	readonly overpaid?: number;
 	readonly employee_ytd: number;
 	readonly employer_ytd: number;
 }
@@ -83,7 +72,6 @@ export interface PayrollResult {
 	readonly statutory: readonly StatutoryResult[];
 	readonly net_pay: number;
 	readonly employer_cost: number;
-	readonly ledger: readonly LedgerOperation[];
 }
 
 const text = (row: JsonObject, key: string): string => {
@@ -381,95 +369,9 @@ function defaultBasePay(
 	return salaryAmount * paidShare(input, coverage, basis);
 }
 
-/** The tax year a run's pay date falls in. */
-const taxYear = (input: PayrollInput, coverage: { from: string; to: string }): number => {
-	const date = String(input.run.pay_date ?? coverage.to);
-	const year = Number(date.slice(0, 4));
-	return Number(date.slice(5, 7)) >= Number(input.settings.tax_year_start_month ?? 1)
-		? year
-		: year - 1;
-};
-
 const heldBalance = (input: PayrollInput): JsonObject => {
 	const account = input.balance.account;
 	return isJsonObject(account) ? account : {};
-};
-
-const accountOf = (held: JsonObject, family: string): JsonObject => {
-	const account = held[family];
-	return isJsonObject(account) ? account : {};
-};
-
-/**
- * Balances never run on. The first run of a tax year or under a new jurisdiction closes the year-to-date accounts, a
- * new jurisdiction closes the months too, and a month over a year old leaves. All of it is dated ledger entries.
- */
-const closeBalance = (
-	input: PayrollInput,
-	year: number,
-	month: string
-): { readonly entries: readonly LedgerOperation[]; readonly balance: JsonObject } => {
-	const held = heldBalance(input);
-	const ytd = accountOf(held, 'ytd');
-	const law = `LAW.${String(input.settings.code)}`;
-	const sameLaw = ytd[law] === 1;
-	const sameYear = sameLaw && typeof ytd.TAX_YEAR === 'number' && ytd.TAX_YEAR >= year;
-	const effective_on = String(input.run.pay_date);
-	const close = (family: string, codes: readonly string[]): readonly LedgerOperation[] =>
-		codes.flatMap((code) => {
-			const value = accountOf(held, family)[code];
-			return typeof value === 'number' && value > 0 && code !== 'LAST_RUN'
-				? [
-						{
-							operation: 'DEDUCT' as const,
-							account: family,
-							code,
-							// the balance is a sum of floats; the ledger keeps fewer digits
-							amount: Number(value.toFixed(8)),
-							effective_on
-						}
-					]
-				: [];
-		});
-	const oldest = String(addMonths(`${month}-01`, -12)).slice(0, 7);
-	const months = Object.keys(accountOf(held, 'month'));
-	const gone = sameLaw ? months.filter((code) => code.slice(0, 7) < oldest) : months;
-	return {
-		entries: [
-			...(sameYear
-				? []
-				: [
-						...close('ytd', Object.keys(ytd)),
-						...close(
-							'statutory_contribution',
-							Object.keys(accountOf(held, 'statutory_contribution'))
-						),
-						{
-							operation: 'ADD' as const,
-							account: 'ytd',
-							code: 'TAX_YEAR',
-							amount: year,
-							effective_on
-						},
-						{ operation: 'ADD' as const, account: 'ytd', code: law, amount: 1, effective_on }
-					]),
-			...close('month', gone),
-			...gone.map((code) => ({
-				operation: 'REMOVE' as const,
-				account: 'month',
-				code,
-				amount: 0,
-				effective_on
-			}))
-		],
-		balance: {
-			...held,
-			...(sameYear ? {} : { ytd: {}, statutory_contribution: {} }),
-			month: Object.fromEntries(
-				Object.entries(accountOf(held, 'month')).filter(([code]) => !gone.includes(code))
-			)
-		}
-	};
 };
 
 /** One pure linear pass: inputs in, pay lines, checkpoint values, statutory YTD and ledger out. */
@@ -479,8 +381,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 	const settingsLookup = lookupOf(input.settings);
 	const paidOn = String(input.run.pay_date ?? coverage.to);
 	const payMonth = paidOn.slice(0, 7);
-	const { entries: closing, balance } = closeBalance(input, taxYear(input, coverage), payMonth);
-	const byMonth = Array.isArray(settingsLookup.month_balance) ? settingsLookup.month_balance : [];
+	const balance = heldBalance(input);
 	// expressions read service entitlement dates, not the latest contract's start
 	const employment =
 		typeof input.employment.service_started_on === 'string' &&
@@ -729,9 +630,11 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 		};
 		if (!eligible(scheme.eligibility, context, `${code}.eligibility`)) continue;
 		const owed = evaluateNumber(scheme.employee_amount, context, `${code}.employee_amount`);
-		// below zero the row has overpaid: a reversal entry brings that back, never a negative line
-		const employee = round(input.settings, Math.max(0, owed));
-		const overpaid = round(input.settings, Math.max(0, -owed));
+		// below zero a row refunds on this run where its statute has the employer repay; otherwise it stops at zero and carries
+		const refunds = lookupOf(scheme).below_zero === 'REFUND' && owed < 0;
+		const employee = refunds
+			? -round(input.settings, -owed)
+			: round(input.settings, Math.max(0, owed));
 		const employer = round(
 			input.settings,
 			amount(
@@ -741,14 +644,13 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 		);
 		statutoryValues[code] = { employee, employer };
 		const paid = isJsonObject(balance.statutory_contribution) ? balance.statutory_contribution : {};
-		const employeeYtd = amount(paid[`${code}.employee`] ?? 0, 'YTD') + employee;
-		const employerYtd = amount(paid[`${code}.employer`] ?? 0, 'YTD') + employer;
+		const employeeYtd = Number(paid[`${code}.employee`] ?? 0) + employee;
+		const employerYtd = Number(paid[`${code}.employer`] ?? 0) + employer;
 		statutory.push({
 			code,
 			kind: String(scheme.kind ?? 'CONTRIBUTION'),
 			employee,
 			employer,
-			...(overpaid > 0 ? { overpaid } : {}),
 			employee_ytd: employeeYtd,
 			employer_ytd: employerYtd
 		});
@@ -759,8 +661,8 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 					code,
 					label: text(scheme, 'name'),
 					subtotal: target,
-					amount: employee,
-					direction: 'DEDUCT',
+					amount: Math.abs(employee),
+					direction: employee > 0 ? 'DEDUCT' : 'ADD',
 					party: 'EMPLOYEE',
 					incurred_on: coverage.to,
 					coverage,
@@ -822,40 +724,11 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 	const employerCost = lines
 		.filter((l) => l.party === 'EMPLOYER')
 		.reduce((total, l) => total + signed(l.direction, l.amount), 0);
-	const ledger: LedgerOperation[] = [...closing];
-	const post = (account: string, code: string, amount: number) =>
-		ledger.push({
-			operation: 'ADD',
-			account,
-			code,
-			amount,
-			unit: 'MONEY',
-			effective_on: paidOn
-		});
-	const postHeld = (account: string, code: string, value: number) => {
-		post(account, code, value);
-		if (byMonth.includes(code)) post('month', `${payMonth}.${code}`, value);
-	};
-	for (const { code, value } of results) if (value > 0) postHeld('ytd', code, value);
-	if (net !== 0)
-		ledger.push({
-			operation: net > 0 ? 'ADD' : 'DEDUCT',
-			account: 'payroll',
-			code: 'NET_PAY',
-			amount: Math.abs(net),
-			unit: 'MONEY',
-			effective_on: paidOn
-		});
-	for (const { code, employee, employer } of statutory) {
-		if (employee > 0) postHeld('statutory_contribution', `${code}.employee`, employee);
-		if (employer > 0) postHeld('statutory_contribution', `${code}.employer`, employer);
-	}
 	return {
 		lines,
 		subtotals: results,
 		statutory,
 		net_pay: net,
-		employer_cost: employerCost,
-		ledger
+		employer_cost: employerCost
 	};
 }

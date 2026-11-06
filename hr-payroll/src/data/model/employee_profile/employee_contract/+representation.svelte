@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { accountsOf, latestLeft } from '../../../../lib/ledger/core.js';
 	import {
 		Button,
 		Combobox,
@@ -221,13 +222,13 @@
 		}
 		return 0;
 	}
-	const account = $derived(
-		(balance?.current?.employee_balance.rows[0]?.account ?? {}) as {
-			readonly leave?: Readonly<Record<string, number>>;
-			readonly loan?: Readonly<Record<string, number>>;
-		}
+	const leaveDays = $derived(
+		latestLeft(
+			accountsOf(balance?.current?.employee_balance.rows[0]?.account),
+			'leave',
+			'ANNUAL_LEAVE'
+		)
 	);
-	const leaveDays = $derived(Number(account.leave?.ANNUAL_LEAVE ?? 0));
 	/** Each loan less what payroll has already repaid; the open schedule does not count until a run seals it. */
 	function outstandingOf<L extends { readonly id: unknown; readonly quantity: unknown }>(
 		loanRows: readonly L[],
@@ -257,14 +258,7 @@
 			loans?.current?.loan_repayment_entry.rows ?? []
 		)
 	);
-	const loanTotal = $derived.by(() => {
-		const fromLoans = outstandingLoans.reduce((sum, item) => sum + item.amount, 0);
-		const fromBalance = Object.values(account.loan ?? {}).reduce(
-			(sum, value) => sum + Number(value ?? 0),
-			0
-		);
-		return Math.max(fromLoans, fromBalance);
-	});
+	const loanTotal = $derived(outstandingLoans.reduce((sum, item) => sum + item.amount, 0));
 	const latestPayslip = $derived(
 		(loans?.current?.payslip.rows ?? []).toSorted((left, right) =>
 			String(right.period ?? '').localeCompare(String(left.period ?? ''))
@@ -460,11 +454,6 @@
 				where: { employment_id: { eq: current.id } },
 				fields: ['id', 'loan_id', 'amount', 'is_reversal', 'payroll_run_id'],
 				limit: 10000
-			},
-			employee_balance: {
-				where: { employee_id: { eq: current.employee_id } },
-				fields: ['id'],
-				limit: 1
 			}
 		});
 		return {
@@ -509,8 +498,6 @@
 			decimals: decimals(currentSettings?.currency)
 		});
 		await clearOpenSchedule(position);
-		const codes = await catalogCodes(outstanding);
-		const balanceId = held.employee_balance.rows[0]?.id;
 		const nextMonth = addMonths(PlainDate(`${String(day).slice(0, 7)}-01`), 1);
 		for (const item of outstanding) {
 			const share = plan.allocations.find((row) => row.id === String(item.row.id));
@@ -531,24 +518,6 @@
 				);
 				if (settled.kind !== 'committed')
 					throw new Error('The final loan repayment could not be recorded.');
-				if (balanceId !== undefined) {
-					const ledger = await run(
-						bolt.act('ledger_entry.create', [
-							{
-								balance_id: balanceId,
-								operation: 'DEDUCT',
-								account: 'loan',
-								code: codes.get(String(item.row.catalog_id)) ?? 'LOAN',
-								amount: share.final,
-								unit: 'MONEY',
-								effective_on: day,
-								source_id: { model: 'loan_catalog_entry', id: item.row.id }
-							}
-						])
-					);
-					if (ledger.kind !== 'committed')
-						throw new Error('The loan ledger movement could not be recorded.');
-				}
 			}
 			if (share.remaining <= 0) continue;
 			const period = item.row.repayment_period;
@@ -660,7 +629,6 @@
 				typeof row.code === 'string' ? [[row.code, row.id as Id<'loan_catalog'>] as const] : []
 			)
 		);
-		const balanceId = held.employee_balance.rows[0]?.id;
 		for (const item of outstanding) {
 			const oldCode = oldCodes.get(String(item.row.catalog_id)) ?? 'LOAN';
 			const targetCatalogId = targetByCode.get(oldCode);
@@ -685,24 +653,6 @@
 				);
 				if (settled.kind !== 'committed')
 					throw new Error('The outstanding loan could not be settled.');
-				if (balanceId !== undefined) {
-					const ledger = await run(
-						bolt.act('ledger_entry.create', [
-							{
-								balance_id: balanceId,
-								operation: 'DEDUCT',
-								account: 'loan',
-								code: oldCode,
-								amount: item.amount,
-								unit: 'MONEY',
-								effective_on: day,
-								source_id: { model: 'loan_catalog_entry', id: item.row.id }
-							}
-						])
-					);
-					if (ledger.kind !== 'committed')
-						throw new Error('The loan ledger movement could not be recorded.');
-				}
 				continue;
 			}
 			if (targetCatalogId === undefined)
@@ -752,34 +702,6 @@
 			const scheduled = await run(bolt.act('loan_repayment_entry.create', schedule));
 			if (scheduled.kind !== 'committed')
 				throw new Error('The replacement loan schedule could not be created.');
-			if (balanceId !== undefined) {
-				const ledger = await run(
-					bolt.act('ledger_entry.create', [
-						{
-							balance_id: balanceId,
-							operation: 'DEDUCT',
-							account: 'loan',
-							code: oldCode,
-							amount: item.amount,
-							unit: 'MONEY',
-							effective_on: day,
-							source_id: { model: 'loan_catalog_entry', id: item.row.id }
-						},
-						{
-							balance_id: balanceId,
-							operation: 'ADD',
-							account: 'loan',
-							code: oldCode,
-							amount: item.amount,
-							unit: 'MONEY',
-							effective_on: day,
-							source_id: { model: 'loan_catalog_entry', id: newLoanId }
-						}
-					])
-				);
-				if (ledger.kind !== 'committed')
-					throw new Error('The loan transfer ledger pair could not be recorded.');
-			}
 		}
 	}
 	async function commitChange() {

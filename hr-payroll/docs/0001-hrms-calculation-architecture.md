@@ -22,16 +22,16 @@ This is the owner's design. Every agent working on this workspace reads this sec
 - A **catalog** row captures behaviour per family: eligibility, conversion, target subtotal, party, direction and lookup. Allowance, overtime and statutory catalogs are definitions only. Leave, claim, adhoc, loan, work interruption and workplace case catalogs take entries.
 - A **catalog entry** is one dated event against a catalog item. It records what happened, never how it is priced.
 - A **reversal entry** (`is_reversal`) reverses a mistake: a new entry against the same catalog item, created only by the HR controller from the Events tab. Nothing raises one automatically. Leave, claim, adhoc and loan repayment entries all carry it. Nothing posted is edited or deleted. Its ledger movement is the inverse, and its pay line flips direction.
-- A refund or correction is a reversal entry or an adjustment entry against a catalog item, and nothing else. No payslip line and no ledger amount is negative. A refund gets no statutory row, no account of its own and no ledger trick.
+- A correction is a reversal entry or an adjustment entry against a catalog item. A statutory row may refund: where its statute has the employer repay, a result below zero pays a refund line on that run, and the balance falls with it. Where it does not, the row stops at zero and the next run nets it. No payslip line and no ledger amount is negative.
 - A company's own policy goes on the existing row, through `pay_treatment` or a cash `conversion`.
 
 ### Ledger and balance
 
-- Ledger entries are emitted at four moments only: when a leave, claim, adhoc or loan entry is created, during payroll, when a leave entitlement changes, and when the HR controller confirms a workplace case that opens leave. None repeats another's movement.
+- The ledger moves in two ways only: **posting**, when a record is written (a leave, claim or adhoc entry that declares accounts, or a payslip, the run's entry), and **sync**, when an entitlement may have changed (a contract or its facts, an entity, a new law, or a period ending). One service writes it. Loans stay out: a loan and its repayments are their own record. Workplace cases never move a balance.
 - The ledger is append-only and an amount is never negative.
-- `employee_balance` is one row per person: the projection of the ledger, keyed by family and then code. Its accounts are data, not fixed columns.
+- `employee_balance` is one row per person: the projection of the ledger, keyed by family, code, period and measure. It holds accumulated values and entitlements of the catalog, and nothing else: no notes, flags, dates or guards.
 - Whatever a formula needs from earlier runs comes from the balance. There is no payroll history read: no `ctx.history`, no statutory history, no looking back through payslips.
-- Balances do not run on forever. They reset through proper dated ledger entries.
+- Balances do not run on forever. The period is in the key, so a new year is a new key and nothing closes. Old periods leave through proper dated ledger entries.
 
 ### Linear computation and subtotals
 
@@ -100,35 +100,33 @@ Every payroll expression reads `ctx.day_rate`, so a jurisdiction prices overtime
 
 Rounding is the same kind of constant: `lookup.rounding` (`HALF_UP`, `HALF_EVEN`, `UP`, `DOWN`, `TRUNCATE`) and `lookup.rounding_scale` (integer 0–12), defaulting to `HALF_UP` at 2.
 
-## 2. One ledger, four writers
+## 2. One ledger, two ways in
 
 ```text
-EVENT TIME (approval)                          PAYROLL TIME (run)
-leave · claim · adhoc · loan repayment         sealed settings + approved entries
-        │                                              │
-        ▼                                              ▼
-deducts balance now                          computes pay + statutory + YTD
-        │                                              │
-        └──────────────────────┬───────────────────────┘
-                               ▼
-             ledger_entry (append-only) + employee_balance.account
+POSTING                                    SYNC
+a record was written                       an entitlement may have changed
+leave · claim · adhoc · payslip            contract · entity · new law · a period ended
+        │                                          │
+        └──────────────────┬───────────────────────┘
+                           ▼
+                settle(what should stand)
+                           │  one write
+                           ▼
+         ledger_entry (append-only) + employee_balance.account
 ```
 
-Event time writes the employee balance immediately; payroll time writes money and statutory movements; a leave entitlement change writes its diff (section 4.1). No writer repeats another's movement.
+`src/lib/ledger/` is the only writer. Model hooks schedule the `ledger` automation and write nothing, and it runs one at a time under its own policy, so posting never depends on who made the entry. A source says what it should have posted, and `settle` posts the difference, so repeating any of this posts nothing.
 
-| Event                   | Operation                                         |
-| ----------------------- | ------------------------------------------------- |
-| leave approved          | `DEDUCT leave.<catalog code> <half-days>`         |
-| claim approved          | `DEDUCT claim.<catalog code> <quantity or money>` |
-| adhoc approved          | `DEDUCT adhoc.<catalog code> <quantity or money>` |
-| loan approved           | `CREATE loan.<loan entry id> <principal>`         |
-| loan repayment approved | `DEDUCT loan.<loan entry id> <amount>`            |
-| reversal                | inverse operation with `is_reversal`              |
-| leave entitlement moves | `ADD` or `DEDUCT leave.<catalog code> <diff>`     |
-| leave case confirmed    | `ADD` or `DEDUCT leave.<catalog code> <days>`     |
-| benefit run marked paid | `ADD` or `DEDUCT benefit_paid.<month>.<code>`     |
+| Source              | Movement                                            |
+| ------------------- | --------------------------------------------------- |
+| Leave entry         | `leave/<code>/<period>/used`, per day of its window |
+| Claim entry         | `claim/<code>/<period>/used`                        |
+| Adhoc with accounts | What `lookup.accounts` names                        |
+| Payslip             | `pay/<checkpoint>` and `statutory/<scheme>.<party>` |
+| Entitlement         | `leave/<code>/<period>/entitled`, `carried`         |
+| Claim limit         | `claim/<code>/<period>/limit`                       |
 
-Indonesia's severance and pension benefits run on one ladder across two calendar years, longer than a balance keeps its months, so a catalog effect keeps them in `benefit_paid` when the run is marked paid. A paid run is final, so nothing there ever needs undoing. An earlier run not marked paid yet still counts, from the months the balance keeps. Japan's premiums paid back or collected late go on their own items, on a subtotal of their own that the year-end adjustment reads, so the deduction is what the employee bore.
+A reversal is its own entry, posted in the period of the entry it `reverses`. Loans stay out: a loan and its repayments are their own record. Workplace cases never move a balance.
 
 Run effects look for their own task before raising it: raising one twice would fail every effect after it, so a second run in a period finds the first's task and raises nothing.
 
@@ -159,7 +157,7 @@ An allowance row with `prorate` on takes the same share. A fixed recurring cash 
 
 A leave row that must pay back after its period has run is `PAID` with `direction: DEDUCT` and a `conversion`, so its line takes the days instead of the salary basis. Every no-pay row in every jurisdiction has this shape: its line is the monthly pay (salary and the allowances with `prorate` on) ÷ the `proration_basis` days × the days missed, so a month pays what the salary basis would have paid. A correction after payment is then a reversal entry the HR controller enters in Events, on the same catalog item, dated in the next period to run. Its conversion prices it on the month before that run, so it gives back what was taken. The `NO_PAY_OPEN_PERIOD` rule refuses a no-pay entry dated in a period that has run, and a reversal of a day not yet paid: that entry is deleted instead.
 
-A no-pay row carries `lookup.no_cap`. No statute caps it, so its account opens large enough never to refuse, and the days taken still post to it. See section 4.1.
+A no-pay row carries `lookup.no_cap`. No statute caps it, so it has no entitlement and nothing limits it. The days taken still post to `used`. See section 4.1.
 
 There is no base-pay producer model and no implicit BASE stage. Base pay is readable by every payroll expression.
 
@@ -189,13 +187,13 @@ A catalogue whose definition creates no payroll line has a null `subtotal_id` �
 
 Schemes evaluate in topological `depends_on` order and see only earlier finalised schemes; a cycle is refused. Each scheme evaluates `eligibility`, `employee_amount` and an optional `employer_amount`.
 
-An employee amount on a payslip is never negative. A tax row that finds the year overpaid reports the figure, and the `TAX_REFUND` registered effect raises an obligation. The HR controller enters the amount on the adhoc `STATUTORY_REFUND` item, and the next run, or an off-cycle run, pays it. A statutory correction is an adhoc entry whose item is the correction, so it takes no `is_reversal`; its direction and subtotal are set on the catalog row like any other.
+A row's result decides what happens. Above zero it is a deduction. Below zero, a row with `lookup.below_zero: 'REFUND'` pays a refund line on that run and the statutory balance falls with it, because its statute has the employer repay. Any other row stops at zero, and the next run nets what is left. No line and no ledger amount is ever negative.
 
 ### 3.5 Creation is finalisation
 
-Creating a run computes and writes everything in one payload: payslip totals, ledger rows and an `UNPAID` run. There is no preparing or separate finalise step. Payslips carry: `basic_earnings`, `gross_earnings`, `net_pay`, `total_deductions`, `employer_cost`, and `breakdown`, the checkpoints, lines and statutory amounts as calculated. The run owns `salary_coverage`.
+Creating a run computes and writes one payload: payslip totals and an `UNPAID` run. There is no preparing or separate finalise step. Payslips carry: `basic_earnings`, `gross_earnings`, `net_pay`, `total_deductions`, `employer_cost`, and `breakdown`, the checkpoints, lines and statutory amounts as calculated. The run owns `salary_coverage`.
 
-Ledger rows are created inline with the run, and an effect on the run then applies them to the balance. The effect can run twice after a crash; `ytd.LAST_RUN` stops a second posting.
+The payslip is the run's entry: its checkpoints and statutory rows post once, in the period of its pay date, in one write with the balance. A new run is refused while the entity's latest run has not posted, and PAID is refused while the run itself has not. A deleted run's movements are inverted exactly.
 
 ### 3.6 Ledger rows
 
@@ -222,7 +220,7 @@ Year to date lives in the balance and nowhere else. A formula that needs earlier
 
 ## 4. Balances and ledger
 
-`employee_balance` is one row per employee: `employee_id` (unique) and a JSON `account` map. `ledger_entry` is immutable: `balance_id`, `operation` (`CREATE`, `REMOVE`, `ADD`, `DEDUCT`), `account`, `code`, `amount`, `unit`, `effective_on` and an optional `source_id`.
+`employee_balance` is one row per employee: `employee_id` (unique) and a JSON `account` map. `ledger_entry` is immutable: `balance_id`, `operation` (`CREATE`, `REMOVE`, `ADD`, `DEDUCT`), `account`, `code`, `period`, `measure`, `amount`, `unit`, `effective_on` and `source`.
 
 The map is keyed by account family, then account code:
 
@@ -237,19 +235,23 @@ The map is keyed by account family, then account code:
 
 The projection is rebuildable from `ledger_entry` and is written only by the posting service. A correction appends an inverse or a new movement; it never edits history.
 
+A movement and the balance it moves commit as one write, so they cannot disagree. No effect touches the ledger or the balance. `source` is plain text, so a movement outlives what caused it, and a deleted record's movements are still found and inverted.
+
+An effect can run again after a crash, and `settle` compares with the ledger, so a repeat posts nothing. Two writers cannot lose an update: the write is guarded by the balance's revision.
+
 ### 4.1 Leave entitlement
 
 Everyone's leave is computed by default from the catalog row. The balance is never recalculated from scratch: it moves by the difference between the entitlement last applied and the new one, so days already taken stay taken.
 
 ```text
-entitlement = catalog row + the person     what they should have
-applied     = last entitlement on the balance sheet
-balance     = applied − days taken         what is left
+entitled = catalog row + the person     what they should have this window
+carried  = from the window before
+left     = entitled + carried − used    derived, never stored
 ```
 
 The row's `lookup` holds the figure: `grant_days`, or `service_bands` by completed months of service, for its `window`. Eligibility, part-time bands, a first-year share by completed months and carry-forward come from the same lookup. A row with `no_cap`, or with no figure, has no cap to hold.
 
-The `leave_entitlement` automation does this for everyone, and `src/lib/leave/entitlement.ts` holds the rule. It computes when any of these happens:
+The `ledger` automation does this for everyone, and `src/lib/ledger/entitlement.ts` holds the rule. It computes when any of these happens:
 
 One service, scoped by what it is given:
 
@@ -322,69 +324,49 @@ extra_days                          a class of work or a contract fact adds days
 rolling_months                      a window of several years opens once in the span
 first_year_proration_days           the first year counts the calendar days left
 state_owned_employer                only a state-owned employer's staff qualify
-consumes_code                       the entry also draws on that row's account
+accounts                            the entry draws on another row's account instead
 ```
 
 A contract's `annual_leave_carry_limit_days` caps what it carries. A limit that spans rows or years is a registered rule: Singapore's sick and hospitalisation days share 60, and Taiwan's hospitalised days total a year within any two. A write may make 10 reads, so a new check joins an existing rule's reads where it can.
 
-An account opened before this keeps what it holds, and only its window starts counting. `applied` is kept per leave type in the balance's `leave_window` family as `<code>.granted`, beside the window it belongs to. Each movement is a dated ledger entry, like any other.
+Each window is its own key, so nothing closes or resets. A balance seeded before a sync opens with its entitlement under the sync's own source, so sync finds it posted.
 
-### 4.2 Events are workplace cases
+### 4.2 Dated facts open leave
 
-A birth, a marriage, a bereavement or a long illness is something that happened, and a balance cannot tell one from the next. So each one is a row in `workplace_case_catalog`, and HR records it as a case. A registered effect opens the days. Nothing refills them by the calendar, and no code knows what a birth is.
-
-```text
-Employee hands HR the notice or doctor's letter
-        |
-        v
-HR opens a case on the person's Leave tab
-  what happened: CHILD_BIRTH
-  decision:      Confirmed / Rejected / Decide later
-  document:      attached
-        |
-        +-- Rejected ----> nothing moves
-        |
-        +-- Decide later -> nothing moves until HR presses Confirm or Reject on the case
-        |
-        v Confirmed
-registered effects LEAVE_CASE_LEDGER and LEAVE_CASE
-  read the case's lookup.grants and each leave row's grant_days and eligibility
-  post ledger rows and raise the balance, once for this case
-```
-
-| Row                             | Holds                                                                                               |
-| ------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `workplace_case_catalog.lookup` | `grants`: the leave rows it opens, `days` to override, `keep_start`; `certificate`; `ends_on_close` |
-| `leave_catalog.lookup`          | `grant_days`, `eligibility`, `pay_steps`                                                            |
-| `registered_effect`             | `LEAVE_CASE_LEDGER`, `LEAVE_CASE`, `LEAVE_CASE_ENDED`                                               |
-| `registered_rule`               | `LEAVE_CASE_DECISION`: a case names its employee and has its certificate before confirming          |
+A birth, a marriage, a bereavement or a long illness is a fact about a person, so it lives on the sealed contract, in `employee_extension_data.events`. Each country's `employee_extension_schema` declares the kinds. Documents are uploaded on the employee profile.
 
 ```text
-                              Balance (MATERNITY_LEAVE, Indonesia)
-Joined                             0     an event row gives nothing by itself
-CHILD_BIRTH confirmed             90     ledger: ADD 90
-Takes 31 days                     59
-Months pass                       59     nothing refills it
-BIRTH_COMPLICATION confirmed     149     ledger: ADD 90, needs the certificate
-Next birth, a new case           +90     a second event is a second case
+HR adds to the contract: CHILD_BIRTH, 2 March, and seals it
+        |
+Sealing triggers sync
+        |
+Each leave row whose lookup.opened_by names CHILD_BIRTH opens for that event
+        |
+ADD leave/MATERNITY_LEAVE/MY.E.2026-03-02/entitled 98
 ```
 
-A case confirmed in error is reversed like any other entry: **Reverse this case** opens the same case again with `is_reversal`, and the effects take back exactly what it gave. Days already taken must be reversed first, so a balance never goes below what was used, and a case reverses once.
+| Row                    | Holds                                                        |
+| ---------------------- | ------------------------------------------------------------ |
+| Contract               | `events`: `kind`, `on`, `ended_on`, `document`               |
+| `leave_catalog.lookup` | `opened_by`: the kinds that open it, with `days` to override |
+| `leave_catalog.lookup` | `grant_days`, `eligibility`, `pay_steps`                     |
 
-Pay that steps down is one row. `pay_steps` on the leave row says what share each month of the event loses, and the confirmed case stamps when the event began in `leave_window.<code>.from`. The row's `conversion` prices each day by its date from that stamp, so the order days were entered does not move it.
+Each event is its own period, so days left from one birth do not stack onto the next. A complication is another event on the same date, so it adds to the same period and keeps its pay count.
+
+Pay that steps down is one row. `pay_steps` on the leave row says what share each month of the event loses, and its `conversion` reads the event from the contract.
 
 ```text
 MEDICAL_LEAVE, Indonesia (PP 36/2021 art.41(1))
-  no open case                     every day at full pay
-  LONG_ILLNESS confirmed 2 Feb     the count starts
+  no event covers the day          full pay
+  LONG_ILLNESS from 2 Feb          the count starts
     month 1-4    100%
     month 5-8     75%    this line takes the other 25% of each working day
     month 9-12    50%
     month 13+     25%
-  case closed (closed_on)          the count ends, the next sick day is at full pay
+  event ended                      the next sick day is at full pay
 ```
 
-A reversal on such a row gives back the month it corrects, at that month's share. Thirty sick days within 45 with no open case raise a task for the HR controller (`LONG_ILLNESS_REMINDER`), so a missed case cannot quietly overpay.
+Workplace cases file incidents, requests and notices. If one changes pay, HR makes the entry.
 
 ## 5. Catalogue contract
 

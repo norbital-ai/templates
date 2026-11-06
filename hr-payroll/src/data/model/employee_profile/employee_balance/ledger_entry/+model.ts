@@ -9,6 +9,16 @@ export default model('ledger_entry', {
 		operation: { kind: 'enum', values: ['CREATE', 'REMOVE', 'ADD', 'DEDUCT'] },
 		account: { kind: 'text', help: 'Catalogue family key, for example leave or claim.' },
 		code: { kind: 'text', help: 'Account code inside the family, for example ANNUAL_LEAVE.' },
+		period: {
+			kind: 'text',
+			optional: true,
+			help: 'The window the value belongs to, for example MY.S.2026-03-05.'
+		},
+		measure: {
+			kind: 'text',
+			optional: true,
+			help: 'What is held in that window, for example entitled or used.'
+		},
 		amount: { kind: 'decimal', scale: 12, min: 0, optional: true },
 		unit: {
 			kind: 'enum',
@@ -16,19 +26,10 @@ export default model('ledger_entry', {
 			optional: true
 		},
 		effective_on: { kind: 'date' },
-		source_id: {
-			kind: 'ref',
-			to: [
-				'leave_catalog_entry',
-				'claim_catalog_entry',
-				'adhoc_catalog_entry',
-				'loan_catalog_entry',
-				'loan_repayment_entry',
-				'payroll_run'
-			],
-			inverse: 'ledger_entries',
+		source: {
+			kind: 'text',
 			optional: true,
-			onDelete: 'setNull'
+			help: 'What caused this movement. Plain text, so a movement outlives what caused it.'
 		}
 	},
 	read: 'all',
@@ -42,7 +43,9 @@ export default model('ledger_entry', {
 				'amount',
 				'unit',
 				'effective_on',
-				'source_id'
+				'period',
+				'measure',
+				'source'
 			]
 		}
 	}

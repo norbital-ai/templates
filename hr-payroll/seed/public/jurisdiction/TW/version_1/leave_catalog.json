@@ -154,7 +154,10 @@
 		"name": "Marriage leave (婚假)",
 		"lookup": {
 			"window": "EVENT",
-			"grant_days": 8
+			"grant_days": 8,
+			"opened_by": {
+				"MARRIAGE": {}
+			}
 		},
 		"references": [
 			{
@@ -225,7 +228,10 @@
 		"name": "Paternity and accompanying-check-up leave (陪產檢及陪產假)",
 		"lookup": {
 			"window": "EVENT",
-			"grant_days": 7
+			"grant_days": 7,
+			"opened_by": {
+				"CHILD_BIRTH": {}
+			}
 		},
 		"references": [
 			{
@@ -247,7 +253,10 @@
 		"name": "Prenatal check-up leave (產檢假)",
 		"lookup": {
 			"window": "EVENT",
-			"grant_days": 7
+			"grant_days": 7,
+			"opened_by": {
+				"PREGNANCY": {}
+			}
 		},
 		"references": [
 			{
@@ -270,7 +279,7 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "性別平等工作法第14條 — one day a month; up to three days a year are not counted against the 30-day ordinary sickness quota and days beyond three are counted into it. Every day is at half wages. 性別平等工作法 §14: one day a month; three days a year are outside the thirty-day ordinary sickness quota and every day beyond them counts into it (`consumes_code`, `consumes_after_days`). MOL clarification 2021-03-12: after the annual paid sick pool and exempt days are exhausted, the monthly menstrual day must still be granted; it may be unpaid. On that clarification the overflow days are granted unpaid, keeping the one-day monthly entitlement (MENSTRUAL_LEAVE_UNPAID). Metered one day a calendar month (window keyed by the month of the leave day; 性別平等工作法 §14).",
+				"title": "性別平等工作法第14條 — one day a month; up to three days a year are not counted against the 30-day ordinary sickness quota and days beyond three are counted into it. Every day is at half wages. 性別平等工作法 §14: one day a month; three days a year are outside the thirty-day ordinary sickness quota and every day beyond them counts into it. MOL clarification 2021-03-12: after the annual paid sick pool and exempt days are exhausted, the monthly menstrual day must still be granted; it may be unpaid. On that clarification the overflow days are granted unpaid, keeping the one-day monthly entitlement (MENSTRUAL_LEAVE_UNPAID). Metered one day a calendar month (window keyed by the month of the leave day; 性別平等工作法 §14).",
 				"url": "https://www.mol.gov.tw/1607/1632/1640/32923/post"
 			}
 		],

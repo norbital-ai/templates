@@ -26,16 +26,8 @@ const terms = (
 		allowances
 	}) as const;
 type Seed = ReturnType<typeof pack>;
-const malaysia = (allowances = {}): Seed => {
-	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms(allowances), {}, [], [], '2026-06-15');
-	return {
-		...seed,
-		employee_balance: (seed.employee_balance ?? []).map((row) => ({
-			...row,
-			account: { leave: { UNPAID_LEAVE: 30 } }
-		}))
-	};
-};
+const malaysia = (allowances = {}): Seed =>
+	pack('MY', 'Asia/Kuala_Lumpur', terms(allowances), {}, [], [], '2026-06-15');
 const noPay = (seed: Seed) => {
 	const version = seed.employee_contract?.[0]?.input_schema_version_id;
 	const row = seed.leave_catalog?.find(

@@ -6,7 +6,8 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Option, Schema } from 'effect';
-import { idOf } from '../src/lib/payroll_engine/reads.ts';
+import { periodKey, windowOf } from '../src/lib/ledger/core.ts';
+import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
 import { ENTITY, pack, read, uuid, workspace } from './kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
@@ -57,9 +58,24 @@ const EMPLOYEE: Record<string, Parameters<typeof pack>[3]> = {
 		}
 	}
 };
+const rowsOf = (seed: Seed, model: string) => {
+	const version = seed.employee_contract?.[0]?.input_schema_version_id;
+	return (seed[model] ?? []).filter((row) => row.settings_id === version);
+};
+
 const seedOf = (code: string, zone: string): Seed => {
 	const seed = pack(code, zone, terms, EMPLOYEE[code] ?? {}, [], [], '2026-11-06');
-	const leave = Object.fromEntries((seed.leave_catalog ?? []).map((row) => [row.code, 100]));
+	// every row has days in the window the entries below fall in
+	const leave = Object.fromEntries(
+		rowsOf(seed, 'leave_catalog').map((row) => [
+			row.code,
+			{
+				[periodKey(code, windowOf(objectValue(row.lookup ?? {})), String(ON), '2025-01-01')]: {
+					entitled: 100
+				}
+			}
+		])
+	);
 	return {
 		...seed,
 		entity_profile_version: (seed.entity_profile_version ?? []).map((row) => ({
@@ -72,11 +88,6 @@ const seedOf = (code: string, zone: string): Seed => {
 		}))
 	};
 };
-const rowsOf = (seed: Seed, model: string) => {
-	const version = seed.employee_contract?.[0]?.input_schema_version_id;
-	return (seed[model] ?? []).filter((row) => row.settings_id === version);
-};
-
 /** What `runDue` says failed: a Bolt before 0.0.14 answers nothing. */
 const Due = Schema.Struct({
 	failed: Schema.Array(Schema.Struct({ automation: Schema.String, error: Schema.String }))
@@ -215,6 +226,18 @@ describe('a month’s runs run every effect they declare', () => {
 });
 
 describe('a run effect', () => {
+	it.live('reads what the run withheld from its payslips: the ledger posts after it', () => {
+		const seed = seedOf('ID', 'Asia/Jakarta');
+		return Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* t
+				.as(t.admin)
+				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-11', kind: 'ON_CYCLE' }]);
+			yield* t.runDue();
+			const raised = (yield* t.storedQuery({ obligation: { limit: 1000 } })).obligation.rows;
+			assert.ok(raised.some((row) => row.title === 'BPJS Kesehatan contribution'));
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
+	});
 	it('looks for its own task first: raising one twice fails every effect after it', () => {
 		const root = 'seed/public/jurisdiction';
 		for (const country of readdirSync(root))

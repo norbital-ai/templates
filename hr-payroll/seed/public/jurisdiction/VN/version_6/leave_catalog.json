@@ -165,7 +165,10 @@
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
-			"grant_days": 3
+			"grant_days": 3,
+			"opened_by": {
+				"MARRIAGE": {}
+			}
 		},
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
@@ -187,7 +190,10 @@
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
-			"grant_days": 1
+			"grant_days": 1,
+			"opened_by": {
+				"CHILD_MARRIAGE": {}
+			}
 		},
 		"off_cycle_eligible": false,
 		"subtotal_id": null,
@@ -209,7 +215,10 @@
 		"pay_treatment": "PAID",
 		"lookup": {
 			"window": "EVENT",
-			"grant_days": 3
+			"grant_days": 3,
+			"opened_by": {
+				"BEREAVEMENT": {}
+			}
 		},
 		"off_cycle_eligible": false,
 		"subtotal_id": null,

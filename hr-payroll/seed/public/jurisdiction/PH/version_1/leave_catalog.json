@@ -26,7 +26,10 @@
 		"lookup": {
 			"grant_days": 10,
 			"window": "EVENT",
-			"can_encash": false
+			"can_encash": false,
+			"opened_by": {
+				"VAWC": {}
+			}
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -74,6 +77,9 @@
 			"eligibility": {
 				"gender": "MALE",
 				"marital_status": "MARRIED"
+			},
+			"opened_by": {
+				"CHILD_BIRTH": {}
 			}
 		},
 		"pay_treatment": "PAID",
@@ -100,6 +106,9 @@
 			"can_encash": false,
 			"eligibility": {
 				"gender": "FEMALE"
+			},
+			"opened_by": {
+				"GYNECOLOGICAL_SURGERY": {}
 			}
 		},
 		"pay_treatment": "PAID",
@@ -191,7 +200,10 @@
 			"allocation_days": 7,
 			"window": "EVENT",
 			"can_encash": false,
-			"no_cap": true
+			"no_cap": true,
+			"opened_by": {
+				"CHILD_BIRTH": {}
+			}
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -302,7 +314,10 @@
 			"grant_days": 30,
 			"window": "EVENT",
 			"can_encash": false,
-			"no_cap": true
+			"no_cap": true,
+			"opened_by": {
+				"BIRTH_EXTENSION": {}
+			}
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -325,7 +340,10 @@
 		"lookup": {
 			"grant_days": 7,
 			"window": "EVENT",
-			"can_encash": false
+			"can_encash": false,
+			"opened_by": {
+				"CHILD_BIRTH": {}
+			}
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,

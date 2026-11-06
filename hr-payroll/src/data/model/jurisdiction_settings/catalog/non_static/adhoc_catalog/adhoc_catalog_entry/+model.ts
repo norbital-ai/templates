@@ -21,7 +21,8 @@ export default model('adhoc_catalog_entry', {
 			max: '20MiB',
 			optional: true
 		},
-		is_reversal: { kind: 'bool', default: false }
+		is_reversal: { kind: 'bool', default: false },
+		reverses: { kind: 'ref', to: 'adhoc_catalog_entry', optional: true, onDelete: 'restrict' }
 	},
 	locked: { payroll_run_id: { isNull: false } },
 	read: {
@@ -41,7 +42,8 @@ export default model('adhoc_catalog_entry', {
 				'unit',
 				'incurred_on',
 				'evidence_file',
-				'is_reversal'
+				'is_reversal',
+				'reverses'
 			]
 		},
 		transform: function* (rows, ctx) {
@@ -62,8 +64,7 @@ export default model('adhoc_catalog_entry', {
 				'quantity',
 				'unit',
 				'incurred_on',
-				'evidence_file',
-				'is_reversal'
+				'evidence_file'
 			]
 		},
 		transform: function* (changes, ctx) {
@@ -96,33 +97,31 @@ export default model('adhoc_catalog_entry', {
 
 	effect: {
 		created: function* (rows, ctx) {
-			// an entry reaches its version's registered effects through the catalog row it was raised on
-			const versions = yield* ctx.query({
-				adhoc_catalog: {
-					where: { id: { in: rows.map((row) => row.catalog_id) } },
-					fields: ['settings_id'],
-					limit: 10000
-				}
-			});
-			const settingsOf = new Map(
-				versions.adhoc_catalog.rows.map((row) => [row.id, row.settings_id])
-			);
+			yield* ctx.schedule('ledger', { post: rows.map((row) => `adhoc_catalog_entry:${row.id}`) });
 			yield* tap(
 				ctx,
 				'create',
 				{ collection: 'adhoc_catalog_entry', ids: rows.map((row) => row.id) },
-				rows.map((after) => ({
-					after: { ...after, settings_id: settingsOf.get(after.catalog_id) }
-				}))
+				rows.map((after) => ({ after }))
 			);
 		},
 		updated: function* (changes, ctx) {
+			const edited = changes.filter(
+				({ before, after }) => before.payroll_run_id === after.payroll_run_id
+			);
+			if (edited.length > 0)
+				yield* ctx.schedule('ledger', {
+					post: edited.map(({ after }) => `adhoc_catalog_entry:${after.id}`)
+				});
 			yield* tap(
 				ctx,
 				'update',
 				{ collection: 'adhoc_catalog_entry', ids: changes.map((change) => change.after.id) },
 				changes
 			);
+		},
+		deleted: function* (rows, ctx) {
+			yield* ctx.schedule('ledger', { post: rows.map((row) => `adhoc_catalog_entry:${row.id}`) });
 		}
 	}
 });

@@ -1,7 +1,14 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { TestWorkspace, type TestOptions, type TestPorts } from '@norbital-ai/bolt-cli/test';
-import { Schema } from 'effect';
+import {
+	TestWorkspace,
+	type Kit,
+	type TestOptions,
+	type TestPorts
+} from '@norbital-ai/bolt-cli/test';
+import { Effect, Schema } from 'effect';
+import { PlainDate, addDays } from '@norbital-ai/std/date';
+import { accountsOf, type Accounts } from '../src/lib/ledger/core.ts';
 import { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
 
@@ -152,3 +159,88 @@ export const pack = (
 		}))
 	};
 };
+
+/** A catalog row's id on the version a pack's contract is sealed on. */
+export const catalogRow = (seed: ReturnType<typeof pack>, model: string, code: string): string => {
+	const version = seed.employee_contract?.[0]?.input_schema_version_id;
+	const row = (seed[model] ?? []).find((r) => r.code === code && r.settings_id === version);
+	if (row === undefined) throw new Error(`No ${code} on ${model}`);
+	return String(row.id);
+};
+/** The whole days as half-day slots. */
+export const wholeDays = (...dates: readonly string[]) =>
+	dates.flatMap((date) => [
+		{ date: PlainDate(date), part: 'AM' as const },
+		{ date: PlainDate(date), part: 'PM' as const }
+	]);
+/** One person's balance as stored, `account[family][code][period][measure]`: the first when `employee` is not named. */
+export const accountsIn = (t: Kit, employee?: string) =>
+	t
+		.storedQuery({ employee_balance: { limit: 100 } })
+		.pipe(
+			Effect.map(({ employee_balance }) =>
+				accountsOf(
+					employee_balance.rows.find(
+						(row) => employee === undefined || row.employee_id === employee
+					)?.account
+				)
+			)
+		);
+/** What a code holds of a measure, across its periods. */
+export const measureOf = (accounts: Accounts, family: string, code: string, measure: string) =>
+	Object.values(accounts[family]?.[code] ?? {}).reduce(
+		(total, measures) => total + (measures[measure] ?? 0),
+		0
+	);
+/** Every ledger row, as stored. */
+export const ledgerRows = (t: Kit) =>
+	t
+		.storedQuery({ ledger_entry: { limit: 10000 } })
+		.pipe(Effect.map(({ ledger_entry }) => ledger_entry.rows));
+/**
+ * A new contract version with these dated facts, the way HR makes one: a draft from `from`, the last version ending the
+ * day before, and the seal, which triggers sync. It answers the new version's id.
+ */
+export const sealEvents = (t: Kit, from: string, events: readonly JsonObject[], by = t.admin) =>
+	Effect.gen(function* () {
+		const admin = t.as(by);
+		const stored = (status: 'SEALED' | 'DRAFT') =>
+			t
+				.storedQuery({ employee_contract: { where: { status: { eq: status } }, limit: 100 } })
+				.pipe(Effect.map(({ employee_contract }) => employee_contract.rows));
+		const held = (yield* stored('SEALED')).find((row) => row.effective_range.to === null);
+		if (held === undefined) throw new Error('No open contract version');
+		yield* admin.act('employee_contract.create', [
+			{
+				employee_id: held.employee_id,
+				entity_id: held.entity_id,
+				engagement: held.engagement,
+				employee_number: held.employee_number,
+				terms: held.terms,
+				payroll: held.payroll,
+				bank: held.bank,
+				input_schema_version_id: held.input_schema_version_id,
+				employee_extension_data: { ...held.employee_extension_data, events },
+				service_started_on: held.service_started_on,
+				effective_range: { from: PlainDate(from), to: null },
+				signed_contract_period: held.signed_contract_period,
+				status: 'DRAFT',
+				reason: 'A dated fact changed'
+			}
+		]);
+		const [draft] = yield* stored('DRAFT');
+		if (draft === undefined) throw new Error('No draft version');
+		yield* admin.act('employee_contract.update', [
+			{
+				target: held.id,
+				set: {
+					effective_range: { from: held.effective_range.from, to: addDays(PlainDate(from), -1) }
+				}
+			}
+		]);
+		yield* admin.act('employee_contract.update', [{ target: draft.id, set: { status: 'SEALED' } }]);
+		return draft.id;
+	});
+/** Runs the `ledger` automation for everyone, and whatever it schedules. */
+export const syncAll = (t: Kit) =>
+	t.as(t.admin).start('ledger', {}).pipe(Effect.andThen(t.runDue()));

@@ -3,10 +3,21 @@ import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
-import { Effect, Schema } from 'effect';
-import { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
+import { Effect } from 'effect';
+import { leftOn, type Accounts } from '../src/lib/ledger/core.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, uuid, workspace } from './kit.ts';
+import {
+	ENTITY,
+	accountsIn,
+	catalogRow,
+	ledgerRows as allLedgerRows,
+	measureOf,
+	pack,
+	syncAll as compute,
+	uuid,
+	wholeDays,
+	workspace
+} from './kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -22,8 +33,7 @@ const terms = {
 	allowances: {}
 };
 type Seed = ReturnType<typeof pack>;
-type Account = NonNullable<Seed['employee_balance']>[number]['account'];
-const seedOf = (from: string, account: Account = {}, on = '2026-11-06'): Seed => {
+const seedOf = (from: string, account: Accounts = {}, on = '2026-11-06'): Seed => {
 	const seed = pack('MY', 'Asia/Kuala_Lumpur', terms, {}, [], [], on);
 	return {
 		...seed,
@@ -35,37 +45,39 @@ const seedOf = (from: string, account: Account = {}, on = '2026-11-06'): Seed =>
 		employee_balance: (seed.employee_balance ?? []).map((row) => ({ ...row, account }))
 	};
 };
-const leaveOf = (t: Kit, employee?: string) =>
-	t.storedQuery({ employee_balance: { limit: 10 } }).pipe(
-		Effect.map(({ employee_balance }) => {
-			const row = employee_balance.rows.find(
-				(item) => employee === undefined || item.employee_id === employee
-			);
-			const account = Schema.decodeUnknownSync(JsonObject)(row?.account);
-			return Schema.decodeUnknownSync(JsonObject)(account.leave ?? {});
-		})
+const entitled = (t: Kit, code: string, employee?: string) =>
+	accountsIn(t, employee).pipe(
+		Effect.map((accounts) => measureOf(accounts, 'leave', code, 'entitled'))
 	);
 const ledgerRows = (t: Kit) =>
-	t
-		.storedQuery({ ledger_entry: { where: { account: { eq: 'leave' } }, limit: 500 } })
-		.pipe(Effect.map(({ ledger_entry }) => ledger_entry.rows));
-const compute = (t: Kit) =>
-	t.as(t.admin).start('leave_entitlement', {}).pipe(Effect.andThen(t.runDue()));
+	allLedgerRows(t).pipe(Effect.map((rows) => rows.filter((row) => row.account === 'leave')));
+const take = (t: Kit, seed: Seed, code: string, date: string, as = t.admin) =>
+	t.as(as).act('leave_catalog_entry.create', [
+		{
+			entity_id: ENTITY,
+			employment_id: CONTRACT,
+			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
+			days: wholeDays(date)
+		}
+	]);
 
 describe('run by hand', () => {
-	it.live('computes everyone from the catalog', () => {
-		const seed = seedOf('2023-01-01');
-		return Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* compute(t);
-			const leave = yield* leaveOf(t);
-			assert.equal(leave['MEDICAL_LEAVE'], 18);
-			assert.equal(leave['HOSPITALIZATION_LEAVE'], 60);
-			assert.equal(leave['ANNUAL_LEAVE'], 12);
-			assert.equal(leave['UNPAID_LEAVE'], 36500);
-			assert.equal(leave['MATERNITY_LEAVE'], 0);
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
-	});
+	it.live(
+		'computes everyone from the catalog, and opens no account for a row with no limit',
+		() => {
+			const seed = seedOf('2023-01-01');
+			return Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* compute(t);
+				assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), 18);
+				assert.equal(yield* entitled(t, 'HOSPITALIZATION_LEAVE'), 60);
+				assert.equal(yield* entitled(t, 'ANNUAL_LEAVE'), 12);
+				const { leave = {} } = yield* accountsIn(t);
+				assert.equal(leave['UNPAID_LEAVE'], undefined);
+				assert.equal(leave['MATERNITY_LEAVE'], undefined);
+			}).pipe(Effect.provide(workspace({ seed, now: NOW })));
+		}
+	);
 
 	it.live('a second run writes nothing', () => {
 		const seed = seedOf('2023-01-01');
@@ -73,13 +85,13 @@ describe('run by hand', () => {
 			const t = yield* TestWorkspace;
 			yield* compute(t);
 			const first = yield* ledgerRows(t);
-			const held = yield* leaveOf(t);
+			const held = yield* accountsIn(t);
 			const [before] = (yield* t.storedQuery({ employee_balance: { limit: 1 } })).employee_balance
 				.rows;
 			yield* compute(t);
 			yield* compute(t);
 			assert.equal((yield* ledgerRows(t)).length, first.length);
-			assert.deepEqual(yield* leaveOf(t), held);
+			assert.deepEqual(yield* accountsIn(t), held);
 			const [after] = (yield* t.storedQuery({ employee_balance: { limit: 1 } })).employee_balance
 				.rows;
 			assert.equal(after?.revision, before?.revision);
@@ -88,28 +100,26 @@ describe('run by hand', () => {
 
 	it.live('days taken stay taken', () => {
 		const seed = seedOf('2023-01-01');
-		const version = seed.employee_contract?.[0]?.input_schema_version_id;
-		const row = seed.leave_catalog?.find(
-			(item) => item.code === 'MEDICAL_LEAVE' && item.settings_id === version
-		);
-		assert.ok(row !== undefined);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* compute(t);
-			yield* t.as(t.admin).act('leave_catalog_entry.create', [
-				{
-					entity_id: ENTITY,
-					employment_id: CONTRACT,
-					catalog_id: idOf('leave_catalog', String(row.id)),
-					days: [
-						{ date: PlainDate('2026-11-03'), part: 'AM' },
-						{ date: PlainDate('2026-11-03'), part: 'PM' }
-					]
-				}
-			]);
+			yield* take(t, seed, 'MEDICAL_LEAVE', '2026-11-03');
 			yield* t.runDue();
 			yield* compute(t);
-			assert.equal((yield* leaveOf(t))['MEDICAL_LEAVE'], 17);
+			const accounts = yield* accountsIn(t);
+			assert.equal(measureOf(accounts, 'leave', 'MEDICAL_LEAVE', 'entitled'), 18);
+			assert.equal(measureOf(accounts, 'leave', 'MEDICAL_LEAVE', 'used'), 1);
+			assert.equal(
+				leftOn(
+					accounts,
+					'leave',
+					'MEDICAL_LEAVE',
+					{ window: 'CALENDAR_YEAR' },
+					{ scope: 'MY', started: '2023-01-01', events: [] },
+					'2026-11-06'
+				),
+				17
+			);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
 
@@ -129,14 +139,18 @@ describe('run by hand', () => {
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
 
-	it.live('an account from before keeps what it holds', () => {
-		const seed = seedOf('2023-01-01', { leave: { ANNUAL_LEAVE: 7 } });
+	it.live('a window held from before stands, and carries what it left', () => {
+		const seed = seedOf('2023-01-01', {
+			leave: { ANNUAL_LEAVE: { 'MY.S.2025-01-01': { entitled: 12, used: 5 } } }
+		});
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* compute(t);
-			const leave = yield* leaveOf(t);
-			assert.equal(leave['ANNUAL_LEAVE'], 7);
-			assert.equal(leave['MEDICAL_LEAVE'], 18);
+			assert.deepEqual((yield* accountsIn(t)).leave?.['ANNUAL_LEAVE'], {
+				'MY.S.2025-01-01': { entitled: 12, used: 5 },
+				'MY.S.2026-01-01': { entitled: 12, carried: 7 }
+			});
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), 18);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
 });
@@ -171,16 +185,16 @@ describe('run for one person', () => {
 			const t = yield* TestWorkspace;
 			const start = t
 				.as(t.admin)
-				.start('leave_entitlement', { employees: [person] })
+				.start('ledger', { employees: [person] })
 				.pipe(Effect.andThen(t.runDue()));
 			yield* start;
-			assert.equal((yield* leaveOf(t, uuid(4)))['MEDICAL_LEAVE'], 18);
-			assert.equal((yield* leaveOf(t, OTHER))['MEDICAL_LEAVE'], undefined);
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', uuid(4)), 18);
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', OTHER), 0);
 			const once = (yield* ledgerRows(t)).length;
 			yield* start;
 			assert.equal((yield* ledgerRows(t)).length, once);
 			yield* compute(t);
-			assert.equal((yield* leaveOf(t, OTHER))['MEDICAL_LEAVE'], 18);
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', OTHER), 18);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
 });
@@ -202,7 +216,7 @@ describe('a contract change', () => {
 				.as(t.admin)
 				.act('employee_contract.update', [{ target: CONTRACT, set: { reason: 'Terms reviewed' } }]);
 			yield* t.runDue();
-			assert.equal((yield* leaveOf(t))['MEDICAL_LEAVE'], 18);
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), 18);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
 });
@@ -246,20 +260,20 @@ describe('the events that call it', () => {
 				{ target: contract.id, set: { status: 'SEALED' } }
 			]);
 			yield* t.runDue();
-			const leave = yield* leaveOf(t, person.id);
-			assert.equal(leave['MEDICAL_LEAVE'], 14);
-			assert.equal(leave['UNPAID_LEAVE'], 36500);
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE', person.id), 14);
+			assert.equal(yield* entitled(t, 'UNPAID_LEAVE', person.id), 0);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
 
 	it.live('a paid run picks up a band reached since', () => {
-		const seed = seedOf('2024-10-15', {
-			leave: { MEDICAL_LEAVE: 14 },
-			leave_window: { MEDICAL_LEAVE: 2026, 'MEDICAL_LEAVE.granted': 14 }
-		});
+		const seed = seedOf('2024-10-15');
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const admin = t.as(t.admin);
+			t.clock.set('2026-10-01T02:00:00.000Z');
+			yield* compute(t);
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), 14);
+			t.clock.set(NOW);
 			yield* admin.act('payroll_run.create', [
 				{ entity_id: ENTITY, period: '2026-10', kind: 'ON_CYCLE' }
 			]);
@@ -268,26 +282,105 @@ describe('the events that call it', () => {
 			assert.ok(run !== undefined);
 			yield* admin.act('payroll_run.update', [{ target: run.id, set: { state: 'PAID' } }]);
 			yield* t.runDue();
-			assert.equal((yield* leaveOf(t))['MEDICAL_LEAVE'], 18);
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
+			assert.equal(yield* entitled(t, 'MEDICAL_LEAVE'), 18);
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-10-01T02:00:00.000Z' })));
 	});
 
-	it.live('1 January restores days used and carries annual leave', () => {
-		const seed = seedOf(
-			'2023-01-01',
-			{
-				leave: { MEDICAL_LEAVE: 3 },
-				leave_window: { MEDICAL_LEAVE: 2026, 'MEDICAL_LEAVE.granted': 18 }
-			},
-			'2027-01-01'
-		);
+	it.live('1 January opens a new key, and the old window stays', () => {
+		const seed = seedOf('2023-01-01', {}, '2027-01-01');
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* compute(t);
-			assert.equal((yield* leaveOf(t))['MEDICAL_LEAVE'], 18);
-			const movement = (yield* ledgerRows(t)).find((row) => row.code === 'MEDICAL_LEAVE');
+			yield* take(t, seed, 'MEDICAL_LEAVE', '2026-11-03');
+			yield* t.runDue();
+			t.clock.set('2027-01-01T02:00:00.000Z');
+			yield* compute(t);
+			const held = (yield* accountsIn(t)).leave?.['MEDICAL_LEAVE'];
+			assert.deepEqual(held, {
+				'MY.Y.2026-01-01': { entitled: 18, used: 1 },
+				'MY.Y.2027-01-01': { entitled: 18 }
+			});
+			const movement = (yield* ledgerRows(t)).find(
+				(row) => row.code === 'MEDICAL_LEAVE' && row.period === 'MY.Y.2027-01-01'
+			);
 			assert.equal(movement?.operation, 'ADD');
-			assert.equal(Number(String(movement?.amount)), 15);
-		}).pipe(Effect.provide(workspace({ seed, now: '2027-01-01T02:00:00.000Z' })));
+			assert.equal(movement?.measure, 'entitled');
+			assert.equal(movement?.amount?.toNumber(), 18);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
+});
+
+describe('posting', () => {
+	const seed = seedOf('2023-01-01');
+	it.live('a real HR controller’s leave posts', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* compute(t);
+			yield* take(t, seed, 'MEDICAL_LEAVE', '2026-11-03', t.member(['hr_controller']));
+			assert.deepEqual(yield* t.runDue(), { failed: [] });
+			assert.equal(measureOf(yield* accountsIn(t), 'leave', 'MEDICAL_LEAVE', 'used'), 1);
+			const [row] = (yield* ledgerRows(t)).filter((item) => item.measure === 'used');
+			assert.equal(row?.operation, 'ADD');
+			assert.match(String(row?.source), /^leave_catalog_entry:/);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+
+	it.live('leaves a reversal to the HR controller', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* compute(t);
+			const reversal = {
+				entity_id: ENTITY,
+				employment_id: CONTRACT,
+				catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'MEDICAL_LEAVE')),
+				days: wholeDays('2026-11-03'),
+				is_reversal: true
+			};
+			const refused = yield* Effect.flip(
+				t.as(t.member(['hr_manager'])).act('leave_catalog_entry.create', [reversal])
+			);
+			assert.match(String(refused), /Only the HR controller makes a reversal/);
+			yield* t.as(t.member(['hr_controller'])).act('leave_catalog_entry.create', [reversal]);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+
+	it.live('never runs as the writer, who holds no write to the ledger or the balance', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const member = t.member(['hr_controller']);
+			const hr = t.as(member);
+			yield* compute(t);
+			yield* take(t, seed, 'MEDICAL_LEAVE', '2026-11-03', member);
+			yield* t.runDue();
+			const [entry] = (yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } }))
+				.leave_catalog_entry.rows;
+			const [posted] = (yield* ledgerRows(t)).filter((row) => row.measure === 'used');
+			const [balance] = (yield* t.storedQuery({ employee_balance: { limit: 1 } })).employee_balance
+				.rows;
+			assert.ok(entry !== undefined && posted !== undefined && balance !== undefined);
+			assert.equal(entry.created_by, member.id);
+			assert.notEqual(posted.created_by, member.id);
+			assert.notEqual(balance.updated_by, member.id);
+			assert.equal(
+				yield* Effect.isFailure(
+					hr.act('employee_balance.update', [{ target: balance.id, set: { account: {} } }])
+				),
+				true
+			);
+			assert.equal(
+				yield* Effect.isFailure(
+					hr.act('ledger_entry.create', [
+						{
+							balance_id: balance.id,
+							operation: 'ADD',
+							account: 'leave',
+							code: 'MEDICAL_LEAVE',
+							effective_on: PlainDate('2026-11-03')
+						}
+					])
+				),
+				true
+			);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
 });

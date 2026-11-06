@@ -24,8 +24,9 @@
 					'unit',
 					'incurred_on',
 					'evidence_file',
-					'is_reversal'
+					'is_reversal',
+					'reverses'
 				]
-			: ['description', 'quantity', 'unit', 'incurred_on', 'evidence_file', 'is_reversal']}
+			: ['description', 'quantity', 'unit', 'incurred_on', 'evidence_file']}
 	/>
 </RecordShell>
