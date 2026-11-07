@@ -421,6 +421,18 @@ describe('a second salary in a pay month', () => {
 			assert.equal(charged(first, 'EPF')?.employer, charged(second, 'EPF')?.employer);
 		}).pipe(Effect.provide(workspace({ seed: moved(one), now: NOW_JUNE })));
 	});
+	it.live('Malaysia: each company pays its own days, and the month pays once', () => {
+		const one = CASES['Malaysia'];
+		assert.ok(one !== undefined);
+		return Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* transfer(t);
+			const { payslip } = yield* t.storedQuery({ payslip: { limit: 10 } });
+			const [first, second] = payslip.rows.map((row) => Number(row.basic_earnings));
+			assert.equal(first, second);
+			assert.equal(Number(first) + Number(second), 8000);
+		}).pipe(Effect.provide(workspace({ seed: moved(one), now: NOW_JUNE })));
+	});
 	it.live('Singapore: each company in a transfer month pays its own levy', () => {
 		const one = CASES['Singapore'];
 		assert.ok(one !== undefined);

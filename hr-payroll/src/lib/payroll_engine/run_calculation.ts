@@ -525,8 +525,9 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 					},
 					work: { days: [...own].flatMap((id) => workDays.get(id) ?? []) },
 					...(projected === undefined ? {} : { projected_days: projected }),
+					// a day at another employer is that employer's to pay
 					employed: answering
-						.filter((row) => row.employee_id === employeeId)
+						.filter((row) => row.employee_id === employeeId && row.entity_id === companyId)
 						.map((row) => {
 							const { from, to } = objectValue(row.effective_range);
 							return { from: String(from), to: to == null ? null : String(to) };

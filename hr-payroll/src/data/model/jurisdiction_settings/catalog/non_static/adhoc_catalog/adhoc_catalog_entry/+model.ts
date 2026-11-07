@@ -1,5 +1,8 @@
 import { model } from '@norbital-ai/bolt';
-import { assertReversals } from '../../../../../../../lib/ledger/service.js';
+import {
+	assertAdjustmentsClosed,
+	assertReversals
+} from '../../../../../../../lib/ledger/service.js';
 import { validateRegistered } from '../../../../../../../lib/payroll_engine/registrations.js';
 import { jsonObject } from '../../../../../../../lib/payroll_engine/foundation.js';
 import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
@@ -60,6 +63,10 @@ export default model('adhoc_catalog_entry', {
 			yield* assertReversals(
 				ctx.db.query,
 				'adhoc_catalog_entry',
+				rows.map((row) => jsonObject(row))
+			);
+			yield* assertAdjustmentsClosed(
+				ctx.db.query,
 				rows.map((row) => jsonObject(row))
 			);
 			return rows;

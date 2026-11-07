@@ -936,6 +936,59 @@ export const assertReversals = Effect.fn('ledger.assertReversals')(function* (
 		);
 });
 
+/**
+ * A statutory adjustment corrects a month a run has closed. Dated in an open month, that month's own row counts it as
+ * already paid and charges that much less, so nothing would move.
+ */
+export const assertAdjustmentsClosed = Effect.fn('ledger.assertAdjustmentsClosed')(function* (
+	read: Reader,
+	entries: readonly JsonObject[]
+) {
+	const dated = entries.filter((entry) => typeof entry.reverses !== 'string');
+	if (dated.length === 0) return;
+	const { adhoc_catalog: rows = [], payroll_run: runs = [] } = yield* queryRows(read, {
+		adhoc_catalog: {
+			where: { id: { in: uniqueIds(dated, 'catalog_id') } },
+			fields: ['lookup'],
+			limit: 10000
+		},
+		payroll_run: {
+			where: { entity_id: { in: uniqueIds(dated, 'entity_id') } },
+			fields: ['entity_id', 'salary_coverage'],
+			limit: 10000
+		}
+	});
+	const statutory = new Set(
+		rows
+			.filter((row) => {
+				const { accounts } = objectValue(row.lookup);
+				return (
+					Array.isArray(accounts) &&
+					accounts.some((item) => objectValue(item).account === 'statutory')
+				);
+			})
+			.map((row) => String(row.id))
+	);
+	const closed = new Set(
+		runs.map(
+			(run) =>
+				`${String(run.entity_id)}/${String(objectValue(run.salary_coverage).from).slice(0, 7)}`
+		)
+	);
+	const open = dated.some(
+		(entry) =>
+			statutory.has(String(entry.catalog_id)) &&
+			!closed.has(`${String(entry.entity_id)}/${String(entry.incurred_on).slice(0, 7)}`)
+	);
+	if (open)
+		return yield* Effect.fail(
+			new Refusal({
+				message:
+					'A statutory adjustment corrects a month a run has closed. Date it in the month it corrects.'
+			})
+		);
+});
+
 /** The check before a contract seals: a fact it drops must not leave days taken under it with nothing behind them. */
 export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 	read: Reader,

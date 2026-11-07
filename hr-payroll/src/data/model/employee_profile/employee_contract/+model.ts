@@ -64,14 +64,13 @@ const capturedRun = Effect.fnUntraced(function* (
 const MID_MONTH =
 	'A contract changes from the first of a month. Date the event as it happened; the version starts on the first.';
 /**
- * Terms and facts change from the first of a month, so a run never prices a month on two versions. A hire, a rehire and
- * a move to another entity keep their real date, and a run pays those days as it always has.
+ * A contract changes from the first of a month, a move to another entity included, so a run never prices a month on
+ * two versions or two employers. A hire, a rehire and an exit keep their real date, and a run pays those days.
  */
 const startsMidMonth = Effect.fnUntraced(function* (
 	read: Reader,
 	rows: readonly {
 		readonly employee_id: string;
-		readonly entity_id: string;
 		readonly effective_range: { readonly from: string; readonly to: string | null };
 	}[]
 ) {
@@ -83,7 +82,7 @@ const startsMidMonth = Effect.fnUntraced(function* (
 				employee_id: { in: mid.map((row) => row.employee_id) },
 				status: { eq: 'SEALED' }
 			},
-			fields: ['employee_id', 'entity_id', 'effective_range'],
+			fields: ['employee_id', 'effective_range'],
 			limit: 10000
 		}
 	});
@@ -91,11 +90,7 @@ const startsMidMonth = Effect.fnUntraced(function* (
 		const before = String(addDays(PlainDate(row.effective_range.from), -1));
 		return held.some((other) => {
 			const { to } = objectValue(other.effective_range);
-			return (
-				other.employee_id === row.employee_id &&
-				other.entity_id === row.entity_id &&
-				(typeof to !== 'string' || to >= before)
-			);
+			return other.employee_id === row.employee_id && (typeof to !== 'string' || to >= before);
 		});
 	});
 });
