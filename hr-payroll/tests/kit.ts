@@ -7,7 +7,7 @@ import {
 	type TestPorts
 } from '@norbital-ai/bolt-cli/test';
 import { Effect, Schema } from 'effect';
-import { PlainDate, addDays } from '@norbital-ai/std/date';
+import { PlainDate, addDays, monthOf } from '@norbital-ai/std/date';
 import { accountsOf, type Accounts } from '../src/lib/ledger/core.ts';
 import { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
@@ -197,12 +197,32 @@ export const ledgerRows = (t: Kit) =>
 	t
 		.storedQuery({ ledger_entry: { limit: 10000 } })
 		.pipe(Effect.map(({ ledger_entry }) => ledger_entry.rows));
+const held = <Row>(rows: readonly Row[]) => {
+	const [row] = rows;
+	if (row === undefined) throw new Error('No sealed entry');
+	return row;
+};
+/** The one entry a run has sealed, for a reversal to name. */
+export const sealedAdhoc = (t: Kit) =>
+	t
+		.storedQuery({
+			adhoc_catalog_entry: { where: { payroll_run_id: { isNull: false } }, limit: 1 }
+		})
+		.pipe(Effect.map(({ adhoc_catalog_entry }) => held(adhoc_catalog_entry.rows).id));
+/** The one entry a run has sealed, for a reversal to name. */
+export const sealedLeave = (t: Kit) =>
+	t
+		.storedQuery({
+			leave_catalog_entry: { where: { payroll_run_id: { isNull: false } }, limit: 1 }
+		})
+		.pipe(Effect.map(({ leave_catalog_entry }) => held(leave_catalog_entry.rows).id));
 /**
- * A new contract version with these dated facts, the way HR makes one: a draft from `from`, the last version ending the
- * day before, and the seal, which triggers sync. It answers the new version's id.
+ * A new contract version with these dated facts, the way HR makes one: a draft from the first of the month `on` falls in,
+ * the last version ending the day before, and the seal, which triggers sync. It answers the new version's id.
  */
-export const sealEvents = (t: Kit, from: string, events: readonly JsonObject[], by = t.admin) =>
+export const sealEvents = (t: Kit, on: string, events: readonly JsonObject[], by = t.admin) =>
 	Effect.gen(function* () {
+		const from = String(monthOf(on).from);
 		const admin = t.as(by);
 		const stored = (status: 'SEALED' | 'DRAFT') =>
 			t

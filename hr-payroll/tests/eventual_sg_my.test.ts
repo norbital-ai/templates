@@ -1,13 +1,14 @@
 // A wrong payment needs no automatic entry: HR corrects the pay, and the next cycle's contribution counts the total paid.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
+import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
 import type { Accounts } from '../src/lib/ledger/core.ts';
-import { ENTITY, accountsIn, pack, uuid, workspace } from './kit.ts';
+import { ENTITY, accountsIn, pack, sealedAdhoc, sealedLeave, uuid, workspace } from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const JUNE = '2026-06-20T02:00:00.000Z';
@@ -64,7 +65,7 @@ const enter = (
 	item: string,
 	quantity: number,
 	on: string,
-	is_reversal = false
+	reverses: Id<'adhoc_catalog_entry'> | null = null
 ) => {
 	const version = seed.employee_contract?.[0]?.input_schema_version_id;
 	const row = (seed.adhoc_catalog ?? []).find((r) => r.code === item && r.settings_id === version);
@@ -78,7 +79,7 @@ const enter = (
 			quantity,
 			unit: 'MONEY',
 			incurred_on: PlainDate(on),
-			is_reversal
+			reverses
 		}
 	]);
 };
@@ -180,7 +181,7 @@ describe('paid too much', () => {
 				const t = yield* TestWorkspace;
 				yield* enter(t, seed, place.item, extra, '2026-05-05');
 				yield* onCycle(t, '2026-05');
-				yield* enter(t, seed, place.item, extra, '2026-06-05', true);
+				yield* enter(t, seed, place.item, extra, '2026-06-05', yield* sealedAdhoc(t));
 				yield* onCycle(t, '2026-06');
 				const [june] = yield* runs(t, '2026-06');
 				assert.ok(june !== undefined);
@@ -214,7 +215,7 @@ describe('paid too much', () => {
 			const t = yield* TestWorkspace;
 			yield* enter(t, seed, MALAYSIA.item, 400, '2026-06-05');
 			yield* onCycle(t, '2026-06');
-			yield* enter(t, seed, MALAYSIA.item, 400, '2026-06-15', true);
+			yield* enter(t, seed, MALAYSIA.item, 400, '2026-06-15', yield* sealedAdhoc(t));
 			const refused = yield* Effect.flip(offCycle(t, '2026-06'));
 			assert.match(String(refused), /next on-cycle run/);
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
@@ -327,7 +328,7 @@ describe('someone on a six-day week', () => {
 			(item) => item.code === 'UNPAID_LEAVE' && item.settings_id === version
 		);
 		assert.ok(row !== undefined);
-		const take = (t: Kit, date: string, is_reversal = false) =>
+		const take = (t: Kit, date: string, reverses: Id<'leave_catalog_entry'> | null = null) =>
 			t.as(t.admin).act('leave_catalog_entry.create', [
 				{
 					entity_id: ENTITY,
@@ -337,7 +338,7 @@ describe('someone on a six-day week', () => {
 						{ date: PlainDate(date), part: 'AM' as const },
 						{ date: PlainDate(date), part: 'PM' as const }
 					],
-					is_reversal
+					reverses
 				}
 			]);
 		const line = (slip: PayslipBreakdown | undefined) =>
@@ -346,7 +347,7 @@ describe('someone on a six-day week', () => {
 			const t = yield* TestWorkspace;
 			yield* take(t, '2026-06-10');
 			yield* onCycle(t, '2026-06');
-			yield* take(t, '2026-07-06', true);
+			yield* take(t, '2026-07-06', yield* sealedLeave(t));
 			yield* onCycle(t, '2026-07');
 			const [june] = yield* runs(t, '2026-06');
 			const [july] = yield* runs(t, '2026-07');
@@ -566,14 +567,19 @@ describe('no-pay leave in Singapore', () => {
 		{ date: PlainDate(date), part: 'AM' as const },
 		{ date: PlainDate(date), part: 'PM' as const }
 	];
-	const take = (t: Kit, seed: Seed, date: string, is_reversal = false) =>
+	const take = (
+		t: Kit,
+		seed: Seed,
+		date: string,
+		reverses: Id<'leave_catalog_entry'> | null = null
+	) =>
 		t.as(t.admin).act('leave_catalog_entry.create', [
 			{
 				entity_id: ENTITY,
 				employment_id: CONTRACT,
 				catalog_id: noPay(seed),
 				days: whole(date),
-				is_reversal
+				reverses
 			}
 		]);
 	const line = (slip: PayslipBreakdown | undefined) =>
@@ -596,7 +602,7 @@ describe('no-pay leave in Singapore', () => {
 			const t = yield* TestWorkspace;
 			yield* take(t, seed, '2026-06-10');
 			yield* onCycle(t, '2026-06');
-			yield* take(t, seed, '2026-07-06', true);
+			yield* take(t, seed, '2026-07-06', yield* sealedLeave(t));
 			yield* onCycle(t, '2026-07');
 			const [july] = yield* runs(t, '2026-07');
 			assert.equal(line(july)?.amount, 200);

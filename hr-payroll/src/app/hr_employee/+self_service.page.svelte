@@ -4,11 +4,11 @@
 	import { Decimal } from '@norbital-ai/std/decimal';
 	import { AppShell, Bound, Cluster, Cover, Stack } from '@norbital-ai/ui/layout';
 	import {
-		Button,
 		Combobox,
 		DescriptionHint,
+		Field,
+		Form,
 		Label,
-		RecordShell,
 		Sheet,
 		Table,
 		Tabs,
@@ -194,6 +194,14 @@
 	</Bound>
 {/snippet}
 
+{#snippet documents()}
+	<Bound size="fill" inset>
+		{#if me != null}<Form of="employee_profile" mode="update" id={me.id} record={me}
+				>{#snippet children()}<Field name="documents" />{/snippet}</Form
+			>{/if}
+	</Bound>
+{/snippet}
+
 {#snippet leave()}
 	<Cover gap="md" size="fill" top={needsGate ? gate : undefined}>
 		{#if requesting && employmentId != null && contract?.entity_id != null}
@@ -328,6 +336,12 @@
 			{ name: 'leave', title: bolt.t('family.leave'), icon: 'lucide:calendar-check', body: leave },
 			{ name: 'claim', title: bolt.t('family.claim'), icon: 'lucide:receipt-text', body: claims },
 			{ name: 'loan', title: bolt.t('family.loan'), icon: 'lucide:landmark', body: loans },
+			{
+				name: 'documents',
+				title: bolt.t('models.employee_profile.fields.documents'),
+				icon: 'lucide:file-text',
+				body: documents
+			},
 			{
 				name: 'payslip',
 				title: bolt.t('app.hr_employee.tab_payslips'),

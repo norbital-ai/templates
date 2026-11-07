@@ -2,12 +2,14 @@
 // nothing a run waits on can hold it forever.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
+import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { expired, totalsScope, viewOf } from '../src/lib/ledger/core.ts';
 import { adhocWanted, entitlementPlans } from '../src/lib/ledger/service.ts';
 import { jsonObject } from '../src/lib/payroll_engine/foundation.ts';
+import { decimal } from '../src/lib/payroll_engine/money.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
 import {
@@ -17,7 +19,10 @@ import {
 	measureOf,
 	pack,
 	sealEvents,
+	sealedLeave,
+	syncAll,
 	uuid,
+	wholeDays,
 	workspace
 } from './kit.ts';
 
@@ -113,15 +118,18 @@ describe('a claim on a limited row', () => {
 			yield* t.runDue();
 			yield* claim(t, 300);
 			yield* t.runDue();
+			yield* run(t);
+			yield* t.runDue();
 			const rows = (yield* t.storedQuery({ claim_catalog_entry: { limit: 5 } })).claim_catalog_entry
 				.rows;
 			const second = rows.find((row) => row.quantity.toNumber() === 300);
 			assert.ok(second !== undefined);
-			yield* t
-				.as(t.admin)
-				.act('claim_catalog_entry.create', [
-					{ ...entry(300), is_reversal: true, reverses: second.id }
-				]);
+			const back = (quantity: number) => [
+				{ ...entry(quantity), incurred_on: PlainDate('2026-12-03'), reverses: second.id }
+			];
+			const more = yield* Effect.flip(t.as(t.admin).act('claim_catalog_entry.create', back(301)));
+			assert.match(String(more), /no more than it held/);
+			yield* t.as(t.admin).act('claim_catalog_entry.create', back(300));
 			yield* t.runDue();
 			assert.equal(yield* used(t), 500);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
@@ -153,6 +161,184 @@ describe('a run', () => {
 			yield* t.as(t.admin).act('payroll_run.update', [{ target: only.id, set: { state: 'PAID' } }]);
 		}).pipe(Effect.provide(workspace({ seed: zero, now: NOW })));
 	});
+});
+
+describe('a contract that ends', () => {
+	const encashed = (t: Kit) =>
+		t
+			.storedQuery({ leave_catalog_entry: { limit: 10 } })
+			.pipe(Effect.map(({ leave_catalog_entry }) => leave_catalog_entry.rows));
+	it.live('with a successor next day, keeps its leave', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* syncAll(t);
+			yield* sealEvents(t, '2026-11-16', [], t.member(['hr_controller']));
+			yield* t.runDue();
+			assert.deepEqual(yield* encashed(t), []);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+	it.live('with none, encashes what is left', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* syncAll(t);
+			yield* t.as(t.member(['hr_controller'])).act('employee_contract.update', [
+				{
+					target: CONTRACT,
+					set: {
+						effective_range: { from: PlainDate('2026-01-01'), to: PlainDate('2026-11-13') },
+						final_pay_due_on: PlainDate('2026-11-30')
+					}
+				}
+			]);
+			yield* t.runDue();
+			const [entry] = yield* encashed(t);
+			assert.equal(entry?.encashment, true);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+});
+
+describe('what cannot be done to the ledger, an admin included', () => {
+	const MEDICAL = idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'MEDICAL_LEAVE'));
+	const OCTOBER = '2026-10-05';
+	const sick = (date: string, set: object = {}) => ({
+		entity_id: ENTITY,
+		employment_id: CONTRACT,
+		catalog_id: MEDICAL,
+		days: wholeDays(date),
+		...set
+	});
+	const hr = (t: Kit) => t.as(t.member(['hr_controller']));
+	const take = (t: Kit, date: string) => hr(t).act('leave_catalog_entry.create', [sick(date)]);
+	const pay = (t: Kit, period: string) => run(t, period).pipe(Effect.andThen(t.runDue()));
+	/** An October sick day, sealed by October's run. */
+	const taken = (t: Kit) =>
+		take(t, OCTOBER).pipe(Effect.andThen(pay(t, '2026-10')), Effect.andThen(sealedLeave(t)));
+	const reverse = (t: Kit, reverses: Id<'leave_catalog_entry'>, set: object = {}) =>
+		hr(t).act('leave_catalog_entry.create', [sick('2026-11-03', { reverses, ...set })]);
+	it.live('writes neither a ledger row nor a balance by hand', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* syncAll(t);
+			const [balance] = (yield* t.storedQuery({ employee_balance: { limit: 1 } })).employee_balance
+				.rows;
+			assert.ok(balance !== undefined);
+			const row = yield* Effect.flip(
+				t.as(t.admin).act('ledger_entry.create', [
+					{
+						balance_id: balance.id,
+						operation: 'ADD',
+						account: 'leave',
+						code: 'ANNUAL_LEAVE',
+						period: 'MY.Y.2026-01-01',
+						measure: 'entitled',
+						amount: decimal(999),
+						unit: 'DAY',
+						effective_on: PlainDate('2026-11-03'),
+						source: 'by hand'
+					}
+				])
+			);
+			assert.match(String(row), /Only posting and sync/);
+			const cell = yield* Effect.flip(
+				t.as(t.admin).act('employee_balance.update', [{ target: balance.id, set: { account: {} } }])
+			);
+			assert.match(String(cell), /Only posting and sync/);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+	it.live('reverses no entry a run has not sealed: that one is deleted', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* syncAll(t);
+			yield* take(t, OCTOBER);
+			const [open] = (yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } }))
+				.leave_catalog_entry.rows;
+			assert.ok(open !== undefined);
+			assert.match(String(yield* Effect.flip(reverse(t, open.id))), /deleted instead/);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+	it.live('reverses an entry once', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* syncAll(t);
+			const id = yield* taken(t);
+			yield* reverse(t, id);
+			assert.match(String(yield* Effect.flip(reverse(t, id))), /another record already has/);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+	it.live('reverses no reversal, even one a run has sealed', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* syncAll(t);
+			yield* reverse(t, yield* taken(t));
+			yield* pay(t, '2026-11');
+			const { leave_catalog_entry } = yield* t.storedQuery({
+				leave_catalog_entry: { where: { is_reversal: { eq: true } }, limit: 1 }
+			});
+			const [reversal] = leave_catalog_entry.rows;
+			assert.ok(reversal?.payroll_run_id != null);
+			const again = yield* Effect.flip(reverse(t, reversal.id));
+			assert.match(String(again), /same person/);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+	it.live('reverses no more than the entry held', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* syncAll(t);
+			const larger = yield* Effect.flip(
+				reverse(t, yield* taken(t), { days: wholeDays('2026-11-03', '2026-11-04') })
+			);
+			assert.match(String(larger), /no more than it held/);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+	it.live('reverses no one else’s entry', () => {
+		const contract = seed.employee_contract?.[0] ?? {};
+		const two = {
+			...seed,
+			employee_profile: [
+				...(seed.employee_profile ?? []),
+				{ id: uuid(800), user_id: null, name: 'Other', email: 'other@example.test' }
+			],
+			employee_contract: [
+				...(seed.employee_contract ?? []),
+				{ ...contract, id: uuid(801), employee_id: uuid(800), employee_number: 'W2' }
+			],
+			employee_balance: [
+				...(seed.employee_balance ?? []),
+				{ id: uuid(802), employee_id: uuid(800), account: {} }
+			]
+		};
+		return Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* syncAll(t);
+			const refused = yield* Effect.flip(
+				reverse(t, yield* taken(t), { employment_id: idOf('employee_contract', uuid(801)) })
+			);
+			assert.match(String(refused), /same person/);
+		}).pipe(Effect.provide(workspace({ seed: two, now: NOW })));
+	});
+	it.live('reverses on the entry’s own catalog item', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* syncAll(t);
+			const refused = yield* Effect.flip(
+				reverse(t, yield* taken(t), {
+					catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'ANNUAL_LEAVE'))
+				})
+			);
+			assert.match(String(refused), /same person and catalog item/);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
+	it.live('books a half day once, until a reversal frees it', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* syncAll(t);
+			const id = yield* taken(t);
+			const twice = yield* Effect.flip(take(t, OCTOBER));
+			assert.match(String(twice), new RegExp(`already covers ${OCTOBER}`));
+			yield* reverse(t, id);
+			yield* take(t, OCTOBER);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
 });
 
 describe('the ledger automation', () => {

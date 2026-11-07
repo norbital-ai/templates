@@ -49,6 +49,7 @@ Payroll runs top to bottom, once, in one line. There are no separate stages and 
 
 ```text
 Salary for the period
+  - no-pay days
   + allowances
   + overtime
   = ordinary wages        <- checkpoint
@@ -56,7 +57,6 @@ Salary for the period
   = additional wages      <- checkpoint
   + severance
   = gross                 <- checkpoint
-  - no-pay days
   - tax and contributions
   - loans and deductions
   = net pay               <- last checkpoint
@@ -102,7 +102,7 @@ Nothing is overwritten and nothing fixes itself. HR makes every correction, with
 
 There are two kinds, and which one you use depends on what was wrong.
 
-**A reversal entry corrects a mistake on an item.** It is a new entry on the **same** catalog item, marked as a reversal, made by the HR controller from Events. It undoes the original.
+**A reversal entry corrects a mistake on an item.** It is a new entry on the **same** catalog item, made by the HR controller from Events, who picks the past sealed entry it reverses: an annual leave reversal is against an annual leave entry a run has already sealed. It undoes the original.
 
 ```text
 June    Unpaid leave, 1 day               pay down by one day
@@ -152,7 +152,7 @@ The leave type gives no days by itself, and nothing refills it by the calendar. 
 
 - It will not change a figure on its own. A correction is always an HR entry.
 - It will not invent pay. Attendance stays as recorded, and pay with no attendance behind it is flagged for HR.
-- It will not refill leave by the calendar. Days taken stay taken until a new year or a new case.
+- It will not refill leave by the calendar. Days taken stay taken until a new year or a new event.
 - It will not bury the law in the calculation. What varies by country, law or company policy lives in a catalog, where you can read it and change it.
 
 ## Terms

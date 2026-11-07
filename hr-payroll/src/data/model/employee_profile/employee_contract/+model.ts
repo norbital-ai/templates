@@ -1,3 +1,4 @@
+import { addDays, PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import { model } from '@norbital-ai/bolt';
 import { accountsOf, latestLeft } from '../../../../lib/ledger/core.js';
@@ -5,7 +6,7 @@ import { assertFactsHold } from '../../../../lib/ledger/service.js';
 import { dynamicRead } from '@norbital-ai/bolt/protocol';
 import { isJsonObject, jsonObject } from '../../../../lib/payroll_engine/foundation.js';
 import { validateRegistered } from '../../../../lib/payroll_engine/registrations.js';
-import { queryRows, type Reader } from '../../../../lib/payroll_engine/reads.js';
+import { objectValue, queryRows, type Reader } from '../../../../lib/payroll_engine/reads.js';
 import { tap } from '../../../../lib/payroll_engine/taps.js';
 
 /** What a writer may set; the contract number, seal stamps and the derived label are server-owned. */
@@ -59,6 +60,73 @@ const capturedRun = Effect.fnUntraced(function* (
 	}
 	return null;
 });
+
+const MID_MONTH =
+	'A contract changes from the first of a month. Date the event as it happened; the version starts on the first.';
+/**
+ * Terms and facts change from the first of a month, so a run never prices a month on two versions. A hire, a rehire and
+ * a move to another entity keep their real date, and a run pays those days as it always has.
+ */
+const startsMidMonth = Effect.fnUntraced(function* (
+	read: Reader,
+	rows: readonly {
+		readonly employee_id: string;
+		readonly entity_id: string;
+		readonly effective_range: { readonly from: string; readonly to: string | null };
+	}[]
+) {
+	const mid = rows.filter((row) => !row.effective_range.from.endsWith('-01'));
+	if (mid.length === 0) return false;
+	const { employee_contract: held = [] } = yield* queryRows(read, {
+		employee_contract: {
+			where: {
+				employee_id: { in: mid.map((row) => row.employee_id) },
+				status: { eq: 'SEALED' }
+			},
+			fields: ['employee_id', 'entity_id', 'effective_range'],
+			limit: 10000
+		}
+	});
+	return mid.some((row) => {
+		const before = String(addDays(PlainDate(row.effective_range.from), -1));
+		return held.some((other) => {
+			const { to } = objectValue(other.effective_range);
+			return (
+				other.employee_id === row.employee_id &&
+				other.entity_id === row.entity_id &&
+				(typeof to !== 'string' || to >= before)
+			);
+		});
+	});
+});
+
+type Reach = {
+	readonly entity_id: string;
+	readonly effective_range: { readonly from: string; readonly to: string | null };
+};
+/** What an update reaches. A sealed version's terms stand, so only the days its new last day adds or takes away can move. */
+const reachOf = ({
+	before,
+	set
+}: {
+	readonly before: Reach & { readonly status: string };
+	readonly set: Partial<Reach>;
+}): readonly Reach[] => {
+	const next = { ...before, ...set };
+	if (before.status !== 'SEALED') return [next];
+	const was = before.effective_range.to;
+	const now = next.effective_range.to;
+	if (was === now) return [];
+	const earlier = was === null || (now !== null && now < was) ? now : was;
+	if (earlier === null) return [];
+	const later = was === null || now === null ? null : was < now ? now : was;
+	return [
+		{
+			...next,
+			effective_range: { from: String(addDays(PlainDate(earlier), 1)), to: later }
+		}
+	];
+};
 
 export default model('employee_contract', {
 	description:
@@ -254,6 +322,8 @@ export default model('employee_contract', {
 		transform: function* (rows, ctx) {
 			const captured = yield* capturedRun(ctx.db.query, rows);
 			if (captured !== null) return yield* ctx.refuse(captured, { field: 'effective_range' });
+			if (yield* startsMidMonth(ctx.db.query, rows))
+				return yield* ctx.refuse(MID_MONTH, { field: 'effective_range' });
 			yield* validateRegistered(
 				ctx.db.query,
 				'employee_contract',
@@ -338,13 +408,16 @@ export default model('employee_contract', {
 			const substantive = changes.filter(
 				({ before, set }) => !(before.status === 'SEALED' && set.status === 'VOID')
 			);
-			let captured: string | null = null;
-			if (substantive.length > 0)
-				captured = yield* capturedRun(
-					ctx.db.query,
-					substantive.map(({ before, set }) => ({ ...before, ...set }))
-				);
+			const captured = yield* capturedRun(ctx.db.query, substantive.flatMap(reachOf));
 			if (captured !== null) return yield* ctx.refuse(captured, { field: 'effective_range' });
+			const drafts = substantive.filter(({ before }) => before.status === 'DRAFT');
+			if (
+				yield* startsMidMonth(
+					ctx.db.query,
+					drafts.map(({ before, set }) => ({ ...before, ...set }))
+				)
+			)
+				return yield* ctx.refuse(MID_MONTH, { field: 'effective_range' });
 			const proposed = substantive.map((change) => jsonObject({ ...change.before, ...change.set }));
 			yield* validateRegistered(ctx.db.query, 'employee_contract', 'update', proposed);
 			yield* assertFactsHold(ctx.db.query, proposed);
@@ -403,9 +476,9 @@ export default model('employee_contract', {
 				const effectiveTo =
 					typeof range === 'string'
 						? (() => {
-								const inner = range.startsWith('[') ? range.slice(1, -1) : range;
-								const at = inner.indexOf(',');
-								return at < 0 ? null : inner.slice(at + 1).replace(/\)$/, '') || null;
+								// a stored range excludes its upper bound: the last day is the one before
+								const end = range.slice(range.indexOf(',') + 1, -1);
+								return end === '' ? null : String(addDays(PlainDate(end), -1));
 							})()
 						: isJsonObject(range) && typeof range.to === 'string'
 							? range.to

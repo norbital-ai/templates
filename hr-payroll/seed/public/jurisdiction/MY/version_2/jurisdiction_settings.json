@@ -577,6 +577,11 @@
 					"additionalProperties": false,
 					"title": "Contract compliance details",
 					"properties": {
+						"work_region": {
+							"type": "string",
+							"title": "Worksite state",
+							"description": "The state the employee works in. A Sabah or Sarawak worksite falls under a Labour Ordinance, not the Employment Act 1955."
+						},
 						"overtime_by_contract": {
 							"type": "boolean",
 							"default": false,
@@ -757,6 +762,12 @@
 								"type": "string",
 								"format": "date",
 								"title": "Date"
+							},
+							"opened_on": {
+								"type": "string",
+								"format": "date",
+								"title": "Leave from",
+								"description": "The first day of leave, where it starts before the date above. The window stays here when the date changes."
 							},
 							"ended_on": {
 								"type": "string",

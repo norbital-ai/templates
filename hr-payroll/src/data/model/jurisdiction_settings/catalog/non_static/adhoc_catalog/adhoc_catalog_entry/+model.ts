@@ -1,4 +1,5 @@
 import { model } from '@norbital-ai/bolt';
+import { assertReversals } from '../../../../../../../lib/ledger/service.js';
 import { validateRegistered } from '../../../../../../../lib/payroll_engine/registrations.js';
 import { jsonObject } from '../../../../../../../lib/payroll_engine/foundation.js';
 import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
@@ -31,6 +32,7 @@ export default model('adhoc_catalog_entry', {
 		'adhoc_catalog_entry.catalog_id': { fields: 'all' },
 		'adhoc_catalog_entry.payroll_run_id': { fields: 'all' }
 	},
+	unique: [{ fields: ['reverses'] }],
 	create: {
 		columns: {
 			adhoc_catalog_entry: [
@@ -46,11 +48,18 @@ export default model('adhoc_catalog_entry', {
 				'reverses'
 			]
 		},
-		transform: function* (rows, ctx) {
+		filled: { adhoc_catalog_entry: ['is_reversal'] },
+		transform: function* (input, ctx) {
+			const rows = input.map((row) => ({ ...row, is_reversal: row.reverses != null }));
 			yield* validateRegistered(
 				ctx.db.query,
 				'adhoc_catalog_entry',
 				'create',
+				rows.map((row) => jsonObject(row))
+			);
+			yield* assertReversals(
+				ctx.db.query,
+				'adhoc_catalog_entry',
 				rows.map((row) => jsonObject(row))
 			);
 			return rows;

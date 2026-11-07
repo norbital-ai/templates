@@ -3,7 +3,7 @@ import { Effect } from 'effect';
 import { awardedMinutes, holidaysForDay, overlapSpans, scheduled } from './attendance.js';
 import { intervalSpans } from './time_evidence.js';
 import { calculatePayroll, type ProjectedDay } from './engine.js';
-import type { JsonObject, Unit } from './contracts.js';
+import type { JsonObject } from './contracts.js';
 import type { PayWindow } from './pay_cycle.js';
 import { idOf, objectValue, queryRows, type Reader } from './reads.js';
 import { Refusal, isJsonObject } from './foundation.js';

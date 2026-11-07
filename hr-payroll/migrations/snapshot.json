@@ -156,7 +156,14 @@
 				}
 			},
 			"nativeRules": 2,
-			"recordLabel": "record.description"
+			"recordLabel": "record.description",
+			"unique": [
+				{
+					"fields": [
+						"reverses"
+					]
+				}
+			]
 		},
 		"allowance_catalog": {
 			"audit": true,
@@ -505,7 +512,51 @@
 				}
 			},
 			"nativeRules": 2,
-			"recordLabel": "string(record.quantity) + ' ' + record.unit"
+			"recordLabel": "string(record.quantity) + ' ' + record.unit",
+			"unique": [
+				{
+					"fields": [
+						"reverses"
+					]
+				}
+			]
+		},
+		"contract_change": {
+			"audit": true,
+			"fields": {
+				"applied_version_id": {
+					"kind": "ref",
+					"onDelete": "restrict",
+					"optional": true,
+					"to": "employee_contract"
+				},
+				"effective_from": {
+					"kind": "date"
+				},
+				"employee_id": {
+					"inverse": "contract_changes",
+					"kind": "ref",
+					"onDelete": "cascade",
+					"to": "employee_profile"
+				},
+				"field_path": {
+					"kind": "text"
+				},
+				"new_value": {
+					"kind": "json",
+					"optional": true
+				},
+				"notes": {
+					"kind": "text",
+					"optional": true
+				},
+				"old_value": {
+					"kind": "json",
+					"optional": true
+				}
+			},
+			"nativeRules": 2,
+			"recordLabel": "record.field_path"
 		},
 		"employee_balance": {
 			"audit": true,
@@ -835,6 +886,16 @@
 			"fields": {
 				"address": {
 					"kind": "text",
+					"optional": true
+				},
+				"documents": {
+					"accept": [
+						"application/pdf",
+						"image/*"
+					],
+					"kind": "file",
+					"max": "20MiB",
+					"multiple": true,
 					"optional": true
 				},
 				"email": {
@@ -1763,7 +1824,14 @@
 				}
 			},
 			"nativeRules": 2,
-			"recordLabel": "string(size(record.days)) + ' half-days'"
+			"recordLabel": "string(size(record.days)) + ' half-days'",
+			"unique": [
+				{
+					"fields": [
+						"reverses"
+					]
+				}
+			]
 		},
 		"ledger_entry": {
 			"audit": true,
@@ -1798,8 +1866,6 @@
 				"operation": {
 					"kind": "enum",
 					"values": [
-						"CREATE",
-						"REMOVE",
 						"ADD",
 						"DEDUCT"
 					]

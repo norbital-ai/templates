@@ -127,7 +127,7 @@
 			if (created) openRecord('employee_profile', created.id);
 		}}
 		>{#snippet children()}<Stack gap="md"
-				>{#each ['name', 'email', 'phone', 'address', 'location', 'source_reference'] as name (name)}<Field
+				>{#each ['name', 'email', 'phone', 'address', 'location', 'documents', 'source_reference'] as name (name)}<Field
 						{name}
 					/>{/each}</Stack
 			>{/snippet}</Form
@@ -155,7 +155,15 @@
 					detail: `${row.entity} · ${employeeReference(row.number, row.entity)}`
 				}))}
 				onOpen={(id) => openRecord('employee_contract', id)}
-			/>{/if}{/if}{/snippet}
+			/>{/if}<Stack gap="none" class="mt-4"
+			><Table
+				of="contract_change"
+				key="person-contract-changes"
+				where={{ employee_id: { eq: record.id }, applied_version_id: { isNull: true } }}
+				toolbar={{ new: false, title: bolt.t('section.scheduled_changes') }}
+				columns={['effective_from', 'field_path', 'old_value', 'new_value', 'notes']}
+			/></Stack
+		>{/if}{/snippet}
 {#snippet loansTab()}{#if record}{#if contractIds.length === 0}<EmptyState
 				title={t('models.loan_catalog_entry.label')}
 			/>{:else}<Table

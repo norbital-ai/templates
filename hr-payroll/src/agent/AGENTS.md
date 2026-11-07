@@ -1,4 +1,4 @@
-# HR Template V2 source
+# HR & Payroll source
 
 Norbius reads [`+agent.md`](./+agent.md). This file maps the source and the refactor rules for coding agents.
 
@@ -7,7 +7,7 @@ Norbius reads [`+agent.md`](./+agent.md). This file maps the source and the refa
 Read [section 0 of the calculation architecture](../../docs/0001-hrms-calculation-architecture.md#0-the-design-is-fixed) before you touch anything here. It is the owner's design, and you wire around it. In short:
 
 1. Catalogs, catalog entries and reversal entries. A refund or correction is a reversal or adjustment entry against a catalog item.
-2. Ledger entries are emitted during payroll and when a leave, claim, adhoc or loan entry is created. The balance is their projection and replaces payroll history.
+2. `ledger_entry` moves only by catalog entry posting or by sync, through the `ledger` automation. Loans stay out. The balance is its projection and replaces payroll history.
 3. Linear computation: one subtotal chain, then statutory schemes in dependency order.
 4. Jurisdiction settings hold the global lookup; a row's own lookup is local and wins. Registered rules validate; registered effects are side effects; reads happen once, up front.
 5. Simplicity: thin models, a thin payroll run, and no field or engine concept the owner did not ask for.
@@ -23,6 +23,7 @@ employee_profile/
   employee_balance/
     ledger_entry/
   employee_contract/
+    contract_change/
 entity/
   entity_profile_version/
   holiday/
@@ -63,40 +64,30 @@ roster_entry/
 
 ## Surfaces
 
-- Apps: `hr_controller/{cases,entities,events,formats,payroll,people,settings}`, `hr_employee`
+- Apps: `hr_controller/{entities,events,formats,payroll,people,settings}`, `hr_employee`
 - Kiosk: `attendance`
-- Automations: `invitation_profile`, `statutory_research`, `statutory_materialize`
+- Automations: `contract_materialize`, `invitation_profile`, `ledger`, `statutory_research`, `statutory_materialize`
 - Policies: `configuration_execution`, `employee`, `hr_controller`, `hr_manager`, `invitation_profile_automation`, `kiosk`, `manager`, `payroll_execution`, `senior_management`, `supervisor`
-- Shared code: `src/lib/payroll_engine/` (calculation, reads, admissions, registrations, exports), `src/lib/ui/` (pages), `src/lib/export_format_configuration/` (salary listing and bank files)
+- Shared code: `src/lib/ledger/` (the single ledger service), `src/lib/payroll_engine/` (calculation, reads, registrations, workbooks), `src/lib/ui/` (pages), `src/lib/export_format_configuration/` (salary listing and bank files)
 
 ## Gates
 
 `bolt check` proves discovery, schema history, rules and types. `bolt test` runs the workspace tests. `bolt build` writes `.norbital/` and the release artifact. Migrations under `migrations/` are generated: commit SQL, `snapshot.json`, `migrations.lock.json` and `physical.json` together.
 
-The published `@norbital-ai/*` 0.0.8 SDK discovers only `src/data/model/<name>`; this tree needs the local build with nested discovery. Do not claim a registry install reproduces the build until that release ships.
-
 ## Source truth
 
 - [The calculation architecture](../../docs/0001-hrms-calculation-architecture.md) — calculation order, ledger, statutory chain.
 - [The model contract](../../docs/0002-model-specification.md) — model fields, ownership and the final tree.
-- [The seed contract](../../docs/0003-jurisdiction-seed-specification.md) — jurisdiction seed replacement.
+- [The seed contract](../../docs/0003-jurisdiction-seed-specification.md) — the jurisdiction seed.
 - [Verification and gates](../../docs/0004-verification-gates.md) — what counts as verified and the open gates.
 - [Manual probe matrix](../../docs/manual-probe-matrix.md) — the live acceptance checklist.
 - [Docs index](../../docs/README.md) — every maintained document in this template.
 - [self_service_design.md](./self_service_design.md) — the employee self-service interface design.
 
-## Refactor scope
-
-- Refactor only this template and its private tree `seed_bank/norbital_hr`.
-- Preserve the original `hr-payroll` template, `norbital_hr` tenant and original private tree.
-- Follow the model contract's declarations and the calculation architecture's rules; preserve unrelated features.
-- Seed agents replace whole jurisdiction histories from the supplied evidence; do not patch legacy formulas. New formulas must be substantially smaller. Generate deltas after replacement versions pass checks.
-- Use one agent per jurisdiction when seed replacement begins. Do not start those lanes merely for documentation or cloning.
-
 ## Invariants
 
 - Every fact has one owner; a value is read from its owner, never copied into a second model or JSON bag.
 - The first subtotal opens with base pay; later subtotals accumulate employee lines; statutory schemes evaluate in dependency order.
-- `payroll_run.create` calculates and writes payslips plus ledger rows as one payload; there is no separate finalise step.
+- `payroll_run.create` calculates and writes payslips as one payload; there is no separate finalise step. The `ledger` automation posts afterwards, so run effects read payslips, not ledger rows.
 - Ledger rows are immutable and the balance is a rebuildable projection.
 - A change of law is a new sealed jurisdiction version, never an edit to a sealed one.

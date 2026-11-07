@@ -3,7 +3,7 @@ import { tap } from '../../../lib/payroll_engine/taps.js';
 
 export default model('employee_profile', {
 	description:
-		'One system identity for a person: name, contact details, login and face enrolment. Standing payroll inputs belong to sealed employment contracts.',
+		'One system identity for a person: name, contact details, documents, login and face enrolment. Standing payroll inputs belong to sealed employment contracts.',
 	icon: 'lucide:user',
 	label: 'name',
 	unique: [{ fields: ['invitation_id'] }, { fields: ['user_id'] }],
@@ -33,6 +33,13 @@ export default model('employee_profile', {
 		},
 		location: {
 			kind: 'point',
+			optional: true
+		},
+		documents: {
+			kind: 'file',
+			accept: ['application/pdf', 'image/*'],
+			max: '20MiB',
+			multiple: true,
 			optional: true
 		},
 		face_embedding: {
@@ -107,6 +114,7 @@ export default model('employee_profile', {
 				'phone',
 				'address',
 				'location',
+				'documents',
 				'face_embedding',
 				'face_photo',
 				'face_enrollment_status',
@@ -138,6 +146,7 @@ export default model('employee_profile', {
 				'phone',
 				'address',
 				'location',
+				'documents',
 				'face_embedding',
 				'face_photo',
 				'face_enrollment_status',

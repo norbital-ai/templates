@@ -1,5 +1,5 @@
 import { Effect, Schema } from 'effect';
-import type { DynamicAnswer, WorkspaceQuery, Id, RecordRef } from '@norbital-ai/bolt';
+import type { DynamicAnswer, Id } from '@norbital-ai/bolt';
 import type { ReadFailed } from '@norbital-ai/bolt/errors';
 import { dynamicRead, type DynamicRead, type ReadRequestJson } from '@norbital-ai/bolt/protocol';
 import { inputSchema } from '@norbital-ai/std/kind';
@@ -35,32 +35,9 @@ export function idOf<C extends string>(model: C, value: unknown): Id<C> {
 		)
 	)(value);
 }
-export function sourceRef<C extends string>(model: C, value: unknown): RecordRef<C> {
-	const codec = inputSchema({ kind: 'id', of: model });
-	return Schema.decodeUnknownSync(
-		Schema.declare<RecordRef<C>>(
-			(candidate): candidate is RecordRef<C> =>
-				candidate !== null &&
-				typeof candidate === 'object' &&
-				Reflect.get(candidate, 'model') === model &&
-				Schema.is(codec)(Reflect.get(candidate, 'id'))
-		)
-	)({ model, id: value });
-}
-export const sourceMatches = (value: unknown, model: string, id: string): boolean =>
-	value !== null &&
-	typeof value === 'object' &&
-	Reflect.get(value, 'model') === model &&
-	Reflect.get(value, 'id') === id;
 export const valueText = (row: JsonObject, key: string): string => {
 	const value = row[key];
 	if (typeof value !== 'string') throw new Refusal({ message: `${key}: missing text fact.` });
-	return value;
-};
-export const valueNumber = (row: JsonObject, key: string): number => {
-	const value = row[key];
-	if (typeof value !== 'number' || !Number.isFinite(value))
-		throw new Refusal({ message: `${key}: missing numeric fact.` });
 	return value;
 };
 export const objectValue = (value: unknown): JsonObject =>

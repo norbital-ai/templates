@@ -253,6 +253,12 @@
 								"title": "Date",
 								"description": "The day it happened. Maternity leave that starts before delivery (RA 11210 s.3) is dated from its first day, so those days count in it."
 							},
+							"opened_on": {
+								"type": "string",
+								"format": "date",
+								"title": "Leave from",
+								"description": "The first day of leave, where it starts before the date above. The window stays here when the date changes."
+							},
 							"ended_on": {
 								"type": "string",
 								"format": "date",

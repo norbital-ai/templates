@@ -44,6 +44,12 @@
 								"description": "ATTENDANCE_BELOW_RATIO: 労働基準法 art.39(1)–(2), dated on the annual leave grant day it refuses. CHILD_BIRTH: 育児・介護休業法 art.16の2, dated on the birthday of a child the worker raises, ended when they stop. EXPECTED_BIRTH, EXPECTED_MULTIPLE_BIRTH: 労働基準法 art.65(1), dated on the expected birth, ended on the birth."
 							},
 							"on": { "type": "string", "format": "date", "title": "Date" },
+							"opened_on": {
+								"type": "string",
+								"format": "date",
+								"title": "Leave from",
+								"description": "The first day of leave, where it starts before the date above. The window stays here when the date changes."
+							},
 							"ended_on": { "type": "string", "format": "date", "title": "Ended on" },
 							"document": { "type": "string", "title": "Document on the profile" }
 						}
