@@ -543,7 +543,7 @@ describe('a benefit over two calendar years', () => {
 			);
 		}).pipe(Effect.provide(workspace({ seed: last, now: LATER })));
 	});
-	it.live('a run cannot be paid until its balances have it', () =>
+	it.live('a run is paid at once: its own write posted it', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const admin = t.as(t.admin);
@@ -552,10 +552,7 @@ describe('a benefit over two calendar years', () => {
 			]);
 			const run = (yield* t.storedQuery({ payroll_run: { limit: 1 } })).payroll_run.rows[0];
 			assert.ok(run !== undefined);
-			const paid = admin.act('payroll_run.update', [{ target: run.id, set: { state: 'PAID' } }]);
-			assert.match(String(yield* Effect.flip(paid)), /still posting/);
-			yield* t.runDue();
-			yield* paid;
+			yield* admin.act('payroll_run.update', [{ target: run.id, set: { state: 'PAID' } }]);
 		}).pipe(Effect.provide(workspace({ seed, now: LATER })))
 	);
 	it.live('an unpaid run posts from its payslip, and deleting it takes that back', () =>

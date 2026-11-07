@@ -137,16 +137,23 @@ describe('a claim on a limited row', () => {
 });
 
 describe('a run', () => {
-	it.live('waits for a deleted run to take its totals back', () =>
+	it.live('deleted takes its totals back in the delete, so the next run enters at once', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* run(t);
-			yield* t.runDue();
 			const [first] = (yield* t.storedQuery({ payroll_run: { limit: 1 } })).payroll_run.rows;
 			assert.ok(first !== undefined);
 			yield* t.as(t.admin).act('payroll_run.delete', [{ target: first.id }]);
-			assert.match(String(yield* Effect.flip(run(t))), /still posting/);
-			yield* t.runDue();
+			const { ledger_entry } = yield* t.storedQuery({
+				ledger_entry: { where: { source: { eq: `payroll_run:${first.id}` } }, limit: 1000 }
+			});
+			const net = ledger_entry.rows.reduce(
+				(total, row) =>
+					total + (row.operation === 'DEDUCT' ? -1 : 1) * (row.amount?.toNumber() ?? 0),
+				0
+			);
+			assert.ok(ledger_entry.rows.length > 0);
+			assert.ok(Math.abs(net) < 1e-6);
 			yield* run(t);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
@@ -369,17 +376,6 @@ describe('the ledger automation', () => {
 			const { employee_balance } = yield* t.storedQuery({ employee_balance: { limit: 2 } });
 			assert.equal(employee_balance.rows.length, 1);
 		}).pipe(Effect.provide(workspace({ seed: { ...seed, employee_balance: [] }, now: NOW })))
-	);
-	it.live('raises a task for a failure no retry can fix', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* t
-				.as(t.admin)
-				.start('ledger', { post: ['leave_catalog_entry:not-an-id'] })
-				.pipe(Effect.andThen(t.runDue()));
-			const { obligation } = yield* t.storedQuery({ obligation: { limit: 10 } });
-			assert.ok(obligation.rows.some((row) => /Ledger posting failed/.test(row.title)));
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 });
 

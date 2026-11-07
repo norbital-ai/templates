@@ -13,7 +13,7 @@ The four contracts above are the implementation source of truth. Legal evidence,
 ```text
 source tree ──► schema history ──► build ──► check ──► tests
      │
-     └──► engine ──► payroll_run.create ──► payslips ──► ledger automation ──► ledger + balance
+     └──► engine ──► payroll_run.create ──► payslips + ledger + balance, one write
                               │
                               └──► file syncs ──► salary xlsx / bank txt
 

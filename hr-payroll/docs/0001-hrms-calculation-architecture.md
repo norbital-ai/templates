@@ -116,7 +116,7 @@ leave · claim · adhoc · payslip            contract · entity · new law · a
          ledger_entry (append-only) + employee_balance.account
 ```
 
-`src/lib/ledger/` is the only writer. Model hooks schedule the `ledger` automation and write nothing, and it runs one at a time under the `payroll_execution` policy, so posting never depends on who made the entry. A source says what it should have posted, and `settle` posts the difference, so repeating any of this posts nothing.
+`src/lib/ledger/` is the only writer. A record that posts carries its ledger rows and balance moves in its own write (`onApproved`): at once, or in the approving decision's commit when an approval holds it, and never when it is rejected. The ledger and the balance refuse every other writer but sync, which runs one at a time under the `payroll_execution` policy. A source says what it should have posted, and `postings` carries the difference, so repeating any of this posts nothing.
 
 | Source              | Movement                                                                         |
 | ------------------- | -------------------------------------------------------------------------------- |
@@ -133,7 +133,7 @@ Run effects look for their own task before raising it: raising one twice would f
 
 A run effect reads only its own task: its exact key where the key is known up front, or the tasks at its own level, entity or person. A read covering every task of the entity would change whenever anything raised one, and the write after it would fail, so a contract sealing beside a run could cost that run its reminders. A run cannot be marked paid until every payslip's balance has it.
 
-Creating an entry posts it: once access control has approved the write, the model's `created` effect schedules the `ledger` automation, which posts the ledger rows and moves the balance in one write. A claim reversal gives back no more than its original drew.
+Creating an entry posts it in the same write: its transform carries the ledger rows and the balance move, so an entry held for approval posts when it is approved and never if rejected. A claim reversal gives back no more than its original drew.
 
 ## 3. Payroll chain
 
@@ -194,7 +194,7 @@ A row's result decides what happens. Above zero it is a deduction. Below zero, a
 
 Creating a run computes and writes one payload: payslip totals and an `UNPAID` run. There is no preparing or separate finalise step. Payslips carry `basic_earnings`, `gross_earnings`, `net_pay`, `total_deductions`, `employer_cost`, `ordinary_wages`, `additional_wages`, `employee_statutory`, `employer_statutory`, `tax_withheld` and `breakdown`, the checkpoints, lines and statutory amounts as calculated. The run owns `salary_coverage`.
 
-The payslip is the run's entry. `payroll_run.create` writes no ledger row: the `ledger` automation posts its checkpoints and statutory rows afterwards, once, in the period of its pay date, in one write with the balance. Run effects therefore read payslips, not ledger rows. A new run is refused while the entity's latest run has not posted, and PAID is refused while the run itself has not. A deleted run's movements are inverted exactly.
+The payslip is the run's entry. `payroll_run.create` posts its checkpoints and statutory rows in its own write, once, in the period of its pay date, with the balance. A deleted run's movements are inverted exactly, in the delete.
 
 ### 3.6 Ledger rows
 
@@ -239,7 +239,7 @@ The projection is rebuildable from `ledger_entry` and is written only by the led
 
 A movement and the balance it moves commit as one write, so they cannot disagree. No effect touches the ledger or the balance. `source` is plain text, so a movement outlives what caused it, and a deleted record's movements are still found and inverted.
 
-An effect can run again after a crash, and `settle` compares with the ledger, so a repeat posts nothing. Two writers cannot lose an update: the write is guarded by the balance's revision.
+A sync can run again after a crash, and `postings` compares with the ledger, so a repeat posts nothing. Two writers cannot lose an update: every balance move is guarded by its revision.
 
 ### 4.1 Leave entitlement
 

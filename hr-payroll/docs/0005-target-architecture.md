@@ -32,7 +32,7 @@ Law lives in catalogs. What is true about a person lives on their sealed contrac
                              every         running
                              movement      totals
 
-  EFFECT   after a commit: a task, or the ledger automation scheduled
+  EFFECT   after a commit: a task, or a ledger sync scheduled
 ```
 
 Everything is composed from eight primitives:
@@ -332,7 +332,7 @@ A payslip is the run's entry. Pay and statutory totals post from it once, in the
 | A reversal names one entry of the same person and catalog item                        | Nothing is reversed by accident |
 | An entry is reversed once, for no more than it held, and a reversal is never reversed | `used` cannot fall below zero   |
 | Half a day is taken once across a person's leave, until a reversal frees it           | One absence, one entry          |
-| Only the `ledger` automation writes the ledger or the balance, an admin included      | No hand-written balance         |
+| Only posting and sync write the ledger or the balance, an admin included              | No hand-written balance         |
 | A leave in a window no sync has opened has nothing to refuse against                  | A leave dated next year         |
 | A leave posted into an earlier year syncs that person again                           | Carry stays right               |
 
@@ -375,7 +375,7 @@ Sync runs on the triggers in section 7. It schedules itself for the next period 
 
 **Rules** run before commit. They read balance values and dated entries, and a refusal gives one plain reason, taken from the rule's own message.
 
-**Effects** run after commit. Registered effects go through one dispatcher that resolves the settings version for every model, and each seeded one raises a task. A model's own effect schedules the `ledger` automation, and a contract's also raises the exit encashment. No effect touches the ledger or the balance.
+**Effects** run after commit. Registered effects go through one dispatcher that resolves the settings version for every model, and each seeded one raises a task. A contract's own effect schedules a ledger sync and raises the exit encashment, and a leave posting dated in an earlier year schedules a sync of its people. No effect touches the ledger or the balance.
 
 ## 10. Worked examples
 
@@ -560,14 +560,14 @@ EPF_REFUND (adhoc_catalog)
   accounts   statutory/EPF.employee, year and month
 ```
 
-| Step | Who    | What                                                                                                                     |
-| ---- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
-| 1    | HR     | Events > Ad hoc > New, or a spreadsheet for many people                                                                  |
-| 2    | HR     | Employee, item `EPF_REFUND`, amount 100, dated 30 June, a description                                                    |
-| 3    | System | The `ledger` automation posts `DEDUCT statutory/EPF.employee/MY.Y.2026-01-01/paid 100`, and the same on June's month key |
-| 4    | System | An effect raises the task: claim RM100 back from EPF                                                                     |
-| 5    | System | The next run pays the employee +100                                                                                      |
-| 6    | HR     | Files the claim with EPF, outside the system, and closes the task                                                        |
+| Step | Who    | What                                                                                                                   |
+| ---- | ------ | ---------------------------------------------------------------------------------------------------------------------- |
+| 1    | HR     | Events > Ad hoc > New, or a spreadsheet for many people                                                                |
+| 2    | HR     | Employee, item `EPF_REFUND`, amount 100, dated 30 June, a description                                                  |
+| 3    | System | The entry's own write posts `DEDUCT statutory/EPF.employee/MY.Y.2026-01-01/paid 100`, and the same on June's month key |
+| 4    | System | An effect raises the task: claim RM100 back from EPF                                                                   |
+| 5    | System | The next run pays the employee +100                                                                                    |
+| 6    | HR     | Files the claim with EPF, outside the system, and closes the task                                                      |
 
 An underpayment is the mirror: `EPF_ADJUSTMENT`, direction `DEDUCT`, which adds to the statutory balance and raises a task to pay the arrears. An adjustment entered wrongly is deleted while unpaid, and reversed on the same row once paid.
 
@@ -681,10 +681,10 @@ src/lib/
   ui/                   pages and shared components
 ```
 
-A model's posting is one line:
+A model's posting is what its write carries:
 
 ```text
-yield* ctx.schedule('ledger', { post: rows.map((row) => `leave_catalog_entry:${row.id}`) });
+return { rows, onApproved: yield* entryPostings(ctx.db.query, 'leave_catalog_entry', entries, true) };
 ```
 
 ## 12. Invariants

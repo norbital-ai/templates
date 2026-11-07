@@ -1,4 +1,5 @@
 import { model } from '@norbital-ai/bolt';
+import { writesLedger } from '../../../../lib/ledger/service.js';
 
 const SYSTEM_ONLY = 'Only posting and sync move a balance, an admin included.';
 
@@ -24,7 +25,7 @@ export default model('employee_balance', {
 			employee_balance: ['employee_id', 'account']
 		},
 		transform: function* (rows, ctx) {
-			if (!ctx.policies.includes('payroll_execution')) return yield* ctx.refuse(SYSTEM_ONLY);
+			if (!writesLedger(ctx)) return yield* ctx.refuse(SYSTEM_ONLY);
 			return rows;
 		}
 	},
@@ -33,7 +34,7 @@ export default model('employee_balance', {
 			employee_balance: ['account']
 		},
 		transform: function* (changes, ctx) {
-			if (!ctx.policies.includes('payroll_execution')) return yield* ctx.refuse(SYSTEM_ONLY);
+			if (!writesLedger(ctx)) return yield* ctx.refuse(SYSTEM_ONLY);
 			return changes.map(({ set }) => set);
 		}
 	}

@@ -1,7 +1,12 @@
 import { model } from '@norbital-ai/bolt';
-import { validateRegistered } from '../../../../../../../lib/payroll_engine/registrations.js';
 import { jsonObject } from '../../../../../../../lib/payroll_engine/foundation.js';
-import { assertLeft, assertReversals } from '../../../../../../../lib/ledger/service.js';
+import {
+	assertLeft,
+	assertReversals,
+	entriesUndone,
+	entryPostings,
+	entryRead
+} from '../../../../../../../lib/ledger/service.js';
 import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
 
 export default model('leave_catalog_entry', {
@@ -57,23 +62,19 @@ export default model('leave_catalog_entry', {
 		filled: { leave_catalog_entry: ['is_reversal'] },
 		transform: function* (input, ctx) {
 			const rows = input.map((row) => ({ ...row, is_reversal: row.reverses != null }));
-			yield* validateRegistered(
+			const entries = rows.map((row) => jsonObject(row));
+			// the approving decision asks again only for what the entry posts: what it checked stands
+			const known = yield* entryRead(
 				ctx.db.query,
 				'leave_catalog_entry',
-				'create',
-				rows.map((row) => jsonObject(row))
+				entries,
+				ctx.approving ? undefined : 'create'
 			);
-			yield* assertReversals(
-				ctx.db.query,
-				'leave_catalog_entry',
-				rows.map((row) => jsonObject(row))
-			);
-			yield* assertLeft(
-				ctx.db.query,
-				rows.map((row) => jsonObject(row)),
-				String(ctx.today)
-			);
-			return rows;
+			if (!ctx.approving) {
+				yield* assertReversals(known, 'leave_catalog_entry', entries);
+				yield* assertLeft(known, entries, String(ctx.today));
+			}
+			return { rows, onApproved: entryPostings(known, 'leave_catalog_entry', entries) };
 		}
 	},
 	update: {
@@ -89,41 +90,52 @@ export default model('leave_catalog_entry', {
 			)
 				return changes.map((change) => change.set);
 			const proposed = changes.map((change) => jsonObject({ ...change.before, ...change.set }));
-			yield* validateRegistered(ctx.db.query, 'leave_catalog_entry', 'update', proposed);
-			if (changes.some((c) => c.before.payroll_run_id != null))
-				return yield* ctx.refuse('This record is locked by a payroll run.');
-			yield* assertLeft(
+			const known = yield* entryRead(
 				ctx.db.query,
+				'leave_catalog_entry',
 				proposed,
-				String(ctx.today),
-				changes.map((change) => jsonObject(change.before))
+				ctx.approving ? undefined : 'update'
 			);
-			return changes.map((c) => c.set);
+			if (!ctx.approving) {
+				if (changes.some((c) => c.before.payroll_run_id != null))
+					return yield* ctx.refuse('This record is locked by a payroll run.');
+				yield* assertLeft(
+					known,
+					proposed,
+					String(ctx.today),
+					changes.map((change) => jsonObject(change.before))
+				);
+			}
+			return {
+				rows: changes.map((c) => c.set),
+				onApproved: entryPostings(known, 'leave_catalog_entry', proposed)
+			};
 		}
 	},
 	delete: {
 		check: function* (rows, ctx) {
-			yield* validateRegistered(
+			const entries = rows.map((row) => jsonObject(row));
+			const known = yield* entryRead(
 				ctx.db.query,
 				'leave_catalog_entry',
-				'delete',
-				rows.map((row) => jsonObject(row))
+				entries,
+				ctx.approving ? undefined : 'delete'
 			);
-			if (rows.some((r) => r.payroll_run_id != null))
-				return yield* ctx.refuse('This record is locked by a payroll run.');
-			yield* assertLeft(
-				ctx.db.query,
-				rows.map((row) => jsonObject({ ...row, is_reversal: !row.is_reversal })),
-				String(ctx.today)
-			);
+			if (!ctx.approving) {
+				if (rows.some((r) => r.payroll_run_id != null))
+					return yield* ctx.refuse('This record is locked by a payroll run.');
+				yield* assertLeft(
+					known,
+					rows.map((row) => jsonObject({ ...row, is_reversal: !row.is_reversal })),
+					String(ctx.today)
+				);
+			}
+			return { onApproved: entriesUndone(known, 'leave_catalog_entry', entries) };
 		}
 	},
 
 	effect: {
 		created: function* (rows, ctx) {
-			yield* ctx.schedule('ledger', {
-				post: rows.map((row) => `leave_catalog_entry:${row.id}`)
-			});
 			yield* tap(
 				ctx,
 				'create',
@@ -137,20 +149,12 @@ export default model('leave_catalog_entry', {
 				({ before, after }) => before.payroll_run_id === after.payroll_run_id
 			);
 			if (edited.length === 0) return;
-			yield* ctx.schedule('ledger', {
-				post: edited.map(({ after }) => `leave_catalog_entry:${after.id}`)
-			});
 			yield* tap(
 				ctx,
 				'update',
 				{ collection: 'leave_catalog_entry', ids: edited.map((change) => change.after.id) },
 				edited
 			);
-		},
-		deleted: function* (rows, ctx) {
-			yield* ctx.schedule('ledger', {
-				post: rows.map((row) => `leave_catalog_entry:${row.id}`)
-			});
 		}
 	}
 });

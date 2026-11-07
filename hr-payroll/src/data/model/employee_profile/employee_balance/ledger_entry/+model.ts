@@ -1,4 +1,6 @@
 import { model } from '@norbital-ai/bolt';
+import { syncLate, writesLedger } from '../../../../../lib/ledger/service.js';
+import { jsonObject } from '../../../../../lib/payroll_engine/foundation.js';
 
 export default model('ledger_entry', {
 	description:
@@ -49,9 +51,14 @@ export default model('ledger_entry', {
 			]
 		},
 		transform: function* (rows, ctx) {
-			if (!ctx.policies.includes('payroll_execution'))
+			if (!writesLedger(ctx))
 				return yield* ctx.refuse('Only posting and sync write the ledger, an admin included.');
 			return rows;
+		}
+	},
+	effect: {
+		created: function* (rows, ctx) {
+			yield* syncLate(ctx, rows.map(jsonObject));
 		}
 	}
 });

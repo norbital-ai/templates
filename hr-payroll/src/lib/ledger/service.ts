@@ -1,6 +1,6 @@
-import { addDays } from '@norbital-ai/std/date';
+import { addDays, PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
-import type { EffectCtx } from '@norbital-ai/bolt';
+import type { CarriedWrites, EffectCtx, Id } from '@norbital-ai/bolt';
 import {
 	Refusal,
 	isJsonObject,
@@ -8,7 +8,13 @@ import {
 	type JsonObject
 } from '../payroll_engine/foundation.js';
 import { dynamicRead } from '@norbital-ai/bolt/protocol';
-import { objectValue, queryAllRows, queryRows, type Reader } from '../payroll_engine/reads.js';
+import {
+	idOf,
+	objectValue,
+	queryAllRows,
+	queryRows,
+	type Reader
+} from '../payroll_engine/reads.js';
 import {
 	accountsOf,
 	apply,
@@ -30,6 +36,7 @@ import {
 	type Unit,
 	type Wanted
 } from './core.js';
+import { validateRegistered, type Operation } from '../payroll_engine/registrations.js';
 import {
 	carriedOf,
 	entitlementOf,
@@ -41,8 +48,8 @@ import {
 
 /**
  * The only writer of the ledger and the balance. A record says what it should have posted, or a person's facts say what
- * they are owed, and `settle` posts the difference with its balance as one write. Everything else here works out what
- * should stand.
+ * they are owed, and `postings` works out the difference with its balance: the record's own write carries it (posting,
+ * `onApproved`), and `settle` writes it for sync. Everything else here works out what should stand.
  */
 export type Plan = {
 	readonly source: string;
@@ -84,73 +91,129 @@ const movementOf = (row: JsonObject): Omit<Movement, 'source'> => ({
 });
 const planKey = (balance: string, source: string) => `${balance}\u0000${source}`;
 
-/** Posts the difference between what each source should have posted and what it has. Repeating it posts nothing. */
+/**
+ * The ledger rows and balance moves that take each source from what it `posted` to what it should have, as a write
+ * carries them; `balances` holds each plan's balance as read. Repeating it carries nothing.
+ */
+export const carry = (
+	plans: readonly Plan[],
+	posted: readonly JsonObject[],
+	balances: readonly JsonObject[]
+) => {
+	const carried = {
+		ledger_entry: { create: [] as LedgerRow[] },
+		employee_balance: { update: [] as BalanceMove[] }
+	} satisfies CarriedWrites;
+	const held = Map.groupBy(posted, (row) => planKey(String(row.balance_id), String(row.source)));
+	const moves = new Map<string, Movement[]>();
+	for (const plan of plans) {
+		const movements = diff(
+			plan.source,
+			plan.wanted,
+			(held.get(planKey(plan.balance_id, plan.source)) ?? []).map(movementOf)
+		);
+		if (movements.length > 0)
+			moves.set(plan.balance_id, [...(moves.get(plan.balance_id) ?? []), ...movements]);
+	}
+	for (const row of balances) {
+		const movements = moves.get(String(row.id));
+		if (movements === undefined) continue;
+		carried.ledger_entry.create.push(...movements.map((move) => ledgerRow(String(row.id), move)));
+		carried.employee_balance.update.push({
+			target: idOf('employee_balance', String(row.id)),
+			set: { account: apply(accountsOf(row.account), movements) },
+			observed: Number(row.revision)
+		});
+	}
+	return carried;
+};
+type LedgerRow = NonNullable<NonNullable<CarriedWrites['ledger_entry']>['create']>[number];
+type BalanceMove = {
+	readonly target: Id<'employee_balance'>;
+	readonly set: { readonly account: Accounts };
+	readonly observed: number;
+};
+const ledgerRow = (balance: string, row: Movement): LedgerRow => ({
+	balance_id: idOf('employee_balance', balance),
+	operation: row.operation === 'DEDUCT' ? 'DEDUCT' : 'ADD',
+	account: row.account,
+	code: row.code,
+	period: row.period,
+	measure: row.measure,
+	amount: row.amount,
+	...(row.unit === undefined ? {} : { unit: row.unit }),
+	effective_on: PlainDate(row.effective_on),
+	source: row.source
+});
+
+/** Sync writes the difference in batches of balances: one read and one write each. Repeating it writes nothing. */
 export const settle = Effect.fn('ledger.settle')(function* (ctx: Ctx, plans: readonly Plan[]) {
 	const balances = [...new Set(plans.map((plan) => plan.balance_id))];
 	for (let at = 0; at < balances.length; at += BATCH) {
-		const chunk = new Set(balances.slice(at, at + BATCH));
-		const due = plans.filter((plan) => chunk.has(plan.balance_id));
-		const { ledger_entry: rows = [] } = yield* queryAllRows(ctx.query, {
-			ledger_entry: {
-				where: {
-					balance_id: { in: [...chunk] },
-					source: { in: [...new Set(due.map((plan) => plan.source))] }
-				},
-				fields: FIELDS,
-				limit: 1000
-			}
-		});
-		const posted = Map.groupBy(rows, (row) => planKey(String(row.balance_id), String(row.source)));
-		const moves = new Map<string, Movement[]>();
-		for (const plan of due) {
-			const held = posted.get(planKey(plan.balance_id, plan.source)) ?? [];
-			const movements = diff(plan.source, plan.wanted, held.map(movementOf));
-			if (movements.length > 0)
-				moves.set(plan.balance_id, [...(moves.get(plan.balance_id) ?? []), ...movements]);
-		}
-		if (moves.size === 0) continue;
-		const { employee_balance: stored = [] } = yield* queryRows(ctx.query, {
-			employee_balance: {
-				where: { id: { in: [...moves.keys()] } },
-				fields: ['account', 'revision'],
-				limit: 1000
-			}
-		});
-		yield* ctx.act.checked([
+		const chunk = balances.slice(at, at + BATCH);
+		const due = plans.filter((plan) => chunk.includes(plan.balance_id));
+		const { ledger_entry: posted = [], employee_balance: stored = [] } = yield* queryAllRows(
+			ctx.query,
 			{
-				callable: 'ledger_entry.create',
-				input: [...moves].flatMap(([balance_id, movements]) =>
-					movements.map((row) => jsonObject({ ...row, balance_id }))
-				)
-			},
+				ledger_entry: {
+					where: {
+						balance_id: { in: chunk },
+						source: { in: [...new Set(due.map((plan) => plan.source))] }
+					},
+					fields: FIELDS,
+					limit: 10000
+				},
+				employee_balance: {
+					where: { id: { in: chunk } },
+					fields: ['account', 'revision'],
+					limit: BATCH
+				}
+			}
+		);
+		const { ledger_entry, employee_balance } = carry(due, posted, stored);
+		if (ledger_entry.create.length === 0) continue;
+		yield* ctx.act.checked([
+			{ callable: 'ledger_entry.create', input: ledger_entry.create.map(jsonObject) },
 			{
 				callable: 'employee_balance.update',
-				input: stored.map((row) => ({
-					target: String(row.id),
-					set: { account: apply(accountsOf(row.account), moves.get(String(row.id)) ?? []) }
-				})),
-				observed: Object.fromEntries(stored.map((row) => [String(row.id), Number(row.revision)]))
+				input: employee_balance.update.map(({ target, set }) => ({ target, set })),
+				observed: Object.fromEntries(
+					employee_balance.update.map(({ target, observed }) => [target, observed])
+				)
 			}
 		]);
 	}
 });
 
-/** A source whose record is gone should have posted nothing: what it posted is inverted, exactly. */
-export const settleGone = Effect.fn('ledger.settleGone')(function* (
-	ctx: Ctx,
+/** What records that are gone posted, inverted exactly: what their delete carries. */
+const inverted = (posted: readonly JsonObject[], balances: readonly JsonObject[]) =>
+	carry(
+		[
+			...new Map(
+				posted.map((row) => [
+					planKey(String(row.balance_id), String(row.source)),
+					{ source: String(row.source), balance_id: String(row.balance_id), wanted: [] }
+				])
+			).values()
+		],
+		posted,
+		balances
+	);
+/** What gone records posted, inverted, read in one request with the balances they moved. */
+export const undone = Effect.fn('ledger.undone')(function* (
+	read: Reader,
 	sources: readonly string[]
 ) {
-	if (sources.length === 0) return;
-	const { ledger_entry: rows = [] } = yield* queryAllRows(ctx.query, {
-		ledger_entry: { where: { source: { in: [...sources] } }, fields: FIELDS, limit: 1000 }
+	if (sources.length === 0) return inverted([], []);
+	const { ledger_entry: posted = [], employee_balance: balances = [] } = yield* queryAllRows(read, {
+		ledger_entry: { where: { source: { in: [...sources] } }, fields: FIELDS, limit: 10000 },
+		employee_balance: {
+			where: { entries: { some: { source: { in: [...sources] } } } },
+			fields: ['account', 'revision'],
+			limit: 10000
+		}
 	});
-	const plans = new Map(
-		rows.map((row) => [
-			planKey(String(row.balance_id), String(row.source)),
-			{ source: String(row.source), balance_id: String(row.balance_id), wanted: [] }
-		])
-	);
-	yield* settle(ctx, [...plans.values()]);
+	return inverted(posted, balances);
 });
 
 const uniqueIds = (rows: readonly JsonObject[], field: string) => [
@@ -424,101 +487,128 @@ const personOf = (contract: JsonObject, employer?: JsonObject): LeavePerson => {
 export const startedOn = (contract: JsonObject) =>
 	String(contract.service_started_on ?? objectValue(contract.effective_range).from);
 
-type Read = Record<string, readonly JsonObject[]>;
-const subjectRead = (catalogModel: string, entries: readonly JsonObject[]) => ({
-	employee_contract: {
-		where: { id: { in: uniqueIds(entries, 'employment_id') } },
-		fields: [
-			'employee_id',
-			'effective_range',
-			'service_started_on',
-			'input_schema_version_id',
-			'employee_extension_data'
-		],
-		limit: 10000
-	},
-	[catalogModel]: {
-		where: { id: { in: uniqueIds(entries, 'catalog_id') } },
-		fields: ['code', 'lookup', 'settings_id'],
-		limit: 10000
-	}
+type Entries = 'leave_catalog_entry' | 'claim_catalog_entry' | 'adhoc_catalog_entry';
+const CATALOG_OF = {
+	leave_catalog_entry: 'leave_catalog',
+	claim_catalog_entry: 'claim_catalog',
+	adhoc_catalog_entry: 'adhoc_catalog'
+} as const;
+/** Every row of the people who hold these contracts: a relation, so it needs no read of its own. */
+const sameEmployee = (ids: readonly string[]) => ({
+	employee_id: { is: { employee_contract: { some: { id: { in: ids } } } } }
 });
-const lawRead = (catalogModel: string, first: Read) => {
-	const settingsIds = uniqueIds(first[catalogModel] ?? [], 'settings_id');
-	return {
-		jurisdiction_settings: {
-			where: { id: { in: settingsIds } },
-			fields: ['code', 'tax_year_start_month', 'lookup'],
-			limit: 100
+/**
+ * What a batch of entries reads, all in one request: the people's contracts, entries of this kind and balances, what
+ * those entries posted, and the catalog rows and law the entries were made under. Every check and the posting read it.
+ */
+export type Known = {
+	readonly contract: ReadonlyMap<string, JsonObject>;
+	readonly catalog: ReadonlyMap<string, JsonObject>;
+	readonly setting: ReadonlyMap<string, JsonObject>;
+	readonly rows: ReadonlyMap<string, readonly JsonObject[]>;
+	readonly balance: ReadonlyMap<string, JsonObject>;
+	readonly entries: readonly JsonObject[];
+	/** Each stored entry's catalog code, whichever version of the law it was made under. */
+	readonly codes: ReadonlyMap<string, string>;
+	readonly posted: readonly JsonObject[];
+	readonly runs: readonly JsonObject[];
+};
+const known = Effect.fn('ledger.known')(function* (
+	read: Reader,
+	model: Entries,
+	entries: readonly JsonObject[]
+) {
+	const catalog = CATALOG_OF[model];
+	const people = sameEmployee(uniqueIds(entries, 'employment_id'));
+	const entered = { [catalog]: { some: { id: { in: uniqueIds(entries, 'catalog_id') } } } };
+	const found = yield* queryAllRows(read, {
+		employee_contract: {
+			where: people,
+			fields: [
+				'employee_id',
+				'effective_range',
+				'service_started_on',
+				'input_schema_version_id',
+				'employee_extension_data'
+			],
+			limit: 10000
 		},
-		[catalogModel]: {
-			where: { settings_id: { in: settingsIds } },
+		[catalog]: {
+			where: { settings_id: { is: entered } },
 			fields: ['code', 'lookup', 'settings_id'],
 			limit: 10000
 		},
+		jurisdiction_settings: {
+			where: entered,
+			fields: ['code', 'tax_year_start_month', 'lookup'],
+			limit: 100
+		},
 		employee_balance: {
-			where: { employee_id: { in: uniqueIds(first.employee_contract ?? [], 'employee_id') } },
-			fields: ['employee_id', 'account'],
+			where: people,
+			fields: ['employee_id', 'account', 'revision'],
 			limit: 10000
-		}
-	};
-};
-/** The person a set of entries belongs to, the rows they were entered on, and the law that scopes them. */
-const subjectsFrom = (catalogModel: string, first: Read, second: Read) => {
-	const family_rows = second[catalogModel] ?? [];
-	return {
-		contract: new Map((first.employee_contract ?? []).map((row) => [String(row.id), row])),
-		catalog: new Map(
-			[...family_rows, ...(first[catalogModel] ?? [])].map((row) => [String(row.id), row])
-		),
-		setting: new Map((second.jurisdiction_settings ?? []).map((row) => [String(row.id), row])),
-		rows: Map.groupBy(family_rows, (row) => String(row.settings_id)),
-		balance: new Map((second.employee_balance ?? []).map((row) => [String(row.employee_id), row]))
-	};
-};
-const subjectsOf = Effect.fn('ledger.subjectsOf')(function* (
-	read: Reader,
-	family: Family | 'adhoc',
-	entries: readonly JsonObject[]
-) {
-	const catalogModel = family === 'adhoc' ? 'adhoc_catalog' : CATALOG[family];
-	const first = yield* queryRows(read, subjectRead(catalogModel, entries));
-	return subjectsFrom(catalogModel, first, yield* queryRows(read, lawRead(catalogModel, first)));
-});
-
-/** What each entry should post. A record that is gone is not here: `settleGone` inverts it. */
-const entryPlans = Effect.fn('ledger.entryPlans')(function* (
-	read: Reader,
-	family: Family | 'adhoc',
-	model: string,
-	entries: readonly JsonObject[],
-	subjects?: ReturnType<typeof subjectsFrom>
-) {
-	if (entries.length === 0) return [];
-	const known = subjects ?? (yield* subjectsOf(read, family, entries));
-	const reversed = uniqueIds(entries, 'reverses');
-	const originals =
-		reversed.length === 0
-			? []
-			: ((yield* queryRows(read, {
-					[model]: {
-						where: { id: { in: reversed } },
-						fields: [family === 'leave' ? 'days' : 'incurred_on'],
+		},
+		[model]: { where: { employment_id: { is: people } }, limit: 10000 },
+		[`${model}.catalog_id`]: { fields: ['code'] },
+		ledger_entry: {
+			where: { balance_id: { is: people }, source: { like: `${model}:%` } },
+			fields: FIELDS,
+			limit: 10000
+		},
+		...(model === 'adhoc_catalog_entry'
+			? {
+					payroll_run: {
+						where: { entity_id: { in: uniqueIds(entries, 'entity_id') } },
+						fields: ['entity_id', 'salary_coverage'],
 						limit: 10000
 					}
-				}))[model] ?? []);
-	const original = new Map(originals.map((row) => [String(row.id), row]));
-	const sources = [
-		...entries.map((entry) => `${model}:${String(entry.id)}`),
-		...reversed.map((id) => `${model}:${id}`)
-	];
-	const { ledger_entry: own = [] } =
-		family === 'claim'
-			? yield* queryAllRows(read, {
-					ledger_entry: { where: { source: { in: sources } }, fields: FIELDS, limit: 1000 }
-				})
-			: { ledger_entry: [] };
-	const postedBy = Map.groupBy(own, (row) => String(row.source));
+				}
+			: {})
+	});
+	const familyRows = found[catalog] ?? [];
+	const stored = found[model] ?? [];
+	return {
+		contract: new Map((found.employee_contract ?? []).map((row) => [String(row.id), row])),
+		catalog: new Map(familyRows.map((row) => [String(row.id), row])),
+		setting: new Map((found.jurisdiction_settings ?? []).map((row) => [String(row.id), row])),
+		rows: Map.groupBy(familyRows, (row) => String(row.settings_id)),
+		balance: new Map((found.employee_balance ?? []).map((row) => [String(row.employee_id), row])),
+		entries: stored.map((row) =>
+			jsonObject({ ...row, catalog_id: objectValue(row.catalog_id).id ?? row.catalog_id })
+		),
+		codes: new Map(stored.map((row) => [String(row.id), String(objectValue(row.catalog_id).code)])),
+		posted: found.ledger_entry ?? [],
+		runs: found.payroll_run ?? []
+	} satisfies Known;
+});
+/**
+ * A batch of entries' one read (`Known`), and with an `operation` its registered rules' validation beside it: both go
+ * out together, one crossing.
+ */
+export const entryRead = (
+	read: Reader,
+	model: Entries,
+	entries: readonly JsonObject[],
+	operation?: Operation
+) =>
+	Effect.all(
+		[
+			known(read, model, entries),
+			operation === undefined ? Effect.void : validateRegistered(read, model, operation, entries)
+		],
+		{ concurrency: 'unbounded' }
+	).pipe(Effect.map(([read]) => read));
+
+/** What each entry should post, from what its batch read. A record that is gone is not here: its delete inverts it. */
+const entryPlans = (
+	known: Known,
+	family: Family | 'adhoc',
+	model: string,
+	entries: readonly JsonObject[]
+): readonly Plan[] => {
+	if (entries.length === 0) return [];
+	const original = new Map(known.entries.map((row) => [String(row.id), row]));
+	const postedBy = Map.groupBy(known.posted, (row) => String(row.source));
 	const drew = (source: string) =>
 		(postedBy.get(source) ?? [])
 			.filter((item) => item.measure === 'used')
@@ -575,208 +665,125 @@ const entryPlans = Effect.fn('ledger.entryPlans')(function* (
 			}
 		return [{ source: `${model}:${String(entry.id)}`, balance_id: String(balance.id), wanted }];
 	});
-});
-
-// a posting dated before this year can change what carried since
-const past = (plan: Plan, today: string) =>
-	plan.source.startsWith('leave_catalog_entry:') &&
-	plan.wanted.some((row) => row.effective_on.slice(0, 4) < today.slice(0, 4));
+};
 
 const FAMILY = {
 	leave_catalog_entry: 'leave',
 	claim_catalog_entry: 'claim',
 	adhoc_catalog_entry: 'adhoc'
 } as const;
-const isEntryModel = (model: string): model is keyof typeof FAMILY => Object.hasOwn(FAMILY, model);
 
-/** Posts records. It reads each one as it stands now, so a rerun or a late retry can never post a stale copy. */
-export const post = Effect.fn('ledger.post')(function* (ctx: Ctx, sources: readonly string[]) {
-	const byModel = Map.groupBy(sources, (source) => source.slice(0, source.indexOf(':')));
-	const plans: Plan[] = [];
-	const gone: string[] = [];
-	for (const [model, group] of byModel) {
-		const ids = group.map((source) => source.slice(source.indexOf(':') + 1));
-		if (model === 'payroll_run') {
-			const run = yield* runPlans(ctx.query, ids);
-			plans.push(...run.plans);
-			gone.push(...run.gone);
-			continue;
-		}
-		if (!isEntryModel(model)) continue;
-		const rows =
-			(yield* queryRows(ctx.query, {
-				[model]: { where: { id: { in: ids } }, limit: 10000 }
-			}))[model] ?? [];
-		const found = new Set(rows.map((row) => String(row.id)));
-		gone.push(...ids.filter((id) => !found.has(id)).map((id) => `${model}:${id}`));
-		plans.push(...(yield* entryPlans(ctx.query, FAMILY[model], model, rows)));
-	}
-	yield* settleGone(ctx, gone);
-	yield* settle(ctx, plans);
-	return [...new Set(plans.flatMap((plan) => (past(plan, ctx.today) ? [plan.balance_id] : [])))];
-});
+/** What these entries post, as their own write carries it, from what their batch read. */
+export const entryPostings = (known: Known, model: Entries, entries: readonly JsonObject[]) =>
+	carry(entryPlans(known, FAMILY[model], model, entries), known.posted, [
+		...known.balance.values()
+	]);
+/** What these entries, deleted, posted: inverted, as their delete carries it. */
+export const entriesUndone = (known: Known, model: Entries, entries: readonly JsonObject[]) => {
+	const sources = new Set(entries.map((entry) => `${model}:${String(entry.id)}`));
+	return inverted(
+		known.posted.filter((row) => sources.has(String(row.source))),
+		[...known.balance.values()]
+	);
+};
 
-const runPlans = Effect.fn('ledger.runPlans')(function* (read: Reader, ids: readonly string[]) {
-	const { payroll_run: runs = [], payslip: slips = [] } = yield* queryRows(read, {
-		payroll_run: { where: { id: { in: [...ids] } }, fields: ['pay_date'], limit: 1000 },
-		payslip: {
-			where: { payroll_run_id: { in: [...ids] } },
-			fields: [
-				'payroll_run_id',
-				'employee_id',
-				'employment_id',
-				'entity_id',
-				'settings_id',
-				'breakdown'
-			],
-			limit: 10000
-		}
-	});
-	const { jurisdiction_settings: settings = [] } = yield* queryRows(read, {
+/** What runs post from their payslips: those a create makes (`payslips`), else the stored ones. */
+export const runPostings = Effect.fn('ledger.runPostings')(function* (
+	read: Reader,
+	runs: readonly {
+		readonly id: string;
+		readonly pay_date: string;
+		readonly payslips?: readonly JsonObject[];
+	}[]
+) {
+	const made = runs.every((run) => run.payslips !== undefined);
+	const slips = made
+		? runs.flatMap((run) =>
+				(run.payslips ?? []).map((slip) => jsonObject({ ...slip, payroll_run_id: run.id }))
+			)
+		: ((yield* queryRows(read, {
+				payslip: {
+					where: { payroll_run_id: { in: runs.map((run) => run.id) } },
+					fields: [
+						'payroll_run_id',
+						'employee_id',
+						'employment_id',
+						'entity_id',
+						'settings_id',
+						'breakdown'
+					],
+					limit: 10000
+				}
+			})).payslip ?? []);
+	const {
+		jurisdiction_settings: settings = [],
+		employee_contract: contracts = [],
+		employee_balance: balances = [],
+		ledger_entry: posted = []
+	} = yield* queryAllRows(read, {
 		jurisdiction_settings: {
 			where: { id: { in: uniqueIds(slips, 'settings_id') } },
 			fields: ['code', 'tax_year_start_month', 'lookup'],
 			limit: 100
-		}
-	});
-	const { employee_contract: contracts = [] } = yield* queryRows(read, {
+		},
 		employee_contract: {
 			where: { id: { in: uniqueIds(slips, 'employment_id') } },
 			fields: ['effective_range', 'service_started_on'],
 			limit: 10000
-		}
-	});
-	const { employee_balance: balances = [] } = yield* queryRows(read, {
+		},
 		employee_balance: {
 			where: { employee_id: { in: uniqueIds(slips, 'employee_id') } },
-			fields: ['employee_id'],
+			fields: ['employee_id', 'account', 'revision'],
 			limit: 10000
-		}
+		},
+		// a run just made has posted nothing
+		...(made
+			? {}
+			: {
+					ledger_entry: {
+						where: { source: { in: runs.map((run) => `payroll_run:${run.id}`) } },
+						fields: FIELDS,
+						limit: 10000
+					}
+				})
 	});
-	const payDate = new Map(runs.map((row) => [String(row.id), String(row.pay_date)]));
+	const payDate = new Map(runs.map((run) => [run.id, run.pay_date]));
 	const setting = new Map(settings.map((row) => [String(row.id), row]));
 	const contract = new Map(contracts.map((row) => [String(row.id), row]));
 	const balance = new Map(balances.map((row) => [String(row.employee_id), String(row.id)]));
-	const found = new Set(runs.map((row) => String(row.id)));
-	return {
-		gone: ids.filter((id) => !found.has(id)).map((id) => `payroll_run:${id}`),
-		plans: slips.flatMap((slip) => {
-			const balance_id = balance.get(String(slip.employee_id));
-			const run = String(slip.payroll_run_id);
-			const own = setting.get(String(slip.settings_id));
-			const employment = contract.get(String(slip.employment_id));
-			if (balance_id === undefined || own === undefined || employment === undefined) return [];
-			const byMonth = objectValue(own.lookup).month_balance;
-			return [
-				{
-					source: `payroll_run:${run}`,
-					balance_id,
-					wanted: payslipWanted(objectValue(slip.breakdown), String(payDate.get(run)), {
-						scope: totalsScope(own, slip.entity_id),
-						started: startedOn(employment),
-						events: [],
-						taxYearStart: Number(own.tax_year_start_month ?? 1),
-						byMonth: Array.isArray(byMonth) ? byMonth : []
-					})
-				}
-			];
-		})
-	};
-});
-
-const moved = (slip: JsonObject) =>
-	Number(slip.gross_earnings ?? 0) > 0 ||
-	Number(slip.employee_statutory ?? 0) !== 0 ||
-	Number(slip.employer_statutory ?? 0) !== 0 ||
-	Number(slip.tax_withheld ?? 0) !== 0;
-
-/**
- * Has everyone on these runs posted? A run stands on what the last one posted, so an unposted one holds it back. A slip
- * that moved no money posts nothing, and holds nothing back.
- */
-export const runPosted = Effect.fn('ledger.runPosted')(function* (
-	read: Reader,
-	ids: readonly string[]
-) {
-	const { payslip: slips = [] } = yield* queryRows(read, {
-		payslip: {
-			where: { payroll_run_id: { in: [...ids] } },
-			fields: [
-				'employee_id',
-				'gross_earnings',
-				'employee_statutory',
-				'employer_statutory',
-				'tax_withheld'
-			],
-			limit: 10000
-		}
-	});
-	const due = uniqueIds(slips.filter(moved), 'employee_id');
-	if (due.length === 0) return true;
-	const { employee_balance: balances = [] } = yield* queryRows(read, {
-		employee_balance: {
-			where: { employee_id: { in: due } },
-			fields: ['id'],
-			limit: 10000
-		}
-	});
-	// ponytail: pages of 10000 inside a write's ten reads hold about 1,300 people a run; a person's row, if that outgrows it
-	const { ledger_entry: rows = [] } = yield* queryAllRows(read, {
-		ledger_entry: {
-			where: { source: { in: ids.map((id) => `payroll_run:${id}`) } },
-			fields: ['balance_id'],
-			limit: 10000
-		}
-	});
-	const posted = new Set(rows.map((row) => String(row.balance_id)));
-	return balances.every((row) => posted.has(String(row.id)));
-});
-
-/**
- * Has a deleted run finished taking back its totals? The newest payslip movement says whose turn it was. Until a deleted
- * run nets to nothing, a new run would count it.
- */
-export const runsTakenBack = Effect.fn('ledger.runsTakenBack')(function* (read: Reader) {
-	const newest = yield* read(
-		dynamicRead({
-			ledger_entry: {
-				where: { account: { eq: 'pay' } },
-				fields: ['source'],
-				orderBy: { created_at: 'desc' },
-				limit: 1
+	const plans = slips.flatMap((slip) => {
+		const balance_id = balance.get(String(slip.employee_id));
+		const run = String(slip.payroll_run_id);
+		const own = setting.get(String(slip.settings_id));
+		const employment = contract.get(String(slip.employment_id));
+		if (balance_id === undefined || own === undefined || employment === undefined) return [];
+		const byMonth = objectValue(own.lookup).month_balance;
+		return [
+			{
+				source: `payroll_run:${run}`,
+				balance_id,
+				wanted: payslipWanted(objectValue(slip.breakdown), String(payDate.get(run)), {
+					scope: totalsScope(own, slip.entity_id),
+					started: startedOn(employment),
+					events: [],
+					taxYearStart: Number(own.tax_year_start_month ?? 1),
+					byMonth: Array.isArray(byMonth) ? byMonth : []
+				})
 			}
-		})
-	);
-	const source = newest.ledger_entry?.rows[0]?.source;
-	if (typeof source !== 'string' || !source.startsWith('payroll_run:')) return true;
-	const { payroll_run: runs = [], ledger_entry: rows = [] } = yield* queryRows(read, {
-		payroll_run: {
-			where: { id: { eq: source.slice(source.indexOf(':') + 1) } },
-			fields: ['id'],
-			limit: 1
-		},
-		ledger_entry: {
-			where: { source: { eq: source }, account: { eq: 'pay' } },
-			fields: ['operation', 'amount'],
-			limit: 10000
-		}
+		];
 	});
-	const net = rows.reduce(
-		(total, row) => total + (row.operation === 'DEDUCT' ? -1 : 1) * Number(row.amount ?? 0),
-		0
-	);
-	return runs.length > 0 || Math.abs(net) < 1e-6;
+	return carry(plans, posted, balances);
 });
 
 const LEAVE = 'leave_catalog_entry';
 const sourceOf = (row: JsonObject) => `${LEAVE}:${String(row.id)}`;
 
 /**
- * The check before a leave entry commits: each window it draws on has the days. A write allows few reads, so this makes
- * two. The balance does not show an entry on its way to the ledger, so a waiting one counts here.
+ * The check before a leave entry commits: each window it draws on has the days, from what its batch read. The balance
+ * does not show an entry held for approval, so a held one counts here. Reversals take nothing, and are not checked.
  */
 export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
-	read: Reader,
+	known: Known,
 	entries: readonly JsonObject[],
 	today: string,
 	replaced: readonly JsonObject[] = []
@@ -784,16 +791,8 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 	if (entries.every((row) => row.is_reversal === true)) return;
 	const taking = entries.filter((row) => row.is_reversal !== true && row.encashment !== true);
 	const ids = uniqueIds(entries, 'employment_id');
-	const subject = subjectRead('leave_catalog', entries);
-	const first = yield* queryRows(read, {
-		...subject,
-		employee_contract: { ...subject.employee_contract, where: sameEmployee(ids) },
-		[LEAVE]: { where: { employment_id: { is: sameEmployee(ids) } }, limit: 10000 }
-	});
-	const held = first[LEAVE] ?? [];
-	const person = new Map(
-		(first.employee_contract ?? []).map((row) => [String(row.id), String(row.employee_id)])
-	);
+	const held = known.entries;
+	const person = new Map([...known.contract].map(([id, row]) => [id, String(row.employee_id)]));
 	const slots = (row: JsonObject) =>
 		(Array.isArray(row.days) ? row.days : [])
 			.filter(isJsonObject)
@@ -824,20 +823,11 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 	const open = held.filter(
 		(row) => row.payroll_run_id == null && ids.includes(String(row.employment_id))
 	);
-	const second = yield* queryRows(read, {
-		...lawRead('leave_catalog', first),
-		ledger_entry: {
-			where: { source: { in: open.map(sourceOf) } },
-			fields: ['source'],
-			limit: 10000
-		}
-	});
-	const known = subjectsFrom('leave_catalog', first, second);
-	const posted = new Set((second.ledger_entry ?? []).map((row) => String(row.source)));
+	const posted = new Set(known.posted.map((row) => String(row.source)));
 	const editing = new Set(replaced.map(sourceOf));
 	const waiting = open.filter((row) => !posted.has(sourceOf(row)) && !editing.has(sourceOf(row)));
 	const undone = replaced.filter((row) => posted.has(sourceOf(row)));
-	const plans = yield* entryPlans(read, 'leave', LEAVE, entries, known);
+	const plans = entryPlans(known, 'leave', LEAVE, entries);
 	if (plans.length === 0) return;
 	const limited = new Map<string, boolean>();
 	const opened = new Set<string>();
@@ -865,8 +855,8 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 					drawn.set(key, { ...held, amount: held.amount + sign * row.amount });
 			}
 	};
-	adjust(yield* entryPlans(read, 'leave', LEAVE, waiting, known), 1);
-	adjust(yield* entryPlans(read, 'leave', LEAVE, undone, known), -1);
+	adjust(entryPlans(known, 'leave', LEAVE, waiting), 1);
+	adjust(entryPlans(known, 'leave', LEAVE, undone), -1);
 	for (const [key, { row, amount }] of drawn) {
 		if (amount <= 0) continue;
 		const balance = key.slice(0, key.indexOf('/'));
@@ -874,17 +864,12 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 		// a window no sync has opened yet has nothing to refuse against
 		const unopened = opened.has(row.code) && !row.period.includes('.E.');
 		if (measures === undefined && row.effective_on > today && !unopened) continue;
-		const left = leftIn(measures);
-		if (Number((left - amount).toFixed(8)) < 0)
+		const remaining = leftIn(measures);
+		if (Number((remaining - amount).toFixed(8)) < 0)
 			return yield* Effect.fail(new Refusal({ message: `${row.code}: insufficient balance.` }));
 	}
 });
 
-type Entries = 'leave_catalog_entry' | 'claim_catalog_entry' | 'adhoc_catalog_entry';
-/** Every contract of the people who hold these: one read, so a gate spends one crossing. */
-const sameEmployee = (ids: readonly string[]) => ({
-	employee_id: { is: { employee_contract: { some: { id: { in: ids } } } } }
-});
 const sizeOf = (model: Entries, entry: JsonObject) =>
 	model === LEAVE
 		? (Array.isArray(entry.days) ? entry.days : []).length
@@ -892,41 +877,21 @@ const sizeOf = (model: Entries, entry: JsonObject) =>
 
 /** A reversal undoes one sealed entry of the same person and catalog item, once, for no more than it held. */
 export const assertReversals = Effect.fn('ledger.assertReversals')(function* (
-	read: Reader,
+	known: Known,
 	model: Entries,
 	entries: readonly JsonObject[]
 ) {
 	const reversals = entries.filter((entry) => typeof entry.reverses === 'string');
 	if (reversals.length === 0) return;
-	const catalog = model.replace('_entry', '');
-	const {
-		[model]: originals = [],
-		employee_contract: chain = [],
-		[catalog]: items = []
-	} = yield* queryRows(read, {
-		[model]: { where: { id: { in: uniqueIds(reversals, 'reverses') } }, limit: 10000 },
-		[`${model}.catalog_id`]: { fields: ['code'] },
-		employee_contract: {
-			where: sameEmployee(uniqueIds(reversals, 'employment_id')),
-			fields: ['employee_id'],
-			limit: 10000
-		},
-		[catalog]: {
-			where: { id: { in: uniqueIds(reversals, 'catalog_id') } },
-			fields: ['code'],
-			limit: 10000
-		}
-	});
-	const person = new Map(chain.map((row) => [String(row.id), String(row.employee_id)]));
-	const code = new Map(items.map((row) => [String(row.id), String(row.code)]));
-	const fits = (entry: JsonObject, original: JsonObject | undefined) =>
-		original !== undefined &&
-		original.is_reversal !== true &&
-		original.payroll_run_id != null &&
-		person.get(String(entry.employment_id)) === person.get(String(original.employment_id)) &&
-		code.get(String(entry.catalog_id)) === objectValue(original.catalog_id).code &&
-		sizeOf(model, entry) <= sizeOf(model, original);
-	const original = new Map(originals.map((row) => [String(row.id), row]));
+	const person = (contract: unknown) => known.contract.get(String(contract))?.employee_id;
+	const original = new Map(known.entries.map((row) => [String(row.id), row]));
+	const fits = (entry: JsonObject, first: JsonObject | undefined) =>
+		first !== undefined &&
+		first.is_reversal !== true &&
+		first.payroll_run_id != null &&
+		person(entry.employment_id) === person(first.employment_id) &&
+		known.catalog.get(String(entry.catalog_id))?.code === known.codes.get(String(first.id)) &&
+		sizeOf(model, entry) <= sizeOf(model, first);
 	if (!reversals.every((entry) => fits(entry, original.get(String(entry.reverses)))))
 		return yield* Effect.fail(
 			new Refusal({
@@ -941,25 +906,13 @@ export const assertReversals = Effect.fn('ledger.assertReversals')(function* (
  * already paid and charges that much less, so nothing would move.
  */
 export const assertAdjustmentsClosed = Effect.fn('ledger.assertAdjustmentsClosed')(function* (
-	read: Reader,
+	known: Known,
 	entries: readonly JsonObject[]
 ) {
 	const dated = entries.filter((entry) => typeof entry.reverses !== 'string');
 	if (dated.length === 0) return;
-	const { adhoc_catalog: rows = [], payroll_run: runs = [] } = yield* queryRows(read, {
-		adhoc_catalog: {
-			where: { id: { in: uniqueIds(dated, 'catalog_id') } },
-			fields: ['lookup'],
-			limit: 10000
-		},
-		payroll_run: {
-			where: { entity_id: { in: uniqueIds(dated, 'entity_id') } },
-			fields: ['entity_id', 'salary_coverage'],
-			limit: 10000
-		}
-	});
 	const statutory = new Set(
-		rows
+		[...known.catalog.values()]
 			.filter((row) => {
 				const { accounts } = objectValue(row.lookup);
 				return (
@@ -970,7 +923,7 @@ export const assertAdjustmentsClosed = Effect.fn('ledger.assertAdjustmentsClosed
 			.map((row) => String(row.id))
 	);
 	const closed = new Set(
-		runs.map(
+		known.runs.map(
 			(run) =>
 				`${String(run.entity_id)}/${String(objectValue(run.salary_coverage).from).slice(0, 7)}`
 		)
@@ -1197,17 +1150,6 @@ export const syncEntitlements = Effect.fn('ledger.syncEntitlements')(function* (
 	return { people: (read.employee_balance ?? []).length, boundary };
 });
 
-/** Sync for these balances: a late posting can change what carried. */
-export const syncBalances = Effect.fn('ledger.syncBalances')(function* (
-	ctx: Ctx,
-	balances: readonly string[]
-) {
-	const { employee_balance: rows = [] } = yield* queryRows(ctx.query, {
-		employee_balance: { where: { id: { in: [...balances] } }, fields: ['employee_id'], limit: 1000 }
-	});
-	yield* syncEntitlements(ctx, uniqueIds(rows, 'employee_id'));
-});
-
 const YEARS_HELD = 3;
 /** Old periods leave the balance through dated movements; the ledger keeps them forever. */
 export const retire = Effect.fn('ledger.retire')(function* (ctx: Ctx) {
@@ -1242,12 +1184,44 @@ export const retire = Effect.fn('ledger.retire')(function* (ctx: Ctx) {
 	}
 });
 
-/** A posting that failed for good raises a task, so nothing is lost in silence and the PAID gate is not the only sign. */
+/** A leave posting dated before this year can change what carried since: its people sync again. */
+export const syncLate = Effect.fn('ledger.syncLate')(function* (
+	ctx: Pick<EffectCtx, 'query' | 'schedule' | 'today'>,
+	rows: readonly JsonObject[]
+) {
+	const year = String(ctx.today).slice(0, 4);
+	const late = rows.filter(
+		(row) =>
+			String(row.source).startsWith('leave_catalog_entry:') &&
+			String(row.effective_on).slice(0, 4) < year
+	);
+	if (late.length === 0) return;
+	const { employee_balance: balances = [] } = yield* queryRows(ctx.query, {
+		employee_balance: {
+			where: { id: { in: uniqueIds(late, 'balance_id') } },
+			fields: ['employee_id'],
+			limit: 1000
+		}
+	});
+	yield* ctx.schedule('ledger', {
+		employees: uniqueIds(balances, 'employee_id').map((id) => idOf('employee_profile', id))
+	});
+});
+
+/** The models whose writes post: what they post rides in their own write (`onApproved`). */
+const POSTS = ['leave_catalog_entry', 'claim_catalog_entry', 'adhoc_catalog_entry', 'payroll_run'];
+/** Who writes the ledger and the balance: the write of a record that posts, and sync (`payroll_execution`). */
+export const writesLedger = (ctx: {
+	readonly policies: readonly string[];
+	readonly carriedBy: string | null;
+}) => ctx.policies.includes('payroll_execution') || POSTS.includes(ctx.carriedBy ?? '');
+
+/** A sync that failed for good raises a task, so nothing is lost in silence. */
 export const raiseFailure = Effect.fn('ledger.raiseFailure')(function* (
 	ctx: Ctx,
 	label: string,
 	reason: string,
-	title = 'Ledger posting failed'
+	title = 'Ledger sync failed'
 ) {
 	const { entity: entities = [] } = yield* queryRows(ctx.query, {
 		entity: { fields: ['id'], limit: 1 }
