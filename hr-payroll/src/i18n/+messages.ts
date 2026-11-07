@@ -371,6 +371,10 @@ export default messages({
 	'contract.agreed_terms': 'Agreed terms',
 	'contract.new': 'New contract',
 	'contract.promotion': 'Promotion',
+	'contract.life_event': 'Life event',
+	'contract.life_event_help':
+		'Record what happened under Life events, with the date it happened. A new sealed version carries it from the day after the date below.',
+	'contract.life_event_data': 'Employee data',
 	'contract.transfer': 'Transfer',
 	'contract.terminate': 'Terminate',
 	'contract.open': 'Open',
@@ -1181,7 +1185,7 @@ export default messages({
 	'v2.leave_requests': 'Leave entries',
 	'v2.leave_entries': 'Approved leave entries',
 	'v2.leave_help':
-		'Apply for dated leave sessions. Approval reserves capacity; cancellation releases an unused reservation.',
+		'Dated leave sessions. An entry draws on its window once saved, and deleting it gives the days back.',
 	'v2.loans_help':
 		'Record disbursements and allocated repayments against their original loan. Rehires retain the person’s outstanding principal.',
 	'v2.repayments': 'Loan repayments',
