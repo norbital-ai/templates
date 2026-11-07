@@ -441,8 +441,19 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 	);
 	const projectedDays = (rows: readonly JsonObject[]): readonly ProjectedDay[] | undefined => {
 		const days: ProjectedDay[] = [];
+		const ordered = rows.toSorted((left, right) =>
+			String(objectValue(left.effective_range).from).localeCompare(
+				String(objectValue(right.effective_range).from)
+			)
+		);
 		for (const date of projectionDays) {
-			const row = rows.find((contract) => covers(contract.effective_range, date, date));
+			// a day outside the employment is still one of the period's: the share leaves it unpaid
+			const row =
+				rows.find((contract) => covers(contract.effective_range, date, date)) ??
+				ordered.findLast(
+					(contract) => String(objectValue(contract.effective_range).from) <= date
+				) ??
+				ordered[0];
 			if (row === undefined) continue;
 			const terms = objectValue(row.terms);
 			const pattern = patterns.get(terms.shift_pattern_id);
@@ -525,9 +536,8 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 					},
 					work: { days: [...own].flatMap((id) => workDays.get(id) ?? []) },
 					...(projected === undefined ? {} : { projected_days: projected }),
-					// a day at another employer is that employer's to pay
 					employed: answering
-						.filter((row) => row.employee_id === employeeId && row.entity_id === companyId)
+						.filter((row) => row.employee_id === employeeId)
 						.map((row) => {
 							const { from, to } = objectValue(row.effective_range);
 							return { from: String(from), to: to == null ? null : String(to) };
