@@ -43,9 +43,10 @@ Rules:
    cancel it; there is no delete verb.
 6. A void requires a reason and is irreversible. A record a payroll run already captured may still
    be voided, but no later run may use it.
-7. A promotion or life event starts on the first of a month, so a run never prices a month on two
-   versions. A life event keeps its own real date inside the fact. A hire, a rehire, an exit and a
-   transfer keep their real dates, and a run pays those days by the period's proration.
+7. A promotion, life event or transfer starts on the first of a month, so a run never prices a
+   month on two versions or two employers. A life event keeps its own real date inside the fact. A
+   hire, a rehire and an exit keep their real dates, and a run pays those days by the period's
+   proration. A period that holds an older mid-month move pays each employer only its own days.
 8. A promotion or life event starting after today is filed as `contract_change` rows, not a draft.
    Nothing reads them until the `contract_materialize` automation seals the version on that day. A
    transfer is never filed this way.

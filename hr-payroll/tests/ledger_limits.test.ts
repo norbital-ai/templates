@@ -215,6 +215,25 @@ describe('what cannot be done to the ledger, an admin included', () => {
 		take(t, OCTOBER).pipe(Effect.andThen(pay(t, '2026-10')), Effect.andThen(sealedLeave(t)));
 	const reverse = (t: Kit, reverses: Id<'leave_catalog_entry'>, set: object = {}) =>
 		hr(t).act('leave_catalog_entry.create', [sick('2026-11-03', { reverses, ...set })]);
+	it.live('frees only the days a partial reversal gives back', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* syncAll(t);
+			yield* hr(t).act('leave_catalog_entry.create', [
+				sick(OCTOBER, { days: wholeDays(OCTOBER, '2026-10-06') })
+			]);
+			yield* pay(t, '2026-10');
+			yield* hr(t).act('leave_catalog_entry.create', [
+				sick('2026-11-03', { reverses: yield* sealedLeave(t) })
+			]);
+			yield* t.runDue();
+			yield* hr(t).act('leave_catalog_entry.create', [sick(OCTOBER)]);
+			const still = yield* Effect.flip(
+				hr(t).act('leave_catalog_entry.create', [sick('2026-10-06')])
+			);
+			assert.match(String(still), /already covers 2026-10-06/);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
 	it.live('writes neither a ledger row nor a balance by hand', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;

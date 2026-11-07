@@ -128,7 +128,7 @@ A fact is something true of a person. Every fact lives on the contract, because 
 
 Some countries' schemas lay these flat on `employee_extension_data`.
 
-A new fact is a new contract version: HR adds it to a draft and seals it, from the first of a month, so a run never prices a month on two versions. The event keeps its own real date. One known ahead of its day is filed as a `contract_change`, which nothing reads until the `contract_materialize` automation seals it on that day. An event carries its real date. Where leave starts first, as it can before a birth, `opened_on` is the day its window opens; the expected date goes in `on`, and a later contract change moves `on` to the real date while the window, its entitlement and the days taken stay where they are. Sealing triggers sync, and a catalog row's `opened_by` names the events that open it, so nothing else connects them.
+A new fact is a new contract version: HR adds it to a draft and seals it, from the first of a month, so a run never prices a month on two versions. A transfer starts on the first too; only a hire, a rehire and an exit keep their own day. The event keeps its own real date. One known ahead of its day is filed as a `contract_change`, which nothing reads until the `contract_materialize` automation seals it on that day. An event carries its real date. Where leave starts first, as it can before a birth, `opened_on` is the day its window opens; the expected date goes in `on`, and a later contract change moves `on` to the real date while the window, its entitlement and the days taken stay where they are. Sealing triggers sync, and a catalog row's `opened_by` names the events that open it, so nothing else connects them.
 
 Documents are uploaded on the employee profile, by HR or by the employee, and a fact item names its document. HR records the fact and seals.
 
@@ -571,7 +571,7 @@ EPF_REFUND (adhoc_catalog)
 
 An underpayment is the mirror: `EPF_ADJUSTMENT`, direction `DEDUCT`, which adds to the statutory balance and raises a task to pay the arrears. An adjustment entered wrongly is deleted while unpaid, and reversed on the same row once paid.
 
-Each scheme has its own adjustment rows, so the target is exact. An adjustment is dated in the wage month it corrects: that month's statutory total takes it, and the next run pays it. Dated in the month being paid, it counts toward that month's contribution, so the row charges that much less and nothing moves.
+Each scheme has its own adjustment rows, so the target is exact. An adjustment is dated in the closed wage month it corrects: that month's statutory total takes it, and the next run pays it. It is refused in a month no run has closed, where that month's row would count it as paid and nothing would move.
 
 **Ceiling across the year (Singapore).** The yearly ceiling less ordinary wages attracting CPF, each month counted at that month's ceiling.
 

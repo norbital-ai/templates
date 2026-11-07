@@ -10,7 +10,7 @@ import {
 	syncEntitlements
 } from '../lib/ledger/service.js';
 
-const ATTEMPTS = 5;
+const ATTEMPTS = 8;
 
 /**
  * The one writer of the ledger and the balance, one run at a time. With `post`, it posts those records as they stand.
@@ -46,8 +46,9 @@ export default automation('ledger', {
 				);
 		});
 		yield* work.pipe(
+			// what can pass waits out its retries, which outlast an outage; a refusal will not change
 			Effect.tapError((error) =>
-				ctx.attempt < ATTEMPTS && error._tag === 'ActConflict'
+				ctx.attempt < ATTEMPTS && error._tag !== 'Refusal'
 					? Effect.void
 					: raiseFailure(ctx, sources?.[0] ?? 'entitlement sync', getErrorMessage(error))
 			)
