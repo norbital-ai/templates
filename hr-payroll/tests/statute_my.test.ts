@@ -7,6 +7,7 @@ import { PlainDate, addDays } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
+import { payBasis } from '../src/lib/payroll_engine/engine.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
@@ -303,13 +304,7 @@ describe('absence without leave', () => {
 	it.live('in the service year before does not count', () =>
 		allowed({ absent: dates('2025-02-01', 40) })
 	);
-	const { normal_days_per_week: _, ...unrecorded } = TERMS;
-	it.live('with the week unrecorded, a six-day week is assumed', () =>
-		allowed({ terms: unrecorded, absent: dates('2026-02-01', 31) })
-	);
-	it.live('past a tenth of that week forfeits it too', () =>
-		refused({ terms: unrecorded, absent: dates('2026-02-01', 32) })
-	);
+	// B2: a contract without its ordinary week is refused, so the rule has no unrecorded-week fallback
 	it.live('does not stop an exit pay-out or a reversal being written', () => {
 		const { seed, layer } = asks({ absent: dates('2026-02-01', 27) });
 		return Effect.gen(function* () {
@@ -370,18 +365,38 @@ describe('unpaid leave', () => {
 describe('the day rate', () => {
 	it('carries fixed allowances, and no variable one', () => {
 		const [settings] = read('seed/public/jurisdiction/MY/version_8/jurisdiction_settings.json');
-		const lookup = objectValue(settings?.lookup);
+		assert.ok(settings !== undefined);
 		const terms = {
 			rate: { amount: 2600, unit: 'MONTHLY' },
-			allowances: { FIXED: { amount: 260 }, TIPS: { amount: 100, variability: 'VARIABLE' } }
+			normal_hours_per_day: 8,
+			normal_hours_per_week: 40,
+			normal_days_per_week: 5,
+			allowances: { FIXED: { amount: 260 }, TIPS: { amount: 100 } }
 		};
 		assert.equal(
-			evaluate(
-				String(lookup.day_rate),
-				'CALCULATION',
-				{ subject: { employment: { terms } }, lookup },
-				'day_rate'
-			),
+			payBasis(
+				{
+					run: {},
+					settings,
+					subtotals: [],
+					allowance: [
+						{ code: 'FIXED', lookup: {}, include_in_rate: true },
+						{ code: 'TIPS', lookup: {}, include_in_rate: false }
+					],
+					overtime: [],
+					statutory: [],
+					leave_catalog: [],
+					claim_catalog: [],
+					adhoc_catalog: [],
+					loan_catalog: [],
+					employee: {},
+					employment: { terms },
+					employer: { payment_schedule: { non_working_weekdays: [0, 6] } },
+					balance: {},
+					entries: {}
+				},
+				{ from: '2026-06-01', to: '2026-06-30' }
+			).day_rate,
 			110
 		);
 	});

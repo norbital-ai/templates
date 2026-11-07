@@ -72,11 +72,6 @@
 					'adhoc_catalog_entry.catalog_id': { fields: ['name', 'off_cycle_eligible'] },
 					'adhoc_catalog_entry.employment_id': {
 						fields: ['employee_number', 'employee_name', 'effective_range']
-					},
-					claim_catalog_entry: openEntry,
-					'claim_catalog_entry.catalog_id': { fields: ['name', 'off_cycle_eligible'] },
-					'claim_catalog_entry.employment_id': {
-						fields: ['employee_number', 'employee_name', 'effective_range']
 					}
 				})
 			: null
@@ -87,14 +82,13 @@
 				row,
 				adhoc: [row.id],
 				claim: []
-			})),
-			...(listed?.current?.claim_catalog_entry.rows ?? []).map((row) => ({
-				row,
-				adhoc: [],
-				claim: [row.id]
 			}))
-		].flatMap(({ row, adhoc, claim }) =>
-			row.catalog_id?.off_cycle_eligible === true && row.employment_id != null
+		].flatMap(({ row, adhoc, claim }) => {
+			const offCycle =
+				row.catalog_id !== null &&
+				'off_cycle_eligible' in row.catalog_id &&
+				row.catalog_id.off_cycle_eligible === true;
+			return row.employment_id != null && row.catalog_id !== null && offCycle
 				? [
 						{
 							adhoc,
@@ -105,8 +99,8 @@
 							what: row.catalog_id.name
 						}
 					]
-				: []
-		)
+				: [];
+		})
 	);
 	const unique = (values: readonly string[]) =>
 		[...new Set(values)].toSorted().map((value) => ({ value, label: value }));

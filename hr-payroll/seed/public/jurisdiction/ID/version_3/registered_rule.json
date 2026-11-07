@@ -2,7 +2,10 @@
 	{
 		"code": "MINIMUM_WAGE_FLOOR",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -17,8 +20,8 @@
 				}
 			}
 		},
-		"condition": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst fixed = Object.values(get(ctx.entry, 'terms.allowances', {})).filter((a) => get(a, 'variability', '') === 'FIXED');\nconst monthly = Number(get(rate, 'amount', 0)) + sum(fixed.map((a) => Number(get(a, 'amount', 0))));\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'MONTHLY') return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (region === '') return false;\nreturn Object.hasOwn(ctx.lookup.by_region, region);\n",
-		"validate": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst fixed = Object.values(get(ctx.entry, 'terms.allowances', {})).filter((a) => get(a, 'variability', '') === 'FIXED');\nconst monthly = Number(get(rate, 'amount', 0)) + sum(fixed.map((a) => Number(get(a, 'amount', 0))));\nreturn monthly >= ctx.lookup.by_region[region];\n",
+		"condition": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'MONTHLY') return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (region === '') return false;\nreturn Object.hasOwn(ctx.lookup.by_region, region);\n",
+		"validate": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\nreturn monthly >= ctx.lookup.by_region[region];\n",
 		"order": 0,
 		"references": [
 			{
@@ -37,9 +40,12 @@
 	{
 		"code": "BASIC_WAGE_SHARE",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
-		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst fixed = Object.values(get(ctx.entry, 'terms.allowances', {})).filter((a) => get(a, 'variability', '') === 'FIXED');\nconst monthly = Number(get(rate, 'amount', 0)) + sum(fixed.map((a) => Number(get(a, 'amount', 0))));\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'MONTHLY') return false;\nreturn monthly > 0;\n",
-		"validate": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst fixed = Object.values(get(ctx.entry, 'terms.allowances', {})).filter((a) => get(a, 'variability', '') === 'FIXED');\nconst monthly = Number(get(rate, 'amount', 0)) + sum(fixed.map((a) => Number(get(a, 'amount', 0))));\nreturn Number(get(rate, 'amount', 0)) >= ctx.lookup.minimum_share * monthly;\n",
+		"events": [
+			"create",
+			"update"
+		],
+		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'MONTHLY') return false;\nreturn monthly > 0;\n",
+		"validate": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\nreturn Number(get(rate, 'amount', 0)) >= ctx.lookup.minimum_share * monthly;\n",
 		"order": 1,
 		"lookup": {
 			"minimum_share": 0.75
@@ -56,7 +62,10 @@
 	{
 		"code": "SECTOR_MINIMUM_WAGE",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -71,8 +80,8 @@
 				}
 			}
 		},
-		"condition": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst fixed = Object.values(get(ctx.entry, 'terms.allowances', {})).filter((a) => get(a, 'variability', '') === 'FIXED');\nconst monthly = Number(get(rate, 'amount', 0)) + sum(fixed.map((a) => Number(get(a, 'amount', 0))));\nconst worksite = get(ctx.entry, 'employee_extension_data.worksite_kbli', '');\nconst facts = get(entity, 'entity_extension_data', {});\nconst star = Number(get(facts, 'umsp_hotel_star', 0));\nif (!['EMPLOYEE', 'CONTRACTOR'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'MONTHLY') return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (region === '') return false;\nif (worksite === '') return false;\nconst covered = (key) => region === key || region.startsWith(key + '/');\nreturn Object.keys(ctx.lookup.by_sector).some(covered);\n",
-		"validate": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst fixed = Object.values(get(ctx.entry, 'terms.allowances', {})).filter((a) => get(a, 'variability', '') === 'FIXED');\nconst monthly = Number(get(rate, 'amount', 0)) + sum(fixed.map((a) => Number(get(a, 'amount', 0))));\nconst worksite = get(ctx.entry, 'employee_extension_data.worksite_kbli', '');\nconst facts = get(entity, 'entity_extension_data', {});\nconst job = get(ctx.entry, 'employee_extension_data.umsp_job_category', '');\nconst bySector = ctx.lookup.by_sector;\nconst star = Number(get(facts, 'umsp_hotel_star', 0));\nconst conditionMatches = (row) => {\n    const condition = get(row, 'condition', '');\n    if (condition === '') return true;\n    if (condition === 'HOTEL_STAR_3') return star === get(ctx.lookup, 'hotel_star_3', 3);\n    if (condition === 'HOTEL_STAR_4') return star === get(ctx.lookup, 'hotel_star_4', 4);\n    if (condition === 'HOTEL_STAR_5') return star === get(ctx.lookup, 'hotel_star_5', 5);\n    if (condition === 'HOTEL_4_5') return star >= ctx.lookup.hotel_stars_4_5_min;\n    if (condition === 'HOTEL_3_5') return star >= ctx.lookup.hotel_stars_3_5_min;\n    if (condition === 'BANK_PRIVATE_FOREX') return get(facts, 'umsp_bank_category', '') === 'PRIVATE_CONVENTIONAL_FOREX';\n    if (condition === 'BANK_SYARIAH_FOREX') return get(facts, 'umsp_bank_category', '') === 'SYARIAH_FOREX';\n    if (condition === 'RAYON_VISCOSE') return get(facts, 'umsp_rayon_viscose', false) === true;\n    if (condition === 'EXPORT') return get(facts, 'umsp_export_oriented', false) === true;\n    if (condition === 'ASSETS_1T') return get(facts, 'umsp_assets_over_1_trillion', false) === true;\n    if (condition === 'ASTRA') return get(facts, 'umsp_astra_group', false) === true;\n    if (condition === 'FREEPORT_AREA') return get(facts, 'umsp_freeport_area', false) === true;\n    if (condition === 'BUS_DRIVER_MECHANIC') return job === 'BUS_DRIVER_MECHANIC';\n    if (condition === 'CLASS_A_HOSPITAL_CARE') return get(facts, 'umsp_class_a_private_hospital', false) === true && ['NURSING_MIDWIFERY', 'MEDICAL_SUPPORT'].includes(job);\n    return false;\n};\nconst covered = (key) => region === key || region.startsWith(key + '/');\nconst underpaid = (row) => {\n    if (!worksite.startsWith(get(row, 'kbli', ''))) return false;\n    if (!conditionMatches(row)) return false;\n    return monthly < Number(get(row, 'monthly', 0));\n};\nreturn !Object.keys(bySector).some((key) => covered(key) && bySector[key].some(underpaid));\n",
+		"condition": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\nconst worksite = get(ctx.entry, 'employee_extension_data.worksite_kbli', '');\nconst facts = get(entity, 'entity_extension_data', {});\nconst star = Number(get(facts, 'umsp_hotel_star', 0));\nif (!['EMPLOYEE', 'CONTRACTOR'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'MONTHLY') return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (region === '') return false;\nif (worksite === '') return false;\nconst covered = (key) => region === key || region.startsWith(key + '/');\nreturn Object.keys(ctx.lookup.by_sector).some(covered);\n",
+		"validate": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\nconst worksite = get(ctx.entry, 'employee_extension_data.worksite_kbli', '');\nconst facts = get(entity, 'entity_extension_data', {});\nconst job = get(ctx.entry, 'employee_extension_data.umsp_job_category', '');\nconst bySector = ctx.lookup.by_sector;\nconst star = Number(get(facts, 'umsp_hotel_star', 0));\nconst conditionMatches = (row) => {\n    const condition = get(row, 'condition', '');\n    if (condition === '') return true;\n    if (condition === 'HOTEL_STAR_3') return star === get(ctx.lookup, 'hotel_star_3', 3);\n    if (condition === 'HOTEL_STAR_4') return star === get(ctx.lookup, 'hotel_star_4', 4);\n    if (condition === 'HOTEL_STAR_5') return star === get(ctx.lookup, 'hotel_star_5', 5);\n    if (condition === 'HOTEL_4_5') return star >= ctx.lookup.hotel_stars_4_5_min;\n    if (condition === 'HOTEL_3_5') return star >= ctx.lookup.hotel_stars_3_5_min;\n    if (condition === 'BANK_PRIVATE_FOREX') return get(facts, 'umsp_bank_category', '') === 'PRIVATE_CONVENTIONAL_FOREX';\n    if (condition === 'BANK_SYARIAH_FOREX') return get(facts, 'umsp_bank_category', '') === 'SYARIAH_FOREX';\n    if (condition === 'RAYON_VISCOSE') return get(facts, 'umsp_rayon_viscose', false) === true;\n    if (condition === 'EXPORT') return get(facts, 'umsp_export_oriented', false) === true;\n    if (condition === 'ASSETS_1T') return get(facts, 'umsp_assets_over_1_trillion', false) === true;\n    if (condition === 'ASTRA') return get(facts, 'umsp_astra_group', false) === true;\n    if (condition === 'FREEPORT_AREA') return get(facts, 'umsp_freeport_area', false) === true;\n    if (condition === 'BUS_DRIVER_MECHANIC') return job === 'BUS_DRIVER_MECHANIC';\n    if (condition === 'CLASS_A_HOSPITAL_CARE') return get(facts, 'umsp_class_a_private_hospital', false) === true && ['NURSING_MIDWIFERY', 'MEDICAL_SUPPORT'].includes(job);\n    return false;\n};\nconst covered = (key) => region === key || region.startsWith(key + '/');\nconst underpaid = (row) => {\n    if (!worksite.startsWith(get(row, 'kbli', ''))) return false;\n    if (!conditionMatches(row)) return false;\n    return monthly < Number(get(row, 'monthly', 0));\n};\nreturn !Object.keys(bySector).some((key) => covered(key) && bySector[key].some(underpaid));\n",
 		"order": 2,
 		"lookup": {
 			"hotel_stars_4_5_min": 4,
@@ -8057,7 +8066,10 @@
 	{
 		"code": "MINIMUM_WAGE_REGION_UNKNOWN",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -8107,7 +8119,10 @@
 	{
 		"code": "DAILY_MINIMUM_WAGE",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -8135,7 +8150,7 @@
 			}
 		},
 		"condition": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst floor = first(get(ctx, 'reads.registered_rule', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(floor, 'lookup.by_region', get(ctx.lookup, 'by_region', {}));\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'DAILY') return false;\nif (get(entity, 'entity_extension_data.enterprise_size_class', '') === 'MICRO_OR_SMALL') return false;\nif (region === '') return false;\nreturn Object.hasOwn(byRegion, region);\n",
-		"validate": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst floor = first(get(ctx, 'reads.registered_rule', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(floor, 'lookup.by_region', get(ctx.lookup, 'by_region', {}));\nconst days = get(ctx.entry, 'terms.normal_days_per_week', null);\nif (days == null) return false;\nconst divisor = Number(days) === ctx.lookup.six_day_week ? ctx.lookup.six_day_divisor : ctx.lookup.five_day_divisor;\nconst amount = get(rate, 'amount', null);\nif (amount == null) return false;\nreturn Number(amount) >= Number(byRegion[region]) / divisor;\n",
+		"validate": "// js\nconst entity = first(get(ctx, 'reads.entity_profile_version', []));\nconst floor = first(get(ctx, 'reads.registered_rule', []));\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst region = get(ctx.entry, 'employee_extension_data.work_region', '') || get(entity, 'entity_extension_data.region', '');\nconst byRegion = get(floor, 'lookup.by_region', get(ctx.lookup, 'by_region', {}));\nconst days = get(ctx.entry, 'terms.normal_days_per_week', null);\nif (days == null) return false;\nconst divisor = Number(days) === 6 ? ctx.lookup.six_day_divisor : ctx.lookup.five_day_divisor;\nconst amount = get(rate, 'amount', null);\nif (amount == null) return false;\nreturn Number(amount) >= Number(byRegion[region]) / divisor;\n",
 		"order": 4,
 		"lookup": {
 			"six_day_divisor": 25,
@@ -8157,7 +8172,10 @@
 	{
 		"code": "HOURLY_MINIMUM_WAGE",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -8203,7 +8221,10 @@
 	{
 		"code": "PKWT_MAXIMUM_TERM",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"employee_contract": {
 				"where": {
@@ -8237,7 +8258,10 @@
 	{
 		"code": "PROBATION_RULES",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "// js\nreturn ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', '')) && get(ctx.entry, 'terms.probation_period', null) != null;",
 		"validate": "// js\nconst from = get(ctx.entry, 'terms.probation_period.from', '');\nconst to = get(ctx.entry, 'terms.probation_period.to', '');\nif (from === '' || to === '') return false;\nif (get(ctx.entry, 'signed_contract_period.to', null) != null) return false;\nreturn to < add_months(from, ctx.lookup.maximum_months);\n",
 		"order": 7,
@@ -8256,7 +8280,10 @@
 	{
 		"code": "PKWT_WRITTEN_INDONESIAN",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "// js\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(ctx.entry, 'signed_contract_period.to', null) == null) return false;\nreturn get(ctx.entry, 'employee_extension_data.written_in_indonesian', null) != null;",
 		"validate": "// js\nreturn get(ctx.entry, 'employee_extension_data.written_in_indonesian', true) !== false;",
 		"order": 8,
@@ -8276,7 +8303,10 @@
 	{
 		"code": "FOREIGN_WORKER_PERSONNEL_POSITION",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "// js\nconst residency = get(ctx.entry, 'terms.residency_status', '');\nif (residency === '') return false;\nif (residency === 'CITIZEN') return false;\nreturn get(ctx.entry, 'employee_extension_data.personnel_position', null) != null;",
 		"validate": "// js\nreturn get(ctx.entry, 'employee_extension_data.personnel_position', false) !== true;",
 		"order": 9,
@@ -8293,11 +8323,16 @@
 	{
 		"code": "MINIMUM_AGE",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "// js\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(ctx.entry, 'payroll.date_of_birth', '') === '') return false;\nreturn get(ctx.entry, 'effective_range.from', '') !== '';",
 		"validate": "// js\nconst born = get(ctx.entry, 'payroll.date_of_birth', '');\nconst start = get(ctx.entry, 'effective_range.from', '');\nreturn age_on(born, start) >= ctx.lookup.minimum_age_years;\n",
 		"order": 10,
-		"lookup": {},
+		"lookup": {
+			"minimum_age_years": 13
+		},
 		"references": [
 			{
 				"title": "UU 13/2003",
@@ -8311,7 +8346,10 @@
 	{
 		"code": "CONTRACT_CATEGORIES",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"validate": "// js\nif (!ctx.lookup.engagement.includes(get(ctx.entry, 'engagement', ''))) return false;\nif (!ctx.lookup.statutory_work_category.includes(get(ctx.entry, 'terms.statutory_work_category', ''))) return false;\nreturn ctx.lookup.residency_status.includes(get(ctx.entry, 'terms.residency_status', ''));\n",
 		"order": 13,
 		"lookup": {
@@ -8324,8 +8362,17 @@
 				"CONSULTANT",
 				"PAYEE"
 			],
-			"statutory_work_category": ["NON_MANUAL", "PIECE_RATE", "TASK_BASIS", "MANAGERIAL"],
-			"residency_status": ["CITIZEN", "RESIDENT_FOREIGNER", "NON_RESIDENT"]
+			"statutory_work_category": [
+				"NON_MANUAL",
+				"PIECE_RATE",
+				"TASK_BASIS",
+				"MANAGERIAL"
+			],
+			"residency_status": [
+				"CITIZEN",
+				"RESIDENT_FOREIGNER",
+				"NON_RESIDENT"
+			]
 		},
 		"id": "e635039b-bc1e-5be5-9094-ccd51b05bf41",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
@@ -8333,14 +8380,20 @@
 	{
 		"code": "SHARED_CONTRACT_TERMS",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
-		"validate": "// js\nconst amount = get(ctx.entry, 'terms.rate.amount', null);\nif (amount != null && Number(amount) < ctx.lookup.rate.minimum) return false;\nconst days = get(ctx.entry, 'terms.normal_days_per_week', null);\nif (days != null && !ctx.lookup.normal_days_per_week.includes(Number(days))) return false;\nconst perDay = get(ctx.entry, 'terms.normal_hours_per_day', null);\nif (perDay != null && Number(perDay) < ctx.lookup.normal_hours_per_day.minimum) return false;\nif (perDay != null && Number(perDay) > ctx.lookup.normal_hours_per_day.maximum) return false;\nconst perWeek = get(ctx.entry, 'terms.normal_hours_per_week', null);\nif (perWeek != null && Number(perWeek) < ctx.lookup.normal_hours_per_week.minimum) return false;\nif (perWeek != null && Number(perWeek) > ctx.lookup.normal_hours_per_week.maximum) return false;\nreturn true;\n",
+		"events": [
+			"create",
+			"update"
+		],
+		"validate": "// js\nconst amount = get(ctx.entry, 'terms.rate.amount', null);\nif (amount != null && Number(amount) < ctx.lookup.rate.minimum) return false;\nconst days = get(ctx.entry, 'terms.normal_days_per_week', null);\nif (days != null && !ctx.lookup.normal_days_per_week.includes(Number(days))) return false;\nconst perDay = get(ctx.entry, 'terms.normal_hours_per_day', null);\nif (perDay != null && Number(perDay) < 0) return false;\nif (perDay != null && Number(perDay) > 24) return false;\nconst perWeek = get(ctx.entry, 'terms.normal_hours_per_week', null);\nif (perWeek != null && Number(perWeek) < ctx.lookup.normal_hours_per_week.minimum) return false;\nif (perWeek != null && Number(perWeek) > ctx.lookup.normal_hours_per_week.maximum) return false;\nreturn true;\n",
 		"order": 14,
 		"lookup": {
 			"rate": {
 				"minimum": 0
 			},
-			"normal_days_per_week": [5, 6],
+			"normal_days_per_week": [
+				5,
+				6
+			],
 			"normal_hours_per_week": {
 				"minimum": 0,
 				"maximum": 168
@@ -8352,14 +8405,17 @@
 	{
 		"code": "SHARED_STRUCTURED_EMPLOYEE_INPUTS",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
-		"validate": "// js\nconst data = get(ctx.entry, 'employee_extension_data', {});\nconst residency = get(ctx.entry, 'terms.residency_status', '');\nconst wage = ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''));\nconst text = (key) => String(get(data, key, '')).trim();\nif (wage && text(ctx.lookup.work_region_field) === '') return false;\nif (ctx.lookup.foreign_residency.includes(residency) && text(ctx.lookup.passport_field) === '') return false;\nif (residency === ctx.lookup.non_resident && text(ctx.lookup.birth_city_field) === '') return false;\nreturn true;\n",
+		"events": [
+			"create",
+			"update"
+		],
+		"validate": "// js\nconst data = get(ctx.entry, 'employee_extension_data', {});\nconst residency = get(ctx.entry, 'terms.residency_status', '');\nconst wage = ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''));\nconst text = (key) => String(get(data, key, '')).trim();\nif (wage && text('work_region') === '') return false;\nif (ctx.lookup.foreign_residency.includes(residency) && text('passport_number') === '') return false;\nif (residency === ctx.lookup.non_resident && text('birth_city') === '') return false;\nreturn true;\n",
 		"order": 15,
 		"lookup": {
-			"work_region_field": "work_region",
-			"passport_field": "passport_number",
-			"birth_city_field": "birth_city",
-			"foreign_residency": ["RESIDENT_FOREIGNER", "NON_RESIDENT"],
+			"foreign_residency": [
+				"RESIDENT_FOREIGNER",
+				"NON_RESIDENT"
+			],
 			"non_resident": "NON_RESIDENT"
 		},
 		"id": "9c12fa99-45b0-5d97-b5d4-1ede023b7cfb",
@@ -8368,7 +8424,10 @@
 	{
 		"code": "SHARED_STRUCTURED_ENTITY_INPUTS",
 		"target_collection": "entity_profile_version",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "// js\nreturn get(ctx.entry, 'status', '') === 'SEALED';",
 		"validate": "// js\nconst data = get(ctx.entry, 'entity_extension_data', {});\nconst bad = (value, bounds) => {\n    if (value == null) return get(bounds, 'required', false) === true;\n    const length = String(value).length;\n    if (get(bounds, 'minLength', null) != null && length < Number(bounds.minLength)) return true;\n    if (get(bounds, 'maxLength', null) != null && length > Number(bounds.maxLength)) return true;\n    if (get(bounds, 'integer', false) === true && Number(value) !== Math.trunc(Number(value))) return true;\n    if (get(bounds, 'minimum', null) != null && Number(value) < Number(bounds.minimum)) return true;\n    if (get(bounds, 'maximum', null) != null && Number(value) > Number(bounds.maximum)) return true;\n    const allowed = get(bounds, 'enum', null);\n    return allowed != null && !allowed.includes(value);\n};\nreturn (\n    !bad(get(data, 'registration_number', null), ctx.lookup.registration_number) &&\n    !bad(get(data, 'tax_registration_number', null), ctx.lookup.tax_registration_number)\n);\n",
 		"order": 16,
@@ -8387,28 +8446,20 @@
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
 	},
 	{
-		"code": "SHARED_ALLOWANCE_CLASSIFICATION",
-		"target_collection": "employee_contract",
-		"events": ["create", "update"],
-		"condition": "// js\nreturn Object.keys(get(ctx.entry, 'terms.allowances', {})).length > 0;",
-		"validate": "// js\nconst values = ctx.lookup.values;\nreturn Object.values(get(ctx.entry, 'terms.allowances', {})).every((allowance) => values.includes(get(allowance, 'variability', '')));\n",
-		"order": 17,
-		"lookup": {
-			"values": ["FIXED", "VARIABLE"]
-		},
-		"id": "80a2181c-decb-51f5-95a8-7a3dda793e6d",
-		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
-	},
-	{
 		"code": "ESTABLISHMENT_EVENT_DATE_REQUIRED",
 		"target_collection": "entity_profile_version",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "// js\nreturn get(ctx.entry, 'status', '') === 'SEALED';",
-		"validate": "// js\nconst data = get(ctx.entry, 'entity_extension_data', {});\nconst triggers = ctx.lookup.triggers;\nconst hasTrigger = triggers.some((key) => get(data, key, null) != null);\nreturn !hasTrigger || get(data, ctx.lookup.required_field, null) != null;\n",
+		"validate": "// js\nconst data = get(ctx.entry, 'entity_extension_data', {});\nconst triggers = ctx.lookup.triggers;\nconst hasTrigger = triggers.some((key) => get(data, key, null) != null);\nreturn !hasTrigger || get(data, 'established_on', null) != null;\n",
 		"order": 18,
 		"lookup": {
-			"required_field": "established_on",
-			"triggers": ["first_employed_on", "operations_started_on"]
+			"triggers": [
+				"first_employed_on",
+				"operations_started_on"
+			]
 		},
 		"id": "52834831-db34-53ef-9571-014ebd712cbf",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
@@ -8416,7 +8467,10 @@
 	{
 		"code": "ROSTER_UNDER_13",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"employee_contract": {
 				"where": {
@@ -8432,6 +8486,7 @@
 		"validate": "// js\nconst contract = first(get(ctx, 'reads.employee_contract', []));\nconst born = get(contract, 'payroll.date_of_birth', '');\nconst day = get(ctx.entry, 'work_date', '');\nconst minimum = ctx.lookup.minimum_age_years;\nreturn day === '' || age_on(born, day) >= minimum;",
 		"order": 11,
 		"lookup": {
+			"minimum_age_years": 13,
 			"roster_warnings": {
 				"daily_hours": 8,
 				"daily_overtime_hours": 4,
@@ -8452,9 +8507,15 @@
 	{
 		"code": "NO_PAY_OPEN_PERIOD",
 		"target_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"lookup": {
-			"no_pay": ["UNPAID_LEAVE", "MEDICAL_LEAVE", "MATERNITY_LEAVE"]
+			"no_pay": [
+				"UNPAID_LEAVE",
+				"MEDICAL_LEAVE",
+				"MATERNITY_LEAVE"
+			]
 		},
 		"references": [
 			{
@@ -8470,7 +8531,10 @@
 						}
 					}
 				},
-				"fields": ["code", "lookup"],
+				"fields": [
+					"code",
+					"lookup"
+				],
 				"limit": 1
 			},
 			"payroll_run": {
@@ -8484,7 +8548,9 @@
 						"eq": "ON_CYCLE"
 					}
 				},
-				"fields": ["period"],
+				"fields": [
+					"period"
+				],
 				"limit": 10000
 			},
 			"leave_catalog_entry": {
@@ -8502,15 +8568,17 @@
 					"payroll_run_id": {
 						"isNull": true
 					},
-					"is_reversal": {
-						"eq": false
+					"reverses": {
+						"isNull": true
 					}
 				},
-				"fields": ["days"],
+				"fields": [
+					"days"
+				],
 				"limit": 1000
 			}
 		},
-		"validate": "// js\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || !ctx.lookup.no_pay.includes(item.code)) return true;\nconst steps = get(item.lookup, 'pay_steps', []);\nconst events = get(ctx.subject.employment, 'employee_extension_data.events', []).filter((event) => Object.hasOwn(get(item.lookup, 'opened_by', {}), event.kind));\nconst stepping = (date) => events.some((event) => event.on <= date && (get(event, 'ended_on', null) == null || date <= event.ended_on) && calendar_completed_months(event.on, date) >= steps[0].until_month);\nif (steps.length > 0 && !ctx.entry.days.some((day) => stepping(day.date))) return true;\nconst employer = ctx.subject.employer;\nconst cutoff = Number(get(employer, 'pay_cutoff_day', 1));\nconst halves = get(employer, 'payment_schedule.frequency', 'MONTHLY') === 'SEMI_MONTHLY';\nconst shifted = (month, by) => add_months(month + '-01', by).slice(0, 7);\nconst periodOf = (date) => {\n\tconst month = date.slice(0, 7);\n\tconst dayOf = Number(date.slice(8, 10));\n\tconst part = dayOf <= 15 ? 1 : 2;\n\tif (!halves) return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;\n\tif (cutoff <= 1) return month + '-' + part;\n\treturn part === 1 ? month + '-2' : shifted(month, 1) + '-1';\n};\nconst dates = ctx.entry.days.map((day) => day.date);\nif (get(ctx.entry, 'is_reversal', false) === true && ctx.reads.leave_catalog_entry.some((row) => row.days.some((day) => dates.includes(day.date))))\n\tthrow 'That day has not been paid yet. Delete the entry instead of reversing it.';\nconst ran = ctx.reads.payroll_run.map((run) => run.period);\nconst closed = ctx.entry.days.find((day) => ran.includes(periodOf(day.date)));\nif (closed != null)\n\tthrow closed.date + ' is in a period that has already run. Date this entry in the next period to run, and that run takes it.';\nreturn true;",
+		"validate": "// js\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || !ctx.lookup.no_pay.includes(item.code)) return true;\nconst steps = get(item.lookup, 'pay_steps', []);\nconst events = get(ctx.subject.employment, 'employee_extension_data.events', []).filter((event) => Object.hasOwn(get(item.lookup, 'opened_by', {}), event.kind));\nconst stepping = (date) => events.some((event) => event.on <= date && (get(event, 'ended_on', null) == null || date <= event.ended_on) && calendar_completed_months(event.on, date) >= steps[0].until_month);\nif (steps.length > 0 && !ctx.entry.days.some((day) => stepping(day.date))) return true;\nconst employer = ctx.subject.employer;\nconst cutoff = Number(get(employer, 'pay_cutoff_day', 1));\nconst halves = get(employer, 'payment_schedule.frequency', 'MONTHLY') === 'SEMI_MONTHLY';\nconst shifted = (month, by) => add_months(month + '-01', by).slice(0, 7);\nconst periodOf = (date) => {\n\tconst month = date.slice(0, 7);\n\tconst dayOf = Number(date.slice(8, 10));\n\tconst part = dayOf <= 15 ? 1 : 2;\n\tif (!halves) return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;\n\tif (cutoff <= 1) return month + '-' + part;\n\treturn part === 1 ? month + '-2' : shifted(month, 1) + '-1';\n};\nconst dates = ctx.entry.days.map((day) => day.date);\nif (get(ctx.entry, 'reverses', null) != null && ctx.reads.leave_catalog_entry.some((row) => row.days.some((day) => dates.includes(day.date))))\n\tthrow 'That day has not been paid yet. Delete the entry instead of reversing it.';\nconst ran = ctx.reads.payroll_run.map((run) => run.period);\nconst closed = ctx.entry.days.find((day) => ran.includes(periodOf(day.date)));\nif (closed != null)\n\tthrow closed.date + ' is in a period that has already run. Date this entry in the next period to run, and that run takes it.';\nreturn true;",
 		"order": 900,
 		"id": "c449cebd-10e8-57d1-8f5e-f3b54d3c4f7b",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
@@ -8518,7 +8586,10 @@
 	{
 		"code": "CASE_INPUTS_REQUIRED",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"workplace_case_catalog": {
 				"where": {
@@ -8528,7 +8599,9 @@
 						}
 					}
 				},
-				"fields": ["lookup"],
+				"fields": [
+					"lookup"
+				],
 				"limit": 1
 			}
 		},

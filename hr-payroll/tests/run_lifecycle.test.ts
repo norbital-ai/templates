@@ -247,35 +247,30 @@ describe('deleting a run', () => {
 	);
 });
 
-describe('the posting gates', () => {
+describe('a run posts in its own write', () => {
 	const enter = (t: Kit, period: string) =>
 		t.as(t.admin).act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }]);
-	it.live('a new run waits for the last one to post', () =>
+	it.live('so the next run enters at once', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* enter(t, '2026-01');
-			assert.match(String(yield* Effect.flip(enter(t, '2026-02'))), /still posting/);
-			yield* t.runDue();
+			const [only] = yield* runs(t);
+			assert.ok((yield* ledgerRows(t)).some((row) => row.source === `payroll_run:${only?.id}`));
 			yield* enter(t, '2026-02');
 			assert.equal((yield* runs(t)).length, 2);
 		}).pipe(Effect.provide(workspace({ seed: base(), now: '2026-03-20T02:00:00.000Z' })))
 	);
-	it.live('a run is paid only once it has posted', () =>
+	it.live('so it is paid at once', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* enter(t, '2026-01');
 			const [only] = yield* runs(t);
 			assert.ok(only !== undefined);
-			const pay = t
-				.as(t.admin)
-				.act('payroll_run.update', [{ target: only.id, set: { state: 'PAID' } }]);
-			assert.match(String(yield* Effect.flip(pay)), /still posting/);
-			yield* t.runDue();
-			yield* pay;
+			yield* t.as(t.admin).act('payroll_run.update', [{ target: only.id, set: { state: 'PAID' } }]);
 			assert.equal((yield* runs(t))[0]?.state, 'PAID');
 		}).pipe(Effect.provide(workspace({ seed: base(), now: '2026-03-20T02:00:00.000Z' })))
 	);
-	it.live('a posted payslip names its run, and is posted once', () =>
+	it.live('a posted payslip names its run, and a sync posts it no more', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* run(t, ENTITY, '2026-01');
@@ -283,9 +278,12 @@ describe('the posting gates', () => {
 			const rows = yield* ledgerRows(t);
 			assert.ok(rows.length > 0);
 			assert.ok(rows.every((row) => row.source === `payroll_run:${only?.id}`));
-			yield* t.as(t.admin).start('ledger', { post: [`payroll_run:${only?.id}`] });
+			yield* t.as(t.admin).start('ledger', {});
 			yield* t.runDue();
-			assert.equal((yield* ledgerRows(t)).length, rows.length);
+			assert.equal(
+				(yield* ledgerRows(t)).filter((row) => row.source === `payroll_run:${only?.id}`).length,
+				rows.length
+			);
 		}).pipe(Effect.provide(workspace({ seed: base(), now: '2026-03-20T02:00:00.000Z' })))
 	);
 });

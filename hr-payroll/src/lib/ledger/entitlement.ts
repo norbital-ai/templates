@@ -149,8 +149,9 @@ export const carriedOf = (
 	if (!isJsonObject(lookup.carry)) return 0;
 	if (lookup.carry.statutory_grant_carries === true) {
 		// the statutory days carry in full; the cap holds only for company days above them
-		const field = String(lookup.carry.company_cap_terms_field);
-		const cap = Number(person.facts?.[field] ?? lookup.carry.company_cap_days ?? 0);
+		const cap = Number(
+			person.terms?.annual_leave_carry_limit_days ?? lookup.carry.company_cap_days ?? 0
+		);
 		return Math.min(left, granted) + Math.min(Math.max(0, left - granted), cap);
 	}
 	const limits = [lookup.carry.max_days, person.terms?.annual_leave_carry_limit_days].flatMap(

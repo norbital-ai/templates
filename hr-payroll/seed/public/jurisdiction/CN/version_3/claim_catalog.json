@@ -14,7 +14,6 @@
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": true,
 		"subtotal_id": "c3890fcd-4799-5bbf-94de-776d861ade65",
 		"id": "134bd9c5-f0f2-57b9-828e-6907c1822515",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"

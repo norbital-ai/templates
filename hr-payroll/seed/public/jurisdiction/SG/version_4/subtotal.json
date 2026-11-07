@@ -4,48 +4,55 @@
 		"name": "Basic pay",
 		"previous_id": null,
 		"id": "0b9f64f9-b4c7-58d2-911c-a1a2adb71880",
-		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "ORDINARY_WAGES",
 		"name": "Ordinary wages",
 		"previous_id": "0b9f64f9-b4c7-58d2-911c-a1a2adb71880",
 		"id": "4844d09b-7208-540c-8c2a-a5ca29d1af21",
-		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "ADDITIONAL_WAGES",
 		"name": "Additional wages (ordinary plus additional)",
 		"previous_id": "4844d09b-7208-540c-8c2a-a5ca29d1af21",
 		"id": "7d653d26-e890-5ffa-a47a-b434e3698f51",
-		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "GROSS",
 		"name": "Gross earnings",
 		"previous_id": "7d653d26-e890-5ffa-a47a-b434e3698f51",
 		"id": "3532253a-5b19-5b6e-9c6f-d460cad41973",
-		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "NET",
 		"name": "Net pay",
 		"previous_id": "3d3a5894-7802-51bb-b0af-0e99864fd80c",
 		"id": "c9b58e5d-370d-5d8f-a4a5-28f6b3e18caf",
-		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "DIRECTOR_FEES",
 		"name": "Director's fees",
 		"previous_id": "3532253a-5b19-5b6e-9c6f-d460cad41973",
 		"id": "8c740b41-2ac1-50aa-8866-4834bb4678bb",
-		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "ENTERTAINER_FEES",
 		"name": "Public entertainer income",
 		"previous_id": "8c740b41-2ac1-50aa-8866-4834bb4678bb",
 		"id": "3d3a5894-7802-51bb-b0af-0e99864fd80c",
-		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
+		"balance_window": "YEAR"
 	}
 ]

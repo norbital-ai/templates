@@ -3,7 +3,6 @@
 		"code": "STOPPAGE_EMPLOYER",
 		"name": "停工停产 (stoppage for the employer's operational reasons)",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {
 			"attendance": {
@@ -28,7 +27,6 @@
 		"code": "FORCE_MAJEURE",
 		"name": "不可抗力停工 (natural disaster or accident)",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {
 			"attendance": {
@@ -53,7 +51,6 @@
 		"code": "GOVERNMENT_ORDER",
 		"name": "政府措施停工 (shutdown ordered by a government measure)",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {
 			"attendance": {
@@ -78,7 +75,6 @@
 		"code": "EMPLOYEE_CAUSED",
 		"name": "劳动者原因停工 (stoppage caused by the employees)",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {
 			"attendance": {

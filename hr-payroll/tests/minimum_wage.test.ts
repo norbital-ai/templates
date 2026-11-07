@@ -110,7 +110,7 @@ describe('seeded minimum wage rules', () => {
 				employment: {
 					terms: { residency_status: 'CITIZEN' },
 					effective_range: { from: '2024-01-01', to: null },
-					employee_extension_data: { term_facts: { pwm_role: 'ADMIN_ASSISTANT' } }
+					employee_extension_data: { pwm_role: 'ADMIN_ASSISTANT' }
 				}
 			},
 			entry: { id: 'slip', period: '2026-01', basic_earnings: gross, ordinary_wages: gross },
@@ -176,7 +176,7 @@ describe('seeded minimum wage rules', () => {
 
 	it('China regional monthly floor', () => {
 		const rule = effectOf('CN', 'MINIMUM_WAGE');
-		const table = rule.lookup?.['minimum_wage'] as readonly {
+		const table = rule.lookup?.['minimum_wage_by_zone'] as readonly {
 			region: string;
 			zone: string;
 			monthly: number;
@@ -225,7 +225,7 @@ describe('seeded minimum wage rules', () => {
 		const context = (amount: number) => ({
 			entry: {
 				terms: { rate: { amount, unit: 'DAILY' }, normal_hours_per_day: 8 },
-				employee_extension_data: { term_facts: { skill_standard_day_rate: 600 } }
+				employee_extension_data: { skill_standard_day_rate: 600 }
 			}
 		});
 		assert.equal(valid(rule, context(600)), true);

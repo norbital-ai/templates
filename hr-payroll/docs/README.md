@@ -13,6 +13,7 @@ documents describe its contracts and the gates that keep it honest.
 | [0003 — Jurisdiction seed](0003-jurisdiction-seed-specification.md)      | Seed layout, versions and authoring rules                                          |
 | [0004 — Verification and gates](0004-verification-gates.md)              | Current verified state, open gates and evidence policy                             |
 | [0005 — Target architecture](0005-target-architecture.md)                | The system as built: primitives, responsibilities, ledger service, worked examples |
+| [0006 — Configuration ownership and smells](0006-configuration-ownership-and-smells.md) | The second-owner smell, ownership ladder and owner rules |
 | [Transfer semantics](transfer-semantics.md)                              | Contract chains, balances, leave/loan settlement and voids                         |
 | [Manual probe matrix](manual-probe-matrix.md)                            | The live acceptance checklist across nine jurisdictions                            |
 

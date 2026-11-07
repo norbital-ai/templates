@@ -4,111 +4,127 @@
 		"name": "Basic salary",
 		"previous_id": null,
 		"id": "b6462b20-0518-5283-885d-e34dd83a8801",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "REGULAR_PAY",
 		"name": "Regular pay",
 		"id": "068ecb1e-ca60-518f-8f4e-c6b485373556",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
-		"previous_id": "b6462b20-0518-5283-885d-e34dd83a8801"
+		"previous_id": "b6462b20-0518-5283-885d-e34dd83a8801",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "EXEMPT_ALLOWANCES",
 		"name": "Tax-exempt allowances",
 		"id": "fbf9a660-f639-5350-9d8b-b25b497aad8e",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
-		"previous_id": "068ecb1e-ca60-518f-8f4e-c6b485373556"
+		"previous_id": "068ecb1e-ca60-518f-8f4e-c6b485373556",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "CHILDCARE",
 		"name": "Child care allowance",
 		"id": "51c4dde5-54e0-5129-a40a-012e78087aed",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
-		"previous_id": "fbf9a660-f639-5350-9d8b-b25b497aad8e"
+		"previous_id": "fbf9a660-f639-5350-9d8b-b25b497aad8e",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "WAGE_ARREARS",
 		"name": "Arrears of wages",
 		"id": "5418b193-e55e-52af-8c4f-5fb9915853f5",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
-		"previous_id": "51c4dde5-54e0-5129-a40a-012e78087aed"
+		"previous_id": "51c4dde5-54e0-5129-a40a-012e78087aed",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "COMMISSION",
 		"name": "Monthly commission",
 		"id": "6a9ac931-8c6b-59ce-a6ad-cad897f2ce8c",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
-		"previous_id": "5418b193-e55e-52af-8c4f-5fb9915853f5"
+		"previous_id": "5418b193-e55e-52af-8c4f-5fb9915853f5",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "IRREGULAR_COMMISSION",
 		"name": "Commission not paid monthly",
 		"id": "aa3b7090-5d47-530b-99d2-d5aac0be16e6",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
-		"previous_id": "6a9ac931-8c6b-59ce-a6ad-cad897f2ce8c"
+		"previous_id": "6a9ac931-8c6b-59ce-a6ad-cad897f2ce8c",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "AWARDS",
 		"name": "Excellence awards",
 		"id": "7e550444-91a9-5d27-bcef-7720c991eee9",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
-		"previous_id": "aa3b7090-5d47-530b-99d2-d5aac0be16e6"
+		"previous_id": "aa3b7090-5d47-530b-99d2-d5aac0be16e6",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "LONG_SERVICE",
 		"name": "Long service awards",
 		"id": "d8e116ab-4fb6-59ef-9cdf-4e948ca64523",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
-		"previous_id": "7e550444-91a9-5d27-bcef-7720c991eee9"
+		"previous_id": "7e550444-91a9-5d27-bcef-7720c991eee9",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "ORDINARY_WAGES",
 		"name": "Ordinary wages",
 		"previous_id": "d8e116ab-4fb6-59ef-9cdf-4e948ca64523",
 		"id": "975adb31-a659-575b-befe-42549bfe0051",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "ADDITIONAL_WAGES",
 		"name": "Ordinary pay and bonus",
 		"previous_id": "975adb31-a659-575b-befe-42549bfe0051",
 		"id": "e7af0d07-be82-590a-9518-1e64717502fb",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "SEPARATION_PAY",
 		"name": "Termination and lay-off benefits",
 		"id": "08d443a7-052a-5a60-beba-06eb161ed6ab",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
-		"previous_id": "e7af0d07-be82-590a-9518-1e64717502fb"
+		"previous_id": "e7af0d07-be82-590a-9518-1e64717502fb",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "OFFICIAL_TRAVEL",
 		"name": "Official travel",
 		"id": "91c5dbb6-add5-5d03-b1d6-baba27eb09ca",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
-		"previous_id": "08d443a7-052a-5a60-beba-06eb161ed6ab"
+		"previous_id": "08d443a7-052a-5a60-beba-06eb161ed6ab",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "FINAL_PAY",
 		"name": "Final pay and non-wage settlements",
 		"previous_id": "91c5dbb6-add5-5d03-b1d6-baba27eb09ca",
 		"id": "8db5aab3-89d0-582e-ba12-a499eb54bf62",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "ZAKAT",
 		"name": "Payroll zakat",
 		"id": "9175877f-41b7-5f63-9140-a26032e34f39",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
-		"previous_id": "8db5aab3-89d0-582e-ba12-a499eb54bf62"
+		"previous_id": "8db5aab3-89d0-582e-ba12-a499eb54bf62",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "NET",
 		"name": "Net pay",
 		"previous_id": "9175877f-41b7-5f63-9140-a26032e34f39",
 		"id": "dd52b358-2b42-5ad0-bbc0-a829775941e8",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
+		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec",
+		"balance_window": "YEAR"
 	}
 ]

@@ -231,6 +231,43 @@ describe('the first of a month', () => {
 			]);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
+	it.live('refuses service that starts after the version that records it', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const hr = t.as(t.member(['hr_controller']));
+			const [open] = yield* versions(t);
+			assert.ok(open !== undefined);
+			yield* hr.act('employee_contract.update', [
+				{
+					target: open.id,
+					set: {
+						effective_range: { from: open.effective_range.from, to: PlainDate('2026-01-31') }
+					}
+				}
+			]);
+			const refused = yield* Effect.flip(
+				hr.act('employee_contract.create', [
+					{
+						employee_id: open.employee_id,
+						entity_id: open.entity_id,
+						engagement: open.engagement,
+						employee_number: open.employee_number,
+						terms: open.terms,
+						payroll: open.payroll,
+						bank: open.bank,
+						input_schema_version_id: open.input_schema_version_id,
+						employee_extension_data: open.employee_extension_data,
+						service_started_on: PlainDate('2026-02-02'),
+						effective_range: { from: PlainDate('2026-02-01'), to: null },
+						signed_contract_period: open.signed_contract_period,
+						status: 'DRAFT',
+						reason: 'A replacement'
+					}
+				])
+			);
+			assert.match(String(refused), /Service begins/);
+		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	);
 });
 
 describe('a version a run captured', () => {

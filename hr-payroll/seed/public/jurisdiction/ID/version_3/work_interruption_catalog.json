@@ -4,7 +4,6 @@
 		"name": "Willing to work but not employed by the employer’s own fault or an obstacle it could have avoided — wage paid",
 		"lookup": {},
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"references": [
 			{
 				"title": "UU 13/2003",
@@ -33,7 +32,6 @@
 		"name": "Natural disaster or another obstacle the employer could not avoid — no work, no wage",
 		"lookup": {},
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"references": [
 			{
 				"title": "UU 13/2003",
@@ -63,7 +61,6 @@
 		"name": "Lawful strike over normative rights the employer seriously violated — wage paid",
 		"lookup": {},
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"references": [
 			{
 				"title": "UU 13/2003",
@@ -92,7 +89,6 @@
 		"name": "Any other strike — no work, no wage",
 		"lookup": {},
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"references": [
 			{
 				"title": "UU 13/2003",

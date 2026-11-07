@@ -276,7 +276,12 @@ describe('Indonesian daily pay', () => {
 				daily_paid_days_five_day: 4
 			},
 			as_of: '2026-01-15',
-			balances: {}
+			balances: {},
+			calendar_days: 31,
+			working_days: 22,
+			month_wage: 2200,
+			day_rate: 100,
+			hour_rate: 12.5
 		});
 	};
 	for (const name of ['THR', 'THR_HOLIDAY'])

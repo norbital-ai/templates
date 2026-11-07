@@ -3,11 +3,10 @@
 		"code": "EMPLOYER_CAUSED",
 		"name": "使用者の責に帰すべき事由による休業",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"references": [
 			{
-				"title": "使用者の責に帰すべき事由による休業 (労働基準法 art.26: 休業手当 60% of the 平均賃金 (art.12) per scheduled day; excluded from the 全労働日 of the annual-leave 80% test, 平成25年7月10日 基発0710第3号) The 平均賃金 leaves out the periods art.12(3) lists, their days and their wages: occupational injury absence, 産前産後休業, an employer-caused suspension (suspension_kind EMPLOYER_CAUSED only, with the 休業手当 paid for it), 育児休業 (incl. 出生時育児休業), 介護休業 (earned.months leave_days, suspended_days_by_kind) and the probation period (terms.facts.probation_until, its wages prorated by calendar days); where they cover the whole three months the wages and days of the period are used undivided (施行規則 art.3; 昭和24年4月11日 基発421号), and a worker paid by the day or hour is guaranteed 60% of the three months’ wages over the days worked (art.12(1)(i); worked_days)."
+				"title": "使用者の責に帰すべき事由による休業 (労働基準法 art.26: 休業手当 60% of the 平均賃金 (art.12) per scheduled day; excluded from the 全労働日 of the annual-leave 80% test, 平成25年7月10日 基発0710第3号) The 平均賃金 leaves out the periods art.12(3) lists, their days and their wages: occupational injury absence, 産前産後休業, an employer-caused suspension (suspension_kind EMPLOYER_CAUSED only, with the 休業手当 paid for it), 育児休業 (incl. 出生時育児休業), 介護休業 (earned.months leave_days, suspended_days_by_kind) and the probation period (terms.probation_until, its wages prorated by calendar days); where they cover the whole three months the wages and days of the period are used undivided (施行規則 art.3; 昭和24年4月11日 基発421号), and a worker paid by the day or hour is guaranteed 60% of the three months’ wages over the days worked (art.12(1)(i); worked_days)."
 			}
 		],
 		"events": {
@@ -24,7 +23,6 @@
 		"code": "FORCE_MAJEURE",
 		"name": "天災事変その他の不可抗力による休業",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"references": [
 			{
@@ -45,7 +43,6 @@
 		"code": "STRIKE",
 		"name": "正当な争議行為（同盟罷業）",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"references": [
 			{
@@ -66,7 +63,6 @@
 		"code": "LOCKOUT",
 		"name": "正当なロックアウト",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"references": [
 			{
@@ -87,7 +83,6 @@
 		"code": "GOVERNMENT_ORDER",
 		"name": "法令・行政命令による休業",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"references": [
 			{
@@ -108,7 +103,6 @@
 		"code": "WRONGFUL_WORK_REFUSAL",
 		"name": "正当理由なく就労拒否された期間（無効解雇等）",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"references": [
 			{

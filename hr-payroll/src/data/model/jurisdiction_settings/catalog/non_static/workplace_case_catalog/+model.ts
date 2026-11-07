@@ -19,7 +19,6 @@ export default model('workplace_case_catalog', {
 		subtotal_id: { kind: 'ref', to: 'subtotal', optional: true, onDelete: 'restrict' },
 		code: { kind: 'text' },
 		name: { kind: 'text' },
-		off_cycle_eligible: { kind: 'bool' },
 		description: { kind: 'text', optional: true },
 		references: { kind: 'custom', of: 'references', optional: true },
 		events: { kind: 'json', shape: { kind: 'record', of: { kind: 'json' } }, default: {} }
@@ -37,7 +36,6 @@ export default model('workplace_case_catalog', {
 				'subtotal_id',
 				'code',
 				'name',
-				'off_cycle_eligible',
 				'description',
 				'references',
 				'events'
@@ -60,7 +58,6 @@ export default model('workplace_case_catalog', {
 				'subtotal_id',
 				'code',
 				'name',
-				'off_cycle_eligible',
 				'description',
 				'references',
 				'events'

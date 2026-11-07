@@ -8,10 +8,7 @@
 			}
 		],
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
 		"id": "6f42f85a-1ca9-5af4-8d30-e3fdd0362825",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -24,10 +21,7 @@
 			}
 		],
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
 		"id": "6c013f89-a3c8-5906-8b45-a2a6a9c087c0",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -40,10 +34,7 @@
 			}
 		],
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
 		"id": "f6e6d8ed-a0ec-5d26-95d6-1bb94c488c00",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -56,10 +47,7 @@
 			}
 		],
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
 		"id": "03ddba51-d51d-5f79-a393-df9c9a15caec",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	},
@@ -72,10 +60,7 @@
 			}
 		],
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
 		"id": "484cd147-4bd8-52a9-8947-350ff4a3f22b",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	}

@@ -7,8 +7,8 @@
 			"to": "2025-12-31"
 		},
 		"currency": "IDR",
-		"timezone": "Asia/Jakarta",
 		"tax_year_start_month": 1,
+		"timezone": "Asia/Jakarta",
 		"employee_extension_schema": {
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
 			"type": "object",
@@ -50,41 +50,6 @@
 					"title": "DTP reference year",
 					"description": "The year the DTP reference gross was measured in."
 				},
-				"night_work_pregnancy_risk": {
-					"type": "boolean",
-					"title": "Pregnant, night work a risk (doctor)",
-					"description": "A doctor certifies that night work endangers the pregnancy or the worker (UU 13/2003 art.76(2))."
-				},
-				"foreign_tin": {
-					"type": "string",
-					"title": "Foreign tax identification number",
-					"description": "A non-resident’s TIN in the country of residence (Coretax BP26 CounterpartTin); blank = the passport number."
-				},
-				"bp26_country": {
-					"type": "string",
-					"pattern": "^[A-Z]{3}$",
-					"title": "Country of residence (ISO 3166-1 alpha-3)",
-					"description": "A non-resident’s country on the Coretax BP26 (CounterpartCountry, e.g. USA)."
-				},
-				"bp21_tax_object_code": {
-					"type": "string",
-					"enum": [
-						"21-100-04",
-						"21-100-05",
-						"21-100-06",
-						"21-100-07",
-						"21-100-18",
-						"21-100-19",
-						"21-100-20",
-						"21-100-21",
-						"21-100-22",
-						"21-100-23",
-						"21-100-33",
-						"21-100-34"
-					],
-					"title": "BP21 tax object code of a bukan pegawai",
-					"description": "The DJP tax object code of a non-employee’s fees on the Coretax BP21 (BP21 converter REF sheet, deemed 50%); blank = 21-100-20, services in any field."
-				},
 				"severance_tax_history": {
 					"type": "object",
 					"additionalProperties": false,
@@ -97,7 +62,9 @@
 							"description": "Calendar year the first part of this same benefit was paid, including payments before imported payroll history."
 						}
 					},
-					"required": ["first_payment_year"]
+					"required": [
+						"first_payment_year"
+					]
 				},
 				"pension_tax_history": {
 					"type": "object",
@@ -111,7 +78,9 @@
 							"description": "Calendar year the first part of this same benefit was paid, including payments before imported payroll history."
 						}
 					},
-					"required": ["first_payment_year"]
+					"required": [
+						"first_payment_year"
+					]
 				},
 				"ptkp_dependents_count": {
 					"type": "integer",
@@ -131,12 +100,6 @@
 					"title": "Extra BPJS Kesehatan family members",
 					"description": "KESEHATAN: family members beyond the spouse and three children the worker enrols (Perpres 82/2018 arts.30(1)(b), 36): 1% of the capped wage each, deducted from the worker."
 				},
-				"husband_no_income_certificate_reference": {
-					"type": "string",
-					"pattern": "\\S",
-					"title": "Husband no-income statement reference",
-					"description": "Reference identifying the reviewed written local-government statement at least at kecamatan level that the husband receives no income. Required by CEL when the certified declaration is true; an upload alone does not establish the declaration."
-				},
 				"ptkp_standings": {
 					"type": "array",
 					"title": "Reviewed historical PTKP standings",
@@ -150,16 +113,6 @@
 								"format": "date",
 								"title": "Actual standing date"
 							},
-							"marital_status": {
-								"type": "string",
-								"enum": ["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"],
-								"title": "Marital status on that date"
-							},
-							"gender": {
-								"type": "string",
-								"enum": ["MALE", "FEMALE"],
-								"title": "Gender on that date"
-							},
 							"ptkp_dependents_count": {
 								"type": "integer",
 								"minimum": 0,
@@ -169,32 +122,11 @@
 								"type": "boolean",
 								"title": "Reviewed husband no-income statement",
 								"description": "Required for a married female employee; true requires the actual local-government statement reference."
-							},
-							"husband_no_income_certificate_reference": {
-								"type": "string",
-								"pattern": "\\S",
-								"title": "Husband no-income statement reference"
-							},
-							"source_reference": {
-								"type": "string",
-								"pattern": "\\S",
-								"title": "Reviewed historical declaration reference",
-								"description": "Identifies the external declaration or original records establishing these facts at the standing date."
-							},
-							"reviewed_on": {
-								"type": "string",
-								"format": "date",
-								"title": "Actually reviewed on",
-								"description": "Actual review date, no earlier than the standing date and no later than this run's payment date."
 							}
 						},
 						"required": [
 							"as_of",
-							"marital_status",
-							"gender",
-							"ptkp_dependents_count",
-							"source_reference",
-							"reviewed_on"
+							"ptkp_dependents_count"
 						]
 					}
 				},
@@ -206,7 +138,11 @@
 				},
 				"umsp_job_category": {
 					"type": "string",
-					"enum": ["BUS_DRIVER_MECHANIC", "NURSING_MIDWIFERY", "MEDICAL_SUPPORT"],
+					"enum": [
+						"BUS_DRIVER_MECHANIC",
+						"NURSING_MIDWIFERY",
+						"MEDICAL_SUPPORT"
+					],
 					"title": "Job category (sector minimum wage)",
 					"description": "DKI Kep. Gubernur 33/2026 rows 58–59 (bus drivers and mechanics of private companies) and 61 (nursing and midwifery, medical support at a class A private hospital)."
 				},
@@ -239,11 +175,6 @@
 					"title": "Employee pension-fund contribution a month",
 					"description": "The employee’s own monthly contribution to an OJK-approved pension fund (DPLK/DPPK), deducted from the year’s gross for PPh 21 (PMK 168/2023 art.10(1)(b))."
 				},
-				"weather_dependent": {
-					"type": "boolean",
-					"title": "Piece work depends on the weather",
-					"description": "BPJS averages a piece-rate wage over 12 months instead of 3 (PP 44/2015 art.19(5); PP 46/2015 art.17(5))."
-				},
 				"personnel_position": {
 					"type": "boolean",
 					"title": "Personnel (HR) position",
@@ -272,7 +203,10 @@
 				},
 				"pph21_payment_cadence": {
 					"type": "string",
-					"enum": ["MONTHLY", "NON_MONTHLY"],
+					"enum": [
+						"MONTHLY",
+						"NON_MONTHLY"
+					],
 					"title": "Non-permanent worker tax payment cadence",
 					"description": "A non-permanent worker's tax cadence. MONTHLY uses monthly TER without an annual reckoning (PMK 168/2023 art.12(2)(c), annex III.2). NON_MONTHLY uses the daily TER on the average day, or art.17 on 50% above Rp2,500,000 a day (arts.12(2)(a)–(b), 16(2))."
 				},
@@ -311,11 +245,6 @@
 					"title": "Micro or small enterprise",
 					"description": "PP 35/2021 art.59: a micro or small enterprise pays the severance agreed with the worker instead of the statutory formula."
 				},
-				"micro_small_agreement_reference": {
-					"type": "string",
-					"minLength": 1,
-					"title": "Micro/small-enterprise agreement reference"
-				},
 				"agreed_pesangon_amount": {
 					"type": "number",
 					"minimum": 0,
@@ -334,32 +263,10 @@
 					"title": "Agreed fixed-term compensation",
 					"description": "PP 35/2021 art.59(1)."
 				},
-				"separation_pay_amount": {
-					"type": "number",
-					"minimum": 0,
-					"title": "Contract-defined separation pay (uang pisah)",
-					"description": "PP 35/2021 arts.50–54: the amount the agreement, company regulation or collective agreement fixes."
-				},
-				"separation_pay_reference": {
-					"type": "string",
-					"minLength": 1,
-					"title": "Separation-pay agreement reference"
-				},
 				"pension_offset_applies": {
 					"type": "boolean",
 					"title": "Employer-funded pension offset applies",
 					"description": "PP 35/2021 art.58: an employer pension programme's benefit is set against the separation pay."
-				},
-				"employer_funded_pension_benefit": {
-					"type": "number",
-					"minimum": 0,
-					"title": "Employer-funded pension benefit",
-					"description": "PP 35/2021 art.58(2)."
-				},
-				"pension_offset_reference": {
-					"type": "string",
-					"minLength": 1,
-					"title": "Pension offset agreement reference"
 				},
 				"passport_number": {
 					"type": "string",
@@ -406,11 +313,14 @@
 				"events": {
 					"type": "array",
 					"title": "Life events",
-					"description": "What happened to this person that the law gives leave or a claim for. One item per event, with its document uploaded on the employee profile.",
+					"description": "What happened to this person that the law gives leave or a claim for. One item per event.",
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": ["kind", "on"],
+						"required": [
+							"kind",
+							"on"
+						],
 						"properties": {
 							"kind": {
 								"type": "string",
@@ -442,10 +352,6 @@
 								"type": "string",
 								"format": "date",
 								"title": "Ended on"
-							},
-							"document": {
-								"type": "string",
-								"title": "Document on the profile"
 							}
 						}
 					}
@@ -460,16 +366,12 @@
 			"additionalProperties": false,
 			"description": "Stored as entity_extension_data. The region is a key of the minimum-wage rule by_region map (the BPJS Kesehatan floor and the art.157 output floor), and risk_class is the JKK group I–V (PP 44/2015 art.16(1)); both are read from this data.",
 			"properties": {
-				"leave_cash_out_day_divisor": {
-					"type": "number",
-					"minimum": 1,
-					"maximum": 25,
-					"title": "Leave cash-out daily divisor",
-					"description": "The number of days the basic wage is divided by to value one day of unused annual leave (owner ruling: basic ÷ this divisor), at most 25 — the PP 36/2021 art.17 divisor of a six-day week, so a day is never valued below it. Required before any annual leave is cashed out (UU 13/2003 art.79; PP 35/2021 art.40(4)(a))."
-				},
 				"enterprise_size_class": {
 					"type": "string",
-					"enum": ["OTHER", "MICRO_OR_SMALL"],
+					"enum": [
+						"OTHER",
+						"MICRO_OR_SMALL"
+					],
 					"title": "Enterprise size for BPJS",
 					"description": "Perpres 82/2018 art.32(4)–(5) as amended by Perpres 59/2024: micro and small enterprises are outside the ordinary UMP/UMK contribution floor. Perpres 109/2013 art.6(3), PP 37/2021 art.4(3) as amended: they are outside JP."
 				},
@@ -587,7 +489,13 @@
 				},
 				"risk_class": {
 					"type": "string",
-					"enum": ["I", "II", "III", "IV", "V"],
+					"enum": [
+						"I",
+						"II",
+						"III",
+						"IV",
+						"V"
+					],
 					"title": "JKK risk class",
 					"description": "The BPJS Ketenagakerjaan work-accident risk group I–V (PP 44/2015 art.16(1)); it sets the JKK employer rate."
 				},
@@ -625,49 +533,6 @@
 			}
 		},
 		"lookup": {
-			"month_balance": [
-				"BASIC",
-				"ORDINARY_WAGES",
-				"ADDITIONAL_WAGES",
-				"SEVERANCE",
-				"PENSION_BENEFIT",
-				"JKK.employer",
-				"JKM.employer",
-				"KESEHATAN.employer",
-				"PPH21.employee",
-				"PPH21_BUKAN_PEGAWAI.employee",
-				"PPH21_FINAL_SEVERANCE.employee",
-				"PPH21_FINAL_PENSION.employee",
-				"PPH21_BENEFIT_NONFINAL.employee"
-			],
-			"rounding": "HALF_UP",
-			"rounding_scale": 2,
-			"statutory_work_categories": ["NON_MANUAL", "PIECE_RATE", "TASK_BASIS"],
-			"divisor": 173,
-			"wage_floor_factor": 0.75,
-			"daily_paid_days_six_day": 25,
-			"daily_paid_days_five_day": 21,
-			"six_day_week": 6,
-			"day_rate": "// PP 35/2021 art.32: the hourly wage is 1/173 of the monthly wage, fixed allowances in, at least 75% of the whole.\n// proration_basis WORKING_DAYS: no statute fixes a part month. PP 36/2021 art.40(1) pays no wage for days not worked and art.17 values a day by working days (month ÷ 25 or ÷ 21), never by the calendar.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\nconst hours = Number(get(terms, 'normal_hours_per_day', 8));\nconst sixDay = Number(get(terms, 'normal_days_per_week', 0)) === ctx.lookup.six_day_week;\nconst monthly =\n\tunit === 'DAILY'\n\t\t? amount * (sixDay ? ctx.lookup.daily_paid_days_six_day : ctx.lookup.daily_paid_days_five_day)\n\t\t: unit === 'HOURLY'\n\t\t\t? (amount * Number(get(terms, 'normal_hours_per_week', 0)) * 52) / 12\n\t\t\t: amount;\nconst allowances = Object.values(get(terms, 'allowances', {}));\nconst total = (kind) =>\n\tsum(\n\t\tallowances\n\t\t\t.filter((allowance) => get(allowance, 'variability', 'FIXED') === kind)\n\t\t\t.map((allowance) => Number(get(allowance, 'amount', 0)))\n\t);\nconst fixed = total('FIXED');\nconst wage = Math.max(\n\tmonthly + fixed,\n\tctx.lookup.wage_floor_factor * (monthly + fixed + total('VARIABLE'))\n);\nreturn (wage / ctx.lookup.divisor) * hours;",
-			"proration_basis": "WORKING_DAYS",
-			"holiday_names": [
-				"Idul Fitri",
-				"Idulfitri",
-				"Eid al-Fitr",
-				"Natal",
-				"Kelahiran Yesus Kristus",
-				"Christmas",
-				"Nyepi",
-				"Waisak",
-				"Vesak",
-				"Imlek",
-				"Chinese New Year"
-			],
-			"calendar_days": 30,
-			"normal_hours_per_day": {
-				"minimum": 0,
-				"maximum": 24
-			},
 			"by_region": {
 				"Provinsi Aceh/Kabupaten Aceh Barat": 3685616,
 				"Provinsi Aceh/Kabupaten Aceh Barat Daya": 3685616,
@@ -1201,27 +1066,34 @@
 					"rate": 0.35
 				}
 			],
-			"whole_unit": 1,
-			"missing_tax_id_multiplier": 1.2,
-			"foreign_employee_minimum_months": 6,
-			"minimum_age_years": 13,
-			"bpjs_daily_wage_days": 25,
-			"maximum_dependants": 3,
-			"employment_expense_share": 0.05,
-			"monthly_employment_expense_limit": 500000,
-			"thousand_units": 1000,
-			"ptkp_amount": {
-				"TK/0": 54000000,
-				"TK/1": 58500000,
-				"TK/2": 63000000,
-				"TK/3": 67500000,
-				"K/0": 58500000,
-				"K/1": 63000000,
-				"K/2": 67500000,
-				"K/3": 72000000
+			"constants": {
+				"daily_paid_days_six_day": 25,
+				"daily_paid_days_five_day": 21,
+				"foreign_employee_minimum_months": 6,
+				"bpjs_daily_wage_days": 25,
+				"whole_unit": 1,
+				"missing_tax_id_multiplier": 1.2,
+				"service_months_cap": 12
 			}
 		},
 		"status": "SEALED",
-		"id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7"
+		"id": "988e87ed-4a5e-5473-9034-4c7a02d23fd7",
+		"conversions": {
+			"day": {
+				"basis": "HOUR"
+			},
+			"hour": {
+				"basis": "FIXED",
+				"hours": 173
+			},
+			"proration": "WORKING_DAYS",
+			"rounding": {
+				"mode": "HALF_UP",
+				"scale": 2
+			}
+		},
+		"ledger": {
+			"ytd_scope": "JURISDICTION"
+		}
 	}
 ]

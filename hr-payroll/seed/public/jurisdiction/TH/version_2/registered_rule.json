@@ -2,7 +2,10 @@
 	{
 		"code": "NORMAL_HOURS",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"minutes_per_day": 480,
 			"roster_warnings": {
@@ -28,8 +31,14 @@
 	{
 		"code": "REST_BREAK",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
-		"lookup": {},
+		"events": [
+			"create",
+			"update"
+		],
+		"lookup": {
+			"elapsed_minutes": 300,
+			"break_minutes": 60
+		},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 s. 27",
@@ -45,7 +54,10 @@
 	{
 		"code": "CHILD_EMPLOYMENT",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"minimum_age": 15
 		},
@@ -64,11 +76,16 @@
 	{
 		"code": "MINIMUM_WAGE_FLOOR",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"order": 9,
-		"lookup": {},
-		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null) return false;\nif (get(rate, 'unit', null) === 'PIECE') return false;\nconst engagement = String(get(ctx.entry, 'engagement', 'EMPLOYEE'));\nreturn !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement);\n",
-		"validate": "// js\nconst employer = get(ctx.subject.employer, 'entity_extension_data', {});\nif (get(employer, 'minimum_wage_exempt', false) === true) return true;\nconst floor = get(employer, 'minimum_wage_400_business', false) === true\n\t? ctx.lookup.business_400\n\t: get(ctx.lookup.by_region, String(get(employer, 'region', '')), null);\nif (floor === null) return true;\nconst rate = get(ctx.entry, 'terms.rate', {});\nconst unit = get(rate, 'unit', null);\nconst amount = Number(get(rate, 'amount', 0));\nconst hours = Number(\n\tget(ctx.entry, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day),\n);\nconst daily =\n\tunit === 'DAILY'\n\t\t? amount\n\t\t: unit === 'MONTHLY'\n\t\t\t? amount / ctx.lookup.monthly_divisor\n\t\t\t: amount * hours;\nreturn daily >= floor;",
+		"lookup": {
+			"business_400": 400
+		},
+		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null) return false;\nconst engagement = String(get(ctx.entry, 'engagement', 'EMPLOYEE'));\nreturn !['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(engagement);\n",
+		"validate": "// js\nconst employer = get(ctx.subject.employer, 'entity_extension_data', {});\nif (get(employer, 'minimum_wage_exempt', false) === true) return true;\nconst floor = get(employer, 'minimum_wage_400_business', false) === true\n\t? ctx.lookup.business_400\n\t: get(ctx.lookup.by_region, String(get(employer, 'region', '')), null);\nif (floor === null) return true;\nconst rate = get(ctx.entry, 'terms.rate', {});\nconst unit = get(rate, 'unit', null);\nconst amount = Number(get(rate, 'amount', 0));\nconst hours = Number(get(ctx.entry, 'terms.normal_hours_per_day', 0));\n// LPA s.68: a month is thirty normal days.\nconst days = 30;\nconst daily =\n\tunit === 'DAILY'\n\t\t? amount\n\t\t: unit === 'MONTHLY'\n\t\t\t? amount / days\n\t\t\t: amount * hours;\nreturn daily >= floor;",
 		"references": [
 			{
 				"title": "Wage Committee Notification on Minimum Wage Rates (No. 14), 17 June 2025, in force 1 July 2025",
@@ -82,8 +99,11 @@
 	{
 		"code": "SKILL_STANDARD_WAGE",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
-		"condition": "const rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null) return false;\nif (get(rate, 'unit', null) === 'PIECE') return false;\nreturn get(ctx.entry, 'employee_extension_data.term_facts.skill_standard_day_rate', null) != null;",
+		"events": [
+			"create",
+			"update"
+		],
+		"condition": "const rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null) return false;\nreturn get(ctx.entry, 'employee_extension_data.skill_standard_day_rate', null) != null;",
 		"lookup": {},
 		"references": [
 			{
@@ -92,7 +112,7 @@
 				"url": "https://www.vertic.org/media/National%20Legislation/Thailand/TH_Labor_Protection_Act.pdf"
 			}
 		],
-		"validate": "// Labour Protection Act B.E. 2541 s. 90: a certified worker's day wage must reach the\n// skill-standard rate of the trade. The rate is a recorded term fact, not a table here.\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst amount = get(rate, 'amount', 0);\nconst unit = get(rate, 'unit', null);\nconst daily =\n\tunit === 'DAILY'\n\t\t? amount\n\t\t: unit === 'MONTHLY'\n\t\t\t? amount / ctx.lookup.monthly_divisor\n\t\t\t: amount * get(ctx.entry, 'terms.normal_hours_per_day', ctx.lookup.normal_hours_per_day);\nreturn daily >= get(ctx.entry, 'employee_extension_data.term_facts.skill_standard_day_rate', 0);",
+		"validate": "// Labour Protection Act B.E. 2541 s. 90: a certified worker's day wage must reach the\n// skill-standard rate of the trade. The rate is a recorded term fact, not a table here.\nconst rate = get(ctx.entry, 'terms.rate', null);\nconst amount = get(rate, 'amount', 0);\nconst unit = get(rate, 'unit', null);\nconst hours = Number(get(ctx.entry, 'terms.normal_hours_per_day', 0));\nconst days = 30;\nconst daily =\n\tunit === 'DAILY'\n\t\t? amount\n\t\t: unit === 'MONTHLY'\n\t\t\t? amount / days\n\t\t\t: amount * hours;\nreturn daily >= get(ctx.entry, 'employee_extension_data.skill_standard_day_rate', 0);",
 		"order": 10,
 		"id": "b58f318b-2ed1-5c44-b3ed-cb0b2d9b08dc",
 		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56"
@@ -100,8 +120,14 @@
 	{
 		"code": "ROSTER_REST_BREAK",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
-		"lookup": {},
+		"events": [
+			"create",
+			"update"
+		],
+		"lookup": {
+			"elapsed_minutes": 300,
+			"break_minutes": 60
+		},
 		"references": [
 			{
 				"title": "Labour Protection Act B.E. 2541 s. 27 para 1",
@@ -117,11 +143,20 @@
 	{
 		"code": "CONTRACT_CATEGORIES",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"categories": {
-				"statutory_work_category": ["ORDINARY", "HAZARDOUS"],
-				"residency_status": ["RESIDENT", "NON_RESIDENT"]
+				"statutory_work_category": [
+					"ORDINARY",
+					"HAZARDOUS"
+				],
+				"residency_status": [
+					"RESIDENT",
+					"NON_RESIDENT"
+				]
 			}
 		},
 		"references": [
@@ -139,7 +174,10 @@
 	{
 		"code": "SHARED_CONTRACT_TERMS",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"limits": {
 				"normal_hours_per_day_minimum": 0,
@@ -165,9 +203,17 @@
 	{
 		"code": "SHARED_STRUCTURED_EMPLOYEE_INPUTS",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
-			"overtime_categories": ["MANAGER", "SECTION_65_OTHER"]
+			"overtime_categories": [
+				"MANAGER",
+				"SECTION_65_OTHER"
+			],
+			"pvd_minimum_percent": 2,
+			"pvd_maximum_percent": 15
 		},
 		"references": [
 			{
@@ -175,7 +221,7 @@
 				"locator": "The recorded personal details or agreement terms do not meet this jurisdiction version’s requirements."
 			}
 		],
-		"validate": "// The recorded PVD election and overtime category must meet this version's contract terms.\nconst data = get(ctx.entry, 'employee_extension_data', {});\nconst pvd = get(get(get(data, 'facts', {}), 'statutory', {}), 'PVD', {});\nconst percent = get(get(pvd, 'elections', {}), 'employee_percent', null);\nconst member = get(pvd, 'kind', '') === 'MEMBER';\nif (member && typeof percent !== 'number') return false;\nif (member && percent < ctx.lookup.pvd_minimum_percent) return false;\nif (member && percent > ctx.lookup.pvd_maximum_percent) return false;\nconst overtime = get(get(data, 'term_facts', {}), 'overtime_category', null);\nreturn overtime === null || ctx.lookup.overtime_categories.includes(overtime);",
+		"validate": "// The recorded PVD election and overtime category must meet this version's contract terms.\nconst data = get(ctx.entry, 'employee_extension_data', {});\nconst pvd = get(get(data, 'statutory', {}), 'PVD', {});\nconst percent = get(pvd, 'employee_percent', null);\nconst member = get(pvd, 'kind', '') === 'MEMBER';\nif (member && typeof percent !== 'number') return false;\nif (member && percent < ctx.lookup.pvd_minimum_percent) return false;\nif (member && percent > ctx.lookup.pvd_maximum_percent) return false;\nconst overtime = get(data, 'overtime_category', null);\nreturn overtime === null || ctx.lookup.overtime_categories.includes(overtime);",
 		"order": 26,
 		"id": "92847ac0-f717-5fbe-8367-8f793a56af4f",
 		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56"
@@ -183,7 +229,10 @@
 	{
 		"code": "SHARED_STRUCTURED_ENTITY_INPUTS",
 		"target_collection": "entity_profile_version",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"lookup": {
 			"risk_class_digits": 5
 		},
@@ -201,7 +250,10 @@
 	{
 		"code": "BUSINESS_CASE_EFFECTIVE_INTERVAL",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "return get(ctx.entry, 'kind', null) === 'DEDUCTION_LIMIT_CONSENT';",
 		"lookup": {},
 		"references": [
@@ -219,7 +271,10 @@
 	{
 		"code": "BUSINESS_CASE_SIGNED_CONSENT",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "return get(ctx.entry, 'kind', null) === 'DEDUCTION_LIMIT_CONSENT';",
 		"lookup": {},
 		"references": [
@@ -237,10 +292,16 @@
 	{
 		"code": "BUSINESS_CASE_DOCUMENT_REQUIRED",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "return ctx.lookup.kinds.includes(get(ctx.entry, 'kind', null));",
 		"lookup": {
-			"kinds": ["DEDUCTION_LIMIT_CONSENT", "SECURITY_DEPOSIT_RECEIVED"]
+			"kinds": [
+				"DEDUCTION_LIMIT_CONSENT",
+				"SECURITY_DEPOSIT_RECEIVED"
+			]
 		},
 		"references": [
 			{
@@ -257,7 +318,10 @@
 	{
 		"code": "DEDUCTION_CONSENT_DISTINCT_SCOPE",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"condition": "return get(ctx.entry, 'kind', null) === 'DEDUCTION_LIMIT_CONSENT';",
 		"lookup": {},
 		"references": [
@@ -275,7 +339,9 @@
 	{
 		"code": "NO_PAY_OPEN_PERIOD",
 		"target_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"lookup": {
 			"no_pay": [
 				"SICK_LEAVE_UNPAID",
@@ -299,7 +365,9 @@
 						}
 					}
 				},
-				"fields": ["code"],
+				"fields": [
+					"code"
+				],
 				"limit": 1
 			},
 			"payroll_run": {
@@ -313,7 +381,9 @@
 						"eq": "ON_CYCLE"
 					}
 				},
-				"fields": ["period"],
+				"fields": [
+					"period"
+				],
 				"limit": 10000
 			},
 			"leave_catalog_entry": {
@@ -331,15 +401,17 @@
 					"payroll_run_id": {
 						"isNull": true
 					},
-					"is_reversal": {
-						"eq": false
+					"reverses": {
+						"isNull": true
 					}
 				},
-				"fields": ["days"],
+				"fields": [
+					"days"
+				],
 				"limit": 1000
 			}
 		},
-		"validate": "// js\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || !ctx.lookup.no_pay.includes(item.code)) return true;\nconst employer = ctx.subject.employer;\nconst cutoff = Number(get(employer, 'pay_cutoff_day', 1));\nconst halves = get(employer, 'payment_schedule.frequency', 'MONTHLY') === 'SEMI_MONTHLY';\nconst shifted = (month, by) => add_months(month + '-01', by).slice(0, 7);\nconst periodOf = (date) => {\n\tconst month = date.slice(0, 7);\n\tconst dayOf = Number(date.slice(8, 10));\n\tconst part = dayOf <= 15 ? 1 : 2;\n\tif (!halves) return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;\n\tif (cutoff <= 1) return month + '-' + part;\n\treturn part === 1 ? month + '-2' : shifted(month, 1) + '-1';\n};\nconst dates = ctx.entry.days.map((day) => day.date);\nif (get(ctx.entry, 'is_reversal', false) === true && ctx.reads.leave_catalog_entry.some((row) => row.days.some((day) => dates.includes(day.date))))\n\tthrow 'That day has not been paid yet. Delete the entry instead of reversing it.';\nconst ran = ctx.reads.payroll_run.map((run) => run.period);\nconst closed = ctx.entry.days.find((day) => ran.includes(periodOf(day.date)));\nif (closed != null)\n\tthrow closed.date + ' is in a period that has already run. Date this entry in the next period to run, and that run takes it.';\nreturn true;",
+		"validate": "// js\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || !ctx.lookup.no_pay.includes(item.code)) return true;\nconst employer = ctx.subject.employer;\nconst cutoff = Number(get(employer, 'pay_cutoff_day', 1));\nconst halves = get(employer, 'payment_schedule.frequency', 'MONTHLY') === 'SEMI_MONTHLY';\nconst shifted = (month, by) => add_months(month + '-01', by).slice(0, 7);\nconst periodOf = (date) => {\n\tconst month = date.slice(0, 7);\n\tconst dayOf = Number(date.slice(8, 10));\n\tconst part = dayOf <= 15 ? 1 : 2;\n\tif (!halves) return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;\n\tif (cutoff <= 1) return month + '-' + part;\n\treturn part === 1 ? month + '-2' : shifted(month, 1) + '-1';\n};\nconst dates = ctx.entry.days.map((day) => day.date);\nif (get(ctx.entry, 'reverses', null) != null && ctx.reads.leave_catalog_entry.some((row) => row.days.some((day) => dates.includes(day.date))))\n\tthrow 'That day has not been paid yet. Delete the entry instead of reversing it.';\nconst ran = ctx.reads.payroll_run.map((run) => run.period);\nconst closed = ctx.entry.days.find((day) => ran.includes(periodOf(day.date)));\nif (closed != null)\n\tthrow closed.date + ' is in a period that has already run. Date this entry in the next period to run, and that run takes it.';\nreturn true;",
 		"order": 900,
 		"id": "828f3df8-8b0b-5162-978a-75ce852c85eb",
 		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56"

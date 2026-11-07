@@ -5,11 +5,10 @@
 		"kind": "TAX",
 		"depends_on": [],
 		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
-		"off_cycle_eligible": false,
 		"lookup": {},
-		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'facts.student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'facts.student_training_approved', false) === true &&\n\tget(facts, 'facts.student_training_moe_subsidised', false) === true &&\n\tget(facts, 'facts.student_training_evidence', '') !== '';\nif (approved) return false;\nreturn ['CITIZEN', 'PERMANENT_RESIDENT'].includes(\n\tget(ctx.subject.employment.terms, 'residency_status', '')\n);",
+		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_moe_subsidised', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nif (approved) return false;\nreturn ['CITIZEN', 'PERMANENT_RESIDENT'].includes(\n\tget(ctx.subject.employment.terms, 'residency_status', '')\n);",
 		"employee_amount": "// js\nreturn 0;",
-		"employer_amount": "// js\n// CPF Act First Schedule: additional wages attract CPF up to the AW ceiling, the annual limit less the year's OW that attracted CPF, each month's OW at its own ceiling.\n// CPF Board: at each AW payment estimate the year's OW from this month's; in the last month of the year or of the employment settle on the actual OW.\nconst terms = ctx.subject.employment.terms;\nconst from = ctx.run.salary_coverage.from;\nconst year = String(from).slice(0, 4);\nconst held = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', from)).slice(0, 7);\nconst heldIn = (paid, code) => (Object.hasOwn(held, paid + '.' + code) ? Number(held[paid + '.' + code]) : 0);\nconst wholeMonth =\n\tString(from) === String(month_start(from)) && String(ctx.run.salary_coverage.to) === String(month_end(from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn(paidMonth, 'BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(paidMonth, code));\nconst earlierOrdinary = before('ORDINARY_WAGES');\nconst ordinary = Math.min(\n\tNumber(get(ctx, 'subtotals.ORDINARY_WAGES', 0)) + earlierOrdinary,\n\tctx.lookup.ordinary_ceiling\n);\n// Ahead of the month's salary an off-cycle run sits on last month's OW, or the contract's before any is paid.\nconst lastOrdinary = heldIn(String(add_months(paidMonth + '-01', -1)).slice(0, 7), 'ORDINARY_WAGES');\nconst under =\n\tget(ctx.run, 'kind', '') === 'OFF_CYCLE' && ordinary === 0\n\t\t? Math.min(lastOrdinary > 0 ? lastOrdinary : Number(get(terms, 'rate.amount', 0)), ctx.lookup.ordinary_ceiling)\n\t\t: 0;\nconst monthAdditional =\n\tMath.max(0, before('ADDITIONAL_WAGES') - earlierOrdinary) +\n\tMath.max(\n\t\t0,\n\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) -\n\t\t\tNumber(get(ctx, 'subtotals.ORDINARY_WAGES', 0))\n\t);\nconst leaving = String(get(ctx.subject.employment, 'effective_range.to', ''));\nconst last = leaving.slice(0, 4) === year ? Number(leaving.slice(5, 7)) : ctx.lookup.months_per_year;\nconst month = Number(String(from).slice(5, 7));\nconst earlier = (suffix) =>\n\tObject.keys(held).filter(\n\t\t(code) => code.startsWith(year + '-') && code.endsWith(suffix) && !code.startsWith(paidMonth + '.')\n\t);\nconst ordinaryBefore = earlier('.ORDINARY_WAGES').reduce(\n\t(total, code) => total + Math.min(Number(held[code]), ctx.lookup.ordinary_ceiling),\n\t0\n);\nconst attracted = earlier('.CPF_AW.employer').reduce((total, code) => total + Number(held[code]), 0);\nconst paidEarlier = earlier('.ADDITIONAL_WAGES').reduce(\n\t(total, code) => total + Math.max(0, Number(held[code]) - heldIn(code.slice(0, 7), 'ORDINARY_WAGES')),\n\t0\n);\nconst room = Math.max(\n\t0,\n\tctx.lookup.annual_ceiling - ordinaryBefore - (ordinary + under) * Math.max(1, last - month + 1) - attracted\n);\nconst pending = month === last ? paidEarlier - attracted + monthAdditional : monthAdditional;\nreturn Math.max(0, Math.min(pending, room) - before('CPF_AW.employer'));",
+		"employer_amount": "// js\n// CPF Act First Schedule: additional wages attract CPF up to the AW ceiling, the annual limit less the year's OW that attracted CPF, each month's OW at its own ceiling.\n// CPF Board: at each AW payment estimate the year's OW from this month's; in the last month of the year or of the employment settle on the actual OW.\nconst terms = ctx.subject.employment.terms;\nconst from = ctx.run.salary_coverage.from;\nconst year = String(from).slice(0, 4);\nconst held = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', from)).slice(0, 7);\nconst heldIn = (paid, code) => (Object.hasOwn(held, paid + '.' + code) ? Number(held[paid + '.' + code]) : 0);\nconst wholeMonth =\n\tString(from) === String(month_start(from)) && String(ctx.run.salary_coverage.to) === String(month_end(from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn(paidMonth, 'BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(paidMonth, code));\nconst earlierOrdinary = before('ORDINARY_WAGES');\nconst ordinary = Math.min(\n\tNumber(get(ctx, 'subtotals.ORDINARY_WAGES', 0)) + earlierOrdinary,\n\tctx.lookup.ordinary_ceiling\n);\n// Ahead of the month's salary an off-cycle run sits on last month's OW, or the contract's before any is paid.\nconst lastOrdinary = heldIn(String(add_months(paidMonth + '-01', -1)).slice(0, 7), 'ORDINARY_WAGES');\nconst under =\n\tget(ctx.run, 'kind', '') === 'OFF_CYCLE' && ordinary === 0\n\t\t? Math.min(lastOrdinary > 0 ? lastOrdinary : ctx.month_wage, ctx.lookup.ordinary_ceiling)\n\t\t: 0;\nconst monthAdditional =\n\tMath.max(0, before('ADDITIONAL_WAGES') - earlierOrdinary) +\n\tMath.max(\n\t\t0,\n\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) -\n\t\t\tNumber(get(ctx, 'subtotals.ORDINARY_WAGES', 0))\n\t);\nconst leaving = String(get(ctx.subject.employment, 'effective_range.to', ''));\nconst last = leaving.slice(0, 4) === year ? Number(leaving.slice(5, 7)) : 12;\nconst month = Number(String(from).slice(5, 7));\nconst earlier = (suffix) =>\n\tObject.keys(held).filter(\n\t\t(code) => code.startsWith(year + '-') && code.endsWith(suffix) && !code.startsWith(paidMonth + '.')\n\t);\nconst ordinaryBefore = earlier('.ORDINARY_WAGES').reduce(\n\t(total, code) => total + Math.min(Number(held[code]), ctx.lookup.ordinary_ceiling),\n\t0\n);\nconst attracted = earlier('.CPF_AW.employer').reduce((total, code) => total + Number(held[code]), 0);\nconst paidEarlier = earlier('.ADDITIONAL_WAGES').reduce(\n\t(total, code) => total + Math.max(0, Number(held[code]) - heldIn(code.slice(0, 7), 'ORDINARY_WAGES')),\n\t0\n);\nconst room = Math.max(\n\t0,\n\tctx.lookup.annual_ceiling - ordinaryBefore - (ordinary + under) * Math.max(1, last - month + 1) - attracted\n);\nconst pending = month === last ? paidEarlier - attracted + monthAdditional : monthAdditional;\nreturn Math.max(0, Math.min(pending, room) - before('CPF_AW.employer'));",
 		"references": [
 			{
 				"title": "CPF Board: Additional Wage ceiling; estimate the year's Ordinary Wages at each AW payment and revise on the actual Ordinary Wages at the year end or when the employee leaves."
@@ -17,26 +16,29 @@
 		],
 		"id": "4811deca-a06b-57b3-ae73-bb104d123021",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
-		"employer_cost_subtotal_id": null
+		"employer_cost_subtotal_id": null,
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "CPF",
 		"name": "Central Provident Fund",
 		"kind": "CONTRIBUTION",
-		"depends_on": ["CPF_AW"],
+		"depends_on": [
+			"CPF_AW"
+		],
 		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
 		"employer_cost_subtotal_id": "930abb8b-61d3-5956-839d-9ff2b3c1fbb3",
-		"off_cycle_eligible": false,
 		"lookup": {
+			"rounding_step": 1.0,
 			"minimum_wage": 50.0,
 			"employee_threshold": 500.0,
 			"full_rate_threshold": 750.0,
 			"employee_rounding": "DOWN",
 			"total_rounding": "HALF_UP"
 		},
-		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'facts.student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'facts.student_training_approved', false) === true &&\n\tget(facts, 'facts.student_training_moe_subsidised', false) === true &&\n\tget(facts, 'facts.student_training_evidence', '') !== '';\nif (approved) return false;\nreturn ['CITIZEN', 'PERMANENT_RESIDENT'].includes(\n\tget(ctx.subject.employment.terms, 'residency_status', '')\n);",
-		"employee_amount": "const terms = ctx.subject.employment.terms;\nconst facts = ctx.subject.employment.employee_extension_data;\nconst status = get(terms, 'residency_status', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status)) return 0;\nconst dob = get(ctx.subject.employment.payroll, 'date_of_birth', '');\nif (dob === '') return 0;\nconst age = age_on(dob, add_days(month_start(ctx.run.salary_coverage.from), -1));\nconst elections = get(facts, 'facts.statutory.CPF.elections', {});\nconst full = get(elections, 'spr_full_rates', false) === true;\nconst employerFull = get(elections, 'spr_employer_full_rates', false) === true;\nconst since = get(facts, 'facts.residency_since', '');\nconst from = ctx.run.salary_coverage.from;\nlet phase = 'full';\nif (status === 'PERMANENT_RESIDENT' && !full && since !== '') {\n\tif (from <= String(month_end(add_years(since, 1)))) phase = employerFull ? 'first_year_full_employer' : 'first_year';\n\telse if (from <= String(month_end(add_years(since, 2)))) phase = employerFull ? 'second_year_full_employer' : 'second_year';\n}\nconst bands = ctx.lookup.cpf_bands.filter((band) => band.phase === phase);\nlet key = bands[0].key;\nfor (const band of bands) if (age >= band.age) key = band.key;\nconst midRate = get(ctx.lookup.cpf_rates, key + '_mid', 0);\nconst highRate = get(ctx.lookup.cpf_rates, key + '_high', 0);\nconst year = String(ctx.run.salary_coverage.from).slice(0, 4);\nconst held = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', from)).slice(0, 7);\nconst heldIn = (paid, code) => (Object.hasOwn(held, paid + '.' + code) ? Number(held[paid + '.' + code]) : 0);\nconst wholeMonth =\n\tString(from) === String(month_start(from)) && String(ctx.run.salary_coverage.to) === String(month_end(from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn(paidMonth, 'BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(paidMonth, code));\nconst earlierOrdinary = before('ORDINARY_WAGES');\nconst ordinary = Math.min(\n\tNumber(get(ctx, 'subtotals.ORDINARY_WAGES', 0)) + earlierOrdinary,\n\tctx.lookup.ordinary_ceiling\n);\n// Ahead of the month's salary an off-cycle run sits on last month's OW, or the contract's before any is paid.\nconst lastOrdinary = heldIn(String(add_months(paidMonth + '-01', -1)).slice(0, 7), 'ORDINARY_WAGES');\nconst under =\n\tget(ctx.run, 'kind', '') === 'OFF_CYCLE' && ordinary === 0\n\t\t? Math.min(lastOrdinary > 0 ? lastOrdinary : Number(get(terms, 'rate.amount', 0)), ctx.lookup.ordinary_ceiling)\n\t\t: 0;\n// The AW that attracted CPF is on record; the last month of the year or of the employment settles it on the actual OW.\nconst leaving = String(get(ctx.subject.employment, 'effective_range.to', ''));\nconst last = leaving.slice(0, 4) === year ? Number(leaving.slice(5, 7)) : ctx.lookup.months_per_year;\nconst earlier = (suffix) =>\n\tObject.keys(held).filter(\n\t\t(code) => code.startsWith(year + '-') && code.endsWith(suffix) && !code.startsWith(paidMonth + '.')\n\t);\nconst ordinaryBefore = earlier('.ORDINARY_WAGES').reduce(\n\t(total, code) => total + Math.min(Number(held[code]), ctx.lookup.ordinary_ceiling),\n\t0\n);\nconst attracted = earlier('.CPF_AW.employer').reduce((total, code) => total + Number(held[code]), 0);\nconst excess =\n\tNumber(String(from).slice(5, 7)) === last\n\t\t? Math.max(0, attracted - Math.max(0, ctx.lookup.annual_ceiling - ordinaryBefore - ordinary - under))\n\t\t: 0;\nconst additional = before('CPF_AW.employer') + Number(get(ctx, 'statutory.CPF_AW.employer', 0));\nconst owed = (wage) => {\n\tif (wage <= ctx.lookup.employee_threshold) return 0;\n\tif (wage <= ctx.lookup.full_rate_threshold)\n\t\treturn round(\n\t\t\tmidRate * (wage - ctx.lookup.employee_threshold),\n\t\t\tctx.lookup.rounding_step,\n\t\t\tctx.lookup.employee_rounding\n\t\t);\n\treturn round(wage * highRate, ctx.lookup.rounding_step, ctx.lookup.employee_rounding);\n};\nreturn owed(ordinary + under + additional) - owed(under) - before('CPF.employee') - round(excess * highRate, ctx.lookup.rounding_step, ctx.lookup.employee_rounding);",
-		"employer_amount": "const terms = ctx.subject.employment.terms;\nconst facts = ctx.subject.employment.employee_extension_data;\nconst status = get(terms, 'residency_status', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status)) return 0;\nconst dob = get(ctx.subject.employment.payroll, 'date_of_birth', '');\nif (dob === '') return 0;\nconst age = age_on(dob, add_days(month_start(ctx.run.salary_coverage.from), -1));\nconst elections = get(facts, 'facts.statutory.CPF.elections', {});\nconst full = get(elections, 'spr_full_rates', false) === true;\nconst employerFull = get(elections, 'spr_employer_full_rates', false) === true;\nconst since = get(facts, 'facts.residency_since', '');\nconst from = ctx.run.salary_coverage.from;\nlet phase = 'full';\nif (status === 'PERMANENT_RESIDENT' && !full && since !== '') {\n\tif (from <= String(month_end(add_years(since, 1)))) phase = employerFull ? 'first_year_full_employer' : 'first_year';\n\telse if (from <= String(month_end(add_years(since, 2)))) phase = employerFull ? 'second_year_full_employer' : 'second_year';\n}\nconst bands = ctx.lookup.cpf_bands.filter((band) => band.phase === phase);\nlet key = bands[0].key;\nfor (const band of bands) if (age >= band.age) key = band.key;\nconst lowRate = get(ctx.lookup.cpf_rates, key + '_low', 0);\nconst midRate = get(ctx.lookup.cpf_rates, key + '_mid', 0);\nconst highRate = get(ctx.lookup.cpf_rates, key + '_high', 0);\nconst totalRate = get(ctx.lookup.cpf_rates, key + '_total', 0);\nconst year = String(ctx.run.salary_coverage.from).slice(0, 4);\nconst held = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', from)).slice(0, 7);\nconst heldIn = (paid, code) => (Object.hasOwn(held, paid + '.' + code) ? Number(held[paid + '.' + code]) : 0);\nconst wholeMonth =\n\tString(from) === String(month_start(from)) && String(ctx.run.salary_coverage.to) === String(month_end(from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn(paidMonth, 'BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(paidMonth, code));\nconst earlierOrdinary = before('ORDINARY_WAGES');\nconst ordinary = Math.min(\n\tNumber(get(ctx, 'subtotals.ORDINARY_WAGES', 0)) + earlierOrdinary,\n\tctx.lookup.ordinary_ceiling\n);\n// Ahead of the month's salary an off-cycle run sits on last month's OW, or the contract's before any is paid.\nconst lastOrdinary = heldIn(String(add_months(paidMonth + '-01', -1)).slice(0, 7), 'ORDINARY_WAGES');\nconst under =\n\tget(ctx.run, 'kind', '') === 'OFF_CYCLE' && ordinary === 0\n\t\t? Math.min(lastOrdinary > 0 ? lastOrdinary : Number(get(terms, 'rate.amount', 0)), ctx.lookup.ordinary_ceiling)\n\t\t: 0;\n// The AW that attracted CPF is on record; the last month of the year or of the employment settles it on the actual OW.\nconst leaving = String(get(ctx.subject.employment, 'effective_range.to', ''));\nconst last = leaving.slice(0, 4) === year ? Number(leaving.slice(5, 7)) : ctx.lookup.months_per_year;\nconst earlier = (suffix) =>\n\tObject.keys(held).filter(\n\t\t(code) => code.startsWith(year + '-') && code.endsWith(suffix) && !code.startsWith(paidMonth + '.')\n\t);\nconst ordinaryBefore = earlier('.ORDINARY_WAGES').reduce(\n\t(total, code) => total + Math.min(Number(held[code]), ctx.lookup.ordinary_ceiling),\n\t0\n);\nconst attracted = earlier('.CPF_AW.employer').reduce((total, code) => total + Number(held[code]), 0);\nconst excess =\n\tNumber(String(from).slice(5, 7)) === last\n\t\t? Math.max(0, attracted - Math.max(0, ctx.lookup.annual_ceiling - ordinaryBefore - ordinary - under))\n\t\t: 0;\nconst additional = before('CPF_AW.employer') + Number(get(ctx, 'statutory.CPF_AW.employer', 0));\nconst owed = (wage) => {\n\tif (wage <= ctx.lookup.minimum_wage) return 0;\n\tif (wage <= ctx.lookup.employee_threshold)\n\t\treturn round(wage * lowRate, ctx.lookup.rounding_step, ctx.lookup.total_rounding);\n\tif (wage <= ctx.lookup.full_rate_threshold) {\n\t\tconst share = midRate * (wage - ctx.lookup.employee_threshold);\n\t\tconst total = round(wage * lowRate + share, ctx.lookup.rounding_step, ctx.lookup.total_rounding);\n\t\treturn total - round(share, ctx.lookup.rounding_step, ctx.lookup.employee_rounding);\n\t}\n\tconst total = round(wage * totalRate, ctx.lookup.rounding_step, ctx.lookup.total_rounding);\n\treturn total - round(wage * highRate, ctx.lookup.rounding_step, ctx.lookup.employee_rounding);\n};\nconst returned =\n\tround(excess * totalRate, ctx.lookup.rounding_step, ctx.lookup.total_rounding) -\n\tround(excess * highRate, ctx.lookup.rounding_step, ctx.lookup.employee_rounding);\nreturn Math.max(0, owed(ordinary + under + additional) - owed(under) - before('CPF.employer') - returned);",
+		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_moe_subsidised', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nif (approved) return false;\nreturn ['CITIZEN', 'PERMANENT_RESIDENT'].includes(\n\tget(ctx.subject.employment.terms, 'residency_status', '')\n);",
+		"employee_amount": "const terms = ctx.subject.employment.terms;\nconst facts = ctx.subject.employment.employee_extension_data;\nconst status = get(terms, 'residency_status', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status)) return 0;\nconst dob = get(ctx.subject.employment.payroll, 'date_of_birth', '');\nif (dob === '') return 0;\nconst age = age_on(dob, add_days(month_start(ctx.run.salary_coverage.from), -1));\nconst elections = get(facts, 'statutory.CPF', {});\nconst full = get(elections, 'spr_full_rates', false) === true;\nconst employerFull = get(elections, 'spr_employer_full_rates', false) === true;\nconst since = get(facts, 'residency_since', '');\nconst from = ctx.run.salary_coverage.from;\nlet phase = 'full';\nif (status === 'PERMANENT_RESIDENT' && !full && since !== '') {\n\tif (from <= String(month_end(add_years(since, 1)))) phase = employerFull ? 'first_year_full_employer' : 'first_year';\n\telse if (from <= String(month_end(add_years(since, 2)))) phase = employerFull ? 'second_year_full_employer' : 'second_year';\n}\nconst bands = ctx.lookup.cpf_bands.filter((band) => band.phase === phase);\nlet key = bands[0].key;\nfor (const band of bands) if (age >= band.age) key = band.key;\nconst midRate = get(ctx.lookup.cpf_rates, key + '_mid', 0);\nconst highRate = get(ctx.lookup.cpf_rates, key + '_high', 0);\nconst year = String(ctx.run.salary_coverage.from).slice(0, 4);\nconst held = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', from)).slice(0, 7);\nconst heldIn = (paid, code) => (Object.hasOwn(held, paid + '.' + code) ? Number(held[paid + '.' + code]) : 0);\nconst wholeMonth =\n\tString(from) === String(month_start(from)) && String(ctx.run.salary_coverage.to) === String(month_end(from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn(paidMonth, 'BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(paidMonth, code));\nconst earlierOrdinary = before('ORDINARY_WAGES');\nconst ordinary = Math.min(\n\tNumber(get(ctx, 'subtotals.ORDINARY_WAGES', 0)) + earlierOrdinary,\n\tctx.lookup.ordinary_ceiling\n);\n// Ahead of the month's salary an off-cycle run sits on last month's OW, or the contract's before any is paid.\nconst lastOrdinary = heldIn(String(add_months(paidMonth + '-01', -1)).slice(0, 7), 'ORDINARY_WAGES');\nconst under =\n\tget(ctx.run, 'kind', '') === 'OFF_CYCLE' && ordinary === 0\n\t\t? Math.min(lastOrdinary > 0 ? lastOrdinary : ctx.month_wage, ctx.lookup.ordinary_ceiling)\n\t\t: 0;\n// The AW that attracted CPF is on record; the last month of the year or of the employment settles it on the actual OW.\nconst leaving = String(get(ctx.subject.employment, 'effective_range.to', ''));\nconst last = leaving.slice(0, 4) === year ? Number(leaving.slice(5, 7)) : 12;\nconst earlier = (suffix) =>\n\tObject.keys(held).filter(\n\t\t(code) => code.startsWith(year + '-') && code.endsWith(suffix) && !code.startsWith(paidMonth + '.')\n\t);\nconst ordinaryBefore = earlier('.ORDINARY_WAGES').reduce(\n\t(total, code) => total + Math.min(Number(held[code]), ctx.lookup.ordinary_ceiling),\n\t0\n);\nconst attracted = earlier('.CPF_AW.employer').reduce((total, code) => total + Number(held[code]), 0);\nconst excess =\n\tNumber(String(from).slice(5, 7)) === last\n\t\t? Math.max(0, attracted - Math.max(0, ctx.lookup.annual_ceiling - ordinaryBefore - ordinary - under))\n\t\t: 0;\nconst additional = before('CPF_AW.employer') + Number(get(ctx, 'statutory.CPF_AW.employer', 0));\nconst owed = (wage) => {\n\tif (wage <= ctx.lookup.employee_threshold) return 0;\n\tif (wage <= ctx.lookup.full_rate_threshold)\n\t\treturn round(\n\t\t\tmidRate * (wage - ctx.lookup.employee_threshold),\n\t\t\tctx.lookup.rounding_step,\n\t\t\tctx.lookup.employee_rounding\n\t\t);\n\treturn round(wage * highRate, ctx.lookup.rounding_step, ctx.lookup.employee_rounding);\n};\nreturn owed(ordinary + under + additional) - owed(under) - before('CPF.employee') - round(excess * highRate, ctx.lookup.rounding_step, ctx.lookup.employee_rounding);",
+		"employer_amount": "const terms = ctx.subject.employment.terms;\nconst facts = ctx.subject.employment.employee_extension_data;\nconst status = get(terms, 'residency_status', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status)) return 0;\nconst dob = get(ctx.subject.employment.payroll, 'date_of_birth', '');\nif (dob === '') return 0;\nconst age = age_on(dob, add_days(month_start(ctx.run.salary_coverage.from), -1));\nconst elections = get(facts, 'statutory.CPF', {});\nconst full = get(elections, 'spr_full_rates', false) === true;\nconst employerFull = get(elections, 'spr_employer_full_rates', false) === true;\nconst since = get(facts, 'residency_since', '');\nconst from = ctx.run.salary_coverage.from;\nlet phase = 'full';\nif (status === 'PERMANENT_RESIDENT' && !full && since !== '') {\n\tif (from <= String(month_end(add_years(since, 1)))) phase = employerFull ? 'first_year_full_employer' : 'first_year';\n\telse if (from <= String(month_end(add_years(since, 2)))) phase = employerFull ? 'second_year_full_employer' : 'second_year';\n}\nconst bands = ctx.lookup.cpf_bands.filter((band) => band.phase === phase);\nlet key = bands[0].key;\nfor (const band of bands) if (age >= band.age) key = band.key;\nconst lowRate = get(ctx.lookup.cpf_rates, key + '_low', 0);\nconst midRate = get(ctx.lookup.cpf_rates, key + '_mid', 0);\nconst highRate = get(ctx.lookup.cpf_rates, key + '_high', 0);\nconst totalRate = get(ctx.lookup.cpf_rates, key + '_total', 0);\nconst year = String(ctx.run.salary_coverage.from).slice(0, 4);\nconst held = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', from)).slice(0, 7);\nconst heldIn = (paid, code) => (Object.hasOwn(held, paid + '.' + code) ? Number(held[paid + '.' + code]) : 0);\nconst wholeMonth =\n\tString(from) === String(month_start(from)) && String(ctx.run.salary_coverage.to) === String(month_end(from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn(paidMonth, 'BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(paidMonth, code));\nconst earlierOrdinary = before('ORDINARY_WAGES');\nconst ordinary = Math.min(\n\tNumber(get(ctx, 'subtotals.ORDINARY_WAGES', 0)) + earlierOrdinary,\n\tctx.lookup.ordinary_ceiling\n);\n// Ahead of the month's salary an off-cycle run sits on last month's OW, or the contract's before any is paid.\nconst lastOrdinary = heldIn(String(add_months(paidMonth + '-01', -1)).slice(0, 7), 'ORDINARY_WAGES');\nconst under =\n\tget(ctx.run, 'kind', '') === 'OFF_CYCLE' && ordinary === 0\n\t\t? Math.min(lastOrdinary > 0 ? lastOrdinary : ctx.month_wage, ctx.lookup.ordinary_ceiling)\n\t\t: 0;\n// The AW that attracted CPF is on record; the last month of the year or of the employment settles it on the actual OW.\nconst leaving = String(get(ctx.subject.employment, 'effective_range.to', ''));\nconst last = leaving.slice(0, 4) === year ? Number(leaving.slice(5, 7)) : 12;\nconst earlier = (suffix) =>\n\tObject.keys(held).filter(\n\t\t(code) => code.startsWith(year + '-') && code.endsWith(suffix) && !code.startsWith(paidMonth + '.')\n\t);\nconst ordinaryBefore = earlier('.ORDINARY_WAGES').reduce(\n\t(total, code) => total + Math.min(Number(held[code]), ctx.lookup.ordinary_ceiling),\n\t0\n);\nconst attracted = earlier('.CPF_AW.employer').reduce((total, code) => total + Number(held[code]), 0);\nconst excess =\n\tNumber(String(from).slice(5, 7)) === last\n\t\t? Math.max(0, attracted - Math.max(0, ctx.lookup.annual_ceiling - ordinaryBefore - ordinary - under))\n\t\t: 0;\nconst additional = before('CPF_AW.employer') + Number(get(ctx, 'statutory.CPF_AW.employer', 0));\nconst owed = (wage) => {\n\tif (wage <= ctx.lookup.minimum_wage) return 0;\n\tif (wage <= ctx.lookup.employee_threshold)\n\t\treturn round(wage * lowRate, ctx.lookup.rounding_step, ctx.lookup.total_rounding);\n\tif (wage <= ctx.lookup.full_rate_threshold) {\n\t\tconst share = midRate * (wage - ctx.lookup.employee_threshold);\n\t\tconst total = round(wage * lowRate + share, ctx.lookup.rounding_step, ctx.lookup.total_rounding);\n\t\treturn total - round(share, ctx.lookup.rounding_step, ctx.lookup.employee_rounding);\n\t}\n\tconst total = round(wage * totalRate, ctx.lookup.rounding_step, ctx.lookup.total_rounding);\n\treturn total - round(wage * highRate, ctx.lookup.rounding_step, ctx.lookup.employee_rounding);\n};\nconst returned =\n\tround(excess * totalRate, ctx.lookup.rounding_step, ctx.lookup.total_rounding) -\n\tround(excess * highRate, ctx.lookup.rounding_step, ctx.lookup.employee_rounding);\nreturn Math.max(0, owed(ordinary + under + additional) - owed(under) - before('CPF.employer') - returned);",
 		"references": [
 			{
 				"title": "CPF Act 1953 s.7 and First Schedule; CPF Board contribution tables from 1 January 2026 — Ordinary Wages capped at $8,000; above 55–60 34%, above 60–65 25%, above 65–70 16.5%",
@@ -59,7 +61,8 @@
 			}
 		],
 		"id": "116f0213-5e88-57a0-ad22-ab894423269f",
-		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "CDAC",
@@ -67,7 +70,6 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
-		"off_cycle_eligible": false,
 		"lookup": {
 			"brackets": [
 				{
@@ -91,10 +93,15 @@
 					"amount": 3
 				}
 			],
-			"races": ["CHINESE", "SINO INDIAN", "SINO JAPANESE", "SINO KADAZAN"]
+			"races": [
+				"CHINESE",
+				"SINO INDIAN",
+				"SINO JAPANESE",
+				"SINO KADAZAN"
+			]
 		},
-		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'facts.student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'facts.student_training_approved', false) === true &&\n\tget(facts, 'facts.student_training_moe_subsidised', false) === true &&\n\tget(facts, 'facts.student_training_evidence', '') !== '';\nif (approved) return false;\nconst status = get(ctx.subject.employment.terms, 'residency_status', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status)) return false;\nif (!ctx.lookup.races.includes(get(facts, 'term_facts.race', ''))) return false;\nreturn get(facts, 'facts.statutory.CDAC.elections.shg_opted_out', false) !== true;",
-		"employee_amount": "const month = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.from)).slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst facts = ctx.subject.employment.employee_extension_data;\nconst declared = get(\n\tfacts,\n\t'facts.statutory.CDAC.elections.shg_monthly_amount',\n\tnull\n);\nconst owed =\n\tdeclared != null\n\t\t? Number(declared)\n\t\t: bracket(\n\t\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) + before('ADDITIONAL_WAGES'),\n\t\t\t\tctx.lookup.brackets\n\t\t\t);\nreturn owed - before('CDAC.employee');",
+		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_moe_subsidised', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nif (approved) return false;\nconst status = get(ctx.subject.employment.terms, 'residency_status', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status)) return false;\nif (!ctx.lookup.races.includes(get(facts, 'race', ''))) return false;\nreturn get(facts, 'statutory.CDAC.shg_opted_out', false) !== true;",
+		"employee_amount": "const month = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.from)).slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst facts = ctx.subject.employment.employee_extension_data;\nconst declared = get(\n\tfacts,\n\t'statutory.CDAC.shg_monthly_amount',\n\tnull\n);\nconst owed =\n\tdeclared != null\n\t\t? Number(declared)\n\t\t: bracket(\n\t\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) + before('ADDITIONAL_WAGES'),\n\t\t\t\tctx.lookup.brackets\n\t\t\t);\nreturn owed - before('CDAC.employee');",
 		"employer_amount": "return 0;",
 		"references": [
 			{
@@ -113,7 +120,8 @@
 		],
 		"id": "789dcb80-702d-54ac-a8ba-fea80def66e0",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
-		"employer_cost_subtotal_id": null
+		"employer_cost_subtotal_id": null,
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "ECF",
@@ -121,7 +129,6 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
-		"off_cycle_eligible": false,
 		"lookup": {
 			"brackets": [
 				{
@@ -163,8 +170,8 @@
 				"ANGLO THAI"
 			]
 		},
-		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'facts.student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'facts.student_training_approved', false) === true &&\n\tget(facts, 'facts.student_training_moe_subsidised', false) === true &&\n\tget(facts, 'facts.student_training_evidence', '') !== '';\nif (approved) return false;\nconst status = get(ctx.subject.employment.terms, 'residency_status', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status)) return false;\nif (!ctx.lookup.races.includes(get(facts, 'term_facts.race', ''))) return false;\nreturn get(facts, 'facts.statutory.ECF.elections.shg_opted_out', false) !== true;",
-		"employee_amount": "const month = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.from)).slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst facts = ctx.subject.employment.employee_extension_data;\nconst declared = get(\n\tfacts,\n\t'facts.statutory.ECF.elections.shg_monthly_amount',\n\tnull\n);\nconst owed =\n\tdeclared != null\n\t\t? Number(declared)\n\t\t: bracket(\n\t\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) + before('ADDITIONAL_WAGES'),\n\t\t\t\tctx.lookup.brackets\n\t\t\t);\nreturn owed - before('ECF.employee');",
+		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_moe_subsidised', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nif (approved) return false;\nconst status = get(ctx.subject.employment.terms, 'residency_status', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status)) return false;\nif (!ctx.lookup.races.includes(get(facts, 'race', ''))) return false;\nreturn get(facts, 'statutory.ECF.shg_opted_out', false) !== true;",
+		"employee_amount": "const month = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.from)).slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst facts = ctx.subject.employment.employee_extension_data;\nconst declared = get(\n\tfacts,\n\t'statutory.ECF.shg_monthly_amount',\n\tnull\n);\nconst owed =\n\tdeclared != null\n\t\t? Number(declared)\n\t\t: bracket(\n\t\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) + before('ADDITIONAL_WAGES'),\n\t\t\t\tctx.lookup.brackets\n\t\t\t);\nreturn owed - before('ECF.employee');",
 		"employer_amount": "return 0;",
 		"references": [
 			{
@@ -183,7 +190,8 @@
 		],
 		"id": "d72eb541-056e-52bf-b166-706d7c81c677",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
-		"employer_cost_subtotal_id": null
+		"employer_cost_subtotal_id": null,
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "MBMF",
@@ -191,7 +199,6 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
-		"off_cycle_eligible": false,
 		"lookup": {
 			"brackets": [
 				{
@@ -228,8 +235,8 @@
 				}
 			]
 		},
-		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'facts.student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'facts.student_training_approved', false) === true &&\n\tget(facts, 'facts.student_training_evidence', '') !== '';\nif (approved) return false;\nif (get(facts, 'term_facts.religion', '') !== 'ISLAM') return false;\nreturn get(facts, 'facts.statutory.MBMF.elections.shg_opted_out', false) !== true;",
-		"employee_amount": "const month = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.from)).slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst facts = ctx.subject.employment.employee_extension_data;\nconst declared = get(\n\tfacts,\n\t'facts.statutory.MBMF.elections.shg_monthly_amount',\n\tnull\n);\nconst owed =\n\tdeclared != null\n\t\t? Number(declared)\n\t\t: bracket(\n\t\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) + before('ADDITIONAL_WAGES'),\n\t\t\t\tctx.lookup.brackets\n\t\t\t);\nreturn owed - before('MBMF.employee');",
+		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nif (approved) return false;\nif (get(facts, 'religion', '') !== 'ISLAM') return false;\nreturn get(facts, 'statutory.MBMF.shg_opted_out', false) !== true;",
+		"employee_amount": "const month = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.from)).slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst facts = ctx.subject.employment.employee_extension_data;\nconst declared = get(\n\tfacts,\n\t'statutory.MBMF.shg_monthly_amount',\n\tnull\n);\nconst owed =\n\tdeclared != null\n\t\t? Number(declared)\n\t\t: bracket(\n\t\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) + before('ADDITIONAL_WAGES'),\n\t\t\t\tctx.lookup.brackets\n\t\t\t);\nreturn owed - before('MBMF.employee');",
 		"employer_amount": "return 0;",
 		"references": [
 			{
@@ -242,7 +249,8 @@
 		],
 		"id": "ff2989c2-660b-550e-9b15-93ed3c89d9f6",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
-		"employer_cost_subtotal_id": null
+		"employer_cost_subtotal_id": null,
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "SINDA",
@@ -250,7 +258,6 @@
 		"kind": "CONTRIBUTION",
 		"depends_on": [],
 		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
-		"off_cycle_eligible": false,
 		"lookup": {
 			"brackets": [
 				{
@@ -319,8 +326,8 @@
 				"RAJPUT"
 			]
 		},
-		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nconst terms = ctx.subject.employment.terms;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'facts.student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'facts.student_training_approved', false) === true &&\n\tget(facts, 'facts.student_training_moe_subsidised', false) === true &&\n\tget(facts, 'facts.student_training_evidence', '') !== '';\nif (approved) return false;\nconst status = get(terms, 'residency_status', '');\nconst pass = get(terms, 'work_authorisation_category', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status) && pass !== 'EMPLOYMENT_PASS') return false;\nif (!ctx.lookup.races.includes(get(facts, 'term_facts.race', ''))) return false;\nreturn get(facts, 'facts.statutory.SINDA.elections.shg_opted_out', false) !== true;",
-		"employee_amount": "const month = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.from)).slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst facts = ctx.subject.employment.employee_extension_data;\nconst declared = get(\n\tfacts,\n\t'facts.statutory.SINDA.elections.shg_monthly_amount',\n\tnull\n);\nconst owed =\n\tdeclared != null\n\t\t? Number(declared)\n\t\t: bracket(\n\t\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) + before('ADDITIONAL_WAGES'),\n\t\t\t\tctx.lookup.brackets\n\t\t\t);\nreturn owed - before('SINDA.employee');",
+		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nconst terms = ctx.subject.employment.terms;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_moe_subsidised', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nif (approved) return false;\nconst status = get(terms, 'residency_status', '');\nconst pass = get(terms, 'work_authorisation_category', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status) && pass !== 'EMPLOYMENT_PASS') return false;\nif (!ctx.lookup.races.includes(get(facts, 'race', ''))) return false;\nreturn get(facts, 'statutory.SINDA.shg_opted_out', false) !== true;",
+		"employee_amount": "const month = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.from)).slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst facts = ctx.subject.employment.employee_extension_data;\nconst declared = get(\n\tfacts,\n\t'statutory.SINDA.shg_monthly_amount',\n\tnull\n);\nconst owed =\n\tdeclared != null\n\t\t? Number(declared)\n\t\t: bracket(\n\t\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) + before('ADDITIONAL_WAGES'),\n\t\t\t\tctx.lookup.brackets\n\t\t\t);\nreturn owed - before('SINDA.employee');",
 		"employer_amount": "return 0;",
 		"references": [
 			{
@@ -339,7 +346,8 @@
 		],
 		"id": "68dc40a9-46c9-5a07-a43e-adcfb4b42143",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
-		"employer_cost_subtotal_id": null
+		"employer_cost_subtotal_id": null,
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "SDL",
@@ -348,7 +356,6 @@
 		"depends_on": [],
 		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
 		"employer_cost_subtotal_id": "930abb8b-61d3-5956-839d-9ff2b3c1fbb3",
-		"off_cycle_eligible": false,
 		"lookup": {
 			"exempt_institutions": [
 				"ITE",
@@ -363,9 +370,12 @@
 				"SUSS",
 				"SUTD",
 				"TP"
-			]
+			],
+			"sdl_rate": 0.0025,
+			"sdl_minimum": 2.0,
+			"sdl_maximum": 11.25
 		},
-		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nif (!(Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) > 0)) return false;\nconst approved =\n\tget(facts, 'facts.student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'facts.student_training_approved', false) === true &&\n\tget(facts, 'facts.student_training_evidence', '') !== '';\nconst institution = get(facts, 'facts.student_training_institution', '');\nif (approved && ctx.lookup.exempt_institutions.includes(institution)) return false;\nconst role = get(facts, 'facts.statutory.SDL.elections.sdl_household_role', null);\nif (role == null || !['DOMESTIC_SERVANT', 'GARDENER', 'CHAUFFEUR'].includes(role)) return true;\nif (get(facts, 'facts.statutory.SDL.elections.sdl_wholly_exclusive', false) !== true) return true;\nreturn get(facts, 'facts.statutory.SDL.elections.sdl_nonbusiness', false) !== true;",
+		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nif (!(Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) > 0)) return false;\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nconst institution = get(facts, 'student_training_institution', '');\nif (approved && ctx.lookup.exempt_institutions.includes(institution)) return false;\nconst role = get(facts, 'statutory.SDL.sdl_household_role', null);\nif (role == null || !['DOMESTIC_SERVANT', 'GARDENER', 'CHAUFFEUR'].includes(role)) return true;\nif (get(facts, 'statutory.SDL.sdl_wholly_exclusive', false) !== true) return true;\nreturn get(facts, 'statutory.SDL.sdl_nonbusiness', false) !== true;",
 		"employee_amount": "return 0;",
 		"employer_amount": "const month = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.from)).slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst wage = Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0));\nif (wage <= 0) return 0;\nconst total = wage + before('ADDITIONAL_WAGES');\nreturn Math.max(0, clamp(total * ctx.lookup.sdl_rate, ctx.lookup.sdl_minimum, ctx.lookup.sdl_maximum) - before('SDL.employer'));",
 		"references": [
@@ -378,7 +388,8 @@
 			}
 		],
 		"id": "73af9c52-0be5-551b-ac9a-ec2f99a974a6",
-		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87"
+		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "WHT_NR_DIRECTOR",
@@ -386,11 +397,10 @@
 		"kind": "TAX",
 		"depends_on": [],
 		"subtotal_id": "1122e1f4-426b-5c8f-998b-685c1a6fea04",
-		"off_cycle_eligible": false,
 		"lookup": {
 			"rate": 0.24
 		},
-		"eligibility": "if (get(ctx.subject.employment.employee_extension_data, 'facts.tax_resident', true) !== false) return false;\nreturn Number(get(ctx, 'subtotals.DIRECTOR_FEES', 0)) - Number(get(ctx, 'subtotals.GROSS', 0)) > 0;",
+		"eligibility": "if (get(ctx.subject.employment.employee_extension_data, 'tax_resident', true) !== false) return false;\nreturn Number(get(ctx, 'subtotals.DIRECTOR_FEES', 0)) - Number(get(ctx, 'subtotals.GROSS', 0)) > 0;",
 		"employee_amount": "// IRAS: a non-resident director's fees, not a director's salary\nreturn (Number(get(ctx, 'subtotals.DIRECTOR_FEES', 0)) - Number(get(ctx, 'subtotals.GROSS', 0))) * ctx.lookup.rate;",
 		"employer_amount": "return 0;",
 		"references": [
@@ -403,7 +413,8 @@
 		],
 		"id": "263c95be-7a67-5aa8-8feb-3d0892fdb25e",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
-		"employer_cost_subtotal_id": null
+		"employer_cost_subtotal_id": null,
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "WHT_NR_ENTERTAINER",
@@ -411,11 +422,10 @@
 		"kind": "TAX",
 		"depends_on": [],
 		"subtotal_id": "75fa3410-705c-5834-bae3-bb9e1561135d",
-		"off_cycle_eligible": false,
 		"lookup": {
 			"rate": 0.15
 		},
-		"eligibility": "if (get(ctx.subject.employment.employee_extension_data, 'facts.tax_resident', true) !== false) return false;\nreturn Number(get(ctx, 'subtotals.ENTERTAINER_FEES', 0)) - Number(get(ctx, 'subtotals.DIRECTOR_FEES', 0)) > 0;",
+		"eligibility": "if (get(ctx.subject.employment.employee_extension_data, 'tax_resident', true) !== false) return false;\nreturn Number(get(ctx, 'subtotals.ENTERTAINER_FEES', 0)) - Number(get(ctx, 'subtotals.DIRECTOR_FEES', 0)) > 0;",
 		"employee_amount": "// IRAS: a non-resident public entertainer's income\nreturn (Number(get(ctx, 'subtotals.ENTERTAINER_FEES', 0)) - Number(get(ctx, 'subtotals.DIRECTOR_FEES', 0))) * ctx.lookup.rate;",
 		"employer_amount": "return 0;",
 		"references": [
@@ -428,7 +438,8 @@
 		],
 		"id": "f05d58c6-3d6b-5e6a-9576-2911cd7bbfd0",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
-		"employer_cost_subtotal_id": null
+		"employer_cost_subtotal_id": null,
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "APPENDIX_8A",
@@ -436,7 +447,6 @@
 		"kind": "TAX",
 		"depends_on": [],
 		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"eligibility": "return false;",
 		"employee_amount": "return 0;",
@@ -451,7 +461,8 @@
 		],
 		"id": "6047e1f8-079e-5d28-aabf-f73748f4e28c",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
-		"employer_cost_subtotal_id": null
+		"employer_cost_subtotal_id": null,
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "APPENDIX_8B",
@@ -459,7 +470,6 @@
 		"kind": "TAX",
 		"depends_on": [],
 		"subtotal_id": "7b470426-ab8f-58a9-b87c-18c35c50385f",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"eligibility": "return false;",
 		"employee_amount": "return 0;",
@@ -474,6 +484,7 @@
 		],
 		"id": "94367581-9462-5d58-90c4-23381f905334",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
-		"employer_cost_subtotal_id": null
+		"employer_cost_subtotal_id": null,
+		"balance_window": "YEAR"
 	}
 ]

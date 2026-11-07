@@ -12,11 +12,10 @@
 		"eligibility": "// js\nconst terms = ctx.subject.employment.terms ?? {};\nconst amount = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn get(terms, 'rate.unit', '') === 'MONTHLY' && amount !== 0;",
 		"conversion": "// js\nconst terms = ctx.subject.employment.terms ?? {};\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst amount = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nreturn rate > 0 ? (amount * Number(get(ctx.subtotals, 'BASIC', 0))) / rate : amount;",
 		"incurred_on": "// js\nreturn String(ctx.run.salary_coverage.from);",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"id": "05274285-b15a-59fa-a113-46e4d0bea940",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb",
+		"include_in_rate": true
 	},
 	{
 		"code": "HOUSING",
@@ -31,11 +30,10 @@
 		"eligibility": "// js\nconst terms = ctx.subject.employment.terms ?? {};\nconst amount = Number(get(terms, 'allowances.HOUSING.amount', 0));\nreturn get(terms, 'rate.unit', '') === 'MONTHLY' && amount !== 0;",
 		"conversion": "// js\nconst terms = ctx.subject.employment.terms ?? {};\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst amount = Number(get(terms, 'allowances.HOUSING.amount', 0));\nreturn rate > 0 ? (amount * Number(get(ctx.subtotals, 'BASIC', 0))) / rate : amount;",
 		"incurred_on": "// js\nreturn String(ctx.run.salary_coverage.from);",
-		"direction": "ADD",
 		"party": "EMPLOYER",
-		"off_cycle_eligible": false,
 		"id": "32e1ba74-eeea-5a76-af6a-0ae9ff49c545",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb",
+		"include_in_rate": false
 	},
 	{
 		"code": "INSURANCE_EQUIVALENT",
@@ -49,13 +47,12 @@
 		"lookup": {},
 		"subtotal_id": "fcc28f32-de70-509a-b3df-37737c654ea2",
 		"eligibility": "// js\nreturn get(ctx.subject.employment.terms, 'rate.unit', '') === 'MONTHLY';",
-		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst facts = get(extension, 'facts', {});\nconst contract = get(extension, 'term_facts', {});\nconst review = get(contract, 'insurance_review', null);\nconst current =\n\tget(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? review : null;\nconst monthly = Number(get(terms, 'rate.amount', 0));\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nconst wage = Number(get(current, 'salary_vnd', monthly + fixed));\nconst signed = get(employment, 'signed_contract_period', null);\nconst months =\n\tsigned?.from == null || signed.to == null\n\t\t? Infinity\n\t\t: calendar_completed_months(signed.from, add_days(signed.to, 1));\nconst probation = get(terms, 'probation_period', null);\nconst onProbation = probation != null && String(ctx.run.salary_coverage.from) <= probation.to;\nconst foreign = !ctx.lookup.vietnamese_nationality.includes(String(get(facts, 'nationality', 'VN')));\nconst excluded =\n\tget(contract, 'receiving_pension', false) === true ||\n\tget(facts, 'domestic_worker', false) === true ||\n\tget(contract, 'pass_type', '') === 'INTRA_COMPANY_TRANSFER' ||\n\tmonths < 1 ||\n\t(foreign && months < 12) ||\n\t(employment.engagement === 'PART_TIME' && wage < ctx.lookup.insurance_floor) ||\n\tonProbation;\nconst insured = Math.min(\n\tMath.max(wage, ctx.lookup.insurance_floor),\n\tctx.lookup.insurance_ceiling\n);\nconst region = String(get(ctx.subject.employer.entity_extension_data, 'region', 'I'));\nconst minimum = get(ctx.lookup.minimum_wage.by_region, region, ctx.lookup.minimum_wage.by_region.I);\nconst unemployment = Math.min(\n\tMath.max(wage, ctx.lookup.insurance_floor),\n\tminimum * ctx.lookup.ui_cap_multiple\n);\nconst si =\n\texcluded ||\n\tget(facts, 'statutory.SI.elections.si_treaty_exempt', false) === true ||\n\tget(current, 'si_temporarily_suspended', false) === true;\nconst hi = excluded || get(facts, 'statutory.HI.elections.hi_treaty_exempt', false) === true;\nconst ui =\n\texcluded ||\n\tforeign ||\n\tget(facts, 'statutory.UI.elections.pension_qualified', false) === true;\nreturn (\n\t(si ? insured * ctx.lookup.si_employer_rate : 0) +\n\t(hi ? insured * ctx.lookup.hi_employer_rate : 0) +\n\t(ui ? unemployment * ctx.lookup.ui_employer_rate : 0)\n);",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst extension = get(employment, 'employee_extension_data', {});\nconst review = get(extension, 'insurance_review', null);\nconst current =\n\tget(review, 'month', '') === String(ctx.as_of).substring(0, 7) ? review : null;\nconst monthly = Number(get(terms, 'rate.amount', 0));\nconst fixed = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nconst wage = Number(get(current, 'salary_vnd', monthly + fixed));\nconst signed = get(employment, 'signed_contract_period', null);\nconst months =\n\tsigned?.from == null || signed.to == null\n\t\t? Infinity\n\t\t: calendar_completed_months(signed.from, add_days(signed.to, 1));\nconst probation = get(terms, 'probation_period', null);\nconst onProbation = probation != null && String(ctx.run.salary_coverage.from) <= probation.to;\nconst foreign = !ctx.lookup.vietnamese_nationality.includes(String(get(extension, 'nationality', 'VN')));\nconst excluded =\n\tget(extension, 'receiving_pension', false) === true ||\n\tget(extension, 'domestic_worker', false) === true ||\n\tget(extension, 'pass_type', '') === 'INTRA_COMPANY_TRANSFER' ||\n\tmonths < 1 ||\n\t(foreign && months < 12) ||\n\t(employment.engagement === 'PART_TIME' && wage < ctx.lookup.insurance_floor) ||\n\tonProbation;\nconst insured = Math.min(\n\tMath.max(wage, ctx.lookup.insurance_floor),\n\tctx.lookup.insurance_ceiling\n);\nconst region = String(get(ctx.subject.employer.entity_extension_data, 'region', 'I'));\nconst minimum = get(ctx.lookup.minimum_wage.by_region, region, ctx.lookup.minimum_wage.by_region.I);\nconst unemployment = Math.min(\n\tMath.max(wage, ctx.lookup.insurance_floor),\n\tminimum * ctx.lookup.ui_cap_multiple\n);\nconst si =\n\texcluded ||\n\tget(extension, 'statutory.SI.si_treaty_exempt', false) === true ||\n\tget(current, 'si_temporarily_suspended', false) === true;\nconst hi = excluded || get(extension, 'statutory.HI.hi_treaty_exempt', false) === true;\nconst ui =\n\texcluded ||\n\tforeign ||\n\tget(extension, 'statutory.UI.pension_qualified', false) === true;\nreturn (\n\t(si ? insured * ctx.lookup.si_employer_rate : 0) +\n\t(hi ? insured * ctx.lookup.hi_employer_rate : 0) +\n\t(ui ? unemployment * ctx.lookup.ui_employer_rate : 0)\n);",
 		"incurred_on": "// js\nreturn String(ctx.run.salary_coverage.from);",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"id": "e511ee01-900a-5ee6-a842-232cf35c132c",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb",
+		"include_in_rate": false
 	},
 	{
 		"code": "MEAL_ALLOWANCE",
@@ -71,11 +68,10 @@
 		"eligibility": "// js\nconst terms = ctx.subject.employment.terms ?? {};\nconst amount = Number(get(terms, 'allowances.MEAL_ALLOWANCE.amount', 0));\nreturn get(terms, 'rate.unit', '') === 'MONTHLY' && amount !== 0;",
 		"conversion": "// js\nconst terms = ctx.subject.employment.terms ?? {};\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst amount = Number(get(terms, 'allowances.MEAL_ALLOWANCE.amount', 0));\nreturn rate > 0 ? (amount * Number(get(ctx.subtotals, 'BASIC', 0))) / rate : amount;",
 		"incurred_on": "// js\nreturn String(ctx.run.salary_coverage.from);",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"id": "f5d36dbe-4c84-521a-8610-bd197370e0d6",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb",
+		"include_in_rate": false
 	},
 	{
 		"code": "WORK_EXPENSE_ALLOWANCE",
@@ -91,10 +87,9 @@
 		"eligibility": "// js\nconst terms = ctx.subject.employment.terms ?? {};\nconst amount = Number(get(terms, 'allowances.WORK_EXPENSE_ALLOWANCE.amount', 0));\nreturn get(terms, 'rate.unit', '') === 'MONTHLY' && amount !== 0;",
 		"conversion": "// js\nconst terms = ctx.subject.employment.terms ?? {};\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst amount = Number(get(terms, 'allowances.WORK_EXPENSE_ALLOWANCE.amount', 0));\nreturn rate > 0 ? (amount * Number(get(ctx.subtotals, 'BASIC', 0))) / rate : amount;",
 		"incurred_on": "// js\nreturn String(ctx.run.salary_coverage.from);",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"id": "0e875a68-74ed-573b-b1b8-9cc4b9526938",
-		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb"
+		"settings_id": "038fbb96-ac88-5fa5-850a-e5eef34ededb",
+		"include_in_rate": false
 	}
 ]

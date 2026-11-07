@@ -61,14 +61,10 @@ const CHINA: Place = {
 };
 const CHINA_NON_RESIDENT: Place = { ...CHINA, residency: 'NON_RESIDENT' };
 const review = (resident_from: string | null): Facts => ({
-	facts: {
-		statutory: {
-			NHI: { elections: { insured_amount: 20_000 } },
-			INCOME_TAX: {
-				elections: {
-					tax_residency_reviews: { 2026: { resident_from, valid_through: '2026-12-31' } }
-				}
-			}
+	statutory: {
+		NHI: { insured_amount: 20_000 },
+		INCOME_TAX: {
+			tax_residency_reviews: { 2026: { resident_from, valid_through: '2026-12-31' } }
 		}
 	}
 });
@@ -318,7 +314,7 @@ describe('paid too much, reversed in the next on-cycle run', () => {
 		reversed(
 			{
 				...CHINA,
-				facts: { facts: { statutory: { IIT: { elections: { annual_bonus_separate: true } } } } }
+				facts: { statutory: { IIT: { annual_bonus_separate: true } } }
 			},
 			30_000,
 			60_000,
@@ -524,7 +520,11 @@ describe('Taiwan’s month of salary', () => {
 								employee_extension_data: review('2025-01-01')
 							}
 						},
-						lookup: { ...settings?.lookup, ...row.lookup },
+						lookup: {
+							...(settings?.lookup as Record<string, unknown> | undefined)?.['constants'] as object,
+							...settings?.lookup,
+							...row.lookup
+						},
 						run: {
 							pay_date: '2026-06-25',
 							salary_coverage: { from: '2026-06-01', to: '2026-06-30' }
@@ -650,8 +650,8 @@ describe('a no-pay day', () => {
 				yield* take(t, seed, code, whole('2026-06-10'));
 				yield* onCycle(t, '2026-06');
 				const [june] = yield* runs(t, '2026-06');
-				assert.equal(line(june, code)?.amount, 1500);
-				assert.equal(line(june, code)?.direction, 'DEDUCT');
+				assert.equal(line(june, code), undefined);
+				assert.equal(line(june, 'BASIC')?.amount, 31_500);
 				assert.equal(line(june, 'FIXED_ALLOWANCE')?.amount, 10_500);
 			}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 		);
@@ -661,7 +661,8 @@ describe('a no-pay day', () => {
 				yield* take(t, seed, code, [{ date: PlainDate('2026-06-10'), part: 'AM' }]);
 				yield* onCycle(t, '2026-06');
 				const [june] = yield* runs(t, '2026-06');
-				assert.equal(line(june, code)?.amount, 750);
+				assert.equal(line(june, code), undefined);
+				assert.equal(line(june, 'BASIC')?.amount, 32_250);
 				assert.equal(line(june, 'FIXED_ALLOWANCE')?.amount, 10_750);
 			}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 		);
@@ -673,9 +674,10 @@ describe('a no-pay day', () => {
 				yield* take(t, seed, code, whole('2026-07-06'), yield* sealedLeave(t));
 				yield* onCycle(t, '2026-07');
 				const [july] = yield* runs(t, '2026-07');
-				assert.equal(line(july, code)?.amount, 1500);
+				// the whole month wage share: BASIC 1,500 plus the fixed allowance's 500
+				assert.equal(line(july, code)?.amount, 2000);
 				assert.equal(line(july, code)?.direction, 'ADD');
-				assert.equal(line(july, 'FIXED_ALLOWANCE')?.amount, 11_500);
+				assert.equal(line(july, 'FIXED_ALLOWANCE')?.amount, 11_000);
 			}).pipe(Effect.provide(workspace({ seed, now: JULY })))
 		);
 		it.live('a date in a period that has run is refused', () =>
@@ -729,8 +731,8 @@ describe('a no-pay day', () => {
 				yield* take(t, seed, code, whole('2026-06-10'));
 				yield* onCycle(t, '2026-06');
 				const [june] = yield* runs(t, '2026-06');
-				assert.equal(line(june, code)?.amount, 1000);
-				assert.equal(line(june, code)?.direction, 'DEDUCT');
+				assert.equal(line(june, code), undefined);
+				assert.equal(line(june, 'BASIC')?.amount, 29_000);
 				assert.equal(line(june, 'MEAL_ALLOWANCE')?.amount, 2900);
 			}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 		);
@@ -740,7 +742,8 @@ describe('a no-pay day', () => {
 				yield* take(t, seed, code, [{ date: PlainDate('2026-06-10'), part: 'AM' }]);
 				yield* onCycle(t, '2026-06');
 				const [june] = yield* runs(t, '2026-06');
-				assert.equal(line(june, code)?.amount, 500);
+				assert.equal(line(june, code), undefined);
+				assert.equal(line(june, 'BASIC')?.amount, 29_500);
 				assert.equal(line(june, 'MEAL_ALLOWANCE')?.amount, 2950);
 			}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 		);
@@ -750,7 +753,8 @@ describe('a no-pay day', () => {
 				yield* take(t, seed, code, [...whole('2026-06-12'), ...whole('2026-06-15')]);
 				yield* onCycle(t, '2026-06');
 				const [june] = yield* runs(t, '2026-06');
-				assert.equal(line(june, code)?.amount, 4000);
+				assert.equal(line(june, code), undefined);
+				assert.equal(line(june, 'BASIC')?.amount, 26_000);
 				assert.equal(line(june, 'MEAL_ALLOWANCE')?.amount, 2600);
 			}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 		);
@@ -764,7 +768,8 @@ describe('a no-pay day', () => {
 				yield* take(t, seed, code, weekdays.flatMap(whole));
 				yield* onCycle(t, '2026-08');
 				const [august] = yield* runs(t, '2026-08');
-				assert.equal(line(august, code)?.amount, 30_000);
+				assert.equal(line(august, code), undefined);
+				assert.equal(line(august, 'BASIC'), undefined);
 				assert.equal(line(august, 'MEAL_ALLOWANCE'), undefined);
 			}).pipe(Effect.provide(workspace({ seed, now: AUGUST })))
 		);
@@ -776,9 +781,10 @@ describe('a no-pay day', () => {
 				yield* take(t, seed, code, whole('2026-07-06'), yield* sealedLeave(t));
 				yield* onCycle(t, '2026-07');
 				const [july] = yield* runs(t, '2026-07');
-				assert.equal(line(july, code)?.amount, 1000);
+				// the whole month wage share: BASIC 1,000 plus the meal allowance's 100
+				assert.equal(line(july, code)?.amount, 1100);
 				assert.equal(line(july, code)?.direction, 'ADD');
-				assert.equal(line(july, 'MEAL_ALLOWANCE')?.amount, 3100);
+				assert.equal(line(july, 'MEAL_ALLOWANCE')?.amount, 3000);
 			}).pipe(Effect.provide(workspace({ seed, now: JULY })))
 		);
 		it.live('a date in a period that has run is refused', () =>

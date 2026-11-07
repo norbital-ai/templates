@@ -19,8 +19,9 @@ export default model('loan_repayment_entry', {
 		amount: { kind: 'decimal', scale: 12, min: 0 },
 		paid_on: { kind: 'date', optional: true },
 		payment_reference: { kind: 'text', optional: true },
-		is_reversal: { kind: 'bool', default: false }
+		reverses: { kind: 'ref', to: 'loan_repayment_entry', optional: true, onDelete: 'restrict' }
 	},
+	unique: [{ fields: ['reverses'] }],
 	locked: { payroll_run_id: { isNull: false } },
 	read: {
 		loan_repayment_entry: { fields: 'all' },
@@ -37,7 +38,7 @@ export default model('loan_repayment_entry', {
 				'amount',
 				'paid_on',
 				'payment_reference',
-				'is_reversal'
+				'reverses'
 			]
 		},
 		transform: function* (rows, ctx) {
@@ -57,7 +58,6 @@ export default model('loan_repayment_entry', {
 				'amount',
 				'paid_on',
 				'payment_reference',
-				'is_reversal',
 				'entity_id',
 				'employment_id'
 			]

@@ -33,11 +33,15 @@ const pcbIn = (month: number, taxPaid: number) =>
 				employment: {
 					terms: { residency_status: 'CITIZEN' },
 					employee_extension_data: {
-						facts: { statutory: { PCB: { elections: { socso_eis_relief: true } } } }
+						statutory: { PCB: { socso_eis_relief: true } }
 					}
 				}
 			},
-			lookup: { ...settings?.lookup, ...(isJsonObject(pcb.lookup) ? pcb.lookup : {}) },
+			lookup: {
+			...(settings?.lookup as Record<string, unknown> | undefined)?.['constants'] as object,
+			...settings?.lookup,
+			...(isJsonObject(pcb.lookup) ? pcb.lookup : {})
+		},
 			run: { period: `2026-${String(month).padStart(2, '0')}` },
 			subtotals: { ORDINARY_WAGES: 6000, ADDITIONAL_WAGES: 6000 },
 			statutory: {

@@ -3,19 +3,17 @@
 		"code": "OVERTIME",
 		"name": "Overtime on working days (延长工作时间 150%)",
 		"lookup": {
-			"factor": 1.5
+			"multiplier": 1.5
 		},
 		"references": [
 			{
 				"title": "劳动法 第四十四条第一项; 工资支付暂行规定 第十三条第一款第一项; 人社部发〔2025〕2号: 月计薪天数21.75, 小时工资=月工资÷(21.75×8); 上海基数见沪人社综发〔2016〕29号 第九条."
 			}
 		],
-		"eligibility": "// js\nconst terms = ctx.subject.employment.terms;\nif (!['STANDARD', ''].includes(get(terms, 'statutory_work_category', ''))) return false;\nif (['PART_TIME', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(ctx.subject.employment, 'engagement', 'EMPLOYEE'))) return false;\n// 工资支付暂行规定 第十三条: a piece rate has its own overtime base\nif (get(terms.rate, 'unit', 'MONTHLY') === 'PIECE') return false;\nreturn sum(get(ctx, 'work.days', []).filter((day) => day.day_type === 'WORK' && !ctx.lookup.statutory_holiday_kinds.includes(get(day, 'holiday_kind', ''))).map((day) => get(day, 'overtime_hours', 0))) > 0;",
-		"conversion": "// js\nconst terms = ctx.subject.employment.terms;\nreturn sum(get(ctx, 'work.days', []).filter((day) => day.day_type === 'WORK' && !ctx.lookup.statutory_holiday_kinds.includes(get(day, 'holiday_kind', ''))).map((day) => get(day, 'overtime_hours', 0))) * ctx.lookup.factor * ctx.day_rate / ctx.lookup.daily_hours;",
+		"eligibility": "const premiumDay = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\n// js\nconst terms = ctx.subject.employment.terms;\nif (!['STANDARD', ''].includes(get(terms, 'statutory_work_category', ''))) return false;\nif (['PART_TIME', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(ctx.subject.employment, 'engagement', 'EMPLOYEE'))) return false;\nreturn sum(get(ctx, 'work.days', []).filter((day) => day.day_type === 'WORK' && !premiumDay(day)).map((day) => get(day, 'overtime_hours', 0))) > 0;",
+		"conversion": "const premiumDay = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\n// js\nconst terms = ctx.subject.employment.terms;\nreturn sum(get(ctx, 'work.days', []).filter((day) => day.day_type === 'WORK' && !premiumDay(day)).map((day) => get(day, 'overtime_hours', 0))) * ctx.lookup.multiplier * ctx.day_rate / 8;",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"subtotal_id": "474ec38e-0eb3-58c2-9789-fc0e2ba4419c",
 		"id": "17a34764-6ae1-5848-95d1-8a07ab08afe6",
 		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
@@ -24,19 +22,17 @@
 		"code": "COMPREHENSIVE_OVERTIME",
 		"name": "Comprehensive-hours overtime (综合计算工时 150%)",
 		"lookup": {
-			"factor": 1.5
+			"multiplier": 1.5
 		},
 		"references": [
 			{
 				"title": "工资支付暂行规定 第十三条第三款: 综合计算工时制超过法定标准工时的部分按150%, 法定节假日按300%."
 			}
 		],
-		"eligibility": "// js\nconst review = get(\n\tctx.subject.employment.employee_extension_data,\n\t'term_facts.comprehensive_overtime_review',\n\tnull\n);\nconst from = ctx.run.salary_coverage.from;\nconst to = ctx.run.salary_coverage.to;\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'statutory_work_category', '') !== 'COMPREHENSIVE') return false;\nif (['PART_TIME', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(ctx.subject.employment, 'engagement', 'EMPLOYEE'))) return false;\n// 工资支付暂行规定 第十三条: a piece rate has its own overtime base\nif (get(terms.rate, 'unit', 'MONTHLY') === 'PIECE') return false;\nif (review == null) return false;\nif (review.month !== from.slice(0, 7)) return false;\nif (review.reference === '') return false;\nif (!(review.settlement_on >= from)) return false;\nif (!(review.settlement_on <= to)) return false;\nreturn Number(review.excess_nonholiday_hours) > 0;",
-		"conversion": "// js\nconst review = get(\n\tctx.subject.employment.employee_extension_data,\n\t'term_facts.comprehensive_overtime_review',\n\tnull\n);\nconst terms = ctx.subject.employment.terms;\nreturn Number(review.excess_nonholiday_hours) * ctx.lookup.factor * ctx.day_rate / ctx.lookup.daily_hours;",
+		"eligibility": "// js\nconst review = get(\n\tctx.subject.employment.employee_extension_data,\n\t'comprehensive_overtime_review',\n\tnull\n);\nconst from = ctx.run.salary_coverage.from;\nconst to = ctx.run.salary_coverage.to;\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'statutory_work_category', '') !== 'COMPREHENSIVE') return false;\nif (['PART_TIME', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(ctx.subject.employment, 'engagement', 'EMPLOYEE'))) return false;\nif (review == null) return false;\nif (review.month !== from.slice(0, 7)) return false;\nif (review.reference === '') return false;\nif (!(review.settlement_on >= from)) return false;\nif (!(review.settlement_on <= to)) return false;\nreturn Number(review.excess_nonholiday_hours) > 0;",
+		"conversion": "// js\nconst review = get(\n\tctx.subject.employment.employee_extension_data,\n\t'comprehensive_overtime_review',\n\tnull\n);\nconst terms = ctx.subject.employment.terms;\nreturn Number(review.excess_nonholiday_hours) * ctx.lookup.multiplier * ctx.day_rate / 8;",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"subtotal_id": "474ec38e-0eb3-58c2-9789-fc0e2ba4419c",
 		"id": "aa97fde2-95c8-5724-ad3e-c2195de662bf",
 		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
@@ -45,19 +41,17 @@
 		"code": "REST_DAY_WORK",
 		"name": "Rest-day work (休息日 200%)",
 		"lookup": {
-			"factor": 2
+			"multiplier": 2
 		},
 		"references": [
 			{
 				"title": "劳动法 第四十四条第二项; 工资支付暂行规定 第十三条: 休息日工作不能安排补休的按200%; 已补休的不再支付."
 			}
 		],
-		"eligibility": "// js\nconst terms = ctx.subject.employment.terms;\nif (!['STANDARD', ''].includes(get(terms, 'statutory_work_category', ''))) return false;\nif (['PART_TIME', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(ctx.subject.employment, 'engagement', 'EMPLOYEE'))) return false;\n// 工资支付暂行规定 第十三条: a piece rate has its own overtime base\nif (get(terms.rate, 'unit', 'MONTHLY') === 'PIECE') return false;\nif (get(ctx.subject.employer, 'entity_extension_data.rest_day_work_compensated', false) === true) return false;\nreturn sum(get(ctx, 'work.days', []).filter((day) => ['REST', 'OFF'].includes(day.day_type) && !ctx.lookup.statutory_holiday_kinds.includes(get(day, 'holiday_kind', ''))).map((day) => get(day, 'worked_hours', 0))) > 0;",
-		"conversion": "// js\nconst terms = ctx.subject.employment.terms;\nreturn sum(get(ctx, 'work.days', []).filter((day) => ['REST', 'OFF'].includes(day.day_type) && !ctx.lookup.statutory_holiday_kinds.includes(get(day, 'holiday_kind', ''))).map((day) => get(day, 'worked_hours', 0))) * ctx.lookup.factor * ctx.day_rate / ctx.lookup.daily_hours;",
+		"eligibility": "const premiumDay = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\n// js\nconst terms = ctx.subject.employment.terms;\nif (!['STANDARD', ''].includes(get(terms, 'statutory_work_category', ''))) return false;\nif (['PART_TIME', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(ctx.subject.employment, 'engagement', 'EMPLOYEE'))) return false;\nif (get(ctx.subject.employer, 'entity_extension_data.rest_day_work_compensated', false) === true) return false;\nreturn sum(get(ctx, 'work.days', []).filter((day) => ['REST', 'OFF'].includes(day.day_type) && !premiumDay(day)).map((day) => get(day, 'worked_hours', 0))) > 0;",
+		"conversion": "const premiumDay = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\n// js\nconst terms = ctx.subject.employment.terms;\nreturn sum(get(ctx, 'work.days', []).filter((day) => ['REST', 'OFF'].includes(day.day_type) && !premiumDay(day)).map((day) => get(day, 'worked_hours', 0))) * ctx.lookup.multiplier * ctx.day_rate / 8;",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"subtotal_id": "474ec38e-0eb3-58c2-9789-fc0e2ba4419c",
 		"id": "88dad30f-bf7e-5055-b60f-df07d9e81864",
 		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
@@ -66,19 +60,17 @@
 		"code": "HOLIDAY_WORK",
 		"name": "Statutory holiday work (法定休假日 300%)",
 		"lookup": {
-			"factor": 3
+			"multiplier": 3
 		},
 		"references": [
 			{
 				"title": "劳动法 第四十四条第三项; 工资支付暂行规定 第十三条: 法定休假日工作按300%; 上海不定时工时制在法定节假日安排工作的亦按300% (沪人社综发〔2016〕29号 第十三条)."
 			}
 		],
-		"eligibility": "// js\nconst terms = ctx.subject.employment.terms;\nconst category = get(terms, 'statutory_work_category', '');\n// 上海市企业工资支付办法 第十三条: 不定时工时制在法定休假节日安排工作的按300%; 工资支付暂行规定 第十三条 excludes it elsewhere\nconst shanghaiFlexible =\n\tcategory === 'FLEXIBLE' && get(ctx.subject.employer, 'entity_extension_data.region', '') === 'SH';\nif (!shanghaiFlexible && !['STANDARD', '', 'COMPREHENSIVE'].includes(category)) return false;\nif (['PART_TIME', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(ctx.subject.employment, 'engagement', 'EMPLOYEE'))) return false;\n// 工资支付暂行规定 第十三条: a piece rate has its own overtime base\nif (get(terms.rate, 'unit', 'MONTHLY') === 'PIECE') return false;\nreturn sum(get(ctx, 'work.days', []).filter((day) => ctx.lookup.statutory_holiday_kinds.includes(get(day, 'holiday_kind', ''))).map((day) => get(day, 'worked_hours', 0))) > 0;",
-		"conversion": "// js\nconst terms = ctx.subject.employment.terms;\nreturn sum(get(ctx, 'work.days', []).filter((day) => ctx.lookup.statutory_holiday_kinds.includes(get(day, 'holiday_kind', ''))).map((day) => get(day, 'worked_hours', 0))) * ctx.lookup.factor * ctx.day_rate / ctx.lookup.daily_hours;",
+		"eligibility": "const premiumDay = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\n// js\nconst terms = ctx.subject.employment.terms;\nconst category = get(terms, 'statutory_work_category', '');\n// 上海市企业工资支付办法 第十三条: 不定时工时制在法定休假节日安排工作的按300%; 工资支付暂行规定 第十三条 excludes it elsewhere\nconst shanghaiFlexible =\n\tcategory === 'FLEXIBLE' && get(ctx.subject.employer, 'entity_extension_data.region', '') === 'SH';\nif (!shanghaiFlexible && !['STANDARD', '', 'COMPREHENSIVE'].includes(category)) return false;\nif (['PART_TIME', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(ctx.subject.employment, 'engagement', 'EMPLOYEE'))) return false;\nreturn sum(get(ctx, 'work.days', []).filter((day) => premiumDay(day)).map((day) => get(day, 'worked_hours', 0))) > 0;",
+		"conversion": "const premiumDay = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\n// js\nconst terms = ctx.subject.employment.terms;\nreturn sum(get(ctx, 'work.days', []).filter((day) => premiumDay(day)).map((day) => get(day, 'worked_hours', 0))) * ctx.lookup.multiplier * ctx.day_rate / 8;",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"subtotal_id": "474ec38e-0eb3-58c2-9789-fc0e2ba4419c",
 		"id": "0df3a612-43a2-5f13-8d77-c4cf11c3e511",
 		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"

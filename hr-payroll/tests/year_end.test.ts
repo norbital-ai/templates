@@ -158,7 +158,7 @@ describe('a December refund', () => {
 				}
 				// HR has no step: no entry and no task to enter one
 				const { adhoc_catalog_entry: entries } = yield* t.storedQuery({
-					adhoc_catalog_entry: { where: { is_reversal: { eq: true } }, limit: 10 }
+					adhoc_catalog_entry: { where: { reverses: { isNull: false } }, limit: 10 }
 				});
 				assert.deepEqual(entries.rows, []);
 				const { obligation } = yield* t.storedQuery({ obligation: { limit: 10000 } });

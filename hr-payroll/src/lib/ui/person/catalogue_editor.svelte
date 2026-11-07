@@ -21,7 +21,7 @@
 			: bolt.query({
 					claim_catalog_entry: {
 						where: { employment_id: { eq: idOf('employee_contract', employmentId) } },
-						fields: ['catalog_id', 'quantity', 'incurred_on', 'is_reversal'],
+						fields: ['catalog_id', 'quantity', 'incurred_on', 'reverses'],
 						limit: 10000
 					}
 				})
@@ -57,7 +57,7 @@
 		(claims?.current?.claim_catalog_entry.rows ?? []).reduce(
 			(total, row) =>
 				row.catalog_id === catalogId &&
-				row.is_reversal !== true &&
+				row.reverses == null &&
 				String(row.incurred_on).startsWith(year)
 					? total + Number(row.quantity ?? 0)
 					: total,

@@ -58,11 +58,13 @@ const snapshotOf = Effect.fnUntraced(function* (
 	settings: JsonObject
 ) {
 	const id = valueText(settings, 'id');
-	const request: Record<string, { where: { settings_id: { eq: string } }; limit: number }> = {};
-	for (const model of CHILDREN)
-		request[model] = { where: { settings_id: { eq: id } }, limit: 10000 };
-	const rows: Snapshot['rows'] = yield* queryAllRows(read, request);
-	return { settings, rows };
+	const collected: Record<string, JsonObject[]> = {};
+	// one request per model: the materializer must see every child, including the static definition families
+	for (const model of CHILDREN) {
+		const held = yield* queryAllRows(read, { [model]: { limit: 10000 } });
+		collected[model] = (held[model] ?? []).filter((row) => String(row.settings_id) === id);
+	}
+	return { settings, rows: collected };
 });
 
 export default automation('statutory_materialize', {
@@ -228,7 +230,9 @@ export default automation('statutory_materialize', {
 			rows: readonly JsonObject[]
 		) {
 			if (rows.length === 0) return [];
-			const answer = yield* ctx.act.checked([{ callable, input: rows }]);
+			const answer = yield* ctx.act.checked([{ callable, input: rows }]).pipe(
+				Effect.mapError((error) => new Refusal({ message: `${callable}: ${String(error)}` }))
+			);
 			if (answer.kind !== 'committed')
 				return yield* Effect.fail(
 					new Refusal({ message: `${callable}: the write was held for approval.` })
@@ -236,7 +240,8 @@ export default automation('statutory_materialize', {
 			return answer.records;
 		});
 		const drafts: string[] = [];
-		for (const { effective_from, snapshot } of plans) {
+		for (const plan of plans) {
+			const { effective_from, snapshot } = plan;
 			const created = yield* write('jurisdiction_settings.create', [
 				Object.fromEntries(
 					Object.entries(business(snapshot.settings)).filter(([key]) => !LIFECYCLE.has(key))
@@ -302,12 +307,44 @@ export default automation('statutory_materialize', {
 						}))
 					);
 			drafts.push(`${input.code}:${draftId}`);
-			if (input.merge === true)
-				yield* ctx.schedule('statutory_materialize', {
-					code: input.code,
-					target: input.target,
-					seal: String(draftId)
-				});
+			if (input.merge === true) {
+				const dated = changes.filter((change) => plan.change_ids.includes(change.id));
+				const finished = [...new Set(dated.map((change) => change.finding_id))].filter(
+					(id) => !changes.some((change) => change.finding_id === id && change.effective_from !== plan.effective_from)
+				);
+				const answer = yield* ctx.act.checked([
+					{
+						callable: 'jurisdiction_settings.update',
+						input: [
+							{
+								target: valueText(baselineRow, 'id'),
+								set: { effective_range: { from: fromOf(baselineRow), to: addDays(plan.effective_from, -1) } }
+							}
+						]
+					},
+					{
+						callable: 'jurisdiction_settings.update',
+						input: [{ target: String(draftId), set: { status: 'SEALED' } }]
+					},
+					{
+						callable: 'statutory_change.update',
+						input: dated.map((change) => ({
+							target: change.id,
+							set: { applied_version_id: String(draftId) }
+						}))
+					},
+					...(finished.length === 0
+						? []
+						: [
+								{
+									callable: 'statutory_finding.update' as const,
+									input: finished.map((target) => ({ target, set: { status: 'APPLIED' as const } }))
+								}
+							])
+				]);
+				if (answer.kind !== 'committed')
+					return yield* Effect.fail(new Refusal({ message: 'The merge was held for approval.' }));
+			}
 		}
 		return { drafts };
 	}

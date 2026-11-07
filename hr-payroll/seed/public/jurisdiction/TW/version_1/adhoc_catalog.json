@@ -26,7 +26,13 @@
 		"lookup": {
 			"new_months_per_year": 0.5,
 			"new_cap_months": 6,
-			"old_months_per_year": 1
+			"old_months_per_year": 1,
+			"severance_grounds": [
+				"ARTICLE_11",
+				"ARTICLE_13_PROVISO",
+				"ARTICLE_14",
+				"ARTICLE_20"
+			]
 		},
 		"references": [
 			{
@@ -39,8 +45,8 @@
 		"subtotal_id": "04e447ca-6956-5d66-97bb-23cf029de93d",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "const ground = get(\n\tctx.subject.employment,\n\t'employee_extension_data.exit_facts.lsa_termination_ground',\n\tnull\n);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!ctx.lookup.severance_grounds.includes(ground)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
-		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst end = ctx.entry.incurred_on;\nconst months = calendar_completed_months(start, add_days(end, 1));\nconst tail = calendar_distance_days(add_months(start, months), add_days(end, 1));\nconst total = months + tail / ctx.lookup.monthly_divisor;\nconst cutoff = ctx.lookup.old_system_cutoff;\nconst cutoffEnd = add_days(cutoff, -1);\nconst oldEnd = end < cutoffEnd ? end : cutoffEnd;\nconst oldMonths = start <= oldEnd\n\t? calendar_completed_months(start, add_days(oldEnd, 1)) +\n\t\tcalendar_distance_days(add_months(start, calendar_completed_months(start, add_days(oldEnd, 1))), add_days(oldEnd, 1)) /\n\t\t\tctx.lookup.monthly_divisor\n\t: 0;\nconst recorded = get(ctx.subject.employment, 'employee_extension_data.exit_facts.old_system_service_months', null);\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\n// 勞基法 §17, §55: a worker who kept the LSA pension, or a foreigner outside 勞工退休金條例 §7, is on the Act for the whole service.\nconst residency = get(ctx.subject.employment, 'terms.residency_status', 'CITIZEN');\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst lsa = get(facts, 'statutory.LABOR_PENSION.elections.pension_system', 'NEW') === 'LSA';\nconst whole = lsa || (residency === 'FOREIGNER' && !spouse && !professional);\nconst served =\n\twhole ? total\n\t: recorded == null ? oldMonths\n\t: recorded;\nconst old = whole || recorded != null || start <= cutoffEnd ? Math.min(total, served) : 0;\nconst fresh = Math.max(0, total - old);\nreturn (\n\tctx.entry.quantity *\n\t((Math.ceil(old) * ctx.lookup.old_months_per_year) / ctx.lookup.months_per_year +\n\t\tMath.min(ctx.lookup.new_cap_months, (fresh * ctx.lookup.new_months_per_year) / ctx.lookup.months_per_year))\n);",
+		"eligibility": "const ground = get(\n\tctx.subject.employment,\n\t'employee_extension_data.lsa_termination_ground',\n\tnull\n);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!ctx.lookup.severance_grounds.includes(ground)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
+		"conversion": "const start = ctx.subject.employment.effective_range.from;\nconst end = ctx.entry.incurred_on;\nconst month_days = 30;\nconst months = calendar_completed_months(start, add_days(end, 1));\nconst tail = calendar_distance_days(add_months(start, months), add_days(end, 1));\nconst total = months + tail / month_days;\nconst cutoff = ctx.lookup.old_system_cutoff;\nconst cutoffEnd = add_days(cutoff, -1);\nconst oldEnd = end < cutoffEnd ? end : cutoffEnd;\nconst oldMonths = start <= oldEnd\n\t? calendar_completed_months(start, add_days(oldEnd, 1)) +\n\t\tcalendar_distance_days(add_months(start, calendar_completed_months(start, add_days(oldEnd, 1))), add_days(oldEnd, 1)) /\n\t\t\tmonth_days\n\t: 0;\nconst recorded = get(ctx.subject.employment, 'employee_extension_data.old_system_service_months', null);\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\n// 勞基法 §17, §55: a worker who kept the LSA pension, or a foreigner outside 勞工退休金條例 §7, is on the Act for the whole service.\nconst residency = get(ctx.subject.employment, 'terms.residency_status', 'CITIZEN');\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst lsa = get(facts, 'statutory.LABOR_PENSION.pension_system', 'NEW') === 'LSA';\nconst whole = lsa || (residency === 'FOREIGNER' && !spouse && !professional);\nconst served =\n\twhole ? total\n\t: recorded == null ? oldMonths\n\t: recorded;\nconst old = whole || recorded != null || start <= cutoffEnd ? Math.min(total, served) : 0;\nconst fresh = Math.max(0, total - old);\nreturn (\n\tctx.entry.quantity *\n\t((Math.ceil(old) * ctx.lookup.old_months_per_year) / 12 +\n\t\tMath.min(ctx.lookup.new_cap_months, (fresh * ctx.lookup.new_months_per_year) / 12))\n);",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "b0f65c2c-34f3-5dcd-8978-ee381c0ad040",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42"
@@ -63,6 +69,11 @@
 					"months": 36,
 					"days": 30
 				}
+			],
+			"notice_grounds": [
+				"ARTICLE_11",
+				"ARTICLE_13_PROVISO",
+				"ARTICLE_20"
 			]
 		},
 		"references": [
@@ -76,7 +87,7 @@
 		"subtotal_id": "04e447ca-6956-5d66-97bb-23cf029de93d",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "const ground = get(\n\tctx.subject.employment,\n\t'employee_extension_data.exit_facts.lsa_termination_ground',\n\tnull\n);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!ctx.lookup.notice_grounds.includes(ground)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
+		"eligibility": "const ground = get(\n\tctx.subject.employment,\n\t'employee_extension_data.lsa_termination_ground',\n\tnull\n);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!ctx.lookup.notice_grounds.includes(ground)) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "const months = calendar_completed_months(\n\tctx.subject.employment.effective_range.from,\n\tadd_days(ctx.entry.incurred_on, 1)\n);\nconst band = ctx.lookup.service_bands.filter((row) => months >= row.months).at(-1);\nconst daily = Math.max(ctx.entry.quantity, ctx.day_rate);\nreturn daily * (band == null ? 0 : band.days);",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "a34f5452-ba79-5a1d-8c83-096778a4a001",
@@ -104,8 +115,8 @@
 		"subtotal_id": "04e447ca-6956-5d66-97bb-23cf029de93d",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "const birth = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nif (birth == null) return false;\nconst age = age_on(birth, ctx.entry.incurred_on);\nconst months = calendar_completed_months(\n\tctx.subject.employment.effective_range.from,\n\tadd_days(ctx.entry.incurred_on, 1)\n);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from)) return false;\nif (get(ctx.subject.employment, 'employee_extension_data.exit_facts.retirement_disability', false) === true) return true;\nreturn ctx.lookup.retirement_eligibility.some((band) => {\n\tif (!(months >= band.months)) return false;\n\treturn band.age == null || age >= band.age;\n});",
-		"conversion": "const facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\n// 勞基法 §17, §55: a worker who kept the LSA pension, or a foreigner outside 勞工退休金條例 §7, is on the Act for the whole service.\nconst residency = get(ctx.subject.employment, 'terms.residency_status', 'CITIZEN');\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst lsa = get(facts, 'statutory.LABOR_PENSION.elections.pension_system', 'NEW') === 'LSA';\nconst whole = lsa || (residency === 'FOREIGNER' && !spouse && !professional);\nconst start = ctx.subject.employment.effective_range.from;\nconst recorded = get(ctx.subject.employment, 'employee_extension_data.exit_facts.old_system_service_months', null);\nconst end = whole || recorded != null || ctx.entry.incurred_on < ctx.lookup.old_system_cutoff\n\t? ctx.entry.incurred_on\n\t: add_days(ctx.lookup.old_system_cutoff, -1);\nconst months = calendar_completed_months(start, add_days(end, 1));\nconst tail = calendar_distance_days(add_months(start, months), add_days(end, 1));\nconst total = months + tail / ctx.lookup.monthly_divisor;\nconst served = whole || recorded == null ? total : recorded;\nconst old = whole || recorded != null || start < ctx.lookup.old_system_cutoff ? Math.min(total, served) : 0;\nconst years = Math.floor(old / ctx.lookup.months_per_year);\nconst remainder = old - years * ctx.lookup.months_per_year;\nconst tail_years =\n\tremainder === 0 ? 0\n\t: remainder < ctx.lookup.tail_threshold_months ? ctx.lookup.short_tail_years\n\t: ctx.lookup.long_tail_years;\nconst credited = years + tail_years;\nconst units = Math.min(\n\tctx.lookup.cap_months,\n\tMath.min(ctx.lookup.first_years, credited) * ctx.lookup.first_rate +\n\t\tMath.max(0, credited - ctx.lookup.first_years) * ctx.lookup.later_rate\n);\nconst uplift = get(ctx.subject.employment, 'employee_extension_data.exit_facts.retirement_disability_duty_caused', false) === true\n\t? ctx.lookup.duty_disability_uplift\n\t: 1;\nreturn ctx.entry.quantity * units * uplift;",
+		"eligibility": "const birth = get(ctx.subject.employment, 'payroll.date_of_birth', null);\nif (birth == null) return false;\nconst age = age_on(birth, ctx.entry.incurred_on);\nconst months = calendar_completed_months(\n\tctx.subject.employment.effective_range.from,\n\tadd_days(ctx.entry.incurred_on, 1)\n);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from)) return false;\nif (get(ctx.subject.employment, 'employee_extension_data.retirement_disability', false) === true) return true;\nreturn ctx.lookup.retirement_eligibility.some((band) => {\n\tif (!(months >= band.months)) return false;\n\treturn band.age == null || age >= band.age;\n});",
+		"conversion": "const facts = get(ctx.subject.employment, 'employee_extension_data', {});\n// 勞基法 §17, §55: a worker who kept the LSA pension, or a foreigner outside 勞工退休金條例 §7, is on the Act for the whole service.\nconst residency = get(ctx.subject.employment, 'terms.residency_status', 'CITIZEN');\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst lsa = get(facts, 'statutory.LABOR_PENSION.pension_system', 'NEW') === 'LSA';\nconst whole = lsa || (residency === 'FOREIGNER' && !spouse && !professional);\nconst start = ctx.subject.employment.effective_range.from;\nconst recorded = get(ctx.subject.employment, 'employee_extension_data.old_system_service_months', null);\nconst end = whole || recorded != null || ctx.entry.incurred_on < ctx.lookup.old_system_cutoff\n\t? ctx.entry.incurred_on\n\t: add_days(ctx.lookup.old_system_cutoff, -1);\nconst month_days = 30;\nconst months = calendar_completed_months(start, add_days(end, 1));\nconst tail = calendar_distance_days(add_months(start, months), add_days(end, 1));\nconst total = months + tail / month_days;\nconst served = whole || recorded == null ? total : recorded;\nconst old = whole || recorded != null || start < ctx.lookup.old_system_cutoff ? Math.min(total, served) : 0;\nconst years = Math.floor(old / 12);\nconst remainder = old - years * 12;\nconst tail_years =\n\tremainder === 0 ? 0\n\t: remainder < ctx.lookup.tail_threshold_months ? ctx.lookup.short_tail_years\n\t: ctx.lookup.long_tail_years;\nconst credited = years + tail_years;\nconst units = Math.min(\n\tctx.lookup.cap_months,\n\tMath.min(ctx.lookup.first_years, credited) * ctx.lookup.first_rate +\n\t\tMath.max(0, credited - ctx.lookup.first_years) * ctx.lookup.later_rate\n);\nconst uplift = get(ctx.subject.employment, 'employee_extension_data.retirement_disability_duty_caused', false) === true\n\t? ctx.lookup.duty_disability_uplift\n\t: 1;\nreturn ctx.entry.quantity * units * uplift;",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "bc04098d-d95a-55fb-a599-c8a5dc5c1872",
 		"settings_id": "32870b3a-e7f2-553e-b859-488324873c42"
@@ -577,7 +588,7 @@
 		"subtotal_id": "5a2fbd83-b6ed-5c5a-9346-c2a709d5c004",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "const death = get(\n\tctx.subject.employment,\n\t'employee_extension_data.exit_facts.occupational_death',\n\tfalse\n);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (death !== true) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
+		"eligibility": "const death = get(\n\tctx.subject.employment,\n\t'employee_extension_data.occupational_death',\n\tfalse\n);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (death !== true) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.months;",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "e2da47ce-5c3f-5fbb-bcb1-f2c2350df159",
@@ -601,7 +612,7 @@
 		"subtotal_id": "5a2fbd83-b6ed-5c5a-9346-c2a709d5c004",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"eligibility": "const death = get(\n\tctx.subject.employment,\n\t'employee_extension_data.exit_facts.occupational_death',\n\tfalse\n);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (death !== true) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
+		"eligibility": "const death = get(\n\tctx.subject.employment,\n\t'employee_extension_data.occupational_death',\n\tfalse\n);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (death !== true) return false;\nreturn ctx.entry.incurred_on >= ctx.subject.employment.effective_range.from;",
 		"conversion": "return ctx.entry.quantity * ctx.lookup.months;",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "0942ae6c-8c56-5c86-9ea3-a7a5c9b683b8",
@@ -614,14 +625,14 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "雇主聘僱外國人許可及管理辦法 and the 外國人入國工作費用及工資切結書: food and lodging may be deducted from a migrant worker’s wage only as the signed declaration states; the FOOD_LODGING_CAP validation refuses a month above employee.facts.food_lodging_monthly_cap (the declared amount)."
+				"title": "雇主聘僱外國人許可及管理辦法 and the 外國人入國工作費用及工資切結書: food and lodging may be deducted from a migrant worker’s wage only as the signed declaration states; the FOOD_LODGING_CAP validation refuses a month above employee.food_lodging_monthly_cap (the declared amount)."
 			}
 		],
 		"off_cycle_eligible": false,
 		"subtotal_id": "8d1e7388-7cca-52e1-8b3f-46ec313e7f18",
 		"direction": "DEDUCT",
 		"party": "EMPLOYEE",
-		"eligibility": "const cap = get(ctx.subject.employment, 'employee_extension_data.facts.food_lodging_monthly_cap', null);\nif (cap == null) return false;\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.quantity <= cap;",
+		"eligibility": "const cap = get(ctx.subject.employment, 'employee_extension_data.food_lodging_monthly_cap', null);\nif (cap == null) return false;\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nreturn ctx.entry.quantity <= cap;",
 		"conversion": "return ctx.entry.quantity;",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "f908e4e2-5ce5-5d58-8238-d1de5560e96f",
@@ -676,15 +687,12 @@
 	{
 		"code": "INDIGENOUS_RITUAL_DAY_WORK",
 		"name": "原住民族歲時祭儀出勤 (ritual holiday worked)",
-		"lookup": {
-			"monthly_divisor": 30,
-			"normal_hours_per_day": 8
-		},
+		"lookup": {},
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"references": [
 			{
-				"title": "勞動基準法 §39: work on a §37 放假日 is paid one further day’s wage (monthly ÷ 30). The ritual day worked is the roster day marked facts.indigenous_ritual_day for an indigenous worker; hours beyond eight are overtime at the §24 rates as on any holiday (the time recorded past the planned shift, priced by OVERTIME).",
+				"title": "勞動基準法 §39: work on a §37 放假日 is paid one further day’s wage (monthly ÷ 30). The ritual day worked is the roster day marked indigenous_ritual_day for an indigenous worker; hours beyond eight are overtime at the §24 rates as on any holiday (the time recorded past the planned shift, priced by OVERTIME).",
 				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=39"
 			}
 		],

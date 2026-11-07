@@ -15,352 +15,6 @@
 			"title": "TH employee extension data",
 			"additionalProperties": false,
 			"properties": {
-				"facts": {
-					"type": "object",
-					"additionalProperties": false,
-					"description": "Person facts in employee_extension_data.facts; person profile columns are native contract fields, not keys here.",
-					"properties": {
-						"work_permit_basis": {
-							"type": "string",
-							"enum": ["ROYAL_ORDINANCE", "SECTION_62"],
-							"title": "Basis of a foreign worker's permission to work",
-							"description": "Royal Ordinance on the Management of the Employment of Foreign Workers B.E. 2560 s.62: SECTION_62 when the worker is permitted under the investment-promotion, petroleum or another law the section names; the employer is then exempt from the s.13 notices."
-						},
-						"sso_excluded_category": {
-							"type": "string",
-							"enum": [
-								"FOREIGN_GOVERNMENT_OR_INTERNATIONAL",
-								"POSTED_FROM_ABROAD",
-								"PRIVATE_SCHOOL_TEACHER",
-								"HOUSEHOLD_NO_BUSINESS",
-								"SEASONAL_AGRICULTURE",
-								"OTHER_EXCLUDED"
-							],
-							"title": "Outside the Social Security Act (s.4)",
-							"description": "SSA s.4 and the Royal Decree under it: employment the Act does not cover. https://www.mol.go.th/wp-content/uploads/sites/2/2019/03/SOCIAL_SECURITY_ACT_2533_SSO_1.pdf"
-						},
-						"sso_continuing_insured": {
-							"type": "boolean",
-							"default": false,
-							"title": "Insured under SSA s.33 before 60 and still insured",
-							"description": "SSA s.33 para 2: an employee who was an insured person before reaching 60 and joins this employer without a break in insured employment stays insured after 60; true registers and charges them whatever their age at this contract’s start."
-						},
-						"statutory": {
-							"type": "object",
-							"title": "Statutory declarations",
-							"additionalProperties": false,
-							"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
-							"properties": {
-								"WCF": {
-									"type": "object",
-									"title": "Workmen's Compensation Fund (กองทุนเงินทดแทน)",
-									"additionalProperties": false,
-									"properties": {
-										"elections": {
-											"type": "object",
-											"title": "Declared inputs",
-											"properties": {
-												"wcf_ceiling_review_reference": {
-													"type": "string",
-													"minLength": 1,
-													"title": "WCF: SSO assessment or proportional-ceiling review evidence"
-												},
-												"wcf_ceiling_review_tax_year": {
-													"type": "string",
-													"pattern": "^[0-9]{4}$",
-													"title": "WCF: calendar year of the proportional ceiling"
-												},
-												"wcf_reviewed_annual_wage_ceiling": {
-													"type": "number",
-													"minimum": 0,
-													"maximum": 240000,
-													"title": "WCF: reviewed proportional annual wage ceiling (THB)",
-													"description": "For less than a complete calendar year of work, enter the SSO-assessed or independently reviewed proportional wage ceiling under clause11 of the21 February2019 MOL notification. Six full months:120,000. The precise method for a partial calendar month must be verified externally; this seed does not invent a day-count convention."
-												}
-											},
-											"additionalProperties": false
-										}
-									}
-								},
-								"PVD": {
-									"type": "object",
-									"title": "Provident fund (กองทุนสำรองเลี้ยงชีพ)",
-									"additionalProperties": false,
-									"properties": {
-										"kind": {
-											"type": "string",
-											"title": "Registration or exemption status",
-											"pattern": "\\S"
-										},
-										"elections": {
-											"type": "object",
-											"title": "Declared inputs",
-											"properties": {
-												"employee_percent": {
-													"type": "number",
-													"minimum": 2,
-													"maximum": 15,
-													"title": "PVD: member contribution rate (%)",
-													"description": "Provident Fund Act B.E. 2530 (1987) s.10: a member contributes 2% to 15% of wages to the registered fund the employer set up."
-												}
-											},
-											"additionalProperties": false
-										}
-									},
-									"required": ["kind"]
-								},
-								"PND1": {
-									"type": "object",
-									"title": "Personal income tax withholding (ภ.ง.ด.1)",
-									"additionalProperties": false,
-									"properties": {
-										"elections": {
-											"type": "object",
-											"title": "Declared inputs",
-											"properties": {
-												"pnd1_history_alignment_tax_year": {
-													"type": "string",
-													"pattern": "^[0-9]{4}$",
-													"title": "PND1: cash tax year of verified history"
-												},
-												"pnd1_history_alignment_verified": {
-													"type": "boolean",
-													"default": false,
-													"title": "PND1: payment-month history verified for automatic calculation",
-													"description": "Operational review: all income and tax history used by this payroll is allocated to its actual payment month and cash tax year, with earlier-employer data complete. Do not attest true after a salary/payment-month mismatch in that cash year; use a dated reviewed amount for every affected payment. Do not attest automatic-history alignment for a year containing separately taxed termination income; keep reviewed mode for affected payments. Midyear exits and earlier-employer income/tax require reviewed mode."
-												},
-												"severance_separate": {
-													"type": "boolean",
-													"default": false,
-													"title": "PND1: tax severance separately (s.48(5))",
-													"description": "Revenue Code s.48(5): with at least five years' service, the severance taxed on leaving is withheld apart from other income (Notification No. 45)."
-												},
-												"child_allowance_count": {
-													"type": "integer",
-													"minimum": 0,
-													"default": 0,
-													"title": "PND1: children qualifying for the child allowance",
-													"description": "Revenue Code s.47(1)(c): 30,000 baht a year for each legitimate or adopted child under 20, or under 25 and studying, or of any age and adjudged incompetent. s.47(3): a non-resident gets this only for children in Thailand, on the annual return, not in payroll."
-												},
-												"disabled_dependants_count": {
-													"type": "integer",
-													"minimum": 0,
-													"default": 0,
-													"title": "PND1: disabled dependants (count)",
-													"description": "Revenue Code s.47(1)(h): 60,000 for each disabled or incapacitated dependant with income of at most 30,000."
-												},
-												"exempt_190k_used_elsewhere": {
-													"type": "number",
-													"minimum": 0,
-													"default": 0,
-													"title": "PND1: part of the 190,000 exemption used on other income",
-													"description": "The exemption for a taxpayer aged 65+ or disabled is at most 190,000 across all income."
-												},
-												"home_loan_interest": {
-													"type": "number",
-													"minimum": 0,
-													"default": 0,
-													"title": "PND1: home-loan interest paid",
-													"description": "Up to 100,000."
-												},
-												"life_insurance": {
-													"type": "number",
-													"minimum": 0,
-													"default": 0,
-													"title": "PND1: life insurance premiums paid",
-													"description": "Up to 100,000."
-												},
-												"other_annual_deductions": {
-													"type": "number",
-													"minimum": 0,
-													"default": 0,
-													"title": "PND1: other annual allowances and deductions declared on Lor Yor 01",
-													"description": "Revenue Code s.47: deductions the employee declares that have no input of their own here, such as health insurance, prenatal costs, RMF and donations, in baht for the year after their own limits. Everything with its own input (spouse, children, parents, disabled dependants, life, pension and parents’ health insurance, home-loan interest) and social security and the provident fund, which payroll computes, must not be repeated here."
-												},
-												"parents_count": {
-													"type": "integer",
-													"minimum": 0,
-													"maximum": 4,
-													"default": 0,
-													"title": "PND1: parents allowance (count)",
-													"description": "Revenue Code s.47(1)(g): 30,000 for each parent of the taxpayer or of a spouse without income, aged 60+ with income of at most 30,000."
-												},
-												"parents_health_insurance": {
-													"type": "number",
-													"minimum": 0,
-													"default": 0,
-													"title": "PND1: parents' health insurance paid",
-													"description": "Up to 15,000."
-												},
-												"pension_insurance": {
-													"type": "number",
-													"minimum": 0,
-													"default": 0,
-													"title": "PND1: pension life insurance premiums paid",
-													"description": "Up to 15% of income and 200,000, within 500,000 with the provident fund."
-												},
-												"pnd1_review_pay_date": {
-													"type": "string",
-													"format": "date",
-													"title": "PND1: payment date reviewed"
-												},
-												"pnd1_review_payment_income": {
-													"type": "number",
-													"title": "PND1: current payment gross taxable-category income (THB)",
-													"description": "Match this payment's PND1 ordinary plus severance wage parts before exemptions. A mismatch refuses the reviewed calculation."
-												},
-												"pnd1_review_prior_salary_month_tax": {
-													"type": "number",
-													"minimum": 0,
-													"title": "PND1: tax already allocated to this salary month before this payment (THB)",
-													"description": "Match the payroll's existing month-to-date employee PND1 charge. This prevents reusing a stale review after another taxable payment."
-												},
-												"pnd1_review_reference": {
-													"type": "string",
-													"minLength": 1,
-													"title": "PND1: reviewed calculation evidence"
-												},
-												"pnd1_review_salary_month": {
-													"type": "string",
-													"pattern": "^[0-9]{4}-[0-9]{2}$",
-													"title": "PND1: salary month receiving the reviewed allocation"
-												},
-												"pnd1_review_salary_month_tax_total": {
-													"type": "number",
-													"minimum": 0,
-													"title": "PND1: reviewed cumulative tax allocation after this payment (THB)",
-													"description": "Exact employee PND1 amount to allocate to this engine salary-month bucket after the present payment, calculated externally using actual payment dates, complete cash-year income, allowances and prior tax. Current withholding equals this total minus the matched prior allocated tax. This is not annual income or an annual tax bill."
-												},
-												"previous_employer_income": {
-													"type": "number",
-													"minimum": 0,
-													"default": 0,
-													"title": "PND1: income from an earlier employer this year",
-													"description": "Tor Por 4/2528: joins the annual estimate (50 Tawi of the earlier employer) only when same_withholding_agent is true; otherwise it is used for annual reconciliation only."
-												},
-												"previous_employer_tax": {
-													"type": "number",
-													"minimum": 0,
-													"default": 0,
-													"title": "PND1: tax withheld by an earlier employer this year",
-													"description": "Credited against the year's tax only when same_withholding_agent is true; otherwise it is used for annual reconciliation only."
-												},
-												"same_withholding_agent": {
-													"type": "boolean",
-													"default": false,
-													"title": "PND1: earlier employer is the same withholding agent",
-													"description": "Tor Por 4/2528: earlier-employer income and tax join this PND1 estimate only when the same withholding agent/declaration continues; otherwise they are left to the employee's annual reconciliation."
-												},
-												"second_child_from_2018_count": {
-													"type": "integer",
-													"minimum": 0,
-													"default": 0,
-													"title": "PND1: of those, second and later children born in or after 2018",
-													"description": "Revenue Code s.47(1)(c) as amended by the Revenue Code Amendment Act (No. 49) B.E. 2562: a further 30,000 baht (60,000 in all) for the second and each later legitimate child born on or after 1 January 2018; adopted children do not count (\"ยกเว้นบุตรบุญธรรม\", Revenue Department https://www.rd.go.th/62777.html)."
-												},
-												"spouse_income_status": {
-													"type": "string",
-													"enum": ["WITHOUT_INCOME", "WITH_INCOME"],
-													"title": "PND1: spouse income status",
-													"description": "Revenue Code s.47(1)(b): a 60,000 baht allowance for a spouse without income. s.47(3): a non-resident gets this only for a spouse in Thailand, on the annual return, not in payroll."
-												}
-											},
-											"additionalProperties": false
-										}
-									}
-								},
-								"EWF": {
-									"type": "object",
-									"title": "Employee Welfare Fund (กองทุนสงเคราะห์ลูกจ้าง)",
-									"additionalProperties": false,
-									"properties": {
-										"kind": {
-											"type": "string",
-											"enum": ["MEMBER", "VOLUNTARY", "EXEMPT"],
-											"title": "Registration or exemption status"
-										}
-									}
-								}
-							}
-						},
-						"nationality": {
-							"type": "string",
-							"minLength": 2,
-							"title": "Nationality (ISO 3166-1 alpha-2)",
-							"description": "The employee nationality used by the foreign-worker notification duties."
-						}
-					}
-				},
-				"term_facts": {
-					"type": "object",
-					"additionalProperties": false,
-					"title": "Contract compliance details",
-					"properties": {
-						"overtime_category": {
-							"type": "string",
-							"enum": ["MANAGER", "SECTION_65_OTHER"],
-							"title": "Overtime-exempt category (LPA s.65)",
-							"description": "Labour Protection Act B.E. 2541 s.65: MANAGER — power to hire, reward, cut wages or dismiss for the employer (s.65(1)): no overtime or holiday overtime pay, and no holiday pay unless agreed (s.66); SECTION_65_OTHER — the work listed in s.65(2)-(8): paid 1 × the hourly wage for overtime."
-						},
-						"skill_standard_day_rate": {
-							"type": "number",
-							"minimum": 0,
-							"title": "Skill-standard day rate of the trade",
-							"description": "Wage Committee notification on wage rates by skill standard: the day rate for the worker's certified trade and level."
-						},
-						"security_deposit_post": {
-							"type": "boolean",
-							"default": false,
-							"title": "Post allowed to take a security deposit",
-							"description": "Labour Protection Act B.E. 2541 s.10 with the Minister's notification on security money."
-						},
-						"disabled": {
-							"type": "boolean",
-							"description": "A disabled person: the 190,000 exemption of the aged or disabled in PND1 (Revenue Code s.42(17))."
-						}
-					}
-				},
-				"exit_facts": {
-					"type": "object",
-					"additionalProperties": false,
-					"description": "Stored in employee_extension_data.exit_facts when the contract closes.",
-					"properties": {
-						"section_119_ground": {
-							"type": "boolean",
-							"default": false,
-							"title": "Dismissed on a section 119 ground",
-							"description": "Labour Protection Act B.E. 2541 (1998) s.119: no severance pay where the employee was dismissed for dishonesty, an intentional offence against the employer, wilful damage, a serious breach of work rules after a written warning, three consecutive working days' absence without cause, or imprisonment; s.67 then also withholds annual-leave pay for the year of dismissal."
-						},
-						"fixed_term_project": {
-							"type": "boolean",
-							"default": false,
-							"title": "End of a fixed-term project, seasonal or occasional contract of up to two years",
-							"description": "Labour Protection Act B.E. 2541 s.118 para 3: no severance."
-						},
-						"special_severance_ground": {
-							"type": "string",
-							"enum": ["TECHNOLOGY", "RELOCATION"],
-							"title": "Special severance ground",
-							"description": "Labour Protection Act B.E. 2541 ss.120-122."
-						},
-						"exit_ground": {
-							"type": "string",
-							"enum": [
-								"DEATH",
-								"DISMISSAL",
-								"DISMISSAL_FOR_CAUSE",
-								"END_OF_CONTRACT",
-								"MUTUAL",
-								"REDUNDANCY",
-								"RESIGNATION",
-								"RETIREMENT"
-							],
-							"title": "Departure ground",
-							"description": "The recorded ground of the end of employment; retirement and the s.118 para 3 and s.119 grounds change severance and final-pay duties."
-						}
-					},
-					"title": "Departure compliance details"
-				},
 				"events": {
 					"type": "array",
 					"title": "Life events",
@@ -368,11 +22,17 @@
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": ["kind", "on"],
+						"required": [
+							"kind",
+							"on"
+						],
 						"properties": {
 							"kind": {
 								"type": "string",
-								"enum": ["CHILD_BIRTH", "DISCIPLINARY_SUSPENSION"],
+								"enum": [
+									"CHILD_BIRTH",
+									"DISCIPLINARY_SUSPENSION"
+								],
 								"title": "What happened"
 							},
 							"on": {
@@ -390,16 +50,274 @@
 								"type": "string",
 								"format": "date",
 								"title": "Ended on"
+							}
+						}
+					}
+				},
+				"work_permit_basis": {
+					"type": "string",
+					"enum": [
+						"ROYAL_ORDINANCE",
+						"SECTION_62"
+					],
+					"title": "Basis of a foreign worker's permission to work",
+					"description": "Royal Ordinance on the Management of the Employment of Foreign Workers B.E. 2560 s.62: SECTION_62 when the worker is permitted under the investment-promotion, petroleum or another law the section names; the employer is then exempt from the s.13 notices."
+				},
+				"sso_excluded_category": {
+					"type": "string",
+					"enum": [
+						"FOREIGN_GOVERNMENT_OR_INTERNATIONAL",
+						"POSTED_FROM_ABROAD",
+						"PRIVATE_SCHOOL_TEACHER",
+						"HOUSEHOLD_NO_BUSINESS",
+						"SEASONAL_AGRICULTURE",
+						"OTHER_EXCLUDED"
+					],
+					"title": "Outside the Social Security Act (s.4)",
+					"description": "SSA s.4 and the Royal Decree under it: employment the Act does not cover. https://www.mol.go.th/wp-content/uploads/sites/2/2019/03/SOCIAL_SECURITY_ACT_2533_SSO_1.pdf"
+				},
+				"sso_continuing_insured": {
+					"type": "boolean",
+					"default": false,
+					"title": "Insured under SSA s.33 before 60 and still insured",
+					"description": "SSA s.33 para 2: an employee who was an insured person before reaching 60 and joins this employer without a break in insured employment stays insured after 60; true registers and charges them whatever their age at this contract’s start."
+				},
+				"nationality": {
+					"type": "string",
+					"minLength": 2,
+					"title": "Nationality (ISO 3166-1 alpha-2)",
+					"description": "The employee nationality used by the foreign-worker notification duties."
+				},
+				"overtime_category": {
+					"type": "string",
+					"enum": [
+						"MANAGER",
+						"SECTION_65_OTHER"
+					],
+					"title": "Overtime-exempt category (LPA s.65)",
+					"description": "Labour Protection Act B.E. 2541 s.65: MANAGER — power to hire, reward, cut wages or dismiss for the employer (s.65(1)): no overtime or holiday overtime pay, and no holiday pay unless agreed (s.66); SECTION_65_OTHER — the work listed in s.65(2)-(8): paid 1 × the hourly wage for overtime."
+				},
+				"skill_standard_day_rate": {
+					"type": "number",
+					"minimum": 0,
+					"title": "Skill-standard day rate of the trade",
+					"description": "Wage Committee notification on wage rates by skill standard: the day rate for the worker's certified trade and level."
+				},
+				"security_deposit_post": {
+					"type": "boolean",
+					"default": false,
+					"title": "Post allowed to take a security deposit",
+					"description": "Labour Protection Act B.E. 2541 s.10 with the Minister's notification on security money."
+				},
+				"disabled": {
+					"type": "boolean",
+					"description": "A disabled person: the 190,000 exemption of the aged or disabled in PND1 (Revenue Code s.42(17))."
+				},
+				"section_119_ground": {
+					"type": "boolean",
+					"default": false,
+					"title": "Dismissed on a section 119 ground",
+					"description": "Labour Protection Act B.E. 2541 (1998) s.119: no severance pay where the employee was dismissed for dishonesty, an intentional offence against the employer, wilful damage, a serious breach of work rules after a written warning, three consecutive working days' absence without cause, or imprisonment; s.67 then also withholds annual-leave pay for the year of dismissal."
+				},
+				"fixed_term_project": {
+					"type": "boolean",
+					"default": false,
+					"title": "End of a fixed-term project, seasonal or occasional contract of up to two years",
+					"description": "Labour Protection Act B.E. 2541 s.118 para 3: no severance."
+				},
+				"special_severance_ground": {
+					"type": "string",
+					"enum": [
+						"TECHNOLOGY",
+						"RELOCATION"
+					],
+					"title": "Special severance ground",
+					"description": "Labour Protection Act B.E. 2541 ss.120-122."
+				},
+				"exit_ground": {
+					"type": "string",
+					"enum": [
+						"DEATH",
+						"DISMISSAL",
+						"DISMISSAL_FOR_CAUSE",
+						"END_OF_CONTRACT",
+						"MUTUAL",
+						"REDUNDANCY",
+						"RESIGNATION",
+						"RETIREMENT"
+					],
+					"title": "Departure ground",
+					"description": "The recorded ground of the end of employment; retirement and the s.118 para 3 and s.119 grounds change severance and final-pay duties."
+				},
+				"statutory": {
+					"type": "object",
+					"title": "Statutory declarations",
+					"additionalProperties": false,
+					"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
+					"properties": {
+						"WCF": {
+							"type": "object",
+							"title": "Workmen's Compensation Fund (กองทุนเงินทดแทน)",
+							"additionalProperties": false,
+							"properties": {
+								"wcf_ceiling_review_reference": {
+									"type": "string",
+									"minLength": 1,
+									"title": "WCF: SSO assessment or proportional-ceiling review evidence"
+								},
+								"wcf_ceiling_review_tax_year": {
+									"type": "string",
+									"pattern": "^[0-9]{4}$",
+									"title": "WCF: calendar year of the proportional ceiling"
+								},
+								"wcf_reviewed_annual_wage_ceiling": {
+									"type": "number",
+									"minimum": 0,
+									"maximum": 240000,
+									"title": "WCF: reviewed proportional annual wage ceiling (THB)",
+									"description": "For less than a complete calendar year of work, enter the SSO-assessed or independently reviewed proportional wage ceiling under clause11 of the21 February2019 MOL notification. Six full months:120,000. The precise method for a partial calendar month must be verified externally; this seed does not invent a day-count convention."
+								}
+							}
+						},
+						"PVD": {
+							"type": "object",
+							"title": "Provident fund (กองทุนสำรองเลี้ยงชีพ)",
+							"additionalProperties": false,
+							"properties": {
+								"kind": {
+									"type": "string",
+									"title": "Registration or exemption status",
+									"pattern": "\\S"
+								},
+								"employee_percent": {
+									"type": "number",
+									"minimum": 2,
+									"maximum": 15,
+									"title": "PVD: member contribution rate (%)",
+									"description": "Provident Fund Act B.E. 2530 (1987) s.10: a member contributes 2% to 15% of wages to the registered fund the employer set up."
+								}
 							},
-							"document": {
-								"type": "string",
-								"title": "Document on the profile"
+							"required": [
+								"kind"
+							]
+						},
+						"PND1": {
+							"type": "object",
+							"title": "Personal income tax withholding (ภ.ง.ด.1)",
+							"additionalProperties": false,
+							"properties": {
+								"severance_separate": {
+									"type": "boolean",
+									"default": false,
+									"title": "PND1: tax severance separately (s.48(5))",
+									"description": "Revenue Code s.48(5): with at least five years' service, the severance taxed on leaving is withheld apart from other income (Notification No. 45)."
+								},
+								"child_allowance_count": {
+									"type": "integer",
+									"minimum": 0,
+									"default": 0,
+									"title": "PND1: children qualifying for the child allowance",
+									"description": "Revenue Code s.47(1)(c): 30,000 baht a year for each legitimate or adopted child under 20, or under 25 and studying, or of any age and adjudged incompetent. s.47(3): a non-resident gets this only for children in Thailand, on the annual return, not in payroll."
+								},
+								"disabled_dependants_count": {
+									"type": "integer",
+									"minimum": 0,
+									"default": 0,
+									"title": "PND1: disabled dependants (count)",
+									"description": "Revenue Code s.47(1)(h): 60,000 for each disabled or incapacitated dependant with income of at most 30,000."
+								},
+								"exempt_190k_used_elsewhere": {
+									"type": "number",
+									"minimum": 0,
+									"default": 0,
+									"title": "PND1: part of the 190,000 exemption used on other income",
+									"description": "The exemption for a taxpayer aged 65+ or disabled is at most 190,000 across all income."
+								},
+								"home_loan_interest": {
+									"type": "number",
+									"minimum": 0,
+									"default": 0,
+									"title": "PND1: home-loan interest paid",
+									"description": "Up to 100,000."
+								},
+								"life_insurance": {
+									"type": "number",
+									"minimum": 0,
+									"default": 0,
+									"title": "PND1: life insurance premiums paid",
+									"description": "Up to 100,000."
+								},
+								"other_annual_deductions": {
+									"type": "number",
+									"minimum": 0,
+									"default": 0,
+									"title": "PND1: other annual allowances and deductions declared on Lor Yor 01",
+									"description": "Revenue Code s.47: deductions the employee declares that have no input of their own here, such as health insurance, prenatal costs, RMF and donations, in baht for the year after their own limits. Everything with its own input (spouse, children, parents, disabled dependants, life, pension and parents’ health insurance, home-loan interest) and social security and the provident fund, which payroll computes, must not be repeated here."
+								},
+								"parents_count": {
+									"type": "integer",
+									"minimum": 0,
+									"maximum": 4,
+									"default": 0,
+									"title": "PND1: parents allowance (count)",
+									"description": "Revenue Code s.47(1)(g): 30,000 for each parent of the taxpayer or of a spouse without income, aged 60+ with income of at most 30,000."
+								},
+								"parents_health_insurance": {
+									"type": "number",
+									"minimum": 0,
+									"default": 0,
+									"title": "PND1: parents' health insurance paid",
+									"description": "Up to 15,000."
+								},
+								"pension_insurance": {
+									"type": "number",
+									"minimum": 0,
+									"default": 0,
+									"title": "PND1: pension life insurance premiums paid",
+									"description": "Up to 15% of income and 200,000, within 500,000 with the provident fund."
+								},
+								"previous_employer_income": {
+									"type": "number",
+									"minimum": 0,
+									"default": 0,
+									"title": "PND1: income from an earlier employer this year",
+									"description": "Tor Por 4/2528: joins the annual estimate (50 Tawi of the earlier employer) only when same_withholding_agent is true; otherwise it is used for annual reconciliation only."
+								},
+								"previous_employer_tax": {
+									"type": "number",
+									"minimum": 0,
+									"default": 0,
+									"title": "PND1: tax withheld by an earlier employer this year",
+									"description": "Credited against the year's tax only when same_withholding_agent is true; otherwise it is used for annual reconciliation only."
+								},
+								"same_withholding_agent": {
+									"type": "boolean",
+									"default": false,
+									"title": "PND1: earlier employer is the same withholding agent",
+									"description": "Tor Por 4/2528: earlier-employer income and tax join this PND1 estimate only when the same withholding agent/declaration continues; otherwise they are left to the employee's annual reconciliation."
+								},
+								"second_child_from_2018_count": {
+									"type": "integer",
+									"minimum": 0,
+									"default": 0,
+									"title": "PND1: of those, second and later children born in or after 2018",
+									"description": "Revenue Code s.47(1)(c) as amended by the Revenue Code Amendment Act (No. 49) B.E. 2562: a further 30,000 baht (60,000 in all) for the second and each later legitimate child born on or after 1 January 2018; adopted children do not count (\"ยกเว้นบุตรบุญธรรม\", Revenue Department https://www.rd.go.th/62777.html)."
+								},
+								"spouse_income_status": {
+									"type": "string",
+									"enum": [
+										"WITHOUT_INCOME",
+										"WITH_INCOME"
+									],
+									"title": "PND1: spouse income status",
+									"description": "Revenue Code s.47(1)(b): a 60,000 baht allowance for a spouse without income. s.47(3): a non-resident gets this only for a spouse in Thailand, on the annual return, not in payroll."
+								}
 							}
 						}
 					}
 				}
 			},
-			"description": "Additional local compliance facts on the sealed contract, stored as employee_extension_data: facts (person), term_facts (contract) and exit_facts (departure). Shared salary, allowances, work classifications, dates and work arrangements are native fields."
+			"description": "Additional local compliance facts on the sealed contract, stored as employee_extension_data. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
 		},
 		"entity_extension_schema": {
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -440,12 +358,6 @@
 					"title": "Files PND1 / PND1 Kor online",
 					"description": "Ministry of Finance e-filing extension: an online PND1 is due the 15th after month-end and an online PND1 Kor by 8 March, for returns due to 31 January 2027 (https://www.rd.go.th/fileadmin/user_upload/kormor/newlaw/mofexpandfornet7A.pdf, https://www.rd.go.th/fileadmin/user_upload/kormor/newlaw/mofexpandfornet9A.pdf)."
 				},
-				"ewf_exempt": {
-					"type": "boolean",
-					"default": false,
-					"title": "Undertaking outside the Employee Welfare Fund",
-					"description": "Labour Protection Act B.E. 2541 s.130 para 2: the employer provides a provident fund, or termination and death welfare, meeting the Ministerial Regulation."
-				},
 				"wcf_instalments": {
 					"type": "boolean",
 					"default": false,
@@ -471,19 +383,12 @@
 					"minLength": 1,
 					"description": "Verified Department of Skill Development employer registration reference (Sor Tor 1/Sor Tor 4). Record only after checking the registration evidence. An absent reference leaves the company registration task open at headcount >=100; this reference does not prove annual training or fund-payment compliance."
 				},
-				"wcf_rate_review_calendar_year": {
-					"type": "string",
-					"pattern": "^[0-9]{4}$",
-					"title": "WCF: calendar year of notified rate review"
-				},
-				"wcf_rate_review_reference": {
-					"type": "string",
-					"minLength": 1,
-					"title": "WCF: current-year SSO rate notification evidence"
-				},
 				"sso_reviewed_rate_percent": {
 					"type": "number",
-					"enum": [3, 5],
+					"enum": [
+						3,
+						5
+					],
 					"title": "SSO: documented rate for the southern disaster-relief review",
 					"description": "The nine-province rate of 3 percent for December 2025 to May 2026 applies without any entry (Ministry of Labour notification B.E. 2569, Royal Gazette 8 January 2026). Enter 5 only with an SSO assessment showing the employer is registered outside those provinces; the month and reference below must match it."
 				},
@@ -524,15 +429,6 @@
 			}
 		},
 		"lookup": {
-			"month_balance": ["BASIC", "ORDINARY_WAGES", "SSO.employee", "SSO.employer", "WCF.employer"],
-			"rounding": "HALF_UP",
-			"rounding_scale": 2,
-			"monthly_divisor": 30,
-			"normal_hours_per_day": 8,
-			"hazardous_normal_hours_per_day": 7,
-			"day_rate": "// Labour Protection Act B.E. 2541 s.68: the monthly wage over 30 days, fixed allowance included (s.5).\n// Proration: no section sets an incomplete month. s.56(1) pays a monthly wage through weekly holidays\n// and s.68 counts the month in days, so a salary follows calendar days.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\nconst hours = Number(\n\tget(\n\t\tterms,\n\t\t'normal_hours_per_day',\n\t\tget(terms, 'statutory_work_category', '') === 'HAZARDOUS'\n\t\t\t? ctx.lookup.hazardous_normal_hours_per_day\n\t\t\t: ctx.lookup.normal_hours_per_day\n\t)\n);\nif (unit === 'DAILY') return amount;\nif (unit === 'HOURLY' || unit === 'PIECE') return amount * hours;\nreturn (amount + Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0))) / ctx.lookup.monthly_divisor;",
-			"proration_basis": "CALENDAR_DAYS",
-			"rounding_step": 0.01,
 			"schedule": [
 				{
 					"up_to": 35,
@@ -555,10 +451,6 @@
 					"amount": 400
 				}
 			],
-			"minimum_service_days": 120,
-			"first_tier_days": 30,
-			"paid_multiple": 1,
-			"unpaid_multiple": 2,
 			"ladder": [
 				{
 					"up_to": 150000,
@@ -593,15 +485,6 @@
 					"rate": 0.35
 				}
 			],
-			"severance_daily_wages_limit": 400,
-			"severance_exemption_limit": 600000,
-			"severance_taxed_grounds": ["RETIREMENT", "END_OF_CONTRACT", "RESIGNATION"],
-			"pvd_minimum_percent": 2,
-			"pvd_maximum_percent": 15,
-			"elapsed_minutes": 300,
-			"break_minutes": 60,
-			"online_effective_from": "2027-01-31",
-			"employee_age_years_threshold": 18,
 			"by_region": {
 				"BANGKOK": 400,
 				"CHACHOENGSAO": 400,
@@ -684,10 +567,39 @@
 				"PATTANI": 337,
 				"YALA": 337
 			},
-			"business_400": 400,
-			"totals_by_employer": true
+			"constants": {
+				"paid_multiple": 1,
+				"unpaid_multiple": 2,
+				"rounding_step": 0.01,
+				"severance_taxed_grounds": [
+					"RETIREMENT",
+					"END_OF_CONTRACT",
+					"RESIGNATION"
+				],
+				"severance_daily_wages_limit": 400,
+				"severance_exemption_limit": 600000,
+				"minimum_service_days": 120,
+				"first_tier_days": 30
+			}
 		},
 		"status": "SEALED",
-		"id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6"
+		"id": "cd92578d-0a48-5792-a6e5-d04f47dbc5c6",
+		"conversions": {
+			"day": {
+				"basis": "FIXED",
+				"days": 30
+			},
+			"hour": {
+				"basis": "CONTRACT_HOURS"
+			},
+			"proration": "CALENDAR_DAYS",
+			"rounding": {
+				"mode": "HALF_UP",
+				"scale": 2
+			}
+		},
+		"ledger": {
+			"ytd_scope": "EMPLOYER"
+		}
 	}
 ]

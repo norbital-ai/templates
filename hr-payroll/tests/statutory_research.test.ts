@@ -130,14 +130,14 @@ const research = (t: Kit, input: object = { code: 'ID' }) =>
 const confirm = (t: Kit, target: Id<'statutory_finding'>) =>
 	t.as(t.admin).act('statutory_finding.update', [{ target, set: { status: 'CONFIRMED' } }]);
 const merge = (t: Kit, target: string) =>
-	Effect.andThen(
-		t.as(t.admin).start('statutory_materialize', {
+	Effect.gen(function* () {
+		yield* t.as(t.admin).start('statutory_materialize', {
 			code: 'ID',
 			target: PlainDate(target),
 			merge: true
-		}),
-		t.runDue()
-	);
+		});
+		yield* t.runDue();
+	});
 
 describe('statutory research', () => {
 	it.live('detects a changed rate, files it unconfirmed and dated on the law', () =>
@@ -210,7 +210,6 @@ describe('statutory research', () => {
 								depends_on: [],
 								subtotal_id: 'BASIC',
 								employer_cost_subtotal_id: 'BASIC',
-								off_cycle_eligible: false,
 								lookup: { employee_rate: 0.025 },
 								eligibility: 'return true;',
 								employee_amount: 'return 0;',

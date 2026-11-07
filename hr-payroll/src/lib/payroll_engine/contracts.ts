@@ -31,10 +31,15 @@ const CALCULATION_ROOTS = [
 	'lookup',
 	'balances',
 	'base_pay',
+	'calendar_days',
+	'working_days',
+	'month_wage',
 	'day_rate',
+	'hour_rate',
 	'subtotals',
 	'overtime',
 	'statutory',
+	'allowance',
 	'run',
 	'references',
 	'components',
@@ -65,3 +70,29 @@ export const PHASE_ROOTS: Readonly<Record<Phase, readonly string[]>> = {
 		'lookup'
 	]
 };
+
+/**
+ * The constants one settings row gives an expression: its shared rate tables plus the typed conversions under the names
+ * the stored formulas already use. `ctx.lookup` is this view.
+ */
+export const settingsConstants = (settings: JsonObject): Lookup => {
+	const lookup = lookupOf(settings);
+	const constants = isPlainObject(lookup.constants) ? lookup.constants : {};
+	const conversions = isPlainObject(settings.conversions) ? settings.conversions : {};
+	const day = isPlainObject(conversions.day) ? conversions.day : null;
+	const hour = isPlainObject(conversions.hour) ? conversions.hour : null;
+	const rounding = isPlainObject(conversions.rounding) ? conversions.rounding : {};
+	const ledger = isPlainObject(settings.ledger) ? settings.ledger : {};
+	return {
+		...lookup,
+		...constants,
+		day_basis: day,
+		hour_basis: hour,
+		proration_basis: conversions.proration ?? null,
+		rounding: rounding.mode ?? 'HALF_UP',
+		rounding_scale: typeof rounding.scale === 'number' ? rounding.scale : 2,
+		ytd_scope: ledger.ytd_scope === 'EMPLOYER' ? 'EMPLOYER' : 'JURISDICTION'
+	};
+};
+const isPlainObject = (value: unknown): value is Lookup =>
+	value !== null && typeof value === 'object' && !Array.isArray(value);

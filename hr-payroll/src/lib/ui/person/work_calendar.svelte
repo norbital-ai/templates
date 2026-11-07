@@ -164,7 +164,7 @@
 				};
 			});
 			const dayTypes = Object.fromEntries(plans.map((p) => [p.date, p.plan.day_type]));
-			const leave = data.current.leave_catalog_entry.rows.filter((row) => row.is_reversal !== true);
+			const leave = data.current.leave_catalog_entry.rows.filter((row) => row.reverses == null);
 			for (const date of eachDay(datePeriod(from, to)).map(String)) {
 				if (
 					!(versions.current?.employee_contract.rows ?? []).some((c) =>

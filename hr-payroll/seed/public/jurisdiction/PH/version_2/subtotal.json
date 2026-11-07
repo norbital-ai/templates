@@ -5,132 +5,151 @@
 		"previous_id": null,
 		"id": "cde9f8f5-3e1b-585a-b2cf-e359fc6e8bff",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
-		"calculation": "// js\n// Labor Code art.103: a monthly salary paid twice a month pays half each run. A day rate pays the working days of the period,\n// less the holidays that HOLIDAY_WORK, SPECIAL_HOLIDAY_WORK and DAILY_HOLIDAY_PAY price at their own full multiple; an unworked\n// special day is no work, no pay. ctx.base_pay has already taken off unpaid days, joiners and leavers.\nconst terms = ctx.subject.employment.terms;\nconst employer = ctx.subject.employer;\nconst coverage = ctx.run.salary_coverage;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nif (unit === 'MONTHLY') return get(employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY' ? ctx.base_pay / 2 : ctx.base_pay;\nif (unit !== 'DAILY' || ctx.lookup.premium_excluded_categories.includes(get(terms, 'statutory_work_category', ''))) return ctx.base_pay;\nconst facts = get(employer, 'entity_extension_data', {});\nconst off = get(employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst small = get(facts, 'retail_or_service_establishment', false) === true && get(facts, 'small_establishment', false) === true;\nconst priced = ctx.work.days.filter((d) => {\n\tconst kind = get(d, 'holiday_kind', '');\n\tif (kind === '' || get(d, 'day_type', '') !== 'WORK') return false;\n\tif (d.date < coverage.from || d.date > coverage.to || off.includes(weekday(d.date))) return false;\n\treturn ['SPECIAL_HOLIDAY', 'DOUBLE_SPECIAL'].includes(kind) || !small;\n}).length;\nreturn Math.max(0, ctx.base_pay - Number(get(terms, 'rate.amount', 0)) * priced);"
+		"calculation": "// js\n// Labor Code art.103: a monthly salary paid twice a month pays half each run. A day rate pays the working days of the period,\n// less the holidays that HOLIDAY_WORK, SPECIAL_HOLIDAY_WORK and DAILY_HOLIDAY_PAY price at their own full multiple; an unworked\n// special day is no work, no pay. ctx.base_pay has already taken off unpaid days, joiners and leavers.\nconst terms = ctx.subject.employment.terms;\nconst employer = ctx.subject.employer;\nconst coverage = ctx.run.salary_coverage;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nif (unit === 'MONTHLY') return get(employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY' ? ctx.base_pay / 2 : ctx.base_pay;\nif (unit !== 'DAILY' || [\"MANAGERIAL\", \"DOMESTIC\", \"FIELD_PERSONNEL\", \"TASK_BASIS\", \"PIECE_RATE\"].includes(get(terms, 'statutory_work_category', ''))) return ctx.base_pay;\nconst facts = get(employer, 'entity_extension_data', {});\nconst off = get(employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst small = get(facts, 'retail_or_service_establishment', false) === true && get(facts, 'small_establishment', false) === true;\nconst priced = ctx.work.days.filter((d) => {\n\tconst kind = get(d, 'holiday_kind', '');\n\t// Every holiday kind except MAKEUP_WORKDAY earns the premium; a makeup workday is a plain working day.\n\tif (kind === '' || kind === 'MAKEUP_WORKDAY' || get(d, 'day_type', '') !== 'WORK') return false;\n\tif (d.date < coverage.from || d.date > coverage.to || off.includes(weekday(d.date))) return false;\n\tconst special = kind === 'SPECIAL_HOLIDAY' || kind === 'DOUBLE_SPECIAL';\n\treturn special || !small;\n}).length;\nreturn Math.max(0, ctx.base_pay - ctx.day_rate * priced);",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "BASIC_AFTER_UNPAID_LEAVE",
 		"name": "Basic pay after unpaid leave",
 		"previous_id": "cde9f8f5-3e1b-585a-b2cf-e359fc6e8bff",
 		"id": "1a2bad9a-b63d-563d-b693-ca45abeae2ed",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "STATUTORY_WAGES",
 		"name": "Overtime, holiday, night and hazard pay",
 		"previous_id": "1a2bad9a-b63d-563d-b693-ca45abeae2ed",
 		"id": "ae519ec2-f1dc-4a09-b4fc-7b1038ad8709",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "DE_MINIMIS_RICE",
 		"name": "Rice subsidy",
 		"previous_id": "ae519ec2-f1dc-4a09-b4fc-7b1038ad8709",
 		"id": "046407a5-f28b-42dd-834e-ab1432b01027",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "DE_MINIMIS_LAUNDRY",
 		"name": "Laundry allowance",
 		"previous_id": "046407a5-f28b-42dd-834e-ab1432b01027",
 		"id": "8b9b6a31-d5d6-458a-900e-59017887ff51",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "DE_MINIMIS_DEPENDANT_MEDICAL",
 		"name": "Dependants' medical allowance",
 		"previous_id": "8b9b6a31-d5d6-458a-900e-59017887ff51",
 		"id": "e19c63cb-24eb-4ec8-b2f5-7f19d36f2f4b",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "ORDINARY_WAGES",
 		"name": "Ordinary wages",
 		"previous_id": "e19c63cb-24eb-4ec8-b2f5-7f19d36f2f4b",
 		"id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "ADDITIONAL_WAGES",
 		"name": "Additional wages (ordinary plus additional)",
 		"previous_id": "e2522c62-9fdd-5e86-a9a3-c9d9221133f2",
 		"id": "1fe27bd2-4ea2-5419-a8d8-052fa33e187e",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "DE_MINIMIS_UNIFORM",
 		"name": "Uniform and clothing allowance",
 		"previous_id": "1fe27bd2-4ea2-5419-a8d8-052fa33e187e",
 		"id": "e109728c-8f95-4d31-be27-96469baf901b",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "DE_MINIMIS_MEDICAL",
 		"name": "Medical assistance",
 		"previous_id": "e109728c-8f95-4d31-be27-96469baf901b",
 		"id": "27d37d27-1788-4b6f-9b67-6d9c49d92e96",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "DE_MINIMIS_AWARD",
 		"name": "Achievement awards",
 		"previous_id": "27d37d27-1788-4b6f-9b67-6d9c49d92e96",
 		"id": "fdb872ce-7961-495f-b51b-a1c119d2b73c",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "DE_MINIMIS_GIFT",
 		"name": "Christmas and anniversary gifts",
 		"previous_id": "fdb872ce-7961-495f-b51b-a1c119d2b73c",
 		"id": "3a9ad02a-bb45-4895-a243-69dffd4a1c5c",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "DE_MINIMIS_CBA",
 		"name": "CBA and productivity benefits",
 		"previous_id": "3a9ad02a-bb45-4895-a243-69dffd4a1c5c",
 		"id": "f96bae98-4fcd-4327-9629-ecc98e988715",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "DE_MINIMIS_OT_MEAL",
 		"name": "Overtime and night meal allowance",
 		"previous_id": "f96bae98-4fcd-4327-9629-ecc98e988715",
 		"id": "210feac0-37c7-4a8c-8fd1-4aa497f966c7",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "TAXABLE_TERMINATION",
 		"name": "Taxable separation and retirement pay",
 		"previous_id": "210feac0-37c7-4a8c-8fd1-4aa497f966c7",
 		"id": "49c04220-922c-4e5d-ae47-aa39757905f0",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "GROSS",
 		"name": "Gross earnings",
 		"previous_id": "49c04220-922c-4e5d-ae47-aa39757905f0",
 		"id": "6f429be3-0584-58d4-bb41-9108d103de9e",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "FRINGE_BENEFIT",
 		"name": "Fringe benefits in kind",
 		"previous_id": "6f429be3-0584-58d4-bb41-9108d103de9e",
 		"id": "014555de-d546-41b3-85c8-79a90ed0be9e",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "UNION_DUES",
 		"name": "Union dues",
 		"previous_id": "014555de-d546-41b3-85c8-79a90ed0be9e",
 		"id": "bf81a985-f816-47b0-8a97-e1c761e966c9",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "NET",
 		"name": "Net pay",
 		"previous_id": "bf81a985-f816-47b0-8a97-e1c761e966c9",
 		"id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c",
+		"balance_window": "YEAR"
 	}
 ]

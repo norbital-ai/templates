@@ -13,7 +13,7 @@ The four contracts above are the implementation source of truth. Legal evidence,
 ```text
 source tree ──► schema history ──► build ──► check ──► tests
      │
-     └──► engine ──► payroll_run.create ──► payslips ──► ledger automation ──► ledger + balance
+     └──► engine ──► payroll_run.create ──► payslips + ledger + balance, one write
                               │
                               └──► file syncs ──► salary xlsx / bank txt
 
@@ -26,11 +26,12 @@ seeds ──► jurisdictions ──► fixtures ──► live acceptance
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
 | Source tree              | 37 models, 7 apps, 1 kiosk, 5 automations (`ledger`, `contract_materialize`, `statutory_research`, `statutory_materialize`, `invitation_profile`) | `src/data/model`, `src/app`, `src/kiosk`, `src/automation`  |
 | Schema history           | Generated migrations from `0001_initial`; destructive steps carry an explicit `-- accept:` line                                                   | `migrations/`                                               |
-| Build                    | Passes on the pinned `@norbital-ai/*` 0.0.14 set                                                                                                  | local `bolt build`                                          |
+| Build                    | Passes on the pinned `@norbital-ai/*` 0.0.16 set; one `0023` migration with data backfills                                                  | local `bolt build`                                          |
 | Native checks            | Schema, model, policy, discovery, app and type checks pass                                                                                        | local `bolt check`                                          |
-| Engine tests             | Linear payroll, statutory order, subtotal chain and balance operations pass                                                                       | `tests/payroll_engine.test.ts`                              |
+| Engine tests             | Linear payroll, statutory order, subtotal chain, typed programs and balance operations pass                                                       | `tests/payroll_engine.test.ts`                              |
+| Full HR suite            | 746 tests in 49 files pass after the ownership/reversal/allowance changes                                                                           | `hr-full-final.log`                                         |
 | Ledger tests             | `settle`, `diff` and `apply`, reruns, and a balance that equals its ledger                                                                        | `tests/ledger_core.test.ts`, `tests/balance_reruns.test.ts` |
-| Public jurisdiction seed | 57 versions across nine jurisdictions, 741 files, wired and decoded                                                                               | `seed/public/jurisdiction/`                                 |
+| Public jurisdiction seed | 57 versions across nine jurisdictions, wired and decoded; settings conversions and balance windows typed                                                                               | `seed/public/jurisdiction/`                                 |
 | Private fixtures         | None accepted                                                                                                                                     | —                                                           |
 | Live acceptance          | 0 of 108 country-months                                                                                                                           | —                                                           |
 
@@ -38,7 +39,7 @@ seeds ──► jurisdictions ──► fixtures ──► live acceptance
 
 | Gate              | Completion evidence                                                                                                                                                                                                                                       |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Source closure    | Zero type findings; no UI, policy or comment references retired models, fields or automations; all four documents match the source tree                                                                                                                   |
+| Source closure    | Zero type findings; no UI, policy or comment references retired models, fields or automations; all four documents match the source tree; `configuration_ownership.test.ts` and `extension_fields.test.ts` green                                                                                                                   |
 | Registry coverage | `registered_rule` and `registered_effect` callbacks on every write-capable model; configuration models, `obligation`, `contract_change` and the statutory research models carry none                                                                      |
 | Balance rebuild   | `employee_balance.account` reconstructable from `ledger_entry`, proved from an empty opening in `tests/balance_reruns.test.ts`; the rebuild command is not wired                                                                                          |
 | Payroll export    | Bank layouts verified against each bank's current specification                                                                                                                                                                                           |

@@ -4,7 +4,6 @@
 		"name": "Shutdown or stoppage the employer causes",
 		"lookup": {},
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"events": {
 			"work.treatment": {
 				"scheduled": true,
@@ -28,7 +27,6 @@
 		"name": "Stop-work ordered by the labour inspection authority",
 		"lookup": {},
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"events": {
 			"work.treatment": {
 				"scheduled": true,
@@ -52,7 +50,6 @@
 		"name": "Work stopped by a typhoon or other natural disaster",
 		"lookup": {},
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"events": {
 			"work.treatment": {
 				"scheduled": true,
@@ -76,7 +73,6 @@
 		"name": "Lawful strike",
 		"lookup": {},
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"events": {
 			"work.treatment": {
 				"scheduled": true,
@@ -100,7 +96,6 @@
 		"name": "減班休息 agreed in writing to reduce hours",
 		"lookup": {},
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"events": {
 			"work.treatment": {
 				"scheduled": false,

@@ -10,7 +10,7 @@ import {
 import { idOf } from '../../../lib/payroll_engine/reads.js';
 
 import type { FileSyncCtx } from '@norbital-ai/bolt';
-import { runPosted, runsTakenBack } from '../../../lib/ledger/service.js';
+import { runPostings, undone } from '../../../lib/ledger/service.js';
 import {
 	attachmentsOf,
 	calculateRun,
@@ -118,23 +118,16 @@ export default model('payroll_run', {
 		},
 		filled: { payroll_run: ['settings_id', 'salary_coverage', 'pay_date'] },
 		transform: function* (input, ctx) {
+			// the approving decision asks again only for what the run posts: its payslips stand
+			if (ctx.approving)
+				return {
+					rows: input,
+					onApproved: yield* runPostings(
+						ctx.db.query,
+						input.map((run) => ({ id: run.id, pay_date: String(run.pay_date) }))
+					)
+				};
 			const entityIds = [...new Set(input.map((row) => row.entity_id))];
-			const { payroll_run: latest } = yield* ctx.db.query({
-				payroll_run: {
-					where: { entity_id: { in: entityIds } },
-					fields: ['id', 'run_number'],
-					orderBy: { run_number: 'desc' },
-					limit: entityIds.length
-				}
-			});
-			if (
-				!(yield* runPosted(
-					ctx.db.query,
-					latest.rows.map(({ id }) => id)
-				)) ||
-				!(yield* runsTakenBack(ctx.db.query))
-			)
-				return yield* ctx.refuse('The last run is still posting. Try again in a moment.');
 			const known = yield* ctx.db.query({
 				entity_profile_version: {
 					where: { entity_id: { in: entityIds }, status: { eq: 'SEALED' } },
@@ -199,6 +192,7 @@ export default model('payroll_run', {
 					cycle
 				);
 				return {
+					id: row.id,
 					row: {
 						entity_id: row.entity_id,
 						period: row.period,
@@ -226,7 +220,8 @@ export default model('payroll_run', {
 				rows.map((row) => jsonObject(row))
 			);
 			const calculated = [];
-			for (const { row, code, frame } of runs) {
+			const posting = [];
+			for (const { id, row, code, frame } of runs) {
 				const data = yield* loadRun(ctx.db.query, jsonObject(row), frame);
 				const unmerged = data.statutory_change?.find(
 					(entry) =>
@@ -280,30 +275,28 @@ export default model('payroll_run', {
 							'Someone in this run moved between companies this month. Pay this on the on-cycle run.'
 						);
 				}
-				calculated.push({
-					...row,
-					payslips: result.payslips.map((slip) => ({
-						settings_id: row.settings_id,
-						employee_id: idOf('employee_profile', slip.employee_id),
-						employment_id: idOf('employee_contract', slip.employment_id),
-						entity_id: idOf('entity', slip.entity_id),
-						basic_earnings: slip.basic_earnings,
-						gross_earnings: slip.gross_earnings,
-						net_pay: slip.net_pay,
-						total_deductions: slip.total_deductions,
-						employer_cost: slip.employer_cost,
-						period: slip.period,
-						ordinary_wages: slip.ordinary_wages,
-						additional_wages: slip.additional_wages,
-						employee_statutory: slip.employee_statutory,
-						employer_statutory: slip.employer_statutory,
-						tax_withheld: slip.tax_withheld,
-						breakdown: slip.breakdown
-					})),
-					attaches: attachmentsOf(data, frame)
-				});
+				const payslips = result.payslips.map((slip) => ({
+					settings_id: row.settings_id,
+					employee_id: idOf('employee_profile', slip.employee_id),
+					employment_id: idOf('employee_contract', slip.employment_id),
+					entity_id: idOf('entity', slip.entity_id),
+					basic_earnings: slip.basic_earnings,
+					gross_earnings: slip.gross_earnings,
+					net_pay: slip.net_pay,
+					total_deductions: slip.total_deductions,
+					employer_cost: slip.employer_cost,
+					period: slip.period,
+					ordinary_wages: slip.ordinary_wages,
+					additional_wages: slip.additional_wages,
+					employee_statutory: slip.employee_statutory,
+					employer_statutory: slip.employer_statutory,
+					tax_withheld: slip.tax_withheld,
+					breakdown: slip.breakdown
+				}));
+				calculated.push({ ...row, payslips, attaches: attachmentsOf(data, frame) });
+				posting.push({ id, pay_date: String(row.pay_date), payslips: payslips.map(jsonObject) });
 			}
-			return calculated;
+			return { rows: calculated, onApproved: yield* runPostings(ctx.db.query, posting) };
 		}
 	},
 	update: {
@@ -315,26 +308,11 @@ export default model('payroll_run', {
 				'update',
 				changes.map((change) => jsonObject({ ...change.before, ...change.set }))
 			);
-			const paying = changes.filter(({ set }) => set.state === 'PAID').map(({ before }) => before);
-			if (
-				paying.length > 0 &&
-				!(yield* runPosted(
-					ctx.db.query,
-					paying.map(({ id }) => id)
-				))
-			)
-				return yield* ctx.refuse(
-					'This run is still posting. Try again in a moment, or delete it and run it again.'
-				);
 			return changes.map((change) => change.set);
 		}
 	},
 	effect: {
-		deleted: function* (rows, ctx) {
-			yield* ctx.schedule('ledger', { post: rows.map((row) => `payroll_run:${row.id}`) });
-		},
 		created: function* (rows, ctx) {
-			yield* ctx.schedule('ledger', { post: rows.map((row) => `payroll_run:${row.id}`) });
 			yield* tap(
 				ctx,
 				'create',
@@ -356,10 +334,16 @@ export default model('payroll_run', {
 	},
 	delete: {
 		check: function* (rows, ctx) {
+			const ids = rows.map((row) => row.id);
+			// what the run posted comes back off the balance with it
+			const back = undone(
+				ctx.db.query,
+				ids.map((id) => `payroll_run:${id}`)
+			);
+			if (ctx.approving) return { onApproved: yield* back };
 			if (rows.some((row) => row.state === 'PAID'))
 				return yield* ctx.refuse('A paid run is locked.');
 			// a later run's year-to-date already counts this one, for anyone paid in both
-			const ids = rows.map((row) => row.id);
 			const { payslip: own, payroll_run: runs } = yield* ctx.db.query({
 				payslip: { where: { payroll_run_id: { in: ids } }, fields: ['employee_id'], limit: 10000 },
 				payroll_run: { fields: ['id', 'run_number'], limit: 10000 }
@@ -367,19 +351,21 @@ export default model('payroll_run', {
 			const numbers = runs.rows.filter(({ id }) => ids.includes(id));
 			const first = Math.min(...numbers.map((row) => row.run_number));
 			const later = runs.rows.filter((row) => row.run_number > first && !ids.includes(row.id));
-			if (later.length === 0 || own.rows.length === 0) return;
-			const { payslip: shared } = yield* ctx.db.query({
-				payslip: {
-					where: {
-						employee_id: { in: own.rows.map((row) => row.employee_id) },
-						payroll_run_id: { in: later.map((row) => row.id) }
-					},
-					fields: ['id'],
-					limit: 1
-				}
-			});
-			if (shared.rows.length > 0)
-				return yield* ctx.refuse('A later run has already counted this one. Delete it first.');
+			if (later.length > 0 && own.rows.length > 0) {
+				const { payslip: shared } = yield* ctx.db.query({
+					payslip: {
+						where: {
+							employee_id: { in: own.rows.map((row) => row.employee_id) },
+							payroll_run_id: { in: later.map((row) => row.id) }
+						},
+						fields: ['id'],
+						limit: 1
+					}
+				});
+				if (shared.rows.length > 0)
+					return yield* ctx.refuse('A later run has already counted this one. Delete it first.');
+			}
+			return { onApproved: yield* back };
 		}
 	}
 });

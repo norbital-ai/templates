@@ -1,8 +1,10 @@
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { checkExpression } from './expressions.js';
 import { type JsonObject } from './contracts.js';
 import { queryRows, type Reader } from './reads.js';
 import { Refusal } from './foundation.js';
+import { programOf } from './programs.js';
+import { paramsFor } from './params.js';
 
 export const requireDraftSettings = Effect.fn('payroll.requireDraftSettings')(function* (
 	read: Reader,
@@ -33,6 +35,7 @@ export const guardConfigurationRows = Effect.fn('payroll.guardConfigurationRows'
 	for (const row of rows as readonly JsonObject[]) {
 		if (row.lookup !== undefined && (row.lookup === null || typeof row.lookup !== 'object'))
 			return yield* Effect.fail(new Refusal({ message: `${model}: lookup must be an object.` }));
+		const program = programOf(model);
 		for (const field of [
 			'calculation',
 			'eligibility',
@@ -46,7 +49,19 @@ export const guardConfigurationRows = Effect.fn('payroll.guardConfigurationRows'
 		] as const) {
 			const source = row[field];
 			if (typeof source === 'string' && source.trim() !== '')
-				checkExpression(source, 'CALCULATION');
+				checkExpression(source, 'CALCULATION', undefined, program?.roots);
+		}
+		const schema = paramsFor(model, String(row.code ?? ''));
+		if (schema !== undefined) {
+			try {
+				Schema.decodeUnknownSync(schema)(row.lookup ?? {});
+			} catch (error) {
+				return yield* Effect.fail(
+					new Refusal({
+						message: `${model}: ${String(row.code ?? 'row')}: params do not match the family shape: ${String(error)}`
+					})
+				);
+			}
 		}
 	}
 });

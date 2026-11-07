@@ -3,7 +3,9 @@
 		"code": "SOCIAL_INSURANCE_PAYMENT",
 		"name": "健康保険・厚生年金保険料の納付 (social insurance premium payment)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -13,7 +15,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"obligation": {
@@ -27,7 +31,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -50,7 +56,9 @@
 		"code": "WITHHOLDING_TAX_PAYMENT",
 		"name": "源泉所得税の納付 (withholding tax payment)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -60,7 +68,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -74,7 +84,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -88,7 +100,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -111,7 +125,9 @@
 		"code": "RESIDENT_TAX_PAYMENT",
 		"name": "住民税特別徴収税額の納入 (resident tax payment)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -121,7 +137,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -135,7 +153,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -149,7 +169,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -172,7 +194,9 @@
 		"code": "WITHHOLDING_TAX_SEMIANNUAL",
 		"name": "源泉所得税の納期の特例による納付 (semi-annual withholding payment)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -182,7 +206,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -196,7 +222,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -210,7 +238,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -224,7 +254,7 @@
 		},
 		"references": [
 			{
-				"title": "所得税法 art.216: an office paying fewer than 10 employees (常時十人未満) approved by the tax office (company.facts.withholding_semiannual_special) pays January–June withholding by the 10th of the month after June and July–December by 20 January (NTA タックスアンサー No.2505 https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2505.htm). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days. The half-year is that of the payment (run.pay_date).",
+				"title": "所得税法 art.216: an office paying fewer than 10 employees (常時十人未満) approved by the tax office (company.withholding_semiannual_special) pays January–June withholding by the 10th of the month after June and July–December by 20 January (NTA タックスアンサー No.2505 https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2505.htm). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days. The half-year is that of the payment (run.pay_date).",
 				"url": "https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2505.htm"
 			}
 		],
@@ -235,7 +265,9 @@
 		"code": "RESIDENT_TAX_SEMIANNUAL",
 		"name": "住民税特別徴収の納期の特例による納入 (semi-annual resident tax payment)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -245,7 +277,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -259,7 +293,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -273,7 +309,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -286,7 +324,7 @@
 		},
 		"references": [
 			{
-				"title": "地方税法 art.321の5の2(1): an office paying fewer than 10 employees (常時十人未満) approved by the mayor (company.facts.resident_tax_semiannual_special) pays the June–November and December–May collections by the 10th of the month after each period. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days. The half-year is that of the payment (run.pay_date)."
+				"title": "地方税法 art.321の5の2(1): an office paying fewer than 10 employees (常時十人未満) approved by the mayor (company.resident_tax_semiannual_special) pays the June–November and December–May collections by the 10th of the month after each period. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days. The half-year is that of the payment (run.pay_date)."
 			}
 		],
 		"id": "808f1e2e-8714-5285-8b7e-f202cba622ed",
@@ -296,7 +334,9 @@
 		"code": "RESIDENT_TAX_RETIREMENT_PAYMENT",
 		"name": "退職所得に係る住民税の納入 (resident tax on retirement income)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -306,7 +346,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"obligation": {
@@ -320,7 +362,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -343,7 +387,9 @@
 		"code": "WAGE_LEDGER",
 		"name": "賃金台帳の記入 (wage ledger entry)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -353,7 +399,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -374,7 +422,9 @@
 		"code": "LABOUR_INSURANCE_ANNUAL_DECLARATION",
 		"name": "労働保険 年度更新 (labour insurance annual declaration and payment)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -384,7 +434,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"obligation": {
@@ -398,7 +450,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -421,7 +475,9 @@
 		"code": "SANTEI_KISO_REPORT",
 		"name": "算定基礎届 (standard remuneration annual report)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -431,7 +487,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"obligation": {
@@ -445,7 +503,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -468,7 +528,9 @@
 		"code": "YEAR_END_ADJUSTMENT",
 		"name": "年末調整 (year-end adjustment)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -478,7 +540,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -499,7 +563,9 @@
 		"code": "WITHHOLDING_SLIPS_TO_EMPLOYEES",
 		"name": "源泉徴収票の交付 (withholding slips to employees)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -509,7 +575,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -532,7 +600,9 @@
 		"code": "STATUTORY_RETURNS_SUMMARY",
 		"name": "法定調書合計表の提出 (statutory returns to the tax office)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -542,7 +612,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"obligation": {
@@ -556,7 +628,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -579,7 +653,9 @@
 		"code": "SALARY_PAYMENT_REPORT",
 		"name": "給与支払報告書の提出 (salary payment reports to municipalities)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -589,7 +665,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"obligation": {
@@ -603,7 +681,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -626,7 +706,10 @@
 		"code": "SOCIAL_INSURANCE_ACQUISITION",
 		"name": "健康保険・厚生年金保険 被保険者資格取得届 (social insurance enrolment)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -636,7 +719,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -659,7 +744,10 @@
 		"code": "EMPLOYMENT_INSURANCE_ACQUISITION",
 		"name": "雇用保険 被保険者資格取得届 (employment insurance enrolment)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -669,7 +757,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -692,7 +782,10 @@
 		"code": "WORKING_CONDITIONS_NOTICE",
 		"name": "労働条件通知書の明示 (written working conditions)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -711,7 +804,10 @@
 		"code": "WORKER_REGISTER",
 		"name": "労働者名簿の調製 (worker register)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -730,7 +826,10 @@
 		"code": "SOCIAL_INSURANCE_LOSS",
 		"name": "健康保険・厚生年金保険 被保険者資格喪失届 (social insurance exit)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -740,7 +839,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -763,7 +864,10 @@
 		"code": "EMPLOYMENT_INSURANCE_LOSS",
 		"name": "雇用保険 被保険者資格喪失届・離職証明書 (employment insurance exit and separation slip)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -773,7 +877,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -796,7 +902,10 @@
 		"code": "RESIDENT_TAX_TRANSFER",
 		"name": "給与所得者異動届出書 (resident tax special collection change)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -806,7 +915,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -829,7 +940,10 @@
 		"code": "LEAVER_WITHHOLDING_SLIP",
 		"name": "退職者の源泉徴収票の交付 (leaver's withholding slip)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
 		"target_collection": "obligation",
@@ -848,7 +962,10 @@
 		"code": "FINAL_WAGES_ON_REQUEST",
 		"name": "退職時の賃金の支払・金品の返還 (final wages on request)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
 		"target_collection": "obligation",
@@ -869,7 +986,9 @@
 		"code": "DISABILITY_EMPLOYMENT_REPORT",
 		"name": "障害者雇用状況報告 (disability employment status report)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -879,7 +998,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -893,7 +1014,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -907,7 +1030,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -921,7 +1046,7 @@
 		},
 		"references": [
 			{
-				"title": "障害者の雇用の促進等に関する法律 art.43(7) with 施行規則 art.8: by 15 July, an employer bound by the employment quota — 37.5 or more regular employees at the statutory rate of 2.7% (from 1 July 2026) (施行令 art.9 as amended by 令和5年政令第239号; company.facts.regular_employee_count, else the employments in force). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days."
+				"title": "障害者の雇用の促進等に関する法律 art.43(7) with 施行規則 art.8: by 15 July, an employer bound by the employment quota — 37.5 or more regular employees at the statutory rate of 2.7% (from 1 July 2026) (施行令 art.9 as amended by 令和5年政令第239号; company.regular_employee_count, else the employments in force). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days."
 			}
 		],
 		"id": "fbd114b4-cbe6-5f42-91c0-1c195415f123",
@@ -931,7 +1056,9 @@
 		"code": "ELDERLY_EMPLOYMENT_REPORT",
 		"name": "高年齢者雇用状況等報告 (older workers employment report)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -941,7 +1068,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"obligation": {
@@ -955,7 +1084,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -978,7 +1109,9 @@
 		"code": "DISABILITY_LEVY_DECLARATION",
 		"name": "障害者雇用納付金申告 (disability employment levy declaration)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -988,7 +1121,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -1002,7 +1137,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -1016,7 +1153,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -1030,7 +1169,7 @@
 		},
 		"references": [
 			{
-				"title": "障害者の雇用の促進等に関する法律 arts.53, 56(1) with 施行規則 art.18: an employer of more than 100 (101 or more) regular employees (附則 art.4; company.facts.regular_employee_count, else the employments in force). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days."
+				"title": "障害者の雇用の促進等に関する法律 arts.53, 56(1) with 施行規則 art.18: an employer of more than 100 (101 or more) regular employees (附則 art.4; company.regular_employee_count, else the employments in force). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2); the year-end closure (29 December–3 January) moves it only when the entity publishes those days."
 			}
 		],
 		"id": "a5c33d36-6934-5cb8-ad75-a98b5abd031f",
@@ -1040,7 +1179,9 @@
 		"code": "SOCIAL_INSURANCE_NEW_ESTABLISHMENT",
 		"name": "新規適用届 (social insurance establishment notification)",
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1050,7 +1191,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -1074,7 +1217,9 @@
 		"code": "LABOUR_INSURANCE_ESTABLISHMENT",
 		"name": "保険関係成立届 (labour insurance relationship notification)",
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1084,7 +1229,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -1108,7 +1255,9 @@
 		"code": "LABOUR_INSURANCE_PROVISIONAL_DECLARATION",
 		"name": "概算保険料申告 (provisional labour insurance premium declaration)",
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1118,7 +1267,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -1142,7 +1293,9 @@
 		"code": "EMPLOYMENT_INSURANCE_ESTABLISHMENT",
 		"name": "雇用保険適用事業所設置届 (employment insurance establishment notification)",
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1152,7 +1305,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -1176,7 +1331,9 @@
 		"code": "PAYROLL_OFFICE_OPENING",
 		"name": "給与支払事務所等の開設届出書 (payroll office opening notification)",
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1186,7 +1343,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -1210,7 +1369,9 @@
 		"code": "BONUS_PAYMENT_REPORT",
 		"name": "賞与支払届 (bonus payment report)",
 		"source_collection": "adhoc_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"adhoc_catalog": {
 				"where": {
@@ -1220,7 +1381,9 @@
 						}
 					}
 				},
-				"fields": ["code"],
+				"fields": [
+					"code"
+				],
 				"limit": 1
 			},
 			"holiday": {
@@ -1231,7 +1394,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -1254,7 +1419,9 @@
 		"code": "MATERNITY_PREMIUM_EXEMPTION",
 		"name": "産前産後休業取得者申出書 (maternity premium exemption application)",
 		"source_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1264,7 +1431,9 @@
 						}
 					}
 				},
-				"fields": ["code"],
+				"fields": [
+					"code"
+				],
 				"limit": 1
 			},
 			"holiday": {
@@ -1275,7 +1444,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -1296,7 +1467,9 @@
 		"code": "CHILDCARE_PREMIUM_EXEMPTION",
 		"name": "育児休業等取得者申出書 (childcare premium exemption application)",
 		"source_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1306,7 +1479,9 @@
 						}
 					}
 				},
-				"fields": ["code"],
+				"fields": [
+					"code"
+				],
 				"limit": 1
 			},
 			"holiday": {
@@ -1317,7 +1492,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -1338,7 +1515,9 @@
 		"code": "WORK_INJURY_REPORT",
 		"name": "労働者死傷病報告 (work-injury report, 4 days or more)",
 		"source_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1348,7 +1527,9 @@
 						}
 					}
 				},
-				"fields": ["code"],
+				"fields": [
+					"code"
+				],
 				"limit": 1
 			},
 			"holiday": {
@@ -1359,7 +1540,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -1368,7 +1551,8 @@
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(add_days(first(ctx.entry.days.map((d) => d.date).toSorted()), ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"労働者死傷病報告 (work-injury report, 4 days or more)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'WORK_INJURY_REPORT', ctx.entry.id])\n}];",
 		"lookup": {
-			"date_offset_days": 3
+			"date_offset_days": 3,
+			"report_days_threshold": 4
 		},
 		"references": [
 			{
@@ -1382,7 +1566,9 @@
 		"code": "WORK_INJURY_REPORT_QUARTERLY",
 		"name": "労働者死傷病報告 (work-injury report, under 4 days)",
 		"source_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1392,7 +1578,9 @@
 						}
 					}
 				},
-				"fields": ["code"],
+				"fields": [
+					"code"
+				],
 				"limit": 1
 			},
 			"holiday": {
@@ -1403,7 +1591,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -1412,7 +1602,8 @@
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(month_end(add_months(month_start(first(ctx.entry.days.map((d) => d.date).toSorted())), ctx.lookup.quarter_months - 1 - ((Number(first(ctx.entry.days.map((d) => d.date).toSorted()).substring(5, 7)) - 1) % ctx.lookup.quarter_months))), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id, employment_id: ctx.entry.employment_id,\n\ttitle: \"労働者死傷病報告 (work-injury report, under 4 days)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'WORK_INJURY_REPORT_QUARTERLY', ctx.entry.id])\n}];",
 		"lookup": {
-			"quarter_months": 3
+			"quarter_months": 3,
+			"report_days_threshold": 4
 		},
 		"references": [
 			{
@@ -1426,7 +1617,9 @@
 		"code": "WOMEN_ADVANCEMENT_PUBLICATION",
 		"name": "女性の活躍に関する情報公表 (women's advancement information publication)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1436,7 +1629,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -1450,7 +1645,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -1464,7 +1661,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -1474,11 +1673,12 @@
 		"effects": "const due = add_working_days(add_days(month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_months)), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'WOMEN_ADVANCEMENT_PUBLICATION', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"女性の活躍に関する情報公表 (women's advancement information publication)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"employee_count_threshold": 100,
-			"date_offset_months": 2
+			"date_offset_months": 2,
+			"business_year_end_month": 3
 		},
 		"references": [
 			{
-				"title": "女性の職業生活における活躍の推進に関する法律 art.20 (as amended, from 1 April 2026: the gender wage gap and the female manager ratio for an employer of 101 or more, previously the wage gap for 301 or more) with 一般事業主行動計画等に関する省令 art.19(4) (\"おおむね一年に一回以上\"); the ministry's notice places it within about three months of the business-year end. Headcount is the entity's employments in force; the business-year end month is company.facts.business_year_end_month. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (行政機関の休日に関する法律 art.2)."
+				"title": "女性の職業生活における活躍の推進に関する法律 art.20 (as amended, from 1 April 2026: the gender wage gap and the female manager ratio for an employer of 101 or more, previously the wage gap for 301 or more) with 一般事業主行動計画等に関する省令 art.19(4) (\"おおむね一年に一回以上\"); the ministry's notice places it within about three months of the business-year end. Headcount is the entity's employments in force; the business-year end month is company.business_year_end_month. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (行政機関の休日に関する法律 art.2)."
 			}
 		],
 		"id": "1ab996cf-8580-595e-8165-e49a1174da9e",
@@ -1488,7 +1688,10 @@
 		"code": "ANNUAL_LEAVE_FIVE_DAY_DESIGNATION",
 		"name": "年次有給休暇の時季指定 (5-day designated annual leave)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -1509,7 +1712,9 @@
 		"code": "OVERTIME_AGREEMENT_RENEWAL",
 		"name": "36協定の締結・届出 (overtime agreement renewal and filing)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1519,7 +1724,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -1533,7 +1740,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -1547,7 +1756,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -1558,7 +1769,7 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "労働基準法 art.36(1) with 施行規則 art.16–17: the agreement takes effect only once filed; its period is at most one year in practice (the yearly limit is set per year). Customer input: company.facts.overtime_agreement_to. Raised in the run of the month before the expiry month."
+				"title": "労働基準法 art.36(1) with 施行規則 art.16–17: the agreement takes effect only once filed; its period is at most one year in practice (the yearly limit is set per year). Customer input: company.overtime_agreement_to. Raised in the run of the month before the expiry month."
 			}
 		],
 		"id": "f32ebf73-f8ad-51f6-a531-8d5f63d86949",
@@ -1568,7 +1779,9 @@
 		"code": "LABOUR_INSURANCE_INSTALMENT_2",
 		"name": "労働保険料 延納 第2期 (labour insurance instalment 2)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1578,7 +1791,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -1592,7 +1807,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -1606,7 +1823,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -1619,7 +1838,7 @@
 		},
 		"references": [
 			{
-				"title": "労働保険の保険料の徴収等に関する法律 art.18 with 施行規則 arts.27–28: an employer whose provisional premium is 400,000 or more (or entrusted to a labour insurance association) may pay in three instalments — 10 July, 31 October and 31 January (14 November and 14 February for a member of a 労働保険事務組合, 施行規則 art.28(2); company.facts.labour_insurance_association); customer input: company.facts.labour_insurance_instalments. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2) applied by 徴収法 art.41)."
+				"title": "労働保険の保険料の徴収等に関する法律 art.18 with 施行規則 arts.27–28: an employer whose provisional premium is 400,000 or more (or entrusted to a labour insurance association) may pay in three instalments — 10 July, 31 October and 31 January (14 November and 14 February for a member of a 労働保険事務組合, 施行規則 art.28(2); company.labour_insurance_association); customer input: company.labour_insurance_instalments. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2) applied by 徴収法 art.41)."
 			}
 		],
 		"id": "0389c056-54f4-5834-adad-6f17caeff697",
@@ -1629,7 +1848,9 @@
 		"code": "LABOUR_INSURANCE_INSTALMENT_3",
 		"name": "労働保険料 延納 第3期 (labour insurance instalment 3)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1639,7 +1860,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -1653,7 +1876,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -1667,7 +1892,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -1680,7 +1907,7 @@
 		},
 		"references": [
 			{
-				"title": "労働保険の保険料の徴収等に関する法律 art.18 with 施行規則 arts.27–28: an employer whose provisional premium is 400,000 or more (or entrusted to a labour insurance association) may pay in three instalments — 10 July, 31 October and 31 January (14 November and 14 February for a member of a 労働保険事務組合, 施行規則 art.28(2); company.facts.labour_insurance_association); customer input: company.facts.labour_insurance_instalments. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2) applied by 徴収法 art.41)."
+				"title": "労働保険の保険料の徴収等に関する法律 art.18 with 施行規則 arts.27–28: an employer whose provisional premium is 400,000 or more (or entrusted to a labour insurance association) may pay in three instalments — 10 July, 31 October and 31 January (14 November and 14 February for a member of a 労働保険事務組合, 施行規則 art.28(2); company.labour_insurance_association); customer input: company.labour_insurance_instalments. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2) applied by 徴収法 art.41)."
 			}
 		],
 		"id": "af4dcc63-ecd6-5ce3-a8c1-8357e3f0ebeb",
@@ -1690,7 +1917,10 @@
 		"code": "HEALTH_LOSS_AT_75",
 		"name": "健康保険 資格喪失届（75歳到達） (health insurance loss at 75)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1700,7 +1930,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -1724,7 +1956,10 @@
 		"code": "PENSION_AGE_70",
 		"name": "厚生年金 70歳到達届・70歳以上被用者該当届 (pension loss at 70)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1734,7 +1969,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -1758,7 +1995,9 @@
 		"code": "MATERNITY_END_GRADE_CHANGE",
 		"name": "産前産後休業終了時報酬月額変更届 (grade change after maternity leave)",
 		"source_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1768,7 +2007,9 @@
 						}
 					}
 				},
-				"fields": ["code"],
+				"fields": [
+					"code"
+				],
 				"limit": 1
 			},
 			"holiday": {
@@ -1779,7 +2020,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -1803,7 +2046,9 @@
 		"code": "CHILDCARE_END_GRADE_CHANGE",
 		"name": "育児休業等終了時報酬月額変更届・養育期間特例申出 (grade change after childcare leave)",
 		"source_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1813,7 +2058,9 @@
 						}
 					}
 				},
-				"fields": ["code"],
+				"fields": [
+					"code"
+				],
 				"limit": 1
 			},
 			"holiday": {
@@ -1824,7 +2071,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -1848,7 +2097,9 @@
 		"code": "CHILDCARE_BENEFIT_APPLICATION",
 		"name": "育児休業給付金・出生後休業支援給付金 初回申請 (childcare leave benefit, first application)",
 		"source_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1858,7 +2109,9 @@
 						}
 					}
 				},
-				"fields": ["code"],
+				"fields": [
+					"code"
+				],
 				"limit": 1
 			},
 			"holiday": {
@@ -1869,7 +2122,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -1892,7 +2147,9 @@
 		"code": "CARE_LEAVE_BENEFIT_APPLICATION",
 		"name": "介護休業給付金 申請 (family care leave benefit)",
 		"source_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1902,7 +2159,9 @@
 						}
 					}
 				},
-				"fields": ["code"],
+				"fields": [
+					"code"
+				],
 				"limit": 1
 			},
 			"holiday": {
@@ -1913,7 +2172,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -1936,7 +2197,10 @@
 		"code": "OLDER_WORKER_CONTINUATION_BENEFIT",
 		"name": "高年齢雇用継続給付 受給資格確認・60歳到達時賃金証明書 (older worker continuation benefit)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1946,7 +2210,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -1970,7 +2236,10 @@
 		"code": "SHORT_HOURS_CHILDCARE_BENEFIT",
 		"name": "育児時短就業給付金 初回申請 (shortened-hours childcare benefit)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1980,7 +2249,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -2003,7 +2274,9 @@
 		"code": "RETIREMENT_INCOME_SLIP",
 		"name": "退職所得の源泉徴収票・特別徴収票 (retirement income slip)",
 		"source_collection": "adhoc_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"adhoc_catalog": {
 				"where": {
@@ -2013,7 +2286,9 @@
 						}
 					}
 				},
-				"fields": ["code"],
+				"fields": [
+					"code"
+				],
 				"limit": 1
 			},
 			"holiday": {
@@ -2024,7 +2299,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -2047,7 +2324,9 @@
 		"code": "PAYSLIP_DELIVERY",
 		"name": "給与支払明細書の交付 (pay statement delivery)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2057,7 +2336,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -2078,7 +2359,9 @@
 		"code": "STATUTORY_RETURNS_E_FILING",
 		"name": "法定調書の電子提出義務 (mandatory e-filing of statutory returns)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -2088,7 +2371,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -2102,7 +2387,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -2116,7 +2403,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -2130,7 +2419,7 @@
 		},
 		"references": [
 			{
-				"title": "所得税法 art.228の4 and 地方税法 art.317の6(5): 100 or more (30 from 1 January 2027); customer input: company.facts.statutory_return_count_two_years_prior. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2)."
+				"title": "所得税法 art.228の4 and 地方税法 art.317の6(5): 100 or more (30 from 1 January 2027); customer input: company.statutory_return_count_two_years_prior. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2)."
 			}
 		],
 		"id": "31859565-7665-581f-8b21-ea61de65d1d7",
@@ -2140,7 +2429,10 @@
 		"code": "RESIDENT_TAX_SPECIAL_COLLECTION_SWITCH",
 		"name": "特別徴収への切替届出 (switch of resident tax to special collection)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -2150,7 +2442,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -2161,7 +2455,7 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "地方税法 art.321の4(1)–(2): on the employee's request (employee.facts.resident_tax_special_collection_switch); the end of the hire month is the due day shown. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2)."
+				"title": "地方税法 art.321の4(1)–(2): on the employee's request (employee.resident_tax_special_collection_switch); the end of the hire month is the due day shown. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2)."
 			}
 		],
 		"id": "8ac7b1aa-1a47-5482-ad20-ba35494223f5",
@@ -2171,7 +2465,9 @@
 		"code": "WORK_RULES_FILING",
 		"name": "就業規則の作成・届出 (work rules filing)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -2181,7 +2477,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -2195,7 +2493,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -2209,7 +2509,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -2232,7 +2534,10 @@
 		"code": "NON_RENEWAL_NOTICE",
 		"name": "雇止めの予告 (notice of non-renewal)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (ctx.entry.signed_contract_period == null) return false;\nif (Number(get(ctx.entry, 'employee_extension_data.renewal_count', 0)) >= ctx.lookup.renewal_count_threshold) return true;\nreturn calendar_completed_months(ctx.entry.effective_range.from, ctx.entry.effective_range.to) >= ctx.lookup.service_months_threshold;",
 		"target_collection": "obligation",
@@ -2245,7 +2550,7 @@
 		},
 		"references": [
 			{
-				"title": "有期労働契約の締結、更新及び雇止めに関する基準 (平成15年厚生労働省告示357号) arts.1–2 with 労働基準法 art.14(2) (exit_facts.renewal_count; service over a year)."
+				"title": "有期労働契約の締結、更新及び雇止めに関する基準 (平成15年厚生労働省告示357号) arts.1–2 with 労働基準法 art.14(2) (renewal_count; service over a year)."
 			}
 		],
 		"id": "97a3f3e9-64c1-5ffa-8c5b-58519cf252f2",
@@ -2255,7 +2560,10 @@
 		"code": "INDEFINITE_CONVERSION_NOTICE",
 		"name": "無期転換申込権の明示 (indefinite conversion right)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.signed_contract_period != null;",
 		"target_collection": "obligation",
@@ -2276,7 +2584,10 @@
 		"code": "PART_TIME_TERMS_NOTICE",
 		"name": "短時間・有期雇用労働者への特定事項の明示 (written specified terms for part-time and fixed-term workers)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nreturn ctx.entry.engagement === 'PART_TIME' || ctx.entry.signed_contract_period != null;",
 		"target_collection": "obligation",
@@ -2295,7 +2606,10 @@
 		"code": "ANNUAL_LEAVE_REGISTER",
 		"name": "年次有給休暇管理簿 (annual leave register)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -2316,7 +2630,9 @@
 		"code": "ANNUAL_LEAVE_ATTENDANCE_REVIEW",
 		"name": "年次有給休暇の出勤率確認 (annual leave attendance review)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2326,7 +2642,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"employee_contract": {
@@ -2337,7 +2655,10 @@
 						}
 					}
 				},
-				"fields": ["service_started_on", "effective_range"],
+				"fields": [
+					"service_started_on",
+					"effective_range"
+				],
 				"limit": 50
 			},
 			"leave_catalog": {
@@ -2351,7 +2672,9 @@
 						"eq": "ANNUAL_LEAVE"
 					}
 				},
-				"fields": ["lookup"],
+				"fields": [
+					"lookup"
+				],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -2374,7 +2697,10 @@
 						}
 					}
 				},
-				"fields": ["work_date", "shift_definition_id"],
+				"fields": [
+					"work_date",
+					"shift_definition_id"
+				],
 				"limit": 400
 			},
 			"shift_definition": {
@@ -2385,7 +2711,10 @@
 						}
 					}
 				},
-				"fields": ["id", "variant"],
+				"fields": [
+					"id",
+					"variant"
+				],
 				"limit": 10000
 			},
 			"holiday": {
@@ -2396,7 +2725,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"leave_catalog_entry": {
@@ -2423,14 +2754,19 @@
 						}
 					}
 				},
-				"fields": ["employment_id", "days", "is_reversal", "reverses"],
+				"fields": [
+					"employment_id",
+					"days",
+					"reverses",
+					"reverses"
+				],
 				"limit": 10000
 			}
 		},
 		"condition": "return ctx.reads.obligation.length === 0;",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "// js\n// 労働基準法 art.39(1)–(2): each grant day closes the six months or the year whose attendance it turns on.\nconst contracts = ctx.reads.employee_contract;\nconst contract = contracts.find((row) => row.id === ctx.entry.employment_id);\nconst leave = first(ctx.reads.leave_catalog);\nif (contract == null || leave == null) return [];\nconst started = get(contract, 'service_started_on', contract.effective_range.from);\nconst month = (date) => Number(date.substring(0, 4)) * 12 + Number(date.substring(5, 7));\nconst served = month(ctx.entry.period + '-01') - month(started);\nconst offset = leave.lookup.service_offset_months;\nif (served < offset || (served - offset) % 12 !== 0) return [];\nconst grant = add_months(started, served);\nconst events = get(ctx.subject.employment, 'employee_extension_data.events', []);\nif (events.some((event) => event.kind === 'ATTENDANCE_BELOW_RATIO' && event.on === grant)) return [];\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment, 'terms.normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst shifts = group_by(ctx.reads.shift_definition, 'id');\nconst roster = Object.fromEntries(ctx.reads.roster_entry.map((row) => [row.work_date, get(first(get(shifts, String(row.shift_definition_id), [])) ?? {}, 'variant.day_type', 'WORK')]));\nconst holidays = ctx.reads.holiday.map((row) => row.date);\n// art.39(10): leave the reads leave out counts as attended; a reversed entry stands for nothing.\nconst own = ctx.reads.leave_catalog_entry.filter((entry) => contracts.some((row) => row.id === entry.employment_id));\nconst reversed = own.map((entry) => get(entry, 'reverses', null));\nconst absences = group_by(own.filter((entry) => entry.is_reversal !== true && !reversed.includes(entry.id)).flatMap((entry) => entry.days), 'date');\nconst from = served === offset ? started : add_months(grant, -12);\nlet working = 0;\nlet absent = 0;\nfor (let step = 0; step < calendar_distance_days(from, grant); step += 1) {\n\tconst date = add_days(from, step);\n\tconst type = get(roster, date, null);\n\tif (type == null ? off.includes(weekday(date)) || holidays.includes(date) : type !== 'WORK' && type !== 'ABS') continue;\n\tworking += 1;\n\tabsent += type === 'ABS' ? 1 : Math.min(1, get(absences, date, []).length / 2);\n}\nif (working - absent >= leave.lookup.attendance_ratio * working) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message + ' ' + (working - absent) + '/' + working + ' days recorded.',\n\tdue_on: grant,\n\toccurrence_key: occurrence_key(['JP', 'ANNUAL_LEAVE_ATTENDANCE_REVIEW', ctx.entry.employee_id, ctx.entry.period])\n}];",
+		"effects": "// js\n// 労働基準法 art.39(1)–(2): each grant day closes the six months or the year whose attendance it turns on.\nconst contracts = ctx.reads.employee_contract;\nconst contract = contracts.find((row) => row.id === ctx.entry.employment_id);\nconst leave = first(ctx.reads.leave_catalog);\nif (contract == null || leave == null) return [];\nconst started = get(contract, 'service_started_on', contract.effective_range.from);\nconst month = (date) => Number(date.substring(0, 4)) * 12 + Number(date.substring(5, 7));\nconst served = month(ctx.entry.period + '-01') - month(started);\nconst offset = leave.lookup.service_offset_months;\nif (served < offset || (served - offset) % 12 !== 0) return [];\nconst grant = add_months(started, served);\nconst events = get(ctx.subject.employment, 'employee_extension_data.events', []);\nif (events.some((event) => event.kind === 'ATTENDANCE_BELOW_RATIO' && event.on === grant)) return [];\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment, 'terms.normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst shifts = group_by(ctx.reads.shift_definition, 'id');\nconst roster = Object.fromEntries(ctx.reads.roster_entry.map((row) => [row.work_date, get(first(get(shifts, String(row.shift_definition_id), [])) ?? {}, 'variant.day_type', 'WORK')]));\nconst holidays = ctx.reads.holiday.map((row) => row.date);\n// art.39(10): leave the reads leave out counts as attended; a reversed entry stands for nothing.\nconst own = ctx.reads.leave_catalog_entry.filter((entry) => contracts.some((row) => row.id === entry.employment_id));\nconst reversed = own.map((entry) => get(entry, 'reverses', null));\nconst absences = group_by(own.filter((entry) => get(entry, 'reverses', null) == null && !reversed.includes(entry.id)).flatMap((entry) => entry.days), 'date');\nconst from = served === offset ? started : add_months(grant, -12);\nlet working = 0;\nlet absent = 0;\nfor (let step = 0; step < calendar_distance_days(from, grant); step += 1) {\n\tconst date = add_days(from, step);\n\tconst type = get(roster, date, null);\n\tif (type == null ? off.includes(weekday(date)) || holidays.includes(date) : type !== 'WORK' && type !== 'ABS') continue;\n\tworking += 1;\n\tabsent += type === 'ABS' ? 1 : Math.min(1, get(absences, date, []).length / 2);\n}\nif (working - absent >= leave.lookup.attendance_ratio * working) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message + ' ' + (working - absent) + '/' + working + ' days recorded.',\n\tdue_on: grant,\n\toccurrence_key: occurrence_key(['JP', 'ANNUAL_LEAVE_ATTENDANCE_REVIEW', ctx.entry.employee_id, ctx.entry.period])\n}];",
 		"lookup": {
 			"message": "Recorded attendance before this annual leave grant day is below the statutory ratio. Confirm it, and where it stands record ATTENDANCE_BELOW_RATIO on the grant day (労働基準法 art.39(1)–(2))."
 		},
@@ -2446,7 +2782,10 @@
 		"code": "MY_NUMBER_COLLECTION",
 		"name": "個人番号の提供の求め (My Number collection)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -2465,7 +2804,9 @@
 		"code": "SEPARATION_CERTIFICATE",
 		"name": "退職証明書 (certificate of employment on leaving)",
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'EMPLOYMENT_CERTIFICATE_REQUEST' && ctx.entry.closed_on == null;",
 		"target_collection": "obligation",
@@ -2485,7 +2826,9 @@
 		"code": "MALE_CHILDCARE_LEAVE_PUBLICATION",
 		"name": "男性の育児休業等取得状況の公表 (publication of men's childcare leave)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -2495,7 +2838,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -2509,7 +2854,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -2523,7 +2870,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -2533,11 +2882,12 @@
 		"effects": "const due = add_working_days(add_days(month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_months)), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'MALE_CHILDCARE_LEAVE_PUBLICATION', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"男性の育児休業等取得状況の公表 (publication of men's childcare leave)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"employee_count_threshold": 300,
-			"date_offset_months": 2
+			"date_offset_months": 2,
+			"business_year_end_month": 3
 		},
 		"references": [
 			{
-				"title": "育児・介護休業法 art.22の2 with 施行規則 arts.71の3–71の4: an employer regularly employing more than 300 from April 2025 (1,000 before), once a year for the previous business year (within about three months of its end per the ministry; company.facts.business_year_end_month). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2)."
+				"title": "育児・介護休業法 art.22の2 with 施行規則 arts.71の3–71の4: an employer regularly employing more than 300 from April 2025 (1,000 before), once a year for the previous business year (within about three months of its end per the ministry; company.business_year_end_month). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2)."
 			}
 		],
 		"id": "f2b7fcf5-bec7-5c0b-bc36-e425b397f719",
@@ -2547,7 +2897,9 @@
 		"code": "NEXT_GENERATION_ACTION_PLAN",
 		"name": "次世代法 一般事業主行動計画の策定・届出 (next-generation action plan)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -2557,7 +2909,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -2571,7 +2925,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -2585,7 +2941,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -2608,7 +2966,9 @@
 		"code": "WOMEN_ACTION_PLAN",
 		"name": "女性活躍推進法 一般事業主行動計画の策定・届出 (women's advancement action plan)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -2618,7 +2978,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -2632,7 +2994,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -2646,7 +3010,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -2669,7 +3035,9 @@
 		"code": "MID_CAREER_HIRING_PUBLICATION",
 		"name": "中途採用比率の公表 (publication of the mid-career hiring ratio)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -2679,7 +3047,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -2693,7 +3063,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -2707,7 +3079,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -2717,7 +3091,8 @@
 		"effects": "const due = add_working_days(add_days(month_end(add_months(ctx.entry.salary_coverage.from, ctx.lookup.date_offset_months)), -1), 1, ctx.reads.holiday, [0, 6]);\nconst key = occurrence_key(['JP', 'MID_CAREER_HIRING_PUBLICATION', ctx.entry.entity_id, ctx.entry.period]);\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"中途採用比率の公表 (publication of the mid-career hiring ratio)\",\n\tdue_on: due,\n\toccurrence_key: key\n}];",
 		"lookup": {
 			"employee_count_threshold": 300,
-			"date_offset_months": 2
+			"date_offset_months": 2,
+			"business_year_end_month": 3
 		},
 		"references": [
 			{
@@ -2731,7 +3106,10 @@
 		"code": "CARE_INFORMATION_AT_40",
 		"name": "介護休業制度等の情報提供（40歳） (care leave information at 40)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'payroll.date_of_birth', '') !== '';",
 		"target_collection": "obligation",
@@ -2752,7 +3130,9 @@
 		"code": "CARE_INDIVIDUAL_NOTICE",
 		"name": "介護に直面した労働者への個別周知・意向確認 (individual notice to a worker facing care)",
 		"source_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -2762,7 +3142,9 @@
 						}
 					}
 				},
-				"fields": ["code"],
+				"fields": [
+					"code"
+				],
 				"limit": 1
 			}
 		},
@@ -2783,7 +3165,10 @@
 		"code": "RECORDS_RETENTION",
 		"name": "労働関係書類の保存 (retention of employment records)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
 		"target_collection": "obligation",
@@ -2804,7 +3189,9 @@
 		"code": "CHILDCARE_ENVIRONMENT_MEASURES",
 		"name": "育児休業等を取得しやすい雇用環境の整備 (childcare leave environment measures)",
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -2823,7 +3210,9 @@
 		"code": "HARASSMENT_PREVENTION_MEASURES",
 		"name": "ハラスメント防止措置 (harassment prevention measures)",
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -2843,7 +3232,9 @@
 		"code": "HARASSMENT_PREVENTION_2026_AMENDMENT",
 		"name": "カスタマーハラスメント・求職者等セクシュアルハラスメント防止措置 (customer and job-seeker harassment measures, October 2026)",
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2853,7 +3244,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -2877,7 +3270,10 @@
 		"code": "HEALTH_CHECK_AT_HIRE",
 		"name": "雇入時の健康診断 (health check at hire)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -2896,7 +3292,10 @@
 		"code": "PERIODIC_HEALTH_CHECK",
 		"name": "定期健康診断 (annual health check)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -2917,7 +3316,9 @@
 		"code": "HEALTH_CHECK_REPORT",
 		"name": "定期健康診断結果報告書 (health check result report)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -2927,7 +3328,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -2941,7 +3344,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -2955,7 +3360,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -2978,7 +3385,9 @@
 		"code": "STRESS_CHECK",
 		"name": "ストレスチェックの実施・報告 (stress check and report)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -2988,7 +3397,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -3002,7 +3413,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -3016,7 +3429,9 @@
 						"isNull": true
 					}
 				},
-				"fields": ["occurrence_key"],
+				"fields": [
+					"occurrence_key"
+				],
 				"limit": 10000
 			}
 		},
@@ -3029,7 +3444,7 @@
 		},
 		"references": [
 			{
-				"title": "労働安全衛生法 art.66の10 with 労働安全衛生規則 arts.52の9, 52の21: once a year at a workplace regularly employing 50 or more; held with the health checks here (company.facts.health_check_month). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2)."
+				"title": "労働安全衛生法 art.66の10 with 労働安全衛生規則 arts.52の9, 52の21: once a year at a workplace regularly employing 50 or more; held with the health checks here (company.health_check_month). A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2)."
 			}
 		],
 		"id": "4f03bc69-ac02-532e-8ad3-f141f9b65f25",
@@ -3039,7 +3454,9 @@
 		"code": "DEPENDANT_DECLARATION_COLLECTION",
 		"name": "扶養控除等申告書の受理 (dependant declaration for the coming year)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -3049,7 +3466,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -3070,7 +3489,9 @@
 		"code": "CHILDCARE_INDIVIDUAL_NOTICE",
 		"name": "妊娠・出産等の申出時の個別周知・意向確認 (individual notice on a pregnancy or birth report)",
 		"source_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -3080,7 +3501,9 @@
 						}
 					}
 				},
-				"fields": ["code"],
+				"fields": [
+					"code"
+				],
 				"limit": 1
 			}
 		},
@@ -3101,7 +3524,9 @@
 		"code": "EMERGENCY_PAYMENT",
 		"name": "非常時払 (emergency payment of earned wages)",
 		"source_collection": "loan_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"loan_catalog": {
 				"where": {
@@ -3111,7 +3536,9 @@
 						}
 					}
 				},
-				"fields": ["code"],
+				"fields": [
+					"code"
+				],
 				"limit": 1
 			}
 		},
@@ -3132,7 +3559,9 @@
 		"code": "DEPENDANT_CHANGE_NOTICE",
 		"name": "健康保険 被扶養者(異動)届 (dependant change)",
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -3142,7 +3571,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -3155,7 +3586,7 @@
 		},
 		"references": [
 			{
-				"title": "健康保険法施行規則 art.38: within 5 days of the change — a workplace_case of kind DEPENDANT_CHANGE (facts.changed_on, else its opening day) of an employment insured for health insurance on that day; the due day counts the day of the change itself, as the acquisition notice. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2)."
+				"title": "健康保険法施行規則 art.38: within 5 days of the change — a workplace_case of kind DEPENDANT_CHANGE (changed_on, else its opening day) of an employment insured for health insurance on that day; the due day counts the day of the change itself, as the acquisition notice. A due day on a Saturday, Sunday or published holiday of the entity moves to the next working day (国税通則法 art.10(2); 地方税法 art.20の5(2); 行政機関の休日に関する法律 art.2)."
 			}
 		],
 		"id": "b2fc4575-7111-5f44-82b1-7fd1a54f704d",
@@ -3165,7 +3596,10 @@
 		"code": "PERSONAL_DATA_DISPOSAL",
 		"name": "特定個人情報・個人データの廃棄 (disposal after retention)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
 		"target_collection": "obligation",
@@ -3187,7 +3621,9 @@
 		"code": "SOCIAL_INSURANCE_OFFICE_CHANGE",
 		"name": "適用事業所 名称・所在地変更届 (office name or location change)",
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -3197,7 +3633,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -3220,7 +3658,9 @@
 		"code": "LABOUR_INSURANCE_OFFICE_CHANGE",
 		"name": "労働保険 名称・所在地等変更届 / 雇用保険 事業主事業所各種変更届 (labour insurance change)",
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -3230,7 +3670,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -3243,7 +3685,7 @@
 		},
 		"references": [
 			{
-				"title": "労働保険の保険料の徴収等に関する法律 art.4の2(2) with 施行規則 art.5 (the owner’s name, the business’s name, place or kind) and 雇用保険法施行規則 art.142: within 10 days counted from the day after the change (entity name, region or facts.ei_industry_class; row.before)."
+				"title": "労働保険の保険料の徴収等に関する法律 art.4の2(2) with 施行規則 art.5 (the owner’s name, the business’s name, place or kind) and 雇用保険法施行規則 art.142: within 10 days counted from the day after the change (entity name, region or ei_industry_class; row.before)."
 			}
 		],
 		"id": "fea299d0-24ac-57ee-b624-4e7b1d653db8",
@@ -3253,7 +3695,9 @@
 		"code": "PERSONAL_DATA_BREACH_PRELIMINARY",
 		"name": "個人データ漏えい等 速報 (preliminary breach report)",
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -3263,7 +3707,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -3272,11 +3718,13 @@
 		"target_action": "create",
 		"effects": "const due = add_working_days(add_days(add_days(get(ctx.entry, 'inputs.discovered_on', '') !== '' ? get(ctx.entry, 'inputs.discovered_on', '') : ctx.entry.opened_on, ctx.lookup.date_offset_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"個人データ漏えい等 速報 (preliminary breach report)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'PERSONAL_DATA_BREACH_PRELIMINARY', ctx.entry.id])\n}];",
 		"lookup": {
-			"date_offset_days": 4
+			"date_offset_days": 4,
+			"affected_people_count_threshold": 1000,
+			"my_number_count_threshold": 100
 		},
 		"references": [
 			{
-				"title": "個人情報保護法 art.26(1) with 施行規則 arts.7–8: a leak (漏えい・滅失・毀損) of employee data is reported to the 個人情報保護委員会 where it involves 要配慮個人情報 (facts.sensitive), property harm (facts.financial_harm), an unlawful purpose (facts.misconduct) or more than 1,000 people (facts.affected_count); 番号法 art.29の4 with 特定個人情報の漏えい等に関する報告等に関する規則 art.2: a My Number leak (facts.my_number) of more than 100 people. Counted from the day it was discovered (facts.discovered_on, else the case’s opening day). 施行規則 art.8(1): promptly — the commission’s guidelines read it as about 3 to 5 days: due on the 5th day."
+				"title": "個人情報保護法 art.26(1) with 施行規則 arts.7–8: a leak (漏えい・滅失・毀損) of employee data is reported to the 個人情報保護委員会 where it involves 要配慮個人情報 (sensitive), property harm (financial_harm), an unlawful purpose (misconduct) or more than 1,000 people (affected_count); 番号法 art.29の4 with 特定個人情報の漏えい等に関する報告等に関する規則 art.2: a My Number leak (my_number) of more than 100 people. Counted from the day it was discovered (discovered_on, else the case’s opening day). 施行規則 art.8(1): promptly — the commission’s guidelines read it as about 3 to 5 days: due on the 5th day."
 			}
 		],
 		"id": "3294ba60-6871-5309-9306-70eb64913cdb",
@@ -3286,7 +3734,9 @@
 		"code": "PERSONAL_DATA_BREACH_FINAL",
 		"name": "個人データ漏えい等 確報 (final breach report)",
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -3296,7 +3746,9 @@
 						}
 					}
 				},
-				"fields": ["date"],
+				"fields": [
+					"date"
+				],
 				"limit": 10000
 			}
 		},
@@ -3306,11 +3758,13 @@
 		"effects": "const due = add_working_days(add_days(add_days(get(ctx.entry, 'inputs.discovered_on', '') !== '' ? get(ctx.entry, 'inputs.discovered_on', '') : ctx.entry.opened_on, get(ctx.entry, 'inputs.misconduct', false) === true ? ctx.lookup.malicious_report_days : ctx.lookup.ordinary_report_days), -1), 1, ctx.reads.holiday, [0, 6]);\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"個人データ漏えい等 確報 (final breach report)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'PERSONAL_DATA_BREACH_FINAL', ctx.entry.id])\n}];",
 		"lookup": {
 			"malicious_report_days": 60,
-			"ordinary_report_days": 30
+			"ordinary_report_days": 30,
+			"affected_people_count_threshold": 1000,
+			"my_number_count_threshold": 100
 		},
 		"references": [
 			{
-				"title": "個人情報保護法 art.26(1) with 施行規則 arts.7–8: a leak (漏えい・滅失・毀損) of employee data is reported to the 個人情報保護委員会 where it involves 要配慮個人情報 (facts.sensitive), property harm (facts.financial_harm), an unlawful purpose (facts.misconduct) or more than 1,000 people (facts.affected_count); 番号法 art.29の4 with 特定個人情報の漏えい等に関する報告等に関する規則 art.2: a My Number leak (facts.my_number) of more than 100 people. Counted from the day it was discovered (facts.discovered_on, else the case’s opening day). 施行規則 art.8(2): within 30 days of discovery, 60 where the leak was made for an unlawful purpose."
+				"title": "個人情報保護法 art.26(1) with 施行規則 arts.7–8: a leak (漏えい・滅失・毀損) of employee data is reported to the 個人情報保護委員会 where it involves 要配慮個人情報 (sensitive), property harm (financial_harm), an unlawful purpose (misconduct) or more than 1,000 people (affected_count); 番号法 art.29の4 with 特定個人情報の漏えい等に関する報告等に関する規則 art.2: a My Number leak (my_number) of more than 100 people. Counted from the day it was discovered (discovered_on, else the case’s opening day). 施行規則 art.8(2): within 30 days of discovery, 60 where the leak was made for an unlawful purpose."
 			}
 		],
 		"id": "edadf89b-620f-56e8-8881-95ae9ad9148b",
@@ -3320,13 +3774,18 @@
 		"code": "PERSONAL_DATA_BREACH_NOTICE",
 		"name": "個人データ漏えい等 本人通知 (notice to the people affected)",
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "if (ctx.entry.kind !== 'DATA_BREACH') return false;\nif (get(ctx.entry, 'inputs.sensitive', false) === true) return true;\nif (get(ctx.entry, 'inputs.financial_harm', false) === true) return true;\nif (get(ctx.entry, 'inputs.misconduct', false) === true) return true;\nconst affected = Number(get(ctx.entry, 'inputs.affected_count', 0));\nif (affected > ctx.lookup.affected_people_count_threshold) return true;\nreturn get(ctx.entry, 'inputs.my_number', false) === true && affected > ctx.lookup.my_number_count_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = get(ctx.entry, 'inputs.discovered_on', '') !== '' ? get(ctx.entry, 'inputs.discovered_on', '') : ctx.entry.opened_on;\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"個人データ漏えい等 本人通知 (notice to the people affected)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'PERSONAL_DATA_BREACH_NOTICE', ctx.entry.id])\n}];",
-		"lookup": {},
+		"lookup": {
+			"affected_people_count_threshold": 1000,
+			"my_number_count_threshold": 100
+		},
 		"references": [
 			{
 				"title": "個人情報保護法 art.26(2) with 施行規則 art.10: promptly, on a reportable leak; 番号法 art.29の4(2)."
@@ -3339,7 +3798,9 @@
 		"code": "YEAR_END_DECLARATIONS_COLLECTION",
 		"name": "年末調整の各種申告書の受理 (year-end declarations)",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -3349,7 +3810,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -3370,18 +3833,24 @@
 		"code": "RETIREMENT_AGE_RULES",
 		"name": "定年・継続雇用制度の整備 (retirement age and continued employment)",
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && !ctx.lookup.lawful_measures.includes(get(ctx.entry, 'entity_extension_data.continued_employment_measure', ''));",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = ctx.entry.effective_range.from;\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"定年・継続雇用制度の整備 (retirement age and continued employment)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'RETIREMENT_AGE_RULES', ctx.entry.entity_id, ctx.entry.effective_range.from])\n}];",
 		"lookup": {
-			"lawful_measures": ["RAISED_AGE", "CONTINUED_EMPLOYMENT", "NO_RETIREMENT_AGE"]
+			"lawful_measures": [
+				"RAISED_AGE",
+				"CONTINUED_EMPLOYMENT",
+				"NO_RETIREMENT_AGE"
+			]
 		},
 		"references": [
 			{
-				"title": "高年齢者等の雇用の安定等に関する法律 art.8 (a retirement age below 60 is void), art.9(1) (高年齢者雇用確保措置 to 65; company.facts.continued_employment_measure) and art.10の2 (高年齢者就業確保措置 to 70, an effort duty). Raised when the entity records a retirement age (company.facts.retirement_age) that breaches them."
+				"title": "高年齢者等の雇用の安定等に関する法律 art.8 (a retirement age below 60 is void), art.9(1) (高年齢者雇用確保措置 to 65; company.continued_employment_measure) and art.10の2 (高年齢者就業確保措置 to 70, an effort duty). Raised when the entity records a retirement age (company.retirement_age) that breaches them."
 			}
 		],
 		"id": "b27bfb99-85ee-565a-b56a-aa40f845618e",
@@ -3391,7 +3860,10 @@
 		"code": "CONTINUED_EMPLOYMENT_CONFIRMATION",
 		"name": "継続雇用の希望確認 (continued employment past the retirement age)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -3404,7 +3876,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			}
 		},
@@ -3417,7 +3891,7 @@
 		},
 		"references": [
 			{
-				"title": "高年齢者等の雇用の安定等に関する法律 art.9(1)(ii): under a continued-employment system everyone who wishes is kept to 65. Raised three months before the worker reaches the retirement age (company.facts.retirement_age below 65), due the day it is reached (the day before the birthday, 年齢計算ニ関スル法律)."
+				"title": "高年齢者等の雇用の安定等に関する法律 art.9(1)(ii): under a continued-employment system everyone who wishes is kept to 65. Raised three months before the worker reaches the retirement age (company.retirement_age below 65), due the day it is reached (the day before the birthday, 年齢計算ニ関スル法律)."
 			}
 		],
 		"id": "2c343e6d-db1d-5a6e-90b2-9486307c9963",
@@ -3427,7 +3901,10 @@
 		"code": "INDUSTRIAL_HEALTH_STAFF",
 		"name": "産業医・衛生管理者の選任 (industrial physician and health supervisor at 50 workers)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -3440,7 +3917,9 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": ["entity_extension_data"],
+				"fields": [
+					"entity_extension_data"
+				],
 				"limit": 1
 			}
 		},
@@ -3454,7 +3933,7 @@
 		},
 		"references": [
 			{
-				"title": "労働安全衛生法 arts.12, 13, 18 with 労働安全衛生規則 arts.7(1)(i), 13(1)(i) and 2(2)/(13(2)): a workplace regularly employing 50 or more workers appoints both within 14 days of reaching 50 and reports without delay (様式第3号). Raised on a hire that brings the entity’s headcount to 50 or more, once (occurrence), unless the entity records the appointment (company.facts.industrial_physician_appointed_on). The headcount is the entity’s contracts in force; a multi-site entity counts each 事業場 (headcount_by_worksite)."
+				"title": "労働安全衛生法 arts.12, 13, 18 with 労働安全衛生規則 arts.7(1)(i), 13(1)(i) and 2(2)/(13(2)): a workplace regularly employing 50 or more workers appoints both within 14 days of reaching 50 and reports without delay (様式第3号). Raised on a hire that brings the entity’s headcount to 50 or more, once (occurrence), unless the entity records the appointment (company.industrial_physician_appointed_on). The headcount is the entity’s contracts in force; a multi-site entity counts each 事業場 (headcount_by_worksite)."
 			}
 		],
 		"id": "4879e7eb-7965-50e5-a814-c8dbd85166b6",
@@ -3464,13 +3943,18 @@
 		"code": "MINOR_AGE_CERTIFICATE",
 		"name": "年少者の証明書 (age certificate of a worker under 18)",
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst birth = get(ctx.entry, 'payroll.date_of_birth', '');\nif (birth === '') return false;\nreturn age_on(birth, ctx.entry.effective_range.from) < ctx.lookup.employee_age_years_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = ctx.entry.effective_range.from;\nreturn [{\n\tentity_id: ctx.entry.entity_id, employee_id: ctx.entry.employee_id, employment_id: ctx.entry.id,\n\ttitle: \"年少者の証明書 (age certificate of a worker under 18)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'MINOR_AGE_CERTIFICATE', ctx.entry.id, ctx.entry.effective_range.from])\n}];",
-		"lookup": {},
+		"lookup": {
+			"employee_age_years_threshold": 18
+		},
 		"references": [
 			{
 				"title": "労働基準法 art.57(1) with 年少者労働基準規則 art.1: the employer keeps at the workplace a certificate of the age of each worker under 18 (a 住民票記載事項の証明書 suffices; 昭和50年2月17日 基発83号). Raised on the hire of a worker under 18 on the hire day."
@@ -3483,7 +3967,9 @@
 		"code": "OVERTIME_MONTHLY_45H",
 		"name": "時間外労働の限度時間 45時間 (monthly overtime limit)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -3493,7 +3979,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -3532,7 +4020,10 @@
 						}
 					}
 				},
-				"fields": ["id", "variant"],
+				"fields": [
+					"id",
+					"variant"
+				],
 				"limit": 10000
 			}
 		},
@@ -3557,7 +4048,9 @@
 		"code": "OVERTIME_REST_DAY_100H",
 		"name": "時間外・休日労働 100時間未満 (absolute monthly cap)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -3567,7 +4060,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -3606,7 +4101,10 @@
 						}
 					}
 				},
-				"fields": ["id", "variant"],
+				"fields": [
+					"id",
+					"variant"
+				],
 				"limit": 10000
 			}
 		},
@@ -3630,7 +4128,9 @@
 		"code": "OVERTIME_WITHOUT_AGREEMENT",
 		"name": "36協定の有効期間外の時間外労働 (overtime outside the 36 agreement)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -3640,7 +4140,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -3679,7 +4181,10 @@
 						}
 					}
 				},
-				"fields": ["id", "variant"],
+				"fields": [
+					"id",
+					"variant"
+				],
 				"limit": 10000
 			}
 		},
@@ -3692,7 +4197,7 @@
 		},
 		"references": [
 			{
-				"title": "労働基準法 art.36(1): overtime and rest-day work are lawful only under a written agreement filed with the labour standards office; customer input: company.facts.overtime_agreement_from, overtime_agreement_to."
+				"title": "労働基準法 art.36(1): overtime and rest-day work are lawful only under a written agreement filed with the labour standards office; customer input: company.overtime_agreement_from, overtime_agreement_to."
 			}
 		],
 		"id": "441298fa-b37a-5f6c-adb5-eb25fd9fbc39",
@@ -3702,7 +4207,9 @@
 		"code": "OVERTIME_YEAR_360H",
 		"name": "時間外労働の限度時間 年360時間 (yearly overtime limit)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -3712,7 +4219,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -3751,7 +4260,10 @@
 						}
 					}
 				},
-				"fields": ["id", "variant"],
+				"fields": [
+					"id",
+					"variant"
+				],
 				"limit": 10000
 			}
 		},
@@ -3765,7 +4277,7 @@
 		},
 		"references": [
 			{
-				"title": "労働基準法 art.36(2)(iv), (4): 360 hours a year counted from the agreement's 起算日 (company.facts.overtime_agreement_from; else 1 January) over hours.months. 新技術・新商品等の研究開発 is outside the limits (art.36(11)). hours.months does not split rest-day work or within-legal-hours overtime (every approved hour past the schedule) from statutory overtime, so the count includes them and errs high."
+				"title": "労働基準法 art.36(2)(iv), (4): 360 hours a year counted from the agreement's 起算日 (company.overtime_agreement_from; else 1 January) over hours.months. 新技術・新商品等の研究開発 is outside the limits (art.36(11)). hours.months does not split rest-day work or within-legal-hours overtime (every approved hour past the schedule) from statutory overtime, so the count includes them and errs high."
 			}
 		],
 		"id": "32d482bb-b4a0-5399-9f85-cb3ed2ad2ab3",
@@ -3775,7 +4287,9 @@
 		"code": "OVERTIME_YEAR_720H",
 		"name": "特別条項の上限 年720時間 (yearly cap under a special clause)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -3785,7 +4299,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -3824,7 +4340,10 @@
 						}
 					}
 				},
-				"fields": ["id", "variant"],
+				"fields": [
+					"id",
+					"variant"
+				],
 				"limit": 10000
 			}
 		},
@@ -3840,7 +4359,7 @@
 		},
 		"references": [
 			{
-				"title": "労働基準法 art.36(5); from April 2024 drivers 960 h (art.140), doctors by level (art.141 with 医師の労働時間短縮 省令) (company.facts.overtime_sector). hours.months and hours.month/year carry every approved hour past the schedule, within-legal-hours overtime included, so this count errs high."
+				"title": "労働基準法 art.36(5); from April 2024 drivers 960 h (art.140), doctors by level (art.141 with 医師の労働時間短縮 省令) (company.overtime_sector). hours.months and hours.month/year carry every approved hour past the schedule, within-legal-hours overtime included, so this count errs high."
 			}
 		],
 		"id": "50c9a6da-0414-56a2-a8fc-3c79c8974962",
@@ -3850,7 +4369,9 @@
 		"code": "OVERTIME_AVERAGE_80H",
 		"name": "複数月平均80時間以内 (2- to 6-month average cap)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -3860,7 +4381,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -3899,7 +4422,10 @@
 						}
 					}
 				},
-				"fields": ["id", "variant"],
+				"fields": [
+					"id",
+					"variant"
+				],
 				"limit": 10000
 			}
 		},
@@ -3910,7 +4436,13 @@
 		"lookup": {
 			"message": "Overtime and rest-day work average more than 80 hours a month over a 2- to 6-month span (労働基準法 art.36(6)(iii)).",
 			"averaged_monthly_overtime_limit": 80,
-			"averaging_windows": [2, 3, 4, 5, 6]
+			"averaging_windows": [
+				2,
+				3,
+				4,
+				5,
+				6
+			]
 		},
 		"references": [
 			{
@@ -3924,7 +4456,9 @@
 		"code": "OVERTIME_SIX_MONTHS_OVER_45",
 		"name": "45時間超は年6か月まで (at most six months above 45 hours)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -3934,7 +4468,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -3973,7 +4509,10 @@
 						}
 					}
 				},
-				"fields": ["id", "variant"],
+				"fields": [
+					"id",
+					"variant"
+				],
 				"limit": 10000
 			}
 		},
@@ -3998,7 +4537,9 @@
 		"code": "OVERTIME_80H_NOTICE",
 		"name": "月80時間超の時間外・休日労働 (over 80 hours: notice and doctor interview)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4008,7 +4549,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -4047,7 +4590,10 @@
 						}
 					}
 				},
-				"fields": ["id", "variant"],
+				"fields": [
+					"id",
+					"variant"
+				],
 				"limit": 10000
 			}
 		},
@@ -4071,7 +4617,9 @@
 		"code": "MINOR_LIMITS",
 		"name": "年少者の時間外・休日・深夜労働 (minors: no overtime, rest-day or night work)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4081,7 +4629,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -4120,7 +4670,10 @@
 						}
 					}
 				},
-				"fields": ["id", "variant"],
+				"fields": [
+					"id",
+					"variant"
+				],
 				"limit": 10000
 			}
 		},
@@ -4129,7 +4682,10 @@
 		"target_action": "create",
 		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'MINOR_LIMITS', ctx.entry.id])\n}];",
 		"lookup": {
-			"message": "A worker under 18 did overtime, rest-day or night work, which the law forbids (労働基準法 arts.60–61)."
+			"message": "A worker under 18 did overtime, rest-day or night work, which the law forbids (労働基準法 arts.60–61).",
+			"night_from": "22:00",
+			"night_to": "05:00",
+			"employee_age_years_threshold": 18
 		},
 		"references": [
 			{
@@ -4143,7 +4699,9 @@
 		"code": "MATERNITY_LIMITS",
 		"name": "妊産婦の請求による時間外・休日・深夜の制限 (pregnant and post-partum workers)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4153,7 +4711,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -4192,7 +4752,10 @@
 						}
 					}
 				},
-				"fields": ["id", "variant"],
+				"fields": [
+					"id",
+					"variant"
+				],
 				"limit": 10000
 			},
 			"workplace_case_catalog_entry": {
@@ -4203,7 +4766,12 @@
 						}
 					}
 				},
-				"fields": ["kind", "opened_on", "closed_on", "inputs"],
+				"fields": [
+					"kind",
+					"opened_on",
+					"closed_on",
+					"inputs"
+				],
 				"limit": 10000
 			}
 		},
@@ -4213,11 +4781,15 @@
 		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'MATERNITY_LIMITS', ctx.entry.id])\n}];",
 		"lookup": {
 			"message": "A pregnant or post-partum worker who asked to be excused did overtime, rest-day or night work (労働基準法 art.66).",
-			"case_kinds": ["PREGNANCY_WORK_LIMIT_REQUEST"]
+			"case_kinds": [
+				"PREGNANCY_WORK_LIMIT_REQUEST"
+			],
+			"night_from": "22:00",
+			"night_to": "05:00"
 		},
 		"references": [
 			{
-				"title": "労働基準法 art.66(2)–(3): on the worker's request no overtime, rest-day or night work (terms.facts.pregnancy_work_limits_requested)."
+				"title": "労働基準法 art.66(2)–(3): on the worker's request no overtime, rest-day or night work (terms.pregnancy_work_limits_requested)."
 			}
 		],
 		"id": "3dd2cece-1806-5943-917d-cd0606c65264",
@@ -4227,7 +4799,9 @@
 		"code": "CHILDCARE_CARE_LIMITS",
 		"name": "育児・介護のための時間外・深夜の制限 (childcare and care limits)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4237,7 +4811,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -4276,7 +4852,10 @@
 						}
 					}
 				},
-				"fields": ["id", "variant"],
+				"fields": [
+					"id",
+					"variant"
+				],
 				"limit": 10000
 			},
 			"workplace_case_catalog_entry": {
@@ -4287,7 +4866,12 @@
 						}
 					}
 				},
-				"fields": ["kind", "opened_on", "closed_on", "inputs"],
+				"fields": [
+					"kind",
+					"opened_on",
+					"closed_on",
+					"inputs"
+				],
 				"limit": 10000
 			}
 		},
@@ -4299,9 +4883,17 @@
 			"message": "A worker who asked for the childcare or care limits did more overtime or night work than allowed (育児・介護休業法 arts.16の8, 17, 19).",
 			"monthly_overtime_hours_threshold": 24,
 			"annual_overtime_hours_threshold": 150,
-			"no_overtime_case_kinds": ["CHILDCARE_NO_OVERTIME_REQUEST"],
-			"overtime_limit_case_kinds": ["CHILDCARE_OVERTIME_LIMIT_REQUEST"],
-			"night_case_kinds": ["CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST"]
+			"no_overtime_case_kinds": [
+				"CHILDCARE_NO_OVERTIME_REQUEST"
+			],
+			"overtime_limit_case_kinds": [
+				"CHILDCARE_OVERTIME_LIMIT_REQUEST"
+			],
+			"night_case_kinds": [
+				"CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST"
+			],
+			"night_from": "22:00",
+			"night_to": "05:00"
 		},
 		"references": [
 			{
@@ -4315,7 +4907,9 @@
 		"code": "DAYTIME_STUDENT_EI",
 		"name": "昼間学生の雇用保険適用 (daytime students outside employment insurance)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4325,7 +4919,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -4348,7 +4944,9 @@
 		"code": "SHORT_TIME_COVERAGE",
 		"name": "短時間労働者の社会保険適用 (short-time worker coverage)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4358,7 +4956,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"workplace_case_catalog_entry": {
@@ -4369,7 +4969,12 @@
 						}
 					}
 				},
-				"fields": ["kind", "opened_on", "closed_on", "inputs"],
+				"fields": [
+					"kind",
+					"opened_on",
+					"closed_on",
+					"inputs"
+				],
 				"limit": 10000
 			}
 		},
@@ -4383,11 +4988,14 @@
 			"standard_coverage_weekly_hours": 30,
 			"employer_headcount_threshold": 50,
 			"minimum_monthly_wage": null,
-			"employer_case_kinds": ["SHORT_TIME_COVERAGE_NOTICE", "SHORT_TIME_VOLUNTARY_APPROVAL"]
+			"employer_case_kinds": [
+				"SHORT_TIME_COVERAGE_NOTICE",
+				"SHORT_TIME_VOLUNTARY_APPROVAL"
+			]
 		},
 		"references": [
 			{
-				"title": "健康保険法art.3(1)(ix), 厚生年金保険法art.12(v): actual pension-office specific-application notice or approved voluntary coverage establishes employer status. Do not substitute raw current headcount for the qualified same-legal-entity insured population. Other individual eligibility and actual ordinary-worker comparison remain separate legal facts.",
+				"title": "健康保険法art.3(1)(ix), 厚生年金保険法art.12(v): actual pension-office specific-application notice or approved voluntary coverage establishes employer status. Do not substitute raw current headcount for the qualified same-legal-entity insured population. Other individual eligibility and actual ordinary-worker comparison remain separate legal ",
 				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=00tc8229&dataType=1&pageNo=1"
 			}
 		],
@@ -4398,7 +5006,9 @@
 		"code": "DISCIPLINARY_DEDUCTION_LIMIT",
 		"name": "減給の総額制限 (disciplinary reductions above one tenth)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4408,7 +5018,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -4418,7 +5030,8 @@
 		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'DISCIPLINARY_DEDUCTION_LIMIT', ctx.entry.id])\n}];",
 		"lookup": {
 			"message": "Disciplinary reductions exceed one tenth of the period's wages (労働基準法 art.91); carry the rest to a later period.",
-			"catalog_code": "DISCIPLINARY_DEDUCTION"
+			"catalog_code": "DISCIPLINARY_DEDUCTION",
+			"wage_period_share": 0.1
 		},
 		"references": [
 			{
@@ -4432,7 +5045,9 @@
 		"code": "DIGITAL_WAGE_CONSENT",
 		"name": "賃金のデジタル払いの同意 (digital wage payment consent)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4442,7 +5057,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"workplace_case_catalog_entry": {
@@ -4453,7 +5070,12 @@
 						}
 					}
 				},
-				"fields": ["kind", "opened_on", "closed_on", "inputs"],
+				"fields": [
+					"kind",
+					"opened_on",
+					"closed_on",
+					"inputs"
+				],
 				"limit": 10000
 			},
 			"payroll_run": {
@@ -4464,7 +5086,9 @@
 						}
 					}
 				},
-				"fields": ["pay_date"],
+				"fields": [
+					"pay_date"
+				],
 				"limit": 1
 			}
 		},
@@ -4474,7 +5098,9 @@
 		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'DIGITAL_WAGE_CONSENT', ctx.entry.id])\n}];",
 		"lookup": {
 			"message": "Wages paid to a designated fund-transfer account need the worker's written consent (労働基準法施行規則 art.7の2(1)(iii)).",
-			"case_kinds": ["DIGITAL_WAGE_PAYMENT_CONSENT"],
+			"case_kinds": [
+				"DIGITAL_WAGE_PAYMENT_CONSENT"
+			],
 			"consent_kind": "DIGITAL_WAGE_PAYMENT_CONSENT"
 		},
 		"references": [
@@ -4489,7 +5115,9 @@
 		"code": "EI_COVERAGE_HOURS",
 		"name": "雇用保険の適用 (employment insurance by weekly hours)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4499,7 +5127,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -4513,7 +5143,7 @@
 		},
 		"references": [
 			{
-				"title": "雇用保険法 art.6(i): a worker of under 20 scheduled hours a week is outside employment insurance (20 before 1 October 2028; 雇用保険法等の一部を改正する法律, 令和6年法律第26号, lowers it to 10 from that day); a daytime student (art.6(iv), terms.facts.daytime_student) is outside it whatever the hours. terms.statutory_work_category records the coverage."
+				"title": "雇用保険法 art.6(i): a worker of under 20 scheduled hours a week is outside employment insurance (20 before 1 October 2028; 雇用保険法等の一部を改正する法律, 令和6年法律第26号, lowers it to 10 from that day); a daytime student (art.6(iv), terms.daytime_student) is outside it whatever the hours. terms.statutory_work_category records the coverage."
 			}
 		],
 		"id": "2160e997-bed5-5ca6-aeae-c0fc67ba5453",
@@ -4523,7 +5153,9 @@
 		"code": "JP_STANDARD_SHIFT_OVERTIME",
 		"name": "Statutory overtime cannot be hidden inside a planned ordinary shift",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4533,7 +5165,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -4572,7 +5206,10 @@
 						}
 					}
 				},
-				"fields": ["id", "variant"],
+				"fields": [
+					"id",
+					"variant"
+				],
 				"limit": 10000
 			}
 		},
@@ -4581,7 +5218,8 @@
 		"target_action": "create",
 		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'JP_STANDARD_SHIFT_OVERTIME', ctx.entry.id])\n}];",
 		"lookup": {
-			"message": "A standard shift has more than8 ordinary hours. Reclassify and approve the statutory overtime before payroll; the ordinary shift cannot absorb its required premium."
+			"message": "A standard shift has more than8 ordinary hours. Reclassify and approve the statutory overtime before payroll; the ordinary shift cannot absorb its required premium.",
+			"standard_daily_hours": 8
 		},
 		"references": [
 			{
@@ -4596,7 +5234,9 @@
 		"code": "JP_SOURCE_IN_KIND",
 		"name": "Built-in in-kind remuneration values are verified through FY2026 only",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4606,7 +5246,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"adhoc_catalog_entry": {
@@ -4637,7 +5279,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -4664,7 +5308,9 @@
 		"code": "JP_SOURCE_MINIMUM_WAGE",
 		"name": "Built-in regional minimum wage source coverage ends September2027",
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4674,7 +5320,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -4701,7 +5349,9 @@
 		"code": "PREMIUM_EXEMPTION_CHARGED",
 		"name": "育休・産休の保険料免除月の控除 (premium charged in an exempt month)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4711,7 +5361,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"leave_catalog_entry": {
@@ -4738,7 +5390,9 @@
 						}
 					}
 				},
-				"fields": ["days"],
+				"fields": [
+					"days"
+				],
 				"limit": 100
 			}
 		},
@@ -4771,7 +5425,9 @@
 		"code": "RETIREMENT_DECLARATION_MISSING",
 		"name": "退職所得の受給に関する申告書の未受領 (retirement pay without the declaration)",
 		"source_collection": "payslip",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4781,7 +5437,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			},
 			"workplace_case_catalog_entry": {
@@ -4792,7 +5450,12 @@
 						}
 					}
 				},
-				"fields": ["kind", "opened_on", "closed_on", "inputs"],
+				"fields": [
+					"kind",
+					"opened_on",
+					"closed_on",
+					"inputs"
+				],
 				"limit": 10000
 			}
 		},
@@ -4802,7 +5465,10 @@
 		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'RETIREMENT_DECLARATION_MISSING', ctx.entry.id])\n}];",
 		"lookup": {
 			"message": "Retirement pay was withheld as declared but no 退職所得の受給に関する申告書 is on record: without it the rate is 20.42% (所得税法 art.201(3)); use RETIREMENT_ALLOWANCE_UNDECLARED.",
-			"declared_codes": ["RETIREMENT_ALLOWANCE", "DISMISSAL_NOTICE_ALLOWANCE"],
+			"declared_codes": [
+				"RETIREMENT_ALLOWANCE",
+				"DISMISSAL_NOTICE_ALLOWANCE"
+			],
 			"case_kind": "RETIREMENT_INCOME_DECLARATION"
 		},
 		"references": [
@@ -4819,7 +5485,9 @@
 		"name": "Follow up a contribution corrected for a closed month",
 		"lookup": {},
 		"source_collection": "adhoc_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"adhoc_catalog": {
 				"where": {
@@ -4829,7 +5497,11 @@
 						}
 					}
 				},
-				"fields": ["code", "name", "lookup"],
+				"fields": [
+					"code",
+					"name",
+					"lookup"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -4840,11 +5512,13 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
-		"condition": "// js\nconst row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'is_reversal', false) !== true && get(row, 'lookup.accounts', []).length > 0;",
+		"condition": "// js\nconst row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.name,\n\toccurrence_key: occurrence_key(['JP', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",

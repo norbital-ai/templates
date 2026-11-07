@@ -158,11 +158,13 @@
 	{
 		"code": "TERMINATION_BENEFIT",
 		"name": "Termination benefit",
-		"lookup": {},
+		"lookup": {
+			"service_months": 12
+		},
 		"off_cycle_eligible": true,
 		"subtotal_id": "08d443a7-052a-5a60-beba-06eb161ed6ab",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst months = calendar_completed_months(\n\temployment.effective_range.from,\n\tctx.entry.incurred_on\n);\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (!(months >= ctx.lookup.service_months)) return false;\nconst rate = get(terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\n// First Schedule para 2(5): Part XIIA does not reach a domestic employee.\nconst category = get(terms, 'statutory_work_category', '');\nif (category === 'DOMESTIC') return false;\nif (monthly <= ctx.lookup.monthly_wage_threshold) return true;\nreturn ctx.lookup.manual_categories.includes(category);",
-		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst rate = get(employment.terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\nconst months = calendar_completed_months(\n\temployment.effective_range.from,\n\tctx.entry.incurred_on\n);\nconst days =\n\tmonths < ctx.lookup.first_band_months ? ctx.lookup.first_band_days\n\t: months < ctx.lookup.second_band_months ? ctx.lookup.second_band_days\n\t: ctx.lookup.third_band_days;\n// Reg.6(2), JTKSM formula: a day's wages is twelve months' wages over 365, charged for each year of service.\nconst dayWage = (monthly * ctx.lookup.months_per_year) / ctx.lookup.year_days;\nreturn Math.max(ctx.entry.quantity, dayWage * days * (months / ctx.lookup.months_per_year));",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst rate = get(employment.terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\nconst months = calendar_completed_months(\n\temployment.effective_range.from,\n\tctx.entry.incurred_on\n);\nconst days =\n\tmonths < ctx.lookup.first_band_months ? ctx.lookup.first_band_days\n\t: months < ctx.lookup.second_band_months ? ctx.lookup.second_band_days\n\t: ctx.lookup.third_band_days;\n// Reg.6(2), JTKSM formula: a day's wages is twelve months' wages over 365, charged for each year of service.\nconst dayWage = (monthly * 12) / ctx.lookup.year_days;\nreturn Math.max(ctx.entry.quantity, dayWage * days * (months / 12));",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -187,7 +189,7 @@
 		"party": "EMPLOYEE",
 		"references": [
 			{
-				"title": "Employment Act 1955 ss.12(2)-(4),13(1),14(1)(a),57. A written contractual notice governs; absent it, general default notice is 4/6/8 weeks at under 2/under 5/at least 5 years on the notice-giving date. Section 12(3) preserves that statutory floor for redundancy/retrenchment. Domestic employment has a separate 14-day default, subject to its express contract. Written notice includes its giving day. Section 13(1) indemnifies only wages that would accrue during the unexpired notice; days already served and expressly waived final days are removed. Dismissal for misconduct after due inquiry owes no notice under s.14(1)(a). constant monthly wages are apportioned over the actual unserved calendar interval by each month's length, replacing monthly/30. This row does not yet resolve every wage component, changing/non-monthly wage or contractual calendar-month notice; those R14 branches remain open. Source: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf the actual terminating party controls payment direction. Sections 13(2),14(3),57 supply distinct exception facts. Section 14 does not apply to domestic employees (First Schedule para.2(5)); s.17A requires both approved form and filed copy, not an INTERN label. Section 12(3) floor also reads the specified structural/transfer/ownership ground. Approved apprenticeship contractual rights remain separately unresolved. Encoded 2026-10-07 (round 7): EA ss.12–13: the indemnity is the wages that would have accrued over the notice, or its unexpired part — the written contract's notice (terms.facts.contract_notice_weeks), else not less than 4 / 6 / 8 weeks by service, the floor also applying on the s.12(3) structural grounds — less the days served from exit_facts.notice_given_on and the waived days; the wages of a day are terms.monthly_wage × 12 ÷ 365. The entered amount if higher.",
+				"title": "Employment Act 1955 ss.12(2)-(4),13(1),14(1)(a),57. A written contractual notice governs; absent it, general default notice is 4/6/8 weeks at under 2/under 5/at least 5 years on the notice-giving date. Section 12(3) preserves that statutory floor for redundancy/retrenchment. Domestic employment has a separate 14-day default, subject to its express contract. Written notice includes its giving day. Section 13(1) indemnifies only wages that would accrue during the unexpired notice; days already served and expressly waived final days are removed. Dismissal for misconduct after due inquiry owes no notice under s.14(1)(a). constant monthly wages are apportioned over the actual unserved calendar interval by each month's length, replacing monthly/30. This row does not yet resolve every wage component, changing/non-monthly wage or contractual calendar-month notice; those R14 branches remain open. Source: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf the actual terminating party controls payment direction. Sections 13(2),14(3),57 supply distinct exception  Section 14 does not apply to domestic employees (First Schedule para.2(5)); s.17A requires both approved form and filed copy, not an INTERN label. Section 12(3) floor also reads the specified structural/transfer/ownership ground. Approved apprenticeship contractual rights remain separately unresolved. Encoded 2026-10-07 (round 7): EA ss.12–13: the indemnity is the wages that would have accrued over the notice, or its unexpired part — the written contract's notice (terms.contract_notice_weeks), else not less than 4 / 6 / 8 weeks by service, the floor also applying on the s.12(3) structural grounds — less the days served from notice_given_on and the waived days; the wages of a day are terms.monthly_wage × 12 ÷ 365. The entered amount if higher.",
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 			}
 		],
@@ -207,7 +209,7 @@
 		"party": "EMPLOYEE",
 		"references": [
 			{
-				"title": "Employment Act 1955 ss.13(1),24(2)(b): indemnity owed by the party ending employment to the other party. A supported manual request retains required evidence and review; its entered amount does not override the calculated unserved-period wages. Employee recovery remains NET/SUBTRACT, subject to the applicable deduction limits and the separate final-wages exception in s.24(9)(b). Section 24(9)(a) concerns compensation paid BY the employer, not this employee debt. Statutory exceptions, the approved-and-filed apprenticeship exclusion and domestic scope are evaluated from declared facts. Constant-monthly valuation and outstanding wage/contract branches share NOTICE_IN_LIEU."
+				"title": "Employment Act 1955 ss.13(1),24(2)(b): indemnity owed by the party ending employment to the other party. A supported manual request retains required evidence and review; its entered amount does not override the calculated unserved-period wages. Employee recovery remains NET/SUBTRACT, subject to the applicable deduction limits and the separate final-wages exception in s.24(9)(b). Section 24(9)(a) concerns compensation paid BY the employer, not this employee debt. Statutory exceptions, the approved-and-filed apprenticeship exclusion and domestic scope are evaluated from declared  Constant-monthly valuation and outstanding wage/contract branches share NOTICE_IN_LIEU."
 			}
 		],
 		"id": "f91fab5a-c79a-5c22-b4e3-92c99c3296a0",
@@ -352,11 +354,13 @@
 	{
 		"code": "LAYOFF_BENEFIT",
 		"name": "Lay-off benefit",
-		"lookup": {},
+		"lookup": {
+			"service_months": 12
+		},
 		"off_cycle_eligible": true,
 		"subtotal_id": "08d443a7-052a-5a60-beba-06eb161ed6ab",
 		"eligibility": "// js\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst months = calendar_completed_months(\n\temployment.effective_range.from,\n\tctx.entry.incurred_on\n);\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(employment, 'effective_range.to', null);\nif (exit !== null && !(ctx.entry.incurred_on <= exit)) return false;\nif (!(months >= ctx.lookup.service_months)) return false;\nconst rate = get(terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\n// First Schedule para 2(5): Part XIIA does not reach a domestic employee.\nconst category = get(terms, 'statutory_work_category', '');\nif (category === 'DOMESTIC') return false;\nif (monthly <= ctx.lookup.monthly_wage_threshold) return true;\nreturn ctx.lookup.manual_categories.includes(category);",
-		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst rate = get(employment.terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\nconst months = calendar_completed_months(\n\temployment.effective_range.from,\n\tctx.entry.incurred_on\n);\nconst days =\n\tmonths < ctx.lookup.first_band_months ? ctx.lookup.first_band_days\n\t: months < ctx.lookup.second_band_months ? ctx.lookup.second_band_days\n\t: ctx.lookup.third_band_days;\n// Reg.6(2), JTKSM formula: a day's wages is twelve months' wages over 365, charged for each year of service.\nconst dayWage = (monthly * ctx.lookup.months_per_year) / ctx.lookup.year_days;\nreturn Math.max(ctx.entry.quantity, dayWage * days * (months / ctx.lookup.months_per_year));",
+		"conversion": "// js\nconst employment = ctx.subject.employment;\nconst rate = get(employment.terms, 'rate', null);\nconst monthly =\n\trate !== null && get(rate, 'unit', null) === 'MONTHLY' ? get(rate, 'amount', 0) : 0;\nconst months = calendar_completed_months(\n\temployment.effective_range.from,\n\tctx.entry.incurred_on\n);\nconst days =\n\tmonths < ctx.lookup.first_band_months ? ctx.lookup.first_band_days\n\t: months < ctx.lookup.second_band_months ? ctx.lookup.second_band_days\n\t: ctx.lookup.third_band_days;\n// Reg.6(2), JTKSM formula: a day's wages is twelve months' wages over 365, charged for each year of service.\nconst dayWage = (monthly * 12) / ctx.lookup.year_days;\nreturn Math.max(ctx.entry.quantity, dayWage * days * (months / 12));",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -409,30 +413,6 @@
 			}
 		],
 		"id": "0bf8a6c7-9708-5d50-9b8e-b27242e63baa",
-		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
-	},
-	{
-		"code": "PIECE_REST_DAY_WORK",
-		"name": "Rest-day work on piece rates",
-		"lookup": {
-			"piece_multiple": 2
-		},
-		"off_cycle_eligible": false,
-		"subtotal_id": "068ecb1e-ca60-518f-8f4e-c6b485373556",
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (get(employment, 'terms.rate.unit', null) !== 'PIECE') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nconst exit = get(employment, 'effective_range.to', null);\nif (exit === null) return true;\nreturn ctx.entry.incurred_on <= exit;",
-		"conversion": "// js\n// quantity is the pieces done; the contract's rate is the ordinary rate per piece.\nreturn ctx.entry.quantity * get(ctx.subject.employment, 'terms.rate.amount', 0) * ctx.lookup.piece_multiple;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"references": [
-			{
-				"title": "Employment Act 1955 (Act 265)",
-				"locator": "s.60(3)(d); First Schedule para 1A",
-				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
-				"quote": "An employee on piece rates who works on a rest day is paid twice the ordinary rate per piece. Enter the pieces done that day."
-			}
-		],
-		"id": "5bfdd9a1-dd05-57e8-ab1e-a68fbbbd9ddf",
 		"settings_id": "dbcbbcb8-6a38-5344-99d5-de52d19595ec"
 	},
 	{

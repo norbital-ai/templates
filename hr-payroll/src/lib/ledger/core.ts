@@ -1,16 +1,27 @@
+import { settingsConstants } from '../payroll_engine/contracts.js';
 import { addMonths } from '@norbital-ai/std/date';
-import { completedMonths, isJsonObject, type JsonObject } from '../payroll_engine/foundation.js';
+import {
+	completedMonths,
+	isJsonObject,
+	Refusal,
+	type JsonObject
+} from '../payroll_engine/foundation.js';
 
 /**
  * The ledger's pure core. A value lives at `account / code / period / measure`, and a source says what it should have
  * posted there: `diff` compares that with what the source has posted, so a repeat posts nothing.
  */
 export type Unit = 'DAY' | 'CALENDAR_DAY' | 'HOUR' | 'MONEY' | 'COUNT';
+export const MEASURES = ['total', 'used', 'entitled', 'carried', 'limit', 'paid'] as const;
+export type Measure = (typeof MEASURES)[number];
+export type PeriodLetter = 'Y' | 'M' | 'D' | 'S' | 'B' | 'L' | 'E';
+/** `<scope>.<window letter>.<window start>`: the only shape a balance period may take. */
+export type PeriodKey = `${string}.${PeriodLetter}.${string}`;
 export type Key = {
 	readonly account: string;
 	readonly code: string;
-	readonly period: string;
-	readonly measure: string;
+	readonly period: PeriodKey;
+	readonly measure: Measure;
 };
 /** What a source should have posted to one key: `amount` is signed. */
 export type Wanted = Key & {
@@ -30,6 +41,20 @@ export type Accounts = Record<string, Record<string, Record<string, Record<strin
 
 // the ledger keeps fewer digits than a sum of floats: dust is neither a shortfall nor a movement
 const dust = (value: number) => Number(value.toFixed(8));
+const MEASURE_SET: ReadonlySet<string> = new Set(MEASURES);
+export const isMeasure = (value: unknown): value is Measure =>
+	typeof value === 'string' && MEASURE_SET.has(value);
+export const measureOf = (value: unknown): Measure => {
+	if (isMeasure(value)) return value;
+	throw new Refusal({ message: `${String(value)}: unknown balance measure.` });
+};
+const PERIOD = /^[^.]+(?:\.[^.]+)?\.[YMDLSBE]\.\d{4}-\d{2}-\d{2}$/;
+export const isPeriodKey = (value: unknown): value is PeriodKey =>
+	typeof value === 'string' && PERIOD.test(value);
+export const periodOf = (value: unknown): PeriodKey => {
+	if (isPeriodKey(value)) return value;
+	throw new Refusal({ message: `${String(value)}: malformed balance period.` });
+};
 const pathOf = ({ account, code, period, measure }: Key) =>
 	[account, code, period, measure].join('/');
 const signed = ({ operation, amount }: Pick<Movement, 'operation' | 'amount'>) =>
@@ -154,7 +179,7 @@ export type Window =
 	| { readonly kind: 'LIFETIME' }
 	| { readonly kind: 'EVENT'; readonly on: string };
 
-const LETTER: Readonly<Record<Window['kind'], string>> = {
+const LETTER: Readonly<Record<Window['kind'], PeriodLetter>> = {
 	YEAR: 'Y',
 	MONTH: 'M',
 	SERVICE_YEAR: 'S',
@@ -190,11 +215,11 @@ export const windowStart = (window: Window, on: string, started: string): string
 /** `<scope>.<kind>.<window start>`: scope is the country, so a move or a restart of service starts new keys. */
 /** Whose pay totals these are. Where each employer withholds on its own, as in China, a move starts them again. */
 export const totalsScope = (settings: JsonObject, entity: unknown) =>
-	record(settings.lookup).totals_by_employer === true
+	settingsConstants(settings).ytd_scope === 'EMPLOYER'
 		? `${String(settings.code)}.${String(entity)}`
 		: String(settings.code);
 
-export const periodKey = (scope: string, window: Window, on: string, started: string): string =>
+export const periodKey = (scope: string, window: Window, on: string, started: string): PeriodKey =>
 	`${scope}.${LETTER[window.kind]}.${windowStart(window, on, started)}`;
 
 /** The window a leave or claim row counts in, from its lookup. */
@@ -285,8 +310,8 @@ export const expired = (
 					const key = {
 						account,
 						code,
-						period,
-						measure,
+						period: periodOf(period),
+						measure: measureOf(measure),
 						effective_on: today,
 						source: `retention:${today}`
 					};

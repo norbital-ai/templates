@@ -1,7 +1,7 @@
 // What a statutory row returns decides what happens. Below zero, a row whose statute has the employer repay pays an `ADD`
 // line on that run and its balance falls by the refund; any other stops at zero and the next run nets it.
 import assert from 'node:assert/strict';
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
 import { diff } from '../src/lib/ledger/core.ts';
@@ -51,7 +51,7 @@ const owing = (amount: number, lookup: object = {}): PayrollInput => ({
 	adhoc_catalog: [],
 	loan_catalog: [],
 	employee: { id: 'employee' },
-	employment: { id: 'contract', terms: { rate: { amount: 5000, unit: 'MONTHLY' } } },
+	employment: { id: 'contract', terms: { rate: { amount: 5000, unit: 'MONTHLY' }, normal_hours_per_day: 8, normal_hours_per_week: 40, normal_days_per_week: 5 } },
 	employer: { id: 'entity' },
 	balance: {
 		id: 'balance',
@@ -121,7 +121,7 @@ describe('each country’s route', () => {
 	const routeOf = (country: string, code: string) => {
 		const versions = readdirSync(join(ROOT, country));
 		const routes = versions.flatMap((version) =>
-			read(join(ROOT, country, version, 'statutory_contribution_catalog.json'))
+			(JSON.parse(readFileSync(join(ROOT, country, version, 'statutory_contribution_catalog.json'), 'utf8')) as readonly { readonly code: string; readonly lookup?: object }[])
 				.filter((row) => row.code === code)
 				.map((row) => JSON.stringify(row.lookup ?? {}).includes('"below_zero":"REFUND"'))
 		);

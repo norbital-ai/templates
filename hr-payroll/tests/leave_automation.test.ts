@@ -350,43 +350,45 @@ describe('posting', () => {
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 
-	it.live('never runs as the writer, who holds no write to the ledger or the balance', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const member = t.member(['hr_controller']);
-			const hr = t.as(member);
-			yield* compute(t);
-			yield* take(t, seed, 'MEDICAL_LEAVE', '2026-11-03', member);
-			yield* t.runDue();
-			const [entry] = (yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } }))
-				.leave_catalog_entry.rows;
-			const [posted] = (yield* ledgerRows(t)).filter((row) => row.measure === 'used');
-			const [balance] = (yield* t.storedQuery({ employee_balance: { limit: 1 } })).employee_balance
-				.rows;
-			assert.ok(entry !== undefined && posted !== undefined && balance !== undefined);
-			assert.equal(entry.created_by, member.id);
-			assert.notEqual(posted.created_by, member.id);
-			assert.notEqual(balance.updated_by, member.id);
-			assert.equal(
-				yield* Effect.isFailure(
-					hr.act('employee_balance.update', [{ target: balance.id, set: { account: {} } }])
-				),
-				true
-			);
-			assert.equal(
-				yield* Effect.isFailure(
-					hr.act('ledger_entry.create', [
-						{
-							balance_id: balance.id,
-							operation: 'ADD',
-							account: 'leave',
-							code: 'MEDICAL_LEAVE',
-							effective_on: PlainDate('2026-11-03')
-						}
-					])
-				),
-				true
-			);
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
+	it.live(
+		'rides in the writer’s own write, yet the writer holds no write to the ledger or the balance',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const member = t.member(['hr_controller']);
+				const hr = t.as(member);
+				yield* compute(t);
+				yield* take(t, seed, 'MEDICAL_LEAVE', '2026-11-03', member);
+				yield* t.runDue();
+				const [entry] = (yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } }))
+					.leave_catalog_entry.rows;
+				const [posted] = (yield* ledgerRows(t)).filter((row) => row.measure === 'used');
+				const [balance] = (yield* t.storedQuery({ employee_balance: { limit: 1 } }))
+					.employee_balance.rows;
+				assert.ok(entry !== undefined && posted !== undefined && balance !== undefined);
+				assert.equal(entry.created_by, member.id);
+				assert.equal(posted.created_by, member.id);
+				assert.equal(balance.updated_by, member.id);
+				assert.equal(
+					yield* Effect.isFailure(
+						hr.act('employee_balance.update', [{ target: balance.id, set: { account: {} } }])
+					),
+					true
+				);
+				assert.equal(
+					yield* Effect.isFailure(
+						hr.act('ledger_entry.create', [
+							{
+								balance_id: balance.id,
+								operation: 'ADD',
+								account: 'leave',
+								code: 'MEDICAL_LEAVE',
+								effective_on: PlainDate('2026-11-03')
+							}
+						])
+					),
+					true
+				);
+			}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 });

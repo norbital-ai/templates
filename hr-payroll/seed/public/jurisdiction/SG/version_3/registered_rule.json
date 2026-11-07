@@ -2,10 +2,13 @@
 	{
 		"code": "ROSTER_DAILY_12_HOURS",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"order": 13,
 		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nif (!get(ctx.lookup, 'statutory_work_categories', []).includes(category)) return false;\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nif (!(Number(get(terms, 'rate.amount', 0)) <= ceiling)) return false;\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nif (engagements === null) return true;\nreturn engagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', ''));",
-		"validate": "const intervals = get(ctx.entry, 'actual_worked_intervals', []);\nreturn interval_minutes(intervals) <= get(ctx.lookup, 'daily_hours', 12) * 60;",
+		"validate": "const intervals = get(ctx.entry, 'actual_worked_intervals', []);\nreturn interval_minutes(intervals) <= 12, 12) * 60;",
 		"lookup": {
 			"roster_warnings": {
 				"daily_hours": 12,
@@ -13,7 +16,20 @@
 				"monthly_overtime_hours": 72,
 				"consecutive_days": 6,
 				"weekly_rest_days": 1
-			}
+			},
+			"statutory_work_categories": [
+				"NON_MANUAL",
+				"MANUAL_LABOUR",
+				"MANUAL_LABOUR_SUPERVISOR"
+			],
+			"covered_engagements": [
+				"EMPLOYEE",
+				"PART_TIME",
+				"INTERN",
+				"APPRENTICE"
+			],
+			"manual_monthly_ceiling": 4500,
+			"nonmanual_monthly_ceiling": 2600
 		},
 		"references": [
 			{
@@ -28,13 +44,29 @@
 	{
 		"code": "ROSTER_CONSECUTIVE_HOURS",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"order": 14,
 		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nif (!get(ctx.lookup, 'statutory_work_categories', []).includes(category)) return false;\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nif (!(Number(get(terms, 'rate.amount', 0)) <= ceiling)) return false;\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nif (engagements === null) return true;\nreturn engagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', ''));",
 		"validate": "const intervals = get(ctx.entry, 'actual_worked_intervals', []);\nreturn intervals.every(\n\t(interval) =>\n\t\telapsed_minutes(interval.start, interval.end) <=\n\t\t\tget(ctx.lookup, 'consecutive_hours', 6) * 60 ||\n\t\tsum(\n\t\t\tget(interval, 'breaks', []).map((pause) => elapsed_minutes(pause.start, pause.end))\n\t\t) >=\n\t\t\tget(ctx.lookup, 'meal_break_minutes', 45)\n);",
 		"lookup": {
 			"consecutive_hours": 6,
-			"meal_break_minutes": 45
+			"meal_break_minutes": 45,
+			"statutory_work_categories": [
+				"NON_MANUAL",
+				"MANUAL_LABOUR",
+				"MANUAL_LABOUR_SUPERVISOR"
+			],
+			"covered_engagements": [
+				"EMPLOYEE",
+				"PART_TIME",
+				"INTERN",
+				"APPRENTICE"
+			],
+			"manual_monthly_ceiling": 4500,
+			"nonmanual_monthly_ceiling": 2600
 		},
 		"references": [
 			{
@@ -49,13 +81,19 @@
 	{
 		"code": "ROSTER_YOUNG_NIGHT_WORK",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"order": 16,
 		"condition": "const born = get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', null);\nconst date = get(ctx.entry, 'work_date', null);\nif (born === null || date === null) return false;\nconst manual = get(ctx.lookup, 'manual_categories', []).includes(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'statutory_work_category', '')\n);\nreturn manual && age_on(String(born), String(date)) < get(ctx.lookup, 'young_age', 16);",
-		"validate": "const intervals = get(ctx.entry, 'actual_worked_intervals', []);\nreturn (\n\tclock_window_minutes(\n\t\tintervals,\n\t\tget(ctx.lookup, 'timezone', 'Asia/Singapore'),\n\t\t'23:00',\n\t\t'06:00'\n\t) === 0\n);",
+		"validate": "const intervals = get(ctx.entry, 'actual_worked_intervals', []);\nreturn (\n\tclock_window_minutes(\n\t\tintervals,\n\t\tget(ctx.subject.employer, 'time_zone', 'Asia/Singapore'),\n\t\t'23:00',\n\t\t'06:00'\n\t) === 0\n);",
 		"lookup": {
 			"young_age": 16,
-			"timezone": "Asia/Singapore"
+			"manual_categories": [
+				"MANUAL_LABOUR",
+				"MANUAL_LABOUR_SUPERVISOR"
+			]
 		},
 		"references": [
 			{
@@ -70,7 +108,10 @@
 	{
 		"code": "ROSTER_YOUNG_DAILY_HOURS",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"order": 17,
 		"condition": "const born = get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', null);\nconst date = get(ctx.entry, 'work_date', null);\nif (born === null || date === null) return false;\nconst manual = get(ctx.lookup, 'manual_categories', []).includes(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'statutory_work_category', '')\n);\nreturn manual && age_on(String(born), String(date)) < get(ctx.lookup, 'young_age', 16);",
 		"validate": "const elapsed =\n\tinterval_minutes(get(ctx.entry, 'actual_worked_intervals', [])) / 60;\nconst born = String(get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', ''));\nconst date = String(get(ctx.entry, 'work_date', ''));\nif (born === '' || date === '') return true;\nconst age = age_on(born, date);\nconst limit =\n\tage < get(ctx.lookup, 'child_age', 15)\n\t\t? get(ctx.lookup, 'child_hours', 6)\n\t\t: get(ctx.lookup, 'young_hours', 7);\nreturn elapsed <= limit;",
@@ -78,7 +119,11 @@
 			"young_age": 16,
 			"child_age": 15,
 			"child_hours": 6,
-			"young_hours": 7
+			"young_hours": 7,
+			"manual_categories": [
+				"MANUAL_LABOUR",
+				"MANUAL_LABOUR_SUPERVISOR"
+			]
 		},
 		"references": [
 			{
@@ -93,7 +138,10 @@
 	{
 		"code": "ROSTER_YOUNG_REST_DAY",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"order": 18,
 		"reads": {
 			"shift_definition": {
@@ -102,14 +150,20 @@
 						"eq": "ctx.entry.shift_definition_id"
 					}
 				},
-				"fields": ["variant"],
+				"fields": [
+					"variant"
+				],
 				"limit": 1
 			}
 		},
 		"condition": "const born = get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', null);\nconst date = get(ctx.entry, 'work_date', null);\nif (born === null || date === null) return false;\nconst manual = get(ctx.lookup, 'manual_categories', []).includes(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'statutory_work_category', '')\n);\nif (!manual) return false;\nif (!(age_on(String(born), String(date)) < get(ctx.lookup, 'young_age', 16))) return false;\nreturn get(first(get(ctx, 'reads.shift_definition', [])), 'variant.day_type', '') === 'REST';",
 		"validate": "return get(get(ctx, 'reads', {}), 'commissioner_permission', null) != null;",
 		"lookup": {
-			"young_age": 16
+			"young_age": 16,
+			"manual_categories": [
+				"MANUAL_LABOUR",
+				"MANUAL_LABOUR_SUPERVISOR"
+			]
 		},
 		"references": [
 			{
@@ -124,7 +178,10 @@
 	{
 		"code": "ROSTER_YOUNG_BREAK",
 		"target_collection": "roster_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"order": 19,
 		"condition": "const born = get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', null);\nconst date = get(ctx.entry, 'work_date', null);\nif (born === null || date === null) return false;\nconst manual = get(ctx.lookup, 'manual_categories', []).includes(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'statutory_work_category', '')\n);\nreturn manual && age_on(String(born), String(date)) < get(ctx.lookup, 'young_age', 16);",
 		"validate": "const born = String(get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', ''));\nconst date = String(get(ctx.entry, 'work_date', ''));\nif (born === '' || date === '') return true;\nconst age = age_on(born, date);\nconst limit =\n\tage < get(ctx.lookup, 'child_age', 15)\n\t\t? get(ctx.lookup, 'child_continuous_hours', 3)\n\t\t: get(ctx.lookup, 'young_continuous_hours', 4);\nreturn get(ctx.entry, 'actual_worked_intervals', []).every(\n\t(interval) =>\n\t\telapsed_minutes(interval.start, interval.end) <= limit * 60 ||\n\t\tsum(\n\t\t\tget(interval, 'breaks', []).map((pause) => elapsed_minutes(pause.start, pause.end))\n\t\t) >=\n\t\t\tget(ctx.lookup, 'break_minutes', 30)\n);",
@@ -133,7 +190,11 @@
 			"child_age": 15,
 			"child_continuous_hours": 3,
 			"young_continuous_hours": 4,
-			"break_minutes": 30
+			"break_minutes": 30,
+			"manual_categories": [
+				"MANUAL_LABOUR",
+				"MANUAL_LABOUR_SUPERVISOR"
+			]
 		},
 		"references": [
 			{
@@ -148,13 +209,29 @@
 	{
 		"code": "CONTRACT_CATEGORIES",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"order": 36,
 		"validate": "const terms = get(ctx.entry, 'terms', {});\nif (!get(ctx.lookup, 'residency_statuses', []).includes(get(terms, 'residency_status', ''))) return false;\nconst pass = get(terms, 'work_authorisation_category', '');\nif (pass !== '' && !get(ctx.lookup, 'work_pass_categories', []).includes(pass)) return false;\nconst classification = get(terms, 'work_classification', '');\nreturn classification === '' || get(ctx.lookup, 'work_classifications', []).includes(classification);",
 		"lookup": {
-			"residency_statuses": ["CITIZEN", "PERMANENT_RESIDENT", "FOREIGNER"],
-			"work_classifications": ["EA_COVERED", "NON_EA", "ORDINARY", "MANAGERIAL"],
-			"work_pass_categories": ["WORK_PERMIT", "S_PASS", "EMPLOYMENT_PASS"]
+			"residency_statuses": [
+				"CITIZEN",
+				"PERMANENT_RESIDENT",
+				"FOREIGNER"
+			],
+			"work_classifications": [
+				"EA_COVERED",
+				"NON_EA",
+				"ORDINARY",
+				"MANAGERIAL"
+			],
+			"work_pass_categories": [
+				"WORK_PERMIT",
+				"S_PASS",
+				"EMPLOYMENT_PASS"
+			]
 		},
 		"id": "f5a1ff0a-ad38-5ff3-b756-79e4d2691dca",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
@@ -162,9 +239,12 @@
 	{
 		"code": "RESIDENCY_SINCE_REQUIRED",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"order": 37,
-		"validate": "const terms = get(ctx.entry, 'terms', {});\nreturn (\n\tget(terms, 'residency_status', '') !== 'PERMANENT_RESIDENT' ||\n\tget(get(ctx.entry, 'employee_extension_data', {}), 'facts.residency_since', '') !== ''\n);",
+		"validate": "const terms = get(ctx.entry, 'terms', {});\nreturn (\n\tget(terms, 'residency_status', '') !== 'PERMANENT_RESIDENT' ||\n\tget(get(ctx.entry, 'employee_extension_data', {}), 'residency_since', '') !== ''\n);",
 		"lookup": {},
 		"id": "9953358b-2e0c-5036-9131-b6cdbe79a7fe",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
@@ -172,7 +252,10 @@
 	{
 		"code": "SHARED_STRUCTURED_EMPLOYEE_INPUTS",
 		"target_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"order": 38,
 		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst extension = get(ctx.entry, 'employee_extension_data', {});\nconst limits = get(ctx.lookup, 'terms', {});\nreturn Object.keys(limits).every((key) => {\n\tconst rule = limits[key];\n\tconst value = get(terms, key, get(extension, key, null));\n\tif (value == null) return get(rule, 'required', false) !== true;\n\tconst number = Number(value);\n\tif (get(rule, 'integer', false) === true && number !== Math.trunc(number)) return false;\n\tconst floor = get(rule, 'exclusive_minimum', null);\n\tif (floor !== null && !(number > floor)) return false;\n\tconst minimum = get(rule, 'minimum', null);\n\tif (minimum !== null && !(number >= minimum)) return false;\n\tconst maximum = get(rule, 'maximum', null);\n\treturn maximum === null || number <= maximum;\n});",
 		"lookup": {
@@ -188,11 +271,11 @@
 					"exclusive_minimum": 0,
 					"maximum": 7
 				},
-				"term_facts.comparable_full_time_hours_per_day": {
+				"comparable_full_time_hours_per_day": {
 					"exclusive_minimum": 0,
 					"maximum": 24
 				},
-				"term_facts.comparable_full_time_hours_per_week": {
+				"comparable_full_time_hours_per_week": {
 					"exclusive_minimum": 0,
 					"maximum": 168
 				}
@@ -204,7 +287,10 @@
 	{
 		"code": "SHARED_STRUCTURED_ENTITY_INPUTS",
 		"target_collection": "entity_profile_version",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"order": 39,
 		"validate": "const extension = get(ctx.entry, 'entity_extension_data', {});\nconst limits = get(ctx.lookup, 'entity', {});\nreturn Object.keys(limits).every((key) => {\n\tconst rule = limits[key];\n\tconst value = get(extension, key, null);\n\tif (value == null) return get(rule, 'required', false) !== true;\n\tif (typeof value === 'string') return value !== '';\n\tconst number = Number(value);\n\tif (get(rule, 'integer', false) === true && number !== Math.trunc(number)) return false;\n\tconst floor = get(rule, 'exclusive_minimum', null);\n\tif (floor !== null && !(number > floor)) return false;\n\tconst maximum = get(rule, 'maximum', null);\n\treturn maximum === null || number <= maximum;\n});",
 		"lookup": {
@@ -224,12 +310,18 @@
 	{
 		"code": "BUSINESS_CASE_SUBJECT_AND_REFERENCE",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"order": 41,
 		"condition": "return get(ctx.lookup, 'kinds', []).includes(get(ctx.entry, 'kind', ''));",
 		"validate": "const inputs = get(ctx.entry, 'inputs', {});\nreturn get(ctx.entry, 'employment_id', null) != null && get(inputs, 'reference', '') !== '';",
 		"lookup": {
-			"kinds": ["RETRENCHMENT_EMPLOYEE_NOTICE", "OVERSEAS_DEPARTURE_NOTICE"]
+			"kinds": [
+				"RETRENCHMENT_EMPLOYEE_NOTICE",
+				"OVERSEAS_DEPARTURE_NOTICE"
+			]
 		},
 		"id": "334036d2-bea2-5bd3-bc3f-01e1a3494227",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
@@ -237,12 +329,17 @@
 	{
 		"code": "BUSINESS_CASE_DOCUMENT_REQUIRED",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"order": 42,
 		"condition": "return get(ctx.lookup, 'kinds', []).includes(get(ctx.entry, 'kind', ''));",
 		"validate": "return get(ctx.entry, 'evidence_file', null) != null;",
 		"lookup": {
-			"kinds": ["RETRENCHMENT_EMPLOYEE_NOTICE"]
+			"kinds": [
+				"RETRENCHMENT_EMPLOYEE_NOTICE"
+			]
 		},
 		"id": "b6a6b1a7-0901-5524-a392-6165ea994b2b",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
@@ -250,7 +347,10 @@
 	{
 		"code": "DEPARTURE_CASE_ACTUAL_SCHEDULE",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"order": 43,
 		"condition": "return get(ctx.entry, 'kind', '') === 'OVERSEAS_DEPARTURE_NOTICE';",
 		"validate": "const scheduled = get(ctx.entry, 'scheduled_on', null);\nif (scheduled == null || scheduled === '') return false;\nconst expected = get(get(ctx.entry, 'inputs', {}), 'expected_return_on', null);\nif (expected == null || expected === '') return true;\nreturn String(expected) >= String(scheduled);",
@@ -261,7 +361,9 @@
 	{
 		"code": "NO_PAY_OPEN_PERIOD",
 		"target_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"lookup": {
 			"no_pay": [
 				"UNPAID_INFANT_CARE_LEAVE",
@@ -285,7 +387,9 @@
 						}
 					}
 				},
-				"fields": ["code"],
+				"fields": [
+					"code"
+				],
 				"limit": 1
 			},
 			"payroll_run": {
@@ -299,7 +403,9 @@
 						"eq": "ON_CYCLE"
 					}
 				},
-				"fields": ["period"],
+				"fields": [
+					"period"
+				],
 				"limit": 10000
 			},
 			"leave_catalog_entry": {
@@ -317,15 +423,17 @@
 					"payroll_run_id": {
 						"isNull": true
 					},
-					"is_reversal": {
-						"eq": false
+					"reverses": {
+						"isNull": true
 					}
 				},
-				"fields": ["days"],
+				"fields": [
+					"days"
+				],
 				"limit": 1000
 			}
 		},
-		"validate": "// js\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || !ctx.lookup.no_pay.includes(item.code)) return true;\nconst employer = ctx.subject.employer;\nconst cutoff = Number(get(employer, 'pay_cutoff_day', 1));\nconst halves = get(employer, 'payment_schedule.frequency', 'MONTHLY') === 'SEMI_MONTHLY';\nconst shifted = (month, by) => add_months(month + '-01', by).slice(0, 7);\nconst periodOf = (date) => {\n\tconst month = date.slice(0, 7);\n\tconst dayOf = Number(date.slice(8, 10));\n\tconst part = dayOf <= 15 ? 1 : 2;\n\tif (!halves) return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;\n\tif (cutoff <= 1) return month + '-' + part;\n\treturn part === 1 ? month + '-2' : shifted(month, 1) + '-1';\n};\nconst dates = ctx.entry.days.map((day) => day.date);\nif (get(ctx.entry, 'is_reversal', false) === true && ctx.reads.leave_catalog_entry.some((row) => row.days.some((day) => dates.includes(day.date))))\n\tthrow 'That day has not been paid yet. Delete the entry instead of reversing it.';\nconst ran = ctx.reads.payroll_run.map((run) => run.period);\nconst closed = ctx.entry.days.find((day) => ran.includes(periodOf(day.date)));\nif (closed != null)\n\tthrow closed.date + ' is in a period that has already run. Date this entry in the next period to run, and that run takes it.';\nreturn true;",
+		"validate": "// js\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || !ctx.lookup.no_pay.includes(item.code)) return true;\nconst employer = ctx.subject.employer;\nconst cutoff = Number(get(employer, 'pay_cutoff_day', 1));\nconst halves = get(employer, 'payment_schedule.frequency', 'MONTHLY') === 'SEMI_MONTHLY';\nconst shifted = (month, by) => add_months(month + '-01', by).slice(0, 7);\nconst periodOf = (date) => {\n\tconst month = date.slice(0, 7);\n\tconst dayOf = Number(date.slice(8, 10));\n\tconst part = dayOf <= 15 ? 1 : 2;\n\tif (!halves) return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;\n\tif (cutoff <= 1) return month + '-' + part;\n\treturn part === 1 ? month + '-2' : shifted(month, 1) + '-1';\n};\nconst dates = ctx.entry.days.map((day) => day.date);\nif (get(ctx.entry, 'reverses', null) != null && ctx.reads.leave_catalog_entry.some((row) => row.days.some((day) => dates.includes(day.date))))\n\tthrow 'That day has not been paid yet. Delete the entry instead of reversing it.';\nconst ran = ctx.reads.payroll_run.map((run) => run.period);\nconst closed = ctx.entry.days.find((day) => ran.includes(periodOf(day.date)));\nif (closed != null)\n\tthrow closed.date + ' is in a period that has already run. Date this entry in the next period to run, and that run takes it.';\nreturn true;",
 		"order": 900,
 		"id": "4df901ed-f04c-5db4-b6d0-269d4c787a6b",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
@@ -333,7 +441,9 @@
 	{
 		"code": "SICK_WITHIN_HOSPITALISATION",
 		"target_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"lookup": {
 			"hospitalisation": "HOSPITALIZATION_LEAVE"
 		},
@@ -346,10 +456,16 @@
 			"leave_catalog": {
 				"where": {
 					"code": {
-						"in": ["SICK_LEAVE", "HOSPITALIZATION_LEAVE"]
+						"in": [
+							"SICK_LEAVE",
+							"HOSPITALIZATION_LEAVE"
+						]
 					}
 				},
-				"fields": ["code", "lookup"],
+				"fields": [
+					"code",
+					"lookup"
+				],
 				"limit": 100
 			},
 			"leave_catalog_entry": {
@@ -360,11 +476,15 @@
 						}
 					}
 				},
-				"fields": ["catalog_id", "days", "is_reversal"],
+				"fields": [
+					"catalog_id",
+					"days",
+					"reverses"
+				],
 				"limit": 1000
 			}
 		},
-		"validate": "// js\n// Employment Act s.89(1): the 60 days of hospitalisation leave include the 14 days of outpatient sick leave.\nconst shared = ctx.reads.leave_catalog;\nconst item = shared.find((row) => row.id === ctx.entry.catalog_id);\nif (item == null) return true;\nconst year = String(ctx.entry.days[0].date).slice(0, 4);\nconst ids = shared.map((row) => row.id);\nconst within = (days) => days.filter((day) => String(day.date).slice(0, 4) === year).length / 2;\nconst taken = ctx.reads.leave_catalog_entry\n\t.filter((row) => ids.includes(row.catalog_id))\n\t.reduce((total, row) => total + (get(row, 'is_reversal', false) === true ? -1 : 1) * within(row.days), 0);\nconst wanted = get(ctx.entry, 'is_reversal', false) === true ? 0 : within(ctx.entry.days);\nconst hospital = shared.find((row) => row.code === ctx.lookup.hospitalisation);\nconst months = calendar_completed_months(String(ctx.subject.employment.effective_range.from), String(ctx.entry.days[0].date));\nconst cap = get(hospital.lookup, 'service_bands', []).filter((band) => band.service_months <= months).reduce((best, band) => Math.max(best, band.days), 0);\nif (taken + wanted > cap) throw 'Sick and hospitalisation leave together would pass the ' + cap + ' days the year allows.';\nreturn true;",
+		"validate": "// js\n// Employment Act s.89(1): the 60 days of hospitalisation leave include the 14 days of outpatient sick leave.\nconst shared = ctx.reads.leave_catalog;\nconst item = shared.find((row) => row.id === ctx.entry.catalog_id);\nif (item == null) return true;\nconst year = String(ctx.entry.days[0].date).slice(0, 4);\nconst ids = shared.map((row) => row.id);\nconst within = (days) => days.filter((day) => String(day.date).slice(0, 4) === year).length / 2;\nconst taken = ctx.reads.leave_catalog_entry\n\t.filter((row) => ids.includes(row.catalog_id))\n\t.reduce((total, row) => total + (get(row, 'reverses', null) != null ? -1 : 1) * within(row.days), 0);\nconst wanted = get(ctx.entry, 'reverses', null) != null ? 0 : within(ctx.entry.days);\nconst hospital = shared.find((row) => row.code === ctx.lookup.hospitalisation);\nconst months = calendar_completed_months(String(ctx.subject.employment.effective_range.from), String(ctx.entry.days[0].date));\nconst cap = get(hospital.lookup, 'service_bands', []).filter((band) => band.service_months <= months).reduce((best, band) => Math.max(best, band.days), 0);\nif (taken + wanted > cap) throw 'Sick and hospitalisation leave together would pass the ' + cap + ' days the year allows.';\nreturn true;",
 		"order": 901,
 		"id": "71ab967c-54a0-5241-91c6-c6ff77694362",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
@@ -372,7 +492,10 @@
 	{
 		"code": "CASE_INPUTS_REQUIRED",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"workplace_case_catalog": {
 				"where": {
@@ -382,7 +505,9 @@
 						}
 					}
 				},
-				"fields": ["lookup"],
+				"fields": [
+					"lookup"
+				],
 				"limit": 1
 			}
 		},

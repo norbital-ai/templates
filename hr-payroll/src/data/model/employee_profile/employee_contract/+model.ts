@@ -63,6 +63,21 @@ const capturedRun = Effect.fnUntraced(function* (
 
 const MID_MONTH =
 	'A contract changes from the first of a month. Date the event as it happened; the version starts on the first.';
+const SERVICE_AFTER_START =
+	'Service begins on or before the contract starts. A replacement keeps the predecessor date or starts later; it never starts after the version that records it.';
+/** The two dates answer different questions, but service cannot begin after the version that records it. */
+const startsAfterService = (
+	rows: readonly { readonly service_started_on?: unknown; readonly effective_range?: unknown }[]
+) =>
+	rows.some((row) => {
+		const range = isJsonObject(row.effective_range) ? row.effective_range : null;
+		const from = range === null ? null : range.from;
+		return (
+			row.service_started_on != null &&
+			from != null &&
+			String(row.service_started_on) > String(from)
+		);
+	});
 /**
  * A contract changes from the first of a month, a move to another entity included, so a run never prices a month on
  * two versions or two employers. A hire, a rehire and an exit keep their real date, and a run pays those days.
@@ -193,17 +208,36 @@ export default model('employee_contract', {
 					optional: true,
 					help: 'The original agreed probation dates. Salary amendments retain these dates; they do not start another probation.'
 				},
+				/** The agreed rate: exactly one basis, and its amount. */
 				rate: {
-					kind: 'object',
+					kind: 'json',
 					optional: true,
-					fields: {
-						amount: { kind: 'number', min: 0 },
-						unit: { kind: 'enum', values: ['MONTHLY', 'DAILY', 'HOURLY', 'PIECE'] }
+					shape: {
+						kind: 'union',
+						by: 'unit',
+						arms: {
+							MONTHLY: { amount: { kind: 'number', min: 0 } },
+							DAILY: { amount: { kind: 'number', min: 0 } },
+							HOURLY: { amount: { kind: 'number', min: 0 } }
+						}
 					}
 				},
-				normal_hours_per_day: { kind: 'number', optional: true },
-				normal_hours_per_week: { kind: 'number', optional: true },
-				normal_days_per_week: { kind: 'number', min: 0, max: 7, optional: true },
+				normal_hours_per_day: {
+					kind: 'number',
+					min: 0,
+					help: 'The ordinary hours of one working day. Every overtime, leave and statutory hour reads it.'
+				},
+				normal_hours_per_week: {
+					kind: 'number',
+					min: 0,
+					help: 'The ordinary hours of one working week.'
+				},
+				normal_days_per_week: {
+					kind: 'number',
+					min: 0,
+					max: 7,
+					help: 'The ordinary working days of one week.'
+				},
 				employer_bears_income_tax: {
 					kind: 'bool',
 					optional: true,
@@ -238,7 +272,8 @@ export default model('employee_contract', {
 				allowances: {
 					kind: 'record',
 					optional: true,
-					of: { kind: 'record', of: { kind: 'json' } }
+					help: 'The agreed allowances, keyed by the catalog code; the catalog row carries how each behaves.',
+					of: { kind: 'object', fields: { amount: { kind: 'number', min: 0 } } }
 				}
 			}
 		},
@@ -319,6 +354,8 @@ export default model('employee_contract', {
 			if (captured !== null) return yield* ctx.refuse(captured, { field: 'effective_range' });
 			if (yield* startsMidMonth(ctx.db.query, rows))
 				return yield* ctx.refuse(MID_MONTH, { field: 'effective_range' });
+			if (startsAfterService(rows))
+				return yield* ctx.refuse(SERVICE_AFTER_START, { field: 'service_started_on' });
 			yield* validateRegistered(
 				ctx.db.query,
 				'employee_contract',
@@ -414,6 +451,8 @@ export default model('employee_contract', {
 			)
 				return yield* ctx.refuse(MID_MONTH, { field: 'effective_range' });
 			const proposed = substantive.map((change) => jsonObject({ ...change.before, ...change.set }));
+			if (startsAfterService(proposed))
+				return yield* ctx.refuse(SERVICE_AFTER_START, { field: 'service_started_on' });
 			yield* validateRegistered(ctx.db.query, 'employee_contract', 'update', proposed);
 			yield* assertFactsHold(ctx.db.query, proposed);
 			const ids = [...new Set(changes.map((change) => change.before.input_schema_version_id))];
@@ -482,8 +521,7 @@ export default model('employee_contract', {
 				const extension = isJsonObject(row.employee_extension_data)
 					? row.employee_extension_data
 					: {};
-				const exitFacts = isJsonObject(extension.exit_facts) ? extension.exit_facts : {};
-				if (exitFacts.misconduct_dismissal === true) continue;
+				if (extension.misconduct_dismissal === true) continue;
 				const settingsId = isJsonObject(row.input_schema_version_id)
 					? row.input_schema_version_id.id
 					: row.input_schema_version_id;

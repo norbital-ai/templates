@@ -37,7 +37,7 @@
 					leave_catalog: { fields: ['code', 'name', 'settings_id'], limit: 10000 },
 					leave_catalog_entry: {
 						where: { entity_id: { eq: scope.id } },
-						fields: ['employment_id', 'catalog_id', 'days', 'is_reversal'],
+						fields: ['employment_id', 'catalog_id', 'days', 'reverses'],
 						limit: 10000
 					}
 				})
@@ -78,7 +78,7 @@
 				employment_id: row.employment_id,
 				catalog_id: row.catalog_id,
 				days: row.days,
-				is_reversal: row.is_reversal
+				reverses: row.reverses
 			}))
 		});
 		warnings = parsed.warnings;

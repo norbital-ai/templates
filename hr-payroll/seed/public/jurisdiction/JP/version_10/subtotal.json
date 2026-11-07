@@ -4,69 +4,79 @@
 		"name": "基本給 (basic salary)",
 		"previous_id": null,
 		"id": "fbbd69a0-cd02-515c-86f9-34a2e83aff05",
-		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7"
+		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "NON_TAXABLE_PAY",
 		"name": "非課税の通勤手当・宿日直手当 (non-taxable commuting and duty pay)",
 		"previous_id": "fbbd69a0-cd02-515c-86f9-34a2e83aff05",
 		"id": "d7c95bc2-0e80-5378-ad4f-4660f6a76308",
-		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7"
+		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "ORDINARY_WAGES",
 		"name": "通常賃金 (ordinary wages)",
 		"previous_id": "d7c95bc2-0e80-5378-ad4f-4660f6a76308",
 		"id": "be6eb28c-a943-5df0-a3cf-ae4f99eaa0d8",
-		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7"
+		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "LONG_PERIOD_BONUS",
 		"name": "賞与（計算期間6か月超） (bonus for a period over six months)",
 		"previous_id": "be6eb28c-a943-5df0-a3cf-ae4f99eaa0d8",
 		"id": "5551225c-f4e0-5a3e-8fa7-31b0145c0153",
-		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7"
+		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "ADDITIONAL_WAGES",
 		"name": "通常賃金＋加算賃金 (ordinary and additional wages)",
 		"previous_id": "5551225c-f4e0-5a3e-8fa7-31b0145c0153",
 		"id": "0d6b5ee7-9689-5882-be9d-fa929ccbf763",
-		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7"
+		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "RETIREMENT_UNDECLARED",
 		"name": "退職手当 申告書なし (retirement pay without the declaration)",
 		"previous_id": "0d6b5ee7-9689-5882-be9d-fa929ccbf763",
 		"id": "a34215c9-2c60-5ed7-978a-b1a7f1c0bcf7",
-		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7"
+		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "RETIREMENT",
 		"name": "退職金 (retirement pay)",
 		"previous_id": "a34215c9-2c60-5ed7-978a-b1a7f1c0bcf7",
 		"id": "cc441b29-1340-5b56-b72b-6aa0e1315c4b",
-		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7"
+		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "NET",
 		"name": "差引支給額 (net pay)",
 		"previous_id": "39d78688-b2e9-5f4b-9408-336a12e2a164",
 		"id": "68674330-4dfe-5b6d-abfc-ec132a5d52a5",
-		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7"
+		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "FINAL_PAY",
 		"name": "Final pay and non-wage settlements",
 		"previous_id": "cc441b29-1340-5b56-b72b-6aa0e1315c4b",
 		"id": "8b9a9dd0-7ee5-5bdb-8c6c-998dd8133adc",
-		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7"
+		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "SOCIAL_INSURANCE_REFUND",
 		"name": "社会保険料の還付 (social insurance refund)",
 		"previous_id": "8b9a9dd0-7ee5-5bdb-8c6c-998dd8133adc",
 		"id": "39d78688-b2e9-5f4b-9408-336a12e2a164",
-		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7"
+		"settings_id": "f5c9428f-56c1-5fd4-a467-28b0d1885fa7",
+		"balance_window": "YEAR"
 	}
 ]

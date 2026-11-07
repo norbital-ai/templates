@@ -3,7 +3,6 @@
 		"code": "FLEXIBLE_WORK_REQUEST",
 		"name": "Formal flexible work arrangement request",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "581bd05a-443e-57e8-99c0-647289f335dc",
@@ -21,7 +20,6 @@
 		"code": "PERSONAL_DATA_ACCESS_REQUEST",
 		"name": "Personal data access request",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "18fcab0a-9fdb-5bda-b035-bd92a0af567f",
@@ -39,7 +37,6 @@
 		"code": "PERSONAL_DATA_CORRECTION_REQUEST",
 		"name": "Personal data correction request",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "f4635153-de82-5fe3-8d38-a7bbe1c6ee9c",
@@ -57,7 +54,6 @@
 		"code": "DATA_BREACH",
 		"name": "Data breach (suspected or confirmed)",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "999dee00-9215-536b-a625-c9bf590ec1f8",
@@ -75,7 +71,6 @@
 		"code": "WORK_ACCIDENT_LIGHT_DUTY",
 		"name": "Work-related light duty (open on first employer notice)",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "2a122cbf-e531-5a00-a047-47c147bb72a9",
@@ -93,7 +88,6 @@
 		"code": "WORK_ACCIDENT_FATAL",
 		"name": "Employee work-related fatality (open on accident date)",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "edc8d050-561f-5ffb-8a14-82720e7b4630",
@@ -111,7 +105,6 @@
 		"code": "WORK_ACCIDENT_SUBSEQUENT_DEATH",
 		"name": "Later death from work injury/disease (open on learning the death)",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "4db78bcc-3a2b-5975-b6f7-fb5e04cdd35e",
@@ -129,7 +122,6 @@
 		"code": "OCCUPATIONAL_DISEASE_DIAGNOSIS",
 		"name": "Employee occupational disease (open on receipt of diagnosis)",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "45cd7baf-9247-5339-b762-98d8e7100f5b",
@@ -147,7 +139,6 @@
 		"code": "DANGEROUS_OCCURRENCE",
 		"name": "Reportable dangerous occurrence: workplace occupier (open on occurrence date)",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "c141e899-4e2e-5c43-8b1c-52511c5ecb52",
@@ -165,7 +156,6 @@
 		"code": "PUBLIC_WORKPLACE_FATALITY",
 		"name": "Work-related public/self-employed fatality: occupier (open on occurrence date)",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "29612fea-4e98-50ae-b4ab-3db067c30ec0",
@@ -183,7 +173,6 @@
 		"code": "PUBLIC_WORKPLACE_HOSPITAL_TREATMENT",
 		"name": "Work-related public/self-employed hospital treatment: occupier (open on occurrence date)",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "0aeee0dd-2948-5e5f-9b6a-e46a067a5e04",
@@ -209,7 +198,6 @@
 				"description": "opened_on is actual delivery of the retrenchment notice to this employee. Reference and evidence identify that notice; employment_id identifies the affected agreement."
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "4dd2c890-2859-5b11-9c45-9452146cbff1",
@@ -244,7 +232,6 @@
 				"description": "opened_on is actual employer awareness; scheduled_on is actual expected departure. Record the actual return plan where known. Existing documented IRAS exemption/clearance review determines withholding release, not the mere existence of this case."
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "a5dbf70a-505d-560c-b760-7760078af09a",
@@ -578,7 +565,6 @@
 				}
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "7a267e61-4b3b-5132-be25-3022593911f7",
@@ -985,7 +971,6 @@
 				]
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "4d999daf-e30c-5d7d-a542-41cf0955b426",
@@ -1325,7 +1310,6 @@
 				}
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "09688d2f-e5f1-50a2-9481-0834ca2d9971",
@@ -1384,7 +1368,6 @@
 				"description": "This is the amount actually specified in the original signed transfer consent, not a reviewed gross-pay calculation. Scope employment_id to the actual new-employer sealed contract; reference/evidence_file identify the original consent. Native employment.start_date owns new-employer commencement. Original start/employer/reference preserve actual transferred seniority."
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "775cfaf1-1107-59ae-9267-58d86f1aa57d",
@@ -1426,7 +1409,6 @@
 				"description": "Original unpaid-leave period expressly agreed to extend notice. opened_on is actual agreement receipt; employment_id/reference/evidence_file identify the real agreement. Closing a case does not revoke the original agreement."
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "b6aaaa8f-b5c3-56e1-b77a-65ddc51cf157",
@@ -1472,7 +1454,6 @@
 				"description": "Actual disputed notice period. Reference/evidence_file identify the claim and any binding finding. Ordinary direction is not inferred while the original claim needs adjudication."
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "6c6c0d42-1e5a-5589-ac4d-058226f960ff",
@@ -1518,7 +1499,6 @@
 				"description": "Actual breach claim, not a computed liable-party scalar. Retain the original claim and any court/Commissioner finding through the native case source."
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "274adb1a-cc02-534e-a901-2a7f07c17b51",

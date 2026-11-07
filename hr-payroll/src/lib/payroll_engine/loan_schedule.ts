@@ -34,7 +34,7 @@ export const loanDisposition = (input: {
 }): LoanDisposition =>
 	input.carry ? 'CARRY' : input.settle || !input.targetCatalog ? 'SETTLE' : 'TRANSFER';
 
-/** Monthly pay a contract rate implies; `null` when only a person can say (piece rates, unknown hours). */
+/** Monthly pay a contract rate implies; `null` when only a person can say (an unknown unit or missing hours). */
 export const monthlyEquivalent = (terms: {
 	readonly rate?: { readonly amount?: unknown; readonly unit?: unknown } | null | undefined;
 	readonly normal_days_per_week?: number | null | undefined;

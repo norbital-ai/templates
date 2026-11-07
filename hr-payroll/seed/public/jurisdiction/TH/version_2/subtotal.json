@@ -4,55 +4,63 @@
 		"name": "Basic salary (เงินเดือน)",
 		"previous_id": null,
 		"id": "db7d5516-5385-5a68-bf9c-61d42a2b4d14",
-		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56"
+		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "ORDINARY_WAGES",
 		"name": "Ordinary wages (ค่าจ้าง)",
 		"previous_id": "db7d5516-5385-5a68-bf9c-61d42a2b4d14",
 		"id": "ce9866cb-b5f9-5a75-96cf-f64d55e63baa",
-		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56"
+		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "ADDITIONAL_WAGES",
 		"name": "Additional wages (ค่าจ้างเพิ่มเติม)",
 		"previous_id": "ce9866cb-b5f9-5a75-96cf-f64d55e63baa",
 		"id": "f8f7a894-a2a9-5952-9fed-91f1a7cbca62",
-		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56"
+		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "GROSS",
 		"name": "Gross earnings (รายได้รวม)",
 		"previous_id": "f8f7a894-a2a9-5952-9fed-91f1a7cbca62",
 		"id": "cfbeffc7-dfc4-585d-ae48-a3a07105aa06",
-		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56"
+		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "NET",
 		"name": "Net pay (ยอดจ่ายสุทธิ)",
 		"previous_id": "a85dbb8b-0b40-58ba-99bb-cd3a298c06f2",
 		"id": "d286b773-69a3-5ca2-9fe5-e6d4ee89bdec",
-		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56"
+		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "NOTICE_PAY",
 		"name": "Pay in lieu of notice (สินจ้างแทนการบอกกล่าวล่วงหน้า)",
 		"previous_id": "cfbeffc7-dfc4-585d-ae48-a3a07105aa06",
 		"id": "e8283b81-8052-5873-a510-c339001b7076",
-		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56"
+		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "SEVERANCE",
 		"name": "Severance pay (ค่าชดเชย)",
 		"previous_id": "e8283b81-8052-5873-a510-c339001b7076",
 		"id": "eaee4284-d8e3-5678-9e11-347504a08579",
-		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56"
+		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "FINAL_PAY",
 		"name": "Final pay and non-wage settlements",
 		"previous_id": "eaee4284-d8e3-5678-9e11-347504a08579",
 		"id": "a85dbb8b-0b40-58ba-99bb-cd3a298c06f2",
-		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56"
+		"settings_id": "efa6de1c-a50f-5423-a904-0d3cec119b56",
+		"balance_window": "YEAR"
 	}
 ]

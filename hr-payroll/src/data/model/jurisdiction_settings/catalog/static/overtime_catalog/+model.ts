@@ -23,12 +23,10 @@ export default model('overtime_catalog', {
 		code: { kind: 'text' },
 		name: { kind: 'text' },
 		references: { kind: 'custom', of: 'references', optional: true },
-		eligibility: { kind: 'text', format: 'cel', max: 65536 },
-		conversion: { kind: 'text', format: 'cel', max: 65536 },
-		incurred_on: { kind: 'text', format: 'cel', max: 65536 },
+		eligibility: { kind: 'text', max: 65536 },
+		conversion: { kind: 'text', max: 65536 },
+		incurred_on: { kind: 'text', max: 65536, optional: true },
 		direction: { kind: 'enum', values: ['ADD', 'DEDUCT'] },
-		party: { kind: 'enum', values: ['EMPLOYEE', 'EMPLOYER'], default: 'EMPLOYEE' },
-		off_cycle_eligible: { kind: 'bool' },
 		settings_id: {
 			kind: 'ref',
 			to: 'jurisdiction_settings',
@@ -53,8 +51,6 @@ export default model('overtime_catalog', {
 				'conversion',
 				'incurred_on',
 				'direction',
-				'party',
-				'off_cycle_eligible',
 				'settings_id'
 			]
 		},
@@ -79,9 +75,7 @@ export default model('overtime_catalog', {
 				'eligibility',
 				'conversion',
 				'incurred_on',
-				'direction',
-				'party',
-				'off_cycle_eligible'
+				'direction'
 			]
 		},
 		transform: function* (changes, ctx) {

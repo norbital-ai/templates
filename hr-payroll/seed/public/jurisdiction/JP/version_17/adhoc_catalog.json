@@ -71,7 +71,7 @@
 		},
 		"references": [
 			{
-				"title": "労働基準法76条 and 労災保険法14条: compensation for the actual occupational-injury waiting days uses60percent of the actual Article12average wage. The genuine event and covered dates remain original case/entry facts. Entry: quantity = the average-wage base for the waiting days (maximum three); `lookup` holds the 60% rate and the average-wage source policy.",
+				"title": "労働基準法76条 and 労災保険法14条: compensation for the actual occupational-injury waiting days uses60percent of the actual Article12average wage. The genuine event and covered dates remain original case/entry  Entry: quantity = the average-wage base for the waiting days (maximum three); `lookup` holds the 60% rate and the average-wage source policy.",
 				"url": "https://www.mhlw.go.jp/web/t_doc?dataId=73022000&dataType=0"
 			}
 		],
@@ -92,7 +92,7 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "労働基準法20条 and21条: the applicable notice shortfall is paid at the actual Article12average wage. Original notice dates and an actually applicable statutory/certified exemption remain source facts. Taxed as retirement income under 所得税基本通達30-5. Entry: quantity = the average-wage base for the notice shortfall (maximum thirty days); `lookup` holds the average-wage source policy.",
+				"title": "労働基準法20条 and21条: the applicable notice shortfall is paid at the actual Article12average wage. Original notice dates and an actually applicable statutory/certified exemption remain source  Taxed as retirement income under 所得税基本通達30-5. Entry: quantity = the average-wage base for the notice shortfall (maximum thirty days); `lookup` holds the average-wage source policy.",
 				"url": "https://www.nta.go.jp/law/tsutatsu/kihon/shotoku/04/04.htm"
 			}
 		],
@@ -304,7 +304,8 @@
 		"name": "減給の制裁 (disciplinary pay reduction)",
 		"description": "The entry quantity is the Article 12 average-wage base for the disciplinary reduction (average daily wage multiplied by the deducted days). Each deduction is limited to half that base and to one tenth of the wages payable for the wage period.",
 		"lookup": {
-			"rate": 0.5
+			"rate": 0.5,
+			"wage_period_share": 0.1
 		},
 		"references": [
 			{
@@ -341,7 +342,7 @@
 		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"eligibility": "if (!(ctx.entry.quantity > 0)) return false;\nconst due = ctx.subject.employment.final_pay_due_on;\nif (due == null) return false;\nreturn ctx.entry.incurred_on > due;",
-		"conversion": "const days = calendar_distance_days(ctx.subject.employment.final_pay_due_on, ctx.entry.incurred_on);\nreturn (ctx.entry.quantity * ctx.lookup.annual_rate * days) / ctx.lookup.days_per_year;",
+		"conversion": "const days = calendar_distance_days(ctx.subject.employment.final_pay_due_on, ctx.entry.incurred_on);\nreturn (ctx.entry.quantity * ctx.lookup.annual_rate * days) / 365;",
 		"incurred_on": "return ctx.entry.incurred_on;",
 		"id": "c21a55f7-5f4a-5c8e-9870-c60a54e9cbf9",
 		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"

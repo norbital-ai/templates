@@ -8,7 +8,6 @@
 				"title": "A reimbursement of a business expense the employee paid is not remuneration (健康保険法 art.3(5): 労働の対償), not a wage and not salary income; it is paid outside gross pay against receipts."
 			}
 		],
-		"off_cycle_eligible": true,
 		"subtotal_id": "a36e63f8-effd-5898-8940-223ff54d57d8",
 		"eligibility": "// js\nconst ended = ctx.subject.employment.effective_range?.to;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "// js\nreturn ctx.entry.unit === 'MONEY' ? ctx.entry.quantity : 0;",
@@ -27,7 +26,6 @@
 				"title": "所得税法 art.9(1)(iv): travel expenses for business travel within what is ordinarily necessary are not taxable; not remuneration or wages."
 			}
 		],
-		"off_cycle_eligible": true,
 		"subtotal_id": "a36e63f8-effd-5898-8940-223ff54d57d8",
 		"eligibility": "// js\nconst ended = ctx.subject.employment.effective_range?.to;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "// js\nreturn ctx.entry.unit === 'MONEY' ? ctx.entry.quantity : 0;",

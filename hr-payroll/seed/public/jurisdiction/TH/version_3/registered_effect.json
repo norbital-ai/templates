@@ -18,7 +18,9 @@
 		},
 		"references": [],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -58,7 +60,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -85,7 +89,8 @@
 		"name": "PND1 monthly withholding return",
 		"lookup": {
 			"date_offset_days": 7,
-			"online_offset_days": 15
+			"online_offset_days": 15,
+			"online_effective_from": "2027-01-31"
 		},
 		"references": [
 			{
@@ -98,7 +103,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -137,7 +144,10 @@
 		"name": "Provident fund contributions paid into the fund",
 		"lookup": {
 			"working_day_offset": 3,
-			"weekend": [0, 6]
+			"weekend": [
+				0,
+				6
+			]
 		},
 		"references": [
 			{
@@ -146,7 +156,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -190,7 +202,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -240,7 +254,8 @@
 		"code": "PND1_KOR_ANNUAL",
 		"name": "PND1 Kor annual withholding return",
 		"lookup": {
-			"annual_due": "-03-08"
+			"annual_due": "-03-08",
+			"online_effective_from": "2027-01-31"
 		},
 		"references": [
 			{
@@ -248,7 +263,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -295,7 +312,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -328,7 +347,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -373,7 +394,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -408,7 +431,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -455,7 +480,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -502,7 +529,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -538,7 +568,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -585,7 +618,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -627,7 +662,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -642,7 +679,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst exitFacts = get(entry, \"employee_extension_data\", {});\nconst exitGround = get(exitFacts, \"exit_facts.exit_ground\", \"\");\nreturn exited && ctx.lookup.exit_grounds.includes(exitGround);",
+		"condition": "const entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst exitFacts = get(entry, \"employee_extension_data\", {});\nconst exitGround = get(exitFacts, \"exit_ground\", \"\");\nreturn exited && ctx.lookup.exit_grounds.includes(exitGround);",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"FINAL_PAY\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Final pay on termination\",\n  due_on: add_days(entry.effective_range.to, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -662,7 +699,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -697,7 +736,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -712,7 +754,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(employeeFacts, \"facts.nationality\", \"\");\nconst permitBasis = get(employeeFacts, \"facts.work_permit_basis\", \"\");\nif (!sealed) return false;\nif (nationality === \"\") return false;\nif (nationality === \"TH\") return false;\nreturn permitBasis !== \"SECTION_62\";",
+		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(employeeFacts, \"nationality\", \"\");\nconst permitBasis = get(employeeFacts, \"work_permit_basis\", \"\");\nif (!sealed) return false;\nif (nationality === \"\") return false;\nif (nationality === \"TH\") return false;\nreturn permitBasis !== \"SECTION_62\";",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"FOREIGN_WORKER_HIRE_NOTIFICATION\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Foreign worker hire notification\",\n  due_on: add_days(entry.effective_range.from, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -732,7 +774,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -747,7 +791,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(employeeFacts, \"facts.nationality\", \"\");\nconst permitBasis = get(employeeFacts, \"facts.work_permit_basis\", \"\");\nif (!exited) return false;\nif (nationality === \"\") return false;\nif (nationality === \"TH\") return false;\nreturn permitBasis !== \"SECTION_62\";",
+		"condition": "const entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(employeeFacts, \"nationality\", \"\");\nconst permitBasis = get(employeeFacts, \"work_permit_basis\", \"\");\nif (!exited) return false;\nif (nationality === \"\") return false;\nif (nationality === \"TH\") return false;\nreturn permitBasis !== \"SECTION_62\";",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"FOREIGN_WORKER_EXIT_NOTIFICATION\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Foreign worker exit notification\",\n  due_on: add_days(entry.effective_range.to, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -765,7 +809,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -800,7 +846,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -848,7 +896,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -896,7 +947,9 @@
 			}
 		],
 		"source_collection": "leave_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -934,7 +987,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -972,7 +1027,8 @@
 		"code": "YOUNG_WORKER_HIRE_NOTICE",
 		"name": "Notify the labour inspector of a child employee",
 		"lookup": {
-			"date_offset_days": 15
+			"date_offset_days": 15,
+			"employee_age_years_threshold": 18
 		},
 		"references": [
 			{
@@ -981,7 +1037,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -996,7 +1055,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(employeeFacts, \"facts.nationality\", \"\");\nconst permitBasis = get(employeeFacts, \"facts.work_permit_basis\", \"\");\nif (!sealed) return false;\nif (dateOfBirth === \"\") return false;\nreturn age_on(dateOfBirth, entry.effective_range.from) < ctx.lookup.employee_age_years_threshold;",
+		"condition": "const entry = ctx.entry;\nconst sealed = entry.status === \"SEALED\";\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(employeeFacts, \"nationality\", \"\");\nconst permitBasis = get(employeeFacts, \"work_permit_basis\", \"\");\nif (!sealed) return false;\nif (dateOfBirth === \"\") return false;\nreturn age_on(dateOfBirth, entry.effective_range.from) < ctx.lookup.employee_age_years_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"YOUNG_WORKER_HIRE_NOTICE\" + \":\" + entry.id;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Young worker hire notice\",\n  due_on: add_days(entry.effective_range.from, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -1007,7 +1066,8 @@
 		"code": "YOUNG_WORKER_EXIT_NOTICE",
 		"name": "Notify the labour inspector that a child employee has left",
 		"lookup": {
-			"date_offset_days": 7
+			"date_offset_days": 7,
+			"employee_age_years_threshold": 18
 		},
 		"references": [
 			{
@@ -1016,7 +1076,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1031,7 +1093,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(employeeFacts, \"facts.nationality\", \"\");\nconst permitBasis = get(employeeFacts, \"facts.work_permit_basis\", \"\");\nif (!exited) return false;\nif (dateOfBirth === \"\") return false;\nreturn age_on(dateOfBirth, entry.effective_range.to) < ctx.lookup.employee_age_years_threshold;",
+		"condition": "const entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst employeeFacts = get(entry, \"employee_extension_data\", {});\nconst dateOfBirth = get(entry, \"payroll.date_of_birth\", \"\");\nconst nationality = get(employeeFacts, \"nationality\", \"\");\nconst permitBasis = get(employeeFacts, \"work_permit_basis\", \"\");\nif (!exited) return false;\nif (dateOfBirth === \"\") return false;\nreturn age_on(dateOfBirth, entry.effective_range.to) < ctx.lookup.employee_age_years_threshold;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"YOUNG_WORKER_EXIT_NOTICE\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Young worker exit notice\",\n  due_on: add_days(entry.effective_range.to, ctx.lookup.date_offset_days),\n  occurrence_key: key\n}];",
@@ -1052,7 +1114,9 @@
 			}
 		],
 		"source_collection": "work_interruption_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1074,7 +1138,9 @@
 						}
 					}
 				},
-				"fields": ["code"],
+				"fields": [
+					"code"
+				],
 				"limit": 1
 			}
 		},
@@ -1098,7 +1164,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1113,7 +1181,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst exitFacts = get(entry, \"employee_extension_data\", {});\nreturn exited && get(exitFacts, \"exit_facts.special_severance_ground\", \"\") === \"TECHNOLOGY\";",
+		"condition": "const entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst exitFacts = get(entry, \"employee_extension_data\", {});\nreturn exited && get(exitFacts, \"special_severance_ground\", \"\") === \"TECHNOLOGY\";",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"TECHNOLOGY_REDUNDANCY_NOTICE\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Advance notice of technology redundancy\",\n  due_on: add_days(entry.effective_range.to, -ctx.lookup.advance_notice_days),\n  occurrence_key: key\n}];",
@@ -1131,7 +1199,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1146,7 +1216,7 @@
 				}
 			}
 		},
-		"condition": "const entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst exitFacts = get(entry, \"employee_extension_data\", {});\nconst exitGround = get(exitFacts, \"exit_facts.exit_ground\", \"\");\nreturn exited && exitGround === \"RETIREMENT\";",
+		"condition": "const entry = ctx.entry;\nconst exited = entry.status === \"SEALED\" && get(entry, \"effective_range.to\", null) !== null;\nconst exitFacts = get(entry, \"employee_extension_data\", {});\nconst exitGround = get(exitFacts, \"exit_ground\", \"\");\nreturn exited && exitGround === \"RETIREMENT\";",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const entry = ctx.entry;\nconst key = \"RETIREMENT_SEVERANCE\" + \":\" + entry.id + \":\" + entry.effective_range.to;\nif (get(ctx, \"reads.obligation\", []).some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: entry.entity_id,\n  employee_id: entry.employee_id,\n  employment_id: entry.id,\n  title: \"Retirement severance\",\n  due_on: entry.effective_range.to,\n  occurrence_key: key\n}];",
@@ -1167,7 +1237,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1212,7 +1284,9 @@
 			}
 		],
 		"source_collection": "employee_profile",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1249,7 +1323,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1284,7 +1360,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1343,7 +1422,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1403,7 +1484,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1436,7 +1519,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1481,7 +1566,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1526,7 +1613,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1559,7 +1649,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1594,7 +1687,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1627,7 +1722,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1660,7 +1757,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1708,7 +1807,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["update"],
+		"events": [
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1743,7 +1844,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1778,7 +1881,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1813,7 +1918,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1848,7 +1955,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1884,7 +1993,10 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create", "update"],
+		"events": [
+			"create",
+			"update"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1918,7 +2030,9 @@
 		"name": "Follow up a contribution corrected for a closed month",
 		"lookup": {},
 		"source_collection": "adhoc_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"adhoc_catalog": {
 				"where": {
@@ -1928,7 +2042,11 @@
 						}
 					}
 				},
-				"fields": ["code", "name", "lookup"],
+				"fields": [
+					"code",
+					"name",
+					"lookup"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -1939,11 +2057,13 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
-		"condition": "// js\nconst row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'is_reversal', false) !== true && get(row, 'lookup.accounts', []).length > 0;",
+		"condition": "// js\nconst row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.name,\n\toccurrence_key: occurrence_key(['TH', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",

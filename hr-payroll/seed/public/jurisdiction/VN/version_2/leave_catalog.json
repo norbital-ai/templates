@@ -71,7 +71,6 @@
 				}
 			]
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"references": [
 			{
@@ -79,7 +78,7 @@
 				"url": "https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2020/12/32732/33806-1-20201203-1204145-2020-nd-cp.pdf"
 			},
 			{
-				"title": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer. art.113(1) twelve, fourteen (arduous, a minor, a person with a disability: `terms.facts.disabled`) or sixteen (especially arduous) days, and art.114 one more for every five years of service with no ceiling (`days` as a number over the person)."
+				"title": "Labour Code 2019 art.113(1) — 12 working days for an employee working in normal conditions, 14 for a minor, a disabled employee or work that is arduous, toxic or dangerous, 16 for work that is especially arduous, toxic or dangerous; art.113(2) proportions it to the months worked in a partial year; art.114 adds one day for every five years of service with the same employer. art.113(1) twelve, fourteen (arduous, a minor, a person with a disability: `terms.disabled`) or sixteen (especially arduous) days, and art.114 one more for every five years of service with no ceiling (`days` as a number over the person)."
 			},
 			{
 				"title": "Labour Code 45/2019/QH14 art.113(1)(a): 12 working days in normal conditions; art.113(2) with Decree 145/2020/ND-CP art.66(1): under twelve months, the share of the months worked in the year; art.114: one more day for every full five years with the employer. art.113(1)(b)–(c) set 14 and 16 days for minors, workers with disabilities and arduous, toxic or dangerous work. art.113(4): leave is combined over at most three years only by agreement.",
@@ -92,52 +91,45 @@
 	{
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (Nghỉ ốm đau)",
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
 		},
-		"off_cycle_eligible": false,
-		"subtotal_id": "45246b26-45e2-58c4-a4cf-5927e27db18f",
+		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
 		"references": [
 			{
-				"title": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day. the bands count years of social-insurance contribution (Law 41/2024 art.43; `facts.SI.since_months`); the days are paid by the fund at 75% of the last contribution salary, not by the employer (`paid_by: FUND`). Law on Social Insurance 2024 art.43(1)(b): the longer bands are for work that is arduous, toxic or dangerous, or especially so (`classification in [ARDUOUS, ESPECIALLY_ARDUOUS]`). An unrecorded si_contribution_years is read as under 15 years: the 30-day band (40 arduous), the least the law grants, until the years are recorded."
+				"title": "Law on Social Insurance 41/2024/QH15 art.43 — 30 working days a year under 15 years of contribution, 40 from 15 to under 30 years and 60 from 30 years, raised to 40, 50 and 70 for arduous, toxic or dangerous work; art.42 pays the days from the social insurance fund at 75% of the contribution salary of the preceding month, and art.47 requires the certificate of leave for social insurance benefit from the first day. the bands count years of social-insurance contribution (Law 41/2024 art.43; `SI.since_months`); the days are paid by the fund at 75% of the last contribution salary, not by the employer (`paid_by: FUND`). Law on Social Insurance 2024 art.43(1)(b): the longer bands are for work that is arduous, toxic or dangerous, or especially so (`classification in [ARDUOUS, ESPECIALLY_ARDUOUS]`)."
 			}
 		],
 		"id": "7cb0b032-6df7-587a-8249-e092c13484df",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// Decree 145/2020 art.54(1)(a)(a3): a day of a monthly wage is the wage over the normal working days of the period (proration_basis WORKING_DAYS). Fixed allowances prorate on BASIC, so they fall and return with this line.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst rate = Number(get(terms, 'rate.amount', 0));\nif (unit === 'DAILY') return rate * ctx.entry.quantity;\nif (unit === 'HOURLY') return rate * (Number(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day) * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nreturn working > 0 ? (rate * ctx.entry.quantity) / working : 0;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
 		},
-		"off_cycle_eligible": false,
-		"subtotal_id": "45246b26-45e2-58c4-a4cf-5927e27db18f",
+		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
 		"references": [
 			{
-				"title": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (recorded default). Engine (round 7): calendar days of six months from the first leave day, one month more per further child of the birth (entry facts event_id, children_born); an adoption runs to the child's six months (Law 41/2024 art.56); a man takes it for an adoption, after the mother's death or as the commissioning father (Law 41/2024 arts.53, 56–57; entry fact maternity_case)."
+				"title": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (recorded default). Engine (round 7): calendar days of six months from the first leave day, one month more per further child of the birth (entry facts event_id, children_born); an adoption runs to the child's six months (Law 41/2024 art.56); a man takes it for an adoption, after the mother's death or as the commissioning father (Law 41/2024 arts.53, 56–57; entry fact maternity_case)."
 			}
 		],
 		"id": "7854b5a3-e822-5e78-a1c9-9a68d70b7e28",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// Decree 145/2020 art.54(1)(a)(a3): a day of a monthly wage is the wage over the normal working days of the period (proration_basis WORKING_DAYS). Fixed allowances prorate on BASIC, so they fall and return with this line.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst rate = Number(get(terms, 'rate.amount', 0));\nif (unit === 'DAILY') return rate * ctx.entry.quantity;\nif (unit === 'HOURLY') return rate * (Number(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day) * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nreturn working > 0 ? (rate * ctx.entry.quantity) / working : 0;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave (Nghỉ khi vợ sinh con)",
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
 		},
-		"off_cycle_eligible": false,
-		"subtotal_id": "45246b26-45e2-58c4-a4cf-5927e27db18f",
+		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
 		"references": [
 			{
 				"title": "Law 41/2024 art.53(2)-(3): five working days; seven for surgery or birth before 32 weeks; twins ten plus three per further child, or fourteen plus three per further child for surgery. The start of the final leave segment must be within 60 days after birth; full benefit-file review remains required.",
@@ -153,9 +145,7 @@
 		],
 		"id": "0e2cc51a-ad68-59e4-ba17-1cf137a57d9d",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// Decree 145/2020 art.54(1)(a)(a3): a day of a monthly wage is the wage over the normal working days of the period (proration_basis WORKING_DAYS). Fixed allowances prorate on BASIC, so they fall and return with this line.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst rate = Number(get(terms, 'rate.amount', 0));\nif (unit === 'DAILY') return rate * ctx.entry.quantity;\nif (unit === 'HOURLY') return rate * (Number(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day) * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nreturn working > 0 ? (rate * ctx.entry.quantity) / working : 0;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "MARRIAGE_LEAVE",
@@ -168,7 +158,6 @@
 				"MARRIAGE": {}
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"references": [
 			{
@@ -193,7 +182,6 @@
 				"CHILD_MARRIAGE": {}
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"references": [
 			{
@@ -218,7 +206,6 @@
 				"BEREAVEMENT": {}
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"references": [
 			{
@@ -235,12 +222,11 @@
 	{
 		"code": "BEREAVEMENT_LEAVE_UNPAID",
 		"name": "Unpaid personal leave (Nghỉ không hưởng lương — Điều 115(2))",
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
 		},
-		"off_cycle_eligible": false,
-		"subtotal_id": "45246b26-45e2-58c4-a4cf-5927e27db18f",
+		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
 		"references": [
 			{
 				"title": "Labour Code 2019 art.115(2) — one day of unpaid leave, on notice to the employer, on the death of a grandparent or a sibling, on a parent's marriage or on a sibling's marriage. a grant per event, not per year (art.115: `event.kind`, `event.relationship`)."
@@ -248,19 +234,16 @@
 		],
 		"id": "9b2ffffd-795a-5fde-9e34-380ffd5899f4",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// Decree 145/2020 art.54(1)(a)(a3): a day of a monthly wage is the wage over the normal working days of the period (proration_basis WORKING_DAYS). Fixed allowances prorate on BASIC, so they fall and return with this line.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst rate = Number(get(terms, 'rate.amount', 0));\nif (unit === 'DAILY') return rate * ctx.entry.quantity;\nif (unit === 'HOURLY') return rate * (Number(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day) * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nreturn working > 0 ? (rate * ctx.entry.quantity) / working : 0;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "UNPAID_LEAVE",
 		"name": "Nghỉ không hưởng lương theo thỏa thuận (unpaid leave by agreement)",
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
 		},
-		"off_cycle_eligible": false,
-		"subtotal_id": "45246b26-45e2-58c4-a4cf-5927e27db18f",
+		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
 		"references": [
 			{
 				"title": "Labour Code 45/2019/QH14 art.115(3) (Official Gazette 993+994 p.50, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf): beyond the art.115(1)–(2) days, the worker may agree with the employer to take unpaid leave; the law sets no length. The days are unpaid (deducted at the working-day rate, work_rules.proration) and each wholly unpaid working day counts toward the 14-day SI/HI/UI month (Law 41/2024/QH15 arts.33(5), 34(3); Law 74/2025/QH15 art.33(4)). Added 2026-09-30: a missing row of unchanged law, fixed in place in every version.",
@@ -269,9 +252,7 @@
 		],
 		"id": "fed7909d-da96-53f7-b677-6faf878a35ee",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// Decree 145/2020 art.54(1)(a)(a3): a day of a monthly wage is the wage over the normal working days of the period (proration_basis WORKING_DAYS). Fixed allowances prorate on BASIC, so they fall and return with this line.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst rate = Number(get(terms, 'rate.amount', 0));\nif (unit === 'DAILY') return rate * ctx.entry.quantity;\nif (unit === 'HOURLY') return rate * (Number(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day) * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nreturn working > 0 ? (rate * ctx.entry.quantity) / working : 0;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "PUBLIC_HOLIDAY",
@@ -281,7 +262,6 @@
 			"window": "CALENDAR_YEAR",
 			"grant_days": 11
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"references": [
 			{
@@ -300,7 +280,6 @@
 		"name": "Public holiday in lieu",
 		"pay_treatment": "PAID",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"id": "77093138-f7f2-56e0-9239-f28ab119b6e6",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
@@ -320,7 +299,6 @@
 			"window": "CALENDAR_YEAR",
 			"grant_days": 2
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"references": [
 			{
@@ -337,12 +315,11 @@
 	{
 		"code": "STOPPAGE_WORKER_FAULT",
 		"name": "Work stoppage — the worker’s own fault (Ngừng việc do lỗi của người lao động)",
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
 		},
-		"off_cycle_eligible": false,
-		"subtotal_id": "45246b26-45e2-58c4-a4cf-5927e27db18f",
+		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
 		"references": [
 			{
 				"title": "Labour Code 2019 art.99(2): the worker at fault is not paid. an unpaid day (`paid_share = 0`). Labour Code 45/2019/QH14 art.99 (Official Gazette 993+994, 26 December 2019); Decree 145/2020/ND-CP arts.8(3)(a), 65(9) (Official Gazette 1203+1204, 28 December 2020): only stoppage not caused by the worker is counted service for severance and annual leave."
@@ -350,19 +327,16 @@
 		],
 		"id": "578a52a1-3851-5b52-91e3-73f287883640",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// Decree 145/2020 art.54(1)(a)(a3): a day of a monthly wage is the wage over the normal working days of the period (proration_basis WORKING_DAYS). Fixed allowances prorate on BASIC, so they fall and return with this line.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst rate = Number(get(terms, 'rate.amount', 0));\nif (unit === 'DAILY') return rate * ctx.entry.quantity;\nif (unit === 'HOURLY') return rate * (Number(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day) * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nreturn working > 0 ? (rate * ctx.entry.quantity) / working : 0;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "CHILD_SICK_CARE",
 		"name": "Care of a sick child under 7",
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
 		},
-		"off_cycle_eligible": false,
-		"subtotal_id": "45246b26-45e2-58c4-a4cf-5927e27db18f",
+		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
 		"references": [
 			{
 				"title": "Law 41/2024/QH15 art.44: caring for a sick child, at most 20 days a year for a child under 3 and 15 days for a child from 3 to under 7, per child; paid by the SI fund. Entry facts child_id, child_birthdate.",
@@ -371,19 +345,16 @@
 		],
 		"id": "1d596a43-11ee-561f-bde7-755bd7baa973",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// Decree 145/2020 art.54(1)(a)(a3): a day of a monthly wage is the wage over the normal working days of the period (proration_basis WORKING_DAYS). Fixed allowances prorate on BASIC, so they fall and return with this line.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst rate = Number(get(terms, 'rate.amount', 0));\nif (unit === 'DAILY') return rate * ctx.entry.quantity;\nif (unit === 'HOURLY') return rate * (Number(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day) * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nreturn working > 0 ? (rate * ctx.entry.quantity) / working : 0;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "PRENATAL_CHECKUP",
 		"name": "Prenatal check-ups",
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
 		},
-		"off_cycle_eligible": false,
-		"subtotal_id": "45246b26-45e2-58c4-a4cf-5927e27db18f",
+		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
 		"references": [
 			{
 				"title": "Law 41/2024/QH15 art.51",
@@ -393,19 +364,16 @@
 		],
 		"id": "90049600-a998-57a2-8877-298c860f3e49",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// Decree 145/2020 art.54(1)(a)(a3): a day of a monthly wage is the wage over the normal working days of the period (proration_basis WORKING_DAYS). Fixed allowances prorate on BASIC, so they fall and return with this line.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst rate = Number(get(terms, 'rate.amount', 0));\nif (unit === 'DAILY') return rate * ctx.entry.quantity;\nif (unit === 'HOURLY') return rate * (Number(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day) * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nreturn working > 0 ? (rate * ctx.entry.quantity) / working : 0;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "MISCARRIAGE_LEAVE",
 		"name": "Miscarriage, abortion or stillbirth",
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
 		},
-		"off_cycle_eligible": false,
-		"subtotal_id": "45246b26-45e2-58c4-a4cf-5927e27db18f",
+		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
 		"references": [
 			{
 				"title": "Law 41/2024 art.52(2): loss at or beyond 22 weeks with art.50 qualification takes childbirth maternity/paternity leave. Use MATERNITY_LEAVE with maternity_case PREGNANCY_LOSS_AT_22_WEEKS and documented childbirth_benefit_qualified; this ordinary maximum applies only when qualification is explicitly false.",
@@ -422,19 +390,16 @@
 		],
 		"id": "e8c7b23f-6b90-510c-9cd7-83432e7b9643",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// Decree 145/2020 art.54(1)(a)(a3): a day of a monthly wage is the wage over the normal working days of the period (proration_basis WORKING_DAYS). Fixed allowances prorate on BASIC, so they fall and return with this line.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst rate = Number(get(terms, 'rate.amount', 0));\nif (unit === 'DAILY') return rate * ctx.entry.quantity;\nif (unit === 'HOURLY') return rate * (Number(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day) * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nreturn working > 0 ? (rate * ctx.entry.quantity) / working : 0;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "CONTRACEPTION_LEAVE",
 		"name": "Contraception measures",
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
 		},
-		"off_cycle_eligible": false,
-		"subtotal_id": "45246b26-45e2-58c4-a4cf-5927e27db18f",
+		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
 		"references": [
 			{
 				"title": "Law 41/2024 art.57: medically prescribed intrauterine device leave up to seven calendar days and sterilisation up to fifteen calendar days, including rest days and public holidays.",
@@ -443,19 +408,16 @@
 		],
 		"id": "ee5c6582-bde2-5006-91f7-282aa9e89293",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// Decree 145/2020 art.54(1)(a)(a3): a day of a monthly wage is the wage over the normal working days of the period (proration_basis WORKING_DAYS). Fixed allowances prorate on BASIC, so they fall and return with this line.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst rate = Number(get(terms, 'rate.amount', 0));\nif (unit === 'DAILY') return rate * ctx.entry.quantity;\nif (unit === 'HOURLY') return rate * (Number(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day) * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nreturn working > 0 ? (rate * ctx.entry.quantity) / working : 0;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "CONVALESCENCE_LEAVE",
 		"name": "Convalescence after sickness or maternity",
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
 		},
-		"off_cycle_eligible": false,
-		"subtotal_id": "45246b26-45e2-58c4-a4cf-5927e27db18f",
+		"subtotal_id": "55fa3e5c-9716-575a-8524-3145442f05f6",
 		"references": [
 			{
 				"title": "Law 41/2024 arts.46 and 60: medically justified recovery within the statutory period, at most ten, seven or five continuous calendar days according to the relevant illness/birth/surgery case; SI fund. Rest days and public holidays count. The original references to article 61 were incorrect.",
@@ -464,16 +426,13 @@
 		],
 		"id": "d9624250-bc61-5e91-a2b6-d7efe031fd46",
 		"settings_id": "1790c9b9-41c2-593f-beca-a8dda52ad3cc",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// Decree 145/2020 art.54(1)(a)(a3): a day of a monthly wage is the wage over the normal working days of the period (proration_basis WORKING_DAYS). Fixed allowances prorate on BASIC, so they fall and return with this line.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst rate = Number(get(terms, 'rate.amount', 0));\nif (unit === 'DAILY') return rate * ctx.entry.quantity;\nif (unit === 'HOURLY') return rate * (Number(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day) * ctx.entry.quantity;\nconst schedule = get(ctx.subject.employer, 'payment_schedule', {});\nconst halves = get(schedule, 'frequency', '') === 'SEMI_MONTHLY';\nconst coverage = ctx.run.salary_coverage;\nconst back = add_days(coverage.from, -1);\nconst from = ctx.entry.is_reversal !== true ? coverage.from : halves && Number(back.slice(8, 10)) > 15 ? add_days(month_start(back), 15) : month_start(back);\nconst to = ctx.entry.is_reversal !== true ? coverage.to : back;\nconst scheduled = get(schedule, 'non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet working = 0;\nfor (let date = from; date <= to; date = add_days(date, 1)) if (worksOn(date)) working += 1;\nreturn working > 0 ? (rate * ctx.entry.quantity) / working : 0;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "OCCUPATIONAL_ACCIDENT_LEAVE",
 		"name": "Treatment of an occupational accident or disease",
 		"pay_treatment": "PAID",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"references": [
 			{
@@ -488,7 +447,6 @@
 		"name": "Suspension pending discipline",
 		"pay_treatment": "PAID",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"references": [
 			{

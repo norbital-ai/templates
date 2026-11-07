@@ -23,6 +23,8 @@ import {
 } from './kit.ts';
 
 const NOW = '2026-12-20T02:00:00.000Z';
+const near = (actual: number, expected: number) =>
+	assert.ok(Math.abs(actual - expected) < 0.01, `${actual} is not ${expected}`);
 const CONTRACT = idOf('employee_contract', uuid(6));
 const terms = {
 	rate: { amount: 11_000_000, unit: 'MONTHLY' },
@@ -315,7 +317,8 @@ describe('pay that steps down, on one row', () => {
 				yield* take(t, ill, 'MEDICAL_LEAVE', JUNE);
 				yield* t.runDue();
 				yield* run(t, '2026-06');
-				assert.equal(yield* taken(t, 'MEDICAL_LEAVE'), 2 * 500_000 * share);
+				// the statutory day rate PP 35/2021: the month over 173, times the contract's eight hours
+				near(yield* taken(t, 'MEDICAL_LEAVE'), 2 * (11_000_000 / 173) * 8 * share);
 			}).pipe(Effect.provide(workspace({ seed: ill, now: NOW })));
 		});
 	it.live('days taken in an illness do not stop the next version, which keeps it', () => {
@@ -349,7 +352,7 @@ describe('pay that steps down, on one row', () => {
 			yield* t.runDue();
 			yield* run(t, '2026-06');
 			const before = yield* taken(t, 'MATERNITY_LEAVE');
-			assert.equal(before, 125_000);
+			near(before, (11_000_000 / 173) * 8 * 0.25);
 			const [first] = (yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } }))
 				.leave_catalog_entry.rows;
 			assert.ok(first !== undefined);
@@ -399,7 +402,7 @@ describe('pay that steps down, on one row', () => {
 			yield* take(t, born, 'MATERNITY_LEAVE', ['2026-05-27', '2026-06-09', '2026-06-10']);
 			yield* t.runDue();
 			yield* run(t, '2026-06');
-			assert.equal(yield* taken(t, 'MATERNITY_LEAVE'), 2 * 500_000 * 0.25);
+			near(yield* taken(t, 'MATERNITY_LEAVE'), 2 * (11_000_000 / 173) * 8 * 0.25);
 		}).pipe(Effect.provide(workspace({ seed: born, now: NOW })));
 	});
 });

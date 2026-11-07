@@ -43,15 +43,11 @@ export default model('registered_effect', {
 			],
 			many: true
 		},
-		reads: {
-			kind: 'json',
-			shape: { kind: 'record', of: { kind: 'json' } },
-			default: {}
-		},
-		condition: { kind: 'text', format: 'cel', max: 65536 },
+		reads: { kind: 'custom', of: 'reads', optional: true },
+		condition: { kind: 'text', max: 65536 },
 		target_collection: { kind: 'text' },
 		target_action: { kind: 'enum', values: ['create', 'update', 'delete'] },
-		effects: { kind: 'text', format: 'cel', max: 65536 },
+		effects: { kind: 'text', max: 65536 },
 		settings_id: {
 			kind: 'ref',
 			to: 'jurisdiction_settings',

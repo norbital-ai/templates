@@ -1,4 +1,6 @@
 import { model } from '@norbital-ai/bolt';
+import { syncLate, writesLedger } from '../../../../../lib/ledger/service.js';
+import { jsonObject } from '../../../../../lib/payroll_engine/foundation.js';
 
 export default model('ledger_entry', {
 	description:
@@ -15,9 +17,10 @@ export default model('ledger_entry', {
 			help: 'The window the value belongs to, for example MY.S.2026-03-05.'
 		},
 		measure: {
-			kind: 'text',
+			kind: 'enum',
+			values: ['total', 'used', 'entitled', 'carried', 'limit', 'paid'],
 			optional: true,
-			help: 'What is held in that window, for example entitled or used.'
+			help: 'What is held in that window.'
 		},
 		amount: { kind: 'decimal', scale: 12, min: 0, optional: true },
 		unit: {
@@ -49,9 +52,14 @@ export default model('ledger_entry', {
 			]
 		},
 		transform: function* (rows, ctx) {
-			if (!ctx.policies.includes('payroll_execution'))
+			if (!writesLedger(ctx))
 				return yield* ctx.refuse('Only posting and sync write the ledger, an admin included.');
 			return rows;
+		}
+	},
+	effect: {
+		created: function* (rows, ctx) {
+			yield* syncLate(ctx, rows.map(jsonObject));
 		}
 	}
 });

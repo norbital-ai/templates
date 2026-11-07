@@ -8,7 +8,6 @@
 				"title": "BIR RR 2-98 s.2.78.1(A)(3)(f) as amended by RR 29-2025: actual medical assistance is de minimis to PHP12,000 a year; the excess is an 'other benefit' within the PHP90,000 exclusion."
 			}
 		],
-		"off_cycle_eligible": true,
 		"subtotal_id": "9e48ac4b-76e8-52e6-a3a7-e2f9ff048ce2",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
@@ -27,7 +26,6 @@
 				"title": "BIR RR 2-98 s.2.78.1(A)(3)(f) as amended by RR 29-2025: actual medical assistance is de minimis to PHP12,000 a year; the excess is an 'other benefit' within the PHP90,000 exclusion."
 			}
 		],
-		"off_cycle_eligible": true,
 		"subtotal_id": "27d37d27-1788-4b6f-9b67-6d9c49d92e96",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",
@@ -46,7 +44,6 @@
 				"title": "BIR RR 2-98 s.2.78.1(A)(3)(f) as amended by RR 29-2025: actual medical assistance is de minimis to PHP12,000 a year; the excess is an 'other benefit' within the PHP90,000 exclusion."
 			}
 		],
-		"off_cycle_eligible": true,
 		"subtotal_id": "27d37d27-1788-4b6f-9b67-6d9c49d92e96",
 		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.quantity;",

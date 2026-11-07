@@ -174,12 +174,10 @@ describe('data request plan', () => {
 			allowances: { MEAL_ALLOWANCE: { amount: 150 } }
 		});
 		assert.deepEqual(row?.employee_extension_data, {
-			facts: {
-				paternity_confinements: [
-					{ event_id: 'E1', lifetime_number: 1, notification_requirement_met: true },
-					{ event_id: 'E2', lifetime_number: 2 }
-				]
-			}
+			paternity_confinements: [
+				{ event_id: 'E1', lifetime_number: 1, notification_requirement_met: true },
+				{ event_id: 'E2', lifetime_number: 2 }
+			]
 		});
 	});
 

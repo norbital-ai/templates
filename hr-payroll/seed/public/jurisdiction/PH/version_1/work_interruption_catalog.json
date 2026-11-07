@@ -2,7 +2,6 @@
 	{
 		"code": "BONA_FIDE_SUSPENSION",
 		"name": "Bona fide suspension of operations",
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {
 			"work.payment": {
@@ -22,7 +21,6 @@
 	{
 		"code": "FORCE_MAJEURE",
 		"name": "Natural disaster, calamity or other force majeure stopping work",
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {
 			"work.payment": {
@@ -42,7 +40,6 @@
 	{
 		"code": "STRIKE",
 		"name": "Strike",
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {
 			"work.payment": {
@@ -61,7 +58,6 @@
 	{
 		"code": "LOCKOUT",
 		"name": "Lockout by the employer",
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {
 			"work.payment": {
@@ -80,7 +76,6 @@
 	{
 		"code": "WORK_STOPPAGE_ORDER",
 		"name": "DOLE work stoppage order or OSH suspension for imminent danger",
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {
 			"work.payment": {

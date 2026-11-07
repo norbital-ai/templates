@@ -11,7 +11,6 @@
 				"quote": "Travelling allowances paid for the performance of work are exempt income; the employer bears transport for work away from the usual locality."
 			}
 		],
-		"off_cycle_eligible": true,
 		"subtotal_id": "dfa6d516-4761-5a3f-a17a-2fcbfcf4f06d",
 		"eligibility": "// js\n\tconst ended = get(ctx.subject.employment.effective_range, 'to', null);\n\treturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "// js\n\treturn ctx.entry.quantity;",

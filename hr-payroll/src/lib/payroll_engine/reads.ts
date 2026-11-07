@@ -76,3 +76,21 @@ export const queryAllRows = Effect.fn('payroll.queryAllRows')(function* (
 	}
 	return result;
 });
+
+/** A registered rule's or effect's reads: one layer per model, its filter, its row limit and the fields it keeps. */
+export const READS_SHAPE = {
+	kind: 'record',
+	of: {
+		kind: 'object',
+		fields: {
+			where: { kind: 'json', optional: true, help: 'The filter over the model, as a saved filter writes it.' },
+			limit: { kind: 'number', optional: true, min: 1, help: 'The most rows this layer may answer.' },
+			fields: {
+				kind: 'list',
+				of: { kind: 'text' },
+				optional: true,
+				help: 'The fields to keep; any other is not sent.'
+			}
+		}
+	}
+} as const;

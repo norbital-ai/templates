@@ -3,7 +3,7 @@
 		"code": "OVERTIME",
 		"name": "Overtime on a normal working day (Làm thêm giờ ngày thường)",
 		"lookup": {
-			"factor": 1.5
+			"multiplier": 1.5
 		},
 		"references": [
 			{
@@ -15,13 +15,10 @@
 				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "592c52dd-868e-5384-a8e8-511a091935b1",
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''))) return false;\nif (get(employment, 'terms.rate.unit', 'MONTHLY') === 'PIECE') return false;\nconst entry = get(ctx, 'entry', {});\nif (get(entry, 'unit', '') !== 'HOUR') return false;\nreturn Number(get(entry, 'quantity', 0)) > 0;",
-		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hourly = ctx.day_rate / hoursPerDay;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.factor;",
-		"incurred_on": "",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''))) return false;\nconst entry = get(ctx, 'entry', {});\nif (get(entry, 'unit', '') !== 'HOUR') return false;\nreturn Number(get(entry, 'quantity', 0)) > 0;",
+		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nreturn ctx.hour_rate * Number(get(entry, 'quantity', 0)) * ctx.lookup.multiplier;",
 		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "eb2ed3f1-f05b-5dbe-ae90-164183c9782b",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69"
 	},
@@ -29,7 +26,7 @@
 		"code": "REST_DAY_OVERTIME",
 		"name": "Overtime on a weekly rest day (Làm thêm giờ ngày nghỉ hằng tuần)",
 		"lookup": {
-			"factor": 2
+			"multiplier": 2
 		},
 		"references": [
 			{
@@ -41,13 +38,10 @@
 				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "592c52dd-868e-5384-a8e8-511a091935b1",
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''))) return false;\nif (get(employment, 'terms.rate.unit', 'MONTHLY') === 'PIECE') return false;\nconst entry = get(ctx, 'entry', {});\nif (get(entry, 'unit', '') !== 'HOUR') return false;\nreturn Number(get(entry, 'quantity', 0)) > 0;",
-		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hourly = ctx.day_rate / hoursPerDay;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.factor;",
-		"incurred_on": "",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''))) return false;\nconst entry = get(ctx, 'entry', {});\nif (get(entry, 'unit', '') !== 'HOUR') return false;\nreturn Number(get(entry, 'quantity', 0)) > 0;",
+		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nreturn ctx.hour_rate * Number(get(entry, 'quantity', 0)) * ctx.lookup.multiplier;",
 		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "ceaff64a-0d3e-556a-a4b2-4a26847a88e6",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69"
 	},
@@ -55,7 +49,7 @@
 		"code": "HOLIDAY_WORK",
 		"name": "Work on a public holiday or paid day off (Làm việc ngày lễ, ngày nghỉ có lương)",
 		"lookup": {
-			"factor": 3
+			"multiplier": 3
 		},
 		"references": [
 			{
@@ -67,13 +61,10 @@
 				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "592c52dd-868e-5384-a8e8-511a091935b1",
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''))) return false;\nif (get(employment, 'terms.rate.unit', 'MONTHLY') === 'PIECE') return false;\nconst entry = get(ctx, 'entry', {});\nif (get(entry, 'unit', '') !== 'HOUR') return false;\nreturn Number(get(entry, 'quantity', 0)) > 0;",
-		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hourly = ctx.day_rate / hoursPerDay;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.factor;",
-		"incurred_on": "",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''))) return false;\nconst entry = get(ctx, 'entry', {});\nif (get(entry, 'unit', '') !== 'HOUR') return false;\nreturn Number(get(entry, 'quantity', 0)) > 0;",
+		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nreturn ctx.hour_rate * Number(get(entry, 'quantity', 0)) * ctx.lookup.multiplier;",
 		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "457d7cb3-c0f7-5a20-821d-b2c209aab3db",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69"
 	},
@@ -81,7 +72,7 @@
 		"code": "NIGHT_WORK",
 		"name": "Night-work premium (Phụ cấp làm việc ban đêm)",
 		"lookup": {
-			"premium_rate": 0.3
+			"multiplier": 0.3
 		},
 		"references": [
 			{
@@ -96,13 +87,10 @@
 				"title": "Circular 111/2013/TT-BTC art.3(1)(i) exempts the night-work premium from personal income tax to 2025; Law 109/2025 art.4(8) from 2026. This is a tax treatment of the premium, not a pay rate."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "592c52dd-868e-5384-a8e8-511a091935b1",
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''))) return false;\nif (get(employment, 'terms.rate.unit', 'MONTHLY') === 'PIECE') return false;\nconst entry = get(ctx, 'entry', {});\nif (get(entry, 'unit', '') !== 'HOUR') return false;\nreturn Number(get(entry, 'quantity', 0)) > 0;",
-		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hourly = ctx.day_rate / hoursPerDay;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.premium_rate;",
-		"incurred_on": "",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''))) return false;\nconst entry = get(ctx, 'entry', {});\nif (get(entry, 'unit', '') !== 'HOUR') return false;\nreturn Number(get(entry, 'quantity', 0)) > 0;",
+		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nreturn ctx.hour_rate * Number(get(entry, 'quantity', 0)) * ctx.lookup.multiplier;",
 		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "67fbe866-7335-5a7d-a1fa-d76813b29869",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69"
 	},
@@ -110,8 +98,8 @@
 		"code": "NIGHT_OVERTIME",
 		"name": "Night-overtime supplement (Phụ cấp làm thêm giờ ban đêm)",
 		"lookup": {
-			"premium_rate": 0.2,
-			"day_wage_factor": {
+			"multiplier": 0.2,
+			"overtime_multiples": {
 				"NORMAL_DAY": 1,
 				"DAYTIME_OVERTIME": 1.5,
 				"REST_DAY": 2,
@@ -130,13 +118,10 @@
 				"url": "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "592c52dd-868e-5384-a8e8-511a091935b1",
-		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''))) return false;\nif (get(employment, 'terms.rate.unit', 'MONTHLY') === 'PIECE') return false;\nconst entry = get(ctx, 'entry', {});\nif (get(entry, 'unit', '') !== 'HOUR') return false;\nreturn Number(get(entry, 'quantity', 0)) > 0;",
-		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nconst terms = ctx.subject.employment.terms;\nconst hoursPerDay =\n\tNumber(get(terms, 'normal_hours_per_day', 0)) || ctx.lookup.normal_hours_per_day;\nconst hourly = ctx.day_rate / hoursPerDay;\nreturn hourly * Number(get(entry, 'quantity', 0)) * ctx.lookup.premium_rate *\n\tget(ctx.lookup.day_wage_factor, String(get(entry, 'kind', 'NORMAL_DAY')), 1);",
-		"incurred_on": "",
+		"eligibility": "// js\nconst employment = ctx.subject.employment;\nif (['CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(employment, 'engagement', ''))) return false;\nconst entry = get(ctx, 'entry', {});\nif (get(entry, 'unit', '') !== 'HOUR') return false;\nreturn Number(get(entry, 'quantity', 0)) > 0;",
+		"conversion": "// js\nconst entry = get(ctx, 'entry', {});\nreturn ctx.hour_rate * Number(get(entry, 'quantity', 0)) * ctx.lookup.multiplier *\n\tget(ctx.lookup.overtime_multiples, String(get(entry, 'kind', 'NORMAL_DAY')), 1);",
 		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "f79eab5d-6fb0-58cb-aeef-cb488ca81533",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69"
 	}

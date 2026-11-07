@@ -12,6 +12,7 @@ import { entitlementPlans } from '../src/lib/ledger/service.ts';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
+import { payBasis } from '../src/lib/payroll_engine/engine.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
@@ -59,7 +60,7 @@ const personOf = ({
 	employment: {
 		service_started_on: started,
 		effective_range: { from: started, to: null },
-		employee_extension_data: { events, facts, term_facts }
+		employee_extension_data: { events, ...facts, ...term_facts }
 	},
 	employer: { entity_extension_data: { region } }
 });
@@ -341,23 +342,42 @@ const lineOf = (
 					employment: {
 						effective_range: { from: started, to },
 						terms: { rate, normal_days_per_week: 5 },
-						employee_extension_data: { events, term_facts }
+						employee_extension_data: { events, ...term_facts }
 					},
 					employer: {
 						entity_extension_data: { region, ...(zone === undefined ? {} : { wage_zone: zone }) },
 						payment_schedule: { non_working_weekdays: [0, 6] }
 					}
 				},
-				entry: { days, quantity: days.length / 2, is_reversal: false, encashment },
+				entry: { days, quantity: days.length / 2, encashment },
 				lookup: { ...objectValue(row.lookup), ...law },
 				run: { salary_coverage: coverage },
 				work: { days: [] },
+				calendar_days:
+					(Date.parse(`${coverage.to}T00:00:00Z`) - Date.parse(`${coverage.from}T00:00:00Z`)) /
+						86_400_000 +
+					1,
+				working_days: workingDays(coverage),
+				// what the law's own divisor prices a month at, as the engine's day rate does
+				month_wage: day_rate * Number(objectValue(law).monthly_divisor ?? 21.75),
 				day_rate,
+				hour_rate: day_rate / 8,
 				as_of: coverage.to
 			},
 			`${code}.conversion`
 		)
 	);
+};
+/** The working days of a coverage period, as the engine counts them (the employer's week is Monday to Friday here). */
+const workingDays = (coverage: { from: string; to: string }) => {
+	const from = Date.parse(`${coverage.from}T00:00:00Z`),
+		to = Date.parse(`${coverage.to}T00:00:00Z`);
+	let count = 0;
+	for (let at = from; at <= to; at += 86_400_000) {
+		const day = new Date(at).getUTCDay();
+		if (day !== 0 && day !== 6) count += 1;
+	}
+	return count;
 };
 const near = (actual: number, expected: number) =>
 	assert.ok(Math.abs(actual - expected) < 0.000001, `${actual} is not ${expected}`);
@@ -366,7 +386,7 @@ describe('sick pay', () => {
 	const LAW = {
 		monthly_divisor: 20,
 		minimum_wage_floor_share: 0.5,
-		minimum_wage: [
+		minimum_wage_by_zone: [
 			{ region: 'SH', zone: '1', monthly: 1100, default_zone: '1' },
 			{ region: 'KM', zone: '1', monthly: 1100, default_zone: '1' },
 			{ region: 'KM', zone: '2', monthly: 660, default_zone: '1' }
@@ -477,28 +497,44 @@ describe('the day rate', () => {
 	it('adds the fixed allowances to the salary', () => {
 		const settings = file(4, 'jurisdiction_settings')[0];
 		assert.ok(settings !== undefined);
-		const lookup = objectValue(settings.lookup);
-		const day = evaluate(
-			String(lookup.day_rate),
-			'CALCULATION',
+		const day = payBasis(
 			{
-				subject: {
-					employment: {
-						terms: {
-							rate: { amount: 900, unit: 'MONTHLY' },
-							allowances: {
-								FIXED_ALLOWANCE: { amount: 50 },
-								FOREIGN_LANGUAGE_ALLOWANCE: { amount: 30 },
-								FOREIGN_CHILD_EDUCATION_ALLOWANCE: { amount: 20 },
-								MEAL_SUBSIDY_OUT: { amount: 400 }
-							}
+				run: {},
+				settings: { ...settings, conversions: { ...(settings.conversions as object), day: { basis: 'FIXED', days: 10 } } },
+				subtotals: [],
+				allowance: [
+					{ code: 'FIXED_ALLOWANCE', include_in_rate: true },
+					{ code: 'FOREIGN_LANGUAGE_ALLOWANCE', include_in_rate: true },
+					{ code: 'FOREIGN_CHILD_EDUCATION_ALLOWANCE', include_in_rate: true },
+					{ code: 'MEAL_SUBSIDY_OUT', include_in_rate: false }
+				],
+				overtime: [],
+				statutory: [],
+				leave_catalog: [],
+				claim_catalog: [],
+				adhoc_catalog: [],
+				loan_catalog: [],
+				employee: {},
+				employment: {
+					terms: {
+						rate: { amount: 900, unit: 'MONTHLY' },
+						normal_hours_per_day: 8,
+						normal_hours_per_week: 40,
+						normal_days_per_week: 5,
+						allowances: {
+							FIXED_ALLOWANCE: { amount: 50 },
+							FOREIGN_LANGUAGE_ALLOWANCE: { amount: 30 },
+							FOREIGN_CHILD_EDUCATION_ALLOWANCE: { amount: 20 },
+							MEAL_SUBSIDY_OUT: { amount: 400 }
 						}
 					}
 				},
-				lookup: { ...lookup, monthly_divisor: 10 }
+				employer: { payment_schedule: { non_working_weekdays: [0, 6] } },
+				balance: {},
+				entries: {}
 			},
-			'day_rate'
-		);
+			{ from: '2026-06-01', to: '2026-06-30' }
+		).day_rate;
 		assert.equal(day, 100);
 	});
 });

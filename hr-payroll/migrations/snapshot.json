@@ -8,7 +8,6 @@
 					"kind": "text"
 				},
 				"conversion": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536,
 					"optional": true
@@ -26,13 +25,11 @@
 					]
 				},
 				"eligibility": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536,
 					"optional": true
 				},
 				"incurred_on": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536,
 					"optional": true
@@ -123,10 +120,6 @@
 				"incurred_on": {
 					"kind": "date"
 				},
-				"is_reversal": {
-					"default": false,
-					"kind": "bool"
-				},
 				"payroll_run_id": {
 					"kind": "ref",
 					"onDelete": "setNull",
@@ -172,26 +165,21 @@
 					"kind": "text"
 				},
 				"conversion": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536
-				},
-				"direction": {
-					"kind": "enum",
-					"values": [
-						"ADD",
-						"DEDUCT"
-					]
 				},
 				"eligibility": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536
 				},
+				"include_in_rate": {
+					"default": false,
+					"kind": "bool"
+				},
 				"incurred_on": {
-					"format": "cel",
 					"kind": "text",
-					"max": 65536
+					"max": 65536,
+					"optional": true
 				},
 				"lookup": {
 					"default": {},
@@ -205,9 +193,6 @@
 				},
 				"name": {
 					"kind": "text"
-				},
-				"off_cycle_eligible": {
-					"kind": "bool"
 				},
 				"party": {
 					"default": "EMPLOYEE",
@@ -365,7 +350,6 @@
 					"kind": "text"
 				},
 				"conversion": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536,
 					"optional": true
@@ -383,13 +367,11 @@
 					]
 				},
 				"eligibility": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536,
 					"optional": true
 				},
 				"incurred_on": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536,
 					"optional": true
@@ -406,9 +388,6 @@
 				},
 				"name": {
 					"kind": "text"
-				},
-				"off_cycle_eligible": {
-					"kind": "bool"
 				},
 				"party": {
 					"default": "EMPLOYEE",
@@ -476,10 +455,6 @@
 				},
 				"incurred_on": {
 					"kind": "date"
-				},
-				"is_reversal": {
-					"default": false,
-					"kind": "bool"
 				},
 				"payroll_run_id": {
 					"kind": "ref",
@@ -740,12 +715,16 @@
 				"terms": {
 					"fields": {
 						"allowances": {
+							"help": "The agreed allowances, keyed by the catalog code; the catalog row carries how each behaves.",
 							"kind": "record",
 							"of": {
-								"kind": "record",
-								"of": {
-									"kind": "json"
-								}
+								"fields": {
+									"amount": {
+										"kind": "number",
+										"min": 0
+									}
+								},
+								"kind": "object"
 							},
 							"optional": true
 						},
@@ -769,18 +748,20 @@
 							"optional": true
 						},
 						"normal_days_per_week": {
+							"help": "The ordinary working days of one week.",
 							"kind": "number",
 							"max": 7,
-							"min": 0,
-							"optional": true
+							"min": 0
 						},
 						"normal_hours_per_day": {
+							"help": "The ordinary hours of one working day. Every overtime, leave and statutory hour reads it.",
 							"kind": "number",
-							"optional": true
+							"min": 0
 						},
 						"normal_hours_per_week": {
+							"help": "The ordinary hours of one working week.",
 							"kind": "number",
-							"optional": true
+							"min": 0
 						},
 						"notice_period": {
 							"fields": {
@@ -807,23 +788,32 @@
 							"optional": true
 						},
 						"rate": {
-							"fields": {
-								"amount": {
-									"kind": "number",
-									"min": 0
+							"kind": "json",
+							"optional": true,
+							"shape": {
+								"arms": {
+									"DAILY": {
+										"amount": {
+											"kind": "number",
+											"min": 0
+										}
+									},
+									"HOURLY": {
+										"amount": {
+											"kind": "number",
+											"min": 0
+										}
+									},
+									"MONTHLY": {
+										"amount": {
+											"kind": "number",
+											"min": 0
+										}
+									}
 								},
-								"unit": {
-									"kind": "enum",
-									"values": [
-										"MONTHLY",
-										"DAILY",
-										"HOURLY",
-										"PIECE"
-									]
-								}
-							},
-							"kind": "object",
-							"optional": true
+								"by": "unit",
+								"kind": "union"
+							}
 						},
 						"residency_status": {
 							"kind": "text",
@@ -1575,6 +1565,81 @@
 				"code": {
 					"kind": "text"
 				},
+				"conversions": {
+					"fields": {
+						"day": {
+							"fields": {
+								"basis": {
+									"kind": "enum",
+									"values": [
+										"CALENDAR_DAYS",
+										"WORKING_DAYS",
+										"YEAR",
+										"YEAR_REST_DAYS",
+										"HOUR",
+										"FIXED"
+									]
+								},
+								"days": {
+									"help": "The divisor when the basis is FIXED (Malaysia 26, China 21.75, Thailand and Taiwan 30).",
+									"kind": "number",
+									"min": 0,
+									"optional": true
+								}
+							},
+							"kind": "object"
+						},
+						"hour": {
+							"fields": {
+								"basis": {
+									"kind": "enum",
+									"values": [
+										"CONTRACT_HOURS",
+										"CONTRACT_WEEKLY",
+										"FIXED"
+									]
+								},
+								"hours": {
+									"help": "The divisor when the basis is FIXED (Indonesia 173, China 174).",
+									"kind": "number",
+									"min": 0,
+									"optional": true
+								}
+							},
+							"kind": "object"
+						},
+						"proration": {
+							"kind": "enum",
+							"values": [
+								"CALENDAR_DAYS",
+								"WORKING_DAYS"
+							]
+						},
+						"rounding": {
+							"fields": {
+								"mode": {
+									"default": "HALF_UP",
+									"kind": "enum",
+									"values": [
+										"HALF_UP",
+										"HALF_EVEN",
+										"UP",
+										"DOWN",
+										"TRUNCATE"
+									]
+								},
+								"scale": {
+									"default": 2,
+									"kind": "int",
+									"max": 12,
+									"min": 0
+								}
+							},
+							"kind": "object"
+						}
+					},
+					"kind": "object"
+				},
 				"currency": {
 					"kind": "currency"
 				},
@@ -1589,6 +1654,19 @@
 				"entity_extension_schema": {
 					"kind": "json",
 					"optional": true
+				},
+				"ledger": {
+					"fields": {
+						"ytd_scope": {
+							"default": "JURISDICTION",
+							"kind": "enum",
+							"values": [
+								"JURISDICTION",
+								"EMPLOYER"
+							]
+						}
+					},
+					"kind": "object"
 				},
 				"lookup": {
 					"default": {},
@@ -1666,7 +1744,6 @@
 					"kind": "text"
 				},
 				"conversion": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536,
 					"optional": true
@@ -1684,13 +1761,11 @@
 					]
 				},
 				"eligibility": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536,
 					"optional": true
 				},
 				"incurred_on": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536,
 					"optional": true
@@ -1707,17 +1782,6 @@
 				},
 				"name": {
 					"kind": "text"
-				},
-				"off_cycle_eligible": {
-					"kind": "bool"
-				},
-				"party": {
-					"default": "EMPLOYEE",
-					"kind": "enum",
-					"values": [
-						"EMPLOYEE",
-						"EMPLOYER"
-					]
 				},
 				"pay_treatment": {
 					"kind": "enum",
@@ -1806,10 +1870,6 @@
 					"max": "20MiB",
 					"optional": true
 				},
-				"is_reversal": {
-					"default": false,
-					"kind": "bool"
-				},
 				"payroll_run_id": {
 					"kind": "ref",
 					"onDelete": "setNull",
@@ -1859,9 +1919,17 @@
 					"kind": "date"
 				},
 				"measure": {
-					"help": "What is held in that window, for example entitled or used.",
-					"kind": "text",
-					"optional": true
+					"help": "What is held in that window.",
+					"kind": "enum",
+					"optional": true,
+					"values": [
+						"total",
+						"used",
+						"entitled",
+						"carried",
+						"limit",
+						"paid"
+					]
 				},
 				"operation": {
 					"kind": "enum",
@@ -1902,7 +1970,6 @@
 					"kind": "text"
 				},
 				"conversion": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536,
 					"optional": true
@@ -1911,22 +1978,12 @@
 					"kind": "text",
 					"optional": true
 				},
-				"direction": {
-					"default": "ADD",
-					"kind": "enum",
-					"values": [
-						"ADD",
-						"DEDUCT"
-					]
-				},
 				"eligibility": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536,
 					"optional": true
 				},
 				"incurred_on": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536,
 					"optional": true
@@ -1943,17 +2000,6 @@
 				},
 				"name": {
 					"kind": "text"
-				},
-				"off_cycle_eligible": {
-					"kind": "bool"
-				},
-				"party": {
-					"default": "EMPLOYEE",
-					"kind": "enum",
-					"values": [
-						"EMPLOYEE",
-						"EMPLOYER"
-					]
 				},
 				"references": {
 					"kind": "custom",
@@ -2047,10 +2093,6 @@
 					"kind": "ref",
 					"to": "entity"
 				},
-				"is_reversal": {
-					"default": false,
-					"kind": "bool"
-				},
 				"loan_id": {
 					"inverse": "repayments",
 					"kind": "ref",
@@ -2070,10 +2112,23 @@
 					"onDelete": "setNull",
 					"optional": true,
 					"to": "payroll_run"
+				},
+				"reverses": {
+					"kind": "ref",
+					"onDelete": "restrict",
+					"optional": true,
+					"to": "loan_repayment_entry"
 				}
 			},
 			"nativeRules": 2,
-			"recordLabel": "record.payment_reference"
+			"recordLabel": "record.payment_reference",
+			"unique": [
+				{
+					"fields": [
+						"reverses"
+					]
+				}
+			]
 		},
 		"obligation": {
 			"audit": true,
@@ -2166,7 +2221,6 @@
 					"kind": "text"
 				},
 				"conversion": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536
 				},
@@ -2178,14 +2232,13 @@
 					]
 				},
 				"eligibility": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536
 				},
 				"incurred_on": {
-					"format": "cel",
 					"kind": "text",
-					"max": 65536
+					"max": 65536,
+					"optional": true
 				},
 				"lookup": {
 					"default": {},
@@ -2199,17 +2252,6 @@
 				},
 				"name": {
 					"kind": "text"
-				},
-				"off_cycle_eligible": {
-					"kind": "bool"
-				},
-				"party": {
-					"default": "EMPLOYEE",
-					"kind": "enum",
-					"values": [
-						"EMPLOYEE",
-						"EMPLOYER"
-					]
 				},
 				"references": {
 					"kind": "custom",
@@ -2426,12 +2468,10 @@
 					"kind": "text"
 				},
 				"condition": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536
 				},
 				"effects": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536
 				},
@@ -2474,14 +2514,9 @@
 					"kind": "text"
 				},
 				"reads": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
+					"kind": "custom",
+					"of": "reads",
+					"optional": true
 				},
 				"references": {
 					"kind": "custom",
@@ -2527,7 +2562,6 @@
 					"kind": "text"
 				},
 				"condition": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536,
 					"optional": true
@@ -2572,14 +2606,9 @@
 					"kind": "int"
 				},
 				"reads": {
-					"default": {},
-					"kind": "json",
-					"shape": {
-						"kind": "record",
-						"of": {
-							"kind": "json"
-						}
-					}
+					"kind": "custom",
+					"of": "reads",
+					"optional": true
 				},
 				"references": {
 					"kind": "custom",
@@ -2596,7 +2625,6 @@
 					"kind": "text"
 				},
 				"validate": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536
 				}
@@ -2936,6 +2964,14 @@
 		"statutory_contribution_catalog": {
 			"audit": true,
 			"fields": {
+				"balance_window": {
+					"default": "YEAR",
+					"kind": "enum",
+					"values": [
+						"MONTH",
+						"YEAR"
+					]
+				},
 				"code": {
 					"kind": "text"
 				},
@@ -2947,17 +2983,14 @@
 					"optional": true
 				},
 				"eligibility": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536
 				},
 				"employee_amount": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536
 				},
 				"employer_amount": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536,
 					"optional": true
@@ -2988,9 +3021,6 @@
 				},
 				"name": {
 					"kind": "text"
-				},
-				"off_cycle_eligible": {
-					"kind": "bool"
 				},
 				"references": {
 					"kind": "custom",
@@ -3224,8 +3254,15 @@
 		"subtotal": {
 			"audit": true,
 			"fields": {
+				"balance_window": {
+					"default": "YEAR",
+					"kind": "enum",
+					"values": [
+						"MONTH",
+						"YEAR"
+					]
+				},
 				"calculation": {
-					"format": "cel",
 					"kind": "text",
 					"max": 65536,
 					"optional": true
@@ -4602,9 +4639,6 @@
 				"name": {
 					"kind": "text"
 				},
-				"off_cycle_eligible": {
-					"kind": "bool"
-				},
 				"references": {
 					"kind": "custom",
 					"of": "references",
@@ -4711,9 +4745,6 @@
 				},
 				"name": {
 					"kind": "text"
-				},
-				"off_cycle_eligible": {
-					"kind": "bool"
 				},
 				"references": {
 					"kind": "custom",

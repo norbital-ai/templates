@@ -3,9 +3,6 @@
 		"code": "SEVERANCE_ALLOWANCE",
 		"name": "Trợ cấp thôi việc (severance allowance)",
 		"lookup": {
-			"half_month_share": 0.5,
-			"half_year_remainder_months": 6,
-			"half_year_share": 0.5,
 			"qualifying_service_months": 12
 		},
 		"references": [
@@ -15,8 +12,8 @@
 		],
 		"off_cycle_eligible": true,
 		"subtotal_id": "81a11372-cd4a-5ab8-9af3-c0f8e37675ed",
-		"eligibility": "// js\nconst start = ctx.subject.employment.effective_range.from;\nconst months = calendar_completed_months(start, ctx.entry.incurred_on);\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= start)) return false;\nconst end = get(ctx.subject.employment.effective_range, 'to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (!(months >= ctx.lookup.qualifying_service_months)) return false;\nconst facts = get(ctx.subject.employment, 'employee_extension_data.exit_facts', {});\nif (get(facts, 'pension_eligible', false) === true) return false;\nif (get(facts, 'absent_five_days', false) === true) return false;\nif (get(facts, 'unlawful_resignation', false) === true) return false;\nreturn true;",
-		"conversion": "// js\n// quantity: the months HR counted under art.46(2), service less unemployment-insured time and time already paid.\nconst terms = ctx.subject.employment.terms;\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst wage =\n\tget(terms, 'rate.unit', 'MONTHLY') === 'MONTHLY'\n\t\t? Number(get(terms, 'rate.amount', 0)) + fixed\n\t\t: ctx.day_rate * ctx.lookup.fallback_working_days;\nconst full_years = Math.trunc(ctx.entry.quantity / ctx.lookup.months_per_year);\nconst remainder = ctx.entry.quantity % ctx.lookup.months_per_year;\nconst half_month = wage * ctx.lookup.half_month_share;\nif (remainder > ctx.lookup.half_year_remainder_months) return half_month * (full_years + 1);\nif (remainder > 0) return half_month * (full_years + ctx.lookup.half_year_share);\nreturn half_month * full_years;",
+		"eligibility": "// js\nconst start = ctx.subject.employment.effective_range.from;\nconst months = calendar_completed_months(start, ctx.entry.incurred_on);\nif (!(ctx.entry.quantity > 0)) return false;\nif (!(ctx.entry.incurred_on >= start)) return false;\nconst end = get(ctx.subject.employment.effective_range, 'to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (!(months >= ctx.lookup.qualifying_service_months)) return false;\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nif (get(facts, 'pension_eligible', false) === true) return false;\nif (get(facts, 'absent_five_days', false) === true) return false;\nif (get(facts, 'unlawful_resignation', false) === true) return false;\nreturn true;",
+		"conversion": "// js\n// quantity: the months HR counted under art.46(2), service less unemployment-insured time and time already paid.\nconst wage = ctx.month_wage;\nconst full_years = Math.trunc(ctx.entry.quantity / 12);\nconst remainder = ctx.entry.quantity % 12;\nconst half_month = wage * ctx.lookup.half_month_share;\nif (remainder > ctx.lookup.half_year_remainder_months) return half_month * (full_years + 1);\nif (remainder > 0) return half_month * (full_years + ctx.lookup.half_year_share);\nreturn half_month * full_years;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -28,8 +25,6 @@
 		"name": "Trợ cấp mất việc làm (job-loss allowance)",
 		"lookup": {
 			"minimum_months": 2,
-			"half_year_remainder_months": 6,
-			"half_year_share": 0.5,
 			"qualifying_service_months": 12
 		},
 		"references": [
@@ -44,8 +39,8 @@
 		],
 		"off_cycle_eligible": true,
 		"subtotal_id": "81a11372-cd4a-5ab8-9af3-c0f8e37675ed",
-		"eligibility": "// js\nconst start = ctx.subject.employment.effective_range.from;\nconst months = calendar_completed_months(start, ctx.entry.incurred_on);\nif (!(ctx.entry.incurred_on >= start)) return false;\nconst end = get(ctx.subject.employment.effective_range, 'to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (!(months >= ctx.lookup.qualifying_service_months)) return false;\nconst facts = get(ctx.subject.employment, 'employee_extension_data.exit_facts', {});\nreturn get(facts, 'unlawful_resignation', false) !== true;",
-		"conversion": "// js\n// quantity: the months HR counted under art.47(2); zero still pays the two-month minimum (Decree 145/2020 art.8(2)).\nconst terms = ctx.subject.employment.terms;\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, [code, allowance]) => ctx.lookup.excluded_allowances.includes(code) || get(allowance, 'fixed', true) === false ? total : total + Number(get(allowance, 'amount', 0)),\n\t0\n);\nconst wage =\n\tget(terms, 'rate.unit', 'MONTHLY') === 'MONTHLY'\n\t\t? Number(get(terms, 'rate.amount', 0)) + fixed\n\t\t: ctx.day_rate * ctx.lookup.fallback_working_days;\nconst full_years = Math.trunc(ctx.entry.quantity / ctx.lookup.months_per_year);\nconst remainder = ctx.entry.quantity % ctx.lookup.months_per_year;\nconst pay = (years) => wage * Math.max(years, ctx.lookup.minimum_months);\nif (remainder > ctx.lookup.half_year_remainder_months) return pay(full_years + 1);\nif (remainder > 0) return pay(full_years + ctx.lookup.half_year_share);\nreturn pay(full_years);",
+		"eligibility": "// js\nconst start = ctx.subject.employment.effective_range.from;\nconst months = calendar_completed_months(start, ctx.entry.incurred_on);\nif (!(ctx.entry.incurred_on >= start)) return false;\nconst end = get(ctx.subject.employment.effective_range, 'to', null);\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (!(months >= ctx.lookup.qualifying_service_months)) return false;\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nreturn get(facts, 'unlawful_resignation', false) !== true;",
+		"conversion": "// js\n// quantity: the months HR counted under art.47(2); zero still pays the two-month minimum (Decree 145/2020 art.8(2)).\nconst wage = ctx.month_wage;\nconst full_years = Math.trunc(ctx.entry.quantity / 12);\nconst remainder = ctx.entry.quantity % 12;\nconst pay = (years) => wage * Math.max(years, ctx.lookup.minimum_months);\nif (remainder > ctx.lookup.half_year_remainder_months) return pay(full_years + 1);\nif (remainder > 0) return pay(full_years + ctx.lookup.half_year_share);\nreturn pay(full_years);",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -93,7 +88,9 @@
 	{
 		"code": "PROPERTY_DAMAGE_COMPENSATION",
 		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
-		"lookup": {},
+		"lookup": {
+			"deduction_share": 0.3
+		},
 		"references": [
 			{
 				"title": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30,; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
@@ -135,9 +132,7 @@
 	{
 		"code": "EMPLOYEE_UNLAWFUL_TERMINATION",
 		"name": "Worker’s unlawful termination: half a month and unserved notice",
-		"lookup": {
-			"half_month_share": 0.5
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Labour Code 2019 art.40(2)–(3): a worker who ends the contract unlawfully gets no severance, owes half a month's contract wage and the wage for the notice days not served.",

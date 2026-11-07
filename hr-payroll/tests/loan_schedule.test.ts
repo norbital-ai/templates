@@ -232,7 +232,7 @@ describe('final-pay loan recovery', () => {
 		);
 	});
 
-	it('normalises a contract rate to a month, leaving piece rates to a person', () => {
+	it('normalises a contract rate to a month, leaving an unknown unit to a person', () => {
 		assert.equal(monthlyEquivalent({ rate: { amount: 3000, unit: 'MONTHLY' } }), 3000);
 		assert.equal(
 			monthlyEquivalent({ rate: { amount: 120, unit: 'DAILY' }, normal_days_per_week: 5 }),
@@ -243,6 +243,5 @@ describe('final-pay loan recovery', () => {
 			2080
 		);
 		assert.equal(monthlyEquivalent({ rate: { amount: 10, unit: 'HOURLY' } }), null);
-		assert.equal(monthlyEquivalent({ rate: { amount: 10, unit: 'PIECE' } }), null);
 	});
 });

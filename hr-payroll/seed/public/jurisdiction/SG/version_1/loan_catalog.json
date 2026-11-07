@@ -2,9 +2,7 @@
 	{
 		"code": "SALARY_ADVANCE",
 		"name": "Salary advance",
-		"lookup": {
-			"max_months": 12
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Employment Act 1968 s.31(1); MOM, Salary deductions — an advance is recoverable over at most 12 months, each instalment at most one quarter of salary",
@@ -13,20 +11,15 @@
 				"effective_from": "2025-12-01"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "4f426899-9035-5f1e-b880-55f46c5873a3",
 		"eligibility": "return ctx.entry.repayment_period.to < add_months(month_start(ctx.entry.repayment_period.from), ctx.lookup.max_months);",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
 		"id": "2bb2f97a-b757-5278-a731-5dbbb9b54f30",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
 	},
 	{
 		"code": "FESTIVE_ADVANCE",
 		"name": "Festive advance",
-		"lookup": {
-			"max_months": 12
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Employment Act 1968 s.31(1); MOM, Salary deductions — an advance is recoverable over at most 12 months, each instalment at most one quarter of salary",
@@ -35,21 +28,15 @@
 				"effective_from": "2025-12-01"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "4f426899-9035-5f1e-b880-55f46c5873a3",
 		"eligibility": "return ctx.entry.repayment_period.to < add_months(month_start(ctx.entry.repayment_period.from), ctx.lookup.max_months);",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
 		"id": "d1289877-1524-52f2-848c-8145850135c9",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
 	},
 	{
 		"code": "SALARY_OVERPAYMENT",
 		"name": "Salary overpayment recovery",
-		"off_cycle_eligible": false,
 		"subtotal_id": "4f426899-9035-5f1e-b880-55f46c5873a3",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
 		"id": "321e7088-ee2f-5cdb-a809-1adb935fe193",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"references": [
@@ -59,15 +46,13 @@
 				"url": "https://www.mom.gov.sg/employment-practices/salary/salary-deductions",
 				"effective_from": "2025-12-01"
 			}
-		]
+		],
+		"lookup": {}
 	},
 	{
 		"code": "UNEARNED_BENEFIT_RECOVERY",
 		"name": "Unearned benefit recovery",
-		"off_cycle_eligible": false,
 		"subtotal_id": "4f426899-9035-5f1e-b880-55f46c5873a3",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
 		"id": "de4133ce-9392-5464-857b-c3615852c2d0",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34",
 		"references": [
@@ -77,14 +62,13 @@
 				"url": "https://www.mom.gov.sg/employment-practices/salary/salary-deductions",
 				"effective_from": "2025-12-01"
 			}
-		]
+		],
+		"lookup": {}
 	},
 	{
 		"code": "TRAVEL_ADVANCE",
 		"name": "Travel advance",
-		"lookup": {
-			"max_months": 12
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Employment Act 1968 s.31(1); MOM, Salary deductions — a travel advance is recoverable from completed salary periods, at most one quarter of salary an instalment",
@@ -93,11 +77,8 @@
 				"effective_from": "2025-12-01"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "4f426899-9035-5f1e-b880-55f46c5873a3",
 		"eligibility": "return ctx.entry.repayment_period.to < add_months(month_start(ctx.entry.repayment_period.from), ctx.lookup.max_months);",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
 		"id": "708cfc6b-417b-571c-aac3-b9190fd53872",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
 	}

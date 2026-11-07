@@ -3,10 +3,7 @@
 		"code": "SALARY_ADVANCE",
 		"name": "Tạm ứng tiền lương (salary advance)",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": "ea240b7f-0903-52b3-ba0f-db32f7ea156d",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
 		"id": "2dbc8310-f843-59af-99a5-a53361b1e39b",
 		"settings_id": "c67f281e-91b7-58ec-8fab-db1bf3e84573",
 		"references": [

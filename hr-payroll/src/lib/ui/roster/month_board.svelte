@@ -116,7 +116,7 @@
 					},
 					leave_catalog_entry: {
 						where: { employment_id: { in: [...ids] } },
-						fields: ['employment_id', 'days', 'catalog_id', 'is_reversal'],
+						fields: ['employment_id', 'days', 'catalog_id', 'reverses'],
 						limit: 10000
 					},
 					'leave_catalog_entry.catalog_id': { fields: ['code', 'name'] }

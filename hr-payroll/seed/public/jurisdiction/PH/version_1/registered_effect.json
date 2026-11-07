@@ -9,7 +9,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
 		"target_collection": "obligation",
@@ -28,7 +30,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
 		"target_collection": "obligation",
@@ -49,7 +53,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tctx.entry.engagement !== 'PAYEE';",
 		"target_collection": "obligation",
@@ -71,7 +77,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tctx.entry.engagement !== 'PAYEE';",
 		"target_collection": "obligation",
@@ -93,7 +101,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tctx.entry.engagement !== 'PAYEE';",
 		"target_collection": "obligation",
@@ -115,7 +125,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tctx.entry.engagement !== 'PAYEE';",
 		"target_collection": "obligation",
@@ -127,7 +139,9 @@
 	{
 		"code": "FINAL_PAY_RELEASE",
 		"name": "Final pay",
-		"lookup": {},
+		"lookup": {
+			"final_pay_maximum_days": 30
+		},
 		"references": [
 			{
 				"title": "DOLE LA06-20 PartII: final pay within30calendar days from separation, or the shorter deadline established by company policy/individual/CBA agreement. The task uses the earlier reviewed payment date or legal/policy deadline; a later planned payment never extends the deadline.",
@@ -135,7 +149,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
 		"target_collection": "obligation",
@@ -157,7 +173,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
 		"target_collection": "obligation",
@@ -177,7 +195,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'terms.residency_status', null) === null) return false;\nreturn !['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(ctx.entry, 'terms.residency_status', ''));",
 		"target_collection": "obligation",
@@ -198,7 +218,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null &&\n\tget(ctx.entry, 'employee_extension_data.termination_cause', null) !== null;",
 		"target_collection": "obligation",
@@ -220,7 +242,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
 		"target_collection": "obligation",
@@ -240,7 +264,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'terms.statutory_work_category', null) === 'DOMESTIC';",
 		"target_collection": "obligation",
@@ -260,7 +286,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'terms.probation_period', null) !== null;",
 		"target_collection": "obligation",
@@ -283,7 +311,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'payroll.date_of_birth', null) !== null;",
 		"target_collection": "obligation",
@@ -305,7 +335,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'effective_range.to', null) === null) return false;\nreturn get(ctx.entry, 'terms.statutory_work_category', null) === 'DOMESTIC';",
 		"target_collection": "obligation",
@@ -325,7 +357,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'terms.probation_period', null) !== null;",
 		"target_collection": "obligation",
@@ -346,7 +380,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
 		"target_collection": "obligation",
@@ -366,7 +402,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'terms.statutory_work_category', null) === 'CAREGIVER';",
 		"target_collection": "obligation",
@@ -387,7 +425,9 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
 		"target_collection": "obligation",
@@ -409,7 +449,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -428,7 +470,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -447,7 +491,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -467,7 +513,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -489,7 +537,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -509,7 +559,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -531,7 +583,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'entity_extension_data.processes_sensitive_pi_1000', null) === true) return true;\nif (get(ctx.entry, 'entity_extension_data.npc_processing_likely_risk', null) === true) return true;\nreturn get(ctx.entry, 'entity_extension_data.npc_automated_decisions_or_profiling', null) === true;",
 		"target_collection": "obligation",
@@ -553,7 +607,9 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'entity_extension_data.npc_registered_on', null) !== null;",
 		"target_collection": "obligation",
@@ -579,7 +635,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'EMPLOYMENT_CERTIFICATE_REQUEST' &&\n\tget(ctx.entry, 'closed_on', null) === null;",
 		"target_collection": "obligation",
@@ -599,7 +657,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'FINAL_COMPENSATION_PAYMENT' &&\n\tget(ctx.entry, 'scheduled_on', null) !== null;",
 		"target_collection": "obligation",
@@ -616,12 +676,14 @@
 		},
 		"references": [
 			{
-				"title": "OSH Standards Rule 1053.01(1) (https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf, read 2026-10-07): the formal report \"shall be submitted by the employer on or before the 20th day of the month following the date of occurrence of the accident or when the illness is established\"; DO 198-18 s.17 and Labor Advisory 04-19 ¶5(a) (both in the same OSHC edition) keep the WAIR. Raised when a WORK_ACCIDENT case (a disabling injury or illness) is opened; the occurrence is `facts.occurred_on`, else the opening day.",
+				"title": "OSH Standards Rule 1053.01(1) (https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf, read 2026-10-07): the formal report \"shall be submitted by the employer on or before the 20th day of the month following the date of occurrence of the accident or when the illness is established\"; DO 198-18 s.17 and Labor Advisory 04-19 ¶5(a) (both in the same OSHC edition) keep the WAIR. Raised when a WORK_ACCIDENT case (a disabling injury or illness) is opened; the occurrence is `occurred_on`, else the opening day.",
 				"url": "https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf"
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'WORK_ACCIDENT';",
 		"target_collection": "obligation",
@@ -638,12 +700,14 @@
 		},
 		"references": [
 			{
-				"title": "OSH Standards Rule 1053.01(2) (https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf, read 2026-10-07): \"the employer ... shall initially notify the Regional Labor Office ... within twenty four (24) hours after occurrence using the fastest available means of communication\"; Labor Advisory 04-19: serious injuries and deaths are notified immediately. Raised when a WORK_ACCIDENT case records `facts.outcome` DEATH or PERMANENT_TOTAL_DISABILITY; due the day after the occurrence.",
+				"title": "OSH Standards Rule 1053.01(2) (https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf, read 2026-10-07): \"the employer ... shall initially notify the Regional Labor Office ... within twenty four (24) hours after occurrence using the fastest available means of communication\"; Labor Advisory 04-19: serious injuries and deaths are notified immediately. Raised when a WORK_ACCIDENT case records `outcome` DEATH or PERMANENT_TOTAL_DISABILITY; due the day after the occurrence.",
 				"url": "https://web.archive.org/web/2022id_/https://oshc.dole.gov.ph/wp-content/uploads/2020/12/OSH-Standard-2020.pdf"
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'WORK_ACCIDENT' &&\n\t['DEATH', 'PERMANENT_TOTAL_DISABILITY'].includes(get(ctx.entry, 'inputs.outcome', null));",
 		"target_collection": "obligation",
@@ -663,7 +727,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'DANGEROUS_OCCURRENCE';",
 		"target_collection": "obligation",
@@ -680,12 +746,14 @@
 		},
 		"references": [
 			{
-				"title": "DOLE Department Advisory 02-09 Part V (https://web.archive.org/web/2020id_/http://www.bwc.dole.gov.ph/images/Issuances/DepartmentAdvisory/DA_02_09_2.pdf, read 2026-10-07): \"Prior to its implementation, the employer shall notify the Department through the Regional Office which has jurisdiction over the workplace, of the adoption of any of the above flexible work arrangements\"; Department Advisory 04-10 Part V repeats it. Raised when a FLEXIBLE_WORK_ARRANGEMENT case is opened; due the day before `facts.starts_on`, else before the opening day.",
+				"title": "DOLE Department Advisory 02-09 Part V (https://web.archive.org/web/2020id_/http://www.bwc.dole.gov.ph/images/Issuances/DepartmentAdvisory/DA_02_09_2.pdf, read 2026-10-07): \"Prior to its implementation, the employer shall notify the Department through the Regional Office which has jurisdiction over the workplace, of the adoption of any of the above flexible work arrangements\"; Department Advisory 04-10 Part V repeats it. Raised when a FLEXIBLE_WORK_ARRANGEMENT case is opened; due the day before `starts_on`, else before the opening day.",
 				"url": "https://web.archive.org/web/2020id_/http://www.bwc.dole.gov.ph/images/Issuances/DepartmentAdvisory/DA_02_09_2.pdf"
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'FLEXIBLE_WORK_ARRANGEMENT';",
 		"target_collection": "obligation",
@@ -700,12 +768,14 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "DO 237-22 (Revised IRR of RA 11165) s.10 (https://web.archive.org/web/2023id_/https://bwc.dole.gov.ph/images/Issuances/DepartmentOrder/DO_237_22.pdf, read 2026-10-07; supersedes DO 202-19): \"The employer shall notify the DOLE of the implementation of telecommuting through the Establishment Report System\". The rule names no period: a recorded default due on the program’s start (`facts.starts_on`, else the opening day). Raised when a TELECOMMUTING_PROGRAM case is opened.",
+				"title": "DO 237-22 (Revised IRR of RA 11165) s.10 (https://web.archive.org/web/2023id_/https://bwc.dole.gov.ph/images/Issuances/DepartmentOrder/DO_237_22.pdf, read 2026-10-07; supersedes DO 202-19): \"The employer shall notify the DOLE of the implementation of telecommuting through the Establishment Report System\". The rule names no period: a recorded default due on the program’s start (`starts_on`, else the opening day). Raised when a TELECOMMUTING_PROGRAM case is opened.",
 				"url": "https://web.archive.org/web/2023id_/https://bwc.dole.gov.ph/images/Issuances/DepartmentOrder/DO_237_22.pdf"
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'TELECOMMUTING_PROGRAM';",
 		"target_collection": "obligation",
@@ -722,12 +792,14 @@
 		},
 		"references": [
 			{
-				"title": "Omnibus Rules Book VI Rule I s.12 as amended by DO 215-20 (https://web.archive.org/web/2021id_/https://www.dole.gov.ph/php_assets/uploads/2020/10/DO-215-20-Rule-Amending-Section-12-of-Rule-I-Rules-Implementing-Book-VI-of-the-Labor-Code-on-Suspension-of-Employment-Relationship.pdf, read 2026-10-07): \"the employer shall report to the Department of Labor and Employment, through the Regional Offices, the extension of suspension of employment ten (10) days prior to the effectivity thereof subject to inspection\". A suspension of operations within six months (Labor Code art.301) has no DOLE report in the instruments read. Raised when a SUSPENSION_EXTENSION case is opened; the extension’s first day is `facts.starts_on`, else the opening day.",
+				"title": "Omnibus Rules Book VI Rule I s.12 as amended by DO 215-20 (https://web.archive.org/web/2021id_/https://www.dole.gov.ph/php_assets/uploads/2020/10/DO-215-20-Rule-Amending-Section-12-of-Rule-I-Rules-Implementing-Book-VI-of-the-Labor-Code-on-Suspension-of-Employment-Relationship.pdf, read 2026-10-07): \"the employer shall report to the Department of Labor and Employment, through the Regional Offices, the extension of suspension of employment ten (10) days prior to the effectivity thereof subject to inspection\". A suspension of operations within six months (Labor Code art.301) has no DOLE report in the instruments read. Raised when a SUSPENSION_EXTENSION case is opened; the extension’s first day is `starts_on`, else the opening day.",
 				"url": "https://web.archive.org/web/2021id_/https://www.dole.gov.ph/php_assets/uploads/2020/10/DO-215-20-Rule-Amending-Section-12-of-Rule-I-Rules-Implementing-Book-VI-of-the-Labor-Code-on-Suspension-of-Employment-Relationship.pdf"
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'SUSPENSION_EXTENSION';",
 		"target_collection": "obligation",
@@ -746,7 +818,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'SOLO_PARENT_FLEXIBLE_SCHEDULE';",
 		"target_collection": "obligation",
@@ -768,7 +842,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'PERSONAL_DATA_BREACH';",
 		"target_collection": "obligation",
@@ -790,7 +866,9 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'PERSONAL_DATA_BREACH';",
 		"target_collection": "obligation",
@@ -809,7 +887,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -819,7 +899,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -843,7 +925,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -853,7 +937,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -872,12 +958,14 @@
 		},
 		"references": [
 			{
-				"title": "HDMF Circular 275 §E.2, §E.4 (RA 9679 s.7): in the month following the period covered by the first letter of the employer’s name — A–D by the 14th, E–L the 19th, M–Q the 24th, R–Z or a numeral the month’s end; a penalty of 1/10 of 1% a day of delay. Recorded default: an employer without a recorded group (entity fact `hdmf_remittance_group`) is due on the 14th, the earliest window.",
+				"title": "HDMF Circular 275 §E.2, §E.4 (RA 9679 s.7): in the month following the period covered by the first letter of the employer’s name — A–D by the 14th, E–L the 19th, M–Q the 24th, R–Z or a numeral the month’s end; a penalty of 1/10 of 1% a day of delay. Recorded default: due on the 14th, the earliest window.",
 				"url": "https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf"
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -887,7 +975,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -912,7 +1002,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -922,7 +1014,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -944,7 +1038,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -954,7 +1050,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -976,7 +1074,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -986,7 +1086,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -1009,7 +1111,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1019,7 +1123,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -1041,7 +1147,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1051,7 +1159,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -1073,7 +1183,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1083,7 +1195,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -1105,7 +1219,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1115,7 +1231,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -1137,7 +1255,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1147,7 +1267,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -1169,7 +1291,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1179,7 +1303,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -1201,7 +1327,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1211,7 +1339,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -1233,7 +1363,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1243,7 +1375,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -1265,7 +1399,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1275,7 +1411,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -1297,7 +1435,9 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1307,7 +1447,9 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
@@ -1323,7 +1465,9 @@
 		"name": "Follow up a contribution corrected for a closed month",
 		"lookup": {},
 		"source_collection": "adhoc_catalog_entry",
-		"events": ["create"],
+		"events": [
+			"create"
+		],
 		"reads": {
 			"adhoc_catalog": {
 				"where": {
@@ -1333,7 +1477,11 @@
 						}
 					}
 				},
-				"fields": ["code", "name", "lookup"],
+				"fields": [
+					"code",
+					"name",
+					"lookup"
+				],
 				"limit": 1
 			},
 			"obligation": {
@@ -1344,11 +1492,13 @@
 						}
 					}
 				},
-				"fields": ["id"],
+				"fields": [
+					"id"
+				],
 				"limit": 1
 			}
 		},
-		"condition": "// js\nconst row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'is_reversal', false) !== true && get(row, 'lookup.accounts', []).length > 0;",
+		"condition": "// js\nconst row = first(ctx.reads.adhoc_catalog);\nreturn row != null && get(ctx.entry, 'reverses', null) == null && get(row, 'lookup.accounts', []).length > 0;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nif (ctx.reads.obligation.length > 0) return [];\nconst row = first(ctx.reads.adhoc_catalog);\nconst refund = row.code.endsWith('_REFUND');\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.subject.employment.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: (refund ? 'Claim ' : 'Pay ') + ctx.entry.quantity + (refund ? ' back from the fund: ' : ' in arrears to the fund: ') + row.name,\n\toccurrence_key: occurrence_key(['PH', 'CONTRIBUTION_CORRECTION', ctx.entry.id])\n}];",

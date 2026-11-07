@@ -32,7 +32,7 @@ Law lives in catalogs. What is true about a person lives on their sealed contrac
                              every         running
                              movement      totals
 
-  EFFECT   after a commit: a task, or the ledger automation scheduled
+  EFFECT   after a commit: a task, or a ledger sync scheduled
 ```
 
 Everything is composed from eight primitives:
@@ -100,8 +100,8 @@ lookup                      the statute's numbers, and:
 | --------- | ----------------------------------------------------------------------- |
 | Leave     | `leave/<own code>/<period>/used`                                        |
 | Claim     | `claim/<own code>/<period>/used`                                        |
-| Statutory | `statutory/<code>.<party>/` year and month, as settings `month_balance` |
-| Subtotal  | `pay/<code>/` year, and month where settings `month_balance` names it   |
+| Statutory | `statutory/<code>.<party>/` year, and month where the row's `balance_window` is `MONTH` |
+| Subtotal  | `pay/<code>/` year, and month where the row's `balance_window` is `MONTH` |
 | Adhoc     | None                                                                    |
 
 A row that declares `accounts` replaces its default entirely.
@@ -118,15 +118,14 @@ Leave rows share one entitlement rule, which reads the standard keys (`service_b
 
 A fact is something true of a person. Every fact lives on the contract, because the contract is sealed and is what a payroll run reads. Each country's `employee_extension_schema` declares its facts, so a new fact needs no code.
 
-| Fact       | Where on the contract                            | Examples                                             |
-| ---------- | ------------------------------------------------ | ---------------------------------------------------- |
-| Native     | Contract fields                                  | Gender, marital status, date of birth, service start |
-| Standing   | `employee_extension_data.facts`                  | Dependants, tax elections                            |
-| Terms      | `employee_extension_data.term_facts`             | Overtime by contract, carry limit                    |
-| Dated list | `employee_extension_data.events`, one per event  | Children, confinements, illnesses, marriage          |
-| Exit       | `exit_facts`, `exit_ground`, `termination_cause` | Why and how the employment ended                     |
+| Fact       | Where on the contract                                   | Examples                                             |
+| ---------- | ------------------------------------------------------- | ---------------------------------------------------- |
+| Native     | Contract fields                                         | Gender, marital status, date of birth, service start |
+| Person     | `employee_extension_data.<field>`                       | Dependants, tax elections, exit answers              |
+| Statutory  | `employee_extension_data.statutory.<SCHEME>.<field>`    | Scheme elections and registration numbers            |
+| Dated list | `employee_extension_data.events`, one per event         | Children, confinements, illnesses, marriage          |
 
-Some countries' schemas lay these flat on `employee_extension_data`.
+Every schema is flat: there are no `facts`, `term_facts`, `exit_facts` or `elections` buckets.
 
 A new fact is a new contract version: HR adds it to a draft and seals it, from the first of a month, so a run never prices a month on two versions. A transfer starts on the first too; only a hire, a rehire and an exit keep their own day. The event keeps its own real date. One known ahead of its day is filed as a `contract_change`, which nothing reads until the `contract_materialize` automation seals it on that day. An event carries its real date. Where leave starts first, as it can before a birth, `opened_on` is the day its window opens; the expected date goes in `on`, and a later contract change moves `on` to the real date while the window, its entitlement and the days taken stay where they are. Sealing triggers sync, and a catalog row's `opened_by` names the events that open it, so nothing else connects them.
 
@@ -212,7 +211,7 @@ A period key is `<scope>.<kind>.<window start date>`, computed by one function.
 | `EVENT`                | `E`    | Leave given per dated fact on the contract   |
 | `LIFETIME`             | `L`    | Grants for the whole of service              |
 
-Scope is the country by default, so a move between countries or a restart of service starts new keys. Where the law has each employer withhold on its own, as China and Thailand do, the jurisdiction sets `totals_by_employer` and pay and statutory totals are also keyed by employer, so a move starts them again.
+Scope is the country by default, so a move between countries or a restart of service starts new keys. Where the law has each employer withhold on its own, as China and Thailand do, the jurisdiction sets `ytd_scope` and pay and statutory totals are also keyed by employer, so a move starts them again.
 
 A new period is a new key, so nothing closes a year. Sync removes year and service windows after three years and month totals after twelve months, through dated movements. Blocks, lifetimes and events stay. The ledger keeps everything forever.
 
@@ -332,7 +331,7 @@ A payslip is the run's entry. Pay and statutory totals post from it once, in the
 | A reversal names one entry of the same person and catalog item                        | Nothing is reversed by accident |
 | An entry is reversed once, for no more than it held, and a reversal is never reversed | `used` cannot fall below zero   |
 | Half a day is taken once across a person's leave, until a reversal frees it           | One absence, one entry          |
-| Only the `ledger` automation writes the ledger or the balance, an admin included      | No hand-written balance         |
+| Only posting and sync write the ledger or the balance, an admin included              | No hand-written balance         |
 | A leave in a window no sync has opened has nothing to refuse against                  | A leave dated next year         |
 | A leave posted into an earlier year syncs that person again                           | Carry stays right               |
 
@@ -375,7 +374,7 @@ Sync runs on the triggers in section 7. It schedules itself for the next period 
 
 **Rules** run before commit. They read balance values and dated entries, and a refusal gives one plain reason, taken from the rule's own message.
 
-**Effects** run after commit. Registered effects go through one dispatcher that resolves the settings version for every model, and each seeded one raises a task. A model's own effect schedules the `ledger` automation, and a contract's also raises the exit encashment. No effect touches the ledger or the balance.
+**Effects** run after commit. Registered effects go through one dispatcher that resolves the settings version for every model, and each seeded one raises a task. A contract's own effect schedules a ledger sync and raises the exit encashment, and a leave posting dated in an earlier year schedules a sync of its people. No effect touches the ledger or the balance.
 
 ## 10. Worked examples
 
@@ -533,7 +532,7 @@ PPH21_DTP: an ADD row paying the amount of PPH21
 **Benefit taxed over two years (Indonesia).** PP 68/2009 arts.2(2), 6: the first two calendar years are one benefit on the ladder. Tax follows payment, so the totals post from the payslip.
 
 ```text
-SEVERANCE posts to its year, and to its month through month_balance
+SEVERANCE posts to its year, and to its month through balance_window: MONTH
 Contract fact: severance_tax_history.first_payment_year
 
 PPH21_FINAL_SEVERANCE reads ctx.balances.years from that year on
@@ -560,14 +559,14 @@ EPF_REFUND (adhoc_catalog)
   accounts   statutory/EPF.employee, year and month
 ```
 
-| Step | Who    | What                                                                                                                     |
-| ---- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
-| 1    | HR     | Events > Ad hoc > New, or a spreadsheet for many people                                                                  |
-| 2    | HR     | Employee, item `EPF_REFUND`, amount 100, dated 30 June, a description                                                    |
-| 3    | System | The `ledger` automation posts `DEDUCT statutory/EPF.employee/MY.Y.2026-01-01/paid 100`, and the same on June's month key |
-| 4    | System | An effect raises the task: claim RM100 back from EPF                                                                     |
-| 5    | System | The next run pays the employee +100                                                                                      |
-| 6    | HR     | Files the claim with EPF, outside the system, and closes the task                                                        |
+| Step | Who    | What                                                                                                                   |
+| ---- | ------ | ---------------------------------------------------------------------------------------------------------------------- |
+| 1    | HR     | Events > Ad hoc > New, or a spreadsheet for many people                                                                |
+| 2    | HR     | Employee, item `EPF_REFUND`, amount 100, dated 30 June, a description                                                  |
+| 3    | System | The entry's own write posts `DEDUCT statutory/EPF.employee/MY.Y.2026-01-01/paid 100`, and the same on June's month key |
+| 4    | System | An effect raises the task: claim RM100 back from EPF                                                                   |
+| 5    | System | The next run pays the employee +100                                                                                    |
+| 6    | HR     | Files the claim with EPF, outside the system, and closes the task                                                      |
 
 An underpayment is the mirror: `EPF_ADJUSTMENT`, direction `DEDUCT`, which adds to the statutory balance and raises a task to pay the arrears. An adjustment entered wrongly is deleted while unpaid, and reversed on the same row once paid.
 
@@ -681,10 +680,10 @@ src/lib/
   ui/                   pages and shared components
 ```
 
-A model's posting is one line:
+A model's posting is what its write carries:
 
 ```text
-yield* ctx.schedule('ledger', { post: rows.map((row) => `leave_catalog_entry:${row.id}`) });
+return { rows, onApproved: yield* entryPostings(ctx.db.query, 'leave_catalog_entry', entries, true) };
 ```
 
 ## 12. Invariants

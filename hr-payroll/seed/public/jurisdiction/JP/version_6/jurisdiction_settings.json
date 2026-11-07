@@ -16,21 +16,17 @@
 			"description": "Additional local compliance data on the sealed contract, stored as employee_extension_data. Shared salary, allowances, work classifications, dates and work arrangements are native fields.",
 			"additionalProperties": false,
 			"properties": {
-				"normal_days_per_year": {
-					"type": "integer",
-					"minimum": 0,
-					"maximum": 366,
-					"title": "年間所定労働日数",
-					"description": "労働基準法施行規則 art.24の3: the scheduled days of a year, for a worker whose days are not set by the week."
-				},
 				"events": {
 					"type": "array",
 					"title": "Dated facts",
-					"description": "What happened to this person that the law gives or takes leave for. One item per event, with its document uploaded on the employee profile.",
+					"description": "What happened to this person that the law gives or takes leave for. One item per event.",
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": ["kind", "on"],
+						"required": [
+							"kind",
+							"on"
+						],
 						"properties": {
 							"kind": {
 								"type": "string",
@@ -43,15 +39,22 @@
 								"title": "What happened",
 								"description": "ATTENDANCE_BELOW_RATIO: 労働基準法 art.39(1)–(2), dated on the annual leave grant day it refuses. CHILD_BIRTH: 育児・介護休業法 art.16の2, dated on the birthday of a child the worker raises, ended when they stop. EXPECTED_BIRTH, EXPECTED_MULTIPLE_BIRTH: 労働基準法 art.65(1), dated on the expected birth, ended on the birth."
 							},
-							"on": { "type": "string", "format": "date", "title": "Date" },
+							"on": {
+								"type": "string",
+								"format": "date",
+								"title": "Date"
+							},
 							"opened_on": {
 								"type": "string",
 								"format": "date",
 								"title": "Leave from",
 								"description": "The first day of leave, where it starts before the date above. The window stays here when the date changes."
 							},
-							"ended_on": { "type": "string", "format": "date", "title": "Ended on" },
-							"document": { "type": "string", "title": "Document on the profile" }
+							"ended_on": {
+								"type": "string",
+								"format": "date",
+								"title": "Ended on"
+							}
 						}
 					}
 				},
@@ -83,50 +86,37 @@
 									"format": "date",
 									"title": "Effective from"
 								},
-								"elections": {
-									"type": "object",
-									"title": "Declared inputs",
-									"properties": {
-										"apportionment_ratio": {
-											"type": "number",
-											"title": "二以上事業所勤務の按分割合",
-											"description": "HEALTH / PENSION: this employer's share of the combined premium (健保則 art.1の2 notice).",
-											"minimum": 0,
-											"maximum": 1
-										},
-										"bonus_as_remuneration": {
-											"type": "boolean",
-											"title": "年4回以上の賞与（報酬扱い）",
-											"description": "HEALTH: bonuses paid four or more times a year are 報酬 (健保法 art.3(5)); stops the bonus assessment.",
-											"default": false
-										},
-										"care_exempt": {
-											"type": "boolean",
-											"title": "介護保険適用除外",
-											"description": "HEALTH: a 40–64 insured person not domiciled in Japan (介護保険適用除外等該当届; 介護保険法 art.9(2)).",
-											"default": false
-										},
-										"premium_adjustment_from": {
-											"type": "string",
-											"title": "保険料調整制度の開始月",
-											"description": "HEALTH / PENSION: the month (YYYY-MM, October 2026 or later) the employer's 保険料調整制度 began, for a newly covered short-time worker; the employee:employer ratio is the statutory one for the standard monthly remuneration grade (126,000 or less) — years one and two, then half the reduction in year three, none after 36 months.",
-											"pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
-										},
-										"social_security_agreement_exempt": {
-											"type": "boolean",
-											"title": "社会保障協定による適用除外",
-											"description": "HEALTH / PENSION: covered by a 適用証明書 under a social security agreement.",
-											"default": false
-										},
-										"standard_monthly_remuneration": {
-											"type": "number",
-											"minimum": 58000,
-											"maximum": 1390000,
-											"title": "標準報酬月額 (health)",
-											"description": "HEALTH (read by every social insurance scheme). The health insurance standard monthly remuneration the pension office decided (資格取得時決定, 定時決定, 随時改定; 健康保険法 arts.41–43). The welfare pension grade is the same amount within 88,000–650,000. Unrecorded grades the contract monthly wage."
-										}
-									},
-									"additionalProperties": false
+								"apportionment_ratio": {
+									"type": "number",
+									"title": "二以上事業所勤務の按分割合",
+									"description": "HEALTH / PENSION: this employer's share of the combined premium (健保則 art.1の2 notice).",
+									"minimum": 0,
+									"maximum": 1
+								},
+								"bonus_as_remuneration": {
+									"type": "boolean",
+									"title": "年4回以上の賞与（報酬扱い）",
+									"description": "HEALTH: bonuses paid four or more times a year are 報酬 (健保法 art.3(5)); stops the bonus assessment.",
+									"default": false
+								},
+								"care_exempt": {
+									"type": "boolean",
+									"title": "介護保険適用除外",
+									"description": "HEALTH: a 40–64 insured person not domiciled in Japan (介護保険適用除外等該当届; 介護保険法 art.9(2)).",
+									"default": false
+								},
+								"social_security_agreement_exempt": {
+									"type": "boolean",
+									"title": "社会保障協定による適用除外",
+									"description": "HEALTH / PENSION: covered by a 適用証明書 under a social security agreement.",
+									"default": false
+								},
+								"standard_monthly_remuneration": {
+									"type": "number",
+									"minimum": 58000,
+									"maximum": 1390000,
+									"title": "標準報酬月額 (health)",
+									"description": "HEALTH (read by every social insurance scheme). The health insurance standard monthly remuneration the pension office decided (資格取得時決定, 定時決定, 随時改定; 健康保険法 arts.41–43). The welfare pension grade is the same amount within 88,000–650,000. Unrecorded grades the contract monthly wage."
 								}
 							}
 						},
@@ -135,44 +125,18 @@
 							"title": "厚生年金保険 (employees' pension insurance)",
 							"additionalProperties": false,
 							"properties": {
-								"elections": {
-									"type": "object",
-									"title": "Declared inputs",
-									"properties": {
-										"apportionment_ratio": {
-											"type": "number",
-											"title": "二以上事業所勤務の按分割合",
-											"description": "HEALTH / PENSION: this employer's share of the combined premium (健保則 art.1の2 notice).",
-											"minimum": 0,
-											"maximum": 1
-										},
-										"premium_adjustment_from": {
-											"type": "string",
-											"title": "保険料調整制度の開始月",
-											"description": "HEALTH / PENSION: the month (YYYY-MM, October 2026 or later) the employer's 保険料調整制度 began, for a newly covered short-time worker; the employee:employer ratio is the statutory one for the standard monthly remuneration grade (126,000 or less) — years one and two, then half the reduction in year three, none after 36 months.",
-											"pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
-										},
-										"social_security_agreement_exempt": {
-											"type": "boolean",
-											"title": "社会保障協定による適用除外",
-											"description": "HEALTH / PENSION: covered by a 適用証明書 under a social security agreement.",
-											"default": false
-										}
-									},
-									"additionalProperties": false
-								}
-							}
-						},
-						"EI": {
-							"type": "object",
-							"title": "雇用保険 (employment insurance)",
-							"additionalProperties": false,
-							"properties": {
-								"elections": {
-									"type": "object",
-									"title": "Declared inputs",
-									"properties": {},
-									"additionalProperties": false
+								"apportionment_ratio": {
+									"type": "number",
+									"title": "二以上事業所勤務の按分割合",
+									"description": "HEALTH / PENSION: this employer's share of the combined premium (健保則 art.1の2 notice).",
+									"minimum": 0,
+									"maximum": 1
+								},
+								"social_security_agreement_exempt": {
+									"type": "boolean",
+									"title": "社会保障協定による適用除外",
+									"description": "HEALTH / PENSION: covered by a 適用証明書 under a social security agreement.",
+									"default": false
 								}
 							}
 						},
@@ -181,37 +145,30 @@
 							"title": "源泉所得税及び復興特別所得税 (salary and bonus withholding)",
 							"additionalProperties": false,
 							"properties": {
-								"elections": {
-									"type": "object",
-									"title": "Declared inputs",
-									"properties": {
-										"dependency_declaration_filed": {
-											"type": "boolean",
-											"default": false,
-											"title": "扶養控除等申告書 filed with this employer",
-											"description": "INCOME_TAX. 所得税法 art.194: the 給与所得者の扶養控除等(異動)申告書 filed with this employer (the main employer) — withholding by the 甲欄 and the bonus 甲 rates. Unfiled is the 乙欄."
-										},
-										"secondary_dependants": {
-											"type": "integer",
-											"minimum": 0,
-											"title": "従たる給与の扶養親族等の数",
-											"description": "INCOME_TAX: dependants on a 従たる給与についての扶養控除等申告書 (乙欄, 1,610 yen each; 月額表 備考2)."
-										},
-										"treaty_exempt": {
-											"type": "boolean",
-											"title": "租税条約による免除",
-											"description": "INCOME_TAX: a non-resident's pay exempt under a tax treaty on the 租税条約に関する届出書.",
-											"default": false
-										},
-										"withholding_dependants": {
-											"type": "integer",
-											"minimum": 0,
-											"default": 0,
-											"title": "扶養親族等の数",
-											"description": "INCOME_TAX. The number the declaration gives for the tables: 源泉控除対象配偶者 and 源泉控除対象親族 (including 特定親族 from 2026), plus one for each of the employee being a disabled person, widow, single parent or working student, and one for each disabled or co-resident specially disabled family member (月額表 備考 1(4))."
-										}
-									},
-									"additionalProperties": false
+								"dependency_declaration_filed": {
+									"type": "boolean",
+									"default": false,
+									"title": "扶養控除等申告書 filed with this employer",
+									"description": "INCOME_TAX. 所得税法 art.194: the 給与所得者の扶養控除等(異動)申告書 filed with this employer (the main employer) — withholding by the 甲欄 and the bonus 甲 rates. Unfiled is the 乙欄."
+								},
+								"secondary_dependants": {
+									"type": "integer",
+									"minimum": 0,
+									"title": "従たる給与の扶養親族等の数",
+									"description": "INCOME_TAX: dependants on a 従たる給与についての扶養控除等申告書 (乙欄, 1,610 yen each; 月額表 備考2)."
+								},
+								"treaty_exempt": {
+									"type": "boolean",
+									"title": "租税条約による免除",
+									"description": "INCOME_TAX: a non-resident's pay exempt under a tax treaty on the 租税条約に関する届出書.",
+									"default": false
+								},
+								"withholding_dependants": {
+									"type": "integer",
+									"minimum": 0,
+									"default": 0,
+									"title": "扶養親族等の数",
+									"description": "INCOME_TAX. The number the declaration gives for the tables: 源泉控除対象配偶者 and 源泉控除対象親族 (including 特定親族 from 2026), plus one for each of the employee being a disabled person, widow, single parent or working student, and one for each disabled or co-resident specially disabled family member (月額表 備考 1(4))."
 								}
 							}
 						},
@@ -220,103 +177,77 @@
 							"title": "年末調整 (year-end adjustment)",
 							"additionalProperties": false,
 							"properties": {
-								"elections": {
-									"type": "object",
-									"title": "Declared inputs",
-									"properties": {
-										"departure_date": {
-											"type": "string",
-											"title": "出国日",
-											"description": "YEAR_END_ADJUSTMENT: the day the employee leaves Japan (year-end adjustment at the last pay before it).",
-											"format": "date"
-										},
-										"prior_employer_income": {
-											"type": "number",
-											"title": "前職の給与収入",
-											"description": "YEAR_END_ADJUSTMENT: from the previous employer's 源泉徴収票 this year.",
-											"minimum": 0
-										},
-										"prior_employer_social_insurance": {
-											"type": "number",
-											"title": "前職の社会保険料",
-											"description": "YEAR_END_ADJUSTMENT: from the previous employer's 源泉徴収票.",
-											"minimum": 0
-										},
-										"prior_employer_tax": {
-											"type": "number",
-											"title": "前職の源泉徴収税額",
-											"description": "YEAR_END_ADJUSTMENT: from the previous employer's 源泉徴収票.",
-											"minimum": 0
-										},
-										"yea_dependant_deduction": {
-											"type": "number",
-											"title": "扶養控除額",
-											"description": "YEAR_END_ADJUSTMENT: from the 扶養控除等申告書.",
-											"minimum": 0
-										},
-										"yea_housing_loan_credit": {
-											"type": "number",
-											"title": "住宅借入金等特別控除額",
-											"description": "YEAR_END_ADJUSTMENT: the credit from the 住宅借入金等特別控除申告書.",
-											"minimum": 0
-										},
-										"yea_income_adjustment": {
-											"type": "number",
-											"title": "所得金額調整控除額",
-											"description": "YEAR_END_ADJUSTMENT: 租税特別措置法 art.41の3の11 (salary over 8,500,000 with a dependant under 23 or disabled).",
-											"minimum": 0
-										},
-										"yea_insurance_deductions": {
-											"type": "number",
-											"title": "生命保険料・地震保険料・小規模企業共済等掛金控除額",
-											"description": "YEAR_END_ADJUSTMENT: from the 保険料控除申告書.",
-											"minimum": 0
-										},
-										"yea_other_income": {
-											"type": "number",
-											"title": "給与以外の所得",
-											"description": "YEAR_END_ADJUSTMENT: other income on the 基礎控除申告書, for the basic deduction tier.",
-											"minimum": 0
-										},
-										"yea_other_social_insurance": {
-											"type": "number",
-											"title": "申告による社会保険料控除額",
-											"description": "YEAR_END_ADJUSTMENT: social insurance paid directly (国民年金 etc.).",
-											"minimum": 0
-										},
-										"yea_personal_deductions": {
-											"type": "number",
-											"title": "障害者・寡婦・ひとり親・勤労学生控除額",
-											"description": "YEAR_END_ADJUSTMENT: the personal deductions on the 扶養控除等申告書.",
-											"minimum": 0
-										},
-										"yea_specific_relative_deduction": {
-											"type": "number",
-											"title": "特定親族特別控除額",
-											"description": "YEAR_END_ADJUSTMENT: from the 特定親族特別控除申告書 (from 2025).",
-											"minimum": 0
-										},
-										"yea_spouse_deduction": {
-											"type": "number",
-											"title": "配偶者（特別）控除額",
-											"description": "YEAR_END_ADJUSTMENT: from the 配偶者控除等申告書.",
-											"minimum": 0
-										}
-									},
-									"additionalProperties": false
-								}
-							}
-						},
-						"RETIREMENT_TAX": {
-							"type": "object",
-							"title": "退職所得の源泉徴収 (retirement income withholding)",
-							"additionalProperties": false,
-							"properties": {
-								"elections": {
-									"type": "object",
-									"title": "Declared inputs",
-									"properties": {},
-									"additionalProperties": false
+								"prior_employer_income": {
+									"type": "number",
+									"title": "前職の給与収入",
+									"description": "YEAR_END_ADJUSTMENT: from the previous employer's 源泉徴収票 this year.",
+									"minimum": 0
+								},
+								"prior_employer_social_insurance": {
+									"type": "number",
+									"title": "前職の社会保険料",
+									"description": "YEAR_END_ADJUSTMENT: from the previous employer's 源泉徴収票.",
+									"minimum": 0
+								},
+								"prior_employer_tax": {
+									"type": "number",
+									"title": "前職の源泉徴収税額",
+									"description": "YEAR_END_ADJUSTMENT: from the previous employer's 源泉徴収票.",
+									"minimum": 0
+								},
+								"yea_dependant_deduction": {
+									"type": "number",
+									"title": "扶養控除額",
+									"description": "YEAR_END_ADJUSTMENT: from the 扶養控除等申告書.",
+									"minimum": 0
+								},
+								"yea_housing_loan_credit": {
+									"type": "number",
+									"title": "住宅借入金等特別控除額",
+									"description": "YEAR_END_ADJUSTMENT: the credit from the 住宅借入金等特別控除申告書.",
+									"minimum": 0
+								},
+								"yea_income_adjustment": {
+									"type": "number",
+									"title": "所得金額調整控除額",
+									"description": "YEAR_END_ADJUSTMENT: 租税特別措置法 art.41の3の11 (salary over 8,500,000 with a dependant under 23 or disabled).",
+									"minimum": 0
+								},
+								"yea_insurance_deductions": {
+									"type": "number",
+									"title": "生命保険料・地震保険料・小規模企業共済等掛金控除額",
+									"description": "YEAR_END_ADJUSTMENT: from the 保険料控除申告書.",
+									"minimum": 0
+								},
+								"yea_other_income": {
+									"type": "number",
+									"title": "給与以外の所得",
+									"description": "YEAR_END_ADJUSTMENT: other income on the 基礎控除申告書, for the basic deduction tier.",
+									"minimum": 0
+								},
+								"yea_other_social_insurance": {
+									"type": "number",
+									"title": "申告による社会保険料控除額",
+									"description": "YEAR_END_ADJUSTMENT: social insurance paid directly (国民年金 etc.).",
+									"minimum": 0
+								},
+								"yea_personal_deductions": {
+									"type": "number",
+									"title": "障害者・寡婦・ひとり親・勤労学生控除額",
+									"description": "YEAR_END_ADJUSTMENT: the personal deductions on the 扶養控除等申告書.",
+									"minimum": 0
+								},
+								"yea_specific_relative_deduction": {
+									"type": "number",
+									"title": "特定親族特別控除額",
+									"description": "YEAR_END_ADJUSTMENT: from the 特定親族特別控除申告書 (from 2025).",
+									"minimum": 0
+								},
+								"yea_spouse_deduction": {
+									"type": "number",
+									"title": "配偶者（特別）控除額",
+									"description": "YEAR_END_ADJUSTMENT: from the 配偶者控除等申告書.",
+									"minimum": 0
 								}
 							}
 						},
@@ -325,18 +256,11 @@
 							"title": "退職所得の分離課税 住民税 (resident tax on retirement income)",
 							"additionalProperties": false,
 							"properties": {
-								"elections": {
-									"type": "object",
-									"title": "Declared inputs",
-									"properties": {
-										"not_domiciled_on_january_1": {
-											"type": "boolean",
-											"title": "1月1日に国内に住所なし",
-											"description": "RESIDENT_TAX_RETIREMENT: no resident tax on the retirement income.",
-											"default": false
-										}
-									},
-									"additionalProperties": false
+								"not_domiciled_on_january_1": {
+									"type": "boolean",
+									"title": "1月1日に国内に住所なし",
+									"description": "RESIDENT_TAX_RETIREMENT: no resident tax on the retirement income.",
+									"default": false
 								}
 							}
 						},
@@ -345,30 +269,23 @@
 							"title": "住民税 特別徴収 (resident tax special collection)",
 							"additionalProperties": false,
 							"properties": {
-								"elections": {
-									"type": "object",
-									"title": "Declared inputs",
-									"properties": {
-										"june_amount": {
-											"type": "number",
-											"minimum": 0,
-											"title": "住民税 特別徴収 June amount",
-											"description": "RESIDENT_TAX. 地方税法 art.321の4: the June amount on the municipality's 特別徴収税額決定通知書."
-										},
-										"lump_sum_on_exit": {
-											"type": "boolean",
-											"title": "一括徴収の申出",
-											"description": "RESIDENT_TAX: the leaver (June–December) asks for the rest of the year to be collected from the final pay (地方税法 art.321の5(2)).",
-											"default": false
-										},
-										"monthly_amount": {
-											"type": "number",
-											"minimum": 0,
-											"title": "住民税 特別徴収 monthly amount (July–May)",
-											"description": "RESIDENT_TAX. 地方税法 art.321の4: the monthly amount from July to May on the notice; replaced each June. Unrecorded is no special collection."
-										}
-									},
-									"additionalProperties": false
+								"june_amount": {
+									"type": "number",
+									"minimum": 0,
+									"title": "住民税 特別徴収 June amount",
+									"description": "RESIDENT_TAX. 地方税法 art.321の4: the June amount on the municipality's 特別徴収税額決定通知書."
+								},
+								"lump_sum_on_exit": {
+									"type": "boolean",
+									"title": "一括徴収の申出",
+									"description": "RESIDENT_TAX: the leaver (June–December) asks for the rest of the year to be collected from the final pay (地方税法 art.321の5(2)).",
+									"default": false
+								},
+								"monthly_amount": {
+									"type": "number",
+									"minimum": 0,
+									"title": "住民税 特別徴収 monthly amount (July–May)",
+									"description": "RESIDENT_TAX. 地方税法 art.321の4: the monthly amount from July to May on the notice; replaced each June. Unrecorded is no special collection."
 								}
 							}
 						}
@@ -453,13 +370,6 @@
 					"minimum": 0,
 					"maximum": 1
 				},
-				"commuter_pass_months": {
-					"type": "number",
-					"title": "通勤定期券の月数",
-					"description": "Months a commuter pass paid at once covers (所得税基本通達 9-6の3).",
-					"minimum": 1,
-					"maximum": 12
-				},
 				"daytime_student": {
 					"type": "boolean",
 					"title": "昼間学生",
@@ -490,284 +400,10 @@
 					"description": "労働基準法 art.36(6)(i) with 施行規則 art.18: overtime at most 2 hours a day.",
 					"default": false
 				},
-				"specified_minimum_wage_work": {
-					"type": "array",
-					"title": "特定最低賃金の実際の業務",
-					"description": "Actual principal operation and skill-acquisition status for every order assigned through the native workplace industry classifications. Order codes and operation labels come from specified_minimum_wage. Age and actual hire dates are native inputs; no assessed hourly minimum is captured.",
-					"minItems": 1,
-					"uniqueItems": true,
-					"items": {
-						"type": "object",
-						"additionalProperties": false,
-						"required": ["order_code", "principal_operation", "acquiring_skills"],
-						"properties": {
-							"order_code": {
-								"type": "string",
-								"enum": [
-									"JP_SMW_3",
-									"JP_SMW_4",
-									"JP_SMW_5",
-									"JP_SMW_6",
-									"JP_SMW_7",
-									"JP_SMW_8",
-									"JP_SMW_9",
-									"JP_SMW_10",
-									"JP_SMW_11",
-									"JP_SMW_12",
-									"JP_SMW_13",
-									"JP_SMW_14",
-									"JP_SMW_15",
-									"JP_SMW_245",
-									"JP_SMW_16",
-									"JP_SMW_17",
-									"JP_SMW_18",
-									"JP_SMW_19",
-									"JP_SMW_20",
-									"JP_SMW_21",
-									"JP_SMW_22",
-									"JP_SMW_23",
-									"JP_SMW_24",
-									"JP_SMW_25",
-									"JP_SMW_26",
-									"JP_SMW_27",
-									"JP_SMW_28",
-									"JP_SMW_29",
-									"JP_SMW_30",
-									"JP_SMW_31",
-									"JP_SMW_32",
-									"JP_SMW_33",
-									"JP_SMW_35",
-									"JP_SMW_37",
-									"JP_SMW_38",
-									"JP_SMW_39",
-									"JP_SMW_40",
-									"JP_SMW_41",
-									"JP_SMW_42",
-									"JP_SMW_43",
-									"JP_SMW_44",
-									"JP_SMW_45",
-									"JP_SMW_46",
-									"JP_SMW_47",
-									"JP_SMW_48",
-									"JP_SMW_49",
-									"JP_SMW_50",
-									"JP_SMW_51",
-									"JP_SMW_52",
-									"JP_SMW_53",
-									"JP_SMW_54",
-									"JP_SMW_55",
-									"JP_SMW_56",
-									"JP_SMW_57",
-									"JP_SMW_58",
-									"JP_SMW_59",
-									"JP_SMW_60",
-									"JP_SMW_61",
-									"JP_SMW_62",
-									"JP_SMW_63",
-									"JP_SMW_64",
-									"JP_SMW_66",
-									"JP_SMW_67",
-									"JP_SMW_68",
-									"JP_SMW_69",
-									"JP_SMW_70",
-									"JP_SMW_71",
-									"JP_SMW_72",
-									"JP_SMW_73",
-									"JP_SMW_74",
-									"JP_SMW_75",
-									"JP_SMW_78",
-									"JP_SMW_79",
-									"JP_SMW_80",
-									"JP_SMW_81",
-									"JP_SMW_82",
-									"JP_SMW_83",
-									"JP_SMW_84",
-									"JP_SMW_85",
-									"JP_SMW_86",
-									"JP_SMW_87",
-									"JP_SMW_88",
-									"JP_SMW_89",
-									"JP_SMW_90",
-									"JP_SMW_91",
-									"JP_SMW_93",
-									"JP_SMW_94",
-									"JP_SMW_95",
-									"JP_SMW_96",
-									"JP_SMW_97",
-									"JP_SMW_98",
-									"JP_SMW_99",
-									"JP_SMW_102",
-									"JP_SMW_103",
-									"JP_SMW_104",
-									"JP_SMW_105",
-									"JP_SMW_106",
-									"JP_SMW_107",
-									"JP_SMW_108",
-									"JP_SMW_109",
-									"JP_SMW_110",
-									"JP_SMW_111",
-									"JP_SMW_112",
-									"JP_SMW_113",
-									"JP_SMW_114",
-									"JP_SMW_115",
-									"JP_SMW_116",
-									"JP_SMW_117",
-									"JP_SMW_118",
-									"JP_SMW_119",
-									"JP_SMW_120",
-									"JP_SMW_121",
-									"JP_SMW_122",
-									"JP_SMW_123",
-									"JP_SMW_124",
-									"JP_SMW_125",
-									"JP_SMW_126",
-									"JP_SMW_127",
-									"JP_SMW_128",
-									"JP_SMW_130",
-									"JP_SMW_131",
-									"JP_SMW_132",
-									"JP_SMW_133",
-									"JP_SMW_135",
-									"JP_SMW_136",
-									"JP_SMW_137",
-									"JP_SMW_138",
-									"JP_SMW_139",
-									"JP_SMW_141",
-									"JP_SMW_142",
-									"JP_SMW_143",
-									"JP_SMW_144",
-									"JP_SMW_145",
-									"JP_SMW_146",
-									"JP_SMW_147",
-									"JP_SMW_149",
-									"JP_SMW_150",
-									"JP_SMW_152",
-									"JP_SMW_153",
-									"JP_SMW_154",
-									"JP_SMW_155",
-									"JP_SMW_156",
-									"JP_SMW_157",
-									"JP_SMW_158",
-									"JP_SMW_159",
-									"JP_SMW_160",
-									"JP_SMW_161",
-									"JP_SMW_162",
-									"JP_SMW_164",
-									"JP_SMW_165",
-									"JP_SMW_166",
-									"JP_SMW_167",
-									"JP_SMW_168",
-									"JP_SMW_169",
-									"JP_SMW_170",
-									"JP_SMW_171",
-									"JP_SMW_172",
-									"JP_SMW_173",
-									"JP_SMW_174",
-									"JP_SMW_175",
-									"JP_SMW_176",
-									"JP_SMW_177",
-									"JP_SMW_178",
-									"JP_SMW_179",
-									"JP_SMW_180",
-									"JP_SMW_181",
-									"JP_SMW_182",
-									"JP_SMW_183",
-									"JP_SMW_184",
-									"JP_SMW_185",
-									"JP_SMW_186",
-									"JP_SMW_187",
-									"JP_SMW_188",
-									"JP_SMW_189",
-									"JP_SMW_190",
-									"JP_SMW_191",
-									"JP_SMW_192",
-									"JP_SMW_194",
-									"JP_SMW_195",
-									"JP_SMW_196",
-									"JP_SMW_197",
-									"JP_SMW_198",
-									"JP_SMW_199",
-									"JP_SMW_200",
-									"JP_SMW_201",
-									"JP_SMW_202",
-									"JP_SMW_203",
-									"JP_SMW_204",
-									"JP_SMW_205",
-									"JP_SMW_206",
-									"JP_SMW_207",
-									"JP_SMW_209",
-									"JP_SMW_210",
-									"JP_SMW_211",
-									"JP_SMW_213",
-									"JP_SMW_214",
-									"JP_SMW_215",
-									"JP_SMW_216",
-									"JP_SMW_217",
-									"JP_SMW_218",
-									"JP_SMW_219",
-									"JP_SMW_220",
-									"JP_SMW_222",
-									"JP_SMW_223",
-									"JP_SMW_224",
-									"JP_SMW_225",
-									"JP_SMW_226",
-									"JP_SMW_227",
-									"JP_SMW_228",
-									"JP_SMW_229",
-									"JP_SMW_230",
-									"JP_SMW_231",
-									"JP_SMW_232",
-									"JP_SMW_233",
-									"JP_SMW_234",
-									"JP_SMW_235",
-									"JP_SMW_236",
-									"JP_SMW_237",
-									"JP_SMW_239",
-									"JP_SMW_241",
-									"JP_SMW_242",
-									"JP_SMW_243",
-									"JP_SMW_NATIONAL_NONMETAL_MINING"
-								],
-								"title": "Applicable workplace industry order"
-							},
-							"principal_operation": {
-								"type": "string",
-								"pattern": "\\S",
-								"title": "Actual principal operation code"
-							},
-							"acquiring_skills": {
-								"type": "boolean",
-								"title": "Currently acquiring the relevant skills"
-							},
-							"vehicle_gross_weight_kg": {
-								"type": "number",
-								"minimum": 0,
-								"title": "Actual goods vehicle gross weight (kg)"
-							},
-							"vehicle_max_payload_kg": {
-								"type": "number",
-								"minimum": 0,
-								"title": "Actual goods vehicle maximum payload (kg)"
-							}
-						}
-					}
-				},
-				"separation_slip_requested": {
-					"type": "boolean",
-					"default": true,
-					"title": "離職票 requested",
-					"description": "雇用保険法施行規則 art.7(2): the 離職証明書 is filed unless the leaver does not want the 離職票; a leaver aged 59 or over always gets it."
-				},
 				"departure_abroad": {
 					"type": "boolean",
 					"title": "出国による退職",
 					"description": "The leaver departs abroad (年末調整 at the exit, 所得税法 art.190).",
-					"default": false
-				},
-				"dismissal_exception_certified": {
-					"type": "boolean",
-					"title": "解雇予告除外認定",
-					"description": "労働基準法 art.20(3): the labour standards office certified the exception.",
 					"default": false
 				},
 				"renewal_count": {
@@ -775,12 +411,6 @@
 					"title": "更新回数",
 					"description": "Times the fixed-term contract was renewed (雇止め基準 art.1).",
 					"minimum": 0
-				},
-				"dismissal_restriction_lifted": {
-					"type": "boolean",
-					"title": "解雇制限の解除",
-					"description": "労働基準法 art.19(1)–(2): 打切補償 (art.81) was paid, or the office certified that 天災事変 made continuing the business impossible.",
-					"default": false
 				},
 				"severe_disability_prevents_reemployment": {
 					"type": "boolean",
@@ -800,11 +430,17 @@
 			"title": "JP entity extension data",
 			"additionalProperties": false,
 			"description": "entity_extension_data. The entity region is the prefecture code of the prefectures rule set (HOKKAIDO … OKINAWA): it selects the 協会けんぽ rate and the regional minimum wage.",
-			"required": ["workers_accident_rate_per_mille"],
+			"required": [
+				"workers_accident_rate_per_mille"
+			],
 			"properties": {
 				"ei_industry_class": {
 					"type": "string",
-					"enum": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
+					"enum": [
+						"GENERAL",
+						"AGRICULTURE_SAKE",
+						"CONSTRUCTION"
+					],
 					"default": "GENERAL",
 					"title": "雇用保険の事業の種類",
 					"description": "徴収法 art.12(4): general, agriculture/forestry/fisheries/sake brewing (with the listed exceptions that take the general rate), or construction."
@@ -846,7 +482,10 @@
 				},
 				"health_insurer": {
 					"type": "string",
-					"enum": ["KYOKAI", "SOCIETY"],
+					"enum": [
+						"KYOKAI",
+						"SOCIETY"
+					],
 					"default": "KYOKAI",
 					"title": "健康保険の保険者",
 					"description": "協会けんぽ (KYOKAI) or a 健康保険組合 (SOCIETY); a society employer records its own rates below."
@@ -909,7 +548,12 @@
 					"type": "string",
 					"title": "労働時間制度",
 					"description": "STANDARD, VARIABLE (変形労働時間制), FLEX (フレックスタイム制, one-month settlement) or DEEMED (みなし・裁量労働).",
-					"enum": ["STANDARD", "VARIABLE", "FLEX", "DEEMED"],
+					"enum": [
+						"STANDARD",
+						"VARIABLE",
+						"FLEX",
+						"DEEMED"
+					],
 					"default": "STANDARD"
 				},
 				"deemed_daily_hours": {
@@ -923,7 +567,14 @@
 					"type": "string",
 					"title": "時間外労働の上限規制の区分",
 					"description": "GENERAL, CONSTRUCTION, DRIVER (960 h), DOCTOR_A (960 h), DOCTOR_BC (1,860 h) or NEW_TECH_RD (outside the limits) (労働基準法 arts.36(11), 139–141).",
-					"enum": ["GENERAL", "CONSTRUCTION", "DRIVER", "DOCTOR_A", "DOCTOR_BC", "NEW_TECH_RD"],
+					"enum": [
+						"GENERAL",
+						"CONSTRUCTION",
+						"DRIVER",
+						"DOCTOR_A",
+						"DOCTOR_BC",
+						"NEW_TECH_RD"
+					],
 					"default": "GENERAL"
 				},
 				"disaster_recovery_work": {
@@ -937,19 +588,6 @@
 					"title": "代替休暇の労使協定",
 					"description": "労働基準法 art.37(3) agreement.",
 					"default": false
-				},
-				"hourly_leave_agreement": {
-					"type": "boolean",
-					"title": "時間単位年休の労使協定",
-					"description": "労働基準法 art.39(4) agreement.",
-					"default": false
-				},
-				"annual_leave_pay_basis": {
-					"type": "string",
-					"title": "年休の賃金",
-					"description": "ORDINARY (通常の賃金) or AVERAGE (平均賃金) for hourly and daily paid workers (労働基準法 art.39(9)).",
-					"enum": ["ORDINARY", "AVERAGE"],
-					"default": "ORDINARY"
 				},
 				"statutory_return_count_two_years_prior": {
 					"type": "number",
@@ -988,12 +626,6 @@
 					"description": "Instalments fall on 14 November and 14 February (徴収則 art.28(2)).",
 					"default": false
 				},
-				"voluntary_special_application": {
-					"type": "boolean",
-					"title": "任意特定適用事業所",
-					"description": "Short-time workers insured at an employer of 50 or fewer by labour agreement (令和2年法律第40号 附則).",
-					"default": false
-				},
 				"variable_rest_days": {
 					"type": "boolean",
 					"title": "変形休日制（4週4日）",
@@ -1002,7 +634,11 @@
 				},
 				"continued_employment_measure": {
 					"type": "string",
-					"enum": ["RAISED_AGE", "CONTINUED_EMPLOYMENT", "NO_RETIREMENT_AGE"],
+					"enum": [
+						"RAISED_AGE",
+						"CONTINUED_EMPLOYMENT",
+						"NO_RETIREMENT_AGE"
+					],
 					"title": "高年齢者雇用確保措置",
 					"description": "高年齢者雇用安定法 art.9(1): the measure securing employment to 65."
 				},
@@ -1093,10 +729,6 @@
 			}
 		},
 		"lookup": {
-			"rounding": "HALF_UP",
-			"rounding_scale": 0,
-			"day_rate": "// proration_basis WORKING_DAYS: no statute fixes it. 労働基準法 arts.24, 89(ii) leave an incomplete month to the work rules and 民法 art.624 pays for work done, so a scheduled working day is the unit.\n// 労働基準法 art.37, 施行規則 art.19, art.21: monthly pay over scheduled monthly hours, fixed and attendance allowances in.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\nconst daily = Number(get(terms, 'normal_hours_per_day', 8));\nconst weekly = Number(\n\tget(terms, 'normal_hours_per_week', daily * Number(get(terms, 'normal_days_per_week', 5)))\n);\nconst monthly = Number(get(terms, 'normal_hours_per_month', (weekly * 52) / 12));\nif (!(monthly > 0)) return 0;\nconst allowances =\n\tNumber(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0)) +\n\tNumber(get(terms, 'allowances.ATTENDANCE_ALLOWANCE.amount', 0));\nconst hourly =\n\tunit === 'HOURLY' ? amount : unit === 'DAILY' ? (daily > 0 ? amount / daily : 0) : amount / monthly;\nreturn (hourly + allowances / monthly) * daily;",
-			"proration_basis": "WORKING_DAYS",
 			"prefecture_rate_percent": {
 				"HOKKAIDO": 10.28,
 				"AOMORI": 9.85,
@@ -1390,8 +1022,6 @@
 					"offset": -4796000
 				}
 			],
-			"days_per_year": 365,
-			"months_per_year": 12,
 			"car_distance_bands": [
 				{
 					"below": 2,
@@ -1442,2390 +1072,57 @@
 					"amount": 66400
 				}
 			],
-			"parking_monthly_cap": 5000,
-			"commuting_monthly_limit": 150000,
-			"nonresident_rate": 0.2042,
-			"otsu_monthly_tax": [
-				{
-					"up_to": 108999,
-					"amount": 3800
-				},
-				{
-					"up_to": 110999,
-					"amount": 3900
-				},
-				{
-					"up_to": 112999,
-					"amount": 4000
-				},
-				{
-					"up_to": 116999,
-					"amount": 4100
-				},
-				{
-					"up_to": 118999,
-					"amount": 4200
-				},
-				{
-					"up_to": 122999,
-					"amount": 4300
-				},
-				{
-					"up_to": 124999,
-					"amount": 4400
-				},
-				{
-					"up_to": 126999,
-					"amount": 4700
-				},
-				{
-					"up_to": 128999,
-					"amount": 5000
-				},
-				{
-					"up_to": 130999,
-					"amount": 5300
-				},
-				{
-					"up_to": 132999,
-					"amount": 5500
-				},
-				{
-					"up_to": 134999,
-					"amount": 5800
-				},
-				{
-					"up_to": 136999,
-					"amount": 6100
-				},
-				{
-					"up_to": 138999,
-					"amount": 6400
-				},
-				{
-					"up_to": 140999,
-					"amount": 6700
-				},
-				{
-					"up_to": 142999,
-					"amount": 7000
-				},
-				{
-					"up_to": 144999,
-					"amount": 7400
-				},
-				{
-					"up_to": 146999,
-					"amount": 7700
-				},
-				{
-					"up_to": 148999,
-					"amount": 8000
-				},
-				{
-					"up_to": 150999,
-					"amount": 8300
-				},
-				{
-					"up_to": 152999,
-					"amount": 8600
-				},
-				{
-					"up_to": 154999,
-					"amount": 8900
-				},
-				{
-					"up_to": 156999,
-					"amount": 9200
-				},
-				{
-					"up_to": 158999,
-					"amount": 9500
-				},
-				{
-					"up_to": 160999,
-					"amount": 9800
-				},
-				{
-					"up_to": 162999,
-					"amount": 10100
-				},
-				{
-					"up_to": 164999,
-					"amount": 10400
-				},
-				{
-					"up_to": 166999,
-					"amount": 10700
-				},
-				{
-					"up_to": 168999,
-					"amount": 11000
-				},
-				{
-					"up_to": 170999,
-					"amount": 11300
-				},
-				{
-					"up_to": 172999,
-					"amount": 11500
-				},
-				{
-					"up_to": 174999,
-					"amount": 11800
-				},
-				{
-					"up_to": 176999,
-					"amount": 12100
-				},
-				{
-					"up_to": 178999,
-					"amount": 12500
-				},
-				{
-					"up_to": 180999,
-					"amount": 12800
-				},
-				{
-					"up_to": 182999,
-					"amount": 13300
-				},
-				{
-					"up_to": 184999,
-					"amount": 14000
-				},
-				{
-					"up_to": 186999,
-					"amount": 14700
-				},
-				{
-					"up_to": 188999,
-					"amount": 15400
-				},
-				{
-					"up_to": 190999,
-					"amount": 16100
-				},
-				{
-					"up_to": 192999,
-					"amount": 16800
-				},
-				{
-					"up_to": 194999,
-					"amount": 17600
-				},
-				{
-					"up_to": 196999,
-					"amount": 18300
-				},
-				{
-					"up_to": 198999,
-					"amount": 19000
-				},
-				{
-					"up_to": 200999,
-					"amount": 19700
-				},
-				{
-					"up_to": 202999,
-					"amount": 20400
-				},
-				{
-					"up_to": 204999,
-					"amount": 21000
-				},
-				{
-					"up_to": 206999,
-					"amount": 21700
-				},
-				{
-					"up_to": 208999,
-					"amount": 22500
-				},
-				{
-					"up_to": 210999,
-					"amount": 23000
-				},
-				{
-					"up_to": 212999,
-					"amount": 23600
-				},
-				{
-					"up_to": 214999,
-					"amount": 24100
-				},
-				{
-					"up_to": 216999,
-					"amount": 24700
-				},
-				{
-					"up_to": 218999,
-					"amount": 25300
-				},
-				{
-					"up_to": 220999,
-					"amount": 25800
-				},
-				{
-					"up_to": 223999,
-					"amount": 26400
-				},
-				{
-					"up_to": 226999,
-					"amount": 27500
-				},
-				{
-					"up_to": 229999,
-					"amount": 28500
-				},
-				{
-					"up_to": 232999,
-					"amount": 29500
-				},
-				{
-					"up_to": 235999,
-					"amount": 30500
-				},
-				{
-					"up_to": 238999,
-					"amount": 31500
-				},
-				{
-					"up_to": 241999,
-					"amount": 32600
-				},
-				{
-					"up_to": 244999,
-					"amount": 33600
-				},
-				{
-					"up_to": 247999,
-					"amount": 34600
-				},
-				{
-					"up_to": 250999,
-					"amount": 35500
-				},
-				{
-					"up_to": 253999,
-					"amount": 36600
-				},
-				{
-					"up_to": 256999,
-					"amount": 37600
-				},
-				{
-					"up_to": 259999,
-					"amount": 38600
-				},
-				{
-					"up_to": 262999,
-					"amount": 39600
-				},
-				{
-					"up_to": 265999,
-					"amount": 40600
-				},
-				{
-					"up_to": 268999,
-					"amount": 41700
-				},
-				{
-					"up_to": 271999,
-					"amount": 42700
-				},
-				{
-					"up_to": 274999,
-					"amount": 43700
-				},
-				{
-					"up_to": 277999,
-					"amount": 44700
-				},
-				{
-					"up_to": 280999,
-					"amount": 45600
-				},
-				{
-					"up_to": 283999,
-					"amount": 46700
-				},
-				{
-					"up_to": 286999,
-					"amount": 47800
-				},
-				{
-					"up_to": 289999,
-					"amount": 48900
-				},
-				{
-					"up_to": 292999,
-					"amount": 50000
-				},
-				{
-					"up_to": 295999,
-					"amount": 51300
-				},
-				{
-					"up_to": 298999,
-					"amount": 52400
-				},
-				{
-					"up_to": 301999,
-					"amount": 53600
-				},
-				{
-					"up_to": 304999,
-					"amount": 54500
-				},
-				{
-					"up_to": 307999,
-					"amount": 55200
-				},
-				{
-					"up_to": 310999,
-					"amount": 56100
-				},
-				{
-					"up_to": 313999,
-					"amount": 56900
-				},
-				{
-					"up_to": 316999,
-					"amount": 57700
-				},
-				{
-					"up_to": 319999,
-					"amount": 58500
-				},
-				{
-					"up_to": 322999,
-					"amount": 59500
-				},
-				{
-					"up_to": 325999,
-					"amount": 60500
-				},
-				{
-					"up_to": 328999,
-					"amount": 61600
-				},
-				{
-					"up_to": 331999,
-					"amount": 62600
-				},
-				{
-					"up_to": 334999,
-					"amount": 63700
-				},
-				{
-					"up_to": 337999,
-					"amount": 64700
-				},
-				{
-					"up_to": 340999,
-					"amount": 65800
-				},
-				{
-					"up_to": 343999,
-					"amount": 66800
-				},
-				{
-					"up_to": 346999,
-					"amount": 67800
-				},
-				{
-					"up_to": 349999,
-					"amount": 68800
-				},
-				{
-					"up_to": 352999,
-					"amount": 69800
-				},
-				{
-					"up_to": 355999,
-					"amount": 70900
-				},
-				{
-					"up_to": 358999,
-					"amount": 71900
-				},
-				{
-					"up_to": 361999,
-					"amount": 72900
-				},
-				{
-					"up_to": 364999,
-					"amount": 73900
-				},
-				{
-					"up_to": 367999,
-					"amount": 74900
-				},
-				{
-					"up_to": 370999,
-					"amount": 76000
-				},
-				{
-					"up_to": 373999,
-					"amount": 76900
-				},
-				{
-					"up_to": 376999,
-					"amount": 77800
-				},
-				{
-					"up_to": 379999,
-					"amount": 78700
-				},
-				{
-					"up_to": 382999,
-					"amount": 79600
-				},
-				{
-					"up_to": 385999,
-					"amount": 80600
-				},
-				{
-					"up_to": 388999,
-					"amount": 82000
-				},
-				{
-					"up_to": 391999,
-					"amount": 83600
-				},
-				{
-					"up_to": 394999,
-					"amount": 85400
-				},
-				{
-					"up_to": 397999,
-					"amount": 87100
-				},
-				{
-					"up_to": 400999,
-					"amount": 88700
-				},
-				{
-					"up_to": 403999,
-					"amount": 90500
-				},
-				{
-					"up_to": 406999,
-					"amount": 92200
-				},
-				{
-					"up_to": 409999,
-					"amount": 93800
-				},
-				{
-					"up_to": 412999,
-					"amount": 95600
-				},
-				{
-					"up_to": 415999,
-					"amount": 97300
-				},
-				{
-					"up_to": 418999,
-					"amount": 98900
-				},
-				{
-					"up_to": 421999,
-					"amount": 100700
-				},
-				{
-					"up_to": 424999,
-					"amount": 102400
-				},
-				{
-					"up_to": 427999,
-					"amount": 104000
-				},
-				{
-					"up_to": 430999,
-					"amount": 105800
-				},
-				{
-					"up_to": 433999,
-					"amount": 107500
-				},
-				{
-					"up_to": 436999,
-					"amount": 109100
-				},
-				{
-					"up_to": 439999,
-					"amount": 110900
-				},
-				{
-					"up_to": 442999,
-					"amount": 112600
-				},
-				{
-					"up_to": 445999,
-					"amount": 114200
-				},
-				{
-					"up_to": 448999,
-					"amount": 116000
-				},
-				{
-					"up_to": 451999,
-					"amount": 117600
-				},
-				{
-					"up_to": 454999,
-					"amount": 119400
-				},
-				{
-					"up_to": 457999,
-					"amount": 121100
-				},
-				{
-					"up_to": 460999,
-					"amount": 122700
-				},
-				{
-					"up_to": 463999,
-					"amount": 124500
-				},
-				{
-					"up_to": 466999,
-					"amount": 126200
-				},
-				{
-					"up_to": 469999,
-					"amount": 127800
-				},
-				{
-					"up_to": 472999,
-					"amount": 129600
-				},
-				{
-					"up_to": 475999,
-					"amount": 131200
-				},
-				{
-					"up_to": 478999,
-					"amount": 132800
-				},
-				{
-					"up_to": 481999,
-					"amount": 134500
-				},
-				{
-					"up_to": 484999,
-					"amount": 136100
-				},
-				{
-					"up_to": 487999,
-					"amount": 137600
-				},
-				{
-					"up_to": 490999,
-					"amount": 139300
-				},
-				{
-					"up_to": 493999,
-					"amount": 140900
-				},
-				{
-					"up_to": 496999,
-					"amount": 142500
-				},
-				{
-					"up_to": 499999,
-					"amount": 144100
-				},
-				{
-					"up_to": 502999,
-					"amount": 145700
-				},
-				{
-					"up_to": 505999,
-					"amount": 147300
-				},
-				{
-					"up_to": 508999,
-					"amount": 149000
-				},
-				{
-					"up_to": 511999,
-					"amount": 150500
-				},
-				{
-					"up_to": 514999,
-					"amount": 152100
-				},
-				{
-					"up_to": 517999,
-					"amount": 153800
-				},
-				{
-					"up_to": 520999,
-					"amount": 155400
-				},
-				{
-					"up_to": 523999,
-					"amount": 156900
-				},
-				{
-					"up_to": 526999,
-					"amount": 158600
-				},
-				{
-					"up_to": 529999,
-					"amount": 160200
-				},
-				{
-					"up_to": 532999,
-					"amount": 161600
-				},
-				{
-					"up_to": 535999,
-					"amount": 163200
-				},
-				{
-					"up_to": 538999,
-					"amount": 164600
-				},
-				{
-					"up_to": 541999,
-					"amount": 166000
-				},
-				{
-					"up_to": 544999,
-					"amount": 167500
-				},
-				{
-					"up_to": 547999,
-					"amount": 169000
-				},
-				{
-					"up_to": 550999,
-					"amount": 170500
-				},
-				{
-					"up_to": 553999,
-					"amount": 171900
-				},
-				{
-					"up_to": 556999,
-					"amount": 173400
-				},
-				{
-					"up_to": 559999,
-					"amount": 174900
-				},
-				{
-					"up_to": 562999,
-					"amount": 176300
-				},
-				{
-					"up_to": 565999,
-					"amount": 177900
-				},
-				{
-					"up_to": 568999,
-					"amount": 179300
-				},
-				{
-					"up_to": 571999,
-					"amount": 180700
-				},
-				{
-					"up_to": 574999,
-					"amount": 182200
-				},
-				{
-					"up_to": 577999,
-					"amount": 183700
-				},
-				{
-					"up_to": 580999,
-					"amount": 185200
-				},
-				{
-					"up_to": 583999,
-					"amount": 186600
-				},
-				{
-					"up_to": 586999,
-					"amount": 188100
-				},
-				{
-					"up_to": 589999,
-					"amount": 189600
-				},
-				{
-					"up_to": 592999,
-					"amount": 191000
-				},
-				{
-					"up_to": 595999,
-					"amount": 192600
-				},
-				{
-					"up_to": 598999,
-					"amount": 194000
-				},
-				{
-					"up_to": 601999,
-					"amount": 195400
-				},
-				{
-					"up_to": 604999,
-					"amount": 197000
-				},
-				{
-					"up_to": 607999,
-					"amount": 198400
-				},
-				{
-					"up_to": 610999,
-					"amount": 199900
-				},
-				{
-					"up_to": 613999,
-					"amount": 201300
-				},
-				{
-					"up_to": 616999,
-					"amount": 202800
-				},
-				{
-					"up_to": 619999,
-					"amount": 204300
-				},
-				{
-					"up_to": 622999,
-					"amount": 205700
-				},
-				{
-					"up_to": 625999,
-					"amount": 207300
-				},
-				{
-					"up_to": 628999,
-					"amount": 208700
-				},
-				{
-					"up_to": 631999,
-					"amount": 210100
-				},
-				{
-					"up_to": 634999,
-					"amount": 211700
-				},
-				{
-					"up_to": 637999,
-					"amount": 213100
-				},
-				{
-					"up_to": 640999,
-					"amount": 214600
-				},
-				{
-					"up_to": 643999,
-					"amount": 215900
-				},
-				{
-					"up_to": 646999,
-					"amount": 217000
-				},
-				{
-					"up_to": 649999,
-					"amount": 218000
-				},
-				{
-					"up_to": 652999,
-					"amount": 219000
-				},
-				{
-					"up_to": 655999,
-					"amount": 220000
-				},
-				{
-					"up_to": 658999,
-					"amount": 221000
-				},
-				{
-					"up_to": 661999,
-					"amount": 222100
-				},
-				{
-					"up_to": 664999,
-					"amount": 223100
-				},
-				{
-					"up_to": 667999,
-					"amount": 224100
-				},
-				{
-					"up_to": 670999,
-					"amount": 225000
-				},
-				{
-					"up_to": 673999,
-					"amount": 226000
-				},
-				{
-					"up_to": 676999,
-					"amount": 227100
-				},
-				{
-					"up_to": 679999,
-					"amount": 228100
-				},
-				{
-					"up_to": 682999,
-					"amount": 229100
-				},
-				{
-					"up_to": 685999,
-					"amount": 230100
-				},
-				{
-					"up_to": 688999,
-					"amount": 231500
-				},
-				{
-					"up_to": 691999,
-					"amount": 233000
-				},
-				{
-					"up_to": 694999,
-					"amount": 234500
-				},
-				{
-					"up_to": 697999,
-					"amount": 236100
-				},
-				{
-					"up_to": 700999,
-					"amount": 237600
-				},
-				{
-					"up_to": 703999,
-					"amount": 239100
-				},
-				{
-					"up_to": 706999,
-					"amount": 240800
-				},
-				{
-					"up_to": 709999,
-					"amount": 242300
-				},
-				{
-					"up_to": 712999,
-					"amount": 243800
-				},
-				{
-					"up_to": 715999,
-					"amount": 245300
-				},
-				{
-					"up_to": 718999,
-					"amount": 246900
-				},
-				{
-					"up_to": 721999,
-					"amount": 248400
-				},
-				{
-					"up_to": 724999,
-					"amount": 250000
-				},
-				{
-					"up_to": 727999,
-					"amount": 251600
-				},
-				{
-					"up_to": 730999,
-					"amount": 253100
-				},
-				{
-					"up_to": 733999,
-					"amount": 254600
-				},
-				{
-					"up_to": 736999,
-					"amount": 256200
-				},
-				{
-					"up_to": 739999,
-					"amount": 257700
-				},
-				{
-					"up_to": null,
-					"amount": 259200
-				}
-			],
-			"otsu_excess": [
-				{
-					"from": 740000,
-					"base": 259200,
-					"rate": 0.4084
-				},
-				{
-					"from": 1710000,
-					"base": 655400,
-					"rate": 0.45945
-				}
-			],
-			"hei_daily_tax": [
-				{
-					"up_to": 9799,
-					"amount": 0
-				},
-				{
-					"up_to": 9899,
-					"amount": 1
-				},
-				{
-					"up_to": 9999,
-					"amount": 5
-				},
-				{
-					"up_to": 10099,
-					"amount": 8
-				},
-				{
-					"up_to": 10199,
-					"amount": 12
-				},
-				{
-					"up_to": 10299,
-					"amount": 15
-				},
-				{
-					"up_to": 10399,
-					"amount": 19
-				},
-				{
-					"up_to": 10499,
-					"amount": 22
-				},
-				{
-					"up_to": 10599,
-					"amount": 26
-				},
-				{
-					"up_to": 10699,
-					"amount": 29
-				},
-				{
-					"up_to": 10799,
-					"amount": 33
-				},
-				{
-					"up_to": 10899,
-					"amount": 36
-				},
-				{
-					"up_to": 10999,
-					"amount": 40
-				},
-				{
-					"up_to": 11099,
-					"amount": 43
-				},
-				{
-					"up_to": 11199,
-					"amount": 47
-				},
-				{
-					"up_to": 11299,
-					"amount": 51
-				},
-				{
-					"up_to": 11399,
-					"amount": 55
-				},
-				{
-					"up_to": 11499,
-					"amount": 58
-				},
-				{
-					"up_to": 11599,
-					"amount": 62
-				},
-				{
-					"up_to": 11699,
-					"amount": 65
-				},
-				{
-					"up_to": 11799,
-					"amount": 69
-				},
-				{
-					"up_to": 11899,
-					"amount": 72
-				},
-				{
-					"up_to": 11999,
-					"amount": 76
-				},
-				{
-					"up_to": 12099,
-					"amount": 79
-				},
-				{
-					"up_to": 12199,
-					"amount": 83
-				},
-				{
-					"up_to": 12299,
-					"amount": 86
-				},
-				{
-					"up_to": 12399,
-					"amount": 90
-				},
-				{
-					"up_to": 12499,
-					"amount": 93
-				},
-				{
-					"up_to": 12599,
-					"amount": 98
-				},
-				{
-					"up_to": 12699,
-					"amount": 101
-				},
-				{
-					"up_to": 12799,
-					"amount": 105
-				},
-				{
-					"up_to": 12899,
-					"amount": 108
-				},
-				{
-					"up_to": 12999,
-					"amount": 112
-				},
-				{
-					"up_to": 13099,
-					"amount": 115
-				},
-				{
-					"up_to": 13199,
-					"amount": 119
-				},
-				{
-					"up_to": 13299,
-					"amount": 122
-				},
-				{
-					"up_to": 13399,
-					"amount": 126
-				},
-				{
-					"up_to": 13499,
-					"amount": 129
-				},
-				{
-					"up_to": 13599,
-					"amount": 133
-				},
-				{
-					"up_to": 13699,
-					"amount": 136
-				},
-				{
-					"up_to": 13799,
-					"amount": 140
-				},
-				{
-					"up_to": 13899,
-					"amount": 144
-				},
-				{
-					"up_to": 13999,
-					"amount": 149
-				},
-				{
-					"up_to": 14099,
-					"amount": 153
-				},
-				{
-					"up_to": 14199,
-					"amount": 157
-				},
-				{
-					"up_to": 14299,
-					"amount": 161
-				},
-				{
-					"up_to": 14399,
-					"amount": 165
-				},
-				{
-					"up_to": 14499,
-					"amount": 169
-				},
-				{
-					"up_to": 14599,
-					"amount": 173
-				},
-				{
-					"up_to": 14699,
-					"amount": 177
-				},
-				{
-					"up_to": 14799,
-					"amount": 181
-				},
-				{
-					"up_to": 14899,
-					"amount": 185
-				},
-				{
-					"up_to": 14999,
-					"amount": 189
-				},
-				{
-					"up_to": 15099,
-					"amount": 193
-				},
-				{
-					"up_to": 15199,
-					"amount": 198
-				},
-				{
-					"up_to": 15299,
-					"amount": 202
-				},
-				{
-					"up_to": 15399,
-					"amount": 206
-				},
-				{
-					"up_to": 15499,
-					"amount": 210
-				},
-				{
-					"up_to": 15599,
-					"amount": 214
-				},
-				{
-					"up_to": 15699,
-					"amount": 218
-				},
-				{
-					"up_to": 15799,
-					"amount": 222
-				},
-				{
-					"up_to": 15899,
-					"amount": 226
-				},
-				{
-					"up_to": 15999,
-					"amount": 230
-				},
-				{
-					"up_to": 16099,
-					"amount": 234
-				},
-				{
-					"up_to": 16199,
-					"amount": 238
-				},
-				{
-					"up_to": 16299,
-					"amount": 242
-				},
-				{
-					"up_to": 16399,
-					"amount": 247
-				},
-				{
-					"up_to": 16499,
-					"amount": 251
-				},
-				{
-					"up_to": 16599,
-					"amount": 255
-				},
-				{
-					"up_to": 16699,
-					"amount": 259
-				},
-				{
-					"up_to": 16799,
-					"amount": 263
-				},
-				{
-					"up_to": 16899,
-					"amount": 267
-				},
-				{
-					"up_to": 16999,
-					"amount": 271
-				},
-				{
-					"up_to": 17099,
-					"amount": 275
-				},
-				{
-					"up_to": 17199,
-					"amount": 279
-				},
-				{
-					"up_to": 17299,
-					"amount": 283
-				},
-				{
-					"up_to": 17399,
-					"amount": 287
-				},
-				{
-					"up_to": 17499,
-					"amount": 292
-				},
-				{
-					"up_to": 17599,
-					"amount": 296
-				},
-				{
-					"up_to": 17699,
-					"amount": 300
-				},
-				{
-					"up_to": 17799,
-					"amount": 304
-				},
-				{
-					"up_to": 17899,
-					"amount": 308
-				},
-				{
-					"up_to": 17999,
-					"amount": 312
-				},
-				{
-					"up_to": 18099,
-					"amount": 316
-				},
-				{
-					"up_to": 18199,
-					"amount": 320
-				},
-				{
-					"up_to": 18299,
-					"amount": 324
-				},
-				{
-					"up_to": 18399,
-					"amount": 328
-				},
-				{
-					"up_to": 18499,
-					"amount": 332
-				},
-				{
-					"up_to": 18599,
-					"amount": 336
-				},
-				{
-					"up_to": 18699,
-					"amount": 341
-				},
-				{
-					"up_to": 18799,
-					"amount": 345
-				},
-				{
-					"up_to": 18899,
-					"amount": 349
-				},
-				{
-					"up_to": 18999,
-					"amount": 353
-				},
-				{
-					"up_to": 19099,
-					"amount": 357
-				},
-				{
-					"up_to": 19199,
-					"amount": 361
-				},
-				{
-					"up_to": 19299,
-					"amount": 365
-				},
-				{
-					"up_to": 19399,
-					"amount": 369
-				},
-				{
-					"up_to": 19499,
-					"amount": 373
-				},
-				{
-					"up_to": 19599,
-					"amount": 378
-				},
-				{
-					"up_to": 19699,
-					"amount": 386
-				},
-				{
-					"up_to": 19799,
-					"amount": 395
-				},
-				{
-					"up_to": 19899,
-					"amount": 403
-				},
-				{
-					"up_to": 19999,
-					"amount": 411
-				},
-				{
-					"up_to": 20099,
-					"amount": 419
-				},
-				{
-					"up_to": 20199,
-					"amount": 427
-				},
-				{
-					"up_to": 20299,
-					"amount": 435
-				},
-				{
-					"up_to": 20399,
-					"amount": 444
-				},
-				{
-					"up_to": 20499,
-					"amount": 452
-				},
-				{
-					"up_to": 20599,
-					"amount": 460
-				},
-				{
-					"up_to": 20699,
-					"amount": 468
-				},
-				{
-					"up_to": 20799,
-					"amount": 476
-				},
-				{
-					"up_to": 20899,
-					"amount": 484
-				},
-				{
-					"up_to": 20999,
-					"amount": 493
-				},
-				{
-					"up_to": 21099,
-					"amount": 501
-				},
-				{
-					"up_to": 21199,
-					"amount": 509
-				},
-				{
-					"up_to": 21299,
-					"amount": 517
-				},
-				{
-					"up_to": 21399,
-					"amount": 525
-				},
-				{
-					"up_to": 21499,
-					"amount": 533
-				},
-				{
-					"up_to": 21599,
-					"amount": 542
-				},
-				{
-					"up_to": 21699,
-					"amount": 550
-				},
-				{
-					"up_to": 21799,
-					"amount": 558
-				},
-				{
-					"up_to": 21899,
-					"amount": 566
-				},
-				{
-					"up_to": 21999,
-					"amount": 574
-				},
-				{
-					"up_to": 22099,
-					"amount": 582
-				},
-				{
-					"up_to": 22199,
-					"amount": 591
-				},
-				{
-					"up_to": 22299,
-					"amount": 599
-				},
-				{
-					"up_to": 22399,
-					"amount": 607
-				},
-				{
-					"up_to": 22499,
-					"amount": 615
-				},
-				{
-					"up_to": 22599,
-					"amount": 623
-				},
-				{
-					"up_to": 22699,
-					"amount": 631
-				},
-				{
-					"up_to": 22799,
-					"amount": 640
-				},
-				{
-					"up_to": 22899,
-					"amount": 648
-				},
-				{
-					"up_to": 22999,
-					"amount": 656
-				},
-				{
-					"up_to": 23099,
-					"amount": 664
-				},
-				{
-					"up_to": 23199,
-					"amount": 672
-				},
-				{
-					"up_to": 23299,
-					"amount": 681
-				},
-				{
-					"up_to": 23399,
-					"amount": 689
-				},
-				{
-					"up_to": 23499,
-					"amount": 697
-				},
-				{
-					"up_to": 23599,
-					"amount": 705
-				},
-				{
-					"up_to": 23699,
-					"amount": 713
-				},
-				{
-					"up_to": 23799,
-					"amount": 721
-				},
-				{
-					"up_to": 23899,
-					"amount": 730
-				},
-				{
-					"up_to": 23999,
-					"amount": 738
-				},
-				{
-					"up_to": null,
-					"amount": 746
-				}
-			],
-			"hei_excess": [
-				{
-					"from": 24000,
-					"base": 746,
-					"rate": 0.1021
-				},
-				{
-					"from": 26500,
-					"base": 1001,
-					"rate": 0.2042
-				},
-				{
-					"from": 32500,
-					"base": 2226,
-					"rate": 0.25525
-				},
-				{
-					"from": 57500,
-					"base": 8608,
-					"rate": 0.33693
-				},
-				{
-					"from": 116500,
-					"base": 28486,
-					"rate": 0.4084
-				}
-			],
-			"bonus_rate_ko": [
-				[
-					{
-						"up_to": 81999,
-						"rate": 0.0
-					},
-					{
-						"up_to": 93999,
-						"rate": 0.02042
-					},
-					{
-						"up_to": 259999,
-						"rate": 0.04084
-					},
-					{
-						"up_to": 308999,
-						"rate": 0.06126
-					},
-					{
-						"up_to": 341999,
-						"rate": 0.08168
-					},
-					{
-						"up_to": 371999,
-						"rate": 0.1021
-					},
-					{
-						"up_to": 401999,
-						"rate": 0.12252
-					},
-					{
-						"up_to": 432999,
-						"rate": 0.14294
-					},
-					{
-						"up_to": 519999,
-						"rate": 0.16336
-					},
-					{
-						"up_to": 604999,
-						"rate": 0.18378
-					},
-					{
-						"up_to": 683999,
-						"rate": 0.2042
-					},
-					{
-						"up_to": 714999,
-						"rate": 0.22462
-					},
-					{
-						"up_to": 751999,
-						"rate": 0.24504
-					},
-					{
-						"up_to": 794999,
-						"rate": 0.26546
-					},
-					{
-						"up_to": 853999,
-						"rate": 0.28588
-					},
-					{
-						"up_to": 921999,
-						"rate": 0.3063
-					},
-					{
-						"up_to": 1317999,
-						"rate": 0.32672
-					},
-					{
-						"up_to": 1520999,
-						"rate": 0.35735
-					},
-					{
-						"up_to": 2620999,
-						"rate": 0.38798
-					},
-					{
-						"up_to": 3494999,
-						"rate": 0.41861
-					},
-					{
-						"up_to": null,
-						"rate": 0.45945
-					}
-				],
-				[
-					{
-						"up_to": 106999,
-						"rate": 0.0
-					},
-					{
-						"up_to": 249999,
-						"rate": 0.02042
-					},
-					{
-						"up_to": 288999,
-						"rate": 0.04084
-					},
-					{
-						"up_to": 345999,
-						"rate": 0.06126
-					},
-					{
-						"up_to": 372999,
-						"rate": 0.08168
-					},
-					{
-						"up_to": 400999,
-						"rate": 0.1021
-					},
-					{
-						"up_to": 429999,
-						"rate": 0.12252
-					},
-					{
-						"up_to": 462999,
-						"rate": 0.14294
-					},
-					{
-						"up_to": 519999,
-						"rate": 0.16336
-					},
-					{
-						"up_to": 620999,
-						"rate": 0.18378
-					},
-					{
-						"up_to": 704999,
-						"rate": 0.2042
-					},
-					{
-						"up_to": 738999,
-						"rate": 0.22462
-					},
-					{
-						"up_to": 777999,
-						"rate": 0.24504
-					},
-					{
-						"up_to": 820999,
-						"rate": 0.26546
-					},
-					{
-						"up_to": 881999,
-						"rate": 0.28588
-					},
-					{
-						"up_to": 951999,
-						"rate": 0.3063
-					},
-					{
-						"up_to": 1341999,
-						"rate": 0.32672
-					},
-					{
-						"up_to": 1525999,
-						"rate": 0.35735
-					},
-					{
-						"up_to": 2644999,
-						"rate": 0.38798
-					},
-					{
-						"up_to": 3526999,
-						"rate": 0.41861
-					},
-					{
-						"up_to": null,
-						"rate": 0.45945
-					}
-				],
-				[
-					{
-						"up_to": 142999,
-						"rate": 0.0
-					},
-					{
-						"up_to": 275999,
-						"rate": 0.02042
-					},
-					{
-						"up_to": 320999,
-						"rate": 0.04084
-					},
-					{
-						"up_to": 376999,
-						"rate": 0.06126
-					},
-					{
-						"up_to": 399999,
-						"rate": 0.08168
-					},
-					{
-						"up_to": 425999,
-						"rate": 0.1021
-					},
-					{
-						"up_to": 456999,
-						"rate": 0.12252
-					},
-					{
-						"up_to": 491999,
-						"rate": 0.14294
-					},
-					{
-						"up_to": 524999,
-						"rate": 0.16336
-					},
-					{
-						"up_to": 635999,
-						"rate": 0.18378
-					},
-					{
-						"up_to": 727999,
-						"rate": 0.2042
-					},
-					{
-						"up_to": 763999,
-						"rate": 0.22462
-					},
-					{
-						"up_to": 803999,
-						"rate": 0.24504
-					},
-					{
-						"up_to": 847999,
-						"rate": 0.26546
-					},
-					{
-						"up_to": 909999,
-						"rate": 0.28588
-					},
-					{
-						"up_to": 982999,
-						"rate": 0.3063
-					},
-					{
-						"up_to": 1366999,
-						"rate": 0.32672
-					},
-					{
-						"up_to": 1525999,
-						"rate": 0.35735
-					},
-					{
-						"up_to": 2668999,
-						"rate": 0.38798
-					},
-					{
-						"up_to": 3558999,
-						"rate": 0.41861
-					},
-					{
-						"up_to": null,
-						"rate": 0.45945
-					}
-				],
-				[
-					{
-						"up_to": 180999,
-						"rate": 0.0
-					},
-					{
-						"up_to": 299999,
-						"rate": 0.02042
-					},
-					{
-						"up_to": 353999,
-						"rate": 0.04084
-					},
-					{
-						"up_to": 404999,
-						"rate": 0.06126
-					},
-					{
-						"up_to": 423999,
-						"rate": 0.08168
-					},
-					{
-						"up_to": 451999,
-						"rate": 0.1021
-					},
-					{
-						"up_to": 483999,
-						"rate": 0.12252
-					},
-					{
-						"up_to": 516999,
-						"rate": 0.14294
-					},
-					{
-						"up_to": 549999,
-						"rate": 0.16336
-					},
-					{
-						"up_to": 650999,
-						"rate": 0.18378
-					},
-					{
-						"up_to": 750999,
-						"rate": 0.2042
-					},
-					{
-						"up_to": 787999,
-						"rate": 0.22462
-					},
-					{
-						"up_to": 829999,
-						"rate": 0.24504
-					},
-					{
-						"up_to": 875999,
-						"rate": 0.26546
-					},
-					{
-						"up_to": 937999,
-						"rate": 0.28588
-					},
-					{
-						"up_to": 1012999,
-						"rate": 0.3063
-					},
-					{
-						"up_to": 1390999,
-						"rate": 0.32672
-					},
-					{
-						"up_to": 1537999,
-						"rate": 0.35735
-					},
-					{
-						"up_to": 2692999,
-						"rate": 0.38798
-					},
-					{
-						"up_to": 3589999,
-						"rate": 0.41861
-					},
-					{
-						"up_to": null,
-						"rate": 0.45945
-					}
-				],
-				[
-					{
-						"up_to": 217999,
-						"rate": 0.0
-					},
-					{
-						"up_to": 299999,
-						"rate": 0.02042
-					},
-					{
-						"up_to": 386999,
-						"rate": 0.04084
-					},
-					{
-						"up_to": 430999,
-						"rate": 0.06126
-					},
-					{
-						"up_to": 451999,
-						"rate": 0.08168
-					},
-					{
-						"up_to": 476999,
-						"rate": 0.1021
-					},
-					{
-						"up_to": 508999,
-						"rate": 0.12252
-					},
-					{
-						"up_to": 539999,
-						"rate": 0.14294
-					},
-					{
-						"up_to": 576999,
-						"rate": 0.16336
-					},
-					{
-						"up_to": 665999,
-						"rate": 0.18378
-					},
-					{
-						"up_to": 773999,
-						"rate": 0.2042
-					},
-					{
-						"up_to": 812999,
-						"rate": 0.22462
-					},
-					{
-						"up_to": 855999,
-						"rate": 0.24504
-					},
-					{
-						"up_to": 902999,
-						"rate": 0.26546
-					},
-					{
-						"up_to": 965999,
-						"rate": 0.28588
-					},
-					{
-						"up_to": 1043999,
-						"rate": 0.3063
-					},
-					{
-						"up_to": 1415999,
-						"rate": 0.32672
-					},
-					{
-						"up_to": 1554999,
-						"rate": 0.35735
-					},
-					{
-						"up_to": 2715999,
-						"rate": 0.38798
-					},
-					{
-						"up_to": 3621999,
-						"rate": 0.41861
-					},
-					{
-						"up_to": null,
-						"rate": 0.45945
-					}
-				],
-				[
-					{
-						"up_to": 250999,
-						"rate": 0.0
-					},
-					{
-						"up_to": 303999,
-						"rate": 0.02042
-					},
-					{
-						"up_to": 411999,
-						"rate": 0.04084
-					},
-					{
-						"up_to": 456999,
-						"rate": 0.06126
-					},
-					{
-						"up_to": 478999,
-						"rate": 0.08168
-					},
-					{
-						"up_to": 502999,
-						"rate": 0.1021
-					},
-					{
-						"up_to": 530999,
-						"rate": 0.12252
-					},
-					{
-						"up_to": 563999,
-						"rate": 0.14294
-					},
-					{
-						"up_to": 603999,
-						"rate": 0.16336
-					},
-					{
-						"up_to": 680999,
-						"rate": 0.18378
-					},
-					{
-						"up_to": 797999,
-						"rate": 0.2042
-					},
-					{
-						"up_to": 837999,
-						"rate": 0.22462
-					},
-					{
-						"up_to": 880999,
-						"rate": 0.24504
-					},
-					{
-						"up_to": 929999,
-						"rate": 0.26546
-					},
-					{
-						"up_to": 993999,
-						"rate": 0.28588
-					},
-					{
-						"up_to": 1073999,
-						"rate": 0.3063
-					},
-					{
-						"up_to": 1439999,
-						"rate": 0.32672
-					},
-					{
-						"up_to": 1554999,
-						"rate": 0.35735
-					},
-					{
-						"up_to": 2739999,
-						"rate": 0.38798
-					},
-					{
-						"up_to": 3653999,
-						"rate": 0.41861
-					},
-					{
-						"up_to": null,
-						"rate": 0.45945
-					}
-				],
-				[
-					{
-						"up_to": 283999,
-						"rate": 0.0
-					},
-					{
-						"up_to": 342999,
-						"rate": 0.02042
-					},
-					{
-						"up_to": 437999,
-						"rate": 0.04084
-					},
-					{
-						"up_to": 482999,
-						"rate": 0.06126
-					},
-					{
-						"up_to": 504999,
-						"rate": 0.08168
-					},
-					{
-						"up_to": 526999,
-						"rate": 0.1021
-					},
-					{
-						"up_to": 552999,
-						"rate": 0.12252
-					},
-					{
-						"up_to": 588999,
-						"rate": 0.14294
-					},
-					{
-						"up_to": 629999,
-						"rate": 0.16336
-					},
-					{
-						"up_to": 696999,
-						"rate": 0.18378
-					},
-					{
-						"up_to": 820999,
-						"rate": 0.2042
-					},
-					{
-						"up_to": 861999,
-						"rate": 0.22462
-					},
-					{
-						"up_to": 906999,
-						"rate": 0.24504
-					},
-					{
-						"up_to": 956999,
-						"rate": 0.26546
-					},
-					{
-						"up_to": 1021999,
-						"rate": 0.28588
-					},
-					{
-						"up_to": 1103999,
-						"rate": 0.3063
-					},
-					{
-						"up_to": 1463999,
-						"rate": 0.32672
-					},
-					{
-						"up_to": 1554999,
-						"rate": 0.35735
-					},
-					{
-						"up_to": 2763999,
-						"rate": 0.38798
-					},
-					{
-						"up_to": 3684999,
-						"rate": 0.41861
-					},
-					{
-						"up_to": null,
-						"rate": 0.45945
-					}
-				],
-				[
-					{
-						"up_to": 316999,
-						"rate": 0.0
-					},
-					{
-						"up_to": 382999,
-						"rate": 0.02042
-					},
-					{
-						"up_to": 462999,
-						"rate": 0.04084
-					},
-					{
-						"up_to": 507999,
-						"rate": 0.06126
-					},
-					{
-						"up_to": 528999,
-						"rate": 0.08168
-					},
-					{
-						"up_to": 551999,
-						"rate": 0.1021
-					},
-					{
-						"up_to": 577999,
-						"rate": 0.12252
-					},
-					{
-						"up_to": 613999,
-						"rate": 0.14294
-					},
-					{
-						"up_to": 656999,
-						"rate": 0.16336
-					},
-					{
-						"up_to": 707999,
-						"rate": 0.18378
-					},
-					{
-						"up_to": 844999,
-						"rate": 0.2042
-					},
-					{
-						"up_to": 886999,
-						"rate": 0.22462
-					},
-					{
-						"up_to": 932999,
-						"rate": 0.24504
-					},
-					{
-						"up_to": 984999,
-						"rate": 0.26546
-					},
-					{
-						"up_to": 1050999,
-						"rate": 0.28588
-					},
-					{
-						"up_to": 1134999,
-						"rate": 0.3063
-					},
-					{
-						"up_to": 1488999,
-						"rate": 0.32672
-					},
-					{
-						"up_to": 1582999,
-						"rate": 0.35735
-					},
-					{
-						"up_to": 2787999,
-						"rate": 0.38798
-					},
-					{
-						"up_to": 3716999,
-						"rate": 0.41861
-					},
-					{
-						"up_to": null,
-						"rate": 0.45945
-					}
-				]
-			],
-			"bonus_rate_otsu": [
-				{
-					"up_to": 223999,
-					"rate": 0.1021
-				},
-				{
-					"up_to": 294999,
-					"rate": 0.2042
-				},
-				{
-					"up_to": 526999,
-					"rate": 0.3063
-				},
-				{
-					"up_to": 1117999,
-					"rate": 0.38798
-				},
-				{
-					"up_to": null,
-					"rate": 0.45945
-				}
-			],
-			"annual_salary_income_deduction": [
-				{
-					"up_to": 1899999,
-					"rate": 0,
-					"offset": 650000
-				},
-				{
-					"up_to": 3599999,
-					"rate": 0.3,
-					"offset": 80000
-				},
-				{
-					"up_to": 6599999,
-					"rate": 0.2,
-					"offset": 440000
-				},
-				{
-					"up_to": 8499999,
-					"rate": 0.1,
-					"offset": 1100000
-				},
-				{
-					"up_to": null,
-					"rate": 0,
-					"offset": 1950000
-				}
-			],
-			"annual_basic_deduction": [
-				{
-					"up_to": 1320000,
-					"rate": 0,
-					"offset": 950000
-				},
-				{
-					"up_to": 3360000,
-					"rate": 0,
-					"offset": 880000
-				},
-				{
-					"up_to": 4890000,
-					"rate": 0,
-					"offset": 680000
-				},
-				{
-					"up_to": 6550000,
-					"rate": 0,
-					"offset": 630000
-				},
-				{
-					"up_to": 23500000,
-					"rate": 0,
-					"offset": 580000
-				},
-				{
-					"up_to": 24000000,
-					"rate": 0,
-					"offset": 480000
-				},
-				{
-					"up_to": 24500000,
-					"rate": 0,
-					"offset": 320000
-				},
-				{
-					"up_to": 25000000,
-					"rate": 0,
-					"offset": 160000
-				},
-				{
-					"up_to": null,
-					"rate": 0,
-					"offset": 0
-				}
-			],
-			"midyear_salary_limit": 1230000,
-			"employee_share": 0.5,
-			"nursing_percent": 1.62,
-			"nursing_minimum_age_years": 40,
-			"nursing_maximum_age_years": 65,
-			"health_maximum_age_years": 75,
-			"pension_maximum_age_years": 70,
-			"support_rate": 0.0023,
-			"pension_rate": 0.183,
-			"health_minimum_grade": 58000,
-			"health_maximum_grade": 1390000,
-			"pension_minimum_grade": 88000,
-			"pension_maximum_grade": 650000,
-			"annual_bonus_salary_ceiling": 5730000,
-			"bonus_salary_ceiling": 1500000,
 			"ei_employer_rate": {
 				"GENERAL": 0.0085,
 				"AGRICULTURE_SAKE": 0.0095,
 				"CONSTRUCTION": 0.0105
 			},
-			"annual_service_deduction": 400000,
-			"breakpoint_deduction": 8000000,
-			"extended_annual_service_deduction": 700000,
-			"minimum_service_deduction": 800000,
-			"taxable_share": 0.5,
-			"reconstruction_multiplier": 1.021,
-			"wage_period_share": 0.1,
-			"night_from": "22:00",
-			"night_to": "05:00",
-			"standard_daily_hours": 8,
-			"standard_weekly_hours": 40,
-			"special_establishment_weekly_hours": 44,
-			"employee_age_years_threshold": 18,
-			"affected_people_count_threshold": 1000,
-			"my_number_count_threshold": 100,
-			"business_year_end_month": 3,
-			"report_days_threshold": 4,
-			"young_worker_daily_hours_limit": 8,
-			"monthly_threshold_hours": 60,
-			"month_balance": [
-				"BASIC",
-				"NON_TAXABLE_PAY",
-				"ORDINARY_WAGES",
-				"ADDITIONAL_WAGES",
-				"HEALTH.employee",
-				"PENSION.employee",
-				"EI.employee",
-				"CHILD_SUPPORT.employee",
-				"EI.employer",
-				"EI_BONUS.employee",
-				"EI_BONUS.employer",
-				"HEALTH_BONUS.employee",
-				"CHILD_SUPPORT_BONUS.employee",
-				"PENSION_BONUS.employee",
-				"WORKERS_ACCIDENT.employer",
-				"ASBESTOS_LEVY.employer",
-				"INCOME_TAX.employee"
-			]
+			"constants": {
+				"parking_monthly_cap": 5000,
+				"commuting_monthly_limit": 150000,
+				"special_establishment_weekly_hours": 44,
+				"standard_weekly_hours": 40,
+				"standard_daily_hours": 8,
+				"monthly_threshold_hours": 60,
+				"health_maximum_age_years": 75,
+				"nursing_minimum_age_years": 40,
+				"nursing_maximum_age_years": 65,
+				"employee_share": 0.5,
+				"nursing_percent": 1.62,
+				"annual_bonus_salary_ceiling": 5730000,
+				"support_rate": 0.0023,
+				"pension_maximum_age_years": 70,
+				"pension_minimum_grade": 88000,
+				"pension_maximum_grade": 650000,
+				"pension_rate": 0.183,
+				"bonus_salary_ceiling": 1500000,
+				"nonresident_rate": 0.2042,
+				"reconstruction_multiplier": 1.021,
+				"annual_service_deduction": 400000,
+				"minimum_service_deduction": 800000,
+				"breakpoint_deduction": 8000000,
+				"extended_annual_service_deduction": 700000,
+				"taxable_share": 0.5,
+				"days_two_or_more": 10
+			}
 		},
 		"status": "SEALED",
-		"id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
+		"id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f",
+		"conversions": {
+			"day": {
+				"basis": "HOUR"
+			},
+			"hour": {
+				"basis": "CONTRACT_WEEKLY"
+			},
+			"proration": "WORKING_DAYS",
+			"rounding": {
+				"mode": "HALF_UP",
+				"scale": 0
+			}
+		},
+		"ledger": {
+			"ytd_scope": "JURISDICTION"
+		}
 	}
 ]

@@ -17,7 +17,14 @@ const rowOf = (code: string, n: number, scheme: string) => {
 	const [settings]: readonly { readonly lookup: object }[] = JSON.parse(
 		readFileSync(`${version(code, n)}/jurisdiction_settings.json`, 'utf8')
 	);
-	return { source: row.employee_amount, lookup: { ...settings?.lookup, ...row.lookup } };
+	return {
+		source: row.employee_amount,
+		lookup: {
+			...(settings?.lookup as Record<string, unknown> | undefined)?.['constants'] as object,
+			...settings?.lookup,
+			...row.lookup
+		}
+	};
 };
 
 describe('month balance', () => {

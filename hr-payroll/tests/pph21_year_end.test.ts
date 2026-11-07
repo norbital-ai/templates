@@ -40,7 +40,11 @@ describe('PPh 21 in December', () => {
 					},
 					employer: { entity_id: 'entity' }
 				},
-				lookup: { ...settings?.lookup, ...(isJsonObject(pph21.lookup) ? pph21.lookup : {}) },
+				lookup: {
+				...(settings?.lookup as Record<string, unknown> | undefined)?.['constants'] as object,
+				...settings?.lookup,
+				...(isJsonObject(pph21.lookup) ? pph21.lookup : {})
+			},
 				run: { salary_coverage: { from: '2026-12-01', to: '2026-12-31' } },
 				as_of: '2026-12-31',
 				subtotals: { ADDITIONAL_WAGES: 10_000_000 },

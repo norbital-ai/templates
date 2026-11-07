@@ -31,7 +31,14 @@ const ruleOf = (code: string, ruleCode: string): Rule => {
 	const [settings] = JSON.parse(
 		readFileSync(new URL(`${latest(code)}/jurisdiction_settings.json`), 'utf8')
 	) as readonly Rule[];
-	return { ...rule, lookup: { ...settings?.lookup, ...rule.lookup } };
+	return {
+		...rule,
+		lookup: {
+			...(settings?.lookup as Record<string, unknown> | undefined)?.['constants'] as object,
+			...settings?.lookup,
+			...rule.lookup
+		}
+	};
 };
 const eligible = (rule: Rule, context: object) =>
 	evaluate(
@@ -53,26 +60,42 @@ describe('seeded overtime eligibility', () => {
 				readonly byContract?: boolean;
 				readonly allowances?: Record<string, unknown>;
 			} = {}
-		) => ({
-			subject: {
-				employment: {
-					terms: {
-						rate: { amount, unit: options.unit ?? 'MONTHLY' },
-						allowances: options.allowances ?? {},
-						statutory_work_category: options.category ?? 'NON_MANUAL'
-					},
-					employee_extension_data: {
-						term_facts: { overtime_by_contract: options.byContract ?? false }
+		) => {
+			const fixed = Object.entries(options.allowances ?? {}).reduce(
+				(total, [code, value]) =>
+					code === 'VAR' ? total : total + Number((value as { amount?: number }).amount ?? 0),
+				0
+			);
+			const unit = options.unit ?? 'MONTHLY';
+			return {
+				// the engine puts the month's wage on the row (salary plus included allowances; a day or hour is multiplied out)
+				month_wage:
+					unit === 'MONTHLY'
+						? amount + fixed
+						: unit === 'DAILY'
+							? amount * 26
+							: amount * 8 * 26,
+				subject: {
+					employment: {
+						terms: {
+							rate: { amount, unit },
+							normal_hours_per_day: 8,
+							normal_days_per_week: 5,
+							allowances: options.allowances ?? {},
+							statutory_work_category: options.category ?? 'NON_MANUAL'
+						},
+						employee_extension_data: {
+							overtime_by_contract: options.byContract ?? false
+						}
 					}
 				}
-			}
-		});
+			};
+		};
 		assert.equal(eligible(rule, context(threshold)), true);
 		assert.equal(eligible(rule, context(threshold + 0.01)), false);
 		assert.equal(eligible(rule, context(threshold + 0.01, { category: 'MANUAL_LABOUR' })), true);
 		assert.equal(eligible(rule, context(threshold + 0.01, { category: 'VEHICLE_OPERATOR' })), true);
 		assert.equal(eligible(rule, context(threshold + 0.01, { byContract: true })), true);
-		assert.equal(eligible(rule, context(threshold + 0.01, { unit: 'PIECE' })), false);
 		assert.equal(
 			eligible(rule, context(threshold - 500, { allowances: { FIXED: { amount: 500 } } })),
 			true
@@ -84,7 +107,7 @@ describe('seeded overtime eligibility', () => {
 		assert.equal(
 			eligible(
 				rule,
-				context(threshold, { allowances: { VAR: { amount: 1000, variability: 'VARIABLE' } } })
+				context(threshold, { allowances: { VAR: { amount: 1000 } } })
 			),
 			true
 		);
@@ -99,7 +122,7 @@ describe('seeded overtime eligibility', () => {
 		const rule = ruleOf('TH', 'OVERTIME');
 		const context = (category: string) => ({
 			subject: {
-				employment: { employee_extension_data: { term_facts: { overtime_category: category } } }
+				employment: { employee_extension_data: { overtime_category: category } }
 			},
 			work: { days: [{ day_type: 'WORK', overtime_hours: 1 }] }
 		});

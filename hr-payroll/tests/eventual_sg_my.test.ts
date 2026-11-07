@@ -358,8 +358,9 @@ describe('someone on a six-day week', () => {
 			yield* onCycle(t, '2026-07');
 			const [june] = yield* runs(t, '2026-06');
 			const [july] = yield* runs(t, '2026-07');
-			// June has 26 days to work on a six-day week
-			assert.equal(line(june)?.amount, 200);
+			// June has 26 days to work on a six-day week; the absence is in BASIC, July refunds the original month
+			assert.equal(line(june), undefined);
+			assert.equal(june?.checkpoints.find((point) => point.code === 'BASIC')?.value, 5000);
 			assert.equal(line(july)?.amount, 200);
 		}).pipe(Effect.provide(workspace({ seed, now: '2026-07-20T02:00:00.000Z' })));
 	});
@@ -599,8 +600,8 @@ describe('no-pay leave in Singapore', () => {
 			yield* take(t, seed, '2026-06-10');
 			yield* onCycle(t, '2026-06');
 			const [june] = yield* runs(t, '2026-06');
-			assert.equal(line(june)?.amount, 200);
-			assert.equal(line(june)?.direction, 'DEDUCT');
+			assert.equal(line(june), undefined);
+			assert.equal(june?.checkpoints.find((row) => row.code === 'BASIC')?.value, 4200);
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
 	);
 

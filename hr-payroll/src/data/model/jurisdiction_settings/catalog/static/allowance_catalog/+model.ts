@@ -24,13 +24,13 @@ export default model('allowance_catalog', {
 		code: { kind: 'text' },
 		name: { kind: 'text' },
 		references: { kind: 'custom', of: 'references', optional: true },
-		eligibility: { kind: 'text', format: 'cel', max: 65536 },
-		conversion: { kind: 'text', format: 'cel', max: 65536 },
-		incurred_on: { kind: 'text', format: 'cel', max: 65536 },
-		direction: { kind: 'enum', values: ['ADD', 'DEDUCT'] },
+		eligibility: { kind: 'text', max: 65536 },
+		conversion: { kind: 'text', max: 65536 },
+		incurred_on: { kind: 'text', max: 65536, optional: true },
 		party: { kind: 'enum', values: ['EMPLOYEE', 'EMPLOYER'], default: 'EMPLOYEE' },
-		off_cycle_eligible: { kind: 'bool' },
 		prorate: { kind: 'bool', default: false },
+		/** Whether this allowance is part of the wage a day or hour rate divides. */
+		include_in_rate: { kind: 'bool', default: false },
 		settings_id: {
 			kind: 'ref',
 			to: 'jurisdiction_settings',
@@ -55,14 +55,15 @@ export default model('allowance_catalog', {
 				'eligibility',
 				'conversion',
 				'incurred_on',
-				'direction',
 				'party',
-				'off_cycle_eligible',
 				'prorate',
+				'include_in_rate',
 				'settings_id'
 			]
 		},
 		transform: function* (rows, ctx) {
+			if (rows.some((row) => row.include_in_rate === true && row.party === 'EMPLOYER'))
+				return yield* ctx.refuse('An employer-only allowance cannot be part of the employee rate.');
 			yield* guardConfigurationRows(
 				ctx.db.query,
 				'allowance_catalog',
@@ -83,13 +84,20 @@ export default model('allowance_catalog', {
 				'eligibility',
 				'conversion',
 				'incurred_on',
-				'direction',
 				'party',
-				'off_cycle_eligible',
-				'prorate'
+				'prorate',
+				'include_in_rate'
 			]
 		},
 		transform: function* (changes, ctx) {
+			if (
+				changes.some(
+					({ before, set }) =>
+						({ ...before, ...set }).include_in_rate === true &&
+						({ ...before, ...set }).party === 'EMPLOYER'
+				)
+			)
+				return yield* ctx.refuse('An employer-only allowance cannot be part of the employee rate.');
 			yield* guardConfigurationRows(
 				ctx.db.query,
 				'allowance_catalog',

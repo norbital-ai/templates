@@ -11,15 +11,14 @@
 				"quote": "Income from employment includes money's worth and other benefits the employer provides, including housing, a car and income tax the employer bears."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.BENEFIT_IN_KIND.amount', 0)) > 0;",
 		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.BENEFIT_IN_KIND.amount', 0));",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "6e023ebb-1977-5b53-9b13-5dcd3a6d90fa",
-		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
+		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91",
+		"include_in_rate": true
 	},
 	{
 		"code": "FIXED_ALLOWANCE",
@@ -33,15 +32,14 @@
 				"quote": "A fixed monthly allowance paid for normal working time is wage and enters the SSO and WCF bases; it is employment income under Revenue Code s.40(1)."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "80293069-f8dd-5da4-a4b0-df6b7a9ff21f",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0)) > 0;",
 		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.from)) + 1;\nreturn (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.from;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "10f28e49-729b-56cb-9949-fb259b5a43cd",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91",
-		"prorate": true
+		"prorate": true,
+		"include_in_rate": true
 	}
 ]

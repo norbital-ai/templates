@@ -98,7 +98,6 @@
 				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=38"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "d8166b1c-3e76-5ec8-9c07-e70f387938a5",
@@ -120,7 +119,6 @@
 				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=4"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "8d8f6f8a-8eeb-48eb-99cb-f4b6e2fa7445",
 		"pay_treatment": "PAID",
 		"id": "61c02549-4ab7-5fa2-b67f-54856c6bbebb",
@@ -140,14 +138,11 @@
 				"url": "https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=7&id=FL014935"
 			}
 		],
-		"off_cycle_eligible": false,
-		"subtotal_id": "cede1268-5326-4757-8333-c38058fa5793",
-		"pay_treatment": "PAID",
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"pay_treatment": "UNPAID",
 		"id": "ed875e88-be30-56c2-9ca4-1083cdf440af",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// 勞工請假規則 §7: personal leave carries no wage.\n// proration_basis CALENDAR_DAYS: a day is the month's wages ÷ the days of the period; the meal allowance falls with BASIC_AFTER_UNPAID_LEAVE.\nconst terms = ctx.subject.employment.terms;\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst monthDays = calendar_distance_days(from, to) + 1;\n// a period with no work day left is not earned at all\nlet left = false;\nfor (let step = 0; step < monthDays; step += 1) {\n\tconst date = add_days(from, step);\n\tif (worksOn(date) && !whole.includes(date)) left = true;\n}\nconst pay = Number(get(terms, 'rate.amount', 0));\nreturn (pay * (left ? Math.min(ctx.entry.quantity + rest, monthDays) : monthDays)) / monthDays;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "MARRIAGE_LEAVE",
@@ -161,14 +156,13 @@
 		},
 		"references": [
 			{
-				"title": "勞工請假規則 §2 as amended 2026-09-30, in force 2026-10-01 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=2): 勞工結婚者給予婚假十四日，工資照給 — per marriage (entry facts.event_id). A marriage registered before 1 October still inside its claim window whose eight days were not used up by 30 September takes the fourteen days less those taken; one that had used all eight keeps eight (MOL 99111, https://www.mol.gov.tw/1607/1632/1633/99111/: 原婚假8日尚未請休完畢之新人…婚假日數適用新法規定). The days used before October are the working days its MARRIAGE_LEAVE covered in the claim window’s months to September (attendance.window.months). Days 9–14 are reimbursed by the BLI on the employer’s application within two years of payment (https://www.mol.gov.tw/1607/1632/1633/99216/). Taken from ten days before the marriage registration to three months after it, or within a year with the employer’s agreement (勞動部 104-10-07 勞動3字第1040130270號令; entry facts marriage_date, taken_within_a_year_by_agreement): outside that window nothing is granted."
+				"title": "勞工請假規則 §2 as amended 2026-09-30, in force 2026-10-01 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=2): 勞工結婚者給予婚假十四日，工資照給 — per marriage (entry event_id). A marriage registered before 1 October still inside its claim window whose eight days were not used up by 30 September takes the fourteen days less those taken; one that had used all eight keeps eight (MOL 99111, https://www.mol.gov.tw/1607/1632/1633/99111/: 原婚假8日尚未請休完畢之新人…婚假日數適用新法規定). The days used before October are the working days its MARRIAGE_LEAVE covered in the claim window’s months to September (attendance.window.months). Days 9–14 are reimbursed by the BLI on the employer’s application within two years of payment (https://www.mol.gov.tw/1607/1632/1633/99216/). Taken from ten days before the marriage registration to three months after it, or within a year with the employer’s agreement (勞動部 104-10-07 勞動3字第1040130270號令; entry facts marriage_date, taken_within_a_year_by_agreement): outside that window nothing is granted."
 			},
 			{
 				"title": "勞工請假規則 §2, §12 (amended 2026-09-30, in force 2026-10-01): 勞工結婚者給予婚假十四日.",
 				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=2"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "ae565791-7957-504b-9572-5e0dadeb07ca",
@@ -180,10 +174,9 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages. eight days for a parent, step-parent or spouse; six for a grandparent, child or parent-in-law; three for a great-grandparent, sibling or spouse’s grandparent (勞工請假規則 §3; `event.relationship`), per death. 勞工請假規則 §3: eight days for a parent, step- or adoptive parent or spouse; six for a grandparent, child, or the spouse’s parent, step- or adoptive parent; three for a great-grandparent, sibling or the spouse’s grandparent — and no days for any other relationship. Metered per death (facts.event_id) by facts.relationship: PARENT, ADOPTIVE_PARENT, STEP_PARENT, SPOUSE 8; GRANDPARENT, CHILD, PARENT_IN_LAW, ADOPTIVE_PARENT_IN_LAW, STEP_PARENT_IN_LAW 6; GREAT_GRANDPARENT, SIBLING, GRANDPARENT_IN_LAW 3; any other none (勞工請假規則 §3)."
+				"title": "勞工請假規則第3條 — 8 days on the death of a parent, adoptive or foster parent, or spouse; 6 days for a grandparent, child, or the spouse's parent or adoptive/foster parent; 3 days for a great-grandparent, sibling, or the spouse's grandparent. All are on full wages. eight days for a parent, step-parent or spouse; six for a grandparent, child or parent-in-law; three for a great-grandparent, sibling or spouse’s grandparent (勞工請假規則 §3; `event.relationship`), per death. 勞工請假規則 §3: eight days for a parent, step- or adoptive parent or spouse; six for a grandparent, child, or the spouse’s parent, step- or adoptive parent; three for a great-grandparent, sibling or the spouse’s grandparent — and no days for any other relationship. Metered per death (event_id) by relationship: PARENT, ADOPTIVE_PARENT, STEP_PARENT, SPOUSE 8; GRANDPARENT, CHILD, PARENT_IN_LAW, ADOPTIVE_PARENT_IN_LAW, STEP_PARENT_IN_LAW 6; GREAT_GRANDPARENT, SIBLING, GRANDPARENT_IN_LAW 3; any other none (勞工請假規則 §3)."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "57259111-e843-5ad9-886a-87f6b9d03bb5",
@@ -198,7 +191,6 @@
 				"title": "勞工請假規則第6條 with 勞動基準法第59條 — leave for the whole period of medical treatment and recuperation for an occupational injury or disease, with no day cap, at the 原領工資數額."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "8bb7ff44-dda6-58d9-b5c5-0ae5eefd75f4",
@@ -212,10 +204,9 @@
 		},
 		"references": [
 			{
-				"title": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less. a grant per event — eight weeks for a birth, four for a miscarriage after three months of pregnancy, one week after two, five days under two (勞基法 §50(1), 性平法 §15; `event.kind`) — at full wages after six months’ service, half before (§50(2)). 勞基法 §50(2): full pay after six months’ service, half before, for the eight weeks and the four-week leave for a miscarriage after three months of pregnancy; 性別平等工作法 §15(1): the one-week and five-day leaves for an earlier miscarriage are leave the employer need not pay. Metered per event (facts.event_id) by facts.event_kind: BIRTH 56 days (8 weeks), MISCARRIAGE_3M 28, MISCARRIAGE_2M 7, MISCARRIAGE_UNDER_2M 5 (勞基法 §50(1), 性平法 §15(1)). The weeks and miscarriage durations run by calendar days, including public holidays, rest days and regular days off; CALENDAR_DAY meters that duration. MOL/OSHA Q56: https://www.osha.gov.tw/media/u1hltoy3/勞動基準法qa百問百答第二版.pdf"
+				"title": "性別平等工作法第15條第1項 with 勞動基準法第50條 — 8 weeks before and after childbirth; 4 weeks for a miscarriage at three months or more, 1 week at two months to under three, 5 days under two months. Wages are paid in full where service is six months or more and at half where it is less. a grant per event — eight weeks for a birth, four for a miscarriage after three months of pregnancy, one week after two, five days under two (勞基法 §50(1), 性平法 §15; `event.kind`) — at full wages after six months’ service, half before (§50(2)). 勞基法 §50(2): full pay after six months’ service, half before, for the eight weeks and the four-week leave for a miscarriage after three months of pregnancy; 性別平等工作法 §15(1): the one-week and five-day leaves for an earlier miscarriage are leave the employer need not pay. Metered per event (event_id) by event_kind: BIRTH 56 days (8 weeks), MISCARRIAGE_3M 28, MISCARRIAGE_2M 7, MISCARRIAGE_UNDER_2M 5 (勞基法 §50(1), 性平法 §15(1)). The weeks and miscarriage durations run by calendar days, including public holidays, rest days and regular days off; CALENDAR_DAY meters that duration. MOL/OSHA Q56: https://www.osha.gov.tw/media/u1hltoy3/勞動基準法qa百問百答第二版.pdf"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "8d8f6f8a-8eeb-48eb-99cb-f4b6e2fa7445",
 		"pay_treatment": "PAID",
 		"id": "cde31318-07f8-5a21-99f9-ce50adb614c1",
@@ -235,14 +226,13 @@
 		},
 		"references": [
 			{
-				"title": "性別平等工作法第15條第5項 — 7 days on full wages, raised from 5 days on 2022-01-18; the employer may reclaim the sixth and seventh day from the Bureau of Labor Insurance. 性別平等工作法 §15(5): 陪產檢及陪產假七日 — per pregnancy (entry facts.event_id)."
+				"title": "性別平等工作法第15條第5項 — 7 days on full wages, raised from 5 days on 2022-01-18; the employer may reclaim the sixth and seventh day from the Bureau of Labor Insurance. 性別平等工作法 §15(5): 陪產檢及陪產假七日 — per pregnancy (entry event_id)."
 			},
 			{
 				"title": "性別平等工作法 §15(5): 陪產檢及陪產假七日.",
 				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030014&flno=15"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "2116c800-35dc-5a91-a5ed-5413faddccdb",
@@ -260,14 +250,13 @@
 		},
 		"references": [
 			{
-				"title": "性別平等工作法第15條第4項 — 7 days on full wages. 性別平等工作法 §15(4): 妊娠期間…產檢假七日 — per pregnancy (entry facts.event_id)."
+				"title": "性別平等工作法第15條第4項 — 7 days on full wages. 性別平等工作法 §15(4): 妊娠期間…產檢假七日 — per pregnancy (entry event_id)."
 			},
 			{
 				"title": "性別平等工作法 §15(4): 受僱者妊娠期間，雇主應給予產檢假七日.",
 				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030014&flno=15"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "3add5daa-61de-588a-9364-823136618b27",
@@ -283,7 +272,6 @@
 				"url": "https://www.mol.gov.tw/1607/1632/1640/32923/post"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "8d8f6f8a-8eeb-48eb-99cb-f4b6e2fa7445",
 		"pay_treatment": "PAID",
 		"id": "966c2bc9-45b2-51ef-a4f1-151284cf475b",
@@ -302,14 +290,11 @@
 				"title": "性別平等工作法 §14 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030014&flno=14): one menstrual day a month; three a year outside the sick pool, the rest inside it at half pay. Once the three days and the thirty-day half-paid pool (勞工請假規則 §4(3)) are spent, the monthly day is still granted, unpaid (Ministry of Labor clarification 2021-03-12, https://www.mol.gov.tw/1607/1632/1640/32923/post). Open only then, one day a calendar month together with MENSTRUAL_LEAVE; not an absence for the attendance bonus (§21(2))."
 			}
 		],
-		"off_cycle_eligible": false,
-		"subtotal_id": "cede1268-5326-4757-8333-c38058fa5793",
-		"pay_treatment": "PAID",
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"pay_treatment": "UNPAID",
 		"id": "4435300a-37dd-53be-bbb4-1a0e76ab1f48",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// 性別平等工作法 §14: the monthly day past the half-paid pool carries no wage.\n// proration_basis CALENDAR_DAYS: a day is the month's wages ÷ the days of the period; the meal allowance falls with BASIC_AFTER_UNPAID_LEAVE.\nconst terms = ctx.subject.employment.terms;\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst monthDays = calendar_distance_days(from, to) + 1;\n// a period with no work day left is not earned at all\nlet left = false;\nfor (let step = 0; step < monthDays; step += 1) {\n\tconst date = add_days(from, step);\n\tif (worksOn(date) && !whole.includes(date)) left = true;\n}\nconst pay = Number(get(terms, 'rate.amount', 0));\nreturn (pay * (left ? Math.min(ctx.entry.quantity + rest, monthDays) : monthDays)) / monthDays;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "FAMILY_CARE_LEAVE",
@@ -322,14 +307,11 @@
 				"title": "性別平等工作法 §20: seven days a year of unpaid family-care leave inside the fourteen days of personal leave; the 2025-12-09 勞工請假規則 §7(2) amendment lets it be taken by the hour from 2026-01-01."
 			}
 		],
-		"off_cycle_eligible": false,
-		"subtotal_id": "cede1268-5326-4757-8333-c38058fa5793",
-		"pay_treatment": "PAID",
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"pay_treatment": "UNPAID",
 		"id": "3228e3ce-b128-591e-babc-4bacc396df53",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// 性別平等工作法 §20: family-care leave is paid as personal leave, so no wage.\n// proration_basis CALENDAR_DAYS: a day is the month's wages ÷ the days of the period; the meal allowance falls with BASIC_AFTER_UNPAID_LEAVE.\nconst terms = ctx.subject.employment.terms;\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst monthDays = calendar_distance_days(from, to) + 1;\n// a period with no work day left is not earned at all\nlet left = false;\nfor (let step = 0; step < monthDays; step += 1) {\n\tconst date = add_days(from, step);\n\tif (worksOn(date) && !whole.includes(date)) left = true;\n}\nconst pay = Number(get(terms, 'rate.amount', 0));\nreturn (pay * (left ? Math.min(ctx.entry.quantity + rest, monthDays) : monthDays)) / monthDays;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "PARENTAL_LEAVE",
@@ -337,16 +319,15 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "性別平等工作法第16條 — after six months' service, unpaid leave until the child reaches three years of age, for at most two years per child; the 就業保險 parental allowance is 60% of the insured salary, topped up to 80%. From 2026-01-01 it may be claimed by the day for periods under 30 days, 30 days per parent and 60 per couple. 性別平等工作法 §16(1): 期間至該子女滿三歲止，但不得逾二年 — two years per child (entry facts.event_id)."
+				"title": "性別平等工作法第16條 — after six months' service, unpaid leave until the child reaches three years of age, for at most two years per child; the 就業保險 parental allowance is 60% of the insured salary, topped up to 80%. From 2026-01-01 it may be claimed by the day for periods under 30 days, 30 days per parent and 60 per couple. 性別平等工作法 §16(1): 期間至該子女滿三歲止，但不得逾二年 — two years per child (entry event_id)."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "4c9178af-f00f-4e41-9b54-fdf123407a38",
 		"pay_treatment": "PAID",
 		"id": "00a3259a-4b82-5e9f-a7f4-544d99919a61",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
 		"direction": "DEDUCT",
-		"conversion": "// 性別平等工作法 §16; 民法 §123(2): no wage for the stretch, on a 30-day month. PAID so this line, not the salary basis, takes the days: BASIC_AFTER_PARENTAL_LEAVE tells the premium rows how many (§16(2): employer share waived, worker's deferred).\nif (get(ctx.subject.employment, 'terms.rate.unit', 'MONTHLY') !== 'MONTHLY') return Math.min(ctx.base_pay, ctx.day_rate * ctx.entry.quantity);\nconst dates = ctx.entry.days.map((slot) => slot.date).toSorted();\nconst last = dates.at(-1);\nconst first_day = Math.min(ctx.lookup.monthly_divisor, Number(dates[0].substring(8)));\nconst last_day = last === month_end(last) ? ctx.lookup.monthly_divisor : Number(last.substring(8));\nreturn ctx.day_rate * (last_day - first_day + 1);"
+		"conversion": "// 性別平等工作法 §16; 民法 §123(2): no wage for the stretch, on a 30-day month. PAID so this line, not the salary basis, takes the days: BASIC_AFTER_PARENTAL_LEAVE tells the premium rows how many (§16(2): employer share waived, worker's deferred).\nif (get(ctx.subject.employment, 'terms.rate.unit', 'MONTHLY') !== 'MONTHLY') return Math.min(ctx.base_pay, ctx.day_rate * ctx.entry.quantity);\nconst dates = ctx.entry.days.map((slot) => slot.date).toSorted();\nconst last = dates.at(-1);\nconst month_days = 30;\nconst first_day = Math.min(month_days, Number(dates[0].substring(8)));\nconst last_day = last === month_end(last) ? month_days : Number(last.substring(8));\nreturn (ctx.month_wage * (last_day - first_day + 1)) / month_days;"
 	},
 	{
 		"code": "BREASTFEEDING_TIME",
@@ -357,7 +338,6 @@
 				"title": "性別平等工作法第18條 — 60 minutes a day for a child under two, with a further 30 minutes where extended work exceeds one hour; the time counts as paid working time."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "58f6a546-1369-58ec-808d-4517c6c84fa5",
@@ -373,7 +353,6 @@
 				"url": "https://www.mol.gov.tw/1607/1632/1640/11674/post"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "26ef82cd-994f-5ded-aa7a-2233b449e5d6",
@@ -388,7 +367,6 @@
 				"title": "勞工請假規則 §4(1)(2)–(3): up to one year of hospitalised sickness leave within any two years, and the non-hospitalised and hospitalised days together not more than one year within two; outpatient cancer treatment and 安胎休養 count as hospitalised. §4(2): half pay for the days inside thirty a year, none beyond (the 勞保 sickness benefit stands in). The rolling twenty-four-month pool of 365 days is shared with the outpatient row. Half pay within the thirty-day pool it shares with SICK_LEAVE (and menstrual days beyond three); hospitalised days beyond the pool are SICK_LEAVE_UNPAID. Outpatient cancer treatment and 安胎休養 are recorded here (§4(2)). Half pay within the thirty-day pool it shares with SICK_LEAVE (and menstrual days beyond three); hospitalised days beyond the pool are SICK_LEAVE_UNPAID. Outpatient cancer treatment and 安胎休養 are recorded here (§4(2))."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "8d8f6f8a-8eeb-48eb-99cb-f4b6e2fa7445",
 		"pay_treatment": "PAID",
 		"id": "fb54cf4c-1c3d-5067-afa8-62ba5582e485",
@@ -405,7 +383,6 @@
 				"title": "勞工請假規則 §8: leave with pay for the days the law requires the worker to attend to a public duty — military service call-up, a summons, an election; not metered."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "f1f66b11-f2f0-5306-8cc3-bb14f8734d08",
@@ -417,11 +394,10 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "勞基法 §16(2): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. the grant follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2)). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice. Two days in each week (Monday-to-Sunday) of the notice, on a §11, §13-proviso or §20 termination. Two days in each week (Monday-to-Sunday) of the notice, on a §11, §13-proviso or §20 termination.",
+				"title": "勞基法 §16(2): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. the grant follows the notice ground as SEVERANCE_PAY’s notice pay does (`lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2)). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice. Two days in each week (Monday-to-Sunday) of the notice, on a §11, §13-proviso or §20 termination. Two days in each week (Monday-to-Sunday) of the notice, on a §11, §13-proviso or §20 termination.",
 				"url": "https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "a6e3f66d-056b-5caa-be60-c9b33185007d",
@@ -436,7 +412,6 @@
 				"title": "勞動基準法 §40: 因天災、事變或突發事件停止 §36 例假者，工資應加倍發給，並應於事後補假休息 — the day off in lieu HR credits on this row, a day for each statutory rest day worked (payroll prices the day itself at a further day’s wage, REST-STATUTORY-DOUBLE)."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "662cee87-6d1d-5fb4-a037-652ba8be4180",
@@ -451,7 +426,6 @@
 				"title": "勞動基準法 §32-1(1): overtime or 休息日 work the worker elects to take as time off is banked by the hour (roster_entry.banked_overtime_hours, unpaid as overtime: work.days[].overtime_hours excludes it); 施行細則 §22-2: the hours are taken within the agreed period. Metered in hours over the leave (service) year: the hours banked so far less those taken. §32-1(2): hours untaken at the period’s end or on termination are paid at the wage of the day they were worked (COMP_TIME_YEAR_END_PAYMENT, OVERTIME_COMP_TIME_SETTLEMENT)."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "65a4e6b2-9560-596e-8dc6-93a841c0ba46",
@@ -466,7 +440,6 @@
 				"title": "勞動基準法 §32-1(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=32-1); 施行細則 §22-2 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=22-2): 補休 hours untaken when the agreed period ends or the contract terminates are paid at the wage of the day they were worked. Not a leave anyone takes (a dated time-off entry is refused: !has(entry.from)): its balance is the untaken banked hours of the leave year — the oldest taken first — each at its band (roster_entry.banked_overtime_band, the §24 multiplier: 1.34 or 1.67; blank priced 1.34), in straight-time hours. The exit encashment pays it (COMP_TIME_PAYOUT at the hourly wage); at the year’s end HR encashes the balance shown (COMP_TIME_YEAR_END_PAYMENT)."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "d5d854f8-14bd-5acc-b254-38a4d90bbbfd",
@@ -483,14 +456,11 @@
 				"title": "勞工請假規則 §4(1)(2)–(3): sickness beyond the thirty half-paid days a year is unpaid; non-hospitalised and hospitalised sickness together at most one year within any two (a rolling 24-month window)."
 			}
 		],
-		"off_cycle_eligible": false,
-		"subtotal_id": "cede1268-5326-4757-8333-c38058fa5793",
-		"pay_treatment": "PAID",
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"pay_treatment": "UNPAID",
 		"id": "9f1fec0e-3d95-5935-b292-db07695f54e8",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// 勞工請假規則 §4: sickness past the thirty half-paid days carries no wage.\n// proration_basis CALENDAR_DAYS: a day is the month's wages ÷ the days of the period; the meal allowance falls with BASIC_AFTER_UNPAID_LEAVE.\nconst terms = ctx.subject.employment.terms;\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst monthDays = calendar_distance_days(from, to) + 1;\n// a period with no work day left is not earned at all\nlet left = false;\nfor (let step = 0; step < monthDays; step += 1) {\n\tconst date = add_days(from, step);\n\tif (worksOn(date) && !whole.includes(date)) left = true;\n}\nconst pay = Number(get(terms, 'rate.amount', 0));\nreturn (pay * (left ? Math.min(ctx.entry.quantity + rest, monthDays) : monthDays)) / monthDays;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "SICK_LEAVE_SUSPENSION",
@@ -500,17 +470,14 @@
 		},
 		"references": [
 			{
-				"title": "勞工請假規則 §5: sickness beyond the §4 limits may be taken as personal or annual leave, then as unpaid suspension (留職停薪) of at most one year (per illness: facts.event_id)."
+				"title": "勞工請假規則 §5: sickness beyond the §4 limits may be taken as personal or annual leave, then as unpaid suspension (留職停薪) of at most one year (per illness: event_id)."
 			}
 		],
-		"off_cycle_eligible": false,
-		"subtotal_id": "cede1268-5326-4757-8333-c38058fa5793",
-		"pay_treatment": "PAID",
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"pay_treatment": "UNPAID",
 		"id": "e02ff963-e497-5df6-947a-20c4692c2941",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// 勞工請假規則 §5: 留職停薪 carries no wage.\n// proration_basis CALENDAR_DAYS: a day is the month's wages ÷ the days of the period; the meal allowance falls with BASIC_AFTER_UNPAID_LEAVE.\nconst terms = ctx.subject.employment.terms;\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst monthDays = calendar_distance_days(from, to) + 1;\n// a period with no work day left is not earned at all\nlet left = false;\nfor (let step = 0; step < monthDays; step += 1) {\n\tconst date = add_days(from, step);\n\tif (worksOn(date) && !whole.includes(date)) left = true;\n}\nconst pay = Number(get(terms, 'rate.amount', 0));\nreturn (pay * (left ? Math.min(ctx.entry.quantity + rest, monthDays) : monthDays)) / monthDays;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "PARENTAL_LEAVE_BY_DAY",
@@ -525,14 +492,13 @@
 		},
 		"references": [
 			{
-				"title": "育嬰留職停薪實施辦法 (amended 2025-11-21, in force 2026-01-01): before each child turns three, up to thirty days may be taken by the day, inside the two-year parental leave it consumes (per child: facts.event_id). 性別平等工作法 §16(1): after six months’ service."
+				"title": "育嬰留職停薪實施辦法 (amended 2025-11-21, in force 2026-01-01): before each child turns three, up to thirty days may be taken by the day, inside the two-year parental leave it consumes (per child: event_id). 性別平等工作法 §16(1): after six months’ service."
 			},
 			{
 				"title": "育嬰留職停薪實施辦法 §2 (amended 2025-11-21, in force 2026-01-01): 未滿三十日…得以日為單位，但合併以三十日為限. 性別平等工作法 §16(1): 任職滿六個月.",
 				"url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030018"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "4c9178af-f00f-4e41-9b54-fdf123407a38",
 		"pay_treatment": "PAID",
 		"id": "ccbcf58c-8233-50cb-a02a-96e7f7cd4c6e",
@@ -548,17 +514,14 @@
 		},
 		"references": [
 			{
-				"title": "性別平等工作法 §19: a worker of an employer of thirty or more with a child under three may reduce working time by one hour a day; §19(2): 受僱於僱用未滿三十人雇主之受僱者，經與雇主協商，雙方合意後，得依前項規定辦理 — at a smaller employer when the contract terms record the agreement (terms.facts.childcare_reduction_agreed); 減少之工作時間，不得請求報酬 — recorded as an eighth of a day, deducted by this row."
+				"title": "性別平等工作法 §19: a worker of an employer of thirty or more with a child under three may reduce working time by one hour a day; §19(2): 受僱於僱用未滿三十人雇主之受僱者，經與雇主協商，雙方合意後，得依前項規定辦理 — at a smaller employer when the contract terms record the agreement (terms.childcare_reduction_agreed); 減少之工作時間，不得請求報酬 — recorded as an eighth of a day, deducted by this row."
 			}
 		],
-		"off_cycle_eligible": false,
-		"subtotal_id": "cede1268-5326-4757-8333-c38058fa5793",
-		"pay_treatment": "PAID",
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"pay_treatment": "UNPAID",
 		"id": "be1e0b76-3e3a-5157-aefd-f1e6ad13ea51",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// 性別平等工作法 §19: 減少之工作時間，不得請求報酬.\n// proration_basis CALENDAR_DAYS: a day is the month's wages ÷ the days of the period; the meal allowance falls with BASIC_AFTER_UNPAID_LEAVE.\nconst terms = ctx.subject.employment.terms;\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst monthDays = calendar_distance_days(from, to) + 1;\n// a period with no work day left is not earned at all\nlet left = false;\nfor (let step = 0; step < monthDays; step += 1) {\n\tconst date = add_days(from, step);\n\tif (worksOn(date) && !whole.includes(date)) left = true;\n}\nconst pay = Number(get(terms, 'rate.amount', 0));\nreturn (pay * (left ? Math.min(ctx.entry.quantity + rest, monthDays) : monthDays)) / monthDays;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "NATURAL_DISASTER_ABSENCE",
@@ -572,14 +535,11 @@
 				"url": "https://laws.mol.gov.tw/FLAW/FLAWDAT01.aspx?id=FL049468"
 			}
 		],
-		"off_cycle_eligible": false,
-		"subtotal_id": "cede1268-5326-4757-8333-c38058fa5793",
-		"pay_treatment": "PAID",
+		"subtotal_id": "5d21f355-f260-50f9-90b9-609fd2588525",
+		"pay_treatment": "UNPAID",
 		"id": "8b31b317-00f7-5b51-baf6-9fc2978f40da",
 		"settings_id": "d853116e-b5c4-592e-8944-b23f17be6f65",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// 天然災害發生事業單位勞工出勤管理及工資給付要點: the wage of a day not worked may be withheld.\n// proration_basis CALENDAR_DAYS: a day is the month's wages ÷ the days of the period; the meal allowance falls with BASIC_AFTER_UNPAID_LEAVE.\nconst terms = ctx.subject.employment.terms;\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst monthDays = calendar_distance_days(from, to) + 1;\n// a period with no work day left is not earned at all\nlet left = false;\nfor (let step = 0; step < monthDays; step += 1) {\n\tconst date = add_days(from, step);\n\tif (worksOn(date) && !whole.includes(date)) left = true;\n}\nconst pay = Number(get(terms, 'rate.amount', 0));\nreturn (pay * (left ? Math.min(ctx.entry.quantity + rest, monthDays) : monthDays)) / monthDays;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "INDIGENOUS_RITUAL_HOLIDAY",
@@ -597,7 +557,6 @@
 				"url": "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=D0020095"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"pay_treatment": "PAID",
 		"id": "19e666cb-b222-5bd0-8f45-3c1b35334392",

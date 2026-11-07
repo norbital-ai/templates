@@ -24,7 +24,6 @@
 				"description": "Link this case to the actual proposed contract. opened_on is receipt of the employee’s own request; reference and evidence identify its signed document. The requested dates must match the actual agreement."
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"references": [
@@ -74,7 +73,6 @@
 				"description": "Link to the expiring agreement. The completed comparison review assesses all offered contractual conditions, not salary alone; close only when that review and the actual refusal are confirmed. A document alone does not determine the statutory exemption."
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"references": [
@@ -405,7 +403,6 @@
 				}
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"references": [
@@ -809,7 +806,6 @@
 				]
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"references": [
@@ -1146,7 +1142,6 @@
 				}
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"references": [

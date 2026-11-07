@@ -13,7 +13,7 @@ import { ENTITY, pack, sealedLeave, uuid, workspace } from './kit.ts';
 const CONTRACT = idOf('employee_contract', uuid(6));
 const NOW = '2026-06-20T02:00:00.000Z';
 const terms = (
-	allowances: Record<string, { readonly amount: number; readonly variability?: string }> = {}
+	allowances: Record<string, { readonly amount: number }> = {}
 ) =>
 	({
 		rate: { amount: 3120, unit: 'MONTHLY' },
@@ -83,17 +83,18 @@ describe('a no-pay day', () => {
 			const t = yield* TestWorkspace;
 			yield* entry(t, seed, whole('2026-06-10'));
 			yield* run(t, '2026-06');
-			assert.deepEqual(yield* paid(t, '2026-06'), { BASIC: 3120, SUA: 300, UNPAID_LEAVE: -114 });
+			// the absence is in BASIC and the prorated allowance, not a deduction line
+			assert.deepEqual(yield* paid(t, '2026-06'), { BASIC: 3016, SUA: 290 });
 		}).pipe(Effect.provide(inMonth(seed)));
 	});
 
 	it.live('a half day is half, a variable allowance stays out', () => {
-		const seed = malaysia({ ONCALL: { amount: 300, variability: 'VARIABLE' } });
+		const seed = malaysia({ ONCALL: { amount: 300 } });
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* entry(t, seed, [{ date: PlainDate('2026-06-10'), part: 'AM' }]);
 			yield* run(t, '2026-06');
-			assert.equal((yield* paid(t, '2026-06'))['UNPAID_LEAVE'], -52);
+			assert.equal((yield* paid(t, '2026-06'))['BASIC'], 3068);
 		}).pipe(Effect.provide(inMonth(seed)));
 	});
 
@@ -103,7 +104,7 @@ describe('a no-pay day', () => {
 			const t = yield* TestWorkspace;
 			yield* entry(t, seed, [...whole('2026-06-12'), ...whole('2026-06-15')]);
 			yield* run(t, '2026-06');
-			assert.equal((yield* paid(t, '2026-06'))['UNPAID_LEAVE'], -416);
+			assert.equal((yield* paid(t, '2026-06'))['BASIC'], 2704);
 		}).pipe(Effect.provide(inMonth(seed)));
 	});
 
@@ -165,7 +166,7 @@ describe('a no-pay day', () => {
 			yield* run(t, '2026-06');
 			yield* entry(t, seed, whole('2026-06-29'));
 			yield* run(t, '2026-07');
-			assert.ok(((yield* paid(t, '2026-07'))['UNPAID_LEAVE'] ?? 0) < 0);
+			assert.ok(((yield* paid(t, '2026-07'))['BASIC'] ?? 0) < 3120);
 		}).pipe(Effect.provide(inMonth(seed, '2026-07-20T02:00:00.000Z')));
 	});
 });
@@ -201,14 +202,15 @@ describe('an allowance and its prorate switch', () => {
 			assert.equal((yield* paid(t, '2026-06'))['SUA'], 300);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
-	it.live('no-pay leave leaves the allowance whole and takes its share in the no-pay line', () => {
+	it.live('no-pay leave takes its share from the allowance too', () => {
 		const seed = malaysia(SUA);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* entry(t, seed, whole('2026-06-10'));
 			yield* run(t, '2026-06');
 			// (3,120 + 300) ÷ 30 days
-			assert.deepEqual(yield* paid(t, '2026-06'), { BASIC: 3120, SUA: 300, UNPAID_LEAVE: -114 });
+			// the absence is in BASIC and the prorated allowance, not a deduction line
+			assert.deepEqual(yield* paid(t, '2026-06'), { BASIC: 3016, SUA: 290 });
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })));
 	});
 });

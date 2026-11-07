@@ -70,7 +70,7 @@ const ACRONYMS = new Set(
 	PT`.split(/\s+/)
 );
 const SMALL = new Set(['of', 'on', 'in', 'to', 'by', 'or', 'at', 'and', 'the', 'for', 'a']);
-const STRUCTURAL = new Set(['facts', 'term_facts', 'exit_facts', 'elections', 'statutory']);
+const STRUCTURAL = new Set(['statutory']);
 const ASCII = /^[\x20-\x7e]*$/;
 // ponytail: three numbered entries per repeating record, so each cell keeps its selector; raise it when a person needs more
 const ENTRIES = 3;
@@ -374,6 +374,13 @@ export const entityColumns = (
 		)
 	]);
 
+const extensionColumns = (schema: unknown): readonly SheetColumn[] =>
+	flatten(
+		isJsonObject(schema) ? schema : {},
+		'Country requirements',
+		['employee_extension_data']
+	);
+
 export const profileColumns: readonly SheetColumn[] = [
 	column('Employee Number', 'text', ['$number'], '', {
 		required: true,
@@ -475,7 +482,7 @@ export const contractColumns = (
 		}),
 		column('Salary Unit', 'enum', ['terms', 'rate', 'unit'], 'Pay', {
 			required: true,
-			values: ['MONTHLY', 'DAILY', 'HOURLY', 'PIECE']
+			values: ['MONTHLY', 'DAILY', 'HOURLY']
 		}),
 		column('Normal Hours Per Day', 'number', ['terms', 'normal_hours_per_day'], 'Pay'),
 		column('Normal Hours Per Week', 'number', ['terms', 'normal_hours_per_week'], 'Pay'),
@@ -501,15 +508,16 @@ export const contractColumns = (
 		column('Identity Number', 'text', ['payroll', 'identity_number'], 'Person', {
 			help: 'National ID or passport number, as issued.'
 		}),
+		...extensionColumns(settings.employee_extension_schema).filter(
+			(column) => column.path.at(-1) === 'registration_number'
+		),
 		column('Gender', 'enum', ['payroll', 'gender'], 'Person', { values: ['MALE', 'FEMALE'] }),
 		column('Marital Status', 'enum', ['payroll', 'marital_status'], 'Person', {
 			values: ['SINGLE', 'MARRIED', 'SEPARATED', 'DIVORCED', 'WIDOWED']
 		}),
 		...bankColumns('Employee bank'),
-		...flatten(
-			isJsonObject(settings.employee_extension_schema) ? settings.employee_extension_schema : {},
-			'Country requirements',
-			['employee_extension_data']
+		...extensionColumns(settings.employee_extension_schema).filter(
+			(column) => column.path.at(-1) !== 'registration_number'
 		)
 	]);
 };

@@ -69,9 +69,7 @@
 					{ field: 'eligibility', cell: codeCell },
 					{ field: 'conversion', cell: codeCell },
 					'subtotal_id',
-					'direction',
 					'party',
-					'off_cycle_eligible',
 					'prorate'
 				]}
 			/>
@@ -86,9 +84,7 @@
 					{ field: 'eligibility', cell: codeCell },
 					{ field: 'conversion', cell: codeCell },
 					'subtotal_id',
-					'direction',
-					'party',
-					'off_cycle_eligible'
+					'direction'
 				]}
 			/>
 		{:else if selected === 'statutory_contribution_catalog'}<Table
@@ -104,8 +100,7 @@
 					{ field: 'employee_amount', cell: codeCell },
 					{ field: 'employer_amount', cell: codeCell },
 					'subtotal_id',
-					'employer_cost_subtotal_id',
-					'off_cycle_eligible'
+					'employer_cost_subtotal_id'
 				]}
 			/>
 		{:else if selected === 'leave_catalog'}<Table
@@ -119,8 +114,7 @@
 					'pay_treatment',
 					{ field: 'eligibility', cell: codeCell },
 					{ field: 'conversion', cell: codeCell },
-					'subtotal_id',
-					'off_cycle_eligible'
+					'subtotal_id'
 				]}
 			/>
 		{:else if selected === 'claim_catalog'}<Table
@@ -135,8 +129,7 @@
 					{ field: 'conversion', cell: codeCell },
 					'subtotal_id',
 					'direction',
-					'party',
-					'off_cycle_eligible'
+					'party'
 				]}
 			/>
 		{:else if selected === 'adhoc_catalog'}<Table
@@ -151,8 +144,7 @@
 					{ field: 'conversion', cell: codeCell },
 					'subtotal_id',
 					'direction',
-					'party',
-					'off_cycle_eligible'
+					'party'
 				]}
 			/>
 		{:else if selected === 'loan_catalog'}<Table
@@ -165,10 +157,7 @@
 					'name',
 					{ field: 'eligibility', cell: codeCell },
 					{ field: 'conversion', cell: codeCell },
-					'subtotal_id',
-					'direction',
-					'party',
-					'off_cycle_eligible'
+					'subtotal_id'
 				]}
 			/>
 		{:else if selected === 'work_interruption_catalog'}<Table
@@ -180,8 +169,7 @@
 					'code',
 					'name',
 					'events',
-					{ field: 'lookup', cell: jsonCell },
-					'off_cycle_eligible'
+					{ field: 'lookup', cell: jsonCell }
 				]}
 			/>
 		{:else}<Table
@@ -193,8 +181,7 @@
 					'code',
 					'name',
 					'events',
-					{ field: 'lookup', cell: jsonCell },
-					'off_cycle_eligible'
+					{ field: 'lookup', cell: jsonCell }
 				]}
 			/>{/if}
 	</section>

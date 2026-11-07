@@ -6,12 +6,11 @@
 		"lookup": {
 			"rate": 0.115
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return get(ctx.run, 'kind', 'ON_CYCLE') !== 'OFF_CYCLE';",
-		"employee_amount": "// 勞工保險條例 §13–15: 20% of the ordinary-risk premium on the insured grade, less any disability subsidy, by covered days on a 30-day month.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data.facts', {});\nif (get(ctx.subject.employer, 'entity_extension_data.li_no_insurance_unit', false) === true) return 0;\nconst born = get(employment, 'payroll.date_of_birth', null);\nconst age = born == null || born === '' ? 0 : age_on(born, ctx.run.salary_coverage.to);\nconst continued = get(facts, 'statutory.LI.elections.continued_after_65', false) === true;\nif (age >= ctx.lookup.maximum_coverage_age_years && !continued) return 0;\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.day_rate * ctx.lookup.monthly_divisor, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grades = get(employment, 'engagement', '') === 'PART_TIME'\n  ? ctx.lookup.li_part_time_grades.concat(ctx.lookup.li_grades)\n  : ctx.lookup.li_grades;\nconst grade = grades.find((row) => row >= wage) ?? grades.at(-1);\nconst insured = Number(get(facts, 'statutory.LI.elections.insured_amount', grade));\nconst subsidy = Number(get(facts, 'statutory.LI.elections.disability_subsidy', 0)) / 100;\nconst month = month_start(ctx.as_of);\nconst last = month_end(ctx.as_of);\nconst from = get(employment, 'effective_range.from', month);\nconst to = get(employment, 'effective_range.to', last);\nconst first_day = from > month ? Math.min(ctx.lookup.monthly_divisor, Number(from.substring(8))) : 1;\nconst last_day = to >= last ? ctx.lookup.monthly_divisor : Number(to.substring(8));\nconst parental = ctx.day_rate > 0\n  ? round((get(ctx.subtotals, 'BASIC', 0) - get(ctx.subtotals, 'BASIC_AFTER_PARENTAL_LEAVE', 0)) / ctx.day_rate, 0.5)\n  : 0;\nconst days = Math.max(0, last_day - first_day + 1 - parental);\nreturn round(insured * ctx.lookup.rate * ctx.lookup.insurance_employee_share * (1 - subsidy) * days / ctx.lookup.monthly_divisor, 1, 'HALF_UP');",
-		"employer_amount": "// 勞工保險條例 §13(2): the 70% employer share on the insured grade, by covered days on a 30-day month.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data.facts', {});\nif (get(ctx.subject.employer, 'entity_extension_data.li_no_insurance_unit', false) === true) return 0;\nconst born = get(employment, 'payroll.date_of_birth', null);\nconst age = born == null || born === '' ? 0 : age_on(born, ctx.run.salary_coverage.to);\nconst continued = get(facts, 'statutory.LI.elections.continued_after_65', false) === true;\nif (age >= ctx.lookup.maximum_coverage_age_years && !continued) return 0;\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.day_rate * ctx.lookup.monthly_divisor, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grades = get(employment, 'engagement', '') === 'PART_TIME'\n  ? ctx.lookup.li_part_time_grades.concat(ctx.lookup.li_grades)\n  : ctx.lookup.li_grades;\nconst grade = grades.find((row) => row >= wage) ?? grades.at(-1);\nconst insured = Number(get(facts, 'statutory.LI.elections.insured_amount', grade));\nconst month = month_start(ctx.as_of);\nconst last = month_end(ctx.as_of);\nconst from = get(employment, 'effective_range.from', month);\nconst to = get(employment, 'effective_range.to', last);\nconst first_day = from > month ? Math.min(ctx.lookup.monthly_divisor, Number(from.substring(8))) : 1;\nconst last_day = to >= last ? ctx.lookup.monthly_divisor : Number(to.substring(8));\nconst parental = ctx.day_rate > 0\n  ? round((get(ctx.subtotals, 'BASIC', 0) - get(ctx.subtotals, 'BASIC_AFTER_PARENTAL_LEAVE', 0)) / ctx.day_rate, 0.5)\n  : 0;\nconst days = Math.max(0, last_day - first_day + 1 - parental);\nreturn round(insured * ctx.lookup.rate * ctx.lookup.insurance_employer_share * days / ctx.lookup.monthly_divisor, 1, 'HALF_UP');",
+		"employee_amount": "// 勞工保險條例 §13–15: 20% of the ordinary-risk premium on the insured grade, less any disability subsidy, by covered days on a 30-day month.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nif (get(ctx.subject.employer, 'entity_extension_data.li_no_insurance_unit', false) === true) return 0;\nconst born = get(employment, 'payroll.date_of_birth', null);\nconst age = born == null || born === '' ? 0 : age_on(born, ctx.run.salary_coverage.to);\nconst continued = get(facts, 'statutory.LI.continued_after_65', false) === true;\nif (age >= ctx.lookup.maximum_coverage_age_years && !continued) return 0;\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.month_wage, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grades = get(employment, 'engagement', '') === 'PART_TIME'\n  ? ctx.lookup.li_part_time_grades.concat(ctx.lookup.li_grades)\n  : ctx.lookup.li_grades;\nconst grade = grades.find((row) => row >= wage) ?? grades.at(-1);\nconst insured = Number(get(facts, 'statutory.LI.insured_amount', grade));\nconst subsidy = Number(get(facts, 'statutory.LI.disability_subsidy', 0)) / 100;\nconst month = month_start(ctx.as_of);\nconst last = month_end(ctx.as_of);\nconst from = get(employment, 'effective_range.from', month);\nconst to = get(employment, 'effective_range.to', last);\nconst month_days = 30;\nconst first_day = from > month ? Math.min(month_days, Number(from.substring(8))) : 1;\nconst last_day = to >= last ? month_days : Number(to.substring(8));\nconst parental = ctx.day_rate > 0\n  ? round((get(ctx.subtotals, 'BASIC', 0) - get(ctx.subtotals, 'BASIC_AFTER_PARENTAL_LEAVE', 0)) / ctx.day_rate, 0.5)\n  : 0;\nconst days = Math.max(0, last_day - first_day + 1 - parental);\nreturn round(insured * ctx.lookup.rate * ctx.lookup.insurance_employee_share * (1 - subsidy) * days / month_days, 1, 'HALF_UP');",
+		"employer_amount": "// 勞工保險條例 §13(2): the 70% employer share on the insured grade, by covered days on a 30-day month.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nif (get(ctx.subject.employer, 'entity_extension_data.li_no_insurance_unit', false) === true) return 0;\nconst born = get(employment, 'payroll.date_of_birth', null);\nconst age = born == null || born === '' ? 0 : age_on(born, ctx.run.salary_coverage.to);\nconst continued = get(facts, 'statutory.LI.continued_after_65', false) === true;\nif (age >= ctx.lookup.maximum_coverage_age_years && !continued) return 0;\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.month_wage, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grades = get(employment, 'engagement', '') === 'PART_TIME'\n  ? ctx.lookup.li_part_time_grades.concat(ctx.lookup.li_grades)\n  : ctx.lookup.li_grades;\nconst grade = grades.find((row) => row >= wage) ?? grades.at(-1);\nconst insured = Number(get(facts, 'statutory.LI.insured_amount', grade));\nconst month = month_start(ctx.as_of);\nconst last = month_end(ctx.as_of);\nconst from = get(employment, 'effective_range.from', month);\nconst to = get(employment, 'effective_range.to', last);\nconst month_days = 30;\nconst first_day = from > month ? Math.min(month_days, Number(from.substring(8))) : 1;\nconst last_day = to >= last ? month_days : Number(to.substring(8));\nconst parental = ctx.day_rate > 0\n  ? round((get(ctx.subtotals, 'BASIC', 0) - get(ctx.subtotals, 'BASIC_AFTER_PARENTAL_LEAVE', 0)) / ctx.day_rate, 0.5)\n  : 0;\nconst days = Math.max(0, last_day - first_day + 1 - parental);\nreturn round(insured * ctx.lookup.rate * ctx.lookup.insurance_employer_share * days / month_days, 1, 'HALF_UP');",
 		"references": [
 			{
 				"title": "勞工保險條例",
@@ -26,7 +25,8 @@
 			}
 		],
 		"id": "d0f80f71-45d1-5f9b-8149-623af5cf7019",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "WAGE_ARREARS_FUND",
@@ -35,12 +35,11 @@
 		"lookup": {
 			"employer_rate": 0.00025
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return get(ctx.run, 'kind', 'ON_CYCLE') !== 'OFF_CYCLE';",
 		"employee_amount": "return 0;",
-		"employer_amount": "// 勞動基準法 §28(2): the 0.025% wage-arrears levy on the LI-equivalent insured wage, by covered days on a 30-day month, employer only.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data.facts', {});\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.day_rate * ctx.lookup.monthly_divisor, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grades = get(employment, 'engagement', '') === 'PART_TIME'\n  ? ctx.lookup.li_part_time_grades.concat(ctx.lookup.li_grades)\n  : ctx.lookup.li_grades;\nconst grade = grades.find((row) => row >= wage) ?? grades.at(-1);\nconst insured = Number(get(facts, 'statutory.LI.elections.insured_amount', grade));\nconst month = month_start(ctx.as_of);\nconst last = month_end(ctx.as_of);\nconst from = get(employment, 'effective_range.from', month);\nconst to = get(employment, 'effective_range.to', last);\nconst first_day = from > month ? Math.min(ctx.lookup.monthly_divisor, Number(from.substring(8))) : 1;\nconst last_day = to >= last ? ctx.lookup.monthly_divisor : Number(to.substring(8));\nconst parental = ctx.day_rate > 0\n  ? round((get(ctx.subtotals, 'BASIC', 0) - get(ctx.subtotals, 'BASIC_AFTER_PARENTAL_LEAVE', 0)) / ctx.day_rate, 0.5)\n  : 0;\nconst days = Math.max(0, last_day - first_day + 1 - parental);\nreturn round(insured * ctx.lookup.employer_rate * days / ctx.lookup.monthly_divisor, 1, 'HALF_UP');",
+		"employer_amount": "// 勞動基準法 §28(2): the 0.025% wage-arrears levy on the LI-equivalent insured wage, by covered days on a 30-day month, employer only.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.month_wage, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grades = get(employment, 'engagement', '') === 'PART_TIME'\n  ? ctx.lookup.li_part_time_grades.concat(ctx.lookup.li_grades)\n  : ctx.lookup.li_grades;\nconst grade = grades.find((row) => row >= wage) ?? grades.at(-1);\nconst insured = Number(get(facts, 'statutory.LI.insured_amount', grade));\nconst month = month_start(ctx.as_of);\nconst last = month_end(ctx.as_of);\nconst from = get(employment, 'effective_range.from', month);\nconst to = get(employment, 'effective_range.to', last);\nconst month_days = 30;\nconst first_day = from > month ? Math.min(month_days, Number(from.substring(8))) : 1;\nconst last_day = to >= last ? month_days : Number(to.substring(8));\nconst parental = ctx.day_rate > 0\n  ? round((get(ctx.subtotals, 'BASIC', 0) - get(ctx.subtotals, 'BASIC_AFTER_PARENTAL_LEAVE', 0)) / ctx.day_rate, 0.5)\n  : 0;\nconst days = Math.max(0, last_day - first_day + 1 - parental);\nreturn round(insured * ctx.lookup.employer_rate * days / month_days, 1, 'HALF_UP');",
 		"references": [
 			{
 				"title": "勞動基準法",
@@ -49,7 +48,8 @@
 			}
 		],
 		"id": "22929602-55e5-5504-98ac-d7a3bdf1ab7b",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "EI",
@@ -58,12 +58,11 @@
 		"lookup": {
 			"rate": 0.01
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return get(ctx.run, 'kind', 'ON_CYCLE') !== 'OFF_CYCLE';",
-		"employee_amount": "// 就業保險法 §8, §40–41: 1% of the LI grade, 20% employee, before age 65, by covered days on a 30-day month.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data.facts', {});\nconst born = get(employment, 'payroll.date_of_birth', null);\nconst age = born == null || born === '' ? 0 : age_on(born, ctx.run.salary_coverage.to);\nif (age >= ctx.lookup.maximum_coverage_age_years) return 0;\nconst residency = get(employment, 'terms.residency_status', 'CITIZEN');\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst covered = residency === 'CITIZEN' || spouse || (residency === 'PERMANENT_RESIDENT' && professional);\nif (!covered) return 0;\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.day_rate * ctx.lookup.monthly_divisor, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grades = get(employment, 'engagement', '') === 'PART_TIME'\n  ? ctx.lookup.li_part_time_grades.concat(ctx.lookup.li_grades)\n  : ctx.lookup.li_grades;\nconst grade = grades.find((row) => row >= wage) ?? grades.at(-1);\nconst insured = Number(get(facts, 'statutory.LI.elections.insured_amount', grade));\nconst subsidy = Number(get(facts, 'statutory.LI.elections.disability_subsidy', 0)) / 100;\nconst month = month_start(ctx.as_of);\nconst last = month_end(ctx.as_of);\nconst from = get(employment, 'effective_range.from', month);\nconst to = get(employment, 'effective_range.to', last);\nconst first_day = from > month ? Math.min(ctx.lookup.monthly_divisor, Number(from.substring(8))) : 1;\nconst last_day = to >= last ? ctx.lookup.monthly_divisor : Number(to.substring(8));\nconst parental = ctx.day_rate > 0\n  ? round((get(ctx.subtotals, 'BASIC', 0) - get(ctx.subtotals, 'BASIC_AFTER_PARENTAL_LEAVE', 0)) / ctx.day_rate, 0.5)\n  : 0;\nconst days = Math.max(0, last_day - first_day + 1 - parental);\nreturn round(insured * ctx.lookup.rate * ctx.lookup.insurance_employee_share * (1 - subsidy) * days / ctx.lookup.monthly_divisor, 1, 'HALF_UP');",
-		"employer_amount": "// 就業保險法 §8, §40–41: 1% of the LI grade, 70% employer, before age 65, by covered days on a 30-day month.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data.facts', {});\nconst born = get(employment, 'payroll.date_of_birth', null);\nconst age = born == null || born === '' ? 0 : age_on(born, ctx.run.salary_coverage.to);\nif (age >= ctx.lookup.maximum_coverage_age_years) return 0;\nconst residency = get(employment, 'terms.residency_status', 'CITIZEN');\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst covered = residency === 'CITIZEN' || spouse || (residency === 'PERMANENT_RESIDENT' && professional);\nif (!covered) return 0;\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.day_rate * ctx.lookup.monthly_divisor, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grades = get(employment, 'engagement', '') === 'PART_TIME'\n  ? ctx.lookup.li_part_time_grades.concat(ctx.lookup.li_grades)\n  : ctx.lookup.li_grades;\nconst grade = grades.find((row) => row >= wage) ?? grades.at(-1);\nconst insured = Number(get(facts, 'statutory.LI.elections.insured_amount', grade));\nconst month = month_start(ctx.as_of);\nconst last = month_end(ctx.as_of);\nconst from = get(employment, 'effective_range.from', month);\nconst to = get(employment, 'effective_range.to', last);\nconst first_day = from > month ? Math.min(ctx.lookup.monthly_divisor, Number(from.substring(8))) : 1;\nconst last_day = to >= last ? ctx.lookup.monthly_divisor : Number(to.substring(8));\nconst parental = ctx.day_rate > 0\n  ? round((get(ctx.subtotals, 'BASIC', 0) - get(ctx.subtotals, 'BASIC_AFTER_PARENTAL_LEAVE', 0)) / ctx.day_rate, 0.5)\n  : 0;\nconst days = Math.max(0, last_day - first_day + 1 - parental);\nreturn round(insured * ctx.lookup.rate * ctx.lookup.insurance_employer_share * days / ctx.lookup.monthly_divisor, 1, 'HALF_UP');",
+		"employee_amount": "// 就業保險法 §8, §40–41: 1% of the LI grade, 20% employee, before age 65, by covered days on a 30-day month.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nconst born = get(employment, 'payroll.date_of_birth', null);\nconst age = born == null || born === '' ? 0 : age_on(born, ctx.run.salary_coverage.to);\nif (age >= ctx.lookup.maximum_coverage_age_years) return 0;\nconst residency = get(employment, 'terms.residency_status', 'CITIZEN');\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst covered = residency === 'CITIZEN' || spouse || (residency === 'PERMANENT_RESIDENT' && professional);\nif (!covered) return 0;\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.month_wage, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grades = get(employment, 'engagement', '') === 'PART_TIME'\n  ? ctx.lookup.li_part_time_grades.concat(ctx.lookup.li_grades)\n  : ctx.lookup.li_grades;\nconst grade = grades.find((row) => row >= wage) ?? grades.at(-1);\nconst insured = Number(get(facts, 'statutory.LI.insured_amount', grade));\nconst subsidy = Number(get(facts, 'statutory.LI.disability_subsidy', 0)) / 100;\nconst month = month_start(ctx.as_of);\nconst last = month_end(ctx.as_of);\nconst from = get(employment, 'effective_range.from', month);\nconst to = get(employment, 'effective_range.to', last);\nconst month_days = 30;\nconst first_day = from > month ? Math.min(month_days, Number(from.substring(8))) : 1;\nconst last_day = to >= last ? month_days : Number(to.substring(8));\nconst parental = ctx.day_rate > 0\n  ? round((get(ctx.subtotals, 'BASIC', 0) - get(ctx.subtotals, 'BASIC_AFTER_PARENTAL_LEAVE', 0)) / ctx.day_rate, 0.5)\n  : 0;\nconst days = Math.max(0, last_day - first_day + 1 - parental);\nreturn round(insured * ctx.lookup.rate * ctx.lookup.insurance_employee_share * (1 - subsidy) * days / month_days, 1, 'HALF_UP');",
+		"employer_amount": "// 就業保險法 §8, §40–41: 1% of the LI grade, 70% employer, before age 65, by covered days on a 30-day month.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nconst born = get(employment, 'payroll.date_of_birth', null);\nconst age = born == null || born === '' ? 0 : age_on(born, ctx.run.salary_coverage.to);\nif (age >= ctx.lookup.maximum_coverage_age_years) return 0;\nconst residency = get(employment, 'terms.residency_status', 'CITIZEN');\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst covered = residency === 'CITIZEN' || spouse || (residency === 'PERMANENT_RESIDENT' && professional);\nif (!covered) return 0;\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.month_wage, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grades = get(employment, 'engagement', '') === 'PART_TIME'\n  ? ctx.lookup.li_part_time_grades.concat(ctx.lookup.li_grades)\n  : ctx.lookup.li_grades;\nconst grade = grades.find((row) => row >= wage) ?? grades.at(-1);\nconst insured = Number(get(facts, 'statutory.LI.insured_amount', grade));\nconst month = month_start(ctx.as_of);\nconst last = month_end(ctx.as_of);\nconst from = get(employment, 'effective_range.from', month);\nconst to = get(employment, 'effective_range.to', last);\nconst month_days = 30;\nconst first_day = from > month ? Math.min(month_days, Number(from.substring(8))) : 1;\nconst last_day = to >= last ? month_days : Number(to.substring(8));\nconst parental = ctx.day_rate > 0\n  ? round((get(ctx.subtotals, 'BASIC', 0) - get(ctx.subtotals, 'BASIC_AFTER_PARENTAL_LEAVE', 0)) / ctx.day_rate, 0.5)\n  : 0;\nconst days = Math.max(0, last_day - first_day + 1 - parental);\nreturn round(insured * ctx.lookup.rate * ctx.lookup.insurance_employer_share * days / month_days, 1, 'HALF_UP');",
 		"references": [
 			{
 				"title": "就業保險法",
@@ -72,7 +71,8 @@
 			}
 		],
 		"id": "6c783cca-ee1c-502d-b68d-b236ca673be5",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "NHI",
@@ -85,12 +85,11 @@
 			"maximum_employee_dependants": 3,
 			"average_dependants": 1.56
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return get(ctx.run, 'kind', 'ON_CYCLE') !== 'OFF_CYCLE';",
-		"employee_amount": "// 全民健康保險法 §18, §27, §29: 30% employee share, subsidised on the worker's own share, plus one full share for each of up to three dependants.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data.facts', {});\nif (get(facts, 'statutory.NHI.elections.insured_elsewhere', false) === true) return 0;\nconst exit = get(employment, 'effective_range.to', '');\nif (exit !== '' && !(exit >= ctx.run.salary_coverage.to)) return 0;\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.day_rate * ctx.lookup.monthly_divisor, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grade = ctx.lookup.nhi_grades.find((row) => row >= wage) ?? ctx.lookup.nhi_grades.at(-1);\nconst insured = Number(get(facts, 'statutory.NHI.elections.insured_amount', grade));\nconst dependants = Math.min(ctx.lookup.maximum_employee_dependants, Number(get(facts, 'statutory.NHI.elections.enrolled_dependants', 0)));\nconst subsidy = Number(get(facts, 'statutory.NHI.elections.disability_subsidy', 0)) / 100;\nconst own = round(insured * ctx.lookup.rate * ctx.lookup.employee_share, 1, 'HALF_UP');\nreturn round(own * (1 - subsidy) + own * dependants, 1, 'HALF_UP');",
-		"employer_amount": "// 全民健康保險法 §18, §27: 60% employer share on the insured amount, times the announced 1.56 average dependant factor.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data.facts', {});\nif (get(facts, 'statutory.NHI.elections.insured_elsewhere', false) === true) return 0;\nconst exit = get(employment, 'effective_range.to', '');\nif (exit !== '' && !(exit >= ctx.run.salary_coverage.to)) return 0;\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.day_rate * ctx.lookup.monthly_divisor, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grade = ctx.lookup.nhi_grades.find((row) => row >= wage) ?? ctx.lookup.nhi_grades.at(-1);\nconst insured = Number(get(facts, 'statutory.NHI.elections.insured_amount', grade));\nreturn round(insured * ctx.lookup.rate * ctx.lookup.employer_share * ctx.lookup.average_dependants, 1, 'HALF_UP');",
+		"employee_amount": "// 全民健康保險法 §18, §27, §29: 30% employee share, subsidised on the worker's own share, plus one full share for each of up to three dependants.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nif (get(facts, 'statutory.NHI.insured_elsewhere', false) === true) return 0;\nconst exit = get(employment, 'effective_range.to', '');\nif (exit !== '' && !(exit >= ctx.run.salary_coverage.to)) return 0;\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.month_wage, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grade = ctx.lookup.nhi_grades.find((row) => row >= wage) ?? ctx.lookup.nhi_grades.at(-1);\nconst insured = Number(get(facts, 'statutory.NHI.insured_amount', grade));\nconst dependants = Math.min(ctx.lookup.maximum_employee_dependants, Number(get(facts, 'statutory.NHI.enrolled_dependants', 0)));\nconst subsidy = Number(get(facts, 'statutory.NHI.disability_subsidy', 0)) / 100;\nconst own = round(insured * ctx.lookup.rate * ctx.lookup.employee_share, 1, 'HALF_UP');\nreturn round(own * (1 - subsidy) + own * dependants, 1, 'HALF_UP');",
+		"employer_amount": "// 全民健康保險法 §18, §27: 60% employer share on the insured amount, times the announced 1.56 average dependant factor.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nif (get(facts, 'statutory.NHI.insured_elsewhere', false) === true) return 0;\nconst exit = get(employment, 'effective_range.to', '');\nif (exit !== '' && !(exit >= ctx.run.salary_coverage.to)) return 0;\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.month_wage, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grade = ctx.lookup.nhi_grades.find((row) => row >= wage) ?? ctx.lookup.nhi_grades.at(-1);\nconst insured = Number(get(facts, 'statutory.NHI.insured_amount', grade));\nreturn round(insured * ctx.lookup.rate * ctx.lookup.employer_share * ctx.lookup.average_dependants, 1, 'HALF_UP');",
 		"references": [
 			{
 				"title": "全民健康保險法; 施行細則",
@@ -105,7 +104,8 @@
 			}
 		],
 		"id": "1970a29e-d766-5173-89ac-55b17562d179",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "NHI_SUPPLEMENT",
@@ -114,11 +114,10 @@
 		"lookup": {
 			"bonus_salary_multiple": 4
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return true;",
-		"employee_amount": "// 全民健康保險法 §31(1)(1); 扣取及繳納補充保險費辦法 §4, §6: 2.11% on the part of this bonus that takes the year's bonuses past four times the insured amount, at most NT$10,000,000 a payment. §9: what was over-deducted goes back, so a reversal owes what the year's bonuses leave less what they bore.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data.facts', {});\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.day_rate * ctx.lookup.monthly_divisor, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grade = ctx.lookup.nhi_grades.find((row) => row >= wage) ?? ctx.lookup.nhi_grades.at(-1);\nconst insured = Number(get(facts, 'statutory.NHI.elections.insured_amount', grade));\nconst bonus = get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0);\nconst paid = Number(get(ctx.balances, 'ytd.ADDITIONAL_WAGES', 0)) - Number(get(ctx.balances, 'ytd.ORDINARY_WAGES', 0));\nif (bonus < 0) {\n  const schemes = get(ctx.balances, 'statutory_contribution', {});\n  const bore = Object.hasOwn(schemes, 'NHI_SUPPLEMENT.employee') ? Number(schemes['NHI_SUPPLEMENT.employee']) : 0;\n  const left = Math.max(0, paid + bonus - ctx.lookup.bonus_salary_multiple * insured);\n  return Math.min(0, round(left * ctx.lookup.nhi_supplement_rate, 1, 'HALF_UP') - bore);\n}\nconst excess = Math.max(0, paid + bonus - ctx.lookup.bonus_salary_multiple * insured);\nreturn round(Math.min(excess, bonus, ctx.lookup.nhi_supplement_payment_ceiling) * ctx.lookup.nhi_supplement_rate, 1, 'HALF_UP');",
+		"employee_amount": "// 全民健康保險法 §31(1)(1); 扣取及繳納補充保險費辦法 §4, §6: 2.11% on the part of this bonus that takes the year's bonuses past four times the insured amount, at most NT$10,000,000 a payment. §9: what was over-deducted goes back, so a reversal owes what the year's bonuses leave less what they bore.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.month_wage, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grade = ctx.lookup.nhi_grades.find((row) => row >= wage) ?? ctx.lookup.nhi_grades.at(-1);\nconst insured = Number(get(facts, 'statutory.NHI.insured_amount', grade));\nconst bonus = get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0);\nconst paid = Number(get(ctx.balances, 'ytd.ADDITIONAL_WAGES', 0)) - Number(get(ctx.balances, 'ytd.ORDINARY_WAGES', 0));\nif (bonus < 0) {\n  const schemes = get(ctx.balances, 'statutory_contribution', {});\n  const bore = Object.hasOwn(schemes, 'NHI_SUPPLEMENT.employee') ? Number(schemes['NHI_SUPPLEMENT.employee']) : 0;\n  const left = Math.max(0, paid + bonus - ctx.lookup.bonus_salary_multiple * insured);\n  return Math.min(0, round(left * ctx.lookup.nhi_supplement_rate, 1, 'HALF_UP') - bore);\n}\nconst excess = Math.max(0, paid + bonus - ctx.lookup.bonus_salary_multiple * insured);\nreturn round(Math.min(excess, bonus, ctx.lookup.nhi_supplement_payment_ceiling) * ctx.lookup.nhi_supplement_rate, 1, 'HALF_UP');",
 		"employer_amount": "return 0;",
 		"references": [
 			{
@@ -128,18 +127,18 @@
 			}
 		],
 		"id": "da90e87d-3572-5349-8ce2-910e6620444b",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "NHI_PART_TIME",
 		"name": "健保補充保險費—兼職薪資所得 (NHI supplementary premium on part-time salary)",
 		"kind": "CONTRIBUTION",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return true;",
-		"employee_amount": "// 全民健康保險法 §31(1)(2): 2.11% on a salary payment to a worker insured elsewhere, charged whole from the minimum wage. SALARY_INCOME holds no exempt meal or §32 overtime (所得稅法 §14(1)(3)).\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nif (get(facts, 'statutory.NHI.elections.insured_elsewhere', false) !== true) return 0;\nif (get(facts, 'statutory.NHI_PART_TIME.elections.exempt', false) === true) return 0;\nconst payment = get(ctx.subtotals, 'SALARY_INCOME', 0);\nif (!(payment >= ctx.lookup.monthly_wage)) return 0;\nreturn round(Math.min(payment, ctx.lookup.nhi_supplement_payment_ceiling) * ctx.lookup.nhi_supplement_rate, 1, 'HALF_UP');",
+		"employee_amount": "// 全民健康保險法 §31(1)(2): 2.11% on a salary payment to a worker insured elsewhere, charged whole from the minimum wage. SALARY_INCOME holds no exempt meal or §32 overtime (所得稅法 §14(1)(3)).\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nif (get(facts, 'statutory.NHI.insured_elsewhere', false) !== true) return 0;\nif (get(facts, 'statutory.NHI_PART_TIME.exempt', false) === true) return 0;\nconst payment = get(ctx.subtotals, 'SALARY_INCOME', 0);\nif (!(payment >= ctx.lookup.monthly_wage)) return 0;\nreturn round(Math.min(payment, ctx.lookup.nhi_supplement_payment_ceiling) * ctx.lookup.nhi_supplement_rate, 1, 'HALF_UP');",
 		"employer_amount": "return 0;",
 		"references": [
 			{
@@ -155,21 +154,85 @@
 			}
 		],
 		"id": "02e15c19-0417-5527-8e0e-9b7d965c5d7f",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "LABOR_PENSION",
 		"name": "Labor Pension (勞工退休金, new system)",
 		"kind": "CONTRIBUTION",
 		"lookup": {
-			"employer_rate": 6
+			"employer_rate": 6,
+			"lp_grades": [
+				1500,
+				3000,
+				4500,
+				6000,
+				7500,
+				8700,
+				9900,
+				11100,
+				12540,
+				13500,
+				15840,
+				16500,
+				17280,
+				17880,
+				19047,
+				20008,
+				21009,
+				22000,
+				23100,
+				24000,
+				25250,
+				26400,
+				27600,
+				28590,
+				29500,
+				30300,
+				31800,
+				33300,
+				34800,
+				36300,
+				38200,
+				40100,
+				42000,
+				43900,
+				45800,
+				48200,
+				50600,
+				53000,
+				55400,
+				57800,
+				60800,
+				63800,
+				66800,
+				69800,
+				72800,
+				76500,
+				80200,
+				83900,
+				87600,
+				92100,
+				96600,
+				101100,
+				105600,
+				110100,
+				115500,
+				120900,
+				126300,
+				131700,
+				137100,
+				142500,
+				147900,
+				150000
+			]
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return get(ctx.run, 'kind', 'ON_CYCLE') !== 'OFF_CYCLE';",
-		"employee_amount": "// 勞工退休金條例 §14(3), §16: the worker's voluntary contribution, up to 6% of the contribution grade, by days on a 30-day month.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data.facts', {});\nif (get(facts, 'statutory.LABOR_PENSION.elections.pension_system', 'NEW') === 'LSA') return 0;\nconst residency = get(employment, 'terms.residency_status', 'CITIZEN');\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst covered = residency !== 'FOREIGNER' || spouse || professional;\nif (!covered) return 0;\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.day_rate * ctx.lookup.monthly_divisor, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grade = ctx.lookup.lp_grades.find((row) => row >= wage) ?? ctx.lookup.lp_grades.at(-1);\nconst insured = Number(get(facts, 'statutory.LABOR_PENSION.elections.insured_amount', grade));\nconst rate = Number(get(facts, 'statutory.LABOR_PENSION.elections.voluntary_rate', 0)) / 100;\nconst month = month_start(ctx.as_of);\nconst last = month_end(ctx.as_of);\nconst from = get(employment, 'effective_range.from', month);\nconst to = get(employment, 'effective_range.to', last);\nconst first_day = from > month ? Math.min(ctx.lookup.monthly_divisor, Number(from.substring(8))) : 1;\nconst last_day = to >= last ? ctx.lookup.monthly_divisor : Number(to.substring(8));\nconst parental = ctx.day_rate > 0\n  ? round((get(ctx.subtotals, 'BASIC', 0) - get(ctx.subtotals, 'BASIC_AFTER_PARENTAL_LEAVE', 0)) / ctx.day_rate, 0.5)\n  : 0;\nconst days = Math.max(0, last_day - first_day + 1 - parental);\nreturn round(insured * rate * days / ctx.lookup.monthly_divisor, 1, 'HALF_UP');",
-		"employer_amount": "// 勞工退休金條例 §14(1), §16: the employer's declared contribution, not below 6% of the contribution grade, by days on a 30-day month.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data.facts', {});\nif (get(facts, 'statutory.LABOR_PENSION.elections.pension_system', 'NEW') === 'LSA') return 0;\nconst residency = get(employment, 'terms.residency_status', 'CITIZEN');\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst covered = residency !== 'FOREIGNER' || spouse || professional;\nif (!covered) return 0;\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.day_rate * ctx.lookup.monthly_divisor, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grade = ctx.lookup.lp_grades.find((row) => row >= wage) ?? ctx.lookup.lp_grades.at(-1);\nconst insured = Number(get(facts, 'statutory.LABOR_PENSION.elections.insured_amount', grade));\nconst rate = Number(get(facts, 'statutory.LABOR_PENSION.elections.employer_rate', ctx.lookup.employer_rate)) / 100;\nconst month = month_start(ctx.as_of);\nconst last = month_end(ctx.as_of);\nconst from = get(employment, 'effective_range.from', month);\nconst to = get(employment, 'effective_range.to', last);\nconst first_day = from > month ? Math.min(ctx.lookup.monthly_divisor, Number(from.substring(8))) : 1;\nconst last_day = to >= last ? ctx.lookup.monthly_divisor : Number(to.substring(8));\nconst parental = ctx.day_rate > 0\n  ? round((get(ctx.subtotals, 'BASIC', 0) - get(ctx.subtotals, 'BASIC_AFTER_PARENTAL_LEAVE', 0)) / ctx.day_rate, 0.5)\n  : 0;\nconst days = Math.max(0, last_day - first_day + 1 - parental);\nreturn round(insured * rate * days / ctx.lookup.monthly_divisor, 1, 'HALF_UP');",
+		"employee_amount": "// 勞工退休金條例 §14(3), §16: the worker's voluntary contribution, up to 6% of the contribution grade, by days on a 30-day month.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nif (get(facts, 'statutory.LABOR_PENSION.pension_system', 'NEW') === 'LSA') return 0;\nconst residency = get(employment, 'terms.residency_status', 'CITIZEN');\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst covered = residency !== 'FOREIGNER' || spouse || professional;\nif (!covered) return 0;\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.month_wage, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grade = ctx.lookup.lp_grades.find((row) => row >= wage) ?? ctx.lookup.lp_grades.at(-1);\nconst insured = Number(get(facts, 'statutory.LABOR_PENSION.insured_amount', grade));\nconst rate = Number(get(facts, 'statutory.LABOR_PENSION.voluntary_rate', 0)) / 100;\nconst month = month_start(ctx.as_of);\nconst last = month_end(ctx.as_of);\nconst from = get(employment, 'effective_range.from', month);\nconst to = get(employment, 'effective_range.to', last);\nconst month_days = 30;\nconst first_day = from > month ? Math.min(month_days, Number(from.substring(8))) : 1;\nconst last_day = to >= last ? month_days : Number(to.substring(8));\nconst parental = ctx.day_rate > 0\n  ? round((get(ctx.subtotals, 'BASIC', 0) - get(ctx.subtotals, 'BASIC_AFTER_PARENTAL_LEAVE', 0)) / ctx.day_rate, 0.5)\n  : 0;\nconst days = Math.max(0, last_day - first_day + 1 - parental);\nreturn round(insured * rate * days / month_days, 1, 'HALF_UP');",
+		"employer_amount": "// 勞工退休金條例 §14(1), §16: the employer's declared contribution, not below 6% of the contribution grade, by days on a 30-day month.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nif (get(facts, 'statutory.LABOR_PENSION.pension_system', 'NEW') === 'LSA') return 0;\nconst residency = get(employment, 'terms.residency_status', 'CITIZEN');\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst covered = residency !== 'FOREIGNER' || spouse || professional;\nif (!covered) return 0;\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.month_wage, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grade = ctx.lookup.lp_grades.find((row) => row >= wage) ?? ctx.lookup.lp_grades.at(-1);\nconst insured = Number(get(facts, 'statutory.LABOR_PENSION.insured_amount', grade));\nconst rate = Number(get(facts, 'statutory.LABOR_PENSION.employer_rate', ctx.lookup.employer_rate)) / 100;\nconst month = month_start(ctx.as_of);\nconst last = month_end(ctx.as_of);\nconst from = get(employment, 'effective_range.from', month);\nconst to = get(employment, 'effective_range.to', last);\nconst month_days = 30;\nconst first_day = from > month ? Math.min(month_days, Number(from.substring(8))) : 1;\nconst last_day = to >= last ? month_days : Number(to.substring(8));\nconst parental = ctx.day_rate > 0\n  ? round((get(ctx.subtotals, 'BASIC', 0) - get(ctx.subtotals, 'BASIC_AFTER_PARENTAL_LEAVE', 0)) / ctx.day_rate, 0.5)\n  : 0;\nconst days = Math.max(0, last_day - first_day + 1 - parental);\nreturn round(insured * rate * days / month_days, 1, 'HALF_UP');",
 		"references": [
 			{
 				"title": "勞工退休金條例",
@@ -184,7 +247,8 @@
 			}
 		],
 		"id": "cc2e7a97-2ad0-5279-b395-9ded009007d9",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "OCC_INJURY",
@@ -249,14 +313,36 @@
 				"53": 0.07,
 				"54": 0.18,
 				"55": 0.12
-			}
+			},
+			"occ_grades": [
+				29500,
+				30300,
+				31800,
+				33300,
+				34800,
+				36300,
+				38200,
+				40100,
+				42000,
+				43900,
+				45800,
+				48200,
+				50600,
+				53000,
+				55400,
+				57800,
+				60800,
+				63800,
+				66800,
+				69800,
+				72800
+			]
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return get(ctx.run, 'kind', 'ON_CYCLE') !== 'OFF_CYCLE';",
 		"employee_amount": "return 0;",
-		"employer_amount": "// 勞工職業災害保險及保護法 §16–17: the insured grade times the notified experience rate, or the industry rate plus the 0.07% commuting rate, by covered days on a 30-day month.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data.facts', {});\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.day_rate * ctx.lookup.monthly_divisor, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grade = ctx.lookup.occ_grades.find((row) => row >= wage) ?? ctx.lookup.occ_grades.at(-1);\nconst insured = Number(get(facts, 'statutory.OCC_INJURY.elections.insured_amount', grade));\nconst experience = get(entity, 'occ_experience_rate_percent', null);\nconst risk = get(entity, 'risk_class', null);\nconst industry = risk == null ? null : get(ctx.lookup.industry_rate_percent, String(risk), null);\nconst base = industry == null ? ctx.lookup.default_rate_percent : industry;\nconst rate = experience != null ? Number(experience) : base + ctx.lookup.commuting_rate_percent;\nconst month = month_start(ctx.as_of);\nconst last = month_end(ctx.as_of);\nconst from = get(employment, 'effective_range.from', month);\nconst to = get(employment, 'effective_range.to', last);\nconst first_day = from > month ? Math.min(ctx.lookup.monthly_divisor, Number(from.substring(8))) : 1;\nconst last_day = to >= last ? ctx.lookup.monthly_divisor : Number(to.substring(8));\nconst parental = ctx.day_rate > 0\n  ? round((get(ctx.subtotals, 'BASIC', 0) - get(ctx.subtotals, 'BASIC_AFTER_PARENTAL_LEAVE', 0)) / ctx.day_rate, 0.5)\n  : 0;\nconst days = Math.max(0, last_day - first_day + 1 - parental);\nreturn round(insured * rate / 100 * days / ctx.lookup.monthly_divisor, 1, 'HALF_UP');",
+		"employer_amount": "// 勞工職業災害保險及保護法 §16–17: the insured grade times the notified experience rate, or the industry rate plus the 0.07% commuting rate, by covered days on a 30-day month.\nconst employment = ctx.subject.employment;\nconst facts = get(employment, 'employee_extension_data', {});\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst wage = get(employment, 'terms.rate.unit', 'MONTHLY') === 'MONTHLY'\n  ? round(ctx.month_wage, 0.01)\n  : Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst grade = ctx.lookup.occ_grades.find((row) => row >= wage) ?? ctx.lookup.occ_grades.at(-1);\nconst insured = Number(get(facts, 'statutory.OCC_INJURY.insured_amount', grade));\nconst experience = get(entity, 'occ_experience_rate_percent', null);\nconst risk = get(entity, 'risk_class', null);\nconst industry = risk == null ? null : get(ctx.lookup.industry_rate_percent, String(risk), null);\nconst base = industry == null ? ctx.lookup.default_rate_percent : industry;\nconst rate = experience != null ? Number(experience) : base + ctx.lookup.commuting_rate_percent;\nconst month = month_start(ctx.as_of);\nconst last = month_end(ctx.as_of);\nconst from = get(employment, 'effective_range.from', month);\nconst to = get(employment, 'effective_range.to', last);\nconst month_days = 30;\nconst first_day = from > month ? Math.min(month_days, Number(from.substring(8))) : 1;\nconst last_day = to >= last ? month_days : Number(to.substring(8));\nconst parental = ctx.day_rate > 0\n  ? round((get(ctx.subtotals, 'BASIC', 0) - get(ctx.subtotals, 'BASIC_AFTER_PARENTAL_LEAVE', 0)) / ctx.day_rate, 0.5)\n  : 0;\nconst days = Math.max(0, last_day - first_day + 1 - parental);\nreturn round(insured * rate / 100 * days / month_days, 1, 'HALF_UP');",
 		"references": [
 			{
 				"title": "勞工職業災害保險及保護法; 施行細則",
@@ -272,7 +358,8 @@
 			}
 		],
 		"id": "f38f99c5-485b-58dc-bb07-83993542c7a5",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "INCOME_TAX",
@@ -310,11 +397,10 @@
 			"table_maximum_dependants": 11,
 			"monthly_tax_step": 10
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return true;",
-		"employee_amount": "// 薪資所得扣繳辦法 §6–7: without a 免稅額申報表 the resident salary bears 5% of the whole month, withheld above NT$2,000; with one, annualise the month, deduct the exemptions and the standard and salary deductions, apply the 所得稅法 §5 ladder and withhold a twelfth. A 兼職所得 salary bears 5% from the 起扣標準. SALARY_INCOME holds no exempt meal or §32 overtime (所得稅法 §14(1)(3); 財政部台財稅第16713號).\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst elections = get(facts, 'statutory.INCOME_TAX.elections', {});\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst year = payDate.substring(0, 4);\nconst review = get(elections, 'tax_residency_reviews.' + year, null);\nconst person = get(ctx.subject, 'employee.name', 'this worker');\nif (review == null) {\n  if (!(get(ctx.subtotals, 'FINAL_PAY', 0) > 0)) return 0;\n  throw 'Record the ' + year + ' tax residency review of ' + person + ' before paying.';\n}\nif (payDate > get(review, 'valid_through', payDate)) throw 'The ' + year + ' tax residency review of ' + person + ' ended before this pay date.';\nif (get(review, 'reconciliation_required', false) === true) throw 'Complete the tax reconciliation of ' + person + ' offline before paying.';\nconst residentFrom = get(review, 'resident_from', null);\nif (residentFrom === null || residentFrom > payDate) return 0;\nconst payment = Math.max(0, get(ctx.subtotals, 'SALARY_INCOME', 0) - Number(get(ctx.statutory, 'LABOR_PENSION.employee', 0)));\n// §7: 兼職所得 is judged by each payment, 每次給付金額\nif (get(elections, 'part_time_income', false) === true) {\n  if (payment < ctx.lookup.bonus_withholding_threshold) return 0;\n  return round(payment * ctx.lookup.withholding_rate, 1, 'DOWN');\n}\n// §6: a monthly salary bears tax on 全月給付總額: what an earlier run of this month paid is in the balance.\nconst month = get(ctx, 'balances.month', {});\nconst paidMonth = payDate.slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst wage = Math.max(0, payment + before('SALARY_INCOME') - before('LABOR_PENSION.employee'));\nconst exemptions = get(elections, 'exemptions', null);\nif (exemptions == null) {\n  const flat = round(wage * ctx.lookup.withholding_rate, 1, 'DOWN');\n  return (flat > ctx.lookup.minimum_withholding ? flat : 0) - before('INCOME_TAX.employee');\n}\nconst dependants = Math.max(0, Number(exemptions));\nconst table = wage <= ctx.lookup.monthly_salary_rounding_threshold && dependants <= ctx.lookup.table_maximum_dependants;\nconst stepped = table ? round(wage, ctx.lookup.monthly_salary_rounding_step, 'UP') - ctx.lookup.monthly_salary_rounding_step : wage;\nconst annual = ctx.lookup.months_per_year * stepped;\nconst deduction = ctx.lookup.annual_exemption_per_person * (1 + dependants)\n  + ctx.lookup.annual_standard_deduction\n  + Math.min(ctx.lookup.annual_salary_deduction, annual);\nconst yearly = ladder(Math.max(0, annual - deduction), ctx.lookup.bands);\nconst tax = round(yearly / ctx.lookup.months_per_year, table ? ctx.lookup.monthly_tax_step : 1, 'DOWN');\nreturn (tax > ctx.lookup.minimum_withholding ? tax : 0) - before('INCOME_TAX.employee');",
+		"employee_amount": "// 薪資所得扣繳辦法 §6–7: without a 免稅額申報表 the resident salary bears 5% of the whole month, withheld above NT$2,000; with one, annualise the month, deduct the exemptions and the standard and salary deductions, apply the 所得稅法 §5 ladder and withhold a twelfth. A 兼職所得 salary bears 5% from the 起扣標準. SALARY_INCOME holds no exempt meal or §32 overtime (所得稅法 §14(1)(3); 財政部台財稅第16713號).\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst elections = get(facts, 'statutory.INCOME_TAX', {});\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst year = payDate.substring(0, 4);\nconst review = get(elections, 'tax_residency_reviews.' + year, null);\nconst person = get(ctx.subject, 'employee.name', 'this worker');\nif (review == null) {\n  if (!(get(ctx.subtotals, 'FINAL_PAY', 0) > 0)) return 0;\n  throw 'Record the ' + year + ' tax residency review of ' + person + ' before paying.';\n}\nif (payDate > get(review, 'valid_through', payDate)) throw 'The ' + year + ' tax residency review of ' + person + ' ended before this pay date.';\nif (get(review, 'reconciliation_required', false) === true) throw 'Complete the tax reconciliation of ' + person + ' offline before paying.';\nconst residentFrom = get(review, 'resident_from', null);\nif (residentFrom === null || residentFrom > payDate) return 0;\nconst payment = Math.max(0, get(ctx.subtotals, 'SALARY_INCOME', 0) - Number(get(ctx.statutory, 'LABOR_PENSION.employee', 0)));\n// §7: 兼職所得 is judged by each payment, 每次給付金額\nif (get(elections, 'part_time_income', false) === true) {\n  if (payment < ctx.lookup.bonus_withholding_threshold) return 0;\n  return round(payment * ctx.lookup.withholding_rate, 1, 'DOWN');\n}\n// §6: a monthly salary bears tax on 全月給付總額: what an earlier run of this month paid is in the balance.\nconst month = get(ctx, 'balances.month', {});\nconst paidMonth = payDate.slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst wage = Math.max(0, payment + before('SALARY_INCOME') - before('LABOR_PENSION.employee'));\nconst exemptions = get(elections, 'exemptions', null);\nif (exemptions == null) {\n  const flat = round(wage * ctx.lookup.withholding_rate, 1, 'DOWN');\n  return (flat > ctx.lookup.minimum_withholding ? flat : 0) - before('INCOME_TAX.employee');\n}\nconst dependants = Math.max(0, Number(exemptions));\nconst table = wage <= ctx.lookup.monthly_salary_rounding_threshold && dependants <= ctx.lookup.table_maximum_dependants;\nconst stepped = table ? round(wage, ctx.lookup.monthly_salary_rounding_step, 'UP') - ctx.lookup.monthly_salary_rounding_step : wage;\nconst annual = 12 * stepped;\nconst deduction = ctx.lookup.annual_exemption_per_person * (1 + dependants)\n  + ctx.lookup.annual_standard_deduction\n  + Math.min(ctx.lookup.annual_salary_deduction, annual);\nconst yearly = ladder(Math.max(0, annual - deduction), ctx.lookup.bands);\nconst tax = round(yearly / 12, table ? ctx.lookup.monthly_tax_step : 1, 'DOWN');\nreturn (tax > ctx.lookup.minimum_withholding ? tax : 0) - before('INCOME_TAX.employee');",
 		"employer_amount": "return 0;",
 		"references": [
 			{
@@ -329,9 +415,12 @@
 				"quote": "如納稅義務人配偶及受扶養親屬之人數或每月薪資收入超過本表規定之數額，應由扣繳義務人依下列公式計算每月應扣繳稅額 (https://www.ntbna.gov.tw/download/6f827d6fedac4e1dad682819b626e121)."
 			}
 		],
-		"depends_on": ["LABOR_PENSION"],
+		"depends_on": [
+			"LABOR_PENSION"
+		],
 		"id": "63ee61f7-862a-5b6c-bd68-4cdbb58584cb",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "INCOME_TAX_NON_RESIDENT",
@@ -341,11 +430,10 @@
 			"lower_rate": 0.06,
 			"lower_rate_wage_multiple": 1.5
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return true;",
-		"employee_amount": "// 各類所得扣繳率標準 §3: 18% of the non-resident's whole salary, or 6% where 全月薪資給付總額 is at or below 1.5 times the minimum wage, truncated. SALARY_INCOME holds no exempt meal or §32 overtime (所得稅法 §14(1)(3)).\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst review = get(facts, 'statutory.INCOME_TAX.elections.tax_residency_reviews.' + payDate.substring(0, 4), null);\nconst residentFrom = get(review, 'resident_from', null);\nif (review == null) return 0;\nif (residentFrom !== null && residentFrom <= payDate) return 0;\nconst bonus = get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0);\n// The band reads the month's salary: what an earlier run of this month paid is in the balance.\nconst month = get(ctx, 'balances.month', {});\nconst paidMonth = payDate.slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst wage = Math.max(\n\t0,\n\tget(ctx.subtotals, 'SALARY_INCOME', 0) + bonus + before('SALARY_INCOME') + before('ADDITIONAL_WAGES') - before('ORDINARY_WAGES')\n);\nconst low = wage <= ctx.lookup.lower_rate_wage_multiple * ctx.lookup.monthly_wage;\nreturn round(wage * (low ? ctx.lookup.lower_rate : ctx.lookup.non_resident_rate), 1, 'DOWN') - before('INCOME_TAX_NON_RESIDENT.employee');",
+		"employee_amount": "// 各類所得扣繳率標準 §3: 18% of the non-resident's whole salary, or 6% where 全月薪資給付總額 is at or below 1.5 times the minimum wage, truncated. SALARY_INCOME holds no exempt meal or §32 overtime (所得稅法 §14(1)(3)).\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst review = get(facts, 'statutory.INCOME_TAX.tax_residency_reviews.' + payDate.substring(0, 4), null);\nconst residentFrom = get(review, 'resident_from', null);\nif (review == null) return 0;\nif (residentFrom !== null && residentFrom <= payDate) return 0;\nconst bonus = get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0);\n// The band reads the month's salary: what an earlier run of this month paid is in the balance.\nconst month = get(ctx, 'balances.month', {});\nconst paidMonth = payDate.slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst wage = Math.max(\n\t0,\n\tget(ctx.subtotals, 'SALARY_INCOME', 0) + bonus + before('SALARY_INCOME') + before('ADDITIONAL_WAGES') - before('ORDINARY_WAGES')\n);\nconst low = wage <= ctx.lookup.lower_rate_wage_multiple * ctx.lookup.monthly_wage;\nreturn round(wage * (low ? ctx.lookup.lower_rate : ctx.lookup.non_resident_rate), 1, 'DOWN') - before('INCOME_TAX_NON_RESIDENT.employee');",
 		"employer_amount": "return 0;",
 		"references": [
 			{
@@ -355,19 +443,19 @@
 			}
 		],
 		"id": "9e202f5b-b502-5a44-80d0-2e198f3f5590",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "LABOR_PENSION_RESERVE",
 		"name": "勞工退休準備金（舊制）",
 		"kind": "CONTRIBUTION",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return true;",
 		"employee_amount": "return 0;",
-		"employer_amount": "// 勞動基準法 §56(1): 2%–15% of the wages of the workers still on the old pension system, at the rate the entity declares.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst wage = Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst pension = get(facts, 'statutory.LABOR_PENSION.elections.pension_system', 'NEW');\nconst residency = get(ctx.subject.employment, 'terms.residency_status', 'CITIZEN');\n// 勞動部 114年10月14日勞動福3字第1140153402A號令: from 2026-04-01 a 就業服務法 §46(1)(8)–(10) worker under ten years at the unit may leave the wage total.\nconst excludable = get(entity, 'pension_reserve_excludes_short_service_migrants', false) === true && get(facts, 'migrant_worker', false) === true;\nif (excludable && calendar_completed_months(ctx.subject.employment.effective_range.from, add_days(ctx.run.salary_coverage.to, 1)) < 120) return 0;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst covered = residency !== 'FOREIGNER' || professional || spouse;\nif (pension !== 'LSA' && covered) return 0;\nconst declared = get(entity, 'pension_reserve_rate', null);\nif (declared == null) throw 'Record the entity pension_reserve_rate: ' + get(ctx.subject, 'employee.name', 'a worker') + ' is on the LSA pension.';\nreturn round(wage * Number(declared) / 100, 1, 'HALF_UP');",
+		"employer_amount": "// 勞動基準法 §56(1): 2%–15% of the wages of the workers still on the old pension system, at the rate the entity declares.\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst entity = get(ctx.subject.employer, 'entity_extension_data', {});\nconst wage = Math.max(0, get(ctx.subtotals, 'ORDINARY_WAGES', 0));\nconst pension = get(facts, 'statutory.LABOR_PENSION.pension_system', 'NEW');\nconst residency = get(ctx.subject.employment, 'terms.residency_status', 'CITIZEN');\n// 勞動部 114年10月14日勞動福3字第1140153402A號令: from 2026-04-01 a 就業服務法 §46(1)(8)–(10) worker under ten years at the unit may leave the wage total.\nconst excludable = get(entity, 'pension_reserve_excludes_short_service_migrants', false) === true && get(facts, 'migrant_worker', false) === true;\nif (excludable && calendar_completed_months(ctx.subject.employment.effective_range.from, add_days(ctx.run.salary_coverage.to, 1)) < 120) return 0;\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst covered = residency !== 'FOREIGNER' || professional || spouse;\nif (pension !== 'LSA' && covered) return 0;\nconst declared = get(entity, 'pension_reserve_rate', null);\nif (declared == null) throw 'Record the entity pension_reserve_rate: ' + get(ctx.subject, 'employee.name', 'a worker') + ' is on the LSA pension.';\nreturn round(wage * Number(declared) / 100, 1, 'HALF_UP');",
 		"references": [
 			{
 				"title": "勞動基準法",
@@ -382,18 +470,18 @@
 			}
 		],
 		"id": "e57fc49a-514a-52df-8929-3d4b0e4c644c",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "INCOME_TAX_BONUS",
 		"name": "Income tax — bonus withholding",
 		"kind": "TAX",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return true;",
-		"employee_amount": "// 薪資所得扣繳辦法 §6–7: 5% on each non-monthly bonus payment at or above the 起扣標準, truncated. A reversal takes back what the bonus it undoes bore.\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst review = get(facts, 'statutory.INCOME_TAX.elections.tax_residency_reviews.' + payDate.substring(0, 4), null);\nconst residentFrom = get(review, 'resident_from', null);\nif (residentFrom === null || residentFrom > payDate) return 0;\nconst bonus = get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0);\nif (bonus < 0) {\n  const schemes = get(ctx.balances, 'statutory_contribution', {});\n  const withheld = Object.hasOwn(schemes, 'INCOME_TAX_BONUS.employee') ? Number(schemes['INCOME_TAX_BONUS.employee']) : 0;\n  return -Math.min(withheld, round(-bonus * ctx.lookup.withholding_rate, 1, 'DOWN'));\n}\nif (bonus < ctx.lookup.bonus_withholding_threshold) return 0;\nreturn round(bonus * ctx.lookup.withholding_rate, 1, 'DOWN');",
+		"employee_amount": "// 薪資所得扣繳辦法 §6–7: 5% on each non-monthly bonus payment at or above the 起扣標準, truncated. A reversal takes back what the bonus it undoes bore.\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst review = get(facts, 'statutory.INCOME_TAX.tax_residency_reviews.' + payDate.substring(0, 4), null);\nconst residentFrom = get(review, 'resident_from', null);\nif (residentFrom === null || residentFrom > payDate) return 0;\nconst bonus = get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) - get(ctx.subtotals, 'ORDINARY_WAGES', 0);\nif (bonus < 0) {\n  const schemes = get(ctx.balances, 'statutory_contribution', {});\n  const withheld = Object.hasOwn(schemes, 'INCOME_TAX_BONUS.employee') ? Number(schemes['INCOME_TAX_BONUS.employee']) : 0;\n  return -Math.min(withheld, round(-bonus * ctx.lookup.withholding_rate, 1, 'DOWN'));\n}\nif (bonus < ctx.lookup.bonus_withholding_threshold) return 0;\nreturn round(bonus * ctx.lookup.withholding_rate, 1, 'DOWN');",
 		"employer_amount": "return 0;",
 		"references": [
 			{
@@ -403,7 +491,8 @@
 			}
 		],
 		"id": "9909b85b-c65f-5ba6-9759-9dcd866a77e0",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "SEVERANCE_TAX",
@@ -412,11 +501,10 @@
 		"lookup": {
 			"rate": 0.06
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return true;",
-		"employee_amount": "// 所得稅法 §14(1)(9) with 各類所得扣繳率標準 §2: 6% withheld on the exit pay above the per-service-year exemption, truncated; a tail under six months counts as half a year.\n// the exemption is on the whole exit pay: a further payment or a reversal owes what the year's total leaves\nconst now = get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0);\nif (now === 0) return 0;\nconst pay = Math.max(0, now + Number(get(ctx.balances, 'ytd.RETIREMENT', 0)) - Number(get(ctx.balances, 'ytd.ADDITIONAL_WAGES', 0)));\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst review = get(facts, 'statutory.INCOME_TAX.elections.tax_residency_reviews.' + payDate.substring(0, 4), null);\nconst residentFrom = get(review, 'resident_from', null);\nif (residentFrom === null || residentFrom > payDate) return 0;\nconst start = get(ctx.subject.employment, 'effective_range.from', ctx.run.salary_coverage.from);\nconst end = add_days(get(ctx.subject.employment, 'effective_range.to', payDate), 1);\nconst months = calendar_completed_months(start, end);\nconst tail = months % ctx.lookup.months_per_year;\nconst part = tail > 0 || add_months(start, months) < end;\nconst tail_years =\n  tail >= ctx.lookup.tail_threshold_months ? ctx.lookup.long_tail_years\n  : part ? ctx.lookup.short_tail_years\n  : 0;\nconst years = Math.floor(months / ctx.lookup.months_per_year) + tail_years;\nconst exempt = ctx.lookup.retirement_exemption_per_service_year * years;\nconst schemes = get(ctx.balances, 'statutory_contribution', {});\nconst withheld = Object.hasOwn(schemes, 'SEVERANCE_TAX.employee') ? Number(schemes['SEVERANCE_TAX.employee']) : 0;\nreturn round(Math.max(0, pay - exempt) * ctx.lookup.rate, 1, 'DOWN') - withheld;",
+		"employee_amount": "// 所得稅法 §14(1)(9) with 各類所得扣繳率標準 §2: 6% withheld on the exit pay above the per-service-year exemption, truncated; a tail under six months counts as half a year.\n// the exemption is on the whole exit pay: a further payment or a reversal owes what the year's total leaves\nconst now = get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0);\nif (now === 0) return 0;\nconst pay = Math.max(0, now + Number(get(ctx.balances, 'ytd.RETIREMENT', 0)) - Number(get(ctx.balances, 'ytd.ADDITIONAL_WAGES', 0)));\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst review = get(facts, 'statutory.INCOME_TAX.tax_residency_reviews.' + payDate.substring(0, 4), null);\nconst residentFrom = get(review, 'resident_from', null);\nif (residentFrom === null || residentFrom > payDate) return 0;\nconst start = get(ctx.subject.employment, 'effective_range.from', ctx.run.salary_coverage.from);\nconst end = add_days(get(ctx.subject.employment, 'effective_range.to', payDate), 1);\nconst months = calendar_completed_months(start, end);\nconst tail = months % 12;\nconst part = tail > 0 || add_months(start, months) < end;\nconst tail_years =\n  tail >= ctx.lookup.tail_threshold_months ? ctx.lookup.long_tail_years\n  : part ? ctx.lookup.short_tail_years\n  : 0;\nconst years = Math.floor(months / 12) + tail_years;\nconst exempt = ctx.lookup.retirement_exemption_per_service_year * years;\nconst schemes = get(ctx.balances, 'statutory_contribution', {});\nconst withheld = Object.hasOwn(schemes, 'SEVERANCE_TAX.employee') ? Number(schemes['SEVERANCE_TAX.employee']) : 0;\nreturn round(Math.max(0, pay - exempt) * ctx.lookup.rate, 1, 'DOWN') - withheld;",
 		"employer_amount": "return 0;",
 		"references": [
 			{
@@ -426,7 +514,8 @@
 			}
 		],
 		"id": "b7383dce-223c-5123-a36a-7f3bda7e354e",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "WELFARE_FUND",
@@ -435,7 +524,6 @@
 		"lookup": {
 			"employee_rate": 0.005
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return true;",
@@ -450,18 +538,18 @@
 			}
 		],
 		"id": "d62a85c0-8726-587e-89d5-8cfe218d4892",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "SEVERANCE_TAX_NON_RESIDENT",
 		"name": "Nonresident retirement and severance withholding (非居住者退職所得扣繳)",
 		"kind": "TAX",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"employer_cost_subtotal_id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
 		"eligibility": "return true;",
-		"employee_amount": "// 所得稅法 §14(1)(9) with 各類所得扣繳率標準 §2: 18% withheld on the exit pay above the per-service-year exemption, truncated; a tail under six months counts as half a year.\n// the exemption is on the whole exit pay: a further payment or a reversal owes what the year's total leaves\nconst now = get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0);\nif (now === 0) return 0;\nconst pay = Math.max(0, now + Number(get(ctx.balances, 'ytd.RETIREMENT', 0)) - Number(get(ctx.balances, 'ytd.ADDITIONAL_WAGES', 0)));\nconst facts = get(ctx.subject.employment, 'employee_extension_data.facts', {});\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst review = get(facts, 'statutory.INCOME_TAX.elections.tax_residency_reviews.' + payDate.substring(0, 4), null);\nconst residentFrom = get(review, 'resident_from', null);\nif (residentFrom !== null && residentFrom <= payDate) return 0;\nconst start = get(ctx.subject.employment, 'effective_range.from', ctx.run.salary_coverage.from);\nconst end = add_days(get(ctx.subject.employment, 'effective_range.to', payDate), 1);\nconst months = calendar_completed_months(start, end);\nconst tail = months % ctx.lookup.months_per_year;\nconst part = tail > 0 || add_months(start, months) < end;\nconst tail_years =\n  tail >= ctx.lookup.tail_threshold_months ? ctx.lookup.long_tail_years\n  : part ? ctx.lookup.short_tail_years\n  : 0;\nconst years = Math.floor(months / ctx.lookup.months_per_year) + tail_years;\nconst exempt = ctx.lookup.retirement_exemption_per_service_year * years;\nconst schemes = get(ctx.balances, 'statutory_contribution', {});\nconst withheld = Object.hasOwn(schemes, 'SEVERANCE_TAX_NON_RESIDENT.employee') ? Number(schemes['SEVERANCE_TAX_NON_RESIDENT.employee']) : 0;\nreturn round(Math.max(0, pay - exempt) * ctx.lookup.non_resident_rate, 1, 'DOWN') - withheld;",
+		"employee_amount": "// 所得稅法 §14(1)(9) with 各類所得扣繳率標準 §2: 18% withheld on the exit pay above the per-service-year exemption, truncated; a tail under six months counts as half a year.\n// the exemption is on the whole exit pay: a further payment or a reversal owes what the year's total leaves\nconst now = get(ctx.subtotals, 'RETIREMENT', 0) - get(ctx.subtotals, 'ADDITIONAL_WAGES', 0);\nif (now === 0) return 0;\nconst pay = Math.max(0, now + Number(get(ctx.balances, 'ytd.RETIREMENT', 0)) - Number(get(ctx.balances, 'ytd.ADDITIONAL_WAGES', 0)));\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst payDate = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.to));\nconst review = get(facts, 'statutory.INCOME_TAX.tax_residency_reviews.' + payDate.substring(0, 4), null);\nconst residentFrom = get(review, 'resident_from', null);\nif (residentFrom !== null && residentFrom <= payDate) return 0;\nconst start = get(ctx.subject.employment, 'effective_range.from', ctx.run.salary_coverage.from);\nconst end = add_days(get(ctx.subject.employment, 'effective_range.to', payDate), 1);\nconst months = calendar_completed_months(start, end);\nconst tail = months % 12;\nconst part = tail > 0 || add_months(start, months) < end;\nconst tail_years =\n  tail >= ctx.lookup.tail_threshold_months ? ctx.lookup.long_tail_years\n  : part ? ctx.lookup.short_tail_years\n  : 0;\nconst years = Math.floor(months / 12) + tail_years;\nconst exempt = ctx.lookup.retirement_exemption_per_service_year * years;\nconst schemes = get(ctx.balances, 'statutory_contribution', {});\nconst withheld = Object.hasOwn(schemes, 'SEVERANCE_TAX_NON_RESIDENT.employee') ? Number(schemes['SEVERANCE_TAX_NON_RESIDENT.employee']) : 0;\nreturn round(Math.max(0, pay - exempt) * ctx.lookup.non_resident_rate, 1, 'DOWN') - withheld;",
 		"employer_amount": "return 0;",
 		"references": [
 			{
@@ -471,6 +559,7 @@
 			}
 		],
 		"id": "59e75462-8209-5f74-9df8-1b06b76d8f9b",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "YEAR"
 	}
 ]

@@ -42,7 +42,7 @@ reversed yet. An entry no run has sealed is deleted, not reversed.
 			: bolt.query({
 					leave_catalog_entry: {
 						where: { employment_id: { is: { employee_id: { eq: person } } } },
-						fields: ['days', 'payroll_run_id', 'is_reversal', 'reverses', 'catalog_id'],
+						fields: ['days', 'payroll_run_id', 'reverses', 'catalog_id'],
 						limit: 10000
 					},
 					'leave_catalog_entry.catalog_id': { fields: ['code'] },
@@ -52,8 +52,7 @@ reversed yet. An entry no run has sealed is deleted, not reversed.
 							'quantity',
 							'incurred_on',
 							'payroll_run_id',
-							'is_reversal',
-							'reverses',
+										'reverses',
 							'catalog_id'
 						],
 						limit: 10000
@@ -65,8 +64,7 @@ reversed yet. An entry no run has sealed is deleted, not reversed.
 							'quantity',
 							'incurred_on',
 							'payroll_run_id',
-							'is_reversal',
-							'reverses',
+										'reverses',
 							'catalog_id'
 						],
 						limit: 10000
@@ -111,7 +109,7 @@ reversed yet. An entry no run has sealed is deleted, not reversed.
 				(row) =>
 					row.catalog_id?.code === code &&
 					row.payroll_run_id != null &&
-					row.is_reversal !== true &&
+					row.reverses == null &&
 					!reversed.has(row.id)
 			)
 			.map((row) => ({ value: row.id, label: row.label }))

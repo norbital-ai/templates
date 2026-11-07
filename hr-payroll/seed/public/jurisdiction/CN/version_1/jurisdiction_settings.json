@@ -15,500 +15,6 @@
 			"title": "CN employee inputs",
 			"additionalProperties": false,
 			"properties": {
-				"facts": {
-					"type": "object",
-					"additionalProperties": false,
-					"properties": {
-						"china_workday_share": {
-							"type": "number",
-							"minimum": 0,
-							"maximum": 1,
-							"default": 1,
-							"title": "Share of the month worked in China (non-resident)",
-							"description": "财政部 税务总局公告2019年第35号 第二条: a non-resident's wage 收入额 is the China-workday share (境内工作天数 ÷ 当期公历天数). Customer input; default 1."
-						},
-						"retirement_category": {
-							"type": "string",
-							"enum": ["FEMALE_50", "FEMALE_55"],
-							"title": "Original statutory retirement age (women)",
-							"description": "全国人民代表大会常务委员会《关于实施渐进式延迟法定退休年龄的决定》(2024年9月13日, 自2025年1月1日) 及《国务院关于渐进式延迟法定退休年龄的办法》第二条: 男职工和原法定退休年龄为五十五周岁的女职工每四个月延迟一个月, 分别逐步延迟至六十三周岁和五十八周岁; 原法定退休年龄为五十周岁的女职工每二个月延迟一个月, 逐步延迟至五十五周岁 https://www.gov.cn/yaowen/liebiao/202409/content_6974294.htm. Women record `retirement_category` FEMALE_55 (cadres) or FEMALE_50 (default, workers)."
-						},
-						"only_child": {
-							"type": "boolean",
-							"default": false,
-							"title": "Only child (独生子女)",
-							"description": "上海市老年人权益保障条例 (陪护假 7 days); 云南省老年人权益保障条例 第二十四条 (护理假 20 days)."
-						},
-						"si_exempt_schemes": {
-							"type": "array",
-							"items": {
-								"type": "string",
-								"enum": ["PENSION", "MEDICAL", "UNEMPLOYMENT", "WORK_INJURY"]
-							},
-							"title": "Schemes exempted by a social-security agreement",
-							"description": "人社部令第16号 and the bilateral agreement: the schemes the certificate of coverage exempts."
-						},
-						"hpf_voluntary": {
-							"type": "boolean",
-							"default": false,
-							"title": "Joins the housing provident fund voluntarily (foreign / HK / MO / TW)",
-							"description": "上海市住房公积金缴存管理办法; 建金〔2017〕237号. A tax non-resident joins only with this choice."
-						},
-						"minor_employment_approved": {
-							"type": "boolean",
-							"default": false,
-							"title": "Approved employment under 16 (文艺、体育、特种工艺)",
-							"description": "劳动法 第十五条: an arts, sports or special-crafts unit may employ a person under 16 with approval."
-						},
-						"statutory": {
-							"type": "object",
-							"title": "Statutory declarations",
-							"additionalProperties": false,
-							"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
-							"properties": {
-								"IIT": {
-									"type": "object",
-									"title": "个人所得税 (individual income tax, wages and salaries)",
-									"additionalProperties": false,
-									"properties": {
-										"since": {
-											"type": "string",
-											"format": "date",
-											"title": "Effective from"
-										},
-										"elections": {
-											"type": "object",
-											"title": "Declared inputs",
-											"properties": {
-												"annual_bonus_separate": {
-													"type": "boolean",
-													"default": false,
-													"title": "Tax the annual one-time bonus separately",
-													"description": "财政部 税务总局公告2023年第30号: to 31 December 2027 the annual bonus may be taxed apart from comprehensive income, once a year."
-												},
-												"annuity_employee_monthly": {
-													"type": "number",
-													"minimum": 0,
-													"title": "Enterprise annuity employee contribution a month",
-													"description": "财税〔2013〕103号: up to 4% of the base."
-												},
-												"children_education_children": {
-													"type": "integer",
-													"minimum": 0,
-													"default": 0,
-													"title": "Children in education (子女教育)",
-													"description": "国发〔2023〕13号: 2000 a month for each child from age 3 to the end of full-time education."
-												},
-												"children_education_split": {
-													"type": "boolean",
-													"default": false,
-													"title": "Children education split 50/50 with the other parent",
-													"description": "国发〔2018〕41号 第六条: one parent takes 100% or each takes 50%."
-												},
-												"commercial_health_monthly": {
-													"type": "number",
-													"minimum": 0,
-													"title": "Tax-qualified health insurance a month",
-													"description": "财税〔2017〕39号: 200 a month."
-												},
-												"continuing_education_degree": {
-													"type": "boolean",
-													"default": false,
-													"title": "Degree continuing education (学历继续教育)",
-													"description": "国发〔2018〕41号 第八条: 400 a month during the degree education, at most 48 months."
-												},
-												"elderly_support_monthly": {
-													"type": "number",
-													"minimum": 0,
-													"maximum": 1500,
-													"default": 0,
-													"title": "Agreed elderly-support share (not an only child)",
-													"description": "国发〔2023〕13号: siblings share 3000 a month, at most 1500 each."
-												},
-												"elderly_support_only_child": {
-													"type": "boolean",
-													"default": false,
-													"title": "Only child supporting a parent aged 60+ (赡养老人)",
-													"description": "国发〔2023〕13号: 3000 a month for an only child."
-												},
-												"first_job_in_year": {
-													"type": "boolean",
-													"default": false,
-													"title": "First wage income of the year (公告2020年第13号)",
-													"description": "Cumulative deduction from January in the hire month."
-												},
-												"foreign_allowance_exemption": {
-													"type": "boolean",
-													"default": false,
-													"title": "Foreign allowance exemption instead of special deductions",
-													"description": "财政部 税务总局公告2023年第29号."
-												},
-												"housing_loan_interest": {
-													"type": "boolean",
-													"default": false,
-													"title": "First-home loan interest (住房贷款利息)",
-													"description": "国发〔2018〕41号 第十四条: 1000 a month, at most 240 months; not with housing rent."
-												},
-												"housing_rent": {
-													"type": "boolean",
-													"default": false,
-													"title": "Housing rent (住房租金)",
-													"description": "国发〔2018〕41号 第十七条第一项: 1500 a month in a municipality or provincial capital (Shanghai, Kunming); not with loan interest."
-												},
-												"infant_care_children": {
-													"type": "integer",
-													"minimum": 0,
-													"default": 0,
-													"title": "Children under 3 (3岁以下婴幼儿照护)",
-													"description": "国发〔2022〕8号 as raised by 国发〔2023〕13号: 2000 a month for each child under 3."
-												},
-												"infant_care_split": {
-													"type": "boolean",
-													"default": false,
-													"title": "Infant care split 50/50 with the other parent",
-													"description": "国发〔2022〕8号 第二条."
-												},
-												"prior_year_60000": {
-													"type": "boolean",
-													"default": false,
-													"title": "Prior-year wages ≤ 60,000 here (公告2020年第19号)",
-													"description": "The 60,000 deduction applies from January."
-												},
-												"receipt_deduction_review": {
-													"type": "object",
-													"additionalProperties": false,
-													"title": "Reviewed annual receipt deductions",
-													"description": "https://app.www.gov.cn/govdata/gov/202412/13/522679/articleNew.html; https://shanghai.chinatax.gov.cn/zcfw/rdwd/202602/t479530.html",
-													"properties": {
-														"month": {
-															"type": "string",
-															"title": "Receipt deduction review month",
-															"description": "YYYY-MM; prior deductions refer to the start of this month. Keep the same review on every regular/off-cycle payment in this month.",
-															"pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
-														},
-														"personal_pension_paid_ytd": {
-															"type": "number",
-															"title": "Qualified personal-pension payments this year",
-															"description": "Actual receipt-backed cumulative payments, capped at 12000 for relief. Includes irregular and lump-sum contributions.",
-															"minimum": 0
-														},
-														"personal_pension_deducted_before_month": {
-															"type": "number",
-															"title": "Personal-pension deduction used before this month",
-															"description": "Reviewed amount already deducted this tax year before this month, including legacy payroll history or another withholding allocation. Do not infer it from calendar months.",
-															"minimum": 0,
-															"maximum": 12000
-														},
-														"qualification_year": {
-															"type": "integer",
-															"title": "Qualifying certificate year; zero if none",
-															"description": "Year on the qualifying national vocational/professional certificate. One 3600 deduction per tax year, independently of degree continuing education.",
-															"minimum": 0,
-															"maximum": 2200
-														},
-														"qualification_deducted_before_month": {
-															"type": "number",
-															"title": "Qualification deduction used before this month",
-															"description": "Reviewed amount of this year’s 3600 certificate deduction used before this month.",
-															"minimum": 0,
-															"maximum": 3600
-														},
-														"reference": {
-															"type": "string",
-															"title": "Receipts and prior deduction review",
-															"description": "Personal-pension platform receipt and/or certificate details, plus checked year-to-date deduction history.",
-															"minLength": 1
-														}
-													},
-													"required": [
-														"month",
-														"personal_pension_paid_ytd",
-														"personal_pension_deducted_before_month",
-														"qualification_year",
-														"qualification_deducted_before_month",
-														"reference"
-													]
-												}
-											},
-											"additionalProperties": false
-										}
-									}
-								}
-							}
-						},
-						"nursing_protection_until": {
-							"type": "string",
-							"format": "date",
-							"title": "Nursing/pregnancy protection end date",
-							"description": "女职工劳动保护特别规定 第九条; 劳动法 第六十一条: no night work or overtime during the protected period."
-						},
-						"protected_work": {
-							"type": "boolean",
-							"default": false,
-							"title": "Work the Shanghai 办法 protects during menstruation",
-							"description": "上海市女职工劳动保护办法 第八条: 1 day of 公假 in each period for a woman in the listed work."
-						},
-						"severe_dysmenorrhea_diagnosed": {
-							"type": "boolean",
-							"default": false,
-							"title": "Severe dysmenorrhoea diagnosed",
-							"description": "云南省女职工劳动保护特别规定 第九条第三项."
-						}
-					},
-					"description": "Person facts in employee_extension_data.facts."
-				},
-				"term_facts": {
-					"type": "object",
-					"additionalProperties": false,
-					"title": "Contract compliance details",
-					"properties": {
-						"si_contribution_base": {
-							"type": "number",
-							"minimum": 0,
-							"title": "Declared social insurance and HPF contribution base (月缴费基数)",
-							"description": "社会保险法第十二条: reviewed SI wage base. When omitted, payroll uses the actual basic wage (BASIC) paid this month, never the contract monthly rate; city floor/ceiling still apply. HPF uses its separately reviewed base when supplied; first-ever HPF employment starts in the second month."
-						},
-						"post_lowest_wage": {
-							"type": "number",
-							"minimum": 0,
-							"title": "Lowest wage of the same post",
-							"description": "劳动合同法 第二十条."
-						},
-						"comprehensive_cycle_months": {
-							"type": "integer",
-							"enum": [1, 3, 12],
-							"title": "Comprehensive-hours cycle (months)",
-							"description": "劳部发〔1994〕503号: the approved cycle (month, quarter, year)."
-						},
-						"high_temperature_exposed": {
-							"type": "boolean",
-							"default": false,
-							"title": "Outdoor or uncooled work in summer (Shanghai)",
-							"description": "防暑降温措施管理办法 第十七条; 上海 300 a month, June to September (HIGH_TEMPERATURE_ALLOWANCE)."
-						},
-						"social_insurance_waived": {
-							"type": "boolean",
-							"default": false,
-							"title": "Social insurance waiver (void)",
-							"description": "法释〔2025〕12号 第十九条: refused."
-						},
-						"school_vacation_days": {
-							"type": "number",
-							"minimum": 0,
-							"title": "Statutory school vacation days a year (寒暑假)",
-							"description": "职工带薪年休假条例 第四条(一); 实施办法 第七条: annual leave is reduced by these days, none when they reach it."
-						},
-						"hpf_first_employment": {
-							"type": "boolean",
-							"title": "First-ever employment",
-							"description": "住房公积金管理条例第十七条: true only for a worker’s first-ever job (contributions start in month two); false for a transfer/new employer. Required in the hire month; unrelated to first_job_in_year for IIT."
-						},
-						"hpf_contribution_base": {
-							"type": "number",
-							"title": "Reviewed housing-fund wage base",
-							"description": "Separate from the SI base where first/second-month rules or actual paid wages differ. When neither this nor si_contribution_base is supplied, payroll uses the actual basic wage paid this month. Housing-fund floor/ceiling still apply.",
-							"minimum": 0
-						},
-						"comprehensive_overtime_review": {
-							"type": "object",
-							"additionalProperties": false,
-							"title": "Reviewed comprehensive-hours settlement",
-							"description": "Required each payroll month for COMPREHENSIVE hours; unsupported or incomplete cycle history must be reviewed before payroll can proceed.",
-							"properties": {
-								"month": {
-									"type": "string",
-									"title": "Payroll month reviewed",
-									"description": "YYYY-MM of this review, including a zero-due review in a non-settlement month.",
-									"pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
-								},
-								"settlement_on": {
-									"type": "string",
-									"title": "Settlement day",
-									"description": "Cycle end or termination day in the reviewed month. The period covering this day pays the reviewed hours once.",
-									"format": "date"
-								},
-								"excess_nonholiday_hours": {
-									"type": "number",
-									"title": "Reviewed unpaid cycle excess hours",
-									"description": "Actual cycle hours above the lawful standard after holiday/credited-absence treatment, less excess hours already paid. Reviewed from the approval and complete attendance history; never the sum of outside-shift overtime alone.",
-									"minimum": 0
-								},
-								"reference": {
-									"type": "string",
-									"title": "Approval, attendance and calculation evidence",
-									"description": "Reference to the approved cycle and reviewed hours calculation, including incomplete-cycle termination where applicable.",
-									"minLength": 1
-								}
-							},
-							"required": ["month", "settlement_on", "excess_nonholiday_hours", "reference"]
-						},
-						"annual_leave_year_reviews": {
-							"type": "array",
-							"title": "Annual-leave decisions by calendar year",
-							"description": "One reviewed row per year; retain prior years because current entitlement reads the preceding decision. No matching review blocks payroll/annual-leave availability. https://rsj.sh.gov.cn/trlzyhshbzbgz_17256/20200617/t0035_1388390.html",
-							"items": {
-								"type": "object",
-								"additionalProperties": false,
-								"properties": {
-									"year": {
-										"type": "integer",
-										"title": "Calendar year",
-										"description": "Calendar year covered by the reviewed leave decision.",
-										"minimum": 2025,
-										"maximum": 2200
-									},
-									"disqualified": {
-										"type": "boolean",
-										"title": "No statutory leave this year",
-										"description": "Reviewed current-year disqualification under 条例第四条 or 实施办法第八条. Already consumed units remain represented; they do not create new availability."
-									},
-									"next_year_disqualified": {
-										"type": "boolean",
-										"title": "Following year disqualified",
-										"description": "实施办法第八条: annual leave was used before the disqualifying paid personal/sick leave occurred; the next year has no new statutory grant."
-									},
-									"waived_days": {
-										"type": "number",
-										"title": "Unused days declined in writing for personal reasons",
-										"description": "Up to this many current-year unused days: employer arranged leave; employee declined in writing for their own reasons (第十条第二款). These days are consumed without extra pay and never carried.",
-										"minimum": 0,
-										"maximum": 15
-									},
-									"deferred_days": {
-										"type": "number",
-										"title": "Unused days agreed to defer once",
-										"description": "Up to this many current-year unused days, after any valid waiver, deferred by agreement because of work needs (第九条). They leave this year and join the next, and cannot be deferred a second time.",
-										"minimum": 0,
-										"maximum": 15
-									},
-									"reference": {
-										"type": "string",
-										"title": "Reviewed decision and supporting evidence",
-										"description": "Evidence of annual review, disqualification sequence, employer-arranged leave/personal written refusal or work-need deferral consent, as applicable.",
-										"minLength": 1
-									}
-								},
-								"required": [
-									"year",
-									"disqualified",
-									"next_year_disqualified",
-									"waived_days",
-									"deferred_days",
-									"reference"
-								]
-							}
-						},
-						"job_salary": {
-							"type": "number",
-							"minimum": 0,
-							"title": "Job salary for probation comparison",
-							"description": "劳动合同法 第二十条: the wage for the same post; probation pay must reach 80% of it or the post minimum, whichever applies."
-						},
-						"medical_period_review": {
-							"type": "string",
-							"title": "Medical-period review reference",
-							"description": "劳部发〔1994〕479号 第三条: reviewed medical-treatment period and its expiry; required once sick leave exceeds 65 days."
-						},
-						"work_injury_leave_extension": {
-							"type": "string",
-							"title": "Work-injury leave extension review",
-							"description": "工伤保险条例 第三十三条第二款: reviewed extension beyond 12 months; required once work-injury leave exceeds 365 days."
-						},
-						"prior_employment": {
-							"type": "array",
-							"title": "Prior employment in the tax year (本年内以前任职受雇)",
-							"description": "One row per prior employment period in the tax year. 国家税务总局公告2018年第61号 第六条: only months already withheld by this same withholding agent join the monthly cumulative withholding; another withholding agent's income and tax are combined only at the annual reconciliation (个人所得税法 第十一条) and must not be added to a monthly cumulative base. Do not repeat months already recorded by this payroll's payslips.",
-							"items": {
-								"type": "object",
-								"additionalProperties": false,
-								"properties": {
-									"tax_year": {
-										"type": "integer",
-										"minimum": 2000,
-										"maximum": 2200,
-										"title": "Tax year of the prior period"
-									},
-									"months": {
-										"type": "integer",
-										"minimum": 0,
-										"maximum": 12,
-										"title": "Months withheld in the tax year",
-										"description": "Months in the tax year during which that withholding agent paid this employee. Used only when same_withholding_agent is true."
-									},
-									"gross_income": {
-										"type": "number",
-										"minimum": 0,
-										"title": "Wage income paid by that agent",
-										"description": "Gross wage income before the employee's social insurance and housing-fund contributions."
-									},
-									"iit_withheld": {
-										"type": "number",
-										"minimum": 0,
-										"title": "IIT withheld by that agent"
-									},
-									"employee_social_contributions": {
-										"type": "number",
-										"minimum": 0,
-										"title": "Employee social insurance and housing-fund contributions withheld",
-										"description": "Pension, medical, unemployment and housing-fund contributions already deducted from that income."
-									},
-									"same_withholding_agent": {
-										"type": "boolean",
-										"default": false,
-										"title": "Same withholding agent as this employer",
-										"description": "True only when the prior period was under this same withholding agent (an earlier contract or a payroll migration), not a different employer. True joins the monthly cumulative withholding; false stays for the annual reconciliation."
-									}
-								},
-								"required": [
-									"tax_year",
-									"months",
-									"gross_income",
-									"iit_withheld",
-									"employee_social_contributions",
-									"same_withholding_agent"
-								]
-							}
-						},
-						"sick_pay_share": {
-							"type": "number",
-							"minimum": 0,
-							"maximum": 1,
-							"title": "Agreed sick pay share of the wage",
-							"description": "劳部发〔1995〕309号 第59条: the law sets only a floor of 80% of the minimum wage. A higher share in the contract, collective contract or handbook binds."
-						},
-						"medical_period_extension": {
-							"type": "string",
-							"title": "Medical-period extension approval",
-							"description": "劳部发〔1995〕236号 第二条: the approval extending the medical period past 24 months for a special illness."
-						}
-					}
-				},
-				"exit_facts": {
-					"type": "object",
-					"additionalProperties": false,
-					"properties": {
-						"layoff_batch_size": {
-							"type": "integer",
-							"minimum": 1,
-							"title": "People cut in the same layoff",
-							"description": "劳动合同法 第四十一条: 20 or more, or 10% of the workforce, needs the 30-day explanation and report."
-						},
-						"occupational_disease_or_injury": {
-							"type": "boolean",
-							"default": false,
-							"title": "Occupational disease, suspected, or work injury (protected)",
-							"description": "劳动合同法 第四十二条第一、二项."
-						},
-						"protected_until": {
-							"type": "string",
-							"format": "date",
-							"title": "Protected period end",
-							"description": "劳动合同法 第四十二条: pregnancy, medical treatment period or work injury; termination is refused before this date."
-						}
-					},
-					"description": "Stored in employee_extension_data.exit_facts.",
-					"title": "Departure compliance details"
-				},
 				"events": {
 					"type": "array",
 					"title": "Life events",
@@ -516,7 +22,10 @@
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": ["kind", "on"],
+						"required": [
+							"kind",
+							"on"
+						],
 						"properties": {
 							"kind": {
 								"type": "string",
@@ -560,16 +69,478 @@
 								"type": "string",
 								"format": "date",
 								"title": "Ended on"
+							}
+						}
+					}
+				},
+				"china_workday_share": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1,
+					"default": 1,
+					"title": "Share of the month worked in China (non-resident)",
+					"description": "财政部 税务总局公告2019年第35号 第二条: a non-resident's wage 收入额 is the China-workday share (境内工作天数 ÷ 当期公历天数). Customer input; default 1."
+				},
+				"retirement_category": {
+					"type": "string",
+					"enum": [
+						"FEMALE_50",
+						"FEMALE_55"
+					],
+					"title": "Original statutory retirement age (women)",
+					"description": "全国人民代表大会常务委员会《关于实施渐进式延迟法定退休年龄的决定》(2024年9月13日, 自2025年1月1日) 及《国务院关于渐进式延迟法定退休年龄的办法》第二条: 男职工和原法定退休年龄为五十五周岁的女职工每四个月延迟一个月, 分别逐步延迟至六十三周岁和五十八周岁; 原法定退休年龄为五十周岁的女职工每二个月延迟一个月, 逐步延迟至五十五周岁 https://www.gov.cn/yaowen/liebiao/202409/content_6974294.htm. Women record `retirement_category` FEMALE_55 (cadres) or FEMALE_50 (default, workers)."
+				},
+				"only_child": {
+					"type": "boolean",
+					"default": false,
+					"title": "Only child (独生子女)",
+					"description": "上海市老年人权益保障条例 (陪护假 7 days); 云南省老年人权益保障条例 第二十四条 (护理假 20 days)."
+				},
+				"si_exempt_schemes": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"enum": [
+							"PENSION",
+							"MEDICAL",
+							"UNEMPLOYMENT",
+							"WORK_INJURY"
+						]
+					},
+					"title": "Schemes exempted by a social-security agreement",
+					"description": "人社部令第16号 and the bilateral agreement: the schemes the certificate of coverage exempts."
+				},
+				"hpf_voluntary": {
+					"type": "boolean",
+					"default": false,
+					"title": "Joins the housing provident fund voluntarily (foreign / HK / MO / TW)",
+					"description": "上海市住房公积金缴存管理办法; 建金〔2017〕237号. A tax non-resident joins only with this choice."
+				},
+				"minor_employment_approved": {
+					"type": "boolean",
+					"default": false,
+					"title": "Approved employment under 16 (文艺、体育、特种工艺)",
+					"description": "劳动法 第十五条: an arts, sports or special-crafts unit may employ a person under 16 with approval."
+				},
+				"nursing_protection_until": {
+					"type": "string",
+					"format": "date",
+					"title": "Nursing/pregnancy protection end date",
+					"description": "女职工劳动保护特别规定 第九条; 劳动法 第六十一条: no night work or overtime during the protected period."
+				},
+				"protected_work": {
+					"type": "boolean",
+					"default": false,
+					"title": "Work the Shanghai 办法 protects during menstruation",
+					"description": "上海市女职工劳动保护办法 第八条: 1 day of 公假 in each period for a woman in the listed work."
+				},
+				"severe_dysmenorrhea_diagnosed": {
+					"type": "boolean",
+					"default": false,
+					"title": "Severe dysmenorrhoea diagnosed",
+					"description": "云南省女职工劳动保护特别规定 第九条第三项."
+				},
+				"si_contribution_base": {
+					"type": "number",
+					"minimum": 0,
+					"title": "Declared social insurance and HPF contribution base (月缴费基数)",
+					"description": "社会保险法第十二条: reviewed SI wage base. When omitted, payroll uses the actual basic wage (BASIC) paid this month, never the contract monthly rate; city floor/ceiling still apply. HPF uses its separately reviewed base when supplied; first-ever HPF employment starts in the second month."
+				},
+				"post_lowest_wage": {
+					"type": "number",
+					"minimum": 0,
+					"title": "Lowest wage of the same post",
+					"description": "劳动合同法 第二十条."
+				},
+				"high_temperature_exposed": {
+					"type": "boolean",
+					"default": false,
+					"title": "Outdoor or uncooled work in summer (Shanghai)",
+					"description": "防暑降温措施管理办法 第十七条; 上海 300 a month, June to September (HIGH_TEMPERATURE_ALLOWANCE)."
+				},
+				"social_insurance_waived": {
+					"type": "boolean",
+					"default": false,
+					"title": "Social insurance waiver (void)",
+					"description": "法释〔2025〕12号 第十九条: refused."
+				},
+				"school_vacation_days": {
+					"type": "number",
+					"minimum": 0,
+					"title": "Statutory school vacation days a year (寒暑假)",
+					"description": "职工带薪年休假条例 第四条(一); 实施办法 第七条: annual leave is reduced by these days, none when they reach it."
+				},
+				"hpf_first_employment": {
+					"type": "boolean",
+					"title": "First-ever employment",
+					"description": "住房公积金管理条例第十七条: true only for a worker’s first-ever job (contributions start in month two); false for a transfer/new employer. Required in the hire month; unrelated to first_job_in_year for IIT."
+				},
+				"hpf_contribution_base": {
+					"type": "number",
+					"title": "Reviewed housing-fund wage base",
+					"description": "Separate from the SI base where first/second-month rules or actual paid wages differ. When neither this nor si_contribution_base is supplied, payroll uses the actual basic wage paid this month. Housing-fund floor/ceiling still apply.",
+					"minimum": 0
+				},
+				"comprehensive_overtime_review": {
+					"type": "object",
+					"additionalProperties": false,
+					"title": "Reviewed comprehensive-hours settlement",
+					"description": "Required each payroll month for COMPREHENSIVE hours; unsupported or incomplete cycle history must be reviewed before payroll can proceed.",
+					"properties": {
+						"month": {
+							"type": "string",
+							"title": "Payroll month reviewed",
+							"description": "YYYY-MM of this review, including a zero-due review in a non-settlement month.",
+							"pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+						},
+						"settlement_on": {
+							"type": "string",
+							"title": "Settlement day",
+							"description": "Cycle end or termination day in the reviewed month. The period covering this day pays the reviewed hours once.",
+							"format": "date"
+						},
+						"excess_nonholiday_hours": {
+							"type": "number",
+							"title": "Reviewed unpaid cycle excess hours",
+							"description": "Actual cycle hours above the lawful standard after holiday/credited-absence treatment, less excess hours already paid. Reviewed from the approval and complete attendance history; never the sum of outside-shift overtime alone.",
+							"minimum": 0
+						},
+						"reference": {
+							"type": "string",
+							"title": "Approval, attendance and calculation evidence",
+							"description": "Reference to the approved cycle and reviewed hours calculation, including incomplete-cycle termination where applicable.",
+							"minLength": 1
+						}
+					},
+					"required": [
+						"month",
+						"settlement_on",
+						"excess_nonholiday_hours",
+						"reference"
+					]
+				},
+				"annual_leave_year_reviews": {
+					"type": "array",
+					"title": "Annual-leave decisions by calendar year",
+					"description": "One reviewed row per year; retain prior years because current entitlement reads the preceding decision. No matching review blocks payroll/annual-leave availability. https://rsj.sh.gov.cn/trlzyhshbzbgz_17256/20200617/t0035_1388390.html",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"year": {
+								"type": "integer",
+								"title": "Calendar year",
+								"description": "Calendar year covered by the reviewed leave decision.",
+								"minimum": 2025,
+								"maximum": 2200
 							},
-							"document": {
+							"disqualified": {
+								"type": "boolean",
+								"title": "No statutory leave this year",
+								"description": "Reviewed current-year disqualification under 条例第四条 or 实施办法第八条. Already consumed units remain represented; they do not create new availability."
+							},
+							"next_year_disqualified": {
+								"type": "boolean",
+								"title": "Following year disqualified",
+								"description": "实施办法第八条: annual leave was used before the disqualifying paid personal/sick leave occurred; the next year has no new statutory grant."
+							},
+							"waived_days": {
+								"type": "number",
+								"title": "Unused days declined in writing for personal reasons",
+								"description": "Up to this many current-year unused days: employer arranged leave; employee declined in writing for their own reasons (第十条第二款). These days are consumed without extra pay and never carried.",
+								"minimum": 0,
+								"maximum": 15
+							},
+							"deferred_days": {
+								"type": "number",
+								"title": "Unused days agreed to defer once",
+								"description": "Up to this many current-year unused days, after any valid waiver, deferred by agreement because of work needs (第九条). They leave this year and join the next, and cannot be deferred a second time.",
+								"minimum": 0,
+								"maximum": 15
+							},
+							"reference": {
 								"type": "string",
-								"title": "Document on the profile"
+								"title": "Reviewed decision and supporting evidence",
+								"description": "Evidence of annual review, disqualification sequence, employer-arranged leave/personal written refusal or work-need deferral consent, as applicable.",
+								"minLength": 1
+							}
+						},
+						"required": [
+							"year",
+							"disqualified",
+							"next_year_disqualified",
+							"waived_days",
+							"deferred_days",
+							"reference"
+						]
+					}
+				},
+				"job_salary": {
+					"type": "number",
+					"minimum": 0,
+					"title": "Job salary for probation comparison",
+					"description": "劳动合同法 第二十条: the wage for the same post; probation pay must reach 80% of it or the post minimum, whichever applies."
+				},
+				"medical_period_review": {
+					"type": "string",
+					"title": "Medical-period review reference",
+					"description": "劳部发〔1994〕479号 第三条: reviewed medical-treatment period and its expiry; required once sick leave exceeds 65 days."
+				},
+				"work_injury_leave_extension": {
+					"type": "string",
+					"title": "Work-injury leave extension review",
+					"description": "工伤保险条例 第三十三条第二款: reviewed extension beyond 12 months; required once work-injury leave exceeds 365 days."
+				},
+				"prior_employment": {
+					"type": "array",
+					"title": "Prior employment in the tax year (本年内以前任职受雇)",
+					"description": "One row per prior employment period in the tax year. 国家税务总局公告2018年第61号 第六条: only months already withheld by this same withholding agent join the monthly cumulative withholding; another withholding agent's income and tax are combined only at the annual reconciliation (个人所得税法 第十一条) and must not be added to a monthly cumulative base. Do not repeat months already recorded by this payroll's payslips.",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"tax_year": {
+								"type": "integer",
+								"minimum": 2000,
+								"maximum": 2200,
+								"title": "Tax year of the prior period"
+							},
+							"months": {
+								"type": "integer",
+								"minimum": 0,
+								"maximum": 12,
+								"title": "Months withheld in the tax year",
+								"description": "Months in the tax year during which that withholding agent paid this employee. Used only when same_withholding_agent is true."
+							},
+							"gross_income": {
+								"type": "number",
+								"minimum": 0,
+								"title": "Wage income paid by that agent",
+								"description": "Gross wage income before the employee's social insurance and housing-fund contributions."
+							},
+							"iit_withheld": {
+								"type": "number",
+								"minimum": 0,
+								"title": "IIT withheld by that agent"
+							},
+							"employee_social_contributions": {
+								"type": "number",
+								"minimum": 0,
+								"title": "Employee social insurance and housing-fund contributions withheld",
+								"description": "Pension, medical, unemployment and housing-fund contributions already deducted from that income."
+							},
+							"same_withholding_agent": {
+								"type": "boolean",
+								"default": false,
+								"title": "Same withholding agent as this employer",
+								"description": "True only when the prior period was under this same withholding agent (an earlier contract or a payroll migration), not a different employer. True joins the monthly cumulative withholding; false stays for the annual reconciliation."
+							}
+						},
+						"required": [
+							"tax_year",
+							"months",
+							"gross_income",
+							"iit_withheld",
+							"employee_social_contributions",
+							"same_withholding_agent"
+						]
+					}
+				},
+				"sick_pay_share": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1,
+					"title": "Agreed sick pay share of the wage",
+					"description": "劳部发〔1995〕309号 第59条: the law sets only a floor of 80% of the minimum wage. A higher share in the contract, collective contract or handbook binds."
+				},
+				"medical_period_extension": {
+					"type": "string",
+					"title": "Medical-period extension approval",
+					"description": "劳部发〔1995〕236号 第二条: the approval extending the medical period past 24 months for a special illness."
+				},
+				"layoff_batch_size": {
+					"type": "integer",
+					"minimum": 1,
+					"title": "People cut in the same layoff",
+					"description": "劳动合同法 第四十一条: 20 or more, or 10% of the workforce, needs the 30-day explanation and report."
+				},
+				"protected_until": {
+					"type": "string",
+					"format": "date",
+					"title": "Protected period end",
+					"description": "劳动合同法 第四十二条: pregnancy, medical treatment period or work injury; termination is refused before this date."
+				},
+				"statutory": {
+					"type": "object",
+					"title": "Statutory declarations",
+					"additionalProperties": false,
+					"description": "Employee registrations, exemptions and declared choices captured on this sealed contract.",
+					"properties": {
+						"IIT": {
+							"type": "object",
+							"title": "个人所得税 (individual income tax, wages and salaries)",
+							"additionalProperties": false,
+							"properties": {
+								"since": {
+									"type": "string",
+									"format": "date",
+									"title": "Effective from"
+								},
+								"annual_bonus_separate": {
+									"type": "boolean",
+									"default": false,
+									"title": "Tax the annual one-time bonus separately",
+									"description": "财政部 税务总局公告2023年第30号: to 31 December 2027 the annual bonus may be taxed apart from comprehensive income, once a year."
+								},
+								"annuity_employee_monthly": {
+									"type": "number",
+									"minimum": 0,
+									"title": "Enterprise annuity employee contribution a month",
+									"description": "财税〔2013〕103号: up to 4% of the base."
+								},
+								"children_education_children": {
+									"type": "integer",
+									"minimum": 0,
+									"default": 0,
+									"title": "Children in education (子女教育)",
+									"description": "国发〔2023〕13号: 2000 a month for each child from age 3 to the end of full-time education."
+								},
+								"children_education_split": {
+									"type": "boolean",
+									"default": false,
+									"title": "Children education split 50/50 with the other parent",
+									"description": "国发〔2018〕41号 第六条: one parent takes 100% or each takes 50%."
+								},
+								"commercial_health_monthly": {
+									"type": "number",
+									"minimum": 0,
+									"title": "Tax-qualified health insurance a month",
+									"description": "财税〔2017〕39号: 200 a month."
+								},
+								"continuing_education_degree": {
+									"type": "boolean",
+									"default": false,
+									"title": "Degree continuing education (学历继续教育)",
+									"description": "国发〔2018〕41号 第八条: 400 a month during the degree education, at most 48 months."
+								},
+								"elderly_support_monthly": {
+									"type": "number",
+									"minimum": 0,
+									"maximum": 1500,
+									"default": 0,
+									"title": "Agreed elderly-support share (not an only child)",
+									"description": "国发〔2023〕13号: siblings share 3000 a month, at most 1500 each."
+								},
+								"elderly_support_only_child": {
+									"type": "boolean",
+									"default": false,
+									"title": "Only child supporting a parent aged 60+ (赡养老人)",
+									"description": "国发〔2023〕13号: 3000 a month for an only child."
+								},
+								"first_job_in_year": {
+									"type": "boolean",
+									"default": false,
+									"title": "First wage income of the year (公告2020年第13号)",
+									"description": "Cumulative deduction from January in the hire month."
+								},
+								"foreign_allowance_exemption": {
+									"type": "boolean",
+									"default": false,
+									"title": "Foreign allowance exemption instead of special deductions",
+									"description": "财政部 税务总局公告2023年第29号."
+								},
+								"housing_loan_interest": {
+									"type": "boolean",
+									"default": false,
+									"title": "First-home loan interest (住房贷款利息)",
+									"description": "国发〔2018〕41号 第十四条: 1000 a month, at most 240 months; not with housing rent."
+								},
+								"housing_rent": {
+									"type": "boolean",
+									"default": false,
+									"title": "Housing rent (住房租金)",
+									"description": "国发〔2018〕41号 第十七条第一项: 1500 a month in a municipality or provincial capital (Shanghai, Kunming); not with loan interest."
+								},
+								"infant_care_children": {
+									"type": "integer",
+									"minimum": 0,
+									"default": 0,
+									"title": "Children under 3 (3岁以下婴幼儿照护)",
+									"description": "国发〔2022〕8号 as raised by 国发〔2023〕13号: 2000 a month for each child under 3."
+								},
+								"infant_care_split": {
+									"type": "boolean",
+									"default": false,
+									"title": "Infant care split 50/50 with the other parent",
+									"description": "国发〔2022〕8号 第二条."
+								},
+								"prior_year_60000": {
+									"type": "boolean",
+									"default": false,
+									"title": "Prior-year wages ≤ 60,000 here (公告2020年第19号)",
+									"description": "The 60,000 deduction applies from January."
+								},
+								"receipt_deduction_review": {
+									"type": "object",
+									"additionalProperties": false,
+									"title": "Reviewed annual receipt deductions",
+									"description": "https://app.www.gov.cn/govdata/gov/202412/13/522679/articleNew.html; https://shanghai.chinatax.gov.cn/zcfw/rdwd/202602/t479530.html",
+									"properties": {
+										"month": {
+											"type": "string",
+											"title": "Receipt deduction review month",
+											"description": "YYYY-MM; prior deductions refer to the start of this month. Keep the same review on every regular/off-cycle payment in this month.",
+											"pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+										},
+										"personal_pension_paid_ytd": {
+											"type": "number",
+											"title": "Qualified personal-pension payments this year",
+											"description": "Actual receipt-backed cumulative payments, capped at 12000 for relief. Includes irregular and lump-sum contributions.",
+											"minimum": 0
+										},
+										"personal_pension_deducted_before_month": {
+											"type": "number",
+											"title": "Personal-pension deduction used before this month",
+											"description": "Reviewed amount already deducted this tax year before this month, including legacy payroll history or another withholding allocation. Do not infer it from calendar months.",
+											"minimum": 0,
+											"maximum": 12000
+										},
+										"qualification_year": {
+											"type": "integer",
+											"title": "Qualifying certificate year; zero if none",
+											"description": "Year on the qualifying national vocational/professional certificate. One 3600 deduction per tax year, independently of degree continuing education.",
+											"minimum": 0,
+											"maximum": 2200
+										},
+										"qualification_deducted_before_month": {
+											"type": "number",
+											"title": "Qualification deduction used before this month",
+											"description": "Reviewed amount of this year’s 3600 certificate deduction used before this month.",
+											"minimum": 0,
+											"maximum": 3600
+										},
+										"reference": {
+											"type": "string",
+											"title": "Receipts and prior deduction review",
+											"description": "Personal-pension platform receipt and/or certificate details, plus checked year-to-date deduction history.",
+											"minLength": 1
+										}
+									},
+									"required": [
+										"month",
+										"personal_pension_paid_ytd",
+										"personal_pension_deducted_before_month",
+										"qualification_year",
+										"qualification_deducted_before_month",
+										"reference"
+									]
+								}
 							}
 						}
 					}
 				}
 			},
-			"description": "Additional local compliance facts on the sealed contract, stored as employee_extension_data: facts (person), term_facts (contract) and exit_facts (departure). Shared salary, allowances, work classifications, dates and work arrangements are native fields."
+			"description": "Additional local compliance employee facts on the sealed contract, stored as employee_extension_data. Shared salary, allowances, work classifications, dates and work arrangements are native fields."
 		},
 		"entity_extension_schema": {
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -579,13 +550,25 @@
 			"properties": {
 				"region": {
 					"type": "string",
-					"enum": ["SH", "KM"],
+					"enum": [
+						"SH",
+						"KM"
+					],
 					"title": "Employer region",
 					"description": "Shanghai (SH) or Kunming (KM); selects the statutory contribution tables and local leave rules."
 				},
 				"risk_class": {
 					"type": "string",
-					"enum": ["1", "2", "3", "4", "5", "6", "7", "8"],
+					"enum": [
+						"1",
+						"2",
+						"3",
+						"4",
+						"5",
+						"6",
+						"7",
+						"8"
+					],
 					"title": "Work-injury industry risk class",
 					"description": "工伤保险条例 第八条; 人社部发〔2015〕71号 行业基准费率 0.2%–1.9%; used when work_injury_rate_percent is not recorded."
 				},
@@ -672,7 +655,11 @@
 				},
 				"wage_zone": {
 					"type": "string",
-					"enum": ["1", "2", "3"],
+					"enum": [
+						"1",
+						"2",
+						"3"
+					],
 					"default": "1",
 					"title": "Minimum-wage zone of the region (最低工资档次)",
 					"description": "The zone key of the region's minimum-wage table (Kunming classes 1–3); blank = the region's default zone. Also the Kunming housing-fund floor."
@@ -680,79 +667,6 @@
 			}
 		},
 		"lookup": {
-			"rounding": "HALF_UP",
-			"rounding_scale": 2,
-			"monthly_divisor": 21.75,
-			"daily_hours": 8,
-			"day_rate": "// 人社部发〔2008〕3号: 月计薪天数 (365 − 104) ÷ 12 = 21.75. A paid day leaves out rest days, and no statute sets another rule for an incomplete month, so proration_basis is WORKING_DAYS.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\nconst hours = ctx.lookup.daily_hours;\nif (unit === 'DAILY') return amount;\nif (unit === 'HOURLY' || unit === 'PIECE') return amount * hours;\nconst fixed = ['FIXED_ALLOWANCE', 'FOREIGN_LANGUAGE_ALLOWANCE', 'FOREIGN_CHILD_EDUCATION_ALLOWANCE'].reduce(\n\t(total, code) => total + Number(get(terms, `allowances.${code}.amount`, 0)),\n\t0\n);\nreturn (amount + fixed) / ctx.lookup.monthly_divisor;",
-			"proration_basis": "WORKING_DAYS",
-			"preparatory": {
-				"SH": "ORGANISATION",
-				"KM": "NO_UNION"
-			},
-			"months_per_year": 12,
-			"full_year_min_months": 6,
-			"compensation_max_years": 12,
-			"statutory_holiday_kinds": ["PUBLIC_HOLIDAY"],
-			"part_time_daily_hours": 4,
-			"part_time_weekly_hours": 24,
-			"retirement": [
-				{
-					"category": "MALE",
-					"base_years": 60,
-					"cutoff": "1965-01-01",
-					"max_deferral_months": 36,
-					"birth_months_per_step": 4
-				},
-				{
-					"category": "FEMALE_55",
-					"base_years": 55,
-					"cutoff": "1970-01-01",
-					"max_deferral_months": 36,
-					"birth_months_per_step": 4
-				},
-				{
-					"category": "FEMALE_50",
-					"base_years": 50,
-					"cutoff": "1975-01-01",
-					"max_deferral_months": 60,
-					"birth_months_per_step": 2
-				}
-			],
-			"minimum_wage": [
-				{
-					"region": "SH",
-					"zone": "1",
-					"monthly": 2740,
-					"hourly": 25,
-					"default_zone": "1",
-					"excludes_employee_contributions": true
-				},
-				{
-					"region": "KM",
-					"zone": "1",
-					"monthly": 2170,
-					"hourly": 21,
-					"default_zone": "1",
-					"excludes_employee_contributions": false
-				},
-				{
-					"region": "KM",
-					"zone": "2",
-					"monthly": 2020,
-					"hourly": 20,
-					"default_zone": "1",
-					"excludes_employee_contributions": false
-				},
-				{
-					"region": "KM",
-					"zone": "3",
-					"monthly": 1870,
-					"hourly": 19,
-					"default_zone": "1",
-					"excludes_employee_contributions": false
-				}
-			],
 			"si_base": [
 				{
 					"code": "SH",
@@ -763,24 +677,6 @@
 					"code": "KM",
 					"floor": 4357,
 					"ceiling": 21789
-				}
-			],
-			"hpf_regions": [
-				{
-					"code": "SH",
-					"floor": 2690,
-					"rate_min": 5,
-					"rate_max": 7,
-					"supp_min": 1,
-					"supp_max": 5
-				},
-				{
-					"code": "KM",
-					"floor": null,
-					"rate_min": 5,
-					"rate_max": 12,
-					"supp_min": null,
-					"supp_max": null
 				}
 			],
 			"average_wage_cap": [
@@ -867,10 +763,80 @@
 					"quick": 15160
 				}
 			],
-			"month_balance": ["BASIC", "ADDITIONAL_WAGES", "FOREIGN_ALLOWANCES", "IIT.employee"],
-			"totals_by_employer": true
+			"minimum_wage_by_zone": [
+				{
+					"region": "SH",
+					"zone": "1",
+					"monthly": 2740,
+					"hourly": 25,
+					"default_zone": "1",
+					"excludes_employee_contributions": true
+				},
+				{
+					"region": "KM",
+					"zone": "1",
+					"monthly": 2170,
+					"hourly": 21,
+					"default_zone": "1",
+					"excludes_employee_contributions": false
+				},
+				{
+					"region": "KM",
+					"zone": "2",
+					"monthly": 2020,
+					"hourly": 20,
+					"default_zone": "1",
+					"excludes_employee_contributions": false
+				},
+				{
+					"region": "KM",
+					"zone": "3",
+					"monthly": 1870,
+					"hourly": 19,
+					"default_zone": "1",
+					"excludes_employee_contributions": false
+				}
+			],
+			"constants": {
+				"hpf_regions": [
+					{
+						"code": "SH",
+						"floor": 2690,
+						"rate_max": 7,
+						"rate_min": 5,
+						"supp_max": 5,
+						"supp_min": 1
+					},
+					{
+						"code": "KM",
+						"floor": null,
+						"rate_max": 12,
+						"rate_min": 5,
+						"supp_max": null,
+						"supp_min": null
+					}
+				]
+			}
 		},
 		"status": "SEALED",
-		"id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c"
+		"id": "c8d0c860-cfe4-548b-a23b-bc0dd9069e1c",
+		"conversions": {
+			"day": {
+				"basis": "FIXED",
+				"days": 21.75
+			},
+			"hour": {
+				"basis": "FIXED",
+				"hours": 174
+			},
+			"proration": "WORKING_DAYS",
+			"rounding": {
+				"mode": "HALF_UP",
+				"scale": 2
+			}
+		},
+		"ledger": {
+			"ytd_scope": "EMPLOYER"
+		}
 	}
 ]

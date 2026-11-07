@@ -18,7 +18,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "5766d44e-d380-5733-b789-153a5c8d355c",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -28,7 +27,6 @@
 		"pay_treatment": "PAID",
 		"lookup": {},
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "c856644d-64d9-5943-89fd-b3d0ae4ce872",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"references": [
@@ -62,17 +60,15 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "c4d386e4-b735-5c7b-a7b7-50d095738db0",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
 	{
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"lookup": {
-			"no_cap": true,
-			"prorated_allowances": ["CAR_ALLOWANCE", "HOUSE_ALLOWANCE", "SPECIAL_ALLOWANCE"]
+			"no_cap": true
 		},
 		"references": [
 			{
@@ -80,13 +76,10 @@
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			}
 		],
-		"subtotal_id": "334b119b-0dac-5a5b-9f3a-3671936014cc",
-		"off_cycle_eligible": false,
+		"subtotal_id": "5e445cc4-38b9-5a8d-b454-23e89d4a7203",
 		"id": "47fd8146-bb17-5ab2-beb9-a0f25a153b24",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// PP 36/2021 art.40(1): no wage for a day not worked, fixed allowances with it. proration_basis WORKING_DAYS: art.17 values a day by working days.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nconst lost = Math.min(ctx.entry.quantity, days);\nconst agreed = get(terms, 'allowances', {});\nconst fixed = sum(\n\tctx.lookup.prorated_allowances\n\t\t.filter((code) => get(agreed, code + '.variability', 'FIXED') !== 'VARIABLE')\n\t\t.map((code) => Number(get(agreed, code + '.amount', 0)))\n);\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\n// A day or hour rate pays the day itself; day_rate is the art.32 overtime base, never a day's wage.\nconst salary =\n\tunit === 'DAILY'\n\t\t? amount * lost\n\t\t: unit === 'HOURLY'\n\t\t\t? amount * Number(get(terms, 'normal_hours_per_day', 8)) * lost\n\t\t\t: (amount * lost) / days;\nreturn salary + (fixed * lost) / days;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "MEDICAL_LEAVE",
@@ -112,13 +105,12 @@
 					"unpaid_share": 0.75
 				}
 			],
-			"prorated_allowances": ["CAR_ALLOWANCE", "HOUSE_ALLOWANCE", "SPECIAL_ALLOWANCE"],
-			"no_cap": true,
 			"opened_by": {
 				"LONG_ILLNESS": {
 					"days": 0
 				}
-			}
+			},
+			"no_cap": true
 		},
 		"references": [
 			{
@@ -127,12 +119,10 @@
 			}
 		],
 		"subtotal_id": "334b119b-0dac-5a5b-9f3a-3671936014cc",
-		"off_cycle_eligible": false,
 		"id": "9ccb94df-3f09-5253-a0b2-616700dda029",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// PP 36/2021 art.41(1): 100% of the wage for the first four months of an illness, 75% for the next four, 50% for the next four and 25% thereafter until dismissal.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nconst events = get(ctx.subject.employment, 'employee_extension_data.events', []).filter((event) => Object.hasOwn(ctx.lookup.opened_by, event.kind));\nconst shareOf = (date) => {\n\tconst event = first(events.filter((item) => item.on <= date && (get(item, 'ended_on', null) == null || date <= item.ended_on)));\n\tif (event == null) return 0;\n\tconst months = calendar_completed_months(event.on, date);\n\treturn ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;\n};\nconst lost = Math.min(sum(ctx.entry.days.filter((day) => worksOn(day.date)).map((day) => shareOf(reversal ? back : day.date))) / 2, days);\nconst agreed = get(terms, 'allowances', {});\nconst fixed = sum(\n\tctx.lookup.prorated_allowances\n\t\t.filter((code) => get(agreed, code + '.variability', 'FIXED') !== 'VARIABLE')\n\t\t.map((code) => Number(get(agreed, code + '.amount', 0)))\n);\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\n// A day or hour rate pays the day itself; day_rate is the art.32 overtime base, never a day's wage.\nconst salary =\n\tunit === 'DAILY'\n\t\t? amount * lost\n\t\t: unit === 'HOURLY'\n\t\t\t? amount * Number(get(terms, 'normal_hours_per_day', 8)) * lost\n\t\t\t: (amount * lost) / days;\nreturn salary + (fixed * lost) / days;"
+		"conversion": "// js\n// PP 36/2021 art.41(1): 100% of the wage for the first four months of an illness, 75% for the next four, 50% for the next four and 25% thereafter until dismissal.\nconst events = get(ctx.subject.employment, 'employee_extension_data.events', []).filter((event) => Object.hasOwn(ctx.lookup.opened_by, event.kind));\nconst shareOf = (date) => {\n\tconst event = first(events.filter((item) => item.on <= date && (get(item, 'ended_on', null) == null || date <= item.ended_on)));\n\tif (event == null) return 0;\n\tconst months = calendar_completed_months(event.on, date);\n\treturn ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;\n};\nconst at = add_days(ctx.run.salary_coverage.from, -1);\nconst lost = Math.min(\n\tsum(ctx.entry.days.map((day) => shareOf(get(ctx.entry, 'reverses', null) != null ? at : day.date))) / 2,\n\tctx.entry.quantity\n);\nreturn ctx.day_rate * lost;"
 	},
 	{
 		"code": "MATERNITY_LEAVE",
@@ -150,7 +140,6 @@
 					"unpaid_share": 0.25
 				}
 			],
-			"prorated_allowances": ["CAR_ALLOWANCE", "HOUSE_ALLOWANCE", "SPECIAL_ALLOWANCE"],
 			"window": "EVENT",
 			"grant_days": 90,
 			"eligibility": {
@@ -169,12 +158,10 @@
 			}
 		],
 		"subtotal_id": "334b119b-0dac-5a5b-9f3a-3671936014cc",
-		"off_cycle_eligible": false,
 		"id": "57cfdaba-d40b-5397-907a-910fca5ffd93",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// UU 4/2024 art.5(2): paid in full for the first four months and 75% for the fifth and sixth; the months past the third need a doctor’s certificate of a special condition of mother or child.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nconst events = get(ctx.subject.employment, 'employee_extension_data.events', []).filter((event) => Object.hasOwn(ctx.lookup.opened_by, event.kind));\nconst shareOf = (date) => {\n\tconst event = first(events.filter((item) => item.on <= date && (get(item, 'ended_on', null) == null || date <= item.ended_on)));\n\tif (event == null) return 0;\n\tconst months = calendar_completed_months(event.on, date);\n\treturn ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;\n};\nconst lost = Math.min(sum(ctx.entry.days.filter((day) => worksOn(day.date)).map((day) => shareOf(reversal ? back : day.date))) / 2, days);\nconst agreed = get(terms, 'allowances', {});\nconst fixed = sum(\n\tctx.lookup.prorated_allowances\n\t\t.filter((code) => get(agreed, code + '.variability', 'FIXED') !== 'VARIABLE')\n\t\t.map((code) => Number(get(agreed, code + '.amount', 0)))\n);\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\n// A day or hour rate pays the day itself; day_rate is the art.32 overtime base, never a day's wage.\nconst salary =\n\tunit === 'DAILY'\n\t\t? amount * lost\n\t\t: unit === 'HOURLY'\n\t\t\t? amount * Number(get(terms, 'normal_hours_per_day', 8)) * lost\n\t\t\t: (amount * lost) / days;\nreturn salary + (fixed * lost) / days;"
+		"conversion": "// js\n// UU 4/2024 art.5(2): paid in full for the first four months and 75% for the fifth and sixth; the months past the third need a doctor’s certificate of a special condition of mother or child.\nconst events = get(ctx.subject.employment, 'employee_extension_data.events', []).filter((event) => Object.hasOwn(ctx.lookup.opened_by, event.kind));\nconst shareOf = (date) => {\n\tconst event = first(events.filter((item) => item.on <= date && (get(item, 'ended_on', null) == null || date <= item.ended_on)));\n\tif (event == null) return 0;\n\tconst months = calendar_completed_months(event.on, date);\n\treturn ctx.lookup.pay_steps.find((step) => step.until_month == null || months < step.until_month).unpaid_share;\n};\nconst at = add_days(ctx.run.salary_coverage.from, -1);\nconst lost = Math.min(\n\tsum(ctx.entry.days.map((day) => shareOf(get(ctx.entry, 'reverses', null) != null ? at : day.date))) / 2,\n\tctx.entry.quantity\n);\nreturn ctx.day_rate * lost;"
 	},
 	{
 		"code": "PATERNITY_LEAVE",
@@ -202,7 +189,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "808c9755-d69d-502d-87fa-8548b15a978b",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -219,7 +205,7 @@
 		},
 		"references": [
 			{
-				"title": "PP 36/2021 arts.40(3)(c), 41(3)(a): the paid days per event (3; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"title": "PP 36/2021 arts.40(3)(c), 41(3)(a): the paid days per event (3; window EVENT, `entry.event_kind`, `entry.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			},
 			{
@@ -228,7 +214,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "6833fc1d-c2a4-57db-90de-3b538ca92a00",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -245,7 +230,7 @@
 		},
 		"references": [
 			{
-				"title": "PP 36/2021 arts.40(3)(c), 41(3)(b): the paid days per event (2; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"title": "PP 36/2021 arts.40(3)(c), 41(3)(b): the paid days per event (2; window EVENT, `entry.event_kind`, `entry.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			},
 			{
@@ -254,7 +239,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "4ec7067b-f711-5452-98b5-4fe54100d797",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -271,7 +255,7 @@
 		},
 		"references": [
 			{
-				"title": "PP 36/2021 arts.40(3)(c), 41(3)(c): the paid days per event (2; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"title": "PP 36/2021 arts.40(3)(c), 41(3)(c): the paid days per event (2; window EVENT, `entry.event_kind`, `entry.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			},
 			{
@@ -280,7 +264,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "24653b0e-1f5a-5566-8f3e-f0f6b5ca2c8c",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -297,7 +280,7 @@
 		},
 		"references": [
 			{
-				"title": "PP 36/2021 arts.40(3)(c), 41(3)(d): the paid days per event (2; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"title": "PP 36/2021 arts.40(3)(c), 41(3)(d): the paid days per event (2; window EVENT, `entry.event_kind`, `entry.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			},
 			{
@@ -306,7 +289,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "ddd19e0b-563e-5b88-b9c7-74c6566a5886",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -323,7 +305,7 @@
 		},
 		"references": [
 			{
-				"title": "PP 36/2021 arts.40(3)(c), 41(3)(f): the paid days per event (2; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"title": "PP 36/2021 arts.40(3)(c), 41(3)(f): the paid days per event (2; window EVENT, `entry.event_kind`, `entry.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			},
 			{
@@ -332,7 +314,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "8b067b4e-b776-5317-a855-b7d90a509a0c",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -349,7 +330,7 @@
 		},
 		"references": [
 			{
-				"title": "PP 36/2021 arts.40(3)(c), 41(3)(g): the paid days per event (1; window EVENT, `entry.facts.event_kind`, `entry.facts.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
+				"title": "PP 36/2021 arts.40(3)(c), 41(3)(g): the paid days per event (1; window EVENT, `entry.event_kind`, `entry.relationship`); UU 13/2003 art.93(4) as amended by UU 6/2023.",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			},
 			{
@@ -358,7 +339,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "771cc688-fd66-5996-a1d4-e519faad4d47",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -374,7 +354,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "af65b5d6-561f-5e1e-bef0-09144e5dfbe6",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -390,7 +369,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "366aae68-2262-5994-96cc-7645f211b277",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -400,7 +378,6 @@
 		"pay_treatment": "PAID",
 		"lookup": {},
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "910f0a3e-2824-589f-82e8-7beebbf680ff",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
 		"references": [
@@ -420,12 +397,11 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "PP 36/2021 arts.40(4)(b), 43: the wage is paid while the worker performs a religious duty their religion commands, only once during the employment with the company: a second event (another `facts.event_id`, or none) is refused.",
+				"title": "PP 36/2021 arts.40(4)(b), 43: the wage is paid while the worker performs a religious duty their religion commands, only once during the employment with the company: a second event (another `event_id`, or none) is refused.",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "f60fc943-d78f-57ba-8adc-85ca148e8154",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -441,7 +417,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "75ffcb49-743c-5ecd-ae67-59e21c834848",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -457,7 +432,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "ddf650ac-7970-5345-be74-34cb20121625",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -468,12 +442,11 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "PP 36/2021 arts.40(4)(c), 44: paid at the usual wage, with the employer’s consent shown by written notice (`entry.facts.employer_consent`).",
+				"title": "PP 36/2021 arts.40(4)(c), 44: paid at the usual wage, with the employer’s consent shown by written notice (`entry.employer_consent`).",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "1cb71776-03f1-5b5f-84e7-1cbfc24e67dd",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -489,7 +462,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "1ab54aea-7ab4-584c-a583-0ad15066da70",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -505,7 +477,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "9f1b0550-14d3-50a0-a247-c598c88ec073",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -520,7 +491,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "c79c1ba8-fbd1-5df8-a8fa-1f3438ba4740",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -541,7 +511,7 @@
 		},
 		"references": [
 			{
-				"title": "UU 4/2024 art.6(1)(a): the two days of a birth may be followed by up to three more days, or as agreed with the employer (`entry.facts.employer_agreed`); window EVENT, 3 days."
+				"title": "UU 4/2024 art.6(1)(a): the two days of a birth may be followed by up to three more days, or as agreed with the employer (`entry.employer_agreed`); window EVENT, 3 days."
 			},
 			{
 				"title": "UU 4/2024 art.6(2)(a) — up to 3 more days after the two of a birth, or as agreed",
@@ -549,7 +519,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "20da979e-7475-5ad9-8a20-54a314e1311e",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	},
@@ -560,12 +529,11 @@
 		"lookup": {},
 		"references": [
 			{
-				"title": "UU 13/2003 art.79(5) as amended by UU 6/2023: long leave as the employment agreement, company regulation or collective agreement grants it (`company.facts.long_leave_granted`); PP 36/2021 arts.40(5)(c), 46: paid at the usual wage.",
+				"title": "UU 13/2003 art.79(5) as amended by UU 6/2023: long leave as the employment agreement, company regulation or collective agreement grants it (`company.long_leave_granted`); PP 36/2021 arts.40(5)(c), 46: paid at the usual wage.",
 				"url": "https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021"
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "fbece36b-d802-556b-91f4-4389cfb7d37d",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
 	}

@@ -61,7 +61,7 @@ export type ExistingLeave = {
 	readonly employment_id: Id<'employee_contract'>;
 	readonly catalog_id: Id<'leave_catalog'>;
 	readonly days: readonly { readonly date: string; readonly part: 'AM' | 'PM' }[];
-	readonly is_reversal: boolean;
+	readonly reverses?: string | null;
 };
 export type ExistingPayment<C extends string> = {
 	readonly employment_id: Id<'employee_contract'>;
@@ -384,7 +384,7 @@ export function parseLeaveSheet(
 	const codes = new Map(known.catalogs.map((catalog) => [catalog.id, catalog.code]));
 	const held = new Map<string, string>();
 	for (const entry of known.existing) {
-		if (entry.is_reversal) continue;
+		if (entry.reverses != null) continue;
 		const code = codes.get(entry.catalog_id) ?? '';
 		for (const slot of entry.days)
 			held.set(`${entry.employment_id}:${String(slot.date).slice(0, 10)}:${slot.part}`, code);

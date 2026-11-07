@@ -15,6 +15,6 @@
 		{...record === null
 			? { values: view.mode === 'create' ? view.values : {} }
 			: { id: record.id, record }}
-		fields={['amount', 'paid_on', 'payment_reference', 'is_reversal']}
+		fields={['amount', 'paid_on', 'payment_reference', 'reverses']}
 	/>
 </RecordShell>

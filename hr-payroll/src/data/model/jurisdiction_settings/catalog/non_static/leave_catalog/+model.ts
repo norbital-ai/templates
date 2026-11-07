@@ -21,13 +21,11 @@ export default model('leave_catalog', {
 		name: { kind: 'text' },
 		description: { kind: 'text', optional: true },
 		pay_treatment: { kind: 'enum', values: ['PAID', 'UNPAID'] },
-		conversion: { kind: 'text', format: 'cel', max: 65536, optional: true },
+		conversion: { kind: 'text', max: 65536, optional: true },
 		references: { kind: 'custom', of: 'references', optional: true },
-		eligibility: { kind: 'text', format: 'cel', max: 65536, optional: true },
-		incurred_on: { kind: 'text', format: 'cel', max: 65536, optional: true },
+		eligibility: { kind: 'text', max: 65536, optional: true },
+		incurred_on: { kind: 'text', max: 65536, optional: true },
 		direction: { kind: 'enum', values: ['ADD', 'DEDUCT'], default: 'ADD' },
-		party: { kind: 'enum', values: ['EMPLOYEE', 'EMPLOYER'], default: 'EMPLOYEE' },
-		off_cycle_eligible: { kind: 'bool' },
 		settings_id: { kind: 'ref', to: 'jurisdiction_settings', inverse: 'leave_catalog', owned: true }
 	},
 	unique: [{ fields: ['settings_id', 'code'] }],
@@ -50,12 +48,19 @@ export default model('leave_catalog', {
 				'eligibility',
 				'incurred_on',
 				'direction',
-				'party',
-				'off_cycle_eligible',
 				'settings_id'
 			]
 		},
 		transform: function* (rows, ctx) {
+			if (
+				rows.some(
+					(row) =>
+						row.pay_treatment === 'UNPAID' &&
+						row.conversion != null &&
+						row.conversion !== ''
+				)
+			)
+				return yield* ctx.refuse('An unpaid leave row cannot also carry a conversion.');
 			yield* guardConfigurationRows(
 				ctx.db.query,
 				'leave_catalog',
@@ -79,11 +84,18 @@ export default model('leave_catalog', {
 				'eligibility',
 				'incurred_on',
 				'direction',
-				'party',
-				'off_cycle_eligible'
 			]
 		},
 		transform: function* (changes, ctx) {
+			if (
+				changes.some(
+					({ before, set }) =>
+						({ ...before, ...set }).pay_treatment === 'UNPAID' &&
+						({ ...before, ...set }).conversion != null &&
+						({ ...before, ...set }).conversion !== ''
+				)
+			)
+				return yield* ctx.refuse('An unpaid leave row cannot also carry a conversion.');
 			yield* guardConfigurationRows(
 				ctx.db.query,
 				'leave_catalog',

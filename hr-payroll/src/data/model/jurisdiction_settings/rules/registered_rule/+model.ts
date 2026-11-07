@@ -42,13 +42,9 @@ export default model('registered_rule', {
 			],
 			many: true
 		},
-		reads: {
-			kind: 'json',
-			shape: { kind: 'record', of: { kind: 'json' } },
-			default: {}
-		},
-		condition: { kind: 'text', format: 'cel', max: 65536, optional: true },
-		validate: { kind: 'text', format: 'cel', max: 65536 },
+		reads: { kind: 'custom', of: 'reads', optional: true },
+		condition: { kind: 'text', max: 65536, optional: true },
+		validate: { kind: 'text', max: 65536 },
 		order: { kind: 'int', default: 0 },
 		lookup: {
 			kind: 'json',

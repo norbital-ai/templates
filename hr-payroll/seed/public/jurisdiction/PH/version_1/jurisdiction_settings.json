@@ -14,30 +14,9 @@
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
 			"type": "object",
 			"title": "PH employee extension data",
-			"description": "Additional compliance data on the sealed contract: person and withholding elections, contract compliance and departure. Shared salary, allowances, work classifications, dates and work arrangements are native terms and contract fields.",
+			"description": "Additional compliance data on the sealed contract: previous-employer figures, statutory declarations, contract compliance and departure. Shared salary, allowances, work classifications, dates and work arrangements are native terms and contract fields.",
 			"additionalProperties": false,
 			"properties": {
-				"cumulative_average_required_year": {
-					"type": "integer",
-					"minimum": 2023,
-					"title": "Cumulative-average withholding required for year",
-					"description": "HR-reviewed calendar year in which RR11-2018 s.2.79(B)(5)(a) requires cumulative-average withholding. Once applicable, the method continues through that calendar year. Known current/historical triggers require review without this flag."
-				},
-				"cumulative_average_reviewed_period": {
-					"type": "string",
-					"title": "Reviewed cumulative-average payroll period",
-					"description": "Original exact salary payroll-period key for a reviewed cash-basis calculation. The signed liability is current payment-month-to-date; missing or stale review cannot authorize unsupported periods/history."
-				},
-				"cumulative_average_month_liability": {
-					"type": "number",
-					"title": "Reviewed month-to-date cumulative-average withholding",
-					"description": "Signed current calendar-month withholding liability through the reviewed payroll period, computed externally using the actual covered payroll-period count, current/prior-employer taxable pay and prior withholding. Exclude earlier-calendar-month withholding. The engine subtracts earlier slips of this same month. This is an explicit reviewed input, not automatic statutory cumulative-average calculation."
-				},
-				"cumulative_average_review_reference": {
-					"type": "string",
-					"title": "Cumulative-average review evidence",
-					"description": "Reference to the reviewed computation and evidence of actual covered periods, prior-employer periods/pay/tax and continuing applicability."
-				},
 				"previous_employer_taxable_compensation": {
 					"type": "number",
 					"minimum": 0,
@@ -50,12 +29,6 @@
 					"title": "Tax withheld by the previous employer this year",
 					"description": "Customer input from the previous employer’s 2316: credited in the annualisation."
 				},
-				"night_work_alternative_until": {
-					"type": "string",
-					"format": "date",
-					"title": "Alternative to night work until",
-					"description": "Customer input: the last day of an additional period, during pregnancy or after the post-childbirth period, for which a medical certificate states that an alternative to night work is necessary for the health of the mother or child (Labor Code art.158(b) as inserted by RA 10151)."
-				},
 				"retirement_plan_exemption_availed": {
 					"type": "boolean",
 					"default": false,
@@ -65,25 +38,8 @@
 				"previous_employer_year": {
 					"type": "integer",
 					"minimum": 1900,
-					"title": "Year of previous-employer2316 facts",
+					"title": "Year of the previous employer’s 2316 figures",
 					"description": "Calendar cash year of reported taxable compensation and withholding; stale prior-year values are excluded."
-				},
-				"previous_employer_pay_frequency": {
-					"type": "string",
-					"enum": ["MONTHLY", "SEMI_MONTHLY", "WEEKLY", "DAILY"],
-					"title": "Previous-employer payroll frequency",
-					"description": "Original frequency evidenced by payroll records, not inferred from employment dates."
-				},
-				"previous_employer_payroll_periods": {
-					"type": "integer",
-					"minimum": 0,
-					"title": "Actual prior payroll periods covered",
-					"description": "Actual count to which the prior2316 taxable compensation relates. Automatic cumulative derivation supports same-frequency MONTHLY only; mixed frequencies require dated calculation review."
-				},
-				"previous_employer_review_reference": {
-					"type": "string",
-					"title": "Previous-employer period/pay/tax evidence",
-					"description": "Original2316 and payroll-period records supporting reported taxable compensation, tax and actual period count."
 				},
 				"statutory": {
 					"type": "object",
@@ -96,24 +52,17 @@
 							"title": "Social Security System",
 							"additionalProperties": false,
 							"properties": {
-								"elections": {
-									"type": "object",
-									"title": "Declared inputs",
-									"properties": {
-										"covered_before_60": {
-											"type": "boolean",
-											"default": false,
-											"title": "SSS member covered before sixty",
-											"description": "SSS standing election (RA 11199 s.9(a)), an override: coverage past sixty is derived from the employment — hired before sixty, or an SSS charge on this payroll in the twelve months before; set this when the member was first covered before sixty through an earlier employer. Nothing is charged from sixty-five (s.12-B)."
-										},
-										"exempt_by_totalisation": {
-											"type": "boolean",
-											"default": false,
-											"title": "Exempt from SSS under a social security agreement",
-											"description": "SSS standing election (customer input): a foreign employee covered by their own system under a Philippine bilateral social security agreement."
-										}
-									},
-									"additionalProperties": false
+								"covered_before_60": {
+									"type": "boolean",
+									"default": false,
+									"title": "SSS member covered before sixty",
+									"description": "SSS standing election (RA 11199 s.9(a)), an override: coverage past sixty is derived from the employment — hired before sixty, or an SSS charge on this payroll in the twelve months before; set this when the member was first covered before sixty through an earlier employer. Nothing is charged from sixty-five (s.12-B)."
+								},
+								"exempt_by_totalisation": {
+									"type": "boolean",
+									"default": false,
+									"title": "Exempt from SSS under a social security agreement",
+									"description": "SSS standing election (customer input): a foreign employee covered by their own system under a Philippine bilateral social security agreement."
 								}
 							}
 						},
@@ -122,43 +71,15 @@
 							"title": "Withholding tax on compensation",
 							"additionalProperties": false,
 							"properties": {
-								"elections": {
-									"type": "object",
-									"title": "Declared inputs",
-									"additionalProperties": false,
-									"properties": {
-										"treaty_exempt": {
-											"type": "boolean",
-											"default": false,
-											"title": "Exempt under an income-tax treaty",
-											"description": "Customer input. A resident or non-resident alien whom an applicable Philippine tax treaty relieves from withholding on this compensation."
-										}
-									}
+								"treaty_exempt": {
+									"type": "boolean",
+									"default": false,
+									"title": "Exempt under an income-tax treaty",
+									"description": "Customer input. A resident or non-resident alien whom an applicable Philippine tax treaty relieves from withholding on this compensation."
 								}
 							}
 						}
 					}
-				},
-				"thirteenth_integrated_components": {
-					"type": "array",
-					"items": {
-						"type": "string"
-					},
-					"uniqueItems": true,
-					"title": "Components integrated into basic salary",
-					"description": "Component codes expressly part of basic salary under individual/CBA agreement or established company practice. Original captured classification governs each earning, supported by integration_reference."
-				},
-				"integration_reference": {
-					"type": "string",
-					"title": "Basic-salary integration evidence",
-					"description": "Agreement/CBA/practice evidence for thirteenth_integrated_components."
-				},
-				"days_per_year": {
-					"type": "integer",
-					"enum": [253, 261, 305, 313, 365],
-					"default": 313,
-					"title": "Days-per-year factor",
-					"description": "The factor that turns the monthly basic into a daily rate (DOLE Handbook 2024 ch.2 §D–E): 365 when rest days, special days and regular holidays are paid; 313 on a six-day week; 261 on a five-day week; 305 / 253 where the special days are unpaid. Read by every day- and hour-rated line, retirement pay, the kasambahay pay, the WTAX leave ceiling and the minimum-wage-earner floor. Unrecorded is 313."
 				},
 				"work_region": {
 					"type": "string",
@@ -167,13 +88,20 @@
 				},
 				"ebet_program": {
 					"type": "string",
-					"enum": ["GENERAL", "APPRENTICESHIP", "UPSKILLING"],
+					"enum": [
+						"GENERAL",
+						"APPRENTICESHIP",
+						"UPSKILLING"
+					],
 					"title": "Registered EBET programme",
 					"description": "Customer input. RA 12063 (Enterprise-Based Education and Training Framework Act) s.4: the programme an INTERN or APPRENTICE contract is enrolled in — general training (an allowance, no wage floor, s.13(a)), apprenticeship (75% of the floor, s.13(b)), upskilling (the full wage, s.12)."
 				},
 				"mine_worker": {
 					"type": "string",
-					"enum": ["UNDERGROUND", "SURFACE"],
+					"enum": [
+						"UNDERGROUND",
+						"SURFACE"
+					],
 					"title": "Mine worker",
 					"description": "Customer input. RA 8558 / RA 10757: retirement from fifty, compulsory at sixty."
 				},
@@ -214,10 +142,6 @@
 					],
 					"description": "Labor Code arts.298–299 and DOLE Handbook 2024 ch.14 §C (customer input): the authorised cause. Labour-saving devices, redundancy and an impossible reinstatement pay a month a year; retrenchment, a closure not due to serious losses, disease, a security guard without assignment for six months (DO 150-16) and a contractor’s worker without assignment for three months (DO 174-17 s.13) half a month a year, at least a month; a closure due to serious losses pays none. A bona fide suspension of operations past six months (art.301; DO 215-20) is retrenchment pay, half a month a year."
 				},
-				"terminated_for_disease": {
-					"type": "boolean",
-					"description": "Labor Code art.299: separation pay of one month or half a month a year, whichever is greater."
-				},
 				"kasambahay_unjust_dismissal": {
 					"type": "boolean",
 					"description": "RA 10361 s.32: fifteen days’ pay as indemnity."
@@ -233,7 +157,10 @@
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": ["kind", "on"],
+						"required": [
+							"kind",
+							"on"
+						],
 						"properties": {
 							"kind": {
 								"type": "string",
@@ -263,10 +190,6 @@
 								"type": "string",
 								"format": "date",
 								"title": "Ended on"
-							},
-							"document": {
-								"type": "string",
-								"title": "Document on the profile"
 							},
 							"allocated_days": {
 								"type": "integer",
@@ -307,16 +230,6 @@
 					"title": "Certified BMBE",
 					"description": "RA 9178 s.8: a Barangay Micro Business Enterprise with a current Certificate of Authority is exempt from the Minimum Wage Law, so its non-household employees are not minimum wage earners for WTAX."
 				},
-				"bir_rdo_code": {
-					"type": "string",
-					"title": "BIR Revenue District Office"
-				},
-				"hdmf_remittance_group": {
-					"type": "integer",
-					"enum": [1, 2, 3, 4],
-					"title": "Pag-IBIG remittance group",
-					"description": "HDMF Circular 275 §E.2: the first letter of the employer’s registered name picks the window in the month after the period — 1 = A–D (10th–14th), 2 = E–L (15th–19th), 3 = M–Q (20th–24th), 4 = R–Z or a numeral (25th to month-end). Unrecorded, the earliest window governs."
-				},
 				"nsd_small_retail_exempt": {
 					"type": "boolean",
 					"default": false,
@@ -340,17 +253,6 @@
 					"default": false,
 					"title": "Exempt from the maternity salary differential",
 					"description": "Customer input. RA 11210 s.5(c) and IRR Rule VI: distressed, retail/service of ten or fewer, micro business, or already paying the equivalent."
-				},
-				"collects_service_charges": {
-					"type": "boolean",
-					"default": false,
-					"title": "Collects service charges",
-					"description": "Customer input. Labor Code art.96 as amended by RA 11360: hotels, restaurants and similar establishments."
-				},
-				"wage_payment_conditions_met": {
-					"type": "boolean",
-					"title": "Cheque or bank payment conditions met",
-					"description": "Customer input, one per establishment. Omnibus Rules Book III Rule VIII s.2: payment of wages by cheque, money order, bank transfer or e-wallet is customary since the Code took effect or stipulated in a CBA, or all hold — an encashment facility within one kilometre of the workplace, no pecuniary benefit to the employer, reasonable paid time to withdraw, and the employees’ written consent."
 				},
 				"bir_qualified_retirement_plan": {
 					"type": "boolean",
@@ -382,47 +284,6 @@
 			}
 		},
 		"lookup": {
-			"rounding": "HALF_UP",
-			"rounding_scale": 2,
-			"normal_hours_per_day": 8,
-			"days_per_year": 313,
-			"months_per_year": 12,
-			"day_rate": "// DOLE Handbook on Workers' Statutory Monetary Benefits 2024: monthly rate × 12 ÷ paid days a year, 313 or 261.\n// proration_basis WORKING_DAYS: no statute fixes a basis for an incomplete month. Handbook ch.1 §I deducts \"the wages corresponding\n// to the days taken off\", on \"no work, no pay\", so joiners, leavers and absences lose their own working days.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\nconst hours = Number(get(terms, 'normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nif (unit === 'DAILY') return amount;\nif (unit === 'HOURLY' || unit === 'PIECE') return amount * hours;\nconst days = Number(get(ctx.subject.employment, 'employee_extension_data.days_per_year', ctx.lookup.days_per_year));\nreturn (amount * ctx.lookup.months_per_year) / days;",
-			"proration_basis": "WORKING_DAYS",
-			"minor_unit": 0.01,
-			"domestic_threshold": 5000,
-			"ordinary_coverage_age_years": 60,
-			"extended_coverage_age_years": 65,
-			"minimum_salary_credit": 5000,
-			"maximum_salary_credit": 35000,
-			"salary_credit_step": 500,
-			"regular_fund_salary_credit_ceiling": 20000,
-			"domestic_salary_credit_floor": 1000,
-			"sss_employee_rate": 0.05,
-			"sss_employer_rate": 0.1,
-			"final_pay_maximum_days": 30,
-			"premium_excluded_categories": [
-				"MANAGERIAL",
-				"DOMESTIC",
-				"FIELD_PERSONNEL",
-				"TASK_BASIS",
-				"PIECE_RATE"
-			],
-			"time_zone": "Asia/Manila",
-			"night_window_start": "22:00",
-			"night_window_end": "06:00",
-			"overtime_multiples": {
-				"ordinary": 1.25,
-				"rest": 1.69,
-				"special": 1.69,
-				"special_rest": 1.95,
-				"double_special": 1.95,
-				"double_special_rest": 2.535,
-				"holiday": 2.6,
-				"holiday_rest": 3.38,
-				"double_holiday": 3.9,
-				"double_holiday_rest": 5.07
-			},
 			"day_multiples": {
 				"ordinary": 1,
 				"rest": 1.3,
@@ -435,84 +296,6 @@
 				"double_holiday": 3,
 				"double_holiday_rest": 3.9
 			},
-			"annual_tax": [
-				{
-					"up_to": 250000,
-					"rate": 0
-				},
-				{
-					"up_to": 400000,
-					"rate": 0.15
-				},
-				{
-					"up_to": 800000,
-					"rate": 0.2
-				},
-				{
-					"up_to": 2000000,
-					"rate": 0.25
-				},
-				{
-					"up_to": 8000000,
-					"rate": 0.3
-				},
-				{
-					"up_to": null,
-					"rate": 0.35
-				}
-			],
-			"annual_bonus_and_other_benefits": 90000,
-			"overtime_meal_minimum_wage_share": 0.25,
-			"de_minimis": [
-				{
-					"subtotal": "DE_MINIMIS_RICE",
-					"after": "STATUTORY_WAGES",
-					"months": 1,
-					"ceiling": 2000
-				},
-				{
-					"subtotal": "DE_MINIMIS_LAUNDRY",
-					"after": "DE_MINIMIS_RICE",
-					"months": 1,
-					"ceiling": 300
-				},
-				{
-					"subtotal": "DE_MINIMIS_DEPENDANT_MEDICAL",
-					"after": "DE_MINIMIS_LAUNDRY",
-					"months": 6,
-					"ceiling": 1500
-				},
-				{
-					"subtotal": "DE_MINIMIS_UNIFORM",
-					"after": "ADDITIONAL_WAGES",
-					"months": 12,
-					"ceiling": 7000
-				},
-				{
-					"subtotal": "DE_MINIMIS_MEDICAL",
-					"after": "DE_MINIMIS_UNIFORM",
-					"months": 12,
-					"ceiling": 10000
-				},
-				{
-					"subtotal": "DE_MINIMIS_AWARD",
-					"after": "DE_MINIMIS_MEDICAL",
-					"months": 12,
-					"ceiling": 10000
-				},
-				{
-					"subtotal": "DE_MINIMIS_GIFT",
-					"after": "DE_MINIMIS_AWARD",
-					"months": 12,
-					"ceiling": 5000
-				},
-				{
-					"subtotal": "DE_MINIMIS_CBA",
-					"after": "DE_MINIMIS_GIFT",
-					"months": 12,
-					"ceiling": 10000
-				}
-			],
 			"minimum_wage_by_region": [
 				{
 					"region": "BARMM-CITY-AGRI-RETAIL",
@@ -1152,21 +935,55 @@
 					"monthly": 6000
 				}
 			],
-			"month_balance": [
-				"ORDINARY_WAGES",
-				"ADDITIONAL_WAGES",
-				"SSS.employee",
-				"SSS.employer",
-				"SSS_MPF.employee",
-				"SSS_MPF.employer",
-				"HDMF.employee",
-				"HDMF.employer",
-				"WTAX.employee",
-				"WTAX_TAXABLE_PAY.employer",
-				"BASIC",
-				"SSS_EC.employer"
-			]
+			"constants": {
+				"premium_excluded_categories": [
+					"MANAGERIAL",
+					"DOMESTIC",
+					"FIELD_PERSONNEL",
+					"TASK_BASIS",
+					"PIECE_RATE"
+				],
+				"overtime_multiples": {
+					"double_holiday": 3.9,
+					"double_holiday_rest": 5.07,
+					"double_special": 1.95,
+					"double_special_rest": 2.535,
+					"holiday": 2.6,
+					"holiday_rest": 3.38,
+					"ordinary": 1.25,
+					"rest": 1.69,
+					"special": 1.69,
+					"special_rest": 1.95
+				},
+				"sss_employee_rate": 0.05,
+				"maximum_salary_credit": 35000,
+				"regular_fund_salary_credit_ceiling": 20000,
+				"domestic_salary_credit_floor": 1000,
+				"minor_unit": 0.01,
+				"minimum_salary_credit": 5000,
+				"sss_employer_rate": 0.1,
+				"ordinary_coverage_age_years": 60,
+				"salary_credit_step": 500,
+				"extended_coverage_age_years": 65,
+				"domestic_threshold": 5000
+			}
 		},
-		"status": "SEALED"
+		"status": "SEALED",
+		"conversions": {
+			"day": {
+				"basis": "YEAR_REST_DAYS"
+			},
+			"hour": {
+				"basis": "CONTRACT_HOURS"
+			},
+			"proration": "WORKING_DAYS",
+			"rounding": {
+				"mode": "HALF_UP",
+				"scale": 2
+			}
+		},
+		"ledger": {
+			"ytd_scope": "JURISDICTION"
+		}
 	}
 ]

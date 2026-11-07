@@ -9,7 +9,7 @@ const days = (off: readonly number[]) =>
 	}));
 // March 2026: Saturdays and Sundays off
 const march = days([1, 7, 8, 14, 15, 21, 22, 28, 29]);
-const salary = (lookup: JsonObject, absent: readonly string[]) => {
+const salary = (settings: JsonObject, absent: readonly string[]) => {
 	const input: PayrollInput = {
 		run: {
 			id: 'run',
@@ -17,7 +17,7 @@ const salary = (lookup: JsonObject, absent: readonly string[]) => {
 			pay_date: '2026-03-31',
 			salary_coverage: { from: '2026-03-01', to: '2026-03-31' }
 		},
-		settings: { code: 'SG', lookup },
+		settings,
 		subtotals: [{ id: 'base', code: 'BASE', name: 'BASE', previous_id: null, settings_id: 'sg' }],
 		allowance: [],
 		overtime: [],
@@ -27,7 +27,7 @@ const salary = (lookup: JsonObject, absent: readonly string[]) => {
 		adhoc_catalog: [],
 		loan_catalog: [],
 		employee: {},
-		employment: { id: 'contract', terms: { rate: { amount: 3100, unit: 'MONTHLY' } } },
+		employment: { id: 'contract', terms: { rate: { amount: 3100, unit: 'MONTHLY' }, normal_hours_per_day: 8, normal_hours_per_week: 40, normal_days_per_week: 5 } },
 		employer: {},
 		balance: { account: {} },
 		entries: {},
@@ -37,8 +37,20 @@ const salary = (lookup: JsonObject, absent: readonly string[]) => {
 	return calculatePayroll(input).subtotals[0]?.value ?? 0;
 };
 const workDays = march.filter(({ work }) => work).map(({ date }) => date);
-const calendar = { proration_basis: 'CALENDAR_DAYS' };
-const working = { proration_basis: 'WORKING_DAYS' };
+const calendar: JsonObject = {
+	code: 'SG',
+	conversions: {
+		day: { basis: 'WORKING_DAYS' },
+		hour: { basis: 'CONTRACT_HOURS' },
+		proration: 'CALENDAR_DAYS',
+		rounding: { mode: 'HALF_UP', scale: 2 }
+	},
+	ledger: { ytd_scope: 'JURISDICTION' }
+};
+const working: JsonObject = {
+	...calendar,
+	conversions: { ...(calendar.conversions as JsonObject), proration: 'WORKING_DAYS' }
+};
 
 describe('proration basis', () => {
 	it('takes a day of the wage period on calendar days', () => {

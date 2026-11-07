@@ -2,7 +2,6 @@
 	{
 		"code": "DENTAL_CLAIM",
 		"name": "Dental claim",
-		"off_cycle_eligible": true,
 		"subtotal_id": "dd52b358-2b42-5ad0-bbc0-a829775941e8",
 		"direction": "ADD",
 		"party": "EMPLOYEE",
@@ -14,7 +13,8 @@
 				"title": "Employer dental benefit policy (not a statute; EA 1955 s.60F pays sick-leave days, not treatment)",
 				"quote": "Reimbursement of dental treatment the employee has already paid for; it is paid against the approved receipt and is not wages, so no statutory contribution or MTD base includes it."
 			}
-		]
+		],
+		"lookup": {}
 	},
 	{
 		"code": "MEDICAL_CLAIM_DIRECT",
@@ -27,7 +27,6 @@
 		"lookup": {
 			"annual_limit": 576
 		},
-		"off_cycle_eligible": true,
 		"subtotal_id": "dd52b358-2b42-5ad0-bbc0-a829775941e8",
 		"direction": "ADD",
 		"party": "EMPLOYER",
@@ -46,7 +45,6 @@
 		"lookup": {
 			"annual_limit": 576
 		},
-		"off_cycle_eligible": true,
 		"subtotal_id": "dd52b358-2b42-5ad0-bbc0-a829775941e8",
 		"direction": "ADD",
 		"party": "EMPLOYEE",

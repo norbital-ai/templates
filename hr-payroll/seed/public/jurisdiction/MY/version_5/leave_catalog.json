@@ -7,7 +7,6 @@
 		"lookup": {
 			"unit": "DAY"
 		},
-		"off_cycle_eligible": false,
 		"id": "2443cb69-70e5-5a93-84cf-80ee70e99052",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
 		"references": [
@@ -27,7 +26,6 @@
 		"lookup": {
 			"unit": "DAY"
 		},
-		"off_cycle_eligible": false,
 		"id": "7c7d98ac-5190-5eb4-b0f7-9c2d9b8857f5",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
 		"references": [
@@ -48,11 +46,12 @@
 			"unit": "CALENDAR_DAY",
 			"window": "EVENT",
 			"grant_days": 98,
-			"consecutive": true,
 			"maternity_allowance": true,
 			"eligibility": {
 				"gender": "FEMALE",
-				"excluded_employment_types": ["DOMESTIC"],
+				"excluded_employment_types": [
+					"DOMESTIC"
+				],
 				"max_surviving_natural_children": 4,
 				"qualifying_service_days": 90,
 				"qualifying_window_months": 9
@@ -68,20 +67,18 @@
 				"url": "https://jtksm.mohr.gov.my/sites/default/files/2023-03/5.%20EMPLOYMENT%20%28MINIMUM%20RATE%20OF%20MATERNITY%20ALLOWANCE%29%20REGULATIONS%201976_0.pdf"
 			}
 		],
-		"off_cycle_eligible": false,
 		"id": "92b2e77a-1ef0-5b9e-8285-907dc02ae19a",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
 	},
 	{
 		"code": "MATERNITY_LEAVE_NO_ALLOWANCE",
 		"name": "Maternity leave without allowance",
-		"pay_treatment": "PAID",
-		"subtotal_id": "1c1baa33-a9df-5b72-90df-53a226f6783f",
+		"pay_treatment": "UNPAID",
+		"subtotal_id": "580cbea9-acd6-5d9a-af56-f47b294bc967",
 		"lookup": {
 			"unit": "CALENDAR_DAY",
 			"window": "EVENT",
 			"grant_days": 98,
-			"consecutive": true,
 			"maternity_allowance": false,
 			"opened_by": {
 				"CHILD_BIRTH": {},
@@ -89,7 +86,9 @@
 			},
 			"eligibility": {
 				"gender": "FEMALE",
-				"excluded_employment_types": ["DOMESTIC"],
+				"excluded_employment_types": [
+					"DOMESTIC"
+				],
 				"max_surviving_natural_children": 4,
 				"qualifying_service_days": 90,
 				"qualifying_window_months": 9
@@ -102,12 +101,9 @@
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 			}
 		],
-		"off_cycle_eligible": false,
 		"id": "fb3838e9-d353-54e7-a8ed-1e96c8a73b21",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// EA s.18A: a no-pay day is the month's wages ÷ the days of the wage period, fixed allowances with them (s.2 wages).\nconst coverage = ctx.run.salary_coverage;\nif (get(ctx.subject.employment.terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : get(day, 'day_type', 'WORK') === 'WORK';\n};\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst monthDays = calendar_distance_days(from, to) + 1;\nreturn (ctx.day_rate * ctx.lookup.monthly_divisor * Math.min(ctx.entry.quantity + rest, monthDays)) / monthDays;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "HOSPITALIZATION_LEAVE",
@@ -119,7 +115,9 @@
 			"window": "CALENDAR_YEAR",
 			"grant_days": 60,
 			"eligibility": {
-				"excluded_employment_types": ["DOMESTIC"]
+				"excluded_employment_types": [
+					"DOMESTIC"
+				]
 			},
 			"entitlement": "// js\n// EA First Schedule para 2(5): s.60F does not apply to a domestic employee.\n// EA s.60F(1)(bb): sixty days in the aggregate in each calendar year.\nconst employment = ctx.subject.employment;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nreturn ctx.lookup.grant_days;"
 		},
@@ -129,7 +127,6 @@
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 			}
 		],
-		"off_cycle_eligible": false,
 		"id": "08ec73b0-12c2-523a-9f00-b0f5aeae4f43",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
 	},
@@ -170,7 +167,9 @@
 				}
 			],
 			"eligibility": {
-				"excluded_employment_types": ["DOMESTIC"]
+				"excluded_employment_types": [
+					"DOMESTIC"
+				]
 			},
 			"entitlement": "// js\n// EA First Schedule para 2(5): s.60F does not apply to a domestic employee.\n// EA s.60F(1)(aa); Employment (Part-Time Employees) Regulations 2010 reg.8(1): the days for the length of service.\nconst employment = ctx.subject.employment;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? ctx.lookup.part_time_service_bands : ctx.lookup.service_bands;\nconst months = calendar_completed_months(get(employment, 'service_started_on', get(employment, 'effective_range.from')), ctx.as_of);\nreturn get(bands.filter((band) => band.service_months <= months).at(-1), 'days', 0);"
 		},
@@ -180,7 +179,6 @@
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 			}
 		],
-		"off_cycle_eligible": false,
 		"id": "872e1b43-43fe-5079-8538-cb3b08e5a72f",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
 	},
@@ -224,8 +222,7 @@
 			"carry": {
 				"windows": 1,
 				"statutory_grant_carries": true,
-				"company_cap_days": 5,
-				"company_cap_terms_field": "annual_leave_carry_max_days"
+				"company_cap_days": 5
 			},
 			"absence_forfeiture": {
 				"max_absent_share": 0.1,
@@ -235,20 +232,23 @@
 			"service_unpaid_leave_ignored_after_days": 30,
 			"encash_on_exit": {
 				"allowed": true,
-				"refused_on": ["MISCONDUCT_DISMISSAL"]
+				"refused_on": [
+					"MISCONDUCT_DISMISSAL"
+				]
 			},
 			"eligibility": {
-				"excluded_employment_types": ["DOMESTIC"]
+				"excluded_employment_types": [
+					"DOMESTIC"
+				]
 			},
 			"entitlement": "// js\n// EA First Schedule para 2(5): s.60E does not apply to a domestic employee.\n// EA s.60E(1); Employment (Part-Time Employees) Regulations 2010 reg.7(1): the days for the length of service, a share by completed months before the first band.\nconst employment = ctx.subject.employment;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? ctx.lookup.part_time_service_bands : ctx.lookup.service_bands;\nconst months = calendar_completed_months(get(employment, 'service_started_on', get(employment, 'effective_range.from')), ctx.as_of);\nconst [opening] = bands;\nif (months < opening.service_months) return Math.round((opening.days * months) / opening.service_months);\nreturn bands.filter((band) => band.service_months <= months).at(-1).days;"
 		},
 		"references": [
 			{
-				"title": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so all of such leave, not only the days past thirty, comes out of the service the ANNUAL_LEAVE_SERVICE rule counts. Absence without leave is not leave granted and does not come out; s.60F is another section and keeps plain service. Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries. EA s.60E(2) lets the leave of each twelve months of service be taken within the twelve months after them, so a year’s unused statutory days — `carry_statutory_bands`, the s.60E(1) and reg.7(1) ladders above, prorated and rounded as the grant is — carry in full, lapsing at the next year’s end; the 5-day cap (or the terms fact) limits only the company’s days above statute. Encoded 2026-10-07 (round 4b): the entitlement is metered per twelve months of continuous service (window SERVICE_YEAR, EA s.60E(1)); the unused days of one service year carry into the next only (EA s.60E(2): leave of each twelve months is taken within the twelve months after them), at most that year's own entitlement, once. Encoded 2026-10-07 (round 5): a PART_TIME term earns 6 / 8 / 11 days (under two years, two to under five, five or more; Employment (Part-Time Employees) Regulations 2010 reg.7(1)), prorated by completed months in the first year as s.60E(1) prorates the full-time days. EA s.60E(1), second proviso: an employee absent without permission and without reasonable excuse (days the roster marks ABS in the service year) for more than 10% of the working days of the twelve months (52 weeks × normal days per week, six unrecorded) is not entitled to that year’s paid annual leave. Encoded 2026-10-08 (QA F7): EA s.60E(1) closing words and s.60E(2A) (AGC reprint read 2026-10-08): in the year in which the contract terminates, the leave accrued is in direct proportion to the COMPLETED MONTHS of that service year (the year's band × completed months ÷ 12, a half day or more a day), beside the previous twelve months' leave carried in full; s.60E(3A) pays the untaken days. When the exit is recorded and the day read falls in the exit's service year, the grant is so prorated (completed months to the day after the last day, so a full final year keeps its whole band); the first-year proration already counts completed months.",
+				"title": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so all of such leave, not only the days past thirty, comes out of the service the ANNUAL_LEAVE_SERVICE rule counts. Absence without leave is not leave granted and does not come out; s.60F is another section and keeps plain service. Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.annual_leave_carry_limit_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries. EA s.60E(2) lets the leave of each twelve months of service be taken within the twelve months after them, so a year’s unused statutory days — `carry_statutory_bands`, the s.60E(1) and reg.7(1) ladders above, prorated and rounded as the grant is — carry in full, lapsing at the next year’s end; the 5-day cap (or the terms fact) limits only the company’s days above statute. Encoded 2026-10-07 (round 4b): the entitlement is metered per twelve months of continuous service (window SERVICE_YEAR, EA s.60E(1)); the unused days of one service year carry into the next only (EA s.60E(2): leave of each twelve months is taken within the twelve months after them), at most that year's own entitlement, once. Encoded 2026-10-07 (round 5): a PART_TIME term earns 6 / 8 / 11 days (under two years, two to under five, five or more; Employment (Part-Time Employees) Regulations 2010 reg.7(1)), prorated by completed months in the first year as s.60E(1) prorates the full-time days. EA s.60E(1), second proviso: an employee absent without permission and without reasonable excuse (days the roster marks ABS in the service year) for more than 10% of the working days of the twelve months (52 weeks × normal days per week, six unrecorded) is not entitled to that year’s paid annual leave. Encoded 2026-10-08 (QA F7): EA s.60E(1) closing words and s.60E(2A) (AGC reprint read 2026-10-08): in the year in which the contract terminates, the leave accrued is in direct proportion to the COMPLETED MONTHS of that service year (the year's band × completed months ÷ 12, a half day or more a day), beside the previous twelve months' leave carried in full; s.60E(3A) pays the untaken days. When the exit is recorded and the day read falls in the exit's service year, the grant is so prorated (completed months to the day after the last day, so a full final year keeps its whole band); the first-year proration already counts completed months.",
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 			}
 		],
-		"off_cycle_eligible": false,
 		"id": "b91eb424-764e-59b7-a6e3-0c66ab245f62",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
 		"conversion": "// js\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst terms = get(ctx.subject.employment, 'terms', {});\nconst rate = get(terms, 'rate', {});\nconst days = Number(get(ctx.entry, 'quantity', 0));\nconst daily = ctx.day_rate;\nreturn daily * days;"
@@ -261,7 +261,6 @@
 		"lookup": {
 			"unit": "DAY"
 		},
-		"off_cycle_eligible": false,
 		"id": "3a33a74b-bba9-59a2-bfba-7492e951bc12",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
 		"references": [
@@ -276,25 +275,26 @@
 	{
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"description": "Statutory leave for the first five lifetime confinements only. Record each confinement, including those with previous employers, in employee facts.paternity_confinements: its event_id is the date of the CHILD_BIRTH event, with the verified lifetime_number and whether the statutory notification requirement was met.",
+		"description": "Statutory leave for the first five lifetime confinements only. Record each confinement, including those with previous employers, in employee paternity_confinements: its event_id is the date of the CHILD_BIRTH event, with the verified lifetime_number and whether the statutory notification requirement was met.",
 		"pay_treatment": "PAID",
 		"subtotal_id": null,
 		"lookup": {
 			"unit": "CALENDAR_DAY",
 			"window": "EVENT",
 			"grant_days": 7,
-			"consecutive": true,
 			"eligibility": {
 				"gender": "MALE",
 				"marital_status": "MARRIED",
-				"excluded_employment_types": ["DOMESTIC"],
+				"excluded_employment_types": [
+					"DOMESTIC"
+				],
 				"min_service_months": 12,
 				"max_lifetime_confinements": 5
 			},
 			"opened_by": {
 				"CHILD_BIRTH": {}
 			},
-			"entitlement": "// js\n// EA First Schedule para 2(5): s.60FA does not apply to a domestic employee.\nconst employment = ctx.subject.employment;\nconst on = ctx.event.on;\nif (on < get(employment, 'service_started_on', get(employment, 'effective_range.from'))) return 0;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst births = get(employment, 'employee_extension_data.events', []).filter((event) => event.kind === 'CHILD_BIRTH' && event.on <= on);\nconst confinements = births.map((event) => event.on).filter((date, index, all) => all.indexOf(date) === index);\nconst record = get(employment, 'employee_extension_data.facts.paternity_confinements', []).find((item) => item.event_id === on);\n// EA s.60FA(2): five confinements, irrespective of the number of spouses; a verified record counts those of earlier employers.\nif (get(record, 'lifetime_number', confinements.length) > ctx.lookup.eligibility.max_lifetime_confinements) return 0;\n// EA s.60FA(3)(b): he has notified the employer of the pregnancy; HR records the finding on the record.\nif (get(record, 'notification_requirement_met', true) === false) return 0;\n// EA s.60FA(1): seven consecutive days for each confinement, however many children it brought.\nreturn ctx.lookup.grant_days / births.filter((event) => event.on === on).length;"
+			"entitlement": "// js\n// EA First Schedule para 2(5): s.60FA does not apply to a domestic employee.\nconst employment = ctx.subject.employment;\nconst on = ctx.event.on;\nif (on < get(employment, 'service_started_on', get(employment, 'effective_range.from'))) return 0;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst births = get(employment, 'employee_extension_data.events', []).filter((event) => event.kind === 'CHILD_BIRTH' && event.on <= on);\nconst confinements = births.map((event) => event.on).filter((date, index, all) => all.indexOf(date) === index);\nconst record = get(employment, 'employee_extension_data.paternity_confinements', []).find((item) => item.event_id === on);\n// EA s.60FA(2): five confinements, irrespective of the number of spouses; a verified record counts those of earlier employers.\nif (get(record, 'lifetime_number', confinements.length) > ctx.lookup.eligibility.max_lifetime_confinements) return 0;\n// EA s.60FA(3)(b): he has notified the employer of the pregnancy; HR records the finding on the record.\nif (get(record, 'notification_requirement_met', true) === false) return 0;\n// EA s.60FA(1): seven consecutive days for each confinement, however many children it brought.\nreturn ctx.lookup.grant_days / births.filter((event) => event.on === on).length;"
 		},
 		"references": [
 			{
@@ -302,20 +302,18 @@
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 			}
 		],
-		"off_cycle_eligible": false,
 		"id": "bed2061e-9d12-5bf8-a454-6919179ff1d2",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2"
 	},
 	{
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
-		"pay_treatment": "PAID",
-		"subtotal_id": "1c1baa33-a9df-5b72-90df-53a226f6783f",
+		"pay_treatment": "UNPAID",
+		"subtotal_id": "580cbea9-acd6-5d9a-af56-f47b294bc967",
 		"lookup": {
 			"unit": "DAY",
 			"no_cap": true
 		},
-		"off_cycle_eligible": false,
 		"id": "4bfd537e-8807-52ec-8598-c7ff14562625",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
 		"references": [
@@ -326,15 +324,13 @@
 				"quote": "An employee on a monthly rate who takes unpaid leave is paid the monthly wages divided by the days of the wage period for the days eligible."
 			}
 		],
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// EA s.18A: a no-pay day is the month's wages ÷ the days of the wage period, fixed allowances with them (s.2 wages).\nconst coverage = ctx.run.salary_coverage;\nif (get(ctx.subject.employment.terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : get(day, 'day_type', 'WORK') === 'WORK';\n};\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst monthDays = calendar_distance_days(from, to) + 1;\nreturn (ctx.day_rate * ctx.lookup.monthly_divisor * Math.min(ctx.entry.quantity + rest, monthDays)) / monthDays;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "NATIONAL_SERVICE_LEAVE",
 		"name": "National service leave",
-		"pay_treatment": "PAID",
-		"subtotal_id": "1c1baa33-a9df-5b72-90df-53a226f6783f",
+		"pay_treatment": "UNPAID",
+		"subtotal_id": "580cbea9-acd6-5d9a-af56-f47b294bc967",
 		"lookup": {
 			"unit": "DAY",
 			"no_cap": true
@@ -345,18 +341,15 @@
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 			}
 		],
-		"off_cycle_eligible": false,
 		"id": "f11eadfa-2ae2-5b0f-9954-f6ffe9b8fb49",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// EA s.18A: a no-pay day is the month's wages ÷ the days of the wage period, fixed allowances with them (s.2 wages).\nconst coverage = ctx.run.salary_coverage;\nif (get(ctx.subject.employment.terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : get(day, 'day_type', 'WORK') === 'WORK';\n};\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst monthDays = calendar_distance_days(from, to) + 1;\nreturn (ctx.day_rate * ctx.lookup.monthly_divisor * Math.min(ctx.entry.quantity + rest, monthDays)) / monthDays;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "COURT_CUSTODY_ABSENCE",
 		"name": "Court or custody absence",
-		"pay_treatment": "PAID",
-		"subtotal_id": "1c1baa33-a9df-5b72-90df-53a226f6783f",
+		"pay_treatment": "UNPAID",
+		"subtotal_id": "580cbea9-acd6-5d9a-af56-f47b294bc967",
 		"lookup": {
 			"unit": "DAY",
 			"no_cap": true
@@ -367,11 +360,8 @@
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 			}
 		],
-		"off_cycle_eligible": false,
 		"id": "0ecf2a0a-a543-584f-8670-50c43b9c3f56",
 		"settings_id": "2bfaa924-09e3-5555-9026-e0a8eda031f2",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// EA s.18A: a no-pay day is the month's wages ÷ the days of the wage period, fixed allowances with them (s.2 wages).\nconst coverage = ctx.run.salary_coverage;\nif (get(ctx.subject.employment.terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : get(day, 'day_type', 'WORK') === 'WORK';\n};\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst monthDays = calendar_distance_days(from, to) + 1;\nreturn (ctx.day_rate * ctx.lookup.monthly_divisor * Math.min(ctx.entry.quantity + rest, monthDays)) / monthDays;"
+		"direction": "DEDUCT"
 	}
 ]

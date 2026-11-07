@@ -3,10 +3,7 @@
 		"code": "LOAN_RECOVERY_AIR_TICKET",
 		"name": "Air ticket loan recovery",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": "c6b02f8a-4a07-5bb8-964e-b826b6b48b30",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
 		"id": "db89663a-8a01-5ed7-adc7-1ca853f424d2",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0",
 		"references": [
@@ -22,10 +19,7 @@
 		"code": "LOAN_RECOVERY_FESTIVE_ADVANCE",
 		"name": "Hari Raya (festive) advance recovery",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": "c6b02f8a-4a07-5bb8-964e-b826b6b48b30",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
 		"id": "087ad48f-3bb0-5323-a382-76eedeec023c",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0",
 		"references": [
@@ -41,10 +35,7 @@
 		"code": "AIR_TICKET_DEDUCTION",
 		"name": "Air ticket deduction",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": "c6b02f8a-4a07-5bb8-964e-b826b6b48b30",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
 		"id": "b58e1e7c-3bfd-5702-acf0-b052aef4d974",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0",
 		"references": [
@@ -60,10 +51,7 @@
 		"code": "APPROVED_HOUSING_LOAN",
 		"name": "Housing loan with Director General approval",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": "c6b02f8a-4a07-5bb8-964e-b826b6b48b30",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
 		"id": "0124eab3-ce00-597b-9ce2-05781d716f3c",
 		"settings_id": "bf8259bb-7a57-5d45-8211-e8bc85acf2a0",
 		"references": [

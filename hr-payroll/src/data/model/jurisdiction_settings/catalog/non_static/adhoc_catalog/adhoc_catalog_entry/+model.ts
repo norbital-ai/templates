@@ -1,9 +1,11 @@
 import { model } from '@norbital-ai/bolt';
 import {
 	assertAdjustmentsClosed,
-	assertReversals
+	assertReversals,
+	entriesUndone,
+	entryPostings,
+	entryRead
 } from '../../../../../../../lib/ledger/service.js';
-import { validateRegistered } from '../../../../../../../lib/payroll_engine/registrations.js';
 import { jsonObject } from '../../../../../../../lib/payroll_engine/foundation.js';
 import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
 
@@ -25,7 +27,6 @@ export default model('adhoc_catalog_entry', {
 			max: '20MiB',
 			optional: true
 		},
-		is_reversal: { kind: 'bool', default: false },
 		reverses: { kind: 'ref', to: 'adhoc_catalog_entry', optional: true, onDelete: 'restrict' }
 	},
 	locked: { payroll_run_id: { isNull: false } },
@@ -47,29 +48,24 @@ export default model('adhoc_catalog_entry', {
 				'unit',
 				'incurred_on',
 				'evidence_file',
-				'is_reversal',
 				'reverses'
 			]
 		},
-		filled: { adhoc_catalog_entry: ['is_reversal'] },
 		transform: function* (input, ctx) {
-			const rows = input.map((row) => ({ ...row, is_reversal: row.reverses != null }));
-			yield* validateRegistered(
+			const rows = input;
+			const entries = rows.map((row) => jsonObject(row));
+			// the approving decision asks again only for what the entry posts: what it checked stands
+			const known = yield* entryRead(
 				ctx.db.query,
 				'adhoc_catalog_entry',
-				'create',
-				rows.map((row) => jsonObject(row))
+				entries,
+				ctx.approving ? undefined : 'create'
 			);
-			yield* assertReversals(
-				ctx.db.query,
-				'adhoc_catalog_entry',
-				rows.map((row) => jsonObject(row))
-			);
-			yield* assertAdjustmentsClosed(
-				ctx.db.query,
-				rows.map((row) => jsonObject(row))
-			);
-			return rows;
+			if (!ctx.approving) {
+				yield* assertReversals(known, 'adhoc_catalog_entry', entries);
+				yield* assertAdjustmentsClosed(known, entries);
+			}
+			return { rows, onApproved: entryPostings(known, 'adhoc_catalog_entry', entries) };
 		}
 	},
 	update: {
@@ -92,28 +88,37 @@ export default model('adhoc_catalog_entry', {
 			)
 				return changes.map((change) => change.set);
 			const proposed = changes.map((change) => jsonObject({ ...change.before, ...change.set }));
-			yield* validateRegistered(ctx.db.query, 'adhoc_catalog_entry', 'update', proposed);
-			if (changes.some((c) => c.before.payroll_run_id != null))
+			const known = yield* entryRead(
+				ctx.db.query,
+				'adhoc_catalog_entry',
+				proposed,
+				ctx.approving ? undefined : 'update'
+			);
+			if (!ctx.approving && changes.some((c) => c.before.payroll_run_id != null))
 				return yield* ctx.refuse('This record is locked by a payroll run.');
-			return changes.map((c) => c.set);
+			return {
+				rows: changes.map((c) => c.set),
+				onApproved: entryPostings(known, 'adhoc_catalog_entry', proposed)
+			};
 		}
 	},
 	delete: {
 		check: function* (rows, ctx) {
-			yield* validateRegistered(
+			const entries = rows.map((row) => jsonObject(row));
+			const known = yield* entryRead(
 				ctx.db.query,
 				'adhoc_catalog_entry',
-				'delete',
-				rows.map((row) => jsonObject(row))
+				entries,
+				ctx.approving ? undefined : 'delete'
 			);
-			if (rows.some((r) => r.payroll_run_id != null))
+			if (!ctx.approving && rows.some((r) => r.payroll_run_id != null))
 				return yield* ctx.refuse('This record is locked by a payroll run.');
+			return { onApproved: entriesUndone(known, 'adhoc_catalog_entry', entries) };
 		}
 	},
 
 	effect: {
 		created: function* (rows, ctx) {
-			yield* ctx.schedule('ledger', { post: rows.map((row) => `adhoc_catalog_entry:${row.id}`) });
 			yield* tap(
 				ctx,
 				'create',
@@ -122,22 +127,12 @@ export default model('adhoc_catalog_entry', {
 			);
 		},
 		updated: function* (changes, ctx) {
-			const edited = changes.filter(
-				({ before, after }) => before.payroll_run_id === after.payroll_run_id
-			);
-			if (edited.length > 0)
-				yield* ctx.schedule('ledger', {
-					post: edited.map(({ after }) => `adhoc_catalog_entry:${after.id}`)
-				});
 			yield* tap(
 				ctx,
 				'update',
 				{ collection: 'adhoc_catalog_entry', ids: changes.map((change) => change.after.id) },
 				changes
 			);
-		},
-		deleted: function* (rows, ctx) {
-			yield* ctx.schedule('ledger', { post: rows.map((row) => `adhoc_catalog_entry:${row.id}`) });
 		}
 	}
 });

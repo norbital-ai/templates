@@ -56,8 +56,7 @@ describe('annual leave', () => {
 		grant_days_by_normal_days_per_week: [
 			{ normal_days_per_week: 2, service_year: 1, days: 2 },
 			{ normal_days_per_week: 2, service_year: 2, days: 3 }
-		],
-		grant_days_by_normal_days_per_year: [{ normal_days_per_year: 50, days: 2 }]
+		]
 	};
 	const on = (who: LeavePerson, date: string) => entitlementOf(lookup, who, date);
 	it('grants by service from the grant day', () => {
@@ -71,13 +70,6 @@ describe('annual leave', () => {
 		assert.equal(on(person(SHORT), '2029-07-01'), 3);
 		assert.equal(on(person({ ...SHORT, normal_days_per_week: 5 }), '2024-07-01'), 7);
 		assert.equal(on(person({ ...SHORT, normal_hours_per_week: 35 }), '2024-07-01'), 7);
-	});
-	it('reads a year of scheduled days as the weekly days they stand for', () => {
-		const yearly = (days: number) =>
-			person({ normal_hours_per_week: 20 }, { normal_days_per_year: days });
-		assert.equal(on(yearly(60), '2024-07-01'), 2);
-		assert.equal(on(yearly(40), '2024-07-01'), 0);
-		assert.equal(on(yearly(200), '2024-07-01'), 7);
 	});
 	it('gives nothing for a grant day the fact stands on, and resumes the year after', () => {
 		const short = { kind: 'ATTENDANCE_BELOW_RATIO', on: '2025-07-01' };

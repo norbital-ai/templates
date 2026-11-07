@@ -2,7 +2,12 @@ import { datePeriod, eachDay } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import { awardedMinutes, holidaysForDay, overlapSpans, scheduled } from './attendance.js';
 import { intervalSpans } from './time_evidence.js';
-import { calculatePayroll, type ProjectedDay } from './engine.js';
+import {
+	calculatePayroll,
+	isWorkingDay,
+	offDaysFor,
+	type ProjectedDay
+} from './engine.js';
 import type { JsonObject } from './contracts.js';
 import type { PayWindow } from './pay_cycle.js';
 import { idOf, objectValue, queryRows, type Reader } from './reads.js';
@@ -61,10 +66,7 @@ const CATALOG = [
 	'lookup',
 	'eligibility',
 	'conversion',
-	'incurred_on',
-	'direction',
-	'party',
-	'off_cycle_eligible'
+	'incurred_on'
 ];
 const CODE_OF_CATALOG = { fields: ['code'] };
 
@@ -118,7 +120,7 @@ const claimsAsPosted = Effect.fn('payroll.claimsAsPosted')(function* (
 			if (amount !== undefined) return { ...row, quantity: Math.abs(amount) };
 			const catalog = limited.get(codeOf(row));
 			const employment = contract.get(refOf(row.employment_id));
-			if (catalog === undefined || employment === undefined || row.is_reversal === true) return row;
+			if (catalog === undefined || employment === undefined || row.reverses != null) return row;
 			const employee = String(employment.employee_id);
 			const accounts = accountsOf(balance.get(employee)?.account);
 			const keyOf = (period: string) => `${employee}/${catalog.code}/${period}`;
@@ -160,12 +162,12 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 	const data = yield* queryRows(read, {
 		jurisdiction_settings: {
 			where: { id: { eq: settingsId } },
-			fields: ['id', 'code', 'status', 'timezone', 'tax_year_start_month', 'lookup'],
+			fields: ['id', 'code', 'status', 'timezone', 'tax_year_start_month', 'lookup', 'conversions', 'ledger'],
 			limit: 1
 		},
 		subtotal: { ...inVersion, fields: ['id', 'code', 'name', 'previous_id', 'calculation'] },
-		allowance_catalog: { ...inVersion, fields: [...CATALOG, 'prorate'] },
-		overtime_catalog: { ...inVersion, fields: CATALOG },
+		allowance_catalog: { ...inVersion, fields: [...CATALOG, 'party', 'prorate', 'include_in_rate'] },
+		overtime_catalog: { ...inVersion, fields: [...CATALOG, 'direction'] },
 		statutory_contribution_catalog: {
 			...inVersion,
 			fields: [
@@ -176,19 +178,18 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 				'lookup',
 				'subtotal_id',
 				'employer_cost_subtotal_id',
-				'off_cycle_eligible',
 				'eligibility',
 				'depends_on',
 				'employee_amount',
 				'employer_amount'
 			]
 		},
-		leave_catalog: { ...inVersion, fields: [...CATALOG, 'pay_treatment'] },
-		claim_catalog: { ...inVersion, fields: CATALOG },
-		adhoc_catalog: { ...inVersion, fields: CATALOG },
+		leave_catalog: { ...inVersion, fields: [...CATALOG, 'direction', 'pay_treatment'] },
+		claim_catalog: { ...inVersion, fields: [...CATALOG, 'direction', 'party'] },
+		adhoc_catalog: { ...inVersion, fields: [...CATALOG, 'direction', 'party', 'off_cycle_eligible'] },
 		loan_catalog: {
 			...inVersion,
-			fields: ['id', 'code', 'name', 'subtotal_id', 'off_cycle_eligible']
+			fields: ['id', 'code', 'name', 'subtotal_id']
 		},
 		shift_definition: { where: own, limit: 10000 },
 		shift_pattern: { where: own, limit: 10000 },
@@ -201,10 +202,7 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 			limit: 10000
 		},
 		// a leave stays answerable after its first run: its later days fall in later windows
-		leave_catalog_entry: {
-			where: pays === undefined ? own : { id: { in: [...pays] } },
-			limit: 10000
-		},
+		leave_catalog_entry: { where: own, limit: 10000 },
 		'leave_catalog_entry.catalog_id': CODE_OF_CATALOG,
 		claim_catalog_entry: { where: openIn('incurred_on'), limit: 10000 },
 		'claim_catalog_entry.catalog_id': CODE_OF_CATALOG,
@@ -386,11 +384,13 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		if (owner === undefined) continue;
 		const days = workDays.get(owner) ?? [];
 		const date = String(row.work_date);
-		const holiday = holidaysForDay(date, {
+		const holidays = holidaysForDay(date, {
 			holidays: data.holiday ?? [],
 			roster_day_types: rosterDayTypes.get(owner) ?? {},
 			roster_days: []
-		})[0];
+		});
+		// a makeup workday never masks the holiday it makes up for: every other kind earns its premium
+		const holiday = holidays.find((row) => row.kind !== 'MAKEUP_WORKDAY') ?? holidays[0];
 		const plan = planOf(row);
 		// the clock proves the person came and awards the plan; it never adds time of its own
 		const clock = closedSpans(row.actual_worked_intervals);
@@ -439,14 +439,39 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 	const projectionDays = eachDay(datePeriod(start < from ? start : from, end > to ? end : to)).map(
 		String
 	);
-	const projectedDays = (rows: readonly JsonObject[]): readonly ProjectedDay[] | undefined => {
+	const projectedDays = (
+		rows: readonly JsonObject[],
+		roster: ReadonlyMap<string, JsonObject>
+	): readonly ProjectedDay[] | undefined => {
 		const days: ProjectedDay[] = [];
+		const ordered = rows.toSorted((left, right) =>
+			String(objectValue(left.effective_range).from).localeCompare(
+				String(objectValue(right.effective_range).from)
+			)
+		);
 		for (const date of projectionDays) {
-			const row = rows.find((contract) => covers(contract.effective_range, date, date));
+			// a day outside the employment is still one of the period's: the share leaves it unpaid
+			const row =
+				rows.find((contract) => covers(contract.effective_range, date, date)) ??
+				ordered.findLast(
+					(contract) => String(objectValue(contract.effective_range).from) <= date
+				) ??
+				ordered[0];
 			if (row === undefined) continue;
 			const terms = objectValue(row.terms);
+			// a roster day changes the plan; a day with no roster entry follows the contract's pattern or ordinary week
+			const rostered = roster.get(`${String(row.id)}:${date}`);
+			const rosteredShift =
+				rostered === undefined ? undefined : shifts.get(String(rostered.shift_definition_id));
+			if (rosteredShift !== undefined) {
+				days.push({ date, work: objectValue(rosteredShift.variant).day_type === 'WORK' });
+				continue;
+			}
 			const pattern = patterns.get(terms.shift_pattern_id);
-			if (pattern === undefined) return undefined;
+			if (pattern === undefined) {
+				days.push({ date, work: isWorkingDay(date, offDaysFor(terms, employer)) });
+				continue;
+			}
 			const cycle = objectValue(pattern.pattern);
 			const slots = Array.isArray(cycle.days) ? cycle.days : [];
 			if (slots.length === 0) return undefined;
@@ -469,10 +494,20 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		const own = new Set(
 			answering.filter((row) => row.employee_id === employeeId).map((row) => String(row.id))
 		);
+		// a reversal's refund is priced on the entry it undoes, so that entry travels with the run for its days
+		const heldLeave = data.leave_catalog_entry ?? [];
+		const undoneIds = new Set(
+			heldLeave.flatMap((row) =>
+				row.reverses != null && typeof row.reverses === 'string' ? [row.reverses] : []
+			)
+		);
 		const entries = (rows: readonly JsonObject[] | undefined) =>
 			(rows ?? []).filter(
-				(row) => own.has(String(row.employment_id)) && (pays?.has(String(row.id)) ?? true)
+				(row) =>
+					undoneIds.has(String(row.id)) ||
+					(own.has(String(row.employment_id)) && (pays?.has(String(row.id)) ?? true))
 			);
+		const reversals = heldLeave.filter((row) => undoneIds.has(String(row.id)));
 		if (
 			pays !== undefined &&
 			[data.adhoc_catalog_entry, data.claim_catalog_entry].every(
@@ -480,7 +515,19 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			)
 		)
 			continue;
-		const projected = projectedDays(answering.filter((row) => row.employee_id === employeeId));
+		const contractsOfEmployee = answering.filter((row) => row.employee_id === employeeId);
+		const contractIds = new Set(contractsOfEmployee.map((row) => String(row.id)));
+		const roster = new Map(
+			(data.roster_entry ?? [])
+				.filter(
+					(row) =>
+						contractIds.has(String(row.employment_id)) &&
+						typeof row.work_date === 'string' &&
+						typeof row.shift_definition_id === 'string'
+				)
+				.map((row) => [`${String(row.employment_id)}:${String(row.work_date)}`, row])
+		);
+		const projected = projectedDays(contractsOfEmployee, roster);
 		const result = yield* Effect.try({
 			try: () =>
 				calculatePayroll({
@@ -505,6 +552,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 							String(run.pay_date ?? objectValue(run.salary_coverage).to)
 						)
 					},
+					reversals,
 					entries: {
 						leave_catalog_entry: inRunVersion(
 							leaveWithin(entries(data.leave_catalog_entry)),
@@ -525,9 +573,8 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 					},
 					work: { days: [...own].flatMap((id) => workDays.get(id) ?? []) },
 					...(projected === undefined ? {} : { projected_days: projected }),
-					// a day at another employer is that employer's to pay
 					employed: answering
-						.filter((row) => row.employee_id === employeeId && row.entity_id === companyId)
+						.filter((row) => row.employee_id === employeeId)
 						.map((row) => {
 							const { from, to } = objectValue(row.effective_range);
 							return { from: String(from), to: to == null ? null : String(to) };

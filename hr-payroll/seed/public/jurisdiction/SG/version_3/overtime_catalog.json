@@ -4,7 +4,9 @@
 		"name": "Overtime (1.5× hourly basic)",
 		"lookup": {
 			"multiplier": 1.5,
-			"non_workman_hourly_cap": 13.6
+			"non_workman_hourly_cap": 13.6,
+			"weeks_per_year": 52,
+			"full_time_weekly_hours": 44
 		},
 		"references": [
 			{
@@ -14,13 +16,11 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
 		"eligibility": "// js\nif (get(ctx.subject.employment, 'terms.work_classification', '') === 'NON_EA') return false;\nreturn get(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME';",
-		"conversion": "// js\n// MOM and EA Fourth Schedule: a monthly rate's hourly basic rate is 12 × monthly ÷ (52 × 44) whatever the contract's week, so not the day ÷ its hours; a daily rate's is the day ÷ its hours\nconst terms = ctx.subject.employment.terms;\nconst normal = Number(get(terms, 'normal_hours_per_day', 8));\nconst hourly =\n\tget(terms, 'rate.unit', 'MONTHLY') === 'MONTHLY'\n\t\t? (Number(get(terms, 'rate.amount', 0)) * ctx.lookup.months_per_year) /\n\t\t\t(ctx.lookup.weeks_per_year * ctx.lookup.full_time_weekly_hours)\n\t\t: ctx.day_rate / normal;\nconst category = get(terms, 'statutory_work_category', 'NON_MANUAL');\nconst capped = category === 'NON_MANUAL' ? Math.min(hourly, ctx.lookup.non_workman_hourly_cap) : hourly;\n// a rest day's normal hours are rest-day pay; only the hours past them are overtime\nconst hours = sum(\n\tget(ctx, 'work.days', []).map((day) => {\n\t\tif (get(day, 'day_type', 'WORK') !== 'REST') return Number(get(day, 'overtime_hours', 0));\n\t\treturn Math.max(0, Number(get(day, 'worked_hours', 0)) - normal);\n\t})\n);\nreturn hours * capped * ctx.lookup.multiplier;\n",
+		"conversion": "// js\n// MOM and EA Fourth Schedule: a monthly rate's hourly basic rate is 12 × monthly ÷ (52 × 44) whatever the contract's week, so not the day ÷ its hours; a daily rate's is the day ÷ its hours\nconst terms = ctx.subject.employment.terms;\nconst normal = Number(terms.normal_hours_per_day);\nconst hourly =\n\tget(terms, 'rate.unit', 'MONTHLY') === 'MONTHLY'\n\t\t? (ctx.month_wage * 12) /\n\t\t\t(ctx.lookup.weeks_per_year * ctx.lookup.full_time_weekly_hours)\n\t\t: ctx.hour_rate;\nconst category = get(terms, 'statutory_work_category', 'NON_MANUAL');\nconst capped = category === 'NON_MANUAL' ? Math.min(hourly, ctx.lookup.non_workman_hourly_cap) : hourly;\n// a rest day's normal hours are rest-day pay; only the hours past them are overtime\nconst hours = sum(\n\tget(ctx, 'work.days', []).map((day) => {\n\t\tif (get(day, 'day_type', 'WORK') !== 'REST') return Number(get(day, 'overtime_hours', 0));\n\t\treturn Math.max(0, Number(get(day, 'worked_hours', 0)) - normal);\n\t})\n);\nreturn hours * capped * ctx.lookup.multiplier;\n",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "e617a32c-8908-537e-bdc3-33e18252e6a5",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
@@ -40,13 +40,11 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
 		"eligibility": "// js\nif (get(ctx.subject.employment, 'terms.work_classification', '') === 'NON_EA') return false;\nreturn ctx.subject.employment.engagement === 'PART_TIME';",
-		"conversion": "// js\n// Part-Time Regulations: hourly basic rate on the contract's own week; hours to the full-time day at 1×, past it at 1.5×\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst normal = Number(get(terms, 'normal_hours_per_day', 8));\nconst full = Number(get(employment, 'employee_extension_data.term_facts.comparable_full_time_hours_per_day', 8));\nconst tier = Math.max(0, full - normal);\nconst hourly =\n\tget(terms, 'rate.unit', 'MONTHLY') === 'MONTHLY'\n\t\t? (Number(get(terms, 'rate.amount', 0)) * ctx.lookup.months_per_year) /\n\t\t\t(ctx.lookup.weeks_per_year * Number(get(terms, 'normal_hours_per_week', ctx.lookup.full_time_weekly_hours)))\n\t\t: ctx.day_rate / normal;\nconst hours = sum(\n\tget(ctx, 'work.days', [])\n\t\t.filter((day) => (get(day, 'day_type', 'WORK') === 'REST') === ctx.lookup.rest_day)\n\t\t.map((day) => {\n\t\t\tconst beyond = ctx.lookup.rest_day\n\t\t\t\t? Math.max(0, Number(get(day, 'worked_hours', 0)) - normal)\n\t\t\t\t: Number(get(day, 'overtime_hours', 0));\n\t\t\treturn ctx.lookup.past_full_time ? Math.max(0, beyond - tier) : Math.min(beyond, tier);\n\t\t})\n);\nreturn hours * hourly * ctx.lookup.multiplier;\n",
+		"conversion": "// js\n// Part-Time Regulations: hourly basic rate on the contract's own week; hours to the full-time day at 1×, past it at 1.5×\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst normal = Number(terms.normal_hours_per_day);\nconst full = Number(get(employment, 'employee_extension_data.comparable_full_time_hours_per_day', 8));\nconst tier = Math.max(0, full - normal);\nconst hours = sum(\n\tget(ctx, 'work.days', [])\n\t\t.filter((day) => (get(day, 'day_type', 'WORK') === 'REST') === ctx.lookup.rest_day)\n\t\t.map((day) => {\n\t\t\tconst beyond = ctx.lookup.rest_day\n\t\t\t\t? Math.max(0, Number(get(day, 'worked_hours', 0)) - normal)\n\t\t\t\t: Number(get(day, 'overtime_hours', 0));\n\t\t\treturn ctx.lookup.past_full_time ? Math.max(0, beyond - tier) : Math.min(beyond, tier);\n\t\t})\n);\nreturn hours * ctx.hour_rate * ctx.lookup.multiplier;\n",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "e80b3d18-379b-5656-9f15-58569b998058",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
@@ -66,13 +64,11 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
 		"eligibility": "// js\nif (get(ctx.subject.employment, 'terms.work_classification', '') === 'NON_EA') return false;\nreturn ctx.subject.employment.engagement === 'PART_TIME';",
-		"conversion": "// js\n// Part-Time Regulations: hourly basic rate on the contract's own week; hours to the full-time day at 1×, past it at 1.5×\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst normal = Number(get(terms, 'normal_hours_per_day', 8));\nconst full = Number(get(employment, 'employee_extension_data.term_facts.comparable_full_time_hours_per_day', 8));\nconst tier = Math.max(0, full - normal);\nconst hourly =\n\tget(terms, 'rate.unit', 'MONTHLY') === 'MONTHLY'\n\t\t? (Number(get(terms, 'rate.amount', 0)) * ctx.lookup.months_per_year) /\n\t\t\t(ctx.lookup.weeks_per_year * Number(get(terms, 'normal_hours_per_week', ctx.lookup.full_time_weekly_hours)))\n\t\t: ctx.day_rate / normal;\nconst hours = sum(\n\tget(ctx, 'work.days', [])\n\t\t.filter((day) => (get(day, 'day_type', 'WORK') === 'REST') === ctx.lookup.rest_day)\n\t\t.map((day) => {\n\t\t\tconst beyond = ctx.lookup.rest_day\n\t\t\t\t? Math.max(0, Number(get(day, 'worked_hours', 0)) - normal)\n\t\t\t\t: Number(get(day, 'overtime_hours', 0));\n\t\t\treturn ctx.lookup.past_full_time ? Math.max(0, beyond - tier) : Math.min(beyond, tier);\n\t\t})\n);\nreturn hours * hourly * ctx.lookup.multiplier;\n",
+		"conversion": "// js\n// Part-Time Regulations: hourly basic rate on the contract's own week; hours to the full-time day at 1×, past it at 1.5×\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst normal = Number(terms.normal_hours_per_day);\nconst full = Number(get(employment, 'employee_extension_data.comparable_full_time_hours_per_day', 8));\nconst tier = Math.max(0, full - normal);\nconst hours = sum(\n\tget(ctx, 'work.days', [])\n\t\t.filter((day) => (get(day, 'day_type', 'WORK') === 'REST') === ctx.lookup.rest_day)\n\t\t.map((day) => {\n\t\t\tconst beyond = ctx.lookup.rest_day\n\t\t\t\t? Math.max(0, Number(get(day, 'worked_hours', 0)) - normal)\n\t\t\t\t: Number(get(day, 'overtime_hours', 0));\n\t\t\treturn ctx.lookup.past_full_time ? Math.max(0, beyond - tier) : Math.min(beyond, tier);\n\t\t})\n);\nreturn hours * ctx.hour_rate * ctx.lookup.multiplier;\n",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "93bcc778-5d3f-5f3c-8f18-d564cfd1b22c",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
@@ -92,13 +88,11 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'terms.work_classification', '') !== 'NON_EA';",
-		"conversion": "// js\n// EA s.37, at the employer's request: one day's salary up to half the normal hours, two above half\nconst normal = Number(get(ctx.subject.employment.terms, 'normal_hours_per_day', 8));\nconst days = sum(\n\tget(ctx, 'work.days', [])\n\t\t.filter((day) => get(day, 'day_type', 'WORK') === 'REST' && Number(get(day, 'worked_hours', 0)) > 0)\n\t\t.map((day) =>\n\t\t\tNumber(get(day, 'worked_hours', 0)) <= normal / ctx.lookup.half_day_divisor\n\t\t\t\t? ctx.lookup.employer_request_days_up_to_half\n\t\t\t\t: ctx.lookup.employer_request_days_above_half\n\t\t)\n);\nreturn days * ctx.day_rate;\n",
+		"conversion": "// js\n// EA s.37, at the employer's request: one day's salary up to half the normal hours, two above half\nconst normal = Number(ctx.subject.employment.terms.normal_hours_per_day);\nconst days = sum(\n\tget(ctx, 'work.days', [])\n\t\t.filter((day) => get(day, 'day_type', 'WORK') === 'REST' && Number(get(day, 'worked_hours', 0)) > 0)\n\t\t.map((day) =>\n\t\t\tNumber(get(day, 'worked_hours', 0)) <= normal / ctx.lookup.half_day_divisor\n\t\t\t\t? ctx.lookup.employer_request_days_up_to_half\n\t\t\t\t: ctx.lookup.employer_request_days_above_half\n\t\t)\n);\nreturn days * ctx.day_rate;\n",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "99e11b59-a784-5c6e-8118-c4562f903755",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
@@ -118,13 +112,11 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
 		"eligibility": "// js\nif (get(ctx.subject.employment, 'terms.work_classification', '') === 'NON_EA') return false;\nreturn ctx.subject.employment.engagement === 'PART_TIME';",
-		"conversion": "// js\n// Part-Time Regulations: hourly basic rate on the contract's own week; hours to the full-time day at 1×, past it at 1.5×\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst normal = Number(get(terms, 'normal_hours_per_day', 8));\nconst full = Number(get(employment, 'employee_extension_data.term_facts.comparable_full_time_hours_per_day', 8));\nconst tier = Math.max(0, full - normal);\nconst hourly =\n\tget(terms, 'rate.unit', 'MONTHLY') === 'MONTHLY'\n\t\t? (Number(get(terms, 'rate.amount', 0)) * ctx.lookup.months_per_year) /\n\t\t\t(ctx.lookup.weeks_per_year * Number(get(terms, 'normal_hours_per_week', ctx.lookup.full_time_weekly_hours)))\n\t\t: ctx.day_rate / normal;\nconst hours = sum(\n\tget(ctx, 'work.days', [])\n\t\t.filter((day) => (get(day, 'day_type', 'WORK') === 'REST') === ctx.lookup.rest_day)\n\t\t.map((day) => {\n\t\t\tconst beyond = ctx.lookup.rest_day\n\t\t\t\t? Math.max(0, Number(get(day, 'worked_hours', 0)) - normal)\n\t\t\t\t: Number(get(day, 'overtime_hours', 0));\n\t\t\treturn ctx.lookup.past_full_time ? Math.max(0, beyond - tier) : Math.min(beyond, tier);\n\t\t})\n);\nreturn hours * hourly * ctx.lookup.multiplier;\n",
+		"conversion": "// js\n// Part-Time Regulations: hourly basic rate on the contract's own week; hours to the full-time day at 1×, past it at 1.5×\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst normal = Number(terms.normal_hours_per_day);\nconst full = Number(get(employment, 'employee_extension_data.comparable_full_time_hours_per_day', 8));\nconst tier = Math.max(0, full - normal);\nconst hours = sum(\n\tget(ctx, 'work.days', [])\n\t\t.filter((day) => (get(day, 'day_type', 'WORK') === 'REST') === ctx.lookup.rest_day)\n\t\t.map((day) => {\n\t\t\tconst beyond = ctx.lookup.rest_day\n\t\t\t\t? Math.max(0, Number(get(day, 'worked_hours', 0)) - normal)\n\t\t\t\t: Number(get(day, 'overtime_hours', 0));\n\t\t\treturn ctx.lookup.past_full_time ? Math.max(0, beyond - tier) : Math.min(beyond, tier);\n\t\t})\n);\nreturn hours * ctx.hour_rate * ctx.lookup.multiplier;\n",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "ea7a92ac-d05e-5cb4-961a-f9ef97dfa743",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
@@ -144,13 +136,11 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
 		"eligibility": "// js\nif (get(ctx.subject.employment, 'terms.work_classification', '') === 'NON_EA') return false;\nreturn ctx.subject.employment.engagement === 'PART_TIME';",
-		"conversion": "// js\n// Part-Time Regulations: hourly basic rate on the contract's own week; hours to the full-time day at 1×, past it at 1.5×\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst normal = Number(get(terms, 'normal_hours_per_day', 8));\nconst full = Number(get(employment, 'employee_extension_data.term_facts.comparable_full_time_hours_per_day', 8));\nconst tier = Math.max(0, full - normal);\nconst hourly =\n\tget(terms, 'rate.unit', 'MONTHLY') === 'MONTHLY'\n\t\t? (Number(get(terms, 'rate.amount', 0)) * ctx.lookup.months_per_year) /\n\t\t\t(ctx.lookup.weeks_per_year * Number(get(terms, 'normal_hours_per_week', ctx.lookup.full_time_weekly_hours)))\n\t\t: ctx.day_rate / normal;\nconst hours = sum(\n\tget(ctx, 'work.days', [])\n\t\t.filter((day) => (get(day, 'day_type', 'WORK') === 'REST') === ctx.lookup.rest_day)\n\t\t.map((day) => {\n\t\t\tconst beyond = ctx.lookup.rest_day\n\t\t\t\t? Math.max(0, Number(get(day, 'worked_hours', 0)) - normal)\n\t\t\t\t: Number(get(day, 'overtime_hours', 0));\n\t\t\treturn ctx.lookup.past_full_time ? Math.max(0, beyond - tier) : Math.min(beyond, tier);\n\t\t})\n);\nreturn hours * hourly * ctx.lookup.multiplier;\n",
+		"conversion": "// js\n// Part-Time Regulations: hourly basic rate on the contract's own week; hours to the full-time day at 1×, past it at 1.5×\nconst employment = ctx.subject.employment;\nconst terms = employment.terms;\nconst normal = Number(terms.normal_hours_per_day);\nconst full = Number(get(employment, 'employee_extension_data.comparable_full_time_hours_per_day', 8));\nconst tier = Math.max(0, full - normal);\nconst hours = sum(\n\tget(ctx, 'work.days', [])\n\t\t.filter((day) => (get(day, 'day_type', 'WORK') === 'REST') === ctx.lookup.rest_day)\n\t\t.map((day) => {\n\t\t\tconst beyond = ctx.lookup.rest_day\n\t\t\t\t? Math.max(0, Number(get(day, 'worked_hours', 0)) - normal)\n\t\t\t\t: Number(get(day, 'overtime_hours', 0));\n\t\t\treturn ctx.lookup.past_full_time ? Math.max(0, beyond - tier) : Math.min(beyond, tier);\n\t\t})\n);\nreturn hours * ctx.hour_rate * ctx.lookup.multiplier;\n",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "439ea493-e35f-5968-b849-b6aeafb3c791",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	},
@@ -168,13 +158,11 @@
 				"effective_from": "2026-07-01"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "5d19b4c0-f7a0-5cc7-a50e-cd93e1d3cf9d",
 		"eligibility": "// js\nreturn get(ctx.subject.employment, 'terms.work_classification', '') !== 'NON_EA';",
-		"conversion": "// js\n// EA s.88(4): an extra day's salary at the basic rate; the salary already holds the day itself, and a holiday on a rest day moves to the next working day\nconst worked = get(ctx, 'work.days', []).filter((day) => {\n\tif (get(day, 'day_type', 'WORK') === 'REST') return false;\n\tif (!ctx.lookup.holiday_kinds.includes(get(day, 'holiday_kind', ''))) return false;\n\treturn Number(get(day, 'worked_hours', 0)) > 0;\n});\nreturn worked.length * ctx.lookup.holiday_work_days * ctx.day_rate;\n",
+		"conversion": "// js\n// EA s.88(4): an extra day's salary at the basic rate; the salary already holds the day itself, and a holiday on a rest day moves to the next working day\nconst worked = get(ctx, 'work.days', []).filter((day) => {\n\tif (get(day, 'day_type', 'WORK') === 'REST') return false;\n\tconst kind = get(day, 'holiday_kind', '');\n\tif (kind === '' || kind === 'MAKEUP_WORKDAY') return false;\n\treturn Number(get(day, 'worked_hours', 0)) > 0;\n});\nreturn worked.length * ctx.lookup.holiday_work_days * ctx.day_rate;\n",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "01be10d9-b840-513e-b351-f9dd3eadccee",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed"
 	}

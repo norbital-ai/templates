@@ -8,15 +8,13 @@
 				"title": "健康保険法 art.3(5), 厚生年金保険法 art.3(1)(iii) (報酬), 雇用保険法 art.4(4) (賃金), 所得税法 art.28 (給与所得) and in the overtime base (労働基準法 art.37(5) does not exclude it); excluded from the wage compared with the minimum wage (最低賃金法 art.4(3)(iii) with 施行規則 art.1(2)(i)). A sub-monthly entity (SEMI_MONTHLY, TEN_DAY, WEEKLY) pays the monthly amount spread evenly over the month’s parts (period.parts), each prorated by the part’s own paid days."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "16a20b2e-6e3a-50fa-86b8-56e00e509d7f",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.ATTENDANCE_ALLOWANCE.amount', 0)) > 0;",
 		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.ATTENDANCE_ALLOWANCE.amount', 0));",
-		"incurred_on": "",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "72e448c5-1745-5807-a6e4-b0485966238e",
-		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b"
+		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
+		"include_in_rate": true
 	},
 	{
 		"code": "COMMUTING_ALLOWANCE",
@@ -29,15 +27,13 @@
 				"quote": "通勤手当は、合理的な運賃額の範囲で非課税とする。"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "eb7f9aa7-bb29-5e1d-98eb-623161778c17",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.COMMUTING_ALLOWANCE.amount', 0)) > 0;",
 		"conversion": "// js\n// 所得税法施行令 art.20の2: transit to 150,000 a month; a car or bicycle by one-way distance, plus a car park and any transit fare, within that 150,000.\nconst facts = ctx.subject.employment.employee_extension_data;\nconst amount = Number(get(ctx.subject.employment, 'terms.allowances.COMMUTING_ALLOWANCE.amount', 0));\nconst km = get(facts, 'commute_car_km_one_way', null);\nconst band = km == null ? null : ctx.lookup.car_distance_bands.find((row) => row.below == null || Number(km) < row.below);\nconst parking = band == null || band.amount === 0 ? 0 : Math.min(Number(get(facts, 'commute_parking_fee', 0)), ctx.lookup.parking_monthly_cap);\nconst car = band == null ? ctx.lookup.commuting_monthly_limit : band.amount + parking + Number(get(facts, 'commute_transit_fare', 0));\nconst limit = Math.min(car, ctx.lookup.commuting_monthly_limit);\nreturn Math.min(amount, limit);",
-		"incurred_on": "",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "1607ab22-daf2-58f9-8436-ca09d4fa8e6a",
-		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b"
+		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
+		"include_in_rate": true
 	},
 	{
 		"code": "COMMUTING_ALLOWANCE_TAXABLE",
@@ -51,15 +47,13 @@
 				"quote": "1か月当たりの非課税となる限度額を超えて通勤手当を支給する場合には、超える部分の金額が給与として課税されます。"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "16a20b2e-6e3a-50fa-86b8-56e00e509d7f",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.COMMUTING_ALLOWANCE.amount', 0)) > 0;",
 		"conversion": "// js\n// 所得税法施行令 art.20の2: transit to 150,000 a month; a car or bicycle by one-way distance, plus a car park and any transit fare, within that 150,000.\nconst facts = ctx.subject.employment.employee_extension_data;\nconst amount = Number(get(ctx.subject.employment, 'terms.allowances.COMMUTING_ALLOWANCE.amount', 0));\nconst km = get(facts, 'commute_car_km_one_way', null);\nconst band = km == null ? null : ctx.lookup.car_distance_bands.find((row) => row.below == null || Number(km) < row.below);\nconst parking = band == null || band.amount === 0 ? 0 : Math.min(Number(get(facts, 'commute_parking_fee', 0)), ctx.lookup.parking_monthly_cap);\nconst car = band == null ? ctx.lookup.commuting_monthly_limit : band.amount + parking + Number(get(facts, 'commute_transit_fare', 0));\nconst limit = Math.min(car, ctx.lookup.commuting_monthly_limit);\nreturn Math.max(0, amount - limit);",
-		"incurred_on": "",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "72eaba67-de12-5616-bb94-c84ddb31c25f",
-		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b"
+		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
+		"include_in_rate": true
 	},
 	{
 		"code": "FAMILY_ALLOWANCE",
@@ -72,15 +66,13 @@
 				"quote": "家族手当は、労働の対償として支払われる限り報酬に含まれる。"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "16a20b2e-6e3a-50fa-86b8-56e00e509d7f",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FAMILY_ALLOWANCE.amount', 0)) > 0;",
 		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FAMILY_ALLOWANCE.amount', 0));",
-		"incurred_on": "",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "07189e2d-d1fe-5eea-8242-bf3b3a5653f9",
-		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b"
+		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
+		"include_in_rate": true
 	},
 	{
 		"code": "FIXED_ALLOWANCE",
@@ -91,16 +83,14 @@
 				"title": "健康保険法 art.3(5) and 厚生年金保険法 art.3(1)(iii) (報酬), 雇用保険法 art.4(4) (賃金) and 所得税法 art.28 (給与所得): a fixed allowance is remuneration, salary income and in the overtime base. A sub-monthly entity (SEMI_MONTHLY, TEN_DAY, WEEKLY) pays the monthly amount spread evenly over the month’s parts (period.parts), each prorated by the part’s own paid days."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "16a20b2e-6e3a-50fa-86b8-56e00e509d7f",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0)) > 0;",
 		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.FIXED_ALLOWANCE.amount', 0));",
-		"incurred_on": "",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "b502f7a7-74bb-5a72-b1b1-344f63c31f96",
 		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
-		"prorate": true
+		"prorate": true,
+		"include_in_rate": true
 	},
 	{
 		"code": "HOUSING_ALLOWANCE",
@@ -111,14 +101,12 @@
 				"title": "Remuneration, wages and salary income; excluded from the overtime base only where it varies with the housing cost (労働基準法施行規則 art.21(iii), 平成11年3月31日 基発170号). A sub-monthly entity (SEMI_MONTHLY, TEN_DAY, WEEKLY) pays the monthly amount spread evenly over the month’s parts (period.parts), each prorated by the part’s own paid days."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "16a20b2e-6e3a-50fa-86b8-56e00e509d7f",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.HOUSING_ALLOWANCE.amount', 0)) > 0;",
 		"conversion": "// js\nreturn Number(get(ctx.subject.employment, 'terms.allowances.HOUSING_ALLOWANCE.amount', 0));",
-		"incurred_on": "",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "552a102d-d613-5d4c-a01b-06fb3d8855a4",
-		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b"
+		"settings_id": "53c81f51-8826-53c2-a65c-d00987b3543b",
+		"include_in_rate": true
 	}
 ]

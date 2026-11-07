@@ -3,10 +3,11 @@
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
 		"lookup": {
-			"eligibility_months": 3,
 			"encash_on_exit": {
 				"allowed": true,
-				"refused_on": ["MISCONDUCT_DISMISSAL"]
+				"refused_on": [
+					"MISCONDUCT_DISMISSAL"
+				]
 			},
 			"window": "SERVICE_YEAR",
 			"service_bands": [
@@ -75,12 +76,12 @@
 					"days": 14
 				}
 			],
+			"eligibility_months": 3,
 			"carry": {
 				"windows": 1
 			}
 		},
 		"pay_treatment": "PAID",
-		"off_cycle_eligible": false,
 		"subtotal_id": "34e24b03-b484-5a29-8020-e23b676313ab",
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
@@ -117,13 +118,12 @@
 		],
 		"id": "8465d85b-5f50-5f30-af0a-f593fbae8285",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
-		"conversion": "// js\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst terms = ctx.subject.employment.terms;\nconst days = Number(get(ctx.entry, 'quantity', 0));\nconst basic = Number(get(terms, 'rate.amount', 0));\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY' || !(basic > 0)) return ctx.day_rate * days;\n// MOM gross rate of pay for salary in lieu of annual leave: the basic day with the fixed allowance on it\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst fixed = typeof allowance === 'number' ? allowance : get(allowance, 'value', 0);\nreturn ctx.day_rate * ((basic + fixed) / basic) * days;\n"
+		"conversion": "// js\nif (get(ctx.entry, 'encashment', false) !== true) return 0;\nconst terms = ctx.subject.employment.terms;\nconst basic = ctx.month_wage;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY' || !(basic > 0)) return ctx.day_rate * ctx.entry.quantity;\n// MOM gross rate of pay for salary in lieu of annual leave: the basic day with the fixed allowance on it\nconst allowance = get(terms, 'allowances.FIXED_MONTHLY.amount', 0);\nconst fixed = typeof allowance === 'number' ? allowance : get(allowance, 'value', 0);\nreturn ctx.day_rate * ((basic + fixed) / basic) * ctx.entry.quantity;\n"
 	},
 	{
 		"code": "SICK_LEAVE",
 		"name": "Outpatient sick leave",
 		"lookup": {
-			"eligibility_months": 3,
 			"window": "CALENDAR_YEAR",
 			"service_bands": [
 				{
@@ -142,10 +142,10 @@
 					"service_months": 6,
 					"days": 14
 				}
-			]
+			],
+			"eligibility_months": 3
 		},
 		"pay_treatment": "PAID",
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
@@ -169,7 +169,6 @@
 		"code": "HOSPITALIZATION_LEAVE",
 		"name": "Hospitalization leave",
 		"lookup": {
-			"eligibility_months": 3,
 			"window": "CALENDAR_YEAR",
 			"service_bands": [
 				{
@@ -188,10 +187,10 @@
 					"service_months": 6,
 					"days": 60
 				}
-			]
+			],
+			"eligibility_months": 3
 		},
 		"pay_treatment": "PAID",
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
@@ -215,7 +214,6 @@
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
 		"lookup": {
-			"eligibility_months": 3,
 			"window": "EVENT",
 			"grant_days": 112,
 			"eligibility": {
@@ -223,10 +221,10 @@
 			},
 			"opened_by": {
 				"CHILD_BIRTH": {}
-			}
+			},
+			"eligibility_months": 3
 		},
 		"pay_treatment": "PAID",
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
@@ -250,7 +248,6 @@
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
 		"lookup": {
-			"eligibility_months": 3,
 			"window": "EVENT",
 			"grant_days": 28,
 			"eligibility": {
@@ -258,10 +255,10 @@
 			},
 			"opened_by": {
 				"CHILD_BIRTH": {}
-			}
+			},
+			"eligibility_months": 3
 		},
 		"pay_treatment": "PAID",
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'MALE' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
@@ -310,7 +307,6 @@
 			]
 		},
 		"pay_treatment": "PAID",
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"references": [
 			{
@@ -335,9 +331,8 @@
 		"lookup": {
 			"no_cap": true
 		},
-		"pay_treatment": "PAID",
-		"off_cycle_eligible": false,
-		"subtotal_id": "e173293f-ade4-5b8d-9b69-76fa380e2e67",
+		"pay_treatment": "UNPAID",
+		"subtotal_id": "930abb8b-61d3-5956-839d-9ff2b3c1fbb3",
 		"references": [
 			{
 				"title": "Child Development Co-Savings Act 2001 s.12D — 12 days unpaid infant care leave a year per parent of a citizen child under 2",
@@ -348,15 +343,12 @@
 		],
 		"id": "79a23338-83b5-5cc0-b597-a3426eadd084",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// EA s.20A and MOM: monthly gross ÷ the days required to work in that month × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nreturn ((Number(get(terms, 'rate.amount', 0)) + Number(get(terms, 'allowances.FIXED_MONTHLY.amount', 0))) * ctx.entry.quantity) / days;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "ADOPTION_LEAVE",
 		"name": "Adoption leave",
 		"lookup": {
-			"eligibility_months": 3,
 			"window": "EVENT",
 			"grant_days": 84,
 			"eligibility": {
@@ -364,10 +356,10 @@
 			},
 			"opened_by": {
 				"ADOPTION": {}
-			}
+			},
+			"eligibility_months": 3
 		},
 		"pay_treatment": "PAID",
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'payroll.gender', null) === 'FEMALE' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
@@ -391,15 +383,14 @@
 		"code": "SHARED_PARENTAL_LEAVE",
 		"name": "Shared parental leave",
 		"lookup": {
-			"eligibility_months": 3,
 			"window": "EVENT",
 			"grant_days": 70,
 			"opened_by": {
 				"CHILD_BIRTH": {}
-			}
+			},
+			"eligibility_months": 3
 		},
 		"pay_treatment": "PAID",
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') !== 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
@@ -425,9 +416,8 @@
 		"lookup": {
 			"no_cap": true
 		},
-		"pay_treatment": "PAID",
-		"off_cycle_eligible": false,
-		"subtotal_id": "e173293f-ade4-5b8d-9b69-76fa380e2e67",
+		"pay_treatment": "UNPAID",
+		"subtotal_id": "930abb8b-61d3-5956-839d-9ff2b3c1fbb3",
 		"references": [
 			{
 				"title": "Enlistment Act 1970 ss.13,31; Employment Act 1968 s.20A(1)(d) — NS absence is unpaid unless the employer continues full salary under the MINDEF/MHA DIRECT scheme",
@@ -438,16 +428,13 @@
 		],
 		"id": "2222da17-0733-5802-88bd-d29f6c16c626",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// EA s.20A and MOM: monthly gross ÷ the days required to work in that month × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nreturn ((Number(get(terms, 'rate.amount', 0)) + Number(get(terms, 'allowances.FIXED_MONTHLY.amount', 0))) * ctx.entry.quantity) / days;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
 		"name": "Public holiday in lieu",
 		"lookup": {},
 		"pay_treatment": "PAID",
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"references": [
 			{
@@ -466,9 +453,8 @@
 		"lookup": {
 			"no_cap": true
 		},
-		"pay_treatment": "PAID",
-		"off_cycle_eligible": false,
-		"subtotal_id": "e173293f-ade4-5b8d-9b69-76fa380e2e67",
+		"pay_treatment": "UNPAID",
+		"subtotal_id": "930abb8b-61d3-5956-839d-9ff2b3c1fbb3",
 		"references": [
 			{
 				"title": "Employment Act 1968 s.20A(1)(c) — a day of no-pay leave is a day off the month’s working days",
@@ -479,15 +465,12 @@
 		],
 		"id": "0924a1fc-0c2a-5912-8572-818aaf2fa91e",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// EA s.20A and MOM: monthly gross ÷ the days required to work in that month × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nreturn ((Number(get(terms, 'rate.amount', 0)) + Number(get(terms, 'allowances.FIXED_MONTHLY.amount', 0))) * ctx.entry.quantity) / days;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "ANNUAL_LEAVE_PART_TIME",
 		"name": "Annual leave (part-time, hours)",
 		"lookup": {
-			"eligibility_months": 3,
 			"window": "SERVICE_YEAR",
 			"service_bands": [
 				{
@@ -555,17 +538,17 @@
 					"days": 14
 				}
 			],
+			"eligibility": {
+				"engagement": "PART_TIME"
+			},
+			"eligibility_months": 3,
 			"carry": {
 				"windows": 1
 			},
 			"part_time_pro_rata": true,
-			"full_time_weekly_hours": 44,
-			"eligibility": {
-				"engagement": "PART_TIME"
-			}
+			"full_time_weekly_hours": 44
 		},
 		"pay_treatment": "PAID",
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
@@ -583,7 +566,6 @@
 		"code": "SICK_LEAVE_PART_TIME",
 		"name": "Outpatient sick leave (part-time)",
 		"lookup": {
-			"eligibility_months": 3,
 			"window": "CALENDAR_YEAR",
 			"service_bands": [
 				{
@@ -603,14 +585,14 @@
 					"days": 14
 				}
 			],
-			"part_time_pro_rata": true,
-			"full_time_weekly_hours": 44,
 			"eligibility": {
 				"engagement": "PART_TIME"
-			}
+			},
+			"eligibility_months": 3,
+			"part_time_pro_rata": true,
+			"full_time_weekly_hours": 44
 		},
 		"pay_treatment": "PAID",
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
@@ -628,7 +610,6 @@
 		"code": "HOSPITALIZATION_LEAVE_PART_TIME",
 		"name": "Hospitalization leave (part-time)",
 		"lookup": {
-			"eligibility_months": 3,
 			"window": "CALENDAR_YEAR",
 			"service_bands": [
 				{
@@ -648,14 +629,14 @@
 					"days": 60
 				}
 			],
-			"part_time_pro_rata": true,
-			"full_time_weekly_hours": 44,
 			"eligibility": {
 				"engagement": "PART_TIME"
-			}
+			},
+			"eligibility_months": 3,
+			"part_time_pro_rata": true,
+			"full_time_weekly_hours": 44
 		},
 		"pay_treatment": "PAID",
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"eligibility": "// js\nreturn (\n\tget(ctx.subject.employment, 'engagement', 'EMPLOYEE') === 'PART_TIME' &&\n\tcalendar_completed_months(ctx.subject.employment.effective_range.from, ctx.as_of) >=\n\t\tctx.lookup.eligibility_months\n);",
 		"references": [
@@ -675,9 +656,8 @@
 		"lookup": {
 			"no_cap": true
 		},
-		"pay_treatment": "PAID",
-		"off_cycle_eligible": false,
-		"subtotal_id": "e173293f-ade4-5b8d-9b69-76fa380e2e67",
+		"pay_treatment": "UNPAID",
+		"subtotal_id": "930abb8b-61d3-5956-839d-9ff2b3c1fbb3",
 		"references": [
 			{
 				"title": "Work Injury Compensation Act 2019 First Schedule para.4(1) — medical leave wages at the pre-accident average monthly earnings",
@@ -688,9 +668,7 @@
 		],
 		"id": "c3563b02-7ba5-5d4f-85c3-3a420c6672d2",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// EA s.20A and MOM: monthly gross ÷ the days required to work in that month × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nreturn ((Number(get(terms, 'rate.amount', 0)) + Number(get(terms, 'allowances.FIXED_MONTHLY.amount', 0))) * ctx.entry.quantity) / days;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "WORK_INJURY_HOSPITALISATION_LEAVE",
@@ -698,9 +676,8 @@
 		"lookup": {
 			"no_cap": true
 		},
-		"pay_treatment": "PAID",
-		"off_cycle_eligible": false,
-		"subtotal_id": "e173293f-ade4-5b8d-9b69-76fa380e2e67",
+		"pay_treatment": "UNPAID",
+		"subtotal_id": "930abb8b-61d3-5956-839d-9ff2b3c1fbb3",
 		"references": [
 			{
 				"title": "Work Injury Compensation Act 2019 First Schedule para.4(1) — hospitalisation leave wages at the pre-accident average monthly earnings",
@@ -711,8 +688,6 @@
 		],
 		"id": "65390468-ed1b-5c85-89f4-bf95c2d97a83",
 		"settings_id": "fe395d0a-6bd4-5750-bbdd-c1007c4b0e87",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// EA s.20A and MOM: monthly gross ÷ the days required to work in that month × the days not worked.\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'rate.unit', 'MONTHLY') !== 'MONTHLY') return ctx.day_rate * ctx.entry.quantity;\nconst coverage = ctx.run.salary_coverage;\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nlet days = 0;\nfor (let step = 0; step <= calendar_distance_days(from, to); step += 1) if (worksOn(add_days(from, step))) days += 1;\nreturn ((Number(get(terms, 'rate.amount', 0)) + Number(get(terms, 'allowances.FIXED_MONTHLY.amount', 0))) * ctx.entry.quantity) / days;"
+		"direction": "DEDUCT"
 	}
 ]

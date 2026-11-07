@@ -4,7 +4,6 @@
 		"name": "Personal data breach (suspected or confirmed)",
 		"lookup": {},
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"references": [
 			{
 				"title": "Personal Data Protection Act 2010 (Act 709) s.12B, inserted by Act A1727",
@@ -22,7 +21,6 @@
 		"name": "Sexual harassment complaint",
 		"lookup": {},
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"references": [
 			{
 				"title": "Employment Act 1955 (Act 265) Part XVA",
@@ -40,7 +38,6 @@
 		"name": "Flexible working arrangement request",
 		"lookup": {},
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"references": [
 			{
 				"title": "Employment Act 1955 (Act 265)",
@@ -58,7 +55,6 @@
 		"name": "Employer receives notice of employee death",
 		"lookup": {},
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"references": [
 			{
 				"title": "Income Tax Act 1967 (Act 53)",
@@ -75,7 +71,6 @@
 		"name": "Actual expected departure from Malaysia",
 		"lookup": {},
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"references": [
 			{
 				"title": "Income Tax Act 1967 (Act 53)",
@@ -92,7 +87,6 @@
 		"name": "Employee's signed cash or cheque wage request",
 		"lookup": {},
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"references": [
 			{
 				"title": "Employment Act 1955 (Act 265)",

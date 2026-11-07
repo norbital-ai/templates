@@ -23,7 +23,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "7361fd4d-7c1a-56e5-b7c1-78c216df2cac",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
 	},
@@ -50,14 +49,13 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "5fae6e57-5ca2-5097-978b-cad4e5737e96",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
 	},
 	{
 		"code": "SICK_LEAVE_UNPAID",
 		"name": "Sick leave beyond 30 paid days",
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
 		},
@@ -69,13 +67,10 @@
 				"quote": "Sick leave beyond 30 paid working days a year is unpaid."
 			}
 		],
-		"subtotal_id": "e25fb945-ac70-593e-bc96-3cf438c89eac",
-		"off_cycle_eligible": false,
+		"subtotal_id": "999dc181-b877-52a5-ad41-cc383b47a27f",
 		"id": "7c6026c1-e8fd-5bdb-a1d9-f1c814b8fa15",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// LPA ss.32, 57: sick leave past thirty paid working days carries no wage.\n// LPA s.5: the fixed allowance is wage and goes with the days. proration_basis CALENDAR_DAYS: s.56(1) pays a month through its weekly holidays and s.68 counts it in days.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst days = calendar_distance_days(from, to) + 1;\nconst lost = Math.min(ctx.entry.quantity + rest, days);\nconst calendar = calendar_distance_days(month_start(from), month_end(from)) + 1;\nconst allowance = (Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0)) * lost) / calendar;\n// a day or hour rate pays the working day; only a salary follows the calendar\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity + allowance;\nreturn (Number(get(terms, 'rate.amount', 0)) * lost) / days + allowance;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "PERSONAL_BUSINESS_LEAVE",
@@ -94,7 +89,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "bb7e6634-0ec0-556c-b5ba-29aa81ac378b",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
 	},
@@ -112,7 +106,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "ecd608e7-6f21-5bd5-a311-9bd86f09079d",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
 	},
@@ -139,14 +132,13 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "985f7bbf-162d-5051-bb74-d5279e91c8fe",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
 	},
 	{
 		"code": "TRAINING_LEAVE",
 		"name": "Training leave (ลาฝึกอบรม)",
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
 		},
@@ -158,13 +150,10 @@
 				"quote": "Training or development leave is allowed under the Ministerial Regulation; the Act does not require wages."
 			}
 		],
-		"subtotal_id": "e25fb945-ac70-593e-bc96-3cf438c89eac",
-		"off_cycle_eligible": false,
+		"subtotal_id": "999dc181-b877-52a5-ad41-cc383b47a27f",
 		"id": "fb1baa53-394a-5726-a305-bb3eedd6ea67",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// LPA s.36: training leave carries no wage under the Act.\n// LPA s.5: the fixed allowance is wage and goes with the days. proration_basis CALENDAR_DAYS: s.56(1) pays a month through its weekly holidays and s.68 counts it in days.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst days = calendar_distance_days(from, to) + 1;\nconst lost = Math.min(ctx.entry.quantity + rest, days);\nconst calendar = calendar_distance_days(month_start(from), month_end(from)) + 1;\nconst allowance = (Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0)) * lost) / calendar;\n// a day or hour rate pays the working day; only a salary follows the calendar\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity + allowance;\nreturn (Number(get(terms, 'rate.amount', 0)) * lost) / days + allowance;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "YOUNG_WORKER_TRAINING_LEAVE",
@@ -183,7 +172,6 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "77af258e-94ce-5a19-bea4-aff57d1ce5e5",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
 	},
@@ -216,14 +204,13 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "3ac38f3f-3115-55ef-b0ae-1622abe45c7d",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
 	},
 	{
 		"code": "MATERNITY_LEAVE_SSO",
 		"name": "Maternity leave, days without employer pay",
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
 		},
@@ -235,13 +222,10 @@
 				"quote": "120 days of maternity leave less 60 employer-paid days; the Social Security Fund pays a maternity benefit at 50 percent of wages for 90 days."
 			}
 		],
-		"subtotal_id": "e25fb945-ac70-593e-bc96-3cf438c89eac",
-		"off_cycle_eligible": false,
+		"subtotal_id": "999dc181-b877-52a5-ad41-cc383b47a27f",
 		"id": "bc0d413f-0cc7-50f0-9c89-3b70108d4d20",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// LPA s.41; SSA s.67: days past the employer-paid days carry no wage, and the Social Security Fund pays the benefit.\n// LPA s.5: the fixed allowance is wage and goes with the days. proration_basis CALENDAR_DAYS: s.56(1) pays a month through its weekly holidays and s.68 counts it in days.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst days = calendar_distance_days(from, to) + 1;\nconst lost = Math.min(ctx.entry.quantity + rest, days);\nconst calendar = calendar_distance_days(month_start(from), month_end(from)) + 1;\nconst allowance = (Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0)) * lost) / calendar;\n// a day or hour rate pays the working day; only a salary follows the calendar\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity + allowance;\nreturn (Number(get(terms, 'rate.amount', 0)) * lost) / days + allowance;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "PUBLIC_HOLIDAY",
@@ -266,14 +250,13 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "45cd7793-8f88-5e3c-a9d8-ad09efecd556",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
 	},
 	{
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave by agreement",
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
 		},
@@ -285,20 +268,16 @@
 				"quote": "Wages are owed for work and the paid leave the Act lists; other leave agreed with the employer is unpaid."
 			}
 		],
-		"subtotal_id": "e25fb945-ac70-593e-bc96-3cf438c89eac",
-		"off_cycle_eligible": false,
+		"subtotal_id": "999dc181-b877-52a5-ad41-cc383b47a27f",
 		"id": "28366b63-4f57-5d30-bcd9-e5deba42ea16",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// LPA ss.5, 70: leave agreed outside the paid leave of the Act carries no wage.\n// LPA s.5: the fixed allowance is wage and goes with the days. proration_basis CALENDAR_DAYS: s.56(1) pays a month through its weekly holidays and s.68 counts it in days.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst days = calendar_distance_days(from, to) + 1;\nconst lost = Math.min(ctx.entry.quantity + rest, days);\nconst calendar = calendar_distance_days(month_start(from), month_end(from)) + 1;\nconst allowance = (Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0)) * lost) / calendar;\n// a day or hour rate pays the working day; only a salary follows the calendar\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity + allowance;\nreturn (Number(get(terms, 'rate.amount', 0)) * lost) / days + allowance;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "CHILD_CARE_LEAVE",
 		"name": "Child-care leave after maternity (ลาเพื่อดูแลบุตร)",
 		"pay_treatment": "PAID",
 		"lookup": {
-			"paid_share": 0.5,
 			"window": "EVENT",
 			"grant_days": 15,
 			"eligibility": {
@@ -323,7 +302,6 @@
 			}
 		],
 		"subtotal_id": "80293069-f8dd-5da4-a4b0-df6b7a9ff21f",
-		"off_cycle_eligible": false,
 		"id": "8d207ade-9b6f-5a28-bdb8-57ae1594248d",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91",
 		"direction": "DEDUCT",
@@ -358,14 +336,13 @@
 			}
 		],
 		"subtotal_id": null,
-		"off_cycle_eligible": false,
 		"id": "249c5e13-9e73-5bbd-9127-b04d7f6b20b1",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91"
 	},
 	{
 		"code": "WORK_INJURY_LEAVE",
 		"name": "Work-injury absence (WCF compensation)",
-		"pay_treatment": "PAID",
+		"pay_treatment": "UNPAID",
 		"lookup": {
 			"no_cap": true
 		},
@@ -377,20 +354,16 @@
 				"quote": "A work injury or work illness is not sick leave; the Workmen's Compensation Fund pays 70 percent of the monthly wage while the employee cannot work."
 			}
 		],
-		"subtotal_id": "e25fb945-ac70-593e-bc96-3cf438c89eac",
-		"off_cycle_eligible": false,
+		"subtotal_id": "999dc181-b877-52a5-ad41-cc383b47a27f",
 		"id": "1b33b755-4862-55f8-91cc-0522cefcd7be",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
-		"conversion": "// js\n// LPA s.32 para 3; WCA s.18(1): a work injury is not sick leave, and the Workmen's Compensation Fund pays while the employee cannot work.\n// LPA s.5: the fixed allowance is wage and goes with the days. proration_basis CALENDAR_DAYS: s.56(1) pays a month through its weekly holidays and s.68 counts it in days.\nconst terms = ctx.subject.employment.terms;\nconst coverage = ctx.run.salary_coverage;\nconst slots = ctx.entry.days.map((day) => day.date);\nconst whole = slots\n\t.filter((date, index) => slots.indexOf(date) === index && slots.filter((other) => other === date).length > 1)\n\t.toSorted();\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment.terms, 'normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst worksOn = (date) => {\n\tconst day = ctx.work.days.find((row) => row.date === date);\n\treturn day == null ? !off.includes(weekday(date)) : ['WORK', 'ABS'].includes(get(day, 'day_type', 'WORK'));\n};\nlet rest = 0;\nfor (let index = 1; index < whole.length; index += 1) {\n\tlet between = [];\n\tfor (let step = 1; step < calendar_distance_days(whole[index - 1], whole[index]); step += 1)\n\t\tbetween = [...between, add_days(whole[index - 1], step)];\n\tif (between.length > 0 && !between.some(worksOn)) rest += between.length;\n}\nconst reversal = ctx.entry.is_reversal === true;\nconst back = add_days(coverage.from, -1);\nconst halves = get(ctx.subject.employer, 'payment_schedule.frequency', '') === 'SEMI_MONTHLY';\nconst from = !reversal ? coverage.from : halves && Number(String(back).slice(8, 10)) > 15 ? add_days(month_start(back), 15) : String(month_start(back));\nconst to = reversal ? back : coverage.to;\nconst days = calendar_distance_days(from, to) + 1;\nconst lost = Math.min(ctx.entry.quantity + rest, days);\nconst calendar = calendar_distance_days(month_start(from), month_end(from)) + 1;\nconst allowance = (Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0)) * lost) / calendar;\n// a day or hour rate pays the working day; only a salary follows the calendar\nif (['DAILY', 'HOURLY'].includes(get(terms, 'rate.unit', 'MONTHLY'))) return ctx.day_rate * ctx.entry.quantity + allowance;\nreturn (Number(get(terms, 'rate.amount', 0)) * lost) / days + allowance;"
+		"direction": "DEDUCT"
 	},
 	{
 		"code": "SUSPENSION",
 		"name": "Suspension pending investigation (at least 50% pay)",
 		"pay_treatment": "PAID",
 		"lookup": {
-			"paid_share": 0.5,
 			"window": "EVENT",
 			"grant_days": 7,
 			"opened_by": {
@@ -412,7 +385,6 @@
 			}
 		],
 		"subtotal_id": "80293069-f8dd-5da4-a4b0-df6b7a9ff21f",
-		"off_cycle_eligible": false,
 		"id": "99741238-6cc9-58da-8ef4-385558b4c29e",
 		"settings_id": "1f9e2999-476a-5e56-901f-8bd153f74d91",
 		"direction": "DEDUCT",

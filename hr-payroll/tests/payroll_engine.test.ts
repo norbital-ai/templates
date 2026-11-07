@@ -61,7 +61,7 @@ const input = (): PayrollInput => ({
 	employee: { id: 'employee-1' },
 	employment: {
 		id: 'contract-1',
-		terms: { rate: { amount: 5000, unit: 'MONTHLY' } }
+		terms: { rate: { amount: 5000, unit: 'MONTHLY' }, normal_hours_per_day: 8, normal_hours_per_week: 40, normal_days_per_week: 5 }
 	},
 	employer: { id: 'entity-1' },
 	balance: {
@@ -177,7 +177,7 @@ describe('linear payroll engine', () => {
 				id: 'contract-1',
 				effective_range: { from: '2026-11-05', to: null },
 				service_started_on: '2020-01-01',
-				terms: { rate: { amount: 5000, unit: 'MONTHLY' } }
+				terms: { rate: { amount: 5000, unit: 'MONTHLY' }, normal_hours_per_day: 8, normal_hours_per_week: 40, normal_days_per_week: 5 }
 			},
 			allowance: [
 				catalog('service', 'SERVICE', {
@@ -386,7 +386,7 @@ describe('linear payroll engine', () => {
 				{
 					id: 'npl-reversal',
 					catalog_id: 'npl',
-					is_reversal: true,
+					reverses: 'original',
 					days: [
 						{ date: '2026-03-05', part: 'AM' },
 						{ date: '2026-03-05', part: 'PM' },

@@ -25,13 +25,13 @@ local reset ──► nine jurisdiction tenants ──► event-time probes
 
 ## 2. Baseline payroll
 
-| Probe                                                   | Expected                                                                                                    | Evidence                               |
-| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| 12 consecutive cycles × 9 jurisdictions × ≥30 employees | Every cycle creates one run and one payslip per active employee, and the `ledger` automation posts its rows | Run ids, payslip ids, per-cycle totals |
-| Employee totals                                         | Basic, gross, net, deductions, employer cost reconcile to the subtotal chain and catalogue lines            | Per-employee expected/actual           |
-| Statutory                                               | Employee and employer amounts match the jurisdiction table for that period and wage band                    | Scheme-level expected/actual           |
-| YTD                                                     | Sum of period statutory ledger rows; no duplicate YTD row                                                   | Ledger extract                         |
-| Idempotency                                             | A second on-cycle run for the period is refused; a repeated posting adds no ledger rows                     | Second-run diff                        |
+| Probe                                                   | Expected                                                                                          | Evidence                               |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| 12 consecutive cycles × 9 jurisdictions × ≥30 employees | Every cycle creates one run and one payslip per active employee, and its own write posts its rows | Run ids, payslip ids, per-cycle totals |
+| Employee totals                                         | Basic, gross, net, deductions, employer cost reconcile to the subtotal chain and catalogue lines  | Per-employee expected/actual           |
+| Statutory                                               | Employee and employer amounts match the jurisdiction table for that period and wage band          | Scheme-level expected/actual           |
+| YTD                                                     | Sum of period statutory ledger rows; no duplicate YTD row                                         | Ledger extract                         |
+| Idempotency                                             | A second on-cycle run for the period is refused; a repeated posting adds no ledger rows           | Second-run diff                        |
 
 ## 3. Lifecycle probes
 
@@ -117,7 +117,7 @@ For each of leave, claim, adhoc and loan:
 
 1. Create the record through the employee or controller UI.
 2. Where the writer needs approval, approve it through the policy's approval flow.
-3. Once the `ledger` automation has run, verify one ledger row per movement and the projected balance. A loan posts no ledger row.
+3. Verify one ledger row per movement and the projected balance. A loan posts no ledger row.
 4. As the HR controller, reverse it with a reversal entry on the same item and verify the inverse movement with no history edit.
 
 Expected: leave uses dated half-day slots; claim/adhoc use quantity and unit; loan uses principal and repayment amount; the ledger account/code matches the family convention.

@@ -4,7 +4,6 @@
 		"subtotal_id": null,
 		"code": "EMPLOYER_SHUTDOWN",
 		"name": "Employer shutdown or temporary closure",
-		"off_cycle_eligible": false,
 		"references": [
 			{
 				"title": "Employment Act 1968 ss.27(1)(a),28(1) — a shutdown or closure by the employer is not the employee’s absence, so salary is paid whole",
@@ -22,7 +21,6 @@
 		"subtotal_id": null,
 		"code": "LOCKOUT",
 		"name": "Lockout by the employer",
-		"off_cycle_eligible": false,
 		"references": [
 			{
 				"title": "Employment Act 1968 ss.27(1)(a),28(1) — a lockout by the employer is not the employee’s absence, so salary is paid whole",
@@ -40,7 +38,6 @@
 		"subtotal_id": null,
 		"code": "GOVERNMENT_ORDER",
 		"name": "Government order closing the workplace",
-		"off_cycle_eligible": false,
 		"references": [
 			{
 				"title": "Employment Act 1968 ss.27(1)(a),28(1) — a government closure is not the employee’s absence, so salary is paid whole",
@@ -58,7 +55,6 @@
 		"subtotal_id": null,
 		"code": "NATURAL_DISASTER",
 		"name": "Natural disaster or force majeure closure",
-		"off_cycle_eligible": false,
 		"references": [
 			{
 				"title": "Employment Act 1968 ss.27(1)(a),28(1) — a force-majeure closure is not the employee’s absence, so salary is paid whole",
@@ -76,7 +72,6 @@
 		"subtotal_id": null,
 		"code": "STRIKE",
 		"name": "Strike",
-		"off_cycle_eligible": false,
 		"references": [
 			{
 				"title": "Employment Act 1968 s.27(1)(a) — a deduction requires the employee’s own absence; a strike is not attendance",

@@ -11,7 +11,7 @@ import { Effect, Schema } from 'effect';
 import { lookupOf } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
-import { idOf } from '../src/lib/payroll_engine/reads.ts';
+import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
 import {
 	ENTITY,
 	WORK,
@@ -29,7 +29,7 @@ const JUNE = '2026-06-20T02:00:00.000Z';
 const DECEMBER = '2026-12-20T02:00:00.000Z';
 const terms = (
 	amount: number,
-	allowances: Record<string, { readonly amount: number; readonly variability?: string }> = {},
+	allowances: Record<string, { readonly amount: number }> = {},
 	unit = 'MONTHLY'
 ) => ({
 	rate: { amount, unit },
@@ -543,7 +543,7 @@ describe('a benefit over two calendar years', () => {
 			);
 		}).pipe(Effect.provide(workspace({ seed: last, now: LATER })));
 	});
-	it.live('a run cannot be paid until its balances have it', () =>
+	it.live('a run is paid at once: its own write posted it', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const admin = t.as(t.admin);
@@ -552,10 +552,7 @@ describe('a benefit over two calendar years', () => {
 			]);
 			const run = (yield* t.storedQuery({ payroll_run: { limit: 1 } })).payroll_run.rows[0];
 			assert.ok(run !== undefined);
-			const paid = admin.act('payroll_run.update', [{ target: run.id, set: { state: 'PAID' } }]);
-			assert.match(String(yield* Effect.flip(paid)), /still posting/);
-			yield* t.runDue();
-			yield* paid;
+			yield* admin.act('payroll_run.update', [{ target: run.id, set: { state: 'PAID' } }]);
 		}).pipe(Effect.provide(workspace({ seed, now: LATER })))
 	);
 	it.live('an unpaid run posts from its payslip, and deleting it takes that back', () =>
@@ -740,11 +737,19 @@ const takenIn = (t: Kit, period: string, code: string) =>
 			return Number(line.amount.toFixed(2)) * (line.direction === 'DEDUCT' ? -1 : 1);
 		})
 	);
+const basicIn = (t: Kit, period: string) =>
+	runs(t, period).pipe(
+		Effect.map(
+			([slip]) => slip?.checkpoints.find((row) => row.code === 'BASIC')?.value as number | undefined
+		)
+	);
+const near = (actual: number | undefined, expected: number) =>
+	assert.ok(Math.abs((actual ?? 0) - expected) < 0.01, `${actual ?? 0} is not ${expected}`);
 const AUGUST = '2026-08-20T02:00:00.000Z';
 
 const ID_SEED = seedOf(
 	INDONESIA,
-	terms(10_000_000, { HOUSE_ALLOWANCE: { amount: 1_000_000, variability: 'FIXED' } })
+	terms(10_000_000, { HOUSE_ALLOWANCE: { amount: 1_000_000 } })
 );
 const TH_SEED = seedOf(THAILAND, terms(28_000, { FIXED_ALLOWANCE: { amount: 2000 } }));
 
@@ -755,19 +760,21 @@ describe('a no-pay day in Indonesia', () => {
 			const t = yield* TestWorkspace;
 			yield* take(t, ID_SEED, code, whole('2026-06-10'));
 			yield* onCycle(t, '2026-06');
-			assert.equal(yield* takenIn(t, '2026-06', code), -500_000);
+			assert.equal(yield* takenIn(t, '2026-06', code), undefined);
+			near(yield* basicIn(t, '2026-06'), 10_000_000 - 10_000_000 / 22);
 		}).pipe(Effect.provide(workspace({ seed: ID_SEED, now: JUNE })))
 	);
 	it.live('a half day is half, a variable allowance stays out', () => {
 		const seed = seedOf(
 			INDONESIA,
-			terms(11_000_000, { SPECIAL_ALLOWANCE: { amount: 900_000, variability: 'VARIABLE' } })
+			terms(11_000_000, { SPECIAL_ALLOWANCE: { amount: 900_000 } })
 		);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* take(t, seed, code, [{ date: PlainDate('2026-06-10'), part: 'AM' }]);
 			yield* onCycle(t, '2026-06');
-			assert.equal(yield* takenIn(t, '2026-06', code), -250_000);
+			assert.equal(yield* takenIn(t, '2026-06', code), undefined);
+			near(yield* basicIn(t, '2026-06'), 11_000_000 - 11_000_000 / 44);
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
 	});
 	it.live('a reversal in July gives back June’s day, once', () =>
@@ -790,8 +797,8 @@ describe('a no-pay day in Indonesia', () => {
 			yield* take(t, ID_SEED, code, whole('2026-08-05'), yield* sealedLeave(t));
 			yield* onCycle(t, '2026-08');
 			const given = yield* takenIn(t, '2026-08', code);
-			assert.equal(given, -Number((yield* takenIn(t, '2026-07', code)) ?? 0));
 			assert.equal(given, 478_260.87);
+			near(yield* basicIn(t, '2026-07'), 10_000_000 - 10_000_000 / 23);
 		}).pipe(Effect.provide(workspace({ seed: ID_SEED, now: AUGUST })))
 	);
 	it.live('a date in a period that has run is refused', () =>
@@ -805,10 +812,10 @@ describe('a no-pay day in Indonesia', () => {
 			assert.match(String(late), /already run/);
 		}).pipe(Effect.provide(workspace({ seed: ID_SEED, now: AUGUST })))
 	);
-	it.live('an entry not yet paid is deleted, not reversed', () => notYetPaid(ID_SEED, code));
+	it.live('an entry not yet paid is deleted, not reversed', () => notYetPaid(ID_SEED, code, 10_000_000));
 });
 
-const notYetPaid = (seed: Seed, code: string) =>
+const notYetPaid = (seed: Seed, code: string, full: number) =>
 	Effect.gen(function* () {
 		const t = yield* TestWorkspace;
 		yield* take(t, seed, code, whole('2026-06-10'));
@@ -820,6 +827,7 @@ const notYetPaid = (seed: Seed, code: string) =>
 		yield* t.as(t.admin).act('leave_catalog_entry.delete', [{ target: open.id }]);
 		yield* onCycle(t, '2026-06');
 		assert.equal(yield* takenIn(t, '2026-06', code), undefined);
+		assert.equal(yield* basicIn(t, '2026-06'), full);
 	}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
 
 describe('a no-pay day in Thailand', () => {
@@ -829,7 +837,8 @@ describe('a no-pay day in Thailand', () => {
 				const t = yield* TestWorkspace;
 				yield* take(t, TH_SEED, code, whole('2026-06-10'));
 				yield* onCycle(t, '2026-06');
-				assert.equal(yield* takenIn(t, '2026-06', code), -1000);
+				assert.equal(yield* takenIn(t, '2026-06', code), undefined);
+				near(yield* basicIn(t, '2026-06'), 28_000 - 28_000 / 30);
 				yield* take(t, TH_SEED, code, whole('2026-07-06'), yield* sealedLeave(t));
 				yield* onCycle(t, '2026-07');
 				assert.equal(yield* takenIn(t, '2026-07', code), 1000);
@@ -841,7 +850,8 @@ describe('a no-pay day in Thailand', () => {
 			const t = yield* TestWorkspace;
 			yield* take(t, TH_SEED, code, [{ date: PlainDate('2026-06-10'), part: 'PM' }]);
 			yield* onCycle(t, '2026-06');
-			assert.equal(yield* takenIn(t, '2026-06', code), -500);
+			assert.equal(yield* takenIn(t, '2026-06', code), undefined);
+			near(yield* basicIn(t, '2026-06'), 28_000 - 28_000 / 60);
 		}).pipe(Effect.provide(workspace({ seed: TH_SEED, now: JUNE })))
 	);
 	it.live('a weekend between two missed days goes with them', () =>
@@ -849,7 +859,8 @@ describe('a no-pay day in Thailand', () => {
 			const t = yield* TestWorkspace;
 			yield* take(t, TH_SEED, code, [...whole('2026-06-12'), ...whole('2026-06-15')]);
 			yield* onCycle(t, '2026-06');
-			assert.equal(yield* takenIn(t, '2026-06', code), -4000);
+			assert.equal(yield* takenIn(t, '2026-06', code), undefined);
+			near(yield* basicIn(t, '2026-06'), 28_000 - (28_000 * 4) / 30);
 		}).pipe(Effect.provide(workspace({ seed: TH_SEED, now: JUNE })))
 	);
 	it.live('across months of 31 and 30 days it pays back what it took', () =>
@@ -860,11 +871,12 @@ describe('a no-pay day in Thailand', () => {
 			yield* take(t, TH_SEED, code, whole('2026-08-05'), yield* sealedLeave(t));
 			yield* onCycle(t, '2026-08');
 			const given = yield* takenIn(t, '2026-08', code);
-			assert.equal(given, -Number((yield* takenIn(t, '2026-07', code)) ?? 0));
+			const july = yield* basicIn(t, '2026-07');
+			near(july, 28_000 - 28_000 / 31);
 			assert.equal(given, 967.74);
 		}).pipe(Effect.provide(workspace({ seed: TH_SEED, now: AUGUST })))
 	);
-	it.live('an entry not yet paid is deleted, not reversed', () => notYetPaid(TH_SEED, code));
+	it.live('an entry not yet paid is deleted, not reversed', () => notYetPaid(TH_SEED, code, 28_000));
 	it.live('a date in a period that has run is refused', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -958,31 +970,32 @@ describe('a no-pay line owes what the salary basis owed', () => {
 
 describe('the catalogs', () => {
 	const root = 'seed/public/jurisdiction';
-	for (const [code, rows, taken] of [
+	for (const [code, taken, ruleTaken] of [
 		['ID', ID_NO_PAY, [...ID_NO_PAY, 'MEDICAL_LEAVE', 'MATERNITY_LEAVE']],
 		['TH', TH_NO_PAY, TH_NO_PAY]
 	] as const)
-		it(`${code}: every version carries the lines and their rule`, () => {
+		it(`${code}: every version carries the unpaid rows and the rule that opens them`, () => {
 			for (const version of readdirSync(join(root, code))) {
 				const leave = read(join(root, code, version, 'leave_catalog.json'));
-				const lines = leave.filter((one) => one.pay_treatment === 'UNPAID');
-				assert.deepEqual(lines, [], version);
-				for (const item of rows) {
-					const one = leave.find((candidate) => candidate.code === item);
-					assert.equal(one?.direction, 'DEDUCT', `${version} ${item}`);
-					assert.equal(one?.party, 'EMPLOYEE', `${version} ${item}`);
-					assert.deepEqual(one?.lookup, {
-						no_cap: true,
-						...(code === 'ID'
-							? {
-									prorated_allowances: ['CAR_ALLOWANCE', 'HOUSE_ALLOWANCE', 'SPECIAL_ALLOWANCE']
-								}
-							: {})
-					});
+				const unpaid = leave.filter((one) => one.pay_treatment === 'UNPAID');
+				// the rows the salary basis takes: no conversion line, and the set the rule names
+				assert.deepEqual(
+					unpaid.map((one) => one.code).sort(),
+					[...taken].sort(),
+					version
+				);
+				for (const one of unpaid) {
+					assert.equal(one.conversion, undefined, `${version} ${one.code}`);
+					assert.ok(one.subtotal_id !== null, `${version} ${one.code} posts its refund`);
 				}
 				const rules = read(join(root, code, version, 'registered_rule.json'));
 				const rule = rules.find((one) => one.code === 'NO_PAY_OPEN_PERIOD');
-				assert.deepEqual(rule?.lookup, { no_pay: taken }, version);
+				const noPay = objectValue(rule?.lookup)['no_pay'];
+				assert.deepEqual(
+					(Array.isArray(noPay) ? noPay : []).map(String).sort(),
+					[...ruleTaken].sort(),
+					version
+				);
 			}
 		});
 });

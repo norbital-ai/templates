@@ -21,12 +21,11 @@ export default model('claim_catalog', {
 		name: { kind: 'text' },
 		description: { kind: 'text', optional: true },
 		references: { kind: 'custom', of: 'references', optional: true },
-		eligibility: { kind: 'text', format: 'cel', max: 65536, optional: true },
-		incurred_on: { kind: 'text', format: 'cel', max: 65536, optional: true },
+		eligibility: { kind: 'text', max: 65536, optional: true },
+		incurred_on: { kind: 'text', max: 65536, optional: true },
 		direction: { kind: 'enum', values: ['ADD', 'DEDUCT'], default: 'ADD' },
 		party: { kind: 'enum', values: ['EMPLOYEE', 'EMPLOYER'], default: 'EMPLOYEE' },
-		off_cycle_eligible: { kind: 'bool' },
-		conversion: { kind: 'text', format: 'cel', max: 65536, optional: true },
+		conversion: { kind: 'text', max: 65536, optional: true },
 		settings_id: { kind: 'ref', to: 'jurisdiction_settings', inverse: 'claim_catalog', owned: true }
 	},
 	unique: [{ fields: ['settings_id', 'code'] }],
@@ -48,7 +47,6 @@ export default model('claim_catalog', {
 				'incurred_on',
 				'direction',
 				'party',
-				'off_cycle_eligible',
 				'conversion',
 				'settings_id'
 			]
@@ -76,7 +74,6 @@ export default model('claim_catalog', {
 				'incurred_on',
 				'direction',
 				'party',
-				'off_cycle_eligible',
 				'conversion'
 			]
 		},

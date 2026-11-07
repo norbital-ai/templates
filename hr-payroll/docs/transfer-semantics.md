@@ -70,8 +70,8 @@ the new law's keys start empty and sync opens them from the new contract.
 
 Where the old jurisdiction's `ANNUAL_LEAVE` row sets `encash_on_exit.allowed`, ending the contract
 with no same-jurisdiction successor creates a normal `leave_catalog_entry` with `encashment: true`,
-for the days left. The `ledger` automation posts them as used, and the old jurisdiction's final run
-pays the conversion in `FINAL_PAY`. A misconduct dismissal recorded in `exit_facts` encashes
+for the days left. Its own write posts them as used, and the old jurisdiction's final run
+pays the conversion in `FINAL_PAY`. A misconduct dismissal recorded in `employee_extension_data.misconduct_dismissal` encashes
 nothing.
 
 ### 3.2 Loans

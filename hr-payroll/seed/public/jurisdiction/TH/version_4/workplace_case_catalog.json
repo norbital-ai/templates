@@ -2,7 +2,6 @@
 	{
 		"code": "PERSONAL_DATA_BREACH",
 		"name": "Personal data breach (PDPA s.37(4))",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -20,7 +19,6 @@
 	{
 		"code": "PERSONAL_DATA_TRANSFER_ABROAD",
 		"name": "Personal data to be sent or transferred abroad (PDPA s.28)",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -38,7 +36,6 @@
 	{
 		"code": "WORKPLACE_RELOCATION",
 		"name": "Workplace relocation planned",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -56,7 +53,6 @@
 	{
 		"code": "RELOCATION_EMPLOYEE_REFUSAL",
 		"name": "Employee declines relocation",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -74,7 +70,6 @@
 	{
 		"code": "RELOCATION_EMPLOYER_OBJECTION",
 		"name": "Employee relocation refusal disputed (open on written-notice receipt)",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -92,7 +87,6 @@
 	{
 		"code": "RELOCATION_BOARD_ORDER",
 		"name": "Relocation committee order received",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -110,7 +104,6 @@
 	{
 		"code": "EQUIVALENT_WELFARE_FIRST_WITHHOLDING",
 		"name": "Disclose the equivalent-welfare bank account (open on the legal event date)",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -128,7 +121,6 @@
 	{
 		"code": "EQUIVALENT_WELFARE_INSPECTION_REQUEST",
 		"name": "Respond to an equivalent-welfare account inspection request (open on the legal event date)",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -146,7 +138,6 @@
 	{
 		"code": "EQUIVALENT_WELFARE_EMPLOYMENT_END",
 		"name": "Return the equivalent-welfare account and exit certificate (open on the legal event date)",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -164,7 +155,6 @@
 	{
 		"code": "EQUIVALENT_WELFARE_SETUP",
 		"name": "Verify the equivalent-welfare arrangement (open on the legal event date)",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -182,7 +172,6 @@
 	{
 		"code": "EQUIVALENT_WELFARE_BENEFICIARY_REQUEST",
 		"name": "Facilitate an equivalent-welfare beneficiary withdrawal (open on the legal event date)",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -200,7 +189,6 @@
 	{
 		"code": "SKILL_DEVELOPMENT_COURSE_COMPLETED",
 		"name": "Qualifying employee training completed (open on actual course completion)",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -218,7 +206,6 @@
 	{
 		"code": "DEDUCTION_LIMIT_CONSENT",
 		"name": "Employee’s prior written consent to specified deductions",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -236,7 +223,6 @@
 	{
 		"code": "SECURITY_DEPOSIT_RECEIVED",
 		"name": "Actual security money received from the employee",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -254,7 +240,6 @@
 	{
 		"code": "CROSS_BORDER_WORK_RECORD",
 		"name": "Actual overseas work dates and country",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -272,7 +257,6 @@
 	{
 		"code": "EXTERNAL_WAGE_RECORD",
 		"name": "Original external wage payment or cost allocation",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,
@@ -290,7 +274,6 @@
 	{
 		"code": "BENEFIT_SERVICE_RECORD",
 		"name": "Actual service attributable to a benefit award",
-		"off_cycle_eligible": false,
 		"lookup": {},
 		"events": {},
 		"subtotal_id": null,

@@ -4,62 +4,71 @@
 		"name": "Basic salary (基本工資)",
 		"previous_id": null,
 		"id": "f83a9782-5f00-5cb4-917a-f0e731bfdfb4",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "ORDINARY_WAGES",
 		"name": "Ordinary wages (經常性給與)",
 		"previous_id": "9e458e6d-3931-408d-8a4c-c72e5cda9d37",
 		"id": "66ef72f3-f033-55e2-8d6d-87f52d51abe1",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "ADDITIONAL_WAGES",
 		"name": "Additional wages (含獎金的應發工資)",
 		"previous_id": "66ef72f3-f033-55e2-8d6d-87f52d51abe1",
 		"id": "f969fd71-089c-5b6c-997e-b483938d12b5",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "RETIREMENT",
 		"name": "Retirement and severance (退休金及資遣費)",
 		"previous_id": "f969fd71-089c-5b6c-997e-b483938d12b5",
 		"id": "4ac49282-2b97-5de8-941d-68c7ff23b52c",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "NET",
 		"name": "Net pay (實發工資)",
 		"previous_id": "558ab674-604d-59e0-b292-7b22312c81ac",
 		"id": "89897a7b-4df0-5d03-b695-dc8b0e46b4f2",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "FINAL_PAY",
 		"name": "Final pay and non-wage settlements",
 		"previous_id": "4ac49282-2b97-5de8-941d-68c7ff23b52c",
 		"id": "558ab674-604d-59e0-b292-7b22312c81ac",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "BASIC_AFTER_PARENTAL_LEAVE",
 		"name": "Basic salary after parental leave (育嬰留職停薪後)",
 		"previous_id": "f83a9782-5f00-5cb4-917a-f0e731bfdfb4",
 		"id": "69a8cfb0-32c7-41ff-9729-322c8d13cee1",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "BASIC_AFTER_UNPAID_LEAVE",
 		"name": "Basic salary after no-pay days (無薪假後)",
 		"previous_id": "69a8cfb0-32c7-41ff-9729-322c8d13cee1",
 		"id": "d0cb3f3b-0929-45ef-8b05-af4998cb56c2",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "SALARY_INCOME",
 		"name": "Salary income (薪資所得)",
 		"previous_id": "d0cb3f3b-0929-45ef-8b05-af4998cb56c2",
 		"id": "9e458e6d-3931-408d-8a4c-c72e5cda9d37",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
+		"balance_window": "MONTH"
 	}
 ]

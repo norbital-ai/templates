@@ -4,62 +4,71 @@
 		"name": "Basic salary (基本工资)",
 		"previous_id": null,
 		"id": "bc834b2d-f4b7-5383-a538-8fb0c23b4538",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "ORDINARY_WAGES",
 		"name": "Ordinary wages (正常工资)",
 		"previous_id": "bc834b2d-f4b7-5383-a538-8fb0c23b4538",
 		"id": "07ca7854-5937-5233-92e2-128abdd58b42",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "ANNUAL_BONUS_WAGES",
 		"name": "Annual one-time bonus (全年一次性奖金)",
 		"previous_id": "07ca7854-5937-5233-92e2-128abdd58b42",
 		"id": "fc0a4cd6-7935-4b27-9ffe-a870c6eed6de",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "ADDITIONAL_WAGES",
 		"name": "Additional wages (含奖金的工资总额)",
 		"previous_id": "fc0a4cd6-7935-4b27-9ffe-a870c6eed6de",
 		"id": "f62b9bd3-3366-55a0-b8af-6536872c1b2d",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "FOREIGN_ALLOWANCES",
 		"name": "Expatriate allowances (外籍个人津补贴)",
 		"previous_id": "f62b9bd3-3366-55a0-b8af-6536872c1b2d",
 		"id": "774613ce-1ec5-4560-9c53-457f516e6891",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"balance_window": "MONTH"
 	},
 	{
 		"code": "GROSS",
 		"name": "Gross earnings (应发工资)",
 		"previous_id": "774613ce-1ec5-4560-9c53-457f516e6891",
 		"id": "6d3de9a9-320c-52b9-aa89-1c7b18e0de18",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "SEVERANCE",
 		"name": "Termination compensation (一次性补偿收入)",
 		"previous_id": "6d3de9a9-320c-52b9-aa89-1c7b18e0de18",
 		"id": "828ba3fb-7189-4df8-afb1-f012578d60b5",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "FINAL_PAY",
 		"name": "Final pay and non-wage settlements",
 		"previous_id": "828ba3fb-7189-4df8-afb1-f012578d60b5",
 		"id": "03146d74-1ed4-5309-ac56-9455245707ce",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"balance_window": "YEAR"
 	},
 	{
 		"code": "NET",
 		"name": "Net pay (实发工资)",
 		"previous_id": "03146d74-1ed4-5309-ac56-9455245707ce",
 		"id": "e9ee45d0-4163-5b5d-ab6d-7fe2ddb084fa",
-		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d"
+		"settings_id": "a5cfa8b8-0bf5-51b1-8e7e-d8cae62da73d",
+		"balance_window": "YEAR"
 	}
 ]

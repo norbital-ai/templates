@@ -68,13 +68,15 @@ export default model('subtotal', {
 		code: { kind: 'text' },
 		name: { kind: 'text' },
 		previous_id: { kind: 'ref', to: 'subtotal', optional: true, onDelete: 'restrict' },
-		calculation: { kind: 'text', format: 'cel', max: 65536, optional: true }
+		/** The posting window this checkpoint holds in the ledger. */
+		balance_window: { kind: 'enum', values: ['MONTH', 'YEAR'], default: 'YEAR' },
+		calculation: { kind: 'text', max: 65536, optional: true }
 	},
 	unique: [{ fields: ['settings_id', 'code'] }],
 	read: { subtotal: { fields: 'all' } },
 	create: {
 		columns: {
-			subtotal: ['settings_id', 'code', 'name', 'previous_id', 'calculation']
+			subtotal: ['settings_id', 'code', 'name', 'previous_id', 'balance_window', 'calculation']
 		},
 		transform: function* (rows, ctx) {
 			yield* guardConfigurationRows(
@@ -92,7 +94,7 @@ export default model('subtotal', {
 		}
 	},
 	update: {
-		columns: { subtotal: ['code', 'name', 'previous_id', 'calculation'] },
+		columns: { subtotal: ['code', 'name', 'previous_id', 'balance_window', 'calculation'] },
 		transform: function* (changes, ctx) {
 			yield* guardConfigurationRows(
 				ctx.db.query,

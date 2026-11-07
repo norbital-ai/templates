@@ -11,12 +11,11 @@
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.CHILDCARE_SUBSIDY.amount', 0);",
 		"incurred_on": "return ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"subtotal_id": "69f267bb-d2c3-5b65-9561-09bef8ccce0f",
 		"id": "16f4461a-c43b-5e35-9c38-900ab6f87ca9",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
+		"include_in_rate": false
 	},
 	{
 		"code": "FIXED_ALLOWANCE",
@@ -30,12 +29,11 @@
 		"eligibility": "return true;",
 		"conversion": "// js\n// 工资支付暂行规定 第十一条、第十二条: no wage for days not worked. A fixed allowance is paid for the days BASIC pays, so it falls and returns with the no-pay lines there, and BASIC stays the salary alone.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst amount = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nconst coverage = ctx.run.salary_coverage;\nconst off = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nlet working = 0;\nfor (let date = coverage.from; date <= coverage.to; date = add_days(date, 1)) if (!off.includes(weekday(date))) working += 1;\nconst hours = Number(get(terms, 'normal_hours_per_month', working * Number(get(terms, 'normal_hours_per_day', 8))));\nconst salary = unit === 'DAILY' ? rate * working : unit === 'HOURLY' ? rate * hours : rate;\nreturn salary > 0 ? (amount * ctx.subtotals.BASIC) / salary : amount;",
 		"incurred_on": "return ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"subtotal_id": "474ec38e-0eb3-58c2-9789-fc0e2ba4419c",
 		"id": "f5428dd9-8081-547e-9dcc-1967ef8718cb",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
+		"include_in_rate": true
 	},
 	{
 		"code": "FOREIGN_CHILD_EDUCATION_ALLOWANCE",
@@ -49,12 +47,11 @@
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.FOREIGN_CHILD_EDUCATION_ALLOWANCE.amount', 0);",
 		"incurred_on": "return ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"subtotal_id": "d4b1fcd8-8e30-46f0-9993-4a6be497875f",
 		"id": "8dc37787-5c34-5ad0-b716-788d03c4046f",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
+		"include_in_rate": true
 	},
 	{
 		"code": "FOREIGN_HOUSING_ALLOWANCE",
@@ -68,12 +65,11 @@
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.FOREIGN_HOUSING_ALLOWANCE.amount', 0);",
 		"incurred_on": "return ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"subtotal_id": "d4b1fcd8-8e30-46f0-9993-4a6be497875f",
 		"id": "e326abf9-5c01-50a5-a0ab-ab187fd19ab5",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
+		"include_in_rate": false
 	},
 	{
 		"code": "FOREIGN_LANGUAGE_ALLOWANCE",
@@ -87,12 +83,11 @@
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.FOREIGN_LANGUAGE_ALLOWANCE.amount', 0);",
 		"incurred_on": "return ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"subtotal_id": "d4b1fcd8-8e30-46f0-9993-4a6be497875f",
 		"id": "d00958d8-b960-51bd-b65a-6425711e1b26",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
+		"include_in_rate": true
 	},
 	{
 		"code": "MEAL_SUBSIDY_OUT",
@@ -106,12 +101,11 @@
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.MEAL_SUBSIDY_OUT.amount', 0);",
 		"incurred_on": "return ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"subtotal_id": "69f267bb-d2c3-5b65-9561-09bef8ccce0f",
 		"id": "bcbada03-b71b-51a5-b59d-b8291dea4599",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
+		"include_in_rate": false
 	},
 	{
 		"code": "ONLY_CHILD_ALLOWANCE",
@@ -125,12 +119,11 @@
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.ONLY_CHILD_ALLOWANCE.amount', 0);",
 		"incurred_on": "return ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"subtotal_id": "69f267bb-d2c3-5b65-9561-09bef8ccce0f",
 		"id": "4434e452-159a-5bfc-8281-8b31010f46d9",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
+		"include_in_rate": false
 	},
 	{
 		"code": "TRAVEL_ALLOWANCE",
@@ -144,12 +137,11 @@
 		"eligibility": "return true;",
 		"conversion": "return get(ctx.subject.employment.terms, 'allowances.TRAVEL_ALLOWANCE.amount', 0);",
 		"incurred_on": "return ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"subtotal_id": "69f267bb-d2c3-5b65-9561-09bef8ccce0f",
 		"id": "fbe3aa75-7caf-580b-be59-070d28ce078d",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
+		"include_in_rate": false
 	},
 	{
 		"code": "HIGH_TEMPERATURE_ALLOWANCE",
@@ -157,21 +149,25 @@
 		"lookup": {
 			"region": "SH",
 			"monthly": 300,
-			"months": [6, 7, 8, 9]
+			"months": [
+				6,
+				7,
+				8,
+				9
+			]
 		},
 		"references": [
 			{
 				"title": "防暑降温措施管理办法 (安监总安健〔2012〕89号) 第十七条: 室外露天作业或工作场所不能降到33℃以下的, 发放高温津贴并纳入工资总额. 上海 300元/月, 6月至9月 (沪人社规〔2019〕19号; 官方通知未读, 2026年媒体转载一致 https://www.thepaper.cn/newsDetail_forward_33263111)."
 			}
 		],
-		"eligibility": "if (get(ctx.subject.employer, 'entity_extension_data.region', '') !== ctx.lookup.region) return false;\nif (get(ctx.subject.employment, 'employee_extension_data.term_facts.high_temperature_exposed', false) !== true) return false;\nreturn ctx.lookup.months.includes(Number(ctx.as_of.slice(5, 7)));",
+		"eligibility": "if (get(ctx.subject.employer, 'entity_extension_data.region', '') !== ctx.lookup.region) return false;\nif (get(ctx.subject.employment, 'employee_extension_data.high_temperature_exposed', false) !== true) return false;\nreturn ctx.lookup.months.includes(Number(ctx.as_of.slice(5, 7)));",
 		"conversion": "return ctx.lookup.monthly;",
 		"incurred_on": "return ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"subtotal_id": "474ec38e-0eb3-58c2-9789-fc0e2ba4419c",
 		"id": "882f786f-d15b-498d-9c06-9fcc34675467",
-		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0"
+		"settings_id": "e88ab8ea-f683-5c45-a00b-f37d5647f5f0",
+		"include_in_rate": false
 	}
 ]

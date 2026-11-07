@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { bolt } from '$bolt';
-	import { Editor, type FieldEditor } from '@norbital-ai/ui';
+	import { Editor, type FieldEditor, type Value, valueObject } from '@norbital-ai/ui';
 	import { idOf } from '../../payroll_engine/reads.js';
 	import { contractCategories } from './contract_categories.js';
+	import AllowanceTermsEditor from './allowance_terms_editor.svelte';
 
 	let { field }: { field: FieldEditor } = $props();
 	const versionId = $derived(field.form.values['input_schema_version_id']);
@@ -40,6 +41,8 @@
 	const kind = $derived.by(() => {
 		if (field.kind.kind !== 'object') return field.kind;
 		const fields = { ...field.kind.fields };
+		// the allowances are their own editor: a catalog combobox per row, not a free record
+		delete fields['allowances'];
 		const set = (name: string, values: readonly string[] | undefined) => {
 			const held = fields[name];
 			if (values === undefined || held?.kind !== 'text') return;
@@ -57,6 +60,24 @@
 		set('work_classification', categories.classification);
 		return { ...field.kind, fields };
 	});
+	const terms = $derived(valueObject(field.value) ? field.value : {});
+	const allowances = $derived(terms['allowances']);
+	const allowanceField: FieldEditor = $derived({
+		...field,
+		name: 'allowances',
+		value: allowances ?? null,
+		onChange: (next) => field.onChange({ ...terms, allowances: next })
+	});
+	// the generic editor writes the terms without allowances; keep what the custom editor holds
+	const edited: FieldEditor = $derived({
+		...field,
+		kind,
+		onChange: (next: Value) =>
+			field.onChange({
+				...(valueObject(next) ? next : {}),
+				...(allowances === undefined ? {} : { allowances })
+			})
+	});
 </script>
 
 <div
@@ -65,5 +86,12 @@
 	data-version={JSON.stringify(versionId)}
 	data-version-type={typeof versionId}
 >
-	<Editor {...field} {kind} />
+	<Editor {...edited} />
+	<div class="mt-2">
+		<span class="text-sm font-medium">{bolt.t('contract.allowances')}</span>
+		<AllowanceTermsEditor
+			field={allowanceField}
+			versionId={typeof versionId === 'string' ? versionId : undefined}
+		/>
+	</div>
 </div>

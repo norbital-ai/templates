@@ -137,16 +137,23 @@ describe('a claim on a limited row', () => {
 });
 
 describe('a run', () => {
-	it.live('waits for a deleted run to take its totals back', () =>
+	it.live('deleted takes its totals back in the delete, so the next run enters at once', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* run(t);
-			yield* t.runDue();
 			const [first] = (yield* t.storedQuery({ payroll_run: { limit: 1 } })).payroll_run.rows;
 			assert.ok(first !== undefined);
 			yield* t.as(t.admin).act('payroll_run.delete', [{ target: first.id }]);
-			assert.match(String(yield* Effect.flip(run(t))), /still posting/);
-			yield* t.runDue();
+			const { ledger_entry } = yield* t.storedQuery({
+				ledger_entry: { where: { source: { eq: `payroll_run:${first.id}` } }, limit: 1000 }
+			});
+			const net = ledger_entry.rows.reduce(
+				(total, row) =>
+					total + (row.operation === 'DEDUCT' ? -1 : 1) * (row.amount?.toNumber() ?? 0),
+				0
+			);
+			assert.ok(ledger_entry.rows.length > 0);
+			assert.ok(Math.abs(net) < 1e-6);
 			yield* run(t);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
@@ -291,7 +298,7 @@ describe('what cannot be done to the ledger, an admin included', () => {
 			yield* reverse(t, yield* taken(t));
 			yield* pay(t, '2026-11');
 			const { leave_catalog_entry } = yield* t.storedQuery({
-				leave_catalog_entry: { where: { is_reversal: { eq: true } }, limit: 1 }
+				leave_catalog_entry: { where: { reverses: { isNull: false } }, limit: 1 }
 			});
 			const [reversal] = leave_catalog_entry.rows;
 			assert.ok(reversal?.payroll_run_id != null);
@@ -370,17 +377,6 @@ describe('the ledger automation', () => {
 			assert.equal(employee_balance.rows.length, 1);
 		}).pipe(Effect.provide(workspace({ seed: { ...seed, employee_balance: [] }, now: NOW })))
 	);
-	it.live('raises a task for a failure no retry can fix', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			yield* t
-				.as(t.admin)
-				.start('ledger', { post: ['leave_catalog_entry:not-an-id'] })
-				.pipe(Effect.andThen(t.runDue()));
-			const { obligation } = yield* t.storedQuery({ obligation: { limit: 10 } });
-			assert.ok(obligation.rows.some((row) => /Ledger posting failed/.test(row.title)));
-		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
-	);
 });
 
 describe('the pure rules', () => {
@@ -410,14 +406,14 @@ describe('the pure rules', () => {
 			opened_by: { CHILD_BIRTH: {} },
 			extra: 15,
 			entitlement:
-				"return 98 + (get(ctx.subject.employment, 'employee_extension_data.facts.difficult_birth', false) ? ctx.lookup.extra : 0);"
+				"return 98 + (get(ctx.subject.employment, 'employee_extension_data.difficult_birth', false) ? ctx.lookup.extra : 0);"
 		};
 		const person = (difficult: boolean) => ({
 			started: subject.started,
 			partTime: false,
 			gender: null,
 			maritalStatus: null,
-			employment: { employee_extension_data: { facts: { difficult_birth: difficult } } }
+			employment: { employee_extension_data: { difficult_birth: difficult } }
 		});
 		const days = (difficult: boolean) =>
 			entitlementPlans(
@@ -432,7 +428,7 @@ describe('the pure rules', () => {
 		assert.equal(days(true), 113);
 	});
 	it('where each employer withholds alone, a move starts the totals again', () => {
-		const china = { code: 'CN', lookup: { totals_by_employer: true } };
+		const china = { code: 'CN', ledger: { ytd_scope: 'EMPLOYER' } };
 		const held = { pay: { GROSS: { [`CN.first.Y.2026-01-01`]: { total: 100 } } } };
 		const view = (entity: string, settings: object) =>
 			viewOf(held, totalsScope(jsonObject(settings), entity), 1, '2026-06-30').ytd;
@@ -442,7 +438,7 @@ describe('the pure rules', () => {
 	});
 	it('a statutory adjustment reversed counts in the year of what it reverses', () => {
 		const wanted = adhocWanted(
-			{ incurred_on: '2027-01-05', is_reversal: true, quantity: 10 },
+			{ incurred_on: '2027-01-05', reverses: 'original', quantity: 10 },
 			{
 				code: 'EPF_ADJUSTMENT',
 				lookup: {

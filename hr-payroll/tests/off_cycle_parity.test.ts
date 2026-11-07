@@ -128,14 +128,10 @@ const CASES: Readonly<Record<string, Case>> = {
 		zone: 'Asia/Taipei',
 		terms: terms(80_000, 'CITIZEN'),
 		facts: {
-			facts: {
-				statutory: {
-					INCOME_TAX: {
-						elections: {
-							tax_residency_reviews: {
-								2026: { resident_from: '2025-01-01', valid_through: '2026-12-31' }
-							}
-						}
+			statutory: {
+				INCOME_TAX: {
+					tax_residency_reviews: {
+						2026: { resident_from: '2025-01-01', valid_through: '2026-12-31' }
 					}
 				}
 			}
@@ -185,7 +181,7 @@ const offCycle = (t: Kit, seed: Seed, one: Case, period: string, on: string) =>
 		yield* owed(t, seed, one, on);
 		const open = (yield* t.storedQuery({
 			adhoc_catalog_entry: {
-				where: { payroll_run_id: { isNull: true }, is_reversal: { eq: false } },
+				where: { payroll_run_id: { isNull: true }, reverses: { isNull: true } },
 				limit: 1
 			}
 		})).adhoc_catalog_entry.rows[0];
@@ -428,9 +424,9 @@ describe('a second salary in a pay month', () => {
 			const t = yield* TestWorkspace;
 			yield* transfer(t);
 			const { payslip } = yield* t.storedQuery({ payslip: { limit: 10 } });
-			const [first, second] = payslip.rows.map((row) => Number(row.basic_earnings));
+			const [first, second] = payslip.rows.map((row) => row.basic_earnings?.toNumber() ?? 0);
 			assert.equal(first, second);
-			assert.equal(Number(first) + Number(second), 8000);
+			assert.equal((first ?? 0) + (second ?? 0), 8000);
 		}).pipe(Effect.provide(workspace({ seed: moved(one), now: NOW_JUNE })));
 	});
 	it.live('Singapore: each company in a transfer month pays its own levy', () => {

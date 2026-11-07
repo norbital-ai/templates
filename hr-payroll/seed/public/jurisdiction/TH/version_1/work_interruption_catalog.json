@@ -11,7 +11,6 @@
 				"quote": "A temporary cessation of all or part of the business for a cause other than force majeure pays at least 75 percent of the working-day wage for the whole period."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {
 			"work.treatment": {
@@ -37,7 +36,6 @@
 				"quote": "Force majeure suspends the employer's duty to pay wages for a working day not worked."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {
 			"work.treatment": {

@@ -557,8 +557,10 @@ const parseSource = (source: string): Program => {
 export function checkExpression(
 	source: string,
 	phase: Phase,
-	availableSubtotals?: ReadonlySet<string>
+	availableSubtotals?: ReadonlySet<string>,
+	allowedRoots?: readonly string[]
 ): void {
+	const roots = allowedRoots ?? PHASE_ROOTS[phase];
 	const tree = parseProgram(source);
 	const visit = (node: unknown): void => {
 		if (Array.isArray(node)) {
@@ -597,7 +599,7 @@ export function checkExpression(
 				node.computed !== false ||
 				!isDynObject(node.property) ||
 				typeof node.property.name !== 'string' ||
-				!PHASE_ROOTS[phase].includes(node.property.name)
+				!roots.includes(node.property.name)
 			)
 				bad(
 					`ctx.${isDynObject(node.property) ? String(node.property.name) : '?'} is unavailable at ${phase}.`
@@ -774,18 +776,24 @@ const roundMode = (v: unknown): 'HALF_UP' | 'HALF_EVEN' | 'UP' | 'DOWN' | 'TRUNC
 		: bad('Unknown rounding mode.');
 // the same check repeats for every person of a run, at the same place in the chain
 const checked = new Map<string, Set<string>>();
-const checkOnce = (source: string, phase: Phase, subtotals: readonly string[]): void => {
-	const scope = `${phase}:${subtotals.join()}`;
+const checkOnce = (
+	source: string,
+	phase: Phase,
+	subtotals: readonly string[],
+	roots?: readonly string[]
+): void => {
+	const scope = `${phase}:${subtotals.join()}:${roots?.join() ?? ''}`;
 	const seen = checked.get(source) ?? new Set<string>();
 	if (seen.has(scope)) return;
-	checkExpression(source, phase, new Set(subtotals));
+	checkExpression(source, phase, new Set(subtotals), roots);
 	checked.set(source, seen.add(scope));
 };
 export function evaluateExact(
 	source: string,
 	phase: Phase,
 	context: object,
-	field: string
+	field: string,
+	roots?: readonly string[]
 ): unknown {
 	try {
 		checkOnce(
@@ -793,7 +801,8 @@ export function evaluateExact(
 			phase,
 			isDynObject(Reflect.get(context, 'subtotals'))
 				? Object.keys(Reflect.get(context, 'subtotals'))
-				: []
+				: [],
+			roots
 		);
 		const env = new Environment();
 		for (const [name, value] of Object.entries(pure)) env.declare(name, value, true);
@@ -868,7 +877,9 @@ export function evaluateExact(
 		env.declare('Array', { isArray: fn((a) => Array.isArray(a[0])) }, true);
 		env.declare(
 			'ctx',
-			Object.fromEntries(Object.entries(context).filter(([k]) => PHASE_ROOTS[phase].includes(k))),
+			Object.fromEntries(
+				Object.entries(context).filter(([k]) => (roots ?? PHASE_ROOTS[phase]).includes(k))
+			),
 			true
 		);
 		const result = new Interpreter().eval(parseProgram(source), env);
@@ -878,5 +889,10 @@ export function evaluateExact(
 		throw new Refusal({ message: `${field}: ${getErrorMessage(error)}`, detail: source });
 	}
 }
-export const evaluate = (source: string, phase: Phase, context: object, field: string): unknown =>
-	materialise(evaluateExact(source, phase, context, field));
+export const evaluate = (
+	source: string,
+	phase: Phase,
+	context: object,
+	field: string,
+	roots?: readonly string[]
+): unknown => materialise(evaluateExact(source, phase, context, field, roots));

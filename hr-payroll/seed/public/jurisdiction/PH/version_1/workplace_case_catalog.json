@@ -8,7 +8,6 @@
 			}
 		],
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "adcc8e10-f938-5d4d-aa5c-b0d2e1cfd609",
@@ -23,7 +22,6 @@
 			}
 		],
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "1b4468a8-b506-5515-aa79-75b9618ae810",
@@ -38,7 +36,6 @@
 			}
 		],
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "091f7f0a-6a64-53ee-a72d-41a6de6b6ff2",
@@ -53,7 +50,6 @@
 			}
 		],
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "d81837aa-76f9-5d09-944b-2c1721461ee9",
@@ -68,7 +64,6 @@
 			}
 		],
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "652e9461-b027-575c-8359-a1f98d20755b",
@@ -83,7 +78,6 @@
 			}
 		],
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "0094a7a4-d690-526a-b718-0d8b70cb8beb",
@@ -98,7 +92,6 @@
 			}
 		],
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "dd6f5d2f-dc16-5123-8de2-b38d2d617c4f",
@@ -113,7 +106,6 @@
 			}
 		],
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "3d325eae-8003-55e8-b1d3-95aa7ef831f1",
@@ -128,7 +120,6 @@
 			}
 		],
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "2b550f4b-7f63-5ba9-ab5a-03238350a018",
@@ -143,7 +134,6 @@
 			}
 		],
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "8f094190-e4e0-5a72-a3e0-e51cf05f8df4",
@@ -175,7 +165,6 @@
 				"description": "opened_on is actual delivery, not preparation. Link the exact final-compensation payment case. Reference and evidence identify the furnished certificate and delivery. Close when the factual delivery record is reviewed."
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "9e53518e-b3f6-5e46-ad57-48b4211ebcb6",
@@ -506,7 +495,6 @@
 				}
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "6391ddfe-8b83-5104-9fa8-fc50cb0ac072",
@@ -910,7 +898,6 @@
 				]
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "da2ef2b9-eb84-5bf3-837a-3202c0b08c6b",
@@ -1247,7 +1234,6 @@
 				}
 			}
 		},
-		"off_cycle_eligible": false,
 		"subtotal_id": null,
 		"events": {},
 		"id": "2845d703-2f00-5af7-96c5-6c579e251fec",

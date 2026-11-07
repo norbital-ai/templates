@@ -82,7 +82,7 @@ return r.status === 'SEALED' && !get(r, 'registrations', []).some((x) => get(x, 
 				employment: {
 					engagement,
 					effective_range: { from: '2025-01-01', to: null },
-					employee_extension_data: { facts: {} }
+					employee_extension_data: {}
 				}
 			},
 			run: { salary_coverage: coverage },
@@ -102,7 +102,7 @@ return r.status === 'SEALED' && !get(r, 'registrations', []).some((x) => get(x, 
 			subject: {
 				employment: {
 					terms: { residency_status, work_authorisation_category: category },
-					employee_extension_data: { term_facts: { race: 'INDIAN' } }
+					employee_extension_data: { race: 'INDIAN' }
 				}
 			},
 			subtotals: { ADDITIONAL_WAGES: 100 },

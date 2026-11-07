@@ -433,9 +433,9 @@ describe('a no-pay day', () => {
 			yield* take(t, seed, whole('2026-06-10'));
 			yield* onCycle(t, '2026-06');
 			const [june] = yield* runs(t, '2026-06');
-			assert.equal(line(june)?.amount, 21_000);
-			assert.equal(line(june)?.direction, 'DEDUCT');
-			assert.equal(june?.checkpoints.find((row) => row.code === 'BASIC')?.value, 440_000);
+			assert.equal(line(june), undefined);
+			assert.equal(june?.checkpoints.find((row) => row.code === 'BASIC')?.value, 420_000);
+			assert.equal(june?.lines.find((row) => row.code === 'FIXED_ALLOWANCE')?.amount, 21_000);
 			assert.equal(june?.checkpoints.find((row) => row.code === 'ORDINARY_WAGES')?.value, 441_000);
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
 	});
@@ -447,7 +447,8 @@ describe('a no-pay day', () => {
 			yield* take(t, seed, [{ date: PlainDate('2026-06-10'), part: 'AM' }]);
 			yield* onCycle(t, '2026-06');
 			const [june] = yield* runs(t, '2026-06');
-			assert.equal(line(june)?.amount, 10_500);
+			assert.equal(line(june), undefined);
+			assert.equal(june?.checkpoints.find((row) => row.code === 'BASIC')?.value, 430_000);
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
 	});
 
@@ -459,7 +460,11 @@ describe('a no-pay day', () => {
 			yield* take(t, seed, whole('2026-06-10'));
 			yield* onCycle(t, '2026-06');
 			const [june] = yield* runs(t, '2026-06');
-			assert.equal(line(june)?.amount, 22_000);
+			assert.equal(line(june), undefined);
+			assert.equal(
+				june?.checkpoints.find((row) => row.code === 'BASIC')?.value,
+				440_000 - 440_000 / 20
+			);
 		}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
 	});
 
@@ -512,7 +517,8 @@ describe('a no-pay day', () => {
 			yield* onCycle(t, '2026-07');
 			const [june] = yield* runs(t, '2026-06');
 			const [july] = yield* runs(t, '2026-07');
-			assert.equal(line(july)?.amount, line(june)?.amount);
+			assert.equal(line(june), undefined);
+			assert.equal(line(july)?.amount, 21_000);
 			assert.equal(line(july)?.direction, 'ADD');
 			yield* onCycle(t, '2026-08');
 			const [august] = yield* runs(t, '2026-08');

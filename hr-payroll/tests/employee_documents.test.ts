@@ -75,4 +75,59 @@ describe('a person asking for leave', () => {
 			assert.match(String(refused), /No readable entity/);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
+	const reviewed = {
+		...seed,
+		sys_user: [
+			...(seed.sys_user ?? []),
+			{ id: uuid(40), name: 'Lead', email: 'lead@example.test', kind: 'staff', team: 'supervisor' },
+			{
+				id: uuid(41),
+				name: 'Payroll',
+				email: 'payroll@example.test',
+				kind: 'staff',
+				team: 'hr_controller'
+			}
+		]
+	};
+	it.live(
+		'posts nothing while it waits, posts in the approving decision, and never once rejected',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				yield* syncAll(t);
+				const me = t.as(t.member(['employee'], { id: uuid(3) }));
+				const lead = t.as(yield* t.signIn('lead@example.test')),
+					payroll = t.as(yield* t.signIn('payroll@example.test'));
+				const ask = (day: string) =>
+					me.act('leave_catalog_entry.create', [
+						{
+							entity_id: ENTITY,
+							employment_id: idOf('employee_contract', uuid(6)),
+							catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'MEDICAL_LEAVE')),
+							days: wholeDays(day)
+						}
+					]);
+				const posted = (id: string) =>
+					t
+						.storedQuery({
+							ledger_entry: { where: { source: { eq: `leave_catalog_entry:${id}` } }, limit: 100 }
+						})
+						.pipe(Effect.map(({ ledger_entry }) => ledger_entry.rows.length));
+				const granted = yield* ask('2026-11-03');
+				assert.ok(granted.kind === 'pendingApproval');
+				const [leave] = granted.records;
+				assert.ok(leave !== undefined);
+				assert.equal(yield* posted(leave.id), 0);
+				yield* lead.approvals.decide(granted.requestId, { decision: 'approve' });
+				assert.equal(yield* posted(leave.id), 0);
+				yield* payroll.approvals.decide(granted.requestId, { decision: 'approve' });
+				assert.ok((yield* posted(leave.id)) > 0);
+				const turned = yield* ask('2026-11-04');
+				assert.ok(turned.kind === 'pendingApproval');
+				const [other] = turned.records;
+				assert.ok(other !== undefined);
+				yield* lead.approvals.decide(turned.requestId, { decision: 'reject', reason: 'Busy week' });
+				assert.equal(yield* posted(other.id), 0);
+			}).pipe(Effect.provide(workspace({ seed: reviewed, now: NOW })))
+	);
 });

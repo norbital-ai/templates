@@ -43,7 +43,7 @@ reversal or adjustment entry against a catalog item, never an edit.
 ## The calculation order
 
 1. The first `subtotal` (`previous_id = null`) computes base pay from the contract: monthly salary,
-   daily rate × ordinary days, hourly rate × ordinary hours, or the configured piece rate. Unpaid
+   daily rate × ordinary days or hourly rate × ordinary hours. Unpaid
    leave prorates base pay by half-days.
 2. Each later subtotal is the previous subtotal plus every employee line whose `subtotal_id` points
    at it. `EMPLOYEE` amounts enter net; `EMPLOYER` amounts are employer cost and never enter net.
@@ -52,8 +52,8 @@ reversal or adjustment entry against a catalog item, never an edit.
 4. Creating a run writes it `UNPAID` with its payslips in one payload. There is no separate finalise
    step, and payment is marked per run.
 
-The `ledger` automation posts a leave, claim or ad hoc entry when it is written and a payslip after
-its run, each in one write with the balance. A repeat posts nothing. Workplace cases never move a
+A leave, claim or ad hoc entry posts in its own write, and a payslip in its run's, each with the
+balance; one held for approval posts when it is approved. A repeat posts nothing. Workplace cases never move a
 balance.
 
 ## Working recipes

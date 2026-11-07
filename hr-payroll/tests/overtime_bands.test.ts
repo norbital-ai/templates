@@ -111,7 +111,7 @@ describe('overtime bands', () => {
 				{ date, part: 'AM' },
 				{ date, part: 'PM' }
 			];
-			const entry = { entity_id: ENTITY, employment_id: uuid(6), is_reversal: false };
+			const entry = { entity_id: ENTITY, employment_id: uuid(6),  };
 			return run(
 				{
 					...seed,
@@ -142,9 +142,8 @@ describe('overtime bands', () => {
 				},
 				'Asia/Kuala_Lumpur',
 				(paid) => {
-					// one unpaid day of February's twenty weekdays, not the three on the entry
-					near(paid, 'BASIC', 3120);
-					near(paid, 'UNPAID_LEAVE', 3120 / 28);
+					// one unpaid day of February's twenty weekdays, not the three on the entry; it is priced in BASIC
+					near(paid, 'BASIC', 3120 - 3120 / 28);
 					near(paid, 'MEDICAL_CLAIM', 40);
 				}
 			);
@@ -303,12 +302,11 @@ describe('overtime bands', () => {
 							{ date: '2026-02-10', part: 'AM' },
 							{ date: '2026-02-10', part: 'PM' }
 						],
-						is_reversal: false
 					}
 				]
 			},
 			'Asia/Kuala_Lumpur',
-			(paid) => near(paid, 'UNPAID_LEAVE', 2800 / 28)
+			(paid) => near(paid, 'BASIC', 2800 - 2800 / 28)
 		);
 	});
 
@@ -625,8 +623,8 @@ describe('overtime bands', () => {
 					.filter((row) => row.period === '2026-02')
 					.flatMap((row) => Schema.decodeUnknownSync(PayslipBreakdown)(row.breakdown).lines);
 				// half of one of February's 28 days (Employment Act s.18A), taken from the entry the January run sealed
-				const line = lines.find((row) => row.code === 'UNPAID_LEAVE');
-				assert.ok(Math.abs((line?.amount ?? 0) - 3120 / 28 / 2) < 0.01);
+				const basic = lines.find((row) => row.code === 'BASIC');
+				assert.ok(Math.abs((basic?.amount ?? 0) - (3120 - 3120 / 28 / 2)) < 0.01);
 			}).pipe(
 				Effect.provide(
 					workspace({
@@ -643,8 +641,7 @@ describe('overtime bands', () => {
 										{ date: '2026-01-06', part: 'PM' },
 										{ date: '2026-02-10', part: 'AM' }
 									],
-									is_reversal: false
-								}
+											}
 							]
 						},
 						now: '2026-02-26T02:00:00.000Z'

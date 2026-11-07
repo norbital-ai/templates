@@ -50,7 +50,7 @@ persist only through the payslip and ledger rows. `payroll_run.create` calculate
 payslips as one payload; the run starts `UNPAID`, is marked `PAID` once, and has no separate
 finalise step. `payslip` stores totals and the breakdown as calculated.
 
-`src/lib/ledger/` is the single ledger service, and the `ledger` automation is its one writer.
+`src/lib/ledger/` is the single ledger service: a record that posts carries its rows in its own write, and the `ledger` automation syncs.
 `ledger_entry` moves only by catalog entry posting (leave, claims, ad hoc pay and payslips) or by
 sync, which works out entitlements, and `employee_balance` is its projection. A repeat posts
 nothing. Loans stay out of the ledger, and workplace cases never move a balance.

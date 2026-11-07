@@ -11,16 +11,15 @@
 				"effective_from": "2027-01-01"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "4844d09b-7208-540c-8c2a-a5ca29d1af21",
 		"eligibility": "return get(ctx.subject, 'employment.terms.rate.unit', '') === 'MONTHLY';",
 		"conversion": "// js\nconst amount = get(ctx.subject, 'employment.terms.allowances.FIXED_MONTHLY.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",
 		"incurred_on": "return ctx.run.salary_coverage.to;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "70761012-b673-59af-ad42-0c5fcb8b6a5e",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
-		"prorate": true
+		"prorate": true,
+		"include_in_rate": false
 	},
 	{
 		"code": "PT_ANNUAL_HOURLY_AW",
@@ -34,15 +33,14 @@
 				"effective_from": "2027-01-01"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "7d653d26-e890-5ffa-a47a-b434e3698f51",
 		"eligibility": "return ctx.subject.employment.engagement === 'PART_TIME';",
 		"conversion": "// js\nconst amount = get(ctx.subject, 'employment.terms.allowances.PT_ANNUAL_HOURLY_AW.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",
 		"incurred_on": "return ctx.run.salary_coverage.to;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "21966179-b1d0-5bb1-89ac-00eb0b075b22",
-		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
+		"include_in_rate": false
 	},
 	{
 		"code": "PT_ANNUAL_HOURLY_OW",
@@ -56,14 +54,13 @@
 				"effective_from": "2027-01-01"
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "4844d09b-7208-540c-8c2a-a5ca29d1af21",
 		"eligibility": "return ctx.subject.employment.engagement === 'PART_TIME';",
 		"conversion": "// js\nconst amount = get(ctx.subject, 'employment.terms.allowances.PT_ANNUAL_HOURLY_OW.amount', 0);\nreturn typeof amount === 'number' ? amount : get(amount, 'value', 0);",
 		"incurred_on": "return ctx.run.salary_coverage.to;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "577cfe9e-a13b-5ed2-99ff-dba534f7247d",
-		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac",
+		"include_in_rate": false
 	}
 ]

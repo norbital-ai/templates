@@ -36,7 +36,7 @@
 	import VersionFacts from '../../../../lib/ui/person/version_facts.svelte';
 
 	type ChangeAction = 'PROMOTION' | 'LIFE_EVENT' | 'TRANSFER' | 'TERMINATE';
-	type SalaryUnit = 'MONTHLY' | 'DAILY' | 'HOURLY' | 'PIECE';
+	type SalaryUnit = 'MONTHLY' | 'DAILY' | 'HOURLY';
 	type Engagement =
 		'EMPLOYEE' | 'PART_TIME' | 'CONTRACTOR' | 'INTERN' | 'APPRENTICE' | 'CONSULTANT' | 'PAYEE';
 
@@ -147,7 +147,7 @@
 					},
 					loan_repayment_entry: {
 						where: { employment_id: { eq: record.id } },
-						fields: ['loan_id', 'amount', 'is_reversal', 'payroll_run_id'],
+						fields: ['loan_id', 'amount', 'reverses', 'payroll_run_id'],
 						limit: 10000
 					},
 					payslip: {
@@ -243,7 +243,7 @@
 		repayments: readonly {
 			readonly loan_id: unknown;
 			readonly amount: unknown;
-			readonly is_reversal?: boolean | null;
+			readonly reverses?: string | null;
 			readonly payroll_run_id?: unknown;
 		}[]
 	) {
@@ -253,7 +253,7 @@
 			const key = String(row.loan_id);
 			paid.set(
 				key,
-				(paid.get(key) ?? 0) + (row.is_reversal === true ? -1 : 1) * amountOf(row.amount)
+				(paid.get(key) ?? 0) + (row.reverses != null ? -1 : 1) * amountOf(row.amount)
 			);
 		}
 		return loanRows
@@ -463,7 +463,7 @@
 			},
 			loan_repayment_entry: {
 				where: { employment_id: { eq: current.id } },
-				fields: ['id', 'loan_id', 'amount', 'is_reversal', 'payroll_run_id'],
+				fields: ['id', 'loan_id', 'amount', 'reverses', 'payroll_run_id'],
 				limit: 10000
 			}
 		});
@@ -1145,8 +1145,7 @@
 							options={[
 								{ value: 'MONTHLY', label: t('contract.unit_monthly') },
 								{ value: 'DAILY', label: t('contract.unit_daily') },
-								{ value: 'HOURLY', label: t('contract.unit_hourly') },
-								{ value: 'PIECE', label: t('contract.unit_piece') }
+								{ value: 'HOURLY', label: t('contract.unit_hourly') }
 							]}
 							value={salaryUnit}
 							disabled={changeSaving}

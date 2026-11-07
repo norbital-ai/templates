@@ -1,5 +1,5 @@
-import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import {
 	TestWorkspace,
 	type Kit,
@@ -10,6 +10,7 @@ import { Effect, Schema } from 'effect';
 import { PlainDate, addDays, monthOf } from '@norbital-ai/std/date';
 import { accountsOf, type Accounts } from '../src/lib/ledger/core.ts';
 import { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
+import { isJsonObject, jsonObject } from '../src/lib/payroll_engine/foundation.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
 
 /** One scoped real workspace over this template's source, seeded by the rows a test writes. */
@@ -25,9 +26,61 @@ export const ENTITY = idOf('entity', uuid(1));
 export const WORK = uuid(11),
 	REST = uuid(12),
 	OFF = uuid(13);
+const constantsByDirectory = new Map<string, ReadonlyMap<string, JsonObject>>();
+/** The shared constants a version's settings row declares, keyed by settings id. */
+const sharedConstants = (path: string): ReadonlyMap<string, JsonObject> => {
+	const dir = dirname(path);
+	const held = constantsByDirectory.get(dir);
+	if (held !== undefined) return held;
+	const map = new Map<string, JsonObject>();
+	const settings = join(dir, 'jurisdiction_settings.json');
+	if (existsSync(settings)) {
+		const value: unknown = JSON.parse(readFileSync(settings, 'utf8'));
+		const rows = Schema.decodeUnknownSync(Schema.Array(JsonObject))(
+			Array.isArray(value) ? value : [value]
+		);
+		for (const row of rows) {
+			const lookup = isJsonObject(row.lookup) ? row.lookup : {};
+			const constants = isJsonObject(lookup.constants) ? lookup.constants : {};
+			if (typeof row.id === 'string') map.set(row.id, constants);
+		}
+	}
+	constantsByDirectory.set(dir, map);
+	return map;
+};
 export const read = (path: string): readonly JsonObject[] => {
 	const value: unknown = JSON.parse(readFileSync(path, 'utf8'));
-	return Schema.decodeUnknownSync(Schema.Array(JsonObject))(Array.isArray(value) ? value : [value]);
+	const rows = Schema.decodeUnknownSync(Schema.Array(JsonObject))(
+		Array.isArray(value) ? value : [value]
+	);
+	if (path.endsWith('jurisdiction_settings.json')) return rows;
+	const constants = sharedConstants(path);
+	return rows.map((row) => {
+		const id = typeof row.settings_id === 'string' ? row.settings_id : null;
+		const held = id === null ? undefined : constants.get(id);
+		if (held === undefined || !isJsonObject(row.lookup)) return row;
+		return { ...row, lookup: { ...held, ...row.lookup } };
+	});
+};
+/** Fixtures may still write the old buckets; the contract stores the flat facts the schema now declares. */
+const flattenExtension = (value: JsonObject): JsonObject => {
+	const { facts, term_facts, exit_facts, ...rest } = value;
+	const merged: Record<string, unknown> = {
+		...(isJsonObject(facts) ? facts : {}),
+		...(isJsonObject(term_facts) ? term_facts : {}),
+		...(isJsonObject(exit_facts) ? exit_facts : {}),
+		...rest
+	};
+	if (isJsonObject(merged.statutory))
+		merged.statutory = Object.fromEntries(
+			Object.entries(merged.statutory).map(([scheme, body]) => [
+				scheme,
+				isJsonObject(body) && isJsonObject(body.elections)
+					? { ...body, ...body.elections }
+					: body
+			])
+		);
+	return jsonObject(merged);
 };
 type Day = {
 	readonly date: string;
@@ -47,6 +100,13 @@ export const pack = (
 	on = '2026-02-15'
 ): { readonly [model: string]: readonly JsonObject[] } => {
 	const rows: { [model: string]: JsonObject[] } = {};
+	// ordinary hours are terms (B2): a test contract states its own, or works the ordinary week
+	terms = {
+		normal_hours_per_day: 8,
+		normal_hours_per_week: 40,
+		normal_days_per_week: 5,
+		...terms
+	};
 	const root = join(process.cwd(), 'seed/public/jurisdiction', code);
 	let settings = '';
 	for (const version of readdirSync(root))
@@ -116,7 +176,7 @@ export const pack = (
 					bank_account_number: '1',
 					bank_account_name: 'Worker'
 				},
-				employee_extension_data: extension,
+				employee_extension_data: flattenExtension(extension),
 				service_started_on: '2025-01-01'
 			}
 		],

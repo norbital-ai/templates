@@ -11,13 +11,10 @@
 				"quote": "Each deduction under s.76(2)-(5), a welfare loan repayment among them, is limited to 10 percent of the payment and all of them to one fifth, unless the employee consents."
 			}
 		],
-		"off_cycle_eligible": false,
 		"subtotal_id": "7bf36f12-ba99-565c-9d27-9a2d6b33a759",
 		"eligibility": "// js\nreturn true;",
 		"conversion": "// js\nreturn ctx.entry.amount;",
 		"incurred_on": "// js\nreturn ctx.entry.paid_on;",
-		"direction": "DEDUCT",
-		"party": "EMPLOYEE",
 		"id": "50d7719f-e248-53cf-bac0-d02832f3b32f",
 		"settings_id": "72c83ae6-a735-53d4-b411-57a8edf42253"
 	}

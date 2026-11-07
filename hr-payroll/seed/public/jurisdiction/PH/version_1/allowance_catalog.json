@@ -12,13 +12,12 @@
 		],
 		"subtotal_id": "531fb40a-be89-4267-ab12-1d847753cf9b",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\nreturn (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"id": "7661b424-b2db-5021-90ae-f9d5dfe809e6",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
+		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
+		"include_in_rate": false
 	},
 	{
 		"code": "LAUNDRY_ALLOWANCE",
@@ -33,14 +32,13 @@
 		],
 		"subtotal_id": "1a3f460f-72b0-4f97-931a-13afa4cd923b",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"id": "3ab8e154-dc5f-5250-b870-060d48bb7b43",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"prorate": true
+		"prorate": true,
+		"include_in_rate": false
 	},
 	{
 		"code": "allowance",
@@ -55,14 +53,13 @@
 		},
 		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"id": "c67c0762-0a22-5f40-8057-0f77978a8da5",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"prorate": true
+		"prorate": true,
+		"include_in_rate": false
 	},
 	{
 		"code": "communication",
@@ -77,14 +74,13 @@
 		},
 		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"id": "a9e21a86-84c4-506d-94eb-b10932aeb788",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"prorate": true
+		"prorate": true,
+		"include_in_rate": false
 	},
 	{
 		"code": "corporate_duty_allowance",
@@ -99,14 +95,13 @@
 		},
 		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"id": "6366e929-b9f0-58db-a1d4-ceb8ad897734",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"prorate": true
+		"prorate": true,
+		"include_in_rate": false
 	},
 	{
 		"code": "duty_allowance",
@@ -121,14 +116,13 @@
 		},
 		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"id": "36e55dc0-7cb1-5523-9819-f7ee7bf3b7c4",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"prorate": true
+		"prorate": true,
+		"include_in_rate": false
 	},
 	{
 		"code": "leader",
@@ -143,14 +137,13 @@
 		},
 		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"id": "245c52b3-5650-5db6-a8aa-23ff53dbfcad",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"prorate": true
+		"prorate": true,
+		"include_in_rate": false
 	},
 	{
 		"code": "meal",
@@ -165,14 +158,13 @@
 		],
 		"subtotal_id": "9545f3be-a109-45ac-a2dc-541db4ad17f5",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"id": "276d0110-c24f-5d67-a9ce-2d8a0f1993dc",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"prorate": true
+		"prorate": true,
+		"include_in_rate": false
 	},
 	{
 		"code": "position",
@@ -187,14 +179,13 @@
 		},
 		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"id": "eabcc59a-5dfe-5fee-bfa0-3447033b9568",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"prorate": true
+		"prorate": true,
+		"include_in_rate": false
 	},
 	{
 		"code": "transport",
@@ -209,13 +200,12 @@
 		},
 		"subtotal_id": "12891cdb-7aef-5514-8e5c-3752633b0926",
 		"eligibility": "// js\nreturn Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0)) > 0;",
-		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = calendar_distance_days(coverage.from, coverage.to) + 1;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
+		"conversion": "// js\nconst coverage = ctx.run.salary_coverage;\nconst amount = Number(get(ctx.subject.employment.terms, 'allowances.' + ctx.lookup.allowance + '.amount', 0));\nconst days = ctx.calendar_days;\nconst month_days = calendar_distance_days(month_start(coverage.from), month_end(coverage.to)) + 1;\n// No work, no pay (DOLE Handbook on Workers' Statutory Monetary Benefits 2024 ch.1 §I): the allowance keeps the share of basic pay that unpaid days leave.\nconst basic = ctx.subtotals.BASIC;\nreturn basic > 0 ? (amount * days * ctx.subtotals.BASIC_AFTER_UNPAID_LEAVE) / (month_days * basic) : (amount * days) / month_days;",
 		"incurred_on": "// js\nreturn ctx.as_of;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
-		"off_cycle_eligible": false,
 		"id": "b888f604-43ea-5094-816e-75386808fe70",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62",
-		"prorate": true
+		"prorate": true,
+		"include_in_rate": false
 	}
 ]

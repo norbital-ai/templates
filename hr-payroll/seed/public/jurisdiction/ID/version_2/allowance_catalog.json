@@ -3,12 +3,10 @@
 		"code": "CAR_ALLOWANCE",
 		"name": "Car allowance",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": "f812b89a-4899-54a3-b709-b8e9efc05f10",
-		"eligibility": "// js\nconst agreed = get(ctx.subject.employment.terms, 'allowances.CAR_ALLOWANCE', null);\nreturn agreed != null && get(agreed, 'variability', null) !== 'VARIABLE';",
+		"eligibility": "// js\nconst agreed = get(ctx.subject.employment.terms, 'allowances.CAR_ALLOWANCE', null);\nreturn agreed != null;",
 		"conversion": "// js\nreturn get(ctx.subject.employment.terms, 'allowances.CAR_ALLOWANCE.amount', 0);",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "bfd385f5-d419-5813-9382-7dfdf354da69",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
@@ -21,18 +19,17 @@
 				"effective_from": "2021-02-02"
 			}
 		],
-		"prorate": true
+		"prorate": true,
+		"include_in_rate": true
 	},
 	{
 		"code": "HOUSE_ALLOWANCE",
 		"name": "House allowance",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": "f812b89a-4899-54a3-b709-b8e9efc05f10",
-		"eligibility": "// js\nconst agreed = get(ctx.subject.employment.terms, 'allowances.HOUSE_ALLOWANCE', null);\nreturn agreed != null && get(agreed, 'variability', null) !== 'VARIABLE';",
+		"eligibility": "// js\nconst agreed = get(ctx.subject.employment.terms, 'allowances.HOUSE_ALLOWANCE', null);\nreturn agreed != null;",
 		"conversion": "// js\nreturn get(ctx.subject.employment.terms, 'allowances.HOUSE_ALLOWANCE.amount', 0);",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "07158e21-7e23-52a3-b982-6aaf5c161cb0",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
@@ -45,18 +42,17 @@
 				"effective_from": "2021-02-02"
 			}
 		],
-		"prorate": true
+		"prorate": true,
+		"include_in_rate": true
 	},
 	{
 		"code": "SPECIAL_ALLOWANCE",
 		"name": "Special allowance",
 		"lookup": {},
-		"off_cycle_eligible": false,
 		"subtotal_id": "f812b89a-4899-54a3-b709-b8e9efc05f10",
-		"eligibility": "// js\nconst agreed = get(ctx.subject.employment.terms, 'allowances.SPECIAL_ALLOWANCE', null);\nreturn agreed != null && get(agreed, 'variability', null) !== 'VARIABLE';",
+		"eligibility": "// js\nconst agreed = get(ctx.subject.employment.terms, 'allowances.SPECIAL_ALLOWANCE', null);\nreturn agreed != null;",
 		"conversion": "// js\nreturn get(ctx.subject.employment.terms, 'allowances.SPECIAL_ALLOWANCE.amount', 0);",
 		"incurred_on": "// js\nreturn ctx.run.salary_coverage.to;",
-		"direction": "ADD",
 		"party": "EMPLOYEE",
 		"id": "7a6c987e-31cc-5f3b-891b-3bd21ed8b24a",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7",
@@ -69,6 +65,7 @@
 				"effective_from": "2021-02-02"
 			}
 		],
-		"prorate": true
+		"prorate": true,
+		"include_in_rate": true
 	}
 ]

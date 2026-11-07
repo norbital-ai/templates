@@ -543,7 +543,6 @@ describe('twice a month', () => {
 						employment_id: CONTRACT,
 						catalog_id: noPay,
 						days,
-						is_reversal: false
 					}
 				]);
 				yield* onCycle(t, '2026-06-2');
@@ -670,8 +669,8 @@ describe('a no-pay day', () => {
 				assert.deepEqual(Object.keys(line.statutory), Object.keys(basis.statutory));
 				for (const [key, value] of Object.entries(basis.statutory))
 					within(Number(line.statutory[key]), value);
-				within(lineOf(line.lines, 'UNPAID_LEAVE'), -(salary * 2) / 22);
-				assert.equal(lineOf(basis.lines, 'UNPAID_LEAVE'), 0);
+				// the absence is in the salary basis; no deduction line remains
+				assert.equal(lineOf(line.lines, 'UNPAID_LEAVE'), 0);
 			})
 		);
 
@@ -682,7 +681,8 @@ describe('a no-pay day', () => {
 					yield* onCycle(t, '2026-06');
 					const [slip] = yield* slips(t, '2026-06');
 					assert.ok(slip !== undefined);
-					within(lineOf(slip.lines, 'UNPAID_LEAVE'), -salary / 44);
+					assert.equal(lineOf(slip.lines, 'UNPAID_LEAVE'), 0);
+					within(checkpoint(slip.checkpoints, 'BASIC'), salary - salary / 44);
 				})
 			)
 		);
@@ -696,7 +696,8 @@ describe('a no-pay day', () => {
 					yield* onCycle(t, '2026-06');
 					const [slip] = yield* slips(t, '2026-06');
 					assert.ok(slip !== undefined);
-					within(lineOf(slip.lines, 'UNPAID_LEAVE'), -rate);
+					assert.equal(lineOf(slip.lines, 'UNPAID_LEAVE'), 0);
+					within(checkpoint(slip.checkpoints, 'BASIC'), rate * 21);
 				})
 			);
 		});
@@ -716,15 +717,13 @@ describe('a no-pay day', () => {
 						const [august] = yield* slips(t, '2026-08');
 						assert.ok(june !== undefined && july !== undefined && august !== undefined);
 						const full = checkpoint(august.checkpoints, one.wages);
-						const taken = full - checkpoint(june.checkpoints, one.wages);
+						const taken = checkpoint(august.checkpoints, one.wages) - checkpoint(june.checkpoints, one.wages);
 						assert.ok(taken > 0);
-						for (const code of one.noPayLines)
-							within(
-								lineOf(july.lines, code) - lineOf(august.lines, code),
-								lineOf(august.lines, code) - lineOf(june.lines, code)
-							);
-						within(checkpoint(july.checkpoints, one.wages) - full, taken);
-						within(lineOf(july.lines, 'UNPAID_LEAVE'), salary / 22);
+						// a reversal is one refund line on NET; the current month's allowance lines stay whole
+						for (const code of one.noPayLines.filter((line) => line !== 'UNPAID_LEAVE'))
+							within(lineOf(july.lines, code), lineOf(august.lines, code));
+						within(checkpoint(july.checkpoints, one.wages), full);
+						within(lineOf(july.lines, 'UNPAID_LEAVE'), taken);
 						assert.equal(lineOf(august.lines, 'UNPAID_LEAVE'), 0);
 					})
 				)
@@ -755,7 +754,8 @@ describe('a no-pay day', () => {
 					yield* onCycle(t, '2026-06-2');
 					const [first, second] = yield* slips(t, '2026-06');
 					assert.ok(first !== undefined && second !== undefined);
-					within(lineOf(first.lines, 'UNPAID_LEAVE'), -lineOf(second.lines, 'UNPAID_LEAVE'));
+					assert.equal(lineOf(first.lines, 'UNPAID_LEAVE'), 0);
+					assert.ok(lineOf(second.lines, 'UNPAID_LEAVE') > 0);
 				})
 			);
 		});

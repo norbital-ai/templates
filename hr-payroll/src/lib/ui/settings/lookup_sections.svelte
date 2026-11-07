@@ -3,7 +3,7 @@
 	const GROUPS = [
 		[
 			'pay_basis',
-			/^(day_rate|proration_basis|rounding|half_step|month_balance|months_per_year|weeks_per_year|year_days|days_per_year|days_per_week|six_day_week|calendar_days|fallback_working_days|daily_paid_days|bpjs_daily_wage_days|fixed_allowances|excluded_allowances|benefit_catalogs|business_year|wage_period_share|wage_floor_factor|timezone|time_zone)|divisor|(^|_)units?$/
+			/^(half_step|months_per_year|weeks_per_year|year_days|daily_paid_days|bpjs_daily_wage_days|business_year|wage_period_share)|(^|_)units?$/
 		],
 		['minimum_pay', /^(hourly_wage|monthly_wage|daily_(four|five|six)_day_week)/],
 		['working_time', /hours|minutes|^night_|overtime|^break_|^elapsed_|paid_multiple|half_pay/],
@@ -33,7 +33,10 @@
 		typeof item === 'object' &&
 		(!Array.isArray(item) || item.some((row) => row !== null && typeof row === 'object'));
 	const isCode = (item: unknown): item is string => typeof item === 'string' && item.includes('\n');
-	const title = (key: string) => `${key[0]?.toUpperCase()}${key.slice(1).replaceAll('_', ' ')}`;
+	/** The few keys whose name is not a sentence on its own. */
+	const LABELS: Record<string, string> = {};
+	const title = (key: string) =>
+		LABELS[key] ?? `${key[0]?.toUpperCase()}${key.slice(1).replaceAll('_', ' ')}`;
 </script>
 
 <script lang="ts">
