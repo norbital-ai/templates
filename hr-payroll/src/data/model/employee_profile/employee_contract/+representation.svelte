@@ -34,7 +34,7 @@
 	import ContractTermsEditor from '../../../../lib/ui/person/contract_terms_editor.svelte';
 	import VersionFacts from '../../../../lib/ui/person/version_facts.svelte';
 
-	type ChangeAction = 'PROMOTION' | 'TRANSFER' | 'TERMINATE';
+	type ChangeAction = 'PROMOTION' | 'LIFE_EVENT' | 'TRANSFER' | 'TERMINATE';
 	type SalaryUnit = 'MONTHLY' | 'DAILY' | 'HOURLY' | 'PIECE';
 	type Engagement =
 		'EMPLOYEE' | 'PART_TIME' | 'CONTRACTOR' | 'INTERN' | 'APPRENTICE' | 'CONSULTANT' | 'PAYEE';
@@ -373,7 +373,9 @@
 			? note.trim() !== '' &&
 					!lastDayInvalid &&
 					(outstandingLoans.length === 0 || recovery !== null)
-			: !lastDayInvalid &&
+			: action === 'LIFE_EVENT'
+				? !lastDayInvalid
+				: !lastDayInvalid &&
 					targetEntity !== null &&
 					targetSettings !== null &&
 					jobTitle.trim() !== '' &&
@@ -423,7 +425,7 @@
 		);
 		targetEntity = record.entity_id;
 		targetSettings =
-			kind === 'PROMOTION'
+			kind === 'PROMOTION' || kind === 'LIFE_EVENT'
 				? settingsFor(currentSettings?.code, record.input_schema_version_id)
 				: settingsFor(
 						(entities?.current?.entity.rows ?? []).find((row) => row.id === record.entity_id)
@@ -760,7 +762,12 @@
 							)
 						))
 			};
-			const label = kind === 'PROMOTION' ? t('contract.promotion') : t('contract.transfer');
+			const label =
+				kind === 'PROMOTION'
+					? t('contract.promotion')
+					: kind === 'LIFE_EVENT'
+						? t('contract.life_event')
+						: t('contract.transfer');
 			const created = await run(
 				bolt.act('employee_contract.create', [
 					{
@@ -773,7 +780,7 @@
 						bank: current.bank,
 						input_schema_version_id: target,
 						employee_extension_data:
-							transferring && targetExtensionSchema !== null
+							(transferring || kind === 'LIFE_EVENT') && targetExtensionSchema !== null
 								? targetExtension
 								: current.employee_extension_data,
 						signed_contract_period: current.signed_contract_period,
@@ -888,15 +895,18 @@
 	const actionTitle = $derived(
 		action === 'PROMOTION'
 			? t('contract.promotion')
-			: action === 'TRANSFER'
-				? t('contract.transfer')
-				: t('contract.terminate')
+			: action === 'LIFE_EVENT'
+				? t('contract.life_event')
+				: action === 'TRANSFER'
+					? t('contract.transfer')
+					: t('contract.terminate')
 	);
 	watch(
 		() => [action, settings?.current, targetEntity] as const,
 		() => {
 			if (action === null || record === null) return;
-			if (action !== 'PROMOTION' && targetEntity !== record.entity_id) return;
+			if (action !== 'PROMOTION' && action !== 'LIFE_EVENT' && targetEntity !== record.entity_id)
+				return;
 			if (targetSettings !== record.input_schema_version_id) return;
 			targetSettings = settingsFor(currentSettings?.code, record.input_schema_version_id);
 		}
@@ -927,6 +937,29 @@
 	</Form>
 {/snippet}
 
+{#snippet targetFacts()}
+	{#if targetExtensionSchema !== null}
+		<div class="grid gap-1" data-target-extension>
+			<span class="text-xs font-medium text-muted-foreground"
+				>{action === 'LIFE_EVENT'
+					? t('contract.life_event_data')
+					: t('contract.target_extension')}</span
+			>
+			<Editor
+				id="contract-target-extension"
+				name="employee_extension_data"
+				kind={{ kind: 'json' }}
+				jsonSchema={targetExtensionSchema}
+				value={targetExtension}
+				disabled={changeSaving}
+				onChange={(next) => (extensionEdits = isJsonObject(next) ? next : null)}
+			/>
+		</div>
+	{:else}
+		<p class="text-xs text-muted-foreground">{t('contract.target_extension_none')}</p>
+	{/if}
+{/snippet}
+
 {#snippet contractActions()}
 	{#if record !== null}
 		{#if record.status === 'DRAFT'}
@@ -934,6 +967,9 @@
 		{:else if record.status === 'SEALED' && record.effective_range.to == null}
 			<Button variant="outline" onclick={() => beginChange('PROMOTION')}
 				>{t('contract.promotion')}</Button
+			>
+			<Button variant="outline" onclick={() => beginChange('LIFE_EVENT')}
+				>{t('contract.life_event')}</Button
 			>
 			<Button variant="outline" onclick={() => beginChange('TRANSFER')}
 				>{t('contract.transfer')}</Button
@@ -955,7 +991,11 @@
 			{/if}
 			{#if step === 1}
 				<p class="text-muted-foreground text-sm">
-					{action === 'TERMINATE' ? t('contract.termination_help') : t('contract.change_help')}
+					{action === 'TERMINATE'
+						? t('contract.termination_help')
+						: action === 'LIFE_EVENT'
+							? t('contract.life_event_help')
+							: t('contract.change_help')}
 				</p>
 				<label class="grid gap-1" for="contract-change-last-day">
 					<span class="text-xs font-medium text-muted-foreground"
@@ -1002,7 +1042,9 @@
 						/>
 					</label>
 				{/if}
-				{#if action !== 'TERMINATE'}
+				{#if action === 'LIFE_EVENT'}
+					{@render targetFacts()}
+				{:else if action !== 'TERMINATE'}
 					<label class="grid gap-1" for="contract-change-title">
 						<span class="text-xs font-medium text-muted-foreground"
 							>{t('contract.next_job_title')}</span
@@ -1101,24 +1143,7 @@
 							{/if}
 						</label>
 					{/each}
-					{#if targetExtensionSchema !== null}
-						<div class="grid gap-1" data-target-extension>
-							<span class="text-xs font-medium text-muted-foreground"
-								>{t('contract.target_extension')}</span
-							>
-							<Editor
-								id="contract-target-extension"
-								name="employee_extension_data"
-								kind={{ kind: 'json' }}
-								jsonSchema={targetExtensionSchema}
-								value={targetExtension}
-								disabled={changeSaving}
-								onChange={(next) => (extensionEdits = isJsonObject(next) ? next : null)}
-							/>
-						</div>
-					{:else}
-						<p class="text-xs text-muted-foreground">{t('contract.target_extension_none')}</p>
-					{/if}
+					{@render targetFacts()}
 				{/if}
 				{#if loanTotal > 0 && action !== 'TERMINATE' && !sameJurisdiction}
 					<label class="flex items-center gap-2 text-sm" for="contract-settle-loans">
