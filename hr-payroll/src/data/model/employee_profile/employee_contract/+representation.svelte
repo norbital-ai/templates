@@ -412,8 +412,8 @@
 		action = kind;
 		step = 1;
 		changeError = null;
-		// a promotion or a life event changes the contract from the first of a month
-		lastDay = kind === 'PROMOTION' || kind === 'LIFE_EVENT' ? monthOf(today).to : today;
+		// only an exit keeps its own day: every other change starts on the first of a month
+		lastDay = kind === 'TERMINATE' ? today : monthOf(today).to;
 		finalPayDueOn = null;
 		note = '';
 		settleLoans = false;
@@ -1036,7 +1036,7 @@
 							? t('contract.life_event_help')
 							: t('contract.change_help')}
 				</p>
-				{#if action === 'PROMOTION' || action === 'LIFE_EVENT'}
+				{#if action !== 'TERMINATE'}
 					<label class="grid gap-1" for="contract-change-month">
 						<span class="text-xs font-medium text-muted-foreground"
 							>{t('contract.takes_effect')}</span

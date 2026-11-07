@@ -234,6 +234,13 @@ describe('a contribution corrected for a closed month', () => {
 			);
 		});
 	const seed = seedOf(MALAYSIA, 4800);
+	it.live('refuses a month no run has closed, where the row would absorb it', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const refused = yield* Effect.flip(enter(t, seed, 'EPF_ADJUSTMENT', 100, '2026-06-30'));
+			assert.match(String(refused), /corrects a month a run has closed/);
+		}).pipe(Effect.provide(workspace({ seed, now: JUNE })))
+	);
 	it.live('a refund takes it off the scheme now, and the next run pays it', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
