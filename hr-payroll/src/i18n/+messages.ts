@@ -108,6 +108,8 @@ export default messages({
 	'app.payroll.adhoc_people': 'People',
 	'app.payroll.no_adhoc_items': 'No ad hoc or claim items in force.',
 	'app.payroll.mark_paid': 'Mark as paid',
+	'app.payroll.export_listing': 'Export salary listing',
+	'app.payroll.export_listing_description': 'One workbook, a sheet for each selected run',
 	'app.payroll.earnings': 'Earnings',
 	'app.payroll.deductions': 'Deductions',
 	'app.payroll.employer_contributions': 'Employer contributions',

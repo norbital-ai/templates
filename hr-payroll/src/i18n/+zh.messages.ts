@@ -93,6 +93,8 @@ export default messages({
 	'app.payroll.adhoc_items': '本次发薪项目',
 	'app.payroll.no_adhoc_items': '没有生效的临时发放或报销项目。',
 	'app.payroll.mark_paid': '标记为已支付',
+	'app.payroll.export_listing': '导出工资清单',
+	'app.payroll.export_listing_description': '一个工作簿，每个所选核算一张工作表',
 	'app.payroll.earnings': '收入',
 	'app.payroll.deductions': '扣除',
 	'app.payroll.employer_contributions': '雇主供款',

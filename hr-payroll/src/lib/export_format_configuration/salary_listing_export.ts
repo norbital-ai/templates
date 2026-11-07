@@ -1,217 +1,377 @@
 import ExcelJSBrowser from 'exceljs/dist/exceljs.bare.min.js';
-import type { PayslipBreakdown } from '../payroll_engine/payslip_breakdown.js';
+import { Schema } from 'effect';
+import { PayslipBreakdown } from '../payroll_engine/payslip_breakdown.js';
 
-const GROUP_FILLS = [
-	'FFD6E4F0',
-	'FFDCEFD8',
-	'FFFBE3C8',
-	'FFE8DDF1',
-	'FFFFF0B8',
-	'FFD3EEEC',
-	'FFF5D9D9',
-	'FFE4E4E4'
-];
-const EDGE = { style: 'medium', color: { argb: 'FF18344F' } } as const;
-
-type ExportRow = {
-	readonly employee_number: string;
-	readonly employee_name: string;
+/**
+ * The staff salary listing as payroll teams keep it: one sheet per run, the company and `STAFF SALARY LISTING - <month>`
+ * above a group row and upper-case column headers. Who the person is comes first (frozen through NAME), then basic pay,
+ * earnings, GROSS PAY, the deductions, the employee's statutory portion, NET PAY, the employer's portion and the cost to
+ * the company, and a TOTAL row. Every figure is a payslip's own line or total.
+ */
+type Person = {
+	readonly position: string;
+	readonly department: string;
+	readonly code: string;
+	readonly name: string;
+	readonly identity: string;
+	readonly joined: string;
+	readonly left: string;
 	readonly breakdown: PayslipBreakdown;
-	readonly gross_earnings: number;
-	readonly total_deductions: number;
-	readonly net_pay: number;
-	readonly employer_cost: number;
+	readonly gross: number;
+	readonly net: number;
 };
-
-type Column = { readonly group: string; readonly label: string; readonly key: string };
-
-const groupOf = (source: string, code: string): string => {
-	if (source === 'employee_contract' && code === 'BASIC') return 'Basic pay';
-	switch (source) {
-		case 'allowance_catalog':
-			return 'Allowances';
-		case 'overtime_catalog':
-			return 'Overtime';
-		case 'leave_catalog_entry':
-			return 'Leave';
-		case 'claim_catalog_entry':
-			return 'Claims';
-		case 'adhoc_catalog_entry':
-			return 'Ad hoc';
-		case 'loan_repayment_entry':
-			return 'Loan deductions';
-		default:
-			return 'Other earnings';
-	}
-};
-
-const signed = (row: ExportRow): Map<string, number> => {
-	const values = new Map<string, number>();
-	for (const line of row.breakdown.lines) {
-		if (line.source === 'statutory_contribution_catalog') continue;
-		if (line.party !== 'EMPLOYEE') continue;
-		const key = `line:${line.source}:${line.code}`;
-		values.set(
-			key,
-			(values.get(key) ?? 0) + (line.direction === 'DEDUCT' ? -line.amount : line.amount)
-		);
-	}
-	for (const scheme of row.breakdown.statutory) {
-		values.set(`statutory:${scheme.code}:employee`, scheme.employee);
-		values.set(`statutory:${scheme.code}:employer`, scheme.employer);
-	}
-	return values;
-};
-
-export const downloadSalaryListing = async (input: {
+export type Sheet = {
 	readonly company: string;
 	readonly currency: string;
 	readonly period: string;
-	readonly runKind: string;
-	readonly payDate: string;
-	readonly runReference: string;
-	readonly rows: readonly ExportRow[];
-}) => {
-	if (input.rows.length === 0) return;
-	const lineLabels = new Map<string, { group: string; label: string }>();
-	for (const row of input.rows)
-		for (const line of row.breakdown.lines) {
-			if (line.source === 'statutory_contribution_catalog' || line.party !== 'EMPLOYEE') continue;
-			const key = `line:${line.source}:${line.code}`;
-			if (!lineLabels.has(key))
-				lineLabels.set(key, { group: groupOf(line.source, line.code), label: line.label });
-		}
-	const statutory = new Map<string, string>();
-	for (const row of input.rows)
-		for (const scheme of row.breakdown.statutory) statutory.set(scheme.code, scheme.kind);
+	readonly offCycle: boolean;
+	readonly people: readonly Person[];
+};
 
-	const columns: Column[] = [
-		...[...lineLabels].map(([key, value]) => ({ key, ...value })),
-		...[...statutory].flatMap(([code, kind]) => [
-			{
-				key: `statutory:${code}:employee`,
-				group: 'Employee statutory',
-				label: `${code} · ${kind}`
-			},
-			{ key: `statutory:${code}:employer`, group: 'Employer statutory', label: `${code} · ${kind}` }
-		]),
-		{ key: 'total:gross', group: 'Totals', label: 'Gross earnings' },
-		{ key: 'total:deductions', group: 'Totals', label: 'Total deductions' },
-		{ key: 'total:net', group: 'Totals', label: 'Net pay' },
-		{ key: 'total:employer', group: 'Totals', label: 'Employer cost' }
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+/** `2026-10` → `OCT 2026`, a half-month `2026-10-1` → `OCT 2026 1ST HALF`. */
+const monthOf = (period: string) => {
+	const match = /^(\d{4})-(\d{2})(?:-([12]))?$/.exec(period);
+	if (match === null) return period.toUpperCase();
+	const half = match[3] === undefined ? '' : match[3] === '1' ? ' 1ST HALF' : ' 2ND HALF';
+	return `${MONTHS[Number(match[2]) - 1] ?? match[2]} ${match[1]}${half}`;
+};
+const amount = (value: unknown): number => {
+	// a decimal reaches a page as `{ $dec }`, and a stored read as a Decimal
+	const raw = typeof value === 'object' && value !== null && '$dec' in value ? value.$dec : value;
+	const number = typeof raw === 'number' ? raw : Number(String(raw ?? ''));
+	return Number.isFinite(number) ? number : 0;
+};
+const text = (value: unknown) => (typeof value === 'string' ? value : '');
+const dayOf = (value: unknown) => (typeof value === 'string' ? value.slice(0, 10) : '');
+
+/** What the listing reads: the runs, their payslips (each with its contract) and the people's contract versions. */
+export type ListingRead = {
+	readonly runs: readonly {
+		readonly id: string;
+		readonly period: unknown;
+		readonly kind: unknown;
+		readonly entity_id?: { readonly name?: unknown } | null;
+		readonly settings_id?: { readonly currency?: unknown } | null;
+	}[];
+	readonly slips: readonly {
+		readonly payroll_run_id: unknown;
+		readonly employee_id: unknown;
+		readonly gross_earnings: unknown;
+		readonly net_pay: unknown;
+		readonly breakdown: unknown;
+		readonly employment_id?: {
+			readonly employee_number?: unknown;
+			readonly employee_name?: unknown;
+			readonly service_started_on?: unknown;
+			readonly terms?: { readonly job_title?: unknown; readonly department?: unknown } | null;
+			readonly payroll?: { readonly identity_number?: unknown } | null;
+		} | null;
+	}[];
+	readonly versions: readonly {
+		readonly employee_id: unknown;
+		readonly effective_range: { readonly from: unknown; readonly to?: unknown };
+	}[];
+};
+
+/** Each run's sheet, in period order, its people by employee code. */
+export const sheetsOf = ({ runs, slips, versions }: ListingRead): readonly Sheet[] => {
+	const joined = new Map<string, string>();
+	const left = new Map<string, string>();
+	for (const [person, rows] of Map.groupBy(versions, (row) => String(row.employee_id))) {
+		const ordered = rows.toSorted((a, b) =>
+			dayOf(a.effective_range.from).localeCompare(dayOf(b.effective_range.from))
+		);
+		joined.set(person, dayOf(ordered[0]?.effective_range.from));
+		// someone has left when their latest version ends
+		const to = ordered.at(-1)?.effective_range.to;
+		if (to != null) left.set(person, dayOf(to));
+	}
+	const byRun = Map.groupBy(slips, (slip) => String(slip.payroll_run_id));
+	return runs
+		.toSorted((a, b) => String(a.period).localeCompare(String(b.period)))
+		.map((run): Sheet => ({
+			company: text(run.entity_id?.name),
+			currency: text(run.settings_id?.currency),
+			period: String(run.period),
+			offCycle: run.kind === 'OFF_CYCLE',
+			people: (byRun.get(run.id) ?? [])
+				.flatMap((slip): Person[] => {
+					const contract = slip.employment_id;
+					const breakdown = Schema.decodeUnknownOption(PayslipBreakdown)(slip.breakdown);
+					if (contract == null || breakdown._tag === 'None') return [];
+					const person = String(slip.employee_id);
+					return [
+						{
+							position: text(contract.terms?.job_title),
+							department: text(contract.terms?.department),
+							code: text(contract.employee_number),
+							name: text(contract.employee_name),
+							identity: text(contract.payroll?.identity_number),
+							joined: dayOf(contract.service_started_on) || (joined.get(person) ?? ''),
+							left: left.get(person) ?? '',
+							breakdown: breakdown.value,
+							gross: amount(slip.gross_earnings),
+							net: amount(slip.net_pay)
+						}
+					];
+				})
+				.toSorted((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }))
+		}));
+};
+
+type Line = PayslipBreakdown['lines'][number];
+type Section =
+	| 'basic'
+	| 'allowances'
+	| 'overtime'
+	| 'earnings'
+	| 'deductions'
+	| 'loans'
+	| 'employee'
+	| 'employer';
+type Column = {
+	readonly section: Section | 'total';
+	readonly group: string;
+	readonly header: string;
+	readonly value: (person: Person) => number;
+};
+const STATUTORY = 'statutory_contribution_catalog';
+/** Where a line sits on the sheet, by who bears it, its kind and the way it first moves. */
+const sectionOf = (line: Line): Section => {
+	if (line.party === 'EMPLOYER') return 'employer';
+	if (line.source === STATUTORY) return 'employee';
+	if (line.source === 'loan_repayment_entry') return 'loans';
+	if (line.direction === 'DEDUCT') return 'deductions';
+	if (line.source === 'employee_contract') return 'basic';
+	if (line.source === 'allowance_catalog') return 'allowances';
+	if (line.source === 'overtime_catalog') return 'overtime';
+	return 'earnings';
+};
+const GROUP: { readonly [S in Section]: string } = {
+	basic: '',
+	allowances: 'ALLOWANCES',
+	overtime: 'OVERTIME',
+	earnings: '',
+	deductions: 'DEDUCTIONS',
+	loans: 'LOANS',
+	employee: 'EMPLOYEE PORTION',
+	employer: 'EMPLOYER PORTION'
+};
+const EARNINGS: readonly Section[] = ['basic', 'allowances', 'overtime', 'earnings'];
+const keyOf = (line: Line) => `${line.source}:${line.code}`;
+/** A line's amount as its column reads it: earnings add, what is taken from the person or paid for them is positive. */
+const signed = (section: Section, line: Line) =>
+	(line.direction === 'DEDUCT') ===
+	(section === 'deductions' || section === 'loans' || section === 'employee')
+		? line.amount
+		: -line.amount;
+
+/** The sheet's columns: one per distinct line, in its section, with the payslip totals between them. */
+const columnsOf = (sheet: Sheet): readonly Column[] => {
+	const kind = new Map<string, string>();
+	for (const person of sheet.people)
+		for (const scheme of person.breakdown.statutory) kind.set(scheme.code, scheme.kind);
+	const found = new Map<string, { section: Section; line: Line }>();
+	for (const person of sheet.people)
+		for (const line of person.breakdown.lines)
+			if (!found.has(keyOf(line))) found.set(keyOf(line), { section: sectionOf(line), line });
+	const lines = (section: Section): Column[] => {
+		const columns = [...found]
+			.filter(([, entry]) => entry.section === section)
+			.map(([key, { line }]): Column & { readonly tax: boolean } => ({
+				section,
+				group: GROUP[section],
+				header: (line.source === STATUTORY ? line.code.replace(/_EMPLOYER$/, '') : line.label)
+					.replaceAll('_', ' ')
+					.toUpperCase(),
+				tax: kind.get(line.code) === 'TAX',
+				value: (person) =>
+					person.breakdown.lines
+						.filter((own) => keyOf(own) === key)
+						.reduce((total, own) => total + signed(section, own), 0)
+			}));
+		if (section !== 'employee' && section !== 'employer') return columns;
+		// a portion reads largest scheme first and its taxes last, as payroll teams keep it (EPF, SOCSO, EIS, then PCB)
+		const size = (column: Column) =>
+			sheet.people.reduce((total, person) => total + column.value(person), 0);
+		return columns.toSorted(
+			(a, b) =>
+				Number(a.tax) - Number(b.tax) || size(b) - size(a) || a.header.localeCompare(b.header)
+		);
+	};
+	const sum = (sections: readonly Section[], person: Person) =>
+		person.breakdown.lines
+			.filter((line) => sections.includes(sectionOf(line)))
+			.reduce((total, line) => total + signed(sectionOf(line), line), 0);
+	const total = (header: string, value: (person: Person) => number): Column => ({
+		section: 'total',
+		group: '',
+		header,
+		value
+	});
+	return [
+		...EARNINGS.flatMap(lines),
+		total('GROSS PAY', (person) => person.gross),
+		...lines('deductions'),
+		...lines('loans'),
+		...lines('employee'),
+		total('NET PAY', (person) => person.net),
+		...lines('employer'),
+		// what the company pays out for the person: their pay, what goes to the authorities on their behalf, and its own share
+		total(
+			'COST TO COMPANY',
+			(person) => person.net + sum(['employee'], person) + sum(['employer'], person)
+		)
 	];
+};
 
+const FILL: { readonly [S in Column['section'] | 'identity']: string } = {
+	identity: 'FFCCFFFF',
+	basic: 'FFCCFFCC',
+	allowances: 'FFCCFFCC',
+	overtime: 'FFCCFFCC',
+	earnings: 'FFCCFFCC',
+	deductions: 'FFFFC000',
+	loans: 'FFFFC000',
+	employee: 'FFFFFF00',
+	employer: 'FFFCE4D6',
+	total: 'FFD9D9D9'
+};
+const ACCOUNTING = '_(* #,##0.00_);_(* (#,##0.00);_(* "-"??_);_(@_)';
+const THIN = { style: 'thin', color: { argb: 'FF808080' } } as const;
+const IDENTITY = [
+	{ header: 'POSITION', width: 24, value: (person: Person) => person.position },
+	{ header: 'DEPARTMENT', width: 20, value: (person: Person) => person.department },
+	{ header: 'EMPLOYEE CODE', width: 15, value: (person: Person) => person.code },
+	{ header: 'NAME', width: 34, value: (person: Person) => person.name },
+	{ header: 'IC / ID NO.', width: 18, value: (person: Person) => person.identity },
+	{ header: 'DATE JOIN', width: 13, date: true, value: (person: Person) => person.joined },
+	{ header: 'LAST DAY', width: 13, date: true, value: (person: Person) => person.left }
+] as const;
+/** Frozen through NAME, as the listings are read across. */
+const FROZEN = 4;
+const HEAD = 4;
+
+const dateOf = (day: string) => {
+	const [year, month, date] = day.split('-').map(Number);
+	return year === undefined || month === undefined || date === undefined
+		? day
+		: new Date(Date.UTC(year, month - 1, date));
+};
+const sheetName = (sheet: Sheet, taken: Set<string>) => {
+	const base = `${monthOf(sheet.period)}${sheet.offCycle ? ' OFF-CYCLE' : ''}`
+		.replaceAll(/[\\/?*[\]:]/g, '-')
+		.slice(0, 27);
+	let name = base;
+	for (let next = 2; taken.has(name); next++) name = `${base} (${next})`;
+	taken.add(name);
+	return name;
+};
+
+/** One run's sheet, laid out as the listing. */
+const addSheet = (
+	workbook: InstanceType<typeof ExcelJSBrowser.Workbook>,
+	sheet: Sheet,
+	name: string
+) => {
+	const columns = columnsOf(sheet);
+	const ws = workbook.addWorksheet(name, {
+		views: [{ state: 'frozen', xSplit: FROZEN, ySplit: HEAD, zoomScale: 85 }],
+		pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
+	});
+	const width = IDENTITY.length + columns.length;
+	ws.columns = [
+		...IDENTITY.map((column) => ({ width: column.width })),
+		...columns.map((column) => ({ width: column.section === 'total' ? 16 : 14 }))
+	];
+	ws.getCell(1, 1).value = sheet.company.toUpperCase();
+	ws.getCell(1, 1).font = { bold: true, size: 14 };
+	ws.getCell(2, 1).value = `STAFF SALARY LISTING - ${monthOf(sheet.period)}${
+		sheet.offCycle ? ' (OFF-CYCLE)' : ''
+	}${sheet.currency === '' ? '' : ` (${sheet.currency})`}`;
+	ws.getCell(2, 1).font = { bold: true, underline: true, size: 12 };
+
+	// a group row above the column headers; a column with no group takes both rows
+	const head = [
+		...IDENTITY.map((column) => ({
+			group: '',
+			header: column.header,
+			section: 'identity' as const
+		})),
+		...columns
+	];
+	for (let index = 0; index < head.length;) {
+		const start = index;
+		const group = head[index]?.group ?? '';
+		if (group === '') {
+			ws.mergeCells(HEAD - 1, start + 1, HEAD, start + 1);
+			index++;
+		} else {
+			while (index < head.length && head[index]?.group === group) index++;
+			if (index - start > 1) ws.mergeCells(HEAD - 1, start + 1, HEAD - 1, index);
+			ws.getCell(HEAD - 1, start + 1).value = group;
+		}
+		for (let column = start; column < index; column++) {
+			const entry = head[column];
+			if (entry === undefined) continue;
+			ws.getCell(HEAD, column + 1).value = entry.header;
+			if (group === '') ws.getCell(HEAD - 1, column + 1).value = entry.header;
+			for (const row of [HEAD - 1, HEAD]) {
+				const cell = ws.getCell(row, column + 1);
+				cell.font = { bold: true, size: 10 };
+				cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+				cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: FILL[entry.section] } };
+				cell.border = { top: THIN, left: THIN, bottom: THIN, right: THIN };
+			}
+		}
+	}
+	ws.getRow(HEAD - 1).height = 22;
+	ws.getRow(HEAD).height = 48;
+
+	for (const [index, person] of sheet.people.entries()) {
+		const row = ws.getRow(HEAD + 1 + index);
+		for (const [at, column] of IDENTITY.entries()) {
+			const value = column.value(person);
+			const cell = row.getCell(at + 1);
+			cell.value = 'date' in column && value !== '' ? dateOf(value) : value;
+			if ('date' in column) cell.numFmt = 'd mmm yyyy';
+		}
+		for (const [at, column] of columns.entries()) {
+			const cell = row.getCell(IDENTITY.length + at + 1);
+			cell.value = column.value(person);
+			cell.numFmt = ACCOUNTING;
+			if (column.section === 'total') cell.font = { bold: true };
+		}
+		for (let column = 1; column <= width; column++)
+			row.getCell(column).border = { top: THIN, left: THIN, bottom: THIN, right: THIN };
+	}
+
+	const last = HEAD + sheet.people.length;
+	const totals = ws.getRow(last + 1);
+	totals.getCell(FROZEN).value = 'TOTAL';
+	for (const [at, column] of columns.entries()) {
+		const cell = totals.getCell(IDENTITY.length + at + 1);
+		const letter = ws.getColumn(IDENTITY.length + at + 1).letter;
+		cell.value = {
+			formula: `SUM(${letter}${HEAD + 1}:${letter}${last})`,
+			result: sheet.people.reduce((total, person) => total + column.value(person), 0)
+		};
+		cell.numFmt = ACCOUNTING;
+	}
+	for (let column = 1; column <= width; column++) {
+		const cell = totals.getCell(column);
+		cell.font = { bold: true };
+		cell.border = { top: THIN, bottom: { style: 'double', color: { argb: 'FF000000' } } };
+	}
+	ws.autoFilter = { from: { row: HEAD, column: 1 }, to: { row: last, column: width } };
+};
+
+/** The listing of these runs as one workbook, a sheet each. */
+export const workbookOf = (sheets: readonly Sheet[]) => {
 	const workbook = new ExcelJSBrowser.Workbook();
 	workbook.creator = 'Payroll';
-	const sheet = workbook.addWorksheet(
-		`${input.period} ${input.currency}`.replaceAll(/[\\/?*\[\]:]/g, '-').slice(0, 31)
-	);
-	const last = columns.length + 3;
-	sheet.views = [{ state: 'frozen', xSplit: 3, ySplit: 7 }];
-	sheet.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
-	sheet.columns = [{ width: 19 }, { width: 30 }, ...columns.map(() => ({ width: 18 }))];
-
-	for (const row of [1, 2, 3]) sheet.mergeCells(row, 1, row, Math.min(last, 9));
-	sheet.getCell(1, 1).value = `${input.company} — Salary listing`;
-	sheet.getCell(1, 1).font = { bold: true, size: 16, color: { argb: 'FF18344F' } };
-	sheet.getRow(1).height = 28;
-	sheet.getCell(2, 1).value = `${input.period} | ${input.currency} | ${
-		input.runKind === 'OFF_CYCLE' ? 'Off-cycle payroll' : 'On-cycle payroll'
-	}${input.payDate === '' ? '' : ` | Pay date: ${input.payDate}`} | Run: ${input.runReference}`;
-	sheet.getCell(3, 1).value =
-		'Each pay line is one column. Employee deductions are negative; statutory and employer cost are shown separately.';
-
-	for (const [index, text] of ['Employee no.', 'Employee name', 'Payment status'].entries()) {
-		sheet.mergeCells(6, index + 1, 7, index + 1);
-		sheet.getCell(6, index + 1).value = text;
-	}
-	for (const rowNumber of [6, 7]) {
-		sheet.getRow(rowNumber).height = rowNumber === 6 ? 32 : 60;
-		for (let column = 1; column <= last; column++) {
-			const cell = sheet.getCell(rowNumber, column);
-			cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF18344F' } };
-			cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
-			cell.alignment = { wrapText: true, horizontal: 'center', vertical: 'middle' };
-		}
-	}
-	const groups: { first: number; last: number }[] = [];
-	for (let index = 0; index < columns.length;) {
-		const first = index;
-		const group = columns[index]?.group;
-		while (index + 1 < columns.length && columns[index + 1]?.group === group) index++;
-		if (index > first) sheet.mergeCells(6, first + 4, 6, index + 4);
-		else sheet.mergeCells(6, first + 4, 7, first + 4);
-		sheet.getCell(6, first + 4).value = index > first ? group : columns[first]?.label;
-		const fill = GROUP_FILLS[groups.length % GROUP_FILLS.length] ?? 'FFE4E4E4';
-		for (const rowNumber of [6, 7])
-			for (let column = first; column <= index; column++) {
-				const cell = sheet.getCell(rowNumber, column + 4);
-				cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } };
-				cell.font = { bold: true, color: { argb: 'FF18344F' }, size: 10 };
-			}
-		groups.push({ first: first + 4, last: index + 4 });
-		index++;
-	}
-
-	const format = '#,##0.00;[Red](#,##0.00);"–"';
-	for (const [index, row] of input.rows.entries()) {
-		const rowNumber = index + 8;
-		sheet.getRow(rowNumber).height = 20;
-		sheet.getCell(rowNumber, 1).value = row.employee_number;
-		sheet.getCell(rowNumber, 2).value = row.employee_name;
-		sheet.getCell(rowNumber, 3).value = 'To be paid';
-		const values = signed(row);
-		values.set('total:gross', row.gross_earnings);
-		values.set('total:deductions', -Math.abs(row.total_deductions));
-		values.set('total:net', row.net_pay);
-		values.set('total:employer', row.employer_cost);
-		for (const [column, definition] of columns.entries()) {
-			const cell = sheet.getCell(rowNumber, column + 4);
-			cell.value = values.get(definition.key) ?? 0;
-			cell.numFmt = format;
-			if (definition.key.startsWith('total:')) {
-				cell.font = { bold: true };
-				cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0F0E6' } };
-			}
-		}
-	}
-
-	const totalRow = input.rows.length + 8;
-	sheet.getCell(totalRow, 2).value = 'Total';
-	for (const [column, definition] of columns.entries()) {
-		const cell = sheet.getCell(totalRow, column + 4);
-		const sum = input.rows.reduce(
-			(total, row) => total + (signed(row).get(definition.key) ?? 0),
-			0
-		);
-		cell.value = {
-			formula: `SUM(${sheet.getCell(8, column + 4).address}:${sheet.getCell(totalRow - 1, column + 4).address})`,
-			result: sum
-		};
-		cell.numFmt = format;
-		cell.font = { bold: true };
-		cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0EAF2' } };
-	}
-	sheet.getRow(totalRow).height = 30;
-	for (const group of groups)
-		for (let rowNumber = 6; rowNumber <= totalRow; rowNumber++) {
-			const start = sheet.getCell(rowNumber, group.first);
-			start.border = { ...start.border, left: EDGE };
-			const end = sheet.getCell(rowNumber, group.last);
-			end.border = { ...end.border, right: EDGE };
-		}
-	sheet.autoFilter = { from: { row: 7, column: 1 }, to: { row: totalRow - 1, column: last } };
-
-	const bytes = await workbook.xlsx.writeBuffer();
-	const url = URL.createObjectURL(
-		new Blob([new Uint8Array(bytes)], {
-			type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-		})
-	);
-	const link = Object.assign(document.createElement('a'), {
-		href: url,
-		download: `salary-listing-${input.period}-${input.currency}.xlsx`
-	});
-	link.click();
-	URL.revokeObjectURL(url);
+	const taken = new Set<string>();
+	for (const sheet of sheets) addSheet(workbook, sheet, sheetName(sheet, taken));
+	return workbook;
 };

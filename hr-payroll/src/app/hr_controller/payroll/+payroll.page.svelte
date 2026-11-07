@@ -8,6 +8,7 @@
 	import { paidOn } from '../../../lib/ui/format/calendar.js';
 	import { periodLabel } from '../../../lib/ui/payroll/pay_periods.js';
 	import RunCreate from '../../../lib/ui/payroll/run_create.svelte';
+	import { exportSalaryListing } from '../../../lib/export_format_configuration/salary_listing_download.js';
 
 	const scope = companyScope();
 	let creating = $state(false);
@@ -54,7 +55,16 @@
 				export: false,
 				title: bolt.t('app.payroll.runs_title'),
 				new: () => (creating = true),
-				delete: true
+				delete: true,
+				actions: [
+					{
+						icon: 'lucide:file-spreadsheet',
+						name: bolt.t('app.payroll.export_listing'),
+						description: bolt.t('app.payroll.export_listing_description'),
+						requiresSelection: true,
+						run: exportSalaryListing
+					}
+				]
 			}}
 			columns={[
 				{ field: 'period', label: bolt.t('app.payroll.period'), cell: periodCell },
