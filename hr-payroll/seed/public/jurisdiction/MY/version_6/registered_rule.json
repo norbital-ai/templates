@@ -569,5 +569,156 @@
 		"order": 900,
 		"id": "9a298388-8bb0-5e4c-a08d-16f597aecb43",
 		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "ANNUAL_LEAVE_SERVICE",
+		"target_collection": "leave_catalog_entry",
+		"events": ["create", "update"],
+		"references": [
+			{
+				"title": "Employment Act 1955 (Act 265) s.60E(1), second proviso",
+				"locator": "absence without permission and without reasonable excuse on more than ten per cent of the working days of the twelve months: no such leave.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			},
+			{
+				"title": "Employment Act 1955 (Act 265) s.60E(3B)",
+				"locator": "leave of absence without pay exceeding thirty days in the aggregate in any twelve months is disregarded in computing the length of service.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"reads": {
+			"leave_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["code", "lookup"],
+				"limit": 1
+			},
+			"employee_contract": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					}
+				},
+				"fields": ["service_started_on", "effective_range"],
+				"limit": 1
+			},
+			"employee_balance": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "ctx.subject.employment.employee_id"
+						}
+					}
+				},
+				"fields": ["account"],
+				"limit": 1
+			},
+			"shift_definition": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["variant"],
+				"limit": 1000
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.subject.employment.employee_id"
+								}
+							}
+						}
+					},
+					"work_date": {
+						"gte": {
+							"var": "add_months(ctx.entry.days.0.date, -12)"
+						}
+					}
+				},
+				"fields": ["work_date", "shift_definition_id"],
+				"limit": 10000
+			},
+			"leave_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.subject.employment.employee_id"
+								}
+							}
+						}
+					},
+					"catalog_id": {
+						"is": {
+							"code": {
+								"eq": "UNPAID_LEAVE"
+							}
+						}
+					}
+				},
+				"fields": ["days", "is_reversal", "reverses"],
+				"limit": 10000
+			}
+		},
+		"condition": "// js\nif (get(ctx.entry, 'is_reversal', false) === true || get(ctx.entry, 'encashment', false) === true) return false;\nreturn get(first(ctx.reads.leave_catalog), 'code', '') === 'ANNUAL_LEAVE';",
+		"validate": "// js\nconst lookup = first(ctx.reads.leave_catalog).lookup;\nconst contract = first(ctx.reads.employee_contract);\nconst employment = ctx.subject.employment;\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from'));\nconst yearOf = (date) => add_months(started, 12 * Math.max(0, Math.floor(calendar_completed_months(started, date) / 12)));\nconst dates = ctx.entry.days.map((day) => day.date).toSorted();\nconst years = dates.map(yearOf).filter((year, index, all) => all.indexOf(year) === index);\n// EA s.60E(1), second proviso: absent without permission and without reasonable excuse for more than ten per cent of the working days of the twelve months of continuous service in respect of which the leave accrues, the employee is not entitled to it.\nconst { weeks, max_absent_share, fallback_days_per_week } = lookup.absence_forfeiture;\nconst absence = ctx.reads.shift_definition.filter((row) => row.variant.day_type === 'ABS').map((row) => row.id);\nconst absent = ctx.reads.roster_entry.filter((row) => absence.includes(row.shift_definition_id)).map((row) => row.work_date);\nconst working = weeks * get(employment, 'terms.normal_days_per_week', fallback_days_per_week);\nfor (const year of years)\n\tif (absent.filter((date) => date >= year && date < add_months(year, 12)).length > working * max_absent_share)\n\t\tthrow 'Absent without leave on more than ' + max_absent_share * 100 + ' per cent of the working days of the service year beginning ' + year + ': no annual leave is due for it.';\nif (ctx.event.operation !== 'create') return true;\n// EA s.60E(3B): leave of absence without pay exceeding thirty days in the aggregate in any twelve months is disregarded in computing the length of service.\nconst unpaid = ctx.reads.leave_catalog_entry;\nconst undone = unpaid.map((row) => get(row, 'reverses', ''));\nconst slots = unpaid\n\t.filter((row) => row.is_reversal !== true && !undone.includes(row.id))\n\t.flatMap((row) => row.days.map((day) => day.date))\n\t.filter((date) => date < dates.at(0))\n\t.toSorted();\nconst reach = 2 * lookup.service_unpaid_leave_ignored_after_days;\nlet until = '';\nlet disregarded = 0;\nfor (let at = 0; at < slots.length; at += 1) {\n\tif (at + reach < slots.length && slots.at(at + reach) < add_months(slots.at(at), 12)) until = add_months(slots.at(at), 12);\n\tif (slots.at(at) < until) disregarded += 1;\n}\nif (disregarded === 0) return true;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? lookup.part_time_service_bands : lookup.service_bands;\nconst [opening] = bands;\nconst due = (months) =>\n\tmonths < opening.service_months\n\t\t? Math.round((opening.days * months) / opening.service_months)\n\t\t: bands.filter((band) => band.service_months <= months).at(-1).days;\nconst periods = get(first(ctx.reads.employee_balance), 'account.leave.ANNUAL_LEAVE', {});\nfor (const year of years) {\n\tconst held = Object.hasOwn(periods, 'MY.S.' + year) ? periods['MY.S.' + year] : {};\n\tconst from = dates.find((date) => yearOf(date) === year);\n\tconst net = Math.max(0, calendar_completed_months(add_days(started, Math.floor(disregarded / 2)), from));\n\tconst left = Math.min(get(held, 'entitled', 0), due(net)) + get(held, 'carried', 0) - get(held, 'used', 0);\n\tif (dates.filter((date) => yearOf(date) === year).length / 2 > left)\n\t\tthrow 'Unpaid leave of more than ' + lookup.service_unpaid_leave_ignored_after_days + ' days does not count as service for annual leave: ' + left + ' days are left.';\n}\nreturn true;",
+		"order": 901,
+		"id": "8d548b21-aea7-57bb-8324-1149890f3854",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
+	},
+	{
+		"code": "PATERNITY_QUALIFYING_SERVICE",
+		"target_collection": "leave_catalog_entry",
+		"events": ["create", "update"],
+		"references": [
+			{
+				"title": "Employment Act 1955 (Act 265) s.60FA(3)(a)",
+				"locator": "employed by the same employer at least twelve months immediately before the commencement of the paternity leave.",
+				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
+			}
+		],
+		"reads": {
+			"leave_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["code", "lookup"],
+				"limit": 1
+			},
+			"employee_contract": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					}
+				},
+				"fields": ["service_started_on", "effective_range"],
+				"limit": 1
+			}
+		},
+		"condition": "// js\nif (get(ctx.entry, 'is_reversal', false) === true) return false;\nreturn get(first(ctx.reads.leave_catalog), 'code', '') === 'PATERNITY_LEAVE';",
+		"validate": "// js\n// EA s.60FA(3)(a): employed by the same employer at least twelve months immediately before the leave commences.\nconst contract = first(ctx.reads.employee_contract);\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from'));\nconst from = ctx.entry.days.map((day) => day.date).toSorted().at(0);\nconst needed = first(ctx.reads.leave_catalog).lookup.eligibility.min_service_months;\nif (calendar_completed_months(started, from) < needed)\n\tthrow 'Paternity leave needs ' + needed + ' months with this employer before it begins.';\nreturn true;",
+		"order": 902,
+		"id": "6d6f6999-36ce-59d2-bc19-c9e1dba6f6e6",
+		"settings_id": "12dfa28e-df89-5aa4-88d4-751602e334b5"
 	}
 ]

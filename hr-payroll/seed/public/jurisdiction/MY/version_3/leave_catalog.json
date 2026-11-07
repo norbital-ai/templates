@@ -53,18 +53,18 @@
 			"eligibility": {
 				"gender": "FEMALE",
 				"excluded_employment_types": ["DOMESTIC"],
-				"event_kind": "BIRTH",
 				"max_surviving_natural_children": 4,
 				"qualifying_service_days": 90,
 				"qualifying_window_months": 9
 			},
 			"opened_by": {
 				"CHILD_BIRTH": {}
-			}
+			},
+			"entitlement": "// js\n// EA First Schedule para 2(5): Part IX does not apply to a domestic employee.\n// EA s.37(1)(a)(i): leave for each confinement, and a confinement before this employment is no leave from this employer.\nconst employment = ctx.subject.employment;\nconst rule = ctx.lookup.eligibility;\nconst on = ctx.event.on;\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from'));\nif (on < started) return 0;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst events = get(employment, 'employee_extension_data.events', []);\nconst births = events.filter((event) => event.kind.startsWith('CHILD_BIRTH'));\n// EA s.37(1)(c), (1)(d)(i): no allowance with five or more surviving natural children at the confinement, whatever their age.\nconst surviving = births.filter((event) => event.on < on).length - events.filter((event) => event.kind === 'CHILD_DEATH' && event.on < on).length;\n// EA s.37(2)(a)(i): ninety days employed in the nine months immediately before the confinement.\nconst window = add_months(on, -rule.qualifying_window_months);\nconst served = calendar_distance_days(started > window ? started : window, on);\nconst allowance = ctx.event.kind === 'CHILD_BIRTH' && surviving <= rule.max_surviving_natural_children && served >= rule.qualifying_service_days;\nif (allowance !== ctx.lookup.maternity_allowance) return 0;\n// EA s.37(1)(a)(i): one confinement, however many children it brought.\nreturn ctx.lookup.grant_days / births.filter((event) => event.on === on).length;"
 		},
 		"references": [
 			{
-				"title": "Employment Act 1955 ss.37–44 and First Schedule para.2(5): Part IX applies to covered female employees and excludes domestic employees. Section 37 grants at least 98 consecutive days per confinement. Allowance eligibility requires at least 90 days in aggregate with the employer during the nine months immediately before confinement and employment with that employer at some time during the four months immediately before confinement (s.37(2)(a)); the surviving-natural-child limit is in ss.37(1)(c)–(d). Service with unrelated employers is not added to qualify against this employer. Sections 37(2)(d)–(3) separately govern multiple-employer claims and contributions. More favourable contractual benefits remain separate. Section 37(2)(b) and Employment (Minimum Rate of Maternity Allowance) Regulations 1976 reg.2 require each eligible calendar day at the greater of ordinary daily pay and RM6. Section 37(2)(c) deems unabated monthly wages to satisfy the allowance; daily/hourly cash targets use s.60I(1C) preceding-period ordinary wages and actual worked days. Official regulations: https://jtksm.mohr.gov.my/sites/default/files/2023-03/5.%20EMPLOYMENT%20%28MINIMUM%20RATE%20OF%20MATERNITY%20ALLOWANCE%29%20REGULATIONS%201976_0.pdf Section 37(1)(c) denies allowance where there are five or more surviving children at confinement; s.37(1)(d)(i) limits that count to natural children irrespective of age. The dated natural-child count excludes adopted children, deaths before confinement and births after confinement; same-day death requires a determination of survival at confinement. Encoded 2026-10-06: eligibility admits only the allowance-bearing confinement (female, not domestic, fewer than five surviving natural children in employee.children at confinement, 90 days’ qualifying service); the no-allowance case is MATERNITY_LEAVE_NO_ALLOWANCE (paid_share = 0). The paid_share expression determines the paid proportion. Encoded 2026-10-07 (round 4b): 98 days per confinement (window EVENT, entry.facts.event_id); the 90-day qualifying service is counted from employment.start_date in the nine months before confinement unless entry.facts.qualifying_service_days states it.",
+				"title": "Employment Act 1955 ss.37–44 and First Schedule para.2(5): Part IX applies to covered female employees and excludes domestic employees. Section 37 grants at least 98 consecutive days per confinement. Allowance eligibility requires at least 90 days in aggregate with the employer during the nine months immediately before confinement and employment with that employer at some time during the four months immediately before confinement (s.37(2)(a)); the surviving-natural-child limit is in ss.37(1)(c)–(d). Service with unrelated employers is not added to qualify against this employer. Sections 37(2)(d)–(3) separately govern multiple-employer claims and contributions. More favourable contractual benefits remain separate. Section 37(2)(b) and Employment (Minimum Rate of Maternity Allowance) Regulations 1976 reg.2 require each eligible calendar day at the greater of ordinary daily pay and RM6. Section 37(2)(c) deems unabated monthly wages to satisfy the allowance; daily/hourly cash targets use s.60I(1C) preceding-period ordinary wages and actual worked days. Official regulations: https://jtksm.mohr.gov.my/sites/default/files/2023-03/5.%20EMPLOYMENT%20%28MINIMUM%20RATE%20OF%20MATERNITY%20ALLOWANCE%29%20REGULATIONS%201976_0.pdf Section 37(1)(c) denies allowance where there are five or more surviving children at confinement; s.37(1)(d)(i) limits that count to natural children irrespective of age. The dated natural-child count excludes adopted children, deaths before confinement and births after confinement; same-day death requires a determination of survival at confinement. A CHILD_BIRTH event opens this row for the confinement that bears the allowance (fewer than five surviving natural children, counted from the CHILD_BIRTH and CHILD_DEATH events dated before it, and ninety days employed in the nine months before it) and MATERNITY_LEAVE_NO_ALLOWANCE for the one that does not. 98 days per confinement; births on one date are one confinement.",
 				"url": "https://jtksm.mohr.gov.my/sites/default/files/2023-03/5.%20EMPLOYMENT%20%28MINIMUM%20RATE%20OF%20MATERNITY%20ALLOWANCE%29%20REGULATIONS%201976_0.pdf"
 			}
 		],
@@ -83,14 +83,22 @@
 			"grant_days": 98,
 			"consecutive": true,
 			"maternity_allowance": false,
-			"no_cap": true,
 			"opened_by": {
+				"CHILD_BIRTH": {},
 				"CHILD_BIRTH_NO_ALLOWANCE": {}
-			}
+			},
+			"eligibility": {
+				"gender": "FEMALE",
+				"excluded_employment_types": ["DOMESTIC"],
+				"max_surviving_natural_children": 4,
+				"qualifying_service_days": 90,
+				"qualifying_window_months": 9
+			},
+			"entitlement": "// js\n// EA First Schedule para 2(5): Part IX does not apply to a domestic employee.\n// EA s.37(1)(a)(i): leave for each confinement, and a confinement before this employment is no leave from this employer.\nconst employment = ctx.subject.employment;\nconst rule = ctx.lookup.eligibility;\nconst on = ctx.event.on;\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from'));\nif (on < started) return 0;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst events = get(employment, 'employee_extension_data.events', []);\nconst births = events.filter((event) => event.kind.startsWith('CHILD_BIRTH'));\n// EA s.37(1)(c), (1)(d)(i): no allowance with five or more surviving natural children at the confinement, whatever their age.\nconst surviving = births.filter((event) => event.on < on).length - events.filter((event) => event.kind === 'CHILD_DEATH' && event.on < on).length;\n// EA s.37(2)(a)(i): ninety days employed in the nine months immediately before the confinement.\nconst window = add_months(on, -rule.qualifying_window_months);\nconst served = calendar_distance_days(started > window ? started : window, on);\nconst allowance = ctx.event.kind === 'CHILD_BIRTH' && surviving <= rule.max_surviving_natural_children && served >= rule.qualifying_service_days;\nif (allowance !== ctx.lookup.maternity_allowance) return 0;\n// EA s.37(1)(a)(i): one confinement, however many children it brought.\nreturn ctx.lookup.grant_days / births.filter((event) => event.on === on).length;"
 		},
 		"references": [
 			{
-				"title": "Employment Act 1955 s.37(1)(a) and (c)–(d), s.37(2)(a): every covered female employee (not a domestic employee, First Schedule para.2(5)) is entitled to maternity leave of not less than 98 consecutive days per confinement, but no maternity allowance where she has five or more surviving natural children at confinement (counted from employee.children: relationship CHILD, born before and not dead at the confinement date, entry.facts.confinement_date or the leave start) or was not employed by the employer for at least 90 days in the nine months before confinement (entry.facts.qualifying_service_days, else three completed months of service). Those days are leave without pay (paid_share = 0): MATERNITY_LEAVE carries the paid case. Encoded 2026-10-07 (round 4b): 98 days per confinement (window EVENT).",
+				"title": "Employment Act 1955 s.37(1)(a) and (c)–(d), s.37(2)(a): every covered female employee (not a domestic employee, First Schedule para.2(5)) is entitled to maternity leave of not less than 98 consecutive days per confinement, but no maternity allowance where she has five or more surviving natural children at confinement (counted from the CHILD_BIRTH and CHILD_DEATH events dated before the confinement) or was not employed by the employer for at least 90 days in the nine months before confinement. A CHILD_BIRTH_NO_ALLOWANCE event records an allowance lost otherwise (EA s.40(1)). Those days are leave without pay: MATERNITY_LEAVE carries the paid case. 98 days per confinement; births on one date are one confinement.",
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 			}
 		],
@@ -112,7 +120,8 @@
 			"grant_days": 60,
 			"eligibility": {
 				"excluded_employment_types": ["DOMESTIC"]
-			}
+			},
+			"entitlement": "// js\n// EA First Schedule para 2(5): s.60F does not apply to a domestic employee.\n// EA s.60F(1)(bb): sixty days in the aggregate in each calendar year.\nconst employment = ctx.subject.employment;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nreturn ctx.lookup.grant_days;"
 		},
 		"references": [
 			{
@@ -162,7 +171,8 @@
 			],
 			"eligibility": {
 				"excluded_employment_types": ["DOMESTIC"]
-			}
+			},
+			"entitlement": "// js\n// EA First Schedule para 2(5): s.60F does not apply to a domestic employee.\n// EA s.60F(1)(aa); Employment (Part-Time Employees) Regulations 2010 reg.8(1): the days for the length of service.\nconst employment = ctx.subject.employment;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? ctx.lookup.part_time_service_bands : ctx.lookup.service_bands;\nconst months = calendar_completed_months(get(employment, 'service_started_on', get(employment, 'effective_range.from')), ctx.as_of);\nreturn get(bands.filter((band) => band.service_months <= months).at(-1), 'days', 0);"
 		},
 		"references": [
 			{
@@ -229,11 +239,12 @@
 			},
 			"eligibility": {
 				"excluded_employment_types": ["DOMESTIC"]
-			}
+			},
+			"entitlement": "// js\n// EA First Schedule para 2(5): s.60E does not apply to a domestic employee.\n// EA s.60E(1); Employment (Part-Time Employees) Regulations 2010 reg.7(1): the days for the length of service, a share by completed months before the first band.\nconst employment = ctx.subject.employment;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? ctx.lookup.part_time_service_bands : ctx.lookup.service_bands;\nconst months = calendar_completed_months(get(employment, 'service_started_on', get(employment, 'effective_range.from')), ctx.as_of);\nconst [opening] = bands;\nif (months < opening.service_months) return Math.round((opening.days * months) / opening.service_months);\nreturn bands.filter((band) => band.service_months <= months).at(-1).days;"
 		},
 		"references": [
 			{
-				"title": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries. EA s.60E(2) lets the leave of each twelve months of service be taken within the twelve months after them, so a year’s unused statutory days — `carry_statutory_bands`, the s.60E(1) and reg.7(1) ladders above, prorated and rounded as the grant is — carry in full, lapsing at the next year’s end; the 5-day cap (or the terms fact) limits only the company’s days above statute. Encoded 2026-10-07 (round 4b): the entitlement is metered per twelve months of continuous service (window SERVICE_YEAR, EA s.60E(1)); the unused days of one service year carry into the next only (EA s.60E(2): leave of each twelve months is taken within the twelve months after them), at most that year's own entitlement, once. Encoded 2026-10-07 (round 5): a PART_TIME term earns 6 / 8 / 11 days (under two years, two to under five, five or more; Employment (Part-Time Employees) Regulations 2010 reg.7(1)), prorated by completed months in the first year as s.60E(1) prorates the full-time days. Encoded 2026-10-07 (round 7): EA s.60E(2): an employee absent without permission and without reasonable excuse (ABSENCE days of the service year, taken_by_class.ABSENCE.service_year) for more than 10% of the working days of the twelve months (52 weeks × terms.facts.days_per_week, six unrecorded) is not entitled to that year's paid annual leave. Encoded 2026-10-08 (QA F7): EA s.60E(1) closing words and s.60E(2A) (AGC reprint read 2026-10-08): in the year in which the contract terminates, the leave accrued is in direct proportion to the COMPLETED MONTHS of that service year (the year's band × completed months ÷ 12, a half day or more a day), beside the previous twelve months' leave carried in full; s.60E(3A) pays the untaken days. When the exit is recorded and the day read falls in the exit's service year, the grant is so prorated (completed months to the day after the last day, so a full final year keeps its whole band); the first-year proration already counts completed months.",
+				"title": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so all of such leave, not only the days past thirty, comes out of the service the ANNUAL_LEAVE_SERVICE rule counts. Absence without leave is not leave granted and does not come out; s.60F is another section and keeps plain service. Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries. EA s.60E(2) lets the leave of each twelve months of service be taken within the twelve months after them, so a year’s unused statutory days — `carry_statutory_bands`, the s.60E(1) and reg.7(1) ladders above, prorated and rounded as the grant is — carry in full, lapsing at the next year’s end; the 5-day cap (or the terms fact) limits only the company’s days above statute. Encoded 2026-10-07 (round 4b): the entitlement is metered per twelve months of continuous service (window SERVICE_YEAR, EA s.60E(1)); the unused days of one service year carry into the next only (EA s.60E(2): leave of each twelve months is taken within the twelve months after them), at most that year's own entitlement, once. Encoded 2026-10-07 (round 5): a PART_TIME term earns 6 / 8 / 11 days (under two years, two to under five, five or more; Employment (Part-Time Employees) Regulations 2010 reg.7(1)), prorated by completed months in the first year as s.60E(1) prorates the full-time days. EA s.60E(1), second proviso: an employee absent without permission and without reasonable excuse (days the roster marks ABS in the service year) for more than 10% of the working days of the twelve months (52 weeks × normal days per week, six unrecorded) is not entitled to that year’s paid annual leave. Encoded 2026-10-08 (QA F7): EA s.60E(1) closing words and s.60E(2A) (AGC reprint read 2026-10-08): in the year in which the contract terminates, the leave accrued is in direct proportion to the COMPLETED MONTHS of that service year (the year's band × completed months ÷ 12, a half day or more a day), beside the previous twelve months' leave carried in full; s.60E(3A) pays the untaken days. When the exit is recorded and the day read falls in the exit's service year, the grant is so prorated (completed months to the day after the last day, so a full final year keeps its whole band); the first-year proration already counts completed months.",
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 			}
 		],
@@ -265,7 +276,7 @@
 	{
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave",
-		"description": "Statutory leave for the first five lifetime confinements only. Before requesting leave, record the event_id and verified lifetime_number in employee facts.paternity_confinements, including previous employers, and verify the statutory notification requirement. Use the same event_id on every request for that confinement.",
+		"description": "Statutory leave for the first five lifetime confinements only. Record each confinement, including those with previous employers, in employee facts.paternity_confinements: its event_id is the date of the CHILD_BIRTH event, with the verified lifetime_number and whether the statutory notification requirement was met.",
 		"pay_treatment": "PAID",
 		"subtotal_id": null,
 		"lookup": {
@@ -277,14 +288,13 @@
 				"gender": "MALE",
 				"marital_status": "MARRIED",
 				"excluded_employment_types": ["DOMESTIC"],
-				"event_kind": "BIRTH",
 				"min_service_months": 12,
-				"max_lifetime_confinements": 5,
-				"notification_days_before_confinement": 30
+				"max_lifetime_confinements": 5
 			},
 			"opened_by": {
 				"CHILD_BIRTH": {}
-			}
+			},
+			"entitlement": "// js\n// EA First Schedule para 2(5): s.60FA does not apply to a domestic employee.\nconst employment = ctx.subject.employment;\nconst on = ctx.event.on;\nif (on < get(employment, 'service_started_on', get(employment, 'effective_range.from'))) return 0;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst births = get(employment, 'employee_extension_data.events', []).filter((event) => event.kind === 'CHILD_BIRTH' && event.on <= on);\nconst confinements = births.map((event) => event.on).filter((date, index, all) => all.indexOf(date) === index);\nconst record = get(employment, 'employee_extension_data.facts.paternity_confinements', []).find((item) => item.event_id === on);\n// EA s.60FA(2): five confinements, irrespective of the number of spouses; a verified record counts those of earlier employers.\nif (get(record, 'lifetime_number', confinements.length) > ctx.lookup.eligibility.max_lifetime_confinements) return 0;\n// EA s.60FA(3)(b): he has notified the employer of the pregnancy; HR records the finding on the record.\nif (get(record, 'notification_requirement_met', true) === false) return 0;\n// EA s.60FA(1): seven consecutive days for each confinement, however many children it brought.\nreturn ctx.lookup.grant_days / births.filter((event) => event.on === on).length;"
 		},
 		"references": [
 			{
@@ -349,12 +359,11 @@
 		"subtotal_id": "3d060c7e-bd89-50ed-ad92-448afc9d764e",
 		"lookup": {
 			"unit": "DAY",
-			"excluded_grounds": ["EMPLOYER_WITNESS"],
 			"no_cap": true
 		},
 		"references": [
 			{
-				"title": "Employment Act 1955 (Act 265) s.23, AGC reprint as at 1 August 2023: wages are not payable for a sentence of imprisonment, custody, travel to or from prison or custody, or travel to, attendance before or return from court otherwise than as a witness on the employer’s behalf. Section 23 also applies to domestic employees: First Schedule para.2(5) does not exclude it. The employer-witness exception preserves ordinary contractual pay; this catalogue records no independent right to time off. More favourable contractual paid absence may be granted separately. Encoded 2026-10-06: the absence is unpaid (paid_share = 0, priced by NO_PAY_LEAVE at monthly ÷ 26); attendance as the employer’s witness is work for the employer, not this class, and is refused here.",
+				"title": "Employment Act 1955 (Act 265) s.23, AGC reprint as at 1 August 2023: wages are not payable for a sentence of imprisonment, custody, travel to or from prison or custody, or travel to, attendance before or return from court otherwise than as a witness on the employer’s behalf. Section 23 also applies to domestic employees: First Schedule para.2(5) does not exclude it. The employer-witness exception preserves ordinary contractual pay; this catalogue records no independent right to time off. More favourable contractual paid absence may be granted separately. Encoded 2026-10-06: the absence is unpaid (paid_share = 0, priced by NO_PAY_LEAVE at monthly ÷ 26); attendance as the employer’s witness is work for the employer, not this class, and is not entered on this row.",
 				"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf"
 			}
 		],

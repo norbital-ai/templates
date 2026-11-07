@@ -204,13 +204,13 @@
 			"window": "SERVICE_YEAR",
 			"carry": {
 				"windows": 1
-			}
+			},
+			"entitlement": "// js\n// 労働基準法 art.39(1)–(2): a grant day six months after hire and each year after it, the days by length of service.\nconst employment = ctx.subject.employment;\nconst started = get(employment, 'service_started_on', get(employment, 'effective_range.from', null));\nconst offset = ctx.lookup.service_offset_months;\nconst months = calendar_completed_months(started, ctx.as_of);\nif (months < offset) return 0;\nconst years = Math.floor((months - offset) / 12);\nconst grant = add_months(started, offset + years * 12);\nconst extension = get(employment, 'employee_extension_data', {});\n// art.39(1)–(2): attendance below the ratio before a grant day leaves that year without a grant; HR records it on the day.\nif (get(extension, 'events', []).some((event) => event.kind === 'ATTENDANCE_BELOW_RATIO' && event.on === grant)) return 0;\n// art.39(3) with 施行規則 art.24の3: below the weekly hours and the weekly or yearly days, the table for the days scheduled.\nconst terms = get(employment, 'terms', {});\nconst hours = Number(get(terms, 'normal_hours_per_week', 0));\nconst perYear = get(extension, 'normal_days_per_year', null);\nconst yearly = perYear == null ? null : ctx.lookup.grant_days_by_normal_days_per_year.filter((row) => row.normal_days_per_year <= perYear).at(-1);\nconst perWeek = perYear == null ? Number(get(terms, 'normal_days_per_week', ctx.lookup.full_time_days_per_week)) : get(yearly ?? {}, 'days', 0);\nconst full = perYear == null ? perWeek >= ctx.lookup.full_time_days_per_week : perYear >= ctx.lookup.full_time_days_per_year;\nif (hours > 0 && hours < ctx.lookup.full_time_weekly_hours && !full) {\n\tconst row = ctx.lookup.grant_days_by_normal_days_per_week.filter((item) => item.normal_days_per_week === perWeek && item.service_year <= years + 1).at(-1);\n\treturn get(row ?? {}, 'days', 0);\n}\nreturn ctx.lookup.service_bands.filter((band) => band.service_months <= months).reduce((days, band) => Math.max(days, band.days), 0);"
 		},
 		"references": [
 			{
-				"title": "Automatic statutory grant from complete attendance and grant-date schedule",
-				"url": "https://www.startup-roudou.mhlw.go.jp/qa/zigyonushi/yukyu/q1.html",
-				"quote": "The entire preceding six months/annual grant window is counted. Initial absences are retained, work and whole-day deemed attendance count once, full substitute leave and legally excluded shutdown days leave the denominator. A public holiday scheduled as work remains a working day. Missing or ambiguous evidence refuses rather than accepting a final reviewed grant."
+				"title": "労働基準法 art.39(1)–(3), (10) with 施行規則 art.24の3: the grant needs 80% attendance over the six months or the year before the grant day. Work-injury, childcare, family care and maternity leave count as attended (art.39(10)), as does annual leave taken (昭22.9.13 発基17). A short schedule takes the table for its weekly or yearly days.",
+				"url": "https://www.startup-roudou.mhlw.go.jp/qa/zigyonushi/yukyu/q1.html"
 			},
 			{
 				"title": "労働基準法 art.39(1)–(2): 10 working days after six months’ continuous service, then 11, 12, 14, 16, 18 and 20 from six years six months. art.115: the right lapses two years after it arises, so only the previous year’s unused days carry (厚生労働省 Q&A).",
@@ -234,7 +234,7 @@
 		},
 		"references": [
 			{
-				"title": "労働基準法 art.65(1): on request, 6 weeks before the expected birth (14 weeks for a multiple pregnancy). The employer need not pay; 健康保険法 art.102 pays the 出産手当金 (two thirds of the standard daily remuneration) and art.159 exempts the premiums on the employer's application. Metered per birth (facts.event_id): 42 days, 98 for a multiple pregnancy (entry.facts.multiple_pregnancy), counted to the expected birth day."
+				"title": "労働基準法 art.65(1): on request, from 6 weeks before the expected birth (14 weeks for a multiple pregnancy); the day of birth counts as prenatal and a birth later than expected extends the leave. The employer need not pay; 健康保険法 art.102 pays the 出産手当金 (two thirds of the standard daily remuneration) and art.159 exempts the premiums on the employer's application."
 			}
 		],
 		"id": "6226d856-3922-5f68-b865-647f9b64f401",
@@ -338,11 +338,11 @@
 			"days_two_or_more": 10,
 			"school_age_limit_years": 9,
 			"fiscal_year_start_month": 4,
-			"no_cap": true
+			"entitlement": "// js\n// 育児・介護休業法 art.16の2(1): days a business year by the children in third year of elementary school or below; 学校教育法 art.17(1): that is a child not yet the limiting age on the 1 April the school year opens.\nconst month = Number(ctx.as_of.substring(5, 7));\nconst opens = add_months(month_start(ctx.as_of), -((month + 12 - ctx.lookup.fiscal_year_start_month) % 12));\nconst children = get(ctx.subject.employment, 'employee_extension_data.events', []).filter((event) => event.kind === 'CHILD_BIRTH' && event.on <= ctx.as_of && get(event, 'ended_on', ctx.as_of) >= ctx.as_of && age_on(event.on, opens) < ctx.lookup.school_age_limit_years);\nreturn children.length === 0 ? 0 : children.length === 1 ? ctx.lookup.days_one_child : ctx.lookup.days_two_or_more;"
 		},
 		"references": [
 			{
-				"title": "育児・介護休業法 art.16の2 as amended from 1 April 2025: 5 days a year (10 for two or more children) up to the end of the child's third year of elementary school, for illness, injury, vaccination, health checks, school closure, entrance or graduation ceremonies; in hours where requested; the law does not require pay. Metered per business year from 1 April (育児・介護休業法 art.16の2(1) \"一の年度\", the year starting 1 April unless the work rules say otherwise; window_key): 5 days for one child up to the end of the third grade (a child not yet 9 on 1 April of the school year, 学校教育法 art.17(1)), 10 for two or more (employee.children)."
+				"title": "育児・介護休業法 art.16の2 as amended from 1 April 2025: 5 days a business year (10 for two or more children) up to the end of the child's third year of elementary school, for illness, injury, vaccination, health checks, school closure, entrance or graduation ceremonies; in hours where requested; the law does not require pay. The business year runs from 1 April unless the work rules say otherwise (art.16の2(1) \"一の年度\")."
 			}
 		],
 		"id": "5a20ce43-5381-5634-82bd-93acde10a00e",
@@ -361,11 +361,12 @@
 			"days_one_recipient": 5,
 			"days_two_or_more": 10,
 			"recipient_threshold": 2,
-			"no_cap": true
+			"fiscal_year_start_month": 4,
+			"entitlement": "// js\n// 育児・介護休業法 art.16の5(1): days a business year by the family members in need of care the worker looks after.\nconst recipients = Number(get(ctx.subject.employment, 'employee_extension_data.family_care_recipients', 0));\nreturn recipients === 0 ? 0 : recipients >= ctx.lookup.recipient_threshold ? ctx.lookup.days_two_or_more : ctx.lookup.days_one_recipient;"
 		},
 		"references": [
 			{
-				"title": "育児・介護休業法 art.16の5: 5 days a year (10 for two or more family members needing care), takeable in hours; unpaid by law. Metered per business year from 1 April (window_key): 5 days, or 10 where two or more family members need care (employee.facts.family_care_recipients)."
+				"title": "育児・介護休業法 art.16の5: 5 days a business year from 1 April (10 for two or more family members needing care), takeable in hours; unpaid by law."
 			}
 		],
 		"id": "ff6a1c8c-5dea-5a08-a66b-b647bc84a5d8",
@@ -483,12 +484,18 @@
 		"off_cycle_eligible": false,
 		"lookup": {
 			"annual_days_cap": 5,
-			"default_normal_hours_per_day": 8,
-			"service_offset_months": 6
+			"service_offset_months": 6,
+			"accounts": [
+				{
+					"account": "leave",
+					"code": "ANNUAL_LEAVE",
+					"measure": "used"
+				}
+			]
 		},
 		"references": [
 			{
-				"title": "労働基準法 art.39(4) with 施行規則 art.24の4: under a labour-management agreement up to 5 days a year of annual leave may be taken in hours (5 × the scheduled daily hours, terms.facts.scheduled_daily_hours); it draws on the annual leave. Planned leave (計画的付与, art.39(6)) is a scheduling of the same days."
+				"title": "労働基準法 art.39(4) with 施行規則 art.24の4: under a labour-management agreement up to 5 days a year of annual leave may be taken in hours, the days drawn on the annual leave; a day is the scheduled daily hours, a part hour rounded up. Planned leave (計画的付与, art.39(6)) is a scheduling of the same days."
 			}
 		],
 		"id": "836247c5-789f-5fc4-aba5-cca91b00f14c",

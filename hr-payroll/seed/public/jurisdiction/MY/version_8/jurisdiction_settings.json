@@ -35,7 +35,7 @@
 						"paternity_confinements": {
 							"type": "array",
 							"title": "Verified paternity confinement history",
-							"description": "One record per confinement, including earlier employers/spouses. Match event_id to the leave entry facts.event_id. Record the actual lifetime ordinal and evidence that s60FA notification requirements were met; unknown history must be resolved before statutory leave.",
+							"description": "One record per confinement, including earlier employers/spouses. Set event_id to the date of its CHILD_BIRTH event. Record the actual lifetime ordinal and whether the s60FA notification requirement was met: at least thirty days before the expected confinement, or as early as possible after the birth.",
 							"items": {
 								"type": "object",
 								"additionalProperties": false,
@@ -784,7 +784,7 @@
 				"events": {
 					"type": "array",
 					"title": "Life events",
-					"description": "What happened to this person that the law gives leave or a claim for. One item per event, with its document uploaded on the employee profile.",
+					"description": "What happened to this person that the law gives leave or a claim for. One item per event, with its document uploaded on the employee profile. Each natural child is one CHILD_BIRTH item, earlier children and those born together included; a child who has died also has a CHILD_DEATH item.",
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
@@ -792,7 +792,7 @@
 						"properties": {
 							"kind": {
 								"type": "string",
-								"enum": ["CHILD_BIRTH", "CHILD_BIRTH_NO_ALLOWANCE"],
+								"enum": ["CHILD_BIRTH", "CHILD_BIRTH_NO_ALLOWANCE", "CHILD_DEATH"],
 								"title": "What happened"
 							},
 							"on": {
@@ -902,9 +902,8 @@
 				"EIS.employee",
 				"EIS.employer"
 			],
-			"fixed_allowances_in_ordinary_pay": true,
 			"excluded_allowances": [],
-			"day_rate": "// Employment Act 1955 s.60I(1a): a monthly rate over 26, fixed cash allowances included. A piece rate has no day rate: s.60I(1c) needs the preceding wage period.\n// proration_basis CALENDAR_DAYS, s.18A (AGC reprint): monthly wages / number of days of the particular wage period x days eligible.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\nconst hours = Number(get(terms, 'normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nif (unit === 'DAILY') return amount;\nif (unit === 'HOURLY') return amount * hours;\nif (unit !== 'MONTHLY') return 0;\nif (!ctx.lookup.fixed_allowances_in_ordinary_pay) return amount / ctx.lookup.monthly_divisor;\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, entry) =>\n\t\tget(entry[1], 'variability', 'FIXED') === 'VARIABLE' ||\n\t\tctx.lookup.excluded_allowances.includes(entry[0])\n\t\t\t? total\n\t\t\t: total + Number(get(entry[1], 'amount', 0)),\n\t0\n);\nreturn (amount + fixed) / ctx.lookup.monthly_divisor;",
+			"day_rate": "// Employment Act 1955 s.60I(1a): a monthly rate over 26, fixed cash allowances included. A piece rate has no day rate: s.60I(1c) needs the preceding wage period.\n// proration_basis CALENDAR_DAYS, s.18A (AGC reprint): monthly wages / number of days of the particular wage period x days eligible.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst amount = Number(get(terms, 'rate.amount', 0));\nconst hours = Number(get(terms, 'normal_hours_per_day', ctx.lookup.normal_hours_per_day));\nif (unit === 'DAILY') return amount;\nif (unit === 'HOURLY') return amount * hours;\nif (unit !== 'MONTHLY') return 0;\nconst fixed = Object.entries(get(terms, 'allowances', {})).reduce(\n\t(total, entry) =>\n\t\tget(entry[1], 'variability', 'FIXED') === 'VARIABLE' ||\n\t\tctx.lookup.excluded_allowances.includes(entry[0])\n\t\t\t? total\n\t\t\t: total + Number(get(entry[1], 'amount', 0)),\n\t0\n);\nreturn (amount + fixed) / ctx.lookup.monthly_divisor;",
 			"proration_basis": "CALENDAR_DAYS",
 			"retrenchment_grounds": [
 				"RETRENCHMENT",

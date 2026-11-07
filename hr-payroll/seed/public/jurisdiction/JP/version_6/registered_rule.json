@@ -1190,6 +1190,105 @@
 		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
 	},
 	{
+		"code": "JP_PRENATAL_WINDOW",
+		"target_collection": "leave_catalog_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"leave_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["code", "lookup"],
+				"limit": 1
+			}
+		},
+		"condition": "return get(first(ctx.reads.leave_catalog) ?? {}, 'code', null) === ctx.lookup.catalog_code && get(ctx.entry, 'is_reversal', false) !== true;",
+		"validate": "// js\n// 労働基準法 art.65(1): from 6 weeks before the expected birth, 14 for a multiple pregnancy, to the birth, the expected day counted.\nconst row = first(ctx.reads.leave_catalog).lookup;\nconst births = get(ctx.subject.employment, 'employee_extension_data.events', []).filter((event) => event.kind === 'EXPECTED_BIRTH' || event.kind === 'EXPECTED_MULTIPLE_BIRTH');\nconst opens = (event) => add_days(event.on, 1 - (event.kind === 'EXPECTED_MULTIPLE_BIRTH' ? row.multiple_pregnancy_days : row.days));\nreturn ctx.entry.days.every((day) => births.some((event) => opens(event) <= day.date && day.date <= get(event, 'ended_on', day.date)));",
+		"order": 37,
+		"lookup": {
+			"name": "産前休業の請求期間 (prenatal leave window)",
+			"message": "Prenatal leave runs from 6 weeks before the expected birth recorded on the contract, 14 for a multiple pregnancy (労働基準法 art.65(1)).",
+			"catalog_code": "PRENATAL_LEAVE"
+		},
+		"references": [
+			{
+				"title": "労働基準法 art.65(1): on request, from 6 weeks before the expected birth (14 weeks for a multiple pregnancy); the day of birth counts as prenatal and a birth later than expected extends the leave."
+			}
+		],
+		"id": "5d105c5b-5501-50bd-a834-add954617d4d",
+		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
+	},
+	{
+		"code": "JP_ANNUAL_LEAVE_HOURS_CAP",
+		"target_collection": "leave_catalog_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"leave_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["code", "lookup"],
+				"limit": 1
+			},
+			"employee_contract": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.employment_id"
+						}
+					}
+				},
+				"fields": ["service_started_on", "effective_range"],
+				"limit": 1
+			},
+			"leave_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.subject.employment.employee_id"
+								}
+							}
+						}
+					},
+					"catalog_id": {
+						"is": {
+							"code": {
+								"eq": "ANNUAL_LEAVE_HOURS"
+							}
+						}
+					}
+				},
+				"fields": ["days", "is_reversal", "reverses"],
+				"limit": 1000
+			}
+		},
+		"condition": "return get(first(ctx.reads.leave_catalog) ?? {}, 'code', null) === ctx.lookup.catalog_code && get(ctx.entry, 'is_reversal', false) !== true;",
+		"validate": "// js\n// 施行規則 art.24の4: a year's days taken in hours are capped, the year running from the grant day (労働基準法 art.39(4)).\nconst row = first(ctx.reads.leave_catalog).lookup;\nconst contract = first(ctx.reads.employee_contract);\nconst started = get(contract, 'service_started_on', contract.effective_range.from);\nconst yearOf = (date) => Math.floor((calendar_completed_months(started, date) - row.service_offset_months) / 12);\nconst held = ctx.reads.leave_catalog_entry;\nconst reversed = held.map((entry) => get(entry, 'reverses', null));\nconst standing = held.filter((entry) => entry.id !== get(ctx.entry, 'id', null) && entry.is_reversal !== true && !reversed.includes(entry.id));\nconst days = [...standing.flatMap((entry) => entry.days), ...ctx.entry.days];\nreturn ctx.entry.days.every((day) => days.filter((other) => yearOf(other.date) === yearOf(day.date)).length / 2 <= row.annual_days_cap);",
+		"order": 38,
+		"lookup": {
+			"name": "時間単位年休の上限 (annual leave in hours, yearly cap)",
+			"message": "Annual leave taken in hours is capped at 5 days a year from the grant day (労働基準法 art.39(4); 施行規則 art.24の4).",
+			"catalog_code": "ANNUAL_LEAVE_HOURS"
+		},
+		"references": [
+			{
+				"title": "労働基準法 art.39(4)(ii) with 施行規則 art.24の4: up to 5 days a year, days carried over included."
+			}
+		],
+		"id": "4e41159f-aed6-5c04-a9eb-dcae2754756a",
+		"settings_id": "e3557d01-13ed-53dc-a62b-e1d48cc7443f"
+	},
+	{
 		"code": "CONTRACT_CATEGORIES",
 		"target_collection": "employee_contract",
 		"events": ["create", "update", "seal"],
