@@ -1,0 +1,66 @@
+// A leaver on a shift pattern is paid the share of the period they were employed: the days after they leave are still
+// working days of the period, unpaid.
+import assert from 'node:assert/strict';
+import { describe, it } from '@effect/vitest';
+import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
+import { Effect } from 'effect';
+import { ENTITY, OFF, REST, WORK, pack, uuid, workspace } from './kit.ts';
+
+const PATTERN = uuid(950);
+const terms = {
+	rate: { amount: 6600, unit: 'MONTHLY' },
+	normal_hours_per_day: 8,
+	normal_hours_per_week: 40,
+	normal_days_per_week: 5,
+	statutory_work_category: 'NON_MANUAL',
+	work_classification: 'EA_COVERED',
+	residency_status: 'CITIZEN',
+	wage_payment_method: 'BANK',
+	allowances: {},
+	shift_pattern_id: PATTERN
+};
+const base = pack(
+	'SG',
+	'Asia/Singapore',
+	terms,
+	{ term_facts: { race: 'CHINESE' } },
+	[],
+	[],
+	'2026-06-15'
+);
+const seed = {
+	...base,
+	shift_pattern: [
+		{
+			id: PATTERN,
+			entity_id: ENTITY,
+			code: 'WEEKDAYS',
+			name: 'Weekdays',
+			pattern: {
+				// a Monday: five working days, then a rest day and an off day
+				anchor_date: '2026-06-01',
+				days: [WORK, WORK, WORK, WORK, WORK, REST, OFF].map((shift_definition_id) => ({
+					shift_definition_id
+				}))
+			}
+		}
+	],
+	employee_contract: (base.employee_contract ?? []).map((row) => ({
+		...row,
+		effective_range: { from: '2026-01-01', to: '2026-06-15' }
+	}))
+};
+
+describe('a leaver on a shift pattern', () => {
+	it.live('is paid the working days employed, not the whole period', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			yield* t
+				.as(t.admin)
+				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-06', kind: 'ON_CYCLE' }]);
+			const [slip] = (yield* t.storedQuery({ payslip: { limit: 1 } })).payslip.rows;
+			// June 2026 has 22 weekdays; the 1st to the 15th hold 11 of them
+			assert.equal(slip?.basic_earnings?.toNumber(), 3300);
+		}).pipe(Effect.provide(workspace({ seed, now: '2026-06-20T02:00:00.000Z' })))
+	);
+});
