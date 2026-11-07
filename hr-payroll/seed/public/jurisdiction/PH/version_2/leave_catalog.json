@@ -71,7 +71,6 @@
 		"lookup": {
 			"grant_days": 7,
 			"max_events": 4,
-			"allocation_days": 7,
 			"window": "EVENT",
 			"can_encash": false,
 			"eligibility": {
@@ -79,8 +78,10 @@
 				"marital_status": "MARRIED"
 			},
 			"opened_by": {
-				"CHILD_BIRTH": {}
-			}
+				"CHILD_BIRTH": {},
+				"PREGNANCY_TERMINATION": {}
+			},
+			"entitlement": "// js\n// RA 8187 s.2: seven days with full pay for the first four deliveries of the spouse; delivery includes childbirth or any miscarriage.\nconst deliveries = get(ctx.subject.employment, 'employee_extension_data.events', []).filter(\n\t(event) => Object.hasOwn(ctx.lookup.opened_by, event.kind) && event.on <= ctx.event.on\n);\nreturn deliveries.length <= ctx.lookup.max_events ? ctx.lookup.grant_days : 0;"
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -89,7 +90,7 @@
 		"party": "EMPLOYEE",
 		"references": [
 			{
-				"title": "Republic Act No. 8187, sections 2 and 3: a married male employee is entitled to seven paid days for each of the first four deliveries of, or miscarriages by, his lawful spouse; the leave is not convertible to cash. Republic Act No. 11210, section 6: the mother may allocate up to seven of her maternity days to the father, raising the entitlement to fourteen days.",
+				"title": "Republic Act No. 8187, sections 2 and 3: a married male employee is entitled to seven paid days for each of the first four deliveries of, or miscarriages by, his lawful spouse; the leave is not convertible to cash. Republic Act No. 11210, section 6: the mother may allocate up to seven of her maternity days to the father, over and above this leave; those days stand on MATERNITY_ALLOCATION_LEAVE.",
 				"url": "https://lawphil.net/statutes/repacts/ra2019/ra_11210_2019.html"
 			}
 		],
@@ -200,10 +201,11 @@
 			"allocation_days": 7,
 			"window": "EVENT",
 			"can_encash": false,
-			"no_cap": true,
 			"opened_by": {
-				"CHILD_BIRTH": {}
-			}
+				"CHILD_BIRTH": {},
+				"PREGNANCY_TERMINATION": {}
+			},
+			"entitlement": "// js\n// RA 11210 s.3: 105 days on a live birth, 15 more for a qualified solo parent, 60 on a miscarriage or emergency termination, at every instance.\n// s.6 and IRR Rule VIII: of a live birth's leave she may allocate up to seven days, and keeps the rest.\nif (ctx.event.kind === 'PREGNANCY_TERMINATION') return ctx.lookup.termination_days;\nconst facts = get(ctx.subject.employment, 'employee_extension_data', {});\nconst full = get(facts, 'solo_parent', false) === true ? ctx.lookup.solo_parent_days : ctx.lookup.grant_days;\nconst birth = get(facts, 'events', []).find((event) => event.kind === ctx.event.kind && event.on === ctx.event.on);\nreturn full - Math.min(Number(get(birth, 'allocated_days', 0)), ctx.lookup.allocation_days);"
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -214,6 +216,10 @@
 			{
 				"title": "Republic Act No. 11210, sections 3 and 5, and Republic Act No. 11861, sections 15 and 20: a pregnant female employee is entitled to 105 days for a live birth, 120 days when a qualified solo parent, and 60 days for miscarriage or emergency termination; up to seven days may be allocated to the child's father or an alternate caregiver. Payment is the SSS daily maternity benefit plus the employer's salary differential under section 5, not salary, so the leave itself is unpaid.",
 				"url": "https://lawphil.net/statutes/repacts/ra2019/ra_11210_2019.html"
+			},
+			{
+				"title": "Implementing Rules and Regulations of Republic Act No. 11210, Rule II: a miscarriage is a pregnancy loss before the 20th week of gestation, an emergency termination one on or after it, including stillbirth. Rule VIII: the option to allocate does not apply to either; the mother is paid for the period not allocated; the allocated days are over and above Republic Act No. 8187.",
+				"url": "https://lawphil.net/statutes/repacts/ra2019/irr_11210_2019.html"
 			}
 		],
 		"id": "d6e938c2-50f6-5592-bd57-b7b12a2792b1",
@@ -248,7 +254,8 @@
 			"grant_days": 7,
 			"service_months": 6,
 			"window": "CALENDAR_YEAR",
-			"can_encash": false
+			"can_encash": false,
+			"entitlement": "// js\n// RA 8972 s.8 as amended by RA 11861: seven paid days a year after six months of service, for a solo parent holding a valid ID.\nconst contract = ctx.subject.employment;\nif (get(contract, 'employee_extension_data.solo_parent', false) !== true) return 0;\nconst started = get(contract, 'service_started_on', get(contract, 'effective_range.from', ctx.as_of));\nreturn calendar_completed_months(started, ctx.as_of) >= ctx.lookup.service_months ? ctx.lookup.grant_days : 0;"
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -336,14 +343,15 @@
 	},
 	{
 		"code": "MATERNITY_ALLOCATION_LEAVE",
-		"name": "Allocated maternity leave (unmarried father or alternate caregiver)",
+		"name": "Allocated maternity leave (father or alternate caregiver)",
 		"lookup": {
 			"grant_days": 7,
 			"window": "EVENT",
 			"can_encash": false,
 			"opened_by": {
-				"CHILD_BIRTH": {}
-			}
+				"MATERNITY_ALLOCATION": {}
+			},
+			"entitlement": "// js\n// RA 11210 s.6 and IRR Rule VIII s.1: the days the mother allocates, up to seven, over and above paternity leave under RA 8187.\nconst allocation = get(ctx.subject.employment, 'employee_extension_data.events', []).find(\n\t(event) => event.kind === ctx.event.kind && event.on === ctx.event.on\n);\nreturn Math.min(Number(get(allocation, 'allocated_days', ctx.lookup.grant_days)), ctx.lookup.grant_days);"
 		},
 		"pay_treatment": "PAID",
 		"off_cycle_eligible": false,
@@ -352,7 +360,7 @@
 		"party": "EMPLOYEE",
 		"references": [
 			{
-				"title": "Republic Act No. 11210, section 6: on written notice to both employers, the mother may allocate up to seven days of her maternity leave to the child's father or, if he is absent, deceased or incapacitated, to an alternate caregiver, over and above the father's paternity leave. A married father takes the allocated days under paternity leave; this leave covers the unmarried father and the alternate caregiver.",
+				"title": "Republic Act No. 11210, section 6: on written notice to both employers, the mother may allocate up to seven days of her maternity leave to the child's father or, if he is absent, deceased or incapacitated, to an alternate caregiver, over and above the father's paternity leave. This leave holds the allocated days of the father, married or not, and of the alternate caregiver.",
 				"url": "https://lawphil.net/statutes/repacts/ra2019/ra_11210_2019.html"
 			}
 		],

@@ -19,6 +19,7 @@ import {
 	nextWindow,
 	openedBy,
 	periodKey,
+	totalsScope,
 	windowOf,
 	windowOn,
 	windowStart,
@@ -450,7 +451,7 @@ const lawRead = (catalogModel: string, first: Read) => {
 	return {
 		jurisdiction_settings: {
 			where: { id: { in: settingsIds } },
-			fields: ['code', 'tax_year_start_month'],
+			fields: ['code', 'tax_year_start_month', 'lookup'],
 			limit: 100
 		},
 		[catalogModel]: {
@@ -564,7 +565,12 @@ const entryPlans = Effect.fn('ledger.entryPlans')(function* (
 				? leaveWanted(entry, row, rowOf, subject, first)
 				: family === 'claim'
 					? claimWanted(entry, row, subject, first, left)
-					: adhocWanted(entry, row, subject, first);
+					: adhocWanted(
+							entry,
+							row,
+							{ ...subject, scope: totalsScope(settings ?? {}, entry.entity_id) },
+							first
+						);
 		if (family === 'claim')
 			for (const item of wanted) {
 				const key = `${String(balance.id)}/${row.code}/${item.period}`;
@@ -618,7 +624,14 @@ const runPlans = Effect.fn('ledger.runPlans')(function* (read: Reader, ids: read
 		payroll_run: { where: { id: { in: [...ids] } }, fields: ['pay_date'], limit: 1000 },
 		payslip: {
 			where: { payroll_run_id: { in: [...ids] } },
-			fields: ['payroll_run_id', 'employee_id', 'employment_id', 'settings_id', 'breakdown'],
+			fields: [
+				'payroll_run_id',
+				'employee_id',
+				'employment_id',
+				'entity_id',
+				'settings_id',
+				'breakdown'
+			],
 			limit: 10000
 		}
 	});
@@ -662,7 +675,7 @@ const runPlans = Effect.fn('ledger.runPlans')(function* (read: Reader, ids: read
 					source: `payroll_run:${run}`,
 					balance_id,
 					wanted: payslipWanted(objectValue(slip.breakdown), String(payDate.get(run)), {
-						scope: String(own.code),
+						scope: totalsScope(own, slip.entity_id),
 						started: startedOn(employment),
 						events: [],
 						taxYearStart: Number(own.tax_year_start_month ?? 1),

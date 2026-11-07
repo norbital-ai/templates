@@ -1,5 +1,4 @@
-// A key in a catalog's lookup is law or policy. A key nothing reads looks enforced and is not, so no new one may appear,
-// and the list of those not yet resolved can only shrink.
+// A key in a catalog's lookup is law or policy. A key nothing reads looks enforced and is not.
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -22,10 +21,15 @@ const rowsOf = (path: string): readonly Record<string, unknown>[] => {
 	const value: unknown = JSON.parse(readFileSync(path, 'utf8'));
 	return (Array.isArray(value) ? value : [value]).filter(isObject);
 };
+/** Read by building the key, one per wage band. */
+const TABLES = new Set(['cpf_rates']);
 /** A row's named keys, and those of the objects directly under them. Deeper levels are tables, not settings. */
 const keysOf = (lookup: unknown): readonly string[] =>
 	(isObject(lookup) ? Object.entries(lookup) : [])
-		.flatMap(([key, item]) => [key, ...(isObject(item) ? Object.keys(item) : [])])
+		.flatMap(([key, item]) => [
+			key,
+			...(isObject(item) && !TABLES.has(key) ? Object.keys(item) : [])
+		])
 		.filter((key) => /^[a-z][a-z0-9_]*$/.test(key));
 
 describe('catalog lookups', () => {
@@ -47,19 +51,10 @@ describe('catalog lookups', () => {
 		const declared = new Set(
 			FILES.flatMap((path) => rowsOf(path).flatMap((row) => keysOf(row.lookup)))
 		);
-		const unread = [...declared].filter((key) => !read.has(key)).toSorted();
-		const known: readonly string[] = JSON.parse(
-			readFileSync('tests/unread_lookup_keys.json', 'utf8')
-		);
 		assert.deepEqual(
-			unread.filter((key) => !known.includes(key)),
+			[...declared].filter((key) => !read.has(key)).toSorted(),
 			[],
 			'a lookup key nothing reads: read it, or remove it'
-		);
-		assert.deepEqual(
-			known.filter((key) => !unread.includes(key)),
-			[],
-			'now read: take it off the list'
 		);
 	});
 });

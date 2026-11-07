@@ -237,13 +237,21 @@
 						"properties": {
 							"kind": {
 								"type": "string",
-								"enum": ["BIRTH_EXTENSION", "CHILD_BIRTH", "GYNECOLOGICAL_SURGERY", "VAWC"],
+								"enum": [
+									"BIRTH_EXTENSION",
+									"CHILD_BIRTH",
+									"GYNECOLOGICAL_SURGERY",
+									"MATERNITY_ALLOCATION",
+									"PREGNANCY_TERMINATION",
+									"VAWC"
+								],
 								"title": "What happened"
 							},
 							"on": {
 								"type": "string",
 								"format": "date",
-								"title": "Date"
+								"title": "Date",
+								"description": "The day it happened. Maternity leave that starts before delivery (RA 11210 s.3) is dated from its first day, so those days count in it."
 							},
 							"ended_on": {
 								"type": "string",
@@ -253,6 +261,12 @@
 							"document": {
 								"type": "string",
 								"title": "Document on the profile"
+							},
+							"allocated_days": {
+								"type": "integer",
+								"minimum": 1,
+								"title": "Maternity days allocated",
+								"description": "RA 11210 s.6: on a CHILD_BIRTH, the days the mother allocates; on a MATERNITY_ALLOCATION, the days the father or alternate caregiver receives."
 							}
 						}
 					}

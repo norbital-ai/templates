@@ -368,5 +368,28 @@
 		"order": 901,
 		"id": "f6435728-793a-5139-8211-821341d097b2",
 		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
+	},
+	{
+		"code": "CASE_INPUTS_REQUIRED",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"workplace_case_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			}
+		},
+		"validate": "// js\nconst form = first(ctx.reads.workplace_case_catalog);\nconst inputs = get(ctx.entry, 'inputs', {});\nconst missing = get(form, 'lookup.input_schema.required', []).filter((key) => get(inputs, key, '') === '');\nif (missing.length > 0) throw 'This case needs ' + missing.join(', ') + '.';\nreturn true;",
+		"order": 30,
+		"lookup": {},
+		"id": "aea58c6d-c749-5c1d-b1fb-76751bd97729",
+		"settings_id": "ae4c809b-6e58-5f88-9765-5780acb2e6ac"
 	}
 ]

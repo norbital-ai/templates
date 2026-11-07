@@ -16,6 +16,39 @@
 			"description": "Additional local compliance data on the sealed contract, stored as employee_extension_data. Shared salary, allowances, work classifications, dates and work arrangements are native fields.",
 			"additionalProperties": false,
 			"properties": {
+				"normal_days_per_year": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 366,
+					"title": "年間所定労働日数",
+					"description": "労働基準法施行規則 art.24の3: the scheduled days of a year, for a worker whose days are not set by the week."
+				},
+				"events": {
+					"type": "array",
+					"title": "Dated facts",
+					"description": "What happened to this person that the law gives or takes leave for. One item per event, with its document uploaded on the employee profile.",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["kind", "on"],
+						"properties": {
+							"kind": {
+								"type": "string",
+								"enum": [
+									"ATTENDANCE_BELOW_RATIO",
+									"CHILD_BIRTH",
+									"EXPECTED_BIRTH",
+									"EXPECTED_MULTIPLE_BIRTH"
+								],
+								"title": "What happened",
+								"description": "ATTENDANCE_BELOW_RATIO: 労働基準法 art.39(1)–(2), dated on the annual leave grant day it refuses. CHILD_BIRTH: 育児・介護休業法 art.16の2, dated on the birthday of a child the worker raises, ended when they stop. EXPECTED_BIRTH, EXPECTED_MULTIPLE_BIRTH: 労働基準法 art.65(1), dated on the expected birth, ended on the birth."
+							},
+							"on": { "type": "string", "format": "date", "title": "Date" },
+							"ended_on": { "type": "string", "format": "date", "title": "Ended on" },
+							"document": { "type": "string", "title": "Document on the profile" }
+						}
+					}
+				},
 				"family_care_recipients": {
 					"type": "integer",
 					"minimum": 0,

@@ -125,7 +125,7 @@ A fact is something true of a person. Every fact lives on the contract, because 
 | Dated list | `employee_extension_data.events`, one per event  | Children, confinements, illnesses, marriage          |
 | Exit       | `exit_facts`, `exit_ground`, `termination_cause` | Why and how the employment ended                     |
 
-A new fact is a new contract version: HR adds it to a draft and seals it. Sealing triggers sync, and a catalog row's `opened_by` names the events that open it, so nothing else connects them.
+A new fact is a new contract version: HR adds it to a draft and seals it. A fact's date is the day its window opens, so where leave may start before a birth, the event is dated from the first day of leave. Sealing triggers sync, and a catalog row's `opened_by` names the events that open it, so nothing else connects them.
 
 Documents are uploaded on the employee profile, and a fact item names its document. An employee can upload the document, and HR records the fact and seals.
 
@@ -209,9 +209,9 @@ A period key is `<scope>.<kind>.<window start date>`, computed by one function.
 | `EVENT`                | `E`    | Leave and claims given per dated fact on the contract |
 | `LIFETIME`             | `L`    | Grants for the whole of service                       |
 
-Scope is the country by default, so a move between countries or a restart of service starts new keys. An account declares `scope: entity` where the law treats each employer separately, as China and Thailand do for withholding agents.
+Scope is the country by default, so a move between countries or a restart of service starts new keys. Where the law has each employer withhold on its own, as China and Thailand do, the jurisdiction sets `totals_by_employer` and pay and statutory totals are also keyed by employer, so a move starts them again.
 
-A new period is a new key, so nothing closes a year. `retain` on an account sets how many periods stay on the balance. Sync removes older ones through dated movements, and the ledger keeps them forever.
+A new period is a new key, so nothing closes a year. Sync removes year and service windows after three years and month totals after twelve months, through dated movements. Blocks, lifetimes and events stay. The ledger keeps everything forever.
 
 A sliding window is not an account. "A year within any two" (Taiwan) or "30 sick days within 45" (Indonesia) is a rule or an effect over dated entries.
 
@@ -357,7 +357,7 @@ Sync is one automation over one pure function. For each person and each row with
 period  = the row's period on this date
 wanted  = { entitled, carried } from the row's expression
 settle("entitlement:<person>:<code>:<period>")
-then remove periods older than the account's `retain`
+then remove periods past retention
 ```
 
 Carry comes from the previous period's derived balance. Used days are never touched, so days taken stay taken.
@@ -402,11 +402,15 @@ carried = statutory days left
 ```text
 ANNUAL_LEAVE
   period       SERVICE_YEAR(6)
-  entitlement  if (attendance(ctx.work) < lookup.attendance_ratio) return 0
-               return service_band(lookup.service_bands, ctx.service_months)
+  entitlement  if a sealed ATTENDANCE_BELOW_RATIO fact sits on this grant day, return 0
+               otherwise the days for this length of service
+
+ANNUAL_LEAVE_ATTENDANCE_REVIEW   an effect on the payslip of the grant month
+  reads        the roster for the months before the grant
+  raises       a task due on the grant day when recorded attendance is short
 ```
 
-Sync passes the same `ctx.work` a run receives.
+The effect measures what the roster records. HR confirms the days the statute deems attended, then seals the fact. Above the ratio nothing is raised.
 
 **Leave across New Year (Vietnam).** Annual leave runs by calendar year. An entry with 2 days in December and 2 in January:
 
@@ -705,7 +709,7 @@ Each is a test.
 | Five writers to the balance, one guarded                                                                                                 | One writer, one write, always guarded                        |
 | Run rows written before the balance moves                                                                                                | One write, behind a posting gate                             |
 | Notes on the balance: `LAST_RUN`, `leave_window`, `leave_case`, `TAX_YEAR`, `LAW`, `benefit_paid.run`, `leave_amended`, `leave_consumed` | None: the period key and `source` replace them               |
-| Year close and 12-month retention in the engine                                                                                          | Period keys and `retain`, owned by sync                      |
+| Year close and 12-month retention in the engine                                                                                          | Period keys and retention, owned by sync                      |
 | A below-zero row is dropped, and a task fires in all nine countries                                                                      | The row's result decides, by statute                         |
 | HR types tax refunds, which can repay twice                                                                                              | Automatic refund line, and the balance moves with it         |
 | China is told to refund against its law                                                                                                  | China's row stops at zero                                    |
