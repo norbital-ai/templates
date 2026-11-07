@@ -709,7 +709,7 @@ Each is a test.
 | Five writers to the balance, one guarded                                                                                                 | One writer, one write, always guarded                        |
 | Run rows written before the balance moves                                                                                                | One write, behind a posting gate                             |
 | Notes on the balance: `LAST_RUN`, `leave_window`, `leave_case`, `TAX_YEAR`, `LAW`, `benefit_paid.run`, `leave_amended`, `leave_consumed` | None: the period key and `source` replace them               |
-| Year close and 12-month retention in the engine                                                                                          | Period keys and retention, owned by sync                      |
+| Year close and 12-month retention in the engine                                                                                          | Period keys and retention, owned by sync                     |
 | A below-zero row is dropped, and a task fires in all nine countries                                                                      | The row's result decides, by statute                         |
 | HR types tax refunds, which can repay twice                                                                                              | Automatic refund line, and the balance moves with it         |
 | China is told to refund against its law                                                                                                  | China's row stops at zero                                    |
