@@ -450,8 +450,7 @@
 	/**
 	 * Camera, then engine, then the gate: every enabled model must have loaded before the loop may
 	 * run. A model that 404s does not fail `load()`; it fails `detect()` on the first face, from
-	 * inside Human's own promise, and the kiosk used to say "Camera ready" over an engine that could
-	 * not read anyone. Missing models are the `unavailable` phase, which never scans.
+	 * inside Human's own promise. Missing models are the `unavailable` phase, which never scans.
 	 */
 	let sessionId = $state(0);
 	const boot = () => {
@@ -975,13 +974,10 @@
 <!--
 	`Bound size="fill"` + `Cover`: the kiosk is a full-screen device surface with its own header
 	and status bar as the chrome rows and the body as the definite middle track — deliberately not
-	an `AppShell`, which would add a workspace hero around a shop-floor time clock. The body grid
-	used to be `h-full` under a root with no definite height, which is where the empty band under
-	the status bar came from. The camera cell is a definite track at every breakpoint — the
-	remaining height above the identity panel below `lg`, the left column from `lg` — and the frame
-	inside it keeps the camera's own aspect ratio, letterboxed on the dark cell, never cropped: a
-	near-square iPad column used to show a 16:9 stream with its sides cut off, and a portrait
-	tablet under a 16:9 `aspect-video` frame showed a third of a portrait stream.
+	an `AppShell`, which would add a workspace hero around a shop-floor time clock. The camera cell
+	is a definite track at every breakpoint — the remaining height above the identity panel below
+	`lg`, the left column from `lg` — and the frame inside it keeps the camera's own aspect ratio,
+	letterboxed on the dark cell, never cropped.
 -->
 <Bound size="fill">
 	{#key sessionId}

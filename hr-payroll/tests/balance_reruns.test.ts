@@ -237,7 +237,7 @@ describe('a balance is its ledger', () => {
 				{ kind: 'CHILD_BIRTH', on: '2026-02-03' }
 			]);
 			yield* t.runDue();
-			yield* sealEvents(t, '2026-02-03', [{ kind: 'CHILD_BIRTH', on: '2026-02-03' }]);
+			yield* sealEvents(t, '2026-03-03', [{ kind: 'CHILD_BIRTH', on: '2026-02-03' }]);
 			yield* t.runDue();
 			const pay = (period: string) =>
 				admin

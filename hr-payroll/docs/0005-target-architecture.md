@@ -1,6 +1,6 @@
 # Target architecture
 
-The HRMS as it is designed to be. [The calculation architecture](0001-hrms-calculation-architecture.md) describes the system as built, and stays in force until this target is delivered. Figures in the examples are illustrative.
+The HRMS as built: its primitives, responsibilities, ledger service and worked examples. [The calculation architecture](0001-hrms-calculation-architecture.md) holds the fixed design and the calculation in detail. Figures in the examples are illustrative.
 
 ## 1. Overview
 
@@ -32,7 +32,7 @@ Law lives in catalogs. What is true about a person lives on their sealed contrac
                              every         running
                              movement      totals
 
-  EFFECT   after a commit: a task, a notice or an automation
+  EFFECT   after a commit: a task, or the ledger automation scheduled
 ```
 
 Everything is composed from eight primitives:
@@ -59,20 +59,21 @@ ENTRY  ->  POSTING  ->  what they used or were paid
 
 Each layer has one job.
 
-| Layer          | Does                                                     | Never                                   |
-| -------------- | -------------------------------------------------------- | --------------------------------------- |
-| Catalog        | Holds the law, versioned by country                      | Holds anyone's data                     |
-| Fact           | Holds what is true of a person, on the sealed contract   | Prices anything or moves a balance      |
-| Entry          | Records what happened once                               | Prices anything                         |
-| Workplace case | Files an incident, request or notice, with its outcome   | Moves a balance or prices a line        |
-| Model          | Shape, locks, a hook that schedules posting              | Holds law or posts anything             |
-| Rule           | Refuses a write before commit, with the statute's reason | Writes anything                         |
-| Engine         | Turns inputs into lines, checkpoints and statutory rows  | Reads, writes, or knows the ledger      |
-| Run            | Loads data, calls the engine, stores payslips            | Calculates                              |
-| Ledger service | Keeps ledger and balance true, under its own policy      | Decides law                             |
-| Sync           | Works out what is owed, closes old periods               | Writes the ledger except through settle |
-| Effect         | Starts what follows                                      | Touches the ledger or the balance       |
-| Page           | Shows state, starts verbs                                | Writes the ledger                       |
+| Layer           | Does                                                     | Never                                   |
+| --------------- | -------------------------------------------------------- | --------------------------------------- |
+| Catalog         | Holds the law, versioned by country                      | Holds anyone's data                     |
+| Fact            | Holds what is true of a person, on the sealed contract   | Prices anything or moves a balance      |
+| Entry           | Records what happened once                               | Prices anything                         |
+| Contract change | Files a dated change to a contract ahead of its day      | Reaches payroll or the ledger unsealed  |
+| Workplace case  | Files an incident, request or notice, with its outcome   | Moves a balance or prices a line        |
+| Model           | Shape, locks, a hook that schedules posting              | Holds law or posts anything             |
+| Rule            | Refuses a write before commit, with the statute's reason | Writes anything                         |
+| Engine          | Turns inputs into lines, checkpoints and statutory rows  | Reads, writes, or knows the ledger      |
+| Run             | Loads data, calls the engine, stores payslips            | Calculates                              |
+| Ledger service  | Keeps ledger and balance true, under its own policy      | Decides law                             |
+| Sync            | Works out what is owed, closes old periods               | Writes the ledger except through settle |
+| Effect          | Starts what follows                                      | Touches the ledger or the balance       |
+| Page            | Shows state, starts verbs                                | Writes the ledger                       |
 
 ## 3. Catalog
 
@@ -125,20 +126,22 @@ A fact is something true of a person. Every fact lives on the contract, because 
 | Dated list | `employee_extension_data.events`, one per event  | Children, confinements, illnesses, marriage          |
 | Exit       | `exit_facts`, `exit_ground`, `termination_cause` | Why and how the employment ended                     |
 
-A new fact is a new contract version: HR adds it to a draft and seals it. A fact's date is the day its window opens, so where leave may start before a birth, the event is dated from the first day of leave. Sealing triggers sync, and a catalog row's `opened_by` names the events that open it, so nothing else connects them.
+Some countries' schemas lay these flat on `employee_extension_data`.
 
-Documents are uploaded on the employee profile, and a fact item names its document. An employee can upload the document, and HR records the fact and seals.
+A new fact is a new contract version: HR adds it to a draft and seals it, from the first of a month, so a run never prices a month on two versions. The event keeps its own real date. One known ahead of its day is filed as a `contract_change`, which nothing reads until the `contract_materialize` automation seals it on that day. An event carries its real date. Where leave starts first, as it can before a birth, `opened_on` is the day its window opens; the expected date goes in `on`, and a later contract change moves `on` to the real date while the window, its entitlement and the days taken stay where they are. Sealing triggers sync, and a catalog row's `opened_by` names the events that open it, so nothing else connects them.
 
-A fact entered in error is removed by a new version without it, and sync takes back what it gave. The seal is refused while days taken stand on it.
+Documents are uploaded on the employee profile, by HR or by the employee, and a fact item names its document. HR records the fact and seals.
+
+A fact entered in error is removed by a new version without it, and sync takes back what it gave. The seal is refused while days taken stand on it, or on a date it moves without keeping `opened_on`.
 
 ### Entries
 
 An entry is one dated event against a catalog row. A run locks the entries it uses. An unpaid entry can be deleted. A paid entry is corrected only by a new entry.
 
-| Correction | How                                                                                    | Period                    |
-| ---------- | -------------------------------------------------------------------------------------- | ------------------------- |
-| Reversal   | New entry on the same row with `is_reversal` and `reverses`, by the HR controller only | Taken from the original   |
-| Adjustment | Entry on a row that is itself the correction                                           | The period it is dated in |
+| Correction | How                                                                                        | Period                    |
+| ---------- | ------------------------------------------------------------------------------------------ | ------------------------- |
+| Reversal   | New entry on the same row with `reverses` naming a sealed entry, by the HR controller only | Taken from the original   |
+| Adjustment | Entry on a row that is itself the correction                                               | The period it is dated in |
 
 ### Workplace cases
 
@@ -160,7 +163,7 @@ balance values
 
 Calculation is linear: one chain per version, from the first subtotal to net pay. The engine reads nothing beyond its input and writes nothing. It has no knowledge of ledgers, year close or retention.
 
-Formulas read balance values through `ctx.balances`, built by the run for the current period. Other periods are read with `held(family, code, period)`.
+Formulas read balance values through `ctx.balances`, built by the run from the balance: `ytd` and `statutory_contribution` for the tax year of the pay date, `month` for the last twelve months and `years` for each tax year held.
 
 **What a statutory row returns decides what happens.**
 
@@ -200,14 +203,14 @@ The content is free, so a new statute needs no code. The structure is fixed, so 
 
 A period key is `<scope>.<kind>.<window start date>`, computed by one function.
 
-| Kind                   | Letter | Used by                                               |
-| ---------------------- | ------ | ----------------------------------------------------- |
-| `YEAR(start month)`    | `Y`    | Tax year, calendar year, Japan's April year           |
-| `MONTH`                | `M`    | Month totals                                          |
-| `SERVICE_YEAR(offset)` | `S`    | Service-year leave, Japan's six-month offset          |
-| `BLOCK(months)`        | `B`    | Fixed blocks of service                               |
-| `EVENT`                | `E`    | Leave and claims given per dated fact on the contract |
-| `LIFETIME`             | `L`    | Grants for the whole of service                       |
+| Kind                   | Letter | Used by                                      |
+| ---------------------- | ------ | -------------------------------------------- |
+| `YEAR(start month)`    | `Y`    | Tax year, calendar year, Japan's April year  |
+| `MONTH`                | `M`    | Month totals                                 |
+| `SERVICE_YEAR(offset)` | `S`    | Service-year leave, Japan's six-month offset |
+| `BLOCK(months)`        | `B`    | Fixed blocks of service                      |
+| `EVENT`                | `E`    | Leave given per dated fact on the contract   |
+| `LIFETIME`             | `L`    | Grants for the whole of service              |
 
 Scope is the country by default, so a move between countries or a restart of service starts new keys. Where the law has each employer withhold on its own, as China and Thailand do, the jurisdiction sets `totals_by_employer` and pay and statutory totals are also keyed by employer, so a move starts them again.
 
@@ -228,7 +231,7 @@ One row per person, holding values and entitlements only:
 }
 ```
 
-What is left is derived: `entitled + carried - used`. A row with no entitlement has no limit. The balance never holds notes, flags, dates or guards.
+What is left is derived: `entitled + carried + limit - used`. A row with no entitlement has no limit. The balance never holds notes, flags, dates or guards.
 
 ### Ledger
 
@@ -265,7 +268,7 @@ settle(sources)
   commit ledger rows and balances as one write, guarded by each balance's revision
 ```
 
-A record that no longer exists should have posted nothing, so its movements are inverted. Its core is two pure functions, `diff(wanted, posted)` and `apply(account, movements)`, tested without a database.
+A record that no longer exists should have posted nothing, so its movements are inverted. Its core is two pure functions in `core.ts`, `diff(source, wanted, posted)` and `apply(accounts, movements)`, tested without a database.
 
 ### Who runs it
 
@@ -274,7 +277,7 @@ record committed
      |
 model hook schedules posting (it writes nothing)
      |
-ledger automation: its own policy, one run at a time, declared retries
+ledger automation: payroll_execution policy, one run at a time, declared retries
      |
 settle, in chunks of 50 people
      |
@@ -317,17 +320,21 @@ A payslip is the run's entry. Pay and statutory totals post from it once, in the
 
 ### Gates
 
-| Gate                                                                 | Protects                        |
-| -------------------------------------------------------------------- | ------------------------------- |
-| A run is refused while an earlier payslip has not posted             | Totals read by the next run     |
-| A run is refused until a deleted run has taken its totals back       | Year-to-date figures            |
-| PAID is refused while the run's own payslips have not posted         | A paid run is complete          |
-| A run cannot be deleted once a later run has read it                 | Year-to-date figures            |
-| A rule counts entries not yet posted, as well as the balance         | Two entries in quick succession |
-| A contract seal is refused while days taken stand on a fact it drops | Days taken stay taken           |
-| An entry with a reversal cannot be deleted                           | A reversal keeps its original   |
-| A posting into a period no sync has opened opens it first            | A leave dated next year         |
-| A posting into a closed period schedules that person's sync          | Carry stays right               |
+| Gate                                                                                  | Protects                        |
+| ------------------------------------------------------------------------------------- | ------------------------------- |
+| A run is refused while an earlier payslip has not posted                              | Totals read by the next run     |
+| A run is refused until a deleted run has taken its totals back                        | Year-to-date figures            |
+| PAID is refused while the run's own payslips have not posted                          | A paid run is complete          |
+| A run cannot be deleted once a later run has read it                                  | Year-to-date figures            |
+| A rule counts entries not yet posted, as well as the balance                          | Two entries in quick succession |
+| A contract seal is refused while days taken stand on a fact it drops                  | Days taken stay taken           |
+| An entry with a reversal cannot be deleted                                            | A reversal keeps its original   |
+| A reversal names one entry of the same person and catalog item                        | Nothing is reversed by accident |
+| An entry is reversed once, for no more than it held, and a reversal is never reversed | `used` cannot fall below zero   |
+| Half a day is taken once across a person's leave, until a reversal frees it           | One absence, one entry          |
+| Only the `ledger` automation writes the ledger or the balance, an admin included      | No hand-written balance         |
+| A leave in a window no sync has opened has nothing to refuse against                  | A leave dated next year         |
+| A leave posted into an earlier year syncs that person again                           | Carry stays right               |
 
 A slip that moved no money posts nothing and holds nothing back. A posting that cannot succeed raises a task on its first failure; only a write conflict is retried. A claim on a limited row pays what the limit leaves, the run pays what the ledger posted, and a reversal gives back no more than its original drew.
 
@@ -347,7 +354,7 @@ Conflicting write     refused; the attempt starts again from fresh state
 Record deleted first  the rerun finds no record and posts the inverse
 ```
 
-Starting again after a conflict requires Bolt to treat a write conflict as a fresh attempt.
+A write conflict is an `ActConflict`, and the automation's declared retries start it again.
 
 ## 8. Sync
 
@@ -355,9 +362,9 @@ Sync is one automation over one pure function. For each person and each row with
 
 ```text
 period  = the row's period on this date
-wanted  = { entitled, carried } from the row's expression
-settle("entitlement:<person>:<code>:<period>")
-then remove periods past retention
+wanted  = { entitled, carried } from the row's rule
+settle("entitlement:<balance>:<code>:<period>")
+a full sync then removes periods past retention
 ```
 
 Carry comes from the previous period's derived balance. Used days are never touched, so days taken stay taken.
@@ -368,7 +375,7 @@ Sync runs on the triggers in section 7. It schedules itself for the next period 
 
 **Rules** run before commit. They read balance values and dated entries, and a refusal gives one plain reason, taken from the rule's own message.
 
-**Effects** run after commit, through one dispatcher that resolves the settings version for every model. An effect may raise a task, send a notice or start an automation. It never targets the ledger or the balance.
+**Effects** run after commit. Registered effects go through one dispatcher that resolves the settings version for every model, and each seeded one raises a task. A model's own effect schedules the `ledger` automation, and a contract's also raises the exit encashment. No effect touches the ledger or the balance.
 
 ## 10. Worked examples
 
@@ -423,7 +430,7 @@ ADD leave/ANNUAL_LEAVE/VN.Y.2027-01-01/used 2
 
 ```text
 JOINT_LEAVE
-  accounts [{ family: leave, code: ANNUAL_LEAVE, measure: used }]
+  accounts [{ account: leave, code: ANNUAL_LEAVE, measure: used }]
 
 Entry created   ADD    leave/ANNUAL_LEAVE/ID.S.2026-03-05/used 1
 Entry deleted   DEDUCT leave/ANNUAL_LEAVE/ID.S.2026-03-05/used 1
@@ -474,8 +481,8 @@ The run already reads the contract, so a leave entry needs no link to the illnes
 ```text
 MEDICAL_CLAIM
   period       YEAR(1)
-  entitlement  lookup.annual_limit
-  conversion   min(quantity, limit - used)
+  lookup       annual_limit 576
+  conversion   the entry's quantity, which a run sets to what the ledger posted
 
 1 January     ADD claim/MEDICAL_CLAIM/MY.Y.2026-01-01/limit 576
 RM400 claim   ADD claim/MEDICAL_CLAIM/MY.Y.2026-01-01/used  400
@@ -483,17 +490,6 @@ RM800 claim   pays RM176
               ADD claim/MEDICAL_CLAIM/MY.Y.2026-01-01/used  176
 Reversal of   DEDUCT claim/MEDICAL_CLAIM/MY.Y.2026-01-01/used 400
 the first     in the original's period, whenever it is entered
-```
-
-**Claim given by a dated fact.** A company pays RM500 once on marriage.
-
-```text
-MARRIAGE_CLAIM
-  period  EVENT, opened by the marriage fact
-  lookup  grant 500
-
-Contract sealed       ADD claim/MARRIAGE_CLAIM/MY.E.2026-05-01/limit 500
-RM500 claimed         ADD claim/MARRIAGE_CLAIM/MY.E.2026-05-01/used  500
 ```
 
 ### Tax
@@ -508,8 +504,8 @@ Each country's tax row settles the year by its own law, inside the linear calcul
 | Vietnam     | `PIT` monthly; the year in December where authorised   | Refund line, for an authorised finalisation                |
 | China       | `IIT` withholds cumulatively every month               | Stops at zero and carries; the employee files for the year |
 | Malaysia    | `PCB` recalculates monthly from year-to-date           | Stops at zero                                              |
-| Thailand    | `PND1` recalculates monthly from the months left       | Set from statute                                           |
-| Taiwan      | Withheld monthly; the employee files for the year      | Set from statute                                           |
+| Thailand    | `PND1` recalculates monthly from the months left       | Stops at zero                                              |
+| Taiwan      | Withheld monthly; the employee files for the year      | Stops at zero                                              |
 | Singapore   | No withholding on salary                               | None                                                       |
 
 **Refund at year end (Japan).**
@@ -537,10 +533,10 @@ PPH21_DTP: an ADD row paying the amount of PPH21
 **Benefit taxed over two years (Indonesia).** PP 68/2009 arts.2(2), 6: the first two calendar years are one benefit on the ladder. Tax follows payment, so the totals post from the payslip.
 
 ```text
-SEVERANCE (subtotal)
-  accounts [{ family: pay, period: YEAR(1), measure: total, retain: 2 }]
+SEVERANCE posts to its year, and to its month through month_balance
+Contract fact: severance_tax_history.first_payment_year
 
-PPH21_FINAL_SEVERANCE reads held('pay', 'SEVERANCE', last year)
+PPH21_FINAL_SEVERANCE reads ctx.balances.years from that year on
 ```
 
 ### Contributions
@@ -564,18 +560,18 @@ EPF_REFUND (adhoc_catalog)
   accounts   statutory/EPF.employee, year and month
 ```
 
-| Step | Who    | What                                                                                                |
-| ---- | ------ | --------------------------------------------------------------------------------------------------- |
-| 1    | HR     | Events > Ad hoc > New, or a spreadsheet for many people                                             |
-| 2    | HR     | Employee, item `EPF_REFUND`, amount 100, dated 30 June, a description                               |
-| 3    | System | On save: `DEDUCT statutory/EPF.employee/MY.Y.2026-01-01/paid 100`, and the same on June's month key |
-| 4    | System | An effect raises the task: claim RM100 back from EPF                                                |
-| 5    | System | The next run pays the employee +100                                                                 |
-| 6    | HR     | Files the claim with EPF, outside the system, and closes the task                                   |
+| Step | Who    | What                                                                                                                     |
+| ---- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
+| 1    | HR     | Events > Ad hoc > New, or a spreadsheet for many people                                                                  |
+| 2    | HR     | Employee, item `EPF_REFUND`, amount 100, dated 30 June, a description                                                    |
+| 3    | System | The `ledger` automation posts `DEDUCT statutory/EPF.employee/MY.Y.2026-01-01/paid 100`, and the same on June's month key |
+| 4    | System | An effect raises the task: claim RM100 back from EPF                                                                     |
+| 5    | System | The next run pays the employee +100                                                                                      |
+| 6    | HR     | Files the claim with EPF, outside the system, and closes the task                                                        |
 
 An underpayment is the mirror: `EPF_ADJUSTMENT`, direction `DEDUCT`, which adds to the statutory balance and raises a task to pay the arrears. An adjustment entered wrongly is deleted while unpaid, and reversed on the same row once paid.
 
-Each scheme has its own adjustment rows, so the target is exact.
+Each scheme has its own adjustment rows, so the target is exact. An adjustment is dated in the wage month it corrects: that month's statutory total takes it, and the next run pays it. Dated in the month being paid, it counts toward that month's contribution, so the row charges that much less and nothing moves.
 
 **Ceiling across the year (Singapore).** The yearly ceiling less ordinary wages attracting CPF, each month counted at that month's ceiling.
 
@@ -605,37 +601,37 @@ CPF reads the months
 A company package above the law is another adhoc row, with its own formula and eligibility.
 
 ```text
-Employee made redundant in Malaysia: 6 years, RM5,000 a month
-Regulation floor: 20 days a year x 6 years x RM164.38 = RM19,726
+Employee made redundant in Malaysia after 6 years
+Regulation floor: 20 days a year x 6 years x a day's wages
 
-Exit sealed on the contract: exit ground REDUNDANCY
-  an effect creates the adhoc entry on TERMINATION_BENEFIT
-HR types the agreed package on the entry: RM30,000
-Final run pays RM30,000, the higher of the two
+Contract end sealed
+  an effect raises the task to pay the termination benefit
+HR makes the adhoc entry on TERMINATION_BENEFIT, with the agreed package
+Final run pays the higher of the package and the floor
 The tax row reads the SEPARATION_PAY subtotal
 ```
 
 **13th month (Philippines).** PD 851: one twelfth of basic salary earned in the year.
 
 ```text
-THIRTEENTH_MONTH_PAY
-  eligibility  this is the year's last pay, or the employee's
-  conversion   (ctx.balances.ytd.BASIC + ctx.subtotals.BASIC) / 12
-               less what this row has paid this year
-```
+THIRTEENTH_MONTH_PAY (adhoc)
+  eligibility  a month of service, dated within the employment
+  conversion   the entry's quantity
 
-No entry is needed, and corrections are already in the total.
+December on-cycle run: an effect raises the task to pay it by 24 December
+HR enters the amount due, and the run pays it in ADDITIONAL_WAGES
+```
 
 **Unused leave at exit.**
 
 ```text
 Contract end sealed
-  effect starts an automation, which creates a leave entry
+  the contract's effect creates a leave entry
   with encashment true and the days left
-The row prices the days, and the entry posts them as used
+The ledger automation posts them as used, and the row prices them in the final run
 ```
 
-Which rows encash is the catalog's `encash_on_exit`.
+An `ANNUAL_LEAVE` row encashes when its `encash_on_exit` allows it.
 
 ### Lifecycle
 
@@ -659,35 +655,39 @@ Malaysia to Singapore in June
 **Remittance deadline.**
 
 ```text
-Run marked PAID
-  effect raises "Pay EPF by the 15th", with the due date from the catalog
+Run created
+  effect raises "Remit EPF contributions", with the due date from the effect's lookup
 ```
 
 ## 11. Code layout
 
 ```text
 src/lib/
-  catalog/      version in force, lookup merge
-  expressions/  sandbox and neutral helpers: working_days, service_band, held
-  engine/       calculation, subtotal chain, statutory order
-  run/          load, calculate, store payslips
-  ledger/       settle, diff, apply, periods, accounts, view, sync
-  rules/        validate dispatch
-  effects/      effect dispatch
-  time/         pay cycle, attendance, time evidence
-  loans/        schedule, recovery
-  exports/      workbooks, bank files, statutory files
+  ledger/
+    core.ts             diff, apply, periods, windows, the view formulas read
+    entitlement.ts      the leave entitlement rule
+    service.ts          settle, post, sync, retention, the ledger gates
+  payroll_engine/
+    engine.ts           calculation, subtotal chain, statutory order
+    run_calculation.ts  load, calculate, what a run seals
+    expressions.ts      sandbox and neutral helpers
+    registrations.ts    rule and effect dispatch
+    contract_change.ts  dated contract changes
+    pay_cycle.ts        pay cycle
+    attendance.ts       attendance
+    time_evidence.ts    time evidence
+    loan_schedule.ts    schedule, recovery
+  export_format_configuration/  salary listing, bank files
+  ui/                   pages and shared components
 ```
 
 A model's posting is one line:
 
-```ts
-effect: ledgerHooks('leave_catalog_entry');
+```text
+yield* ctx.schedule('ledger', { post: rows.map((row) => `leave_catalog_entry:${row.id}`) });
 ```
 
 ## 12. Invariants
-
-Each is a test.
 
 1. A balance equals the sum of its ledger.
 2. Repeating any posting or sync posts nothing.
@@ -698,57 +698,5 @@ Each is a test.
 7. Every `lookup` key is read.
 8. Every effect fires for every model that declares one.
 9. No posting fails silently.
-10. Every statutory row names a statute, and states its below-zero route.
+10. Every statutory row names a statute, and below zero it refunds by `lookup.below_zero` or stops at zero.
 11. Tests write as real roles, never as admin.
-
-## 13. Gaps this closes
-
-| Current                                                                                                                                  | Target                                                       |
-| ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| A real HR controller's leave never posts: the effect is forbidden and silent                                                             | Posting runs under its own policy, and failure raises a task |
-| Five writers to the balance, one guarded                                                                                                 | One writer, one write, always guarded                        |
-| Run rows written before the balance moves                                                                                                | One write, behind a posting gate                             |
-| Notes on the balance: `LAST_RUN`, `leave_window`, `leave_case`, `TAX_YEAR`, `LAW`, `benefit_paid.run`, `leave_amended`, `leave_consumed` | None: the period key and `source` replace them               |
-| Year close and 12-month retention in the engine                                                                                          | Period keys and retention, owned by sync                     |
-| A below-zero row is dropped, and a task fires in all nine countries                                                                      | The row's result decides, by statute                         |
-| HR types tax refunds, which can repay twice                                                                                              | Automatic refund line, and the balance moves with it         |
-| China is told to refund against its law                                                                                                  | China's row stops at zero                                    |
-| `PPH21_DTP` cash is never paid                                                                                                           | An `ADD` row                                                 |
-| 36,500-day sentinel                                                                                                                      | No entitlement means no limit                                |
-| 190 of 2,110 lookup values unread                                                                                                        | Unread keys fail the suite                                   |
-| Claims and adhoc post nothing                                                                                                            | Claims post; adhoc posts when its row declares accounts      |
-| Loans write ledger rows from a page                                                                                                      | Loans stay out                                               |
-| Leave entitlement rules scattered through TypeScript                                                                                     | One family default, and row expressions for exceptions       |
-| Service-year reset waits for a paid run                                                                                                  | Scheduled for the boundary                                   |
-| Entitlements hang on workplace cases                                                                                                     | Dated facts on the contract feed sync                        |
-| Leftover maternity days stack                                                                                                            | Each dated fact is its own period                            |
-| 24 of 44 effect dispatches never fire                                                                                                    | One dispatcher resolves every model                          |
-| Exit encashment and claim limits in models                                                                                               | Catalog rows and rules                                       |
-| Day counting pasted into 60 rows                                                                                                         | One helper                                                   |
-| HR roles hold identical grants                                                                                                           | Only the HR controller creates reversals                     |
-| HR roles can create ledger rows                                                                                                          | No direct ledger write                                       |
-
-## 14. Changes to section 0
-
-| Today                                                 | Target                                                                          |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Ledger entries are emitted at four moments            | Two ways: posting and sync                                                      |
-| Leave, claim, adhoc and loan entries post at creation | Leave, claim and adhoc with accounts post. Loans stay out                       |
-| A refund is an entry and gets no statutory row        | A statutory row may return a refund. Adjustments remain for closed months       |
-| Balances reset through dated entries                  | A new period is a new key. Old periods leave through dated entries              |
-| Confirming a workplace case opens leave               | A sealed fact on the contract opens it through sync. Cases never move a balance |
-
-## 15. Delivery order
-
-Each step keeps the suite green.
-
-1. Add fields: `period`, `measure` and `source` on `ledger_entry`, `reverses` on entries, dated lists in each `employee_extension_schema`, `period`, `entitlement` and `accounts` on catalogs. Backfill `source` from `source_id`. Opening balances become ledger rows.
-2. `lib/ledger` with `settle`, tests first, written as real roles.
-3. Entry posting and sync together, on the new keys, with the ledger automation and its policy. Case grants move to contract facts, and `LEAVE_CASE` and its form go.
-4. Payslip posting and its gates. Ledger building and year close leave the engine.
-5. The below-zero rule, with each row's route set from its statute. `overpaid` and `TAX_REFUND` go.
-6. Claims, contribution adjustments, loans out.
-7. Rule and effect dispatch.
-8. The unread-key check, with each failure resolved by statute.
-9. Remove `source_id` and the old paths. Update section 0.
-10. Release on Bolt 0.0.15, staging first.

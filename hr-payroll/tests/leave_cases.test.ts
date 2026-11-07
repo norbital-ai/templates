@@ -170,6 +170,41 @@ describe('a birth on the contract', () => {
 			});
 		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
 	);
+	it.live('leave before the date: a contract change moves it, and the window stays', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const expected = { kind: 'CHILD_BIRTH', on: '2026-03-02', opened_on: '2026-02-16' };
+			const version = yield* seal(t, '2026-02-01', expected);
+			yield* take(t, WOMAN, 'MATERNITY_LEAVE', ['2026-02-16'], version);
+			yield* t.runDue();
+			yield* seal(t, '2026-03-01', { ...expected, on: '2026-02-27' });
+			yield* syncAll(t);
+			assert.deepEqual(yield* periodsOf(t, 'MATERNITY_LEAVE'), {
+				'ID.E.2026-02-16': { entitled: 90, used: 1 }
+			});
+			assert.deepEqual(yield* movesOf(t, 'MATERNITY_LEAVE'), [
+				['ADD', 'ID.E.2026-02-16', 'entitled', 90],
+				['ADD', 'ID.E.2026-02-16', 'used', 1]
+			]);
+		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
+	);
+	it.live('refuses to move a date from under days taken, until the window is kept', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const version = yield* seal(t, BIRTH.on, BIRTH);
+			yield* take(t, WOMAN, 'MATERNITY_LEAVE', [BIRTH.on], version);
+			yield* t.runDue();
+			const refused = yield* Effect.flip(seal(t, '2026-04-01', { ...BIRTH, on: '2026-03-04' }));
+			assert.match(String(refused), /Leave from/);
+		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
+	);
+	it.live('refuses a day no fact opens, however far ahead', () =>
+		Effect.gen(function* () {
+			const t = yield* TestWorkspace;
+			const refused = yield* Effect.flip(take(t, WOMAN, 'MATERNITY_LEAVE', ['2027-02-01']));
+			assert.match(String(refused), /insufficient balance/);
+		}).pipe(Effect.provide(workspace({ seed: WOMAN, now: NOW })))
+	);
 	it.live('removed by a new version, sync takes back what it gave, once', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -315,13 +350,16 @@ describe('pay that steps down, on one row', () => {
 			yield* run(t, '2026-06');
 			const before = yield* taken(t, 'MATERNITY_LEAVE');
 			assert.equal(before, 125_000);
+			const [first] = (yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } }))
+				.leave_catalog_entry.rows;
+			assert.ok(first !== undefined);
 			yield* t.as(t.admin).act('leave_catalog_entry.create', [
 				{
 					entity_id: ENTITY,
 					employment_id: CONTRACT,
 					catalog_id: idOf('leave_catalog', catalogRow(born, 'leave_catalog', 'MATERNITY_LEAVE')),
 					days: wholeDays('2026-07-06'),
-					is_reversal: true
+					reverses: first.id
 				}
 			]);
 			yield* t.runDue();

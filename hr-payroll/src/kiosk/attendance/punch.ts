@@ -3,7 +3,6 @@ import { Instant, PlainDate } from '@norbital-ai/std/date';
 import { Clock, Effect } from 'effect';
 import { bolt } from '$bolt';
 import { calendarDateInTimeZone } from '../../lib/payroll_engine/foundation.js';
-import { todayKey } from '../../lib/ui/format/calendar.js';
 /** What a punch answers: the half of the day it wrote, or why nothing was written. */
 export type PunchResult = {
 	readonly status: 'in' | 'out' | 'blocked';

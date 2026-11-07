@@ -1,7 +1,7 @@
 import { model } from '@norbital-ai/bolt';
 import { validateRegistered } from '../../../../../../../lib/payroll_engine/registrations.js';
 import { jsonObject } from '../../../../../../../lib/payroll_engine/foundation.js';
-import { assertLeft } from '../../../../../../../lib/ledger/service.js';
+import { assertLeft, assertReversals } from '../../../../../../../lib/ledger/service.js';
 import { tap } from '../../../../../../../lib/payroll_engine/taps.js';
 
 export default model('leave_catalog_entry', {
@@ -40,6 +40,7 @@ export default model('leave_catalog_entry', {
 		'leave_catalog_entry.catalog_id': { fields: 'all' },
 		'leave_catalog_entry.payroll_run_id': { fields: 'all' }
 	},
+	unique: [{ fields: ['reverses'] }],
 	create: {
 		columns: {
 			leave_catalog_entry: [
@@ -53,11 +54,18 @@ export default model('leave_catalog_entry', {
 				'encashment'
 			]
 		},
-		transform: function* (rows, ctx) {
+		filled: { leave_catalog_entry: ['is_reversal'] },
+		transform: function* (input, ctx) {
+			const rows = input.map((row) => ({ ...row, is_reversal: row.reverses != null }));
 			yield* validateRegistered(
 				ctx.db.query,
 				'leave_catalog_entry',
 				'create',
+				rows.map((row) => jsonObject(row))
+			);
+			yield* assertReversals(
+				ctx.db.query,
+				'leave_catalog_entry',
 				rows.map((row) => jsonObject(row))
 			);
 			yield* assertLeft(

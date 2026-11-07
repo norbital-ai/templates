@@ -13,6 +13,7 @@ import {
 	ledgerRows as allLedgerRows,
 	measureOf,
 	pack,
+	sealedLeave,
 	syncAll as compute,
 	uuid,
 	wholeDays,
@@ -329,12 +330,17 @@ describe('posting', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* compute(t);
+			yield* take(t, seed, 'MEDICAL_LEAVE', '2026-11-03');
+			yield* t
+				.as(t.admin)
+				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-11', kind: 'ON_CYCLE' }]);
+			yield* t.runDue();
 			const reversal = {
 				entity_id: ENTITY,
 				employment_id: CONTRACT,
 				catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', 'MEDICAL_LEAVE')),
-				days: wholeDays('2026-11-03'),
-				is_reversal: true
+				days: wholeDays('2026-12-01'),
+				reverses: yield* sealedLeave(t)
 			};
 			const refused = yield* Effect.flip(
 				t.as(t.member(['hr_manager'])).act('leave_catalog_entry.create', [reversal])

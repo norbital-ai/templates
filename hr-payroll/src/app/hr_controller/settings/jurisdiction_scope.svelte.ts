@@ -3,12 +3,7 @@ import type { ComboboxOption } from '@norbital-ai/ui';
 /**
  * The Settings app's scope: which law, and which version of it.
  *
- * Those are two questions and the header used to collapse them into one. The combobox listed
- * lineage codes (MY, SG, …) and the page then silently picked the version in force today — so the
- * snapshot actually being read was never named, never selectable, and the older and newer versions
- * of the same law were invisible from the control that was supposedly scoping them.
- *
- * The scope is a grouped list now. A group is a lineage — the country code and the name its
+ * The scope is a grouped list. A group is a lineage — the country code and the name its
  * newest version carries — and its options are that lineage's versions, each named by its
  * effective range with its state badge as the description. Only a version is an option: a lineage is a family of snapshots,
  * and "the MY settings" is not a thing the page can show.

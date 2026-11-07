@@ -74,7 +74,7 @@ const engineConfig = (backend: 'webgl' | 'wasm', enrollment: boolean) => ({
  * dialog owns one while it is open — so unmount cleanup never resets a shared engine.
  *
  * `load()` is explicit: with `warmup: 'none'` Human's `warmup()` returns before loading anything,
- * so the graphs used to arrive lazily on the first `detect`, where a missing one threw from inside
+ * so the graphs would arrive lazily on the first `detect`, where a missing one throws from inside
  * Human's own promise. Loading here is what lets `missingFaceModels` answer before the loop starts.
  * A model that fails to load does not reject `load()`; Human logs it and leaves the slot empty.
  * Human itself loads inside this Effect, so importing a person representation does not initialize it.

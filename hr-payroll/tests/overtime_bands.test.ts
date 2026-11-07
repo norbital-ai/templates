@@ -3,7 +3,6 @@
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
-import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
@@ -336,7 +335,7 @@ describe('overtime bands', () => {
 		const claim = (seed.claim_catalog ?? []).find(
 			(row) => row.code === 'MEDICAL_CLAIM' && row.settings_id === version
 		);
-		const month = (t: Kit, name: string, last: `${number}`) => {
+		const month = (t: Kit, name: string) => {
 			return t
 				.as(t.admin)
 				.act('payroll_run.create', [
@@ -353,7 +352,7 @@ describe('overtime bands', () => {
 		});
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* month(t, '01', '31');
+			yield* month(t, '01');
 			yield* t.runDue();
 			yield* t.as(t.admin).act('claim_catalog_entry.create', [
 				{
@@ -364,7 +363,7 @@ describe('overtime bands', () => {
 					incurred_on: PlainDate('2026-01-20')
 				}
 			]);
-			yield* month(t, '02', '28');
+			yield* month(t, '02');
 			assert.equal(yield* paid(t, '2026-01'), 0);
 			assert.equal(yield* paid(t, '2026-02'), 45);
 			const sealed = yield* t.storedQuery({ claim_catalog_entry: { limit: 1 } });
@@ -607,7 +606,7 @@ describe('overtime bands', () => {
 				(row) => row.code === 'UNPAID_LEAVE' && row.settings_id === version
 			);
 			const entry = idOf('leave_catalog_entry', uuid(200));
-			const month = (t: Kit, name: string, last: `${number}`) => {
+			const month = (t: Kit, name: string) => {
 				return t
 					.as(t.admin)
 					.act('payroll_run.create', [
@@ -616,11 +615,11 @@ describe('overtime bands', () => {
 			};
 			return Effect.gen(function* () {
 				const t = yield* TestWorkspace;
-				yield* month(t, '01', '31');
+				yield* month(t, '01');
 				yield* t.runDue();
 				const sealed = yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } });
 				assert.notEqual(sealed.leave_catalog_entry.rows[0]?.payroll_run_id, null);
-				yield* month(t, '02', '28');
+				yield* month(t, '02');
 				const got = yield* t.storedQuery({ payslip: { limit: 10 } });
 				const lines = got.payslip.rows
 					.filter((row) => row.period === '2026-02')

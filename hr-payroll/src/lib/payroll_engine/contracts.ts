@@ -11,7 +11,6 @@ export interface Period {
 	readonly from: string;
 	readonly to: string;
 }
-export type EngineStore = Readonly<Record<string, readonly JsonObject[]>>;
 
 export const Lookup = Schema.Record(Schema.String, Schema.Json);
 export type Lookup = typeof Lookup.Type;

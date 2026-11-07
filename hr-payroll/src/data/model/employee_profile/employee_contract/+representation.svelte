@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { changesBetween } from '../../../../lib/payroll_engine/contract_change.js';
 	import { accountsOf, latestLeft } from '../../../../lib/ledger/core.js';
 	import {
 		Button,
@@ -20,7 +21,7 @@
 	import { fork, run } from '@norbital-ai/ui/effect';
 	import { Effect } from 'effect';
 	import { watch } from 'runed';
-	import { addDays, addMonths, PlainDate } from '@norbital-ai/std/date';
+	import { addDays, addMonths, monthOf, PlainDate } from '@norbital-ai/std/date';
 	import {
 		buildLoanSchedule,
 		loanDisposition,
@@ -208,6 +209,13 @@
 				currentSettings.code === targetSettingsRow.code)
 	);
 	const nextDay = $derived(lastDay === null ? null : addDays(lastDay, 1));
+	/** The months a contract change can start: this one, if no run has taken it, and the year ahead. */
+	const months = $derived(
+		Array.from({ length: 13 }, (_, index) => {
+			const first = addMonths(monthOf(today).from, index);
+			return { value: first, label: first.slice(0, 7) };
+		})
+	);
 	const lastDayInvalid = $derived(
 		lastDay === null || (record !== null && lastDay < record.effective_range.from)
 	);
@@ -404,7 +412,8 @@
 		action = kind;
 		step = 1;
 		changeError = null;
-		lastDay = today;
+		// a promotion or a life event changes the contract from the first of a month
+		lastDay = kind === 'PROMOTION' || kind === 'LIFE_EVENT' ? monthOf(today).to : today;
 		finalPayDueOn = null;
 		note = '';
 		settleLoans = false;
@@ -768,6 +777,36 @@
 					: kind === 'LIFE_EVENT'
 						? t('contract.life_event')
 						: t('contract.transfer');
+			const startsOn = nextDay ?? day;
+			if (kind !== 'TRANSFER' && startsOn > today) {
+				const filed = await run(
+					bolt.act(
+						'contract_change.create',
+						[
+							...changesBetween(current.engagement, engagement, 'engagement'),
+							...changesBetween(current.terms, terms, 'terms'),
+							...(kind === 'LIFE_EVENT'
+								? changesBetween(
+										current.employee_extension_data,
+										targetExtension,
+										'employee_extension_data'
+									)
+								: [])
+						].map((change) => ({
+							...change,
+							employee_id: current.employee_id,
+							effective_from: startsOn,
+							notes: `${label}${changeNote === '' ? '' : ` · ${changeNote}`}`
+						}))
+					)
+				);
+				notifyOutcome(bolt, filed);
+				if (filed.kind === 'committed') {
+					changeSaving = false;
+					closeChange();
+				}
+				return;
+			}
 			const created = await run(
 				bolt.act('employee_contract.create', [
 					{
@@ -997,19 +1036,35 @@
 							? t('contract.life_event_help')
 							: t('contract.change_help')}
 				</p>
-				<label class="grid gap-1" for="contract-change-last-day">
-					<span class="text-xs font-medium text-muted-foreground"
-						>{t('contract.last_working_day')}</span
-					>
-					<Editor
-						id="contract-change-last-day"
-						name="last_day"
-						kind={{ kind: 'date' }}
-						value={lastDay}
-						disabled={changeSaving}
-						onChange={(next) => (lastDay = next == null ? null : PlainDate(String(next)))}
-					/>
-				</label>
+				{#if action === 'PROMOTION' || action === 'LIFE_EVENT'}
+					<label class="grid gap-1" for="contract-change-month">
+						<span class="text-xs font-medium text-muted-foreground"
+							>{t('contract.takes_effect')}</span
+						>
+						<Combobox
+							id="contract-change-month"
+							options={months}
+							value={nextDay}
+							disabled={changeSaving}
+							aria-label={t('contract.takes_effect')}
+							onChange={(next) => (lastDay = next === null ? null : addDays(PlainDate(next), -1))}
+						/>
+					</label>
+				{:else}
+					<label class="grid gap-1" for="contract-change-last-day">
+						<span class="text-xs font-medium text-muted-foreground"
+							>{t('contract.last_working_day')}</span
+						>
+						<Editor
+							id="contract-change-last-day"
+							name="last_day"
+							kind={{ kind: 'date' }}
+							value={lastDay}
+							disabled={changeSaving}
+							onChange={(next) => (lastDay = next == null ? null : PlainDate(String(next)))}
+						/>
+					</label>
+				{/if}
 				{#if lastDayInvalid}
 					<p class="text-xs text-destructive">{t('contract.last_day_invalid')}</p>
 				{/if}

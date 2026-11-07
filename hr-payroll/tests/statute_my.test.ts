@@ -15,6 +15,7 @@ import {
 	measureOf,
 	pack,
 	read,
+	sealedLeave,
 	syncAll,
 	uuid,
 	wholeDays,
@@ -104,7 +105,6 @@ const take = (
 	days: readonly string[],
 	more: {
 		readonly encashment?: boolean;
-		readonly is_reversal?: boolean;
 		readonly reverses?: ReturnType<typeof idOf<'leave_catalog_entry'>>;
 	} = {}
 ) =>
@@ -117,6 +117,11 @@ const take = (
 			...more
 		}
 	]);
+const run = (t: Kit, period: string) =>
+	t
+		.as(t.admin)
+		.act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }])
+		.pipe(Effect.andThen(t.runDue()));
 const ANNUAL_DAY = ['2026-11-23'];
 
 describe('a domestic employee', () => {
@@ -311,7 +316,8 @@ describe('absence without leave', () => {
 			const t = yield* TestWorkspace;
 			yield* syncAll(t);
 			yield* take(t, seed, 'ANNUAL_LEAVE', ANNUAL_DAY, { encashment: true });
-			yield* take(t, seed, 'ANNUAL_LEAVE', ANNUAL_DAY, { is_reversal: true });
+			yield* run(t, '2026-11');
+			yield* take(t, seed, 'ANNUAL_LEAVE', ['2026-12-01'], { reverses: yield* sealedLeave(t) });
 		}).pipe(Effect.provide(layer));
 	});
 });
@@ -353,14 +359,9 @@ describe('unpaid leave', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* syncAll(t);
-			yield* unpaid(t, dates('2025-03-01', 31));
-			const [entry] = (yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } }))
-				.leave_catalog_entry.rows;
-			assert.ok(entry !== undefined);
-			yield* take(t, seed, 'UNPAID_LEAVE', ['2026-11-02'], {
-				is_reversal: true,
-				reverses: entry.id
-			});
+			yield* unpaid(t, dates('2026-03-01', 31));
+			yield* run(t, '2026-03');
+			yield* take(t, seed, 'UNPAID_LEAVE', ['2026-11-02'], { reverses: yield* sealedLeave(t) });
 			yield* take(t, seed, 'ANNUAL_LEAVE', nine);
 		}).pipe(Effect.provide(layer))
 	);

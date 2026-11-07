@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from '@effect/vitest';
+import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
@@ -11,7 +12,17 @@ import { lookupOf } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, WORK, accountsIn, pack, read, uuid, workspace } from './kit.ts';
+import {
+	ENTITY,
+	WORK,
+	accountsIn,
+	pack,
+	read,
+	sealedAdhoc,
+	sealedLeave,
+	uuid,
+	workspace
+} from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const JUNE = '2026-06-20T02:00:00.000Z';
@@ -86,7 +97,7 @@ const enter = (
 	item: string,
 	quantity: number,
 	on: string,
-	is_reversal = false
+	reverses: Id<'adhoc_catalog_entry'> | null = null
 ) => {
 	const version = seed.employee_contract?.[0]?.input_schema_version_id;
 	const row = (seed.adhoc_catalog ?? []).find((r) => r.code === item && r.settings_id === version);
@@ -100,7 +111,7 @@ const enter = (
 			quantity,
 			unit: 'MONEY',
 			incurred_on: PlainDate(on),
-			is_reversal
+			reverses
 		}
 	]);
 };
@@ -219,7 +230,7 @@ const refusedOffCycle = ({ place, salary, correction, period, now, options = {} 
 		const t = yield* TestWorkspace;
 		yield* enter(t, seed, place.item, correction, `${period}-05`);
 		yield* onCycle(t, period);
-		yield* enter(t, seed, place.item, correction, `${period}-15`, true);
+		yield* enter(t, seed, place.item, correction, `${period}-15`, yield* sealedAdhoc(t));
 		const refused = yield* Effect.flip(offCycle(t, period));
 		assert.match(
 			String(refused),
@@ -248,7 +259,7 @@ const nextMonth = (
 			const t = yield* TestWorkspace;
 			yield* enter(t, seed, place.item, correction, `${first}-05`);
 			yield* onCycle(t, first);
-			yield* enter(t, seed, place.item, correction, `${second}-05`, true);
+			yield* enter(t, seed, place.item, correction, `${second}-05`, yield* sealedAdhoc(t));
 			yield* onCycle(t, second);
 			const [taken] = yield* runs(t, second);
 			assert.ok(taken !== undefined);
@@ -418,8 +429,9 @@ describe('corrected in the next month', () => {
 		const seed = seedOf(INDONESIA, terms(30_000_000));
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
+			yield* enter(t, seed, INDONESIA.item, 10_000_000, '2026-05-05');
 			yield* onCycle(t, '2026-05');
-			yield* enter(t, seed, INDONESIA.item, 10_000_000, '2026-06-05', true);
+			yield* enter(t, seed, INDONESIA.item, 10_000_000, '2026-06-05', yield* sealedAdhoc(t));
 			yield* onCycle(t, '2026-06');
 			const [may] = yield* runs(t, '2026-05');
 			const [june] = yield* runs(t, '2026-06');
@@ -432,7 +444,7 @@ describe('corrected in the next month', () => {
 			const t = yield* TestWorkspace;
 			yield* enter(t, seed, THAILAND.item, 3000, '2026-05-05');
 			yield* onCycle(t, '2026-05');
-			yield* enter(t, seed, THAILAND.item, 3000, '2026-06-05', true);
+			yield* enter(t, seed, THAILAND.item, 3000, '2026-06-05', yield* sealedAdhoc(t));
 			yield* onCycle(t, '2026-06');
 			const [may] = yield* runs(t, '2026-05');
 			const [june] = yield* runs(t, '2026-06');
@@ -505,7 +517,7 @@ describe('a benefit over two calendar years', () => {
 			const t = yield* TestWorkspace;
 			yield* enter(t, seed, ITEM, 100_000_000, '2026-03-10');
 			yield* pay(t, '2026-03');
-			yield* enter(t, seed, ITEM, 50_000_000, '2027-04-10', true);
+			yield* enter(t, seed, ITEM, 50_000_000, '2027-04-10', yield* sealedAdhoc(t));
 			yield* pay(t, '2027-04');
 			assert.equal((yield* pension(t, '2027-04'))?.employee, -2_500_000);
 		}).pipe(Effect.provide(workspace({ seed, now: LATER })))
@@ -709,7 +721,7 @@ const take = (
 	seed: Seed,
 	code: string,
 	days: ReturnType<typeof whole>,
-	is_reversal = false
+	reverses: Id<'leave_catalog_entry'> | null = null
 ) =>
 	t.as(t.admin).act('leave_catalog_entry.create', [
 		{
@@ -717,7 +729,7 @@ const take = (
 			employment_id: CONTRACT,
 			catalog_id: noPay(seed, code),
 			days,
-			is_reversal
+			reverses
 		}
 	]);
 const takenIn = (t: Kit, period: string, code: string) =>
@@ -763,7 +775,7 @@ describe('a no-pay day in Indonesia', () => {
 			const t = yield* TestWorkspace;
 			yield* take(t, ID_SEED, code, whole('2026-06-10'));
 			yield* onCycle(t, '2026-06');
-			yield* take(t, ID_SEED, code, whole('2026-07-06'), true);
+			yield* take(t, ID_SEED, code, whole('2026-07-06'), yield* sealedLeave(t));
 			yield* onCycle(t, '2026-07');
 			assert.equal(yield* takenIn(t, '2026-07', code), 500_000);
 			yield* onCycle(t, '2026-08');
@@ -775,7 +787,7 @@ describe('a no-pay day in Indonesia', () => {
 			const t = yield* TestWorkspace;
 			yield* take(t, ID_SEED, code, whole('2026-07-08'));
 			yield* onCycle(t, '2026-07');
-			yield* take(t, ID_SEED, code, whole('2026-08-05'), true);
+			yield* take(t, ID_SEED, code, whole('2026-08-05'), yield* sealedLeave(t));
 			yield* onCycle(t, '2026-08');
 			const given = yield* takenIn(t, '2026-08', code);
 			assert.equal(given, -Number((yield* takenIn(t, '2026-07', code)) ?? 0));
@@ -785,8 +797,11 @@ describe('a no-pay day in Indonesia', () => {
 	it.live('a date in a period that has run is refused', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
+			yield* take(t, ID_SEED, code, whole('2026-06-10'));
 			yield* onCycle(t, '2026-06');
-			const late = yield* Effect.flip(take(t, ID_SEED, code, whole('2026-06-10'), true));
+			const late = yield* Effect.flip(
+				take(t, ID_SEED, code, whole('2026-06-10'), yield* sealedLeave(t))
+			);
 			assert.match(String(late), /already run/);
 		}).pipe(Effect.provide(workspace({ seed: ID_SEED, now: AUGUST })))
 	);
@@ -797,11 +812,11 @@ const notYetPaid = (seed: Seed, code: string) =>
 	Effect.gen(function* () {
 		const t = yield* TestWorkspace;
 		yield* take(t, seed, code, whole('2026-06-10'));
-		const refused = yield* Effect.flip(take(t, seed, code, whole('2026-06-10'), true));
-		assert.match(String(refused), /not been paid yet/);
 		const [open] = (yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } })).leave_catalog_entry
 			.rows;
 		assert.ok(open !== undefined);
+		const refused = yield* Effect.flip(take(t, seed, code, whole('2026-06-10'), open.id));
+		assert.match(String(refused), /not been paid yet/);
 		yield* t.as(t.admin).act('leave_catalog_entry.delete', [{ target: open.id }]);
 		yield* onCycle(t, '2026-06');
 		assert.equal(yield* takenIn(t, '2026-06', code), undefined);
@@ -815,7 +830,7 @@ describe('a no-pay day in Thailand', () => {
 				yield* take(t, TH_SEED, code, whole('2026-06-10'));
 				yield* onCycle(t, '2026-06');
 				assert.equal(yield* takenIn(t, '2026-06', code), -1000);
-				yield* take(t, TH_SEED, code, whole('2026-07-06'), true);
+				yield* take(t, TH_SEED, code, whole('2026-07-06'), yield* sealedLeave(t));
 				yield* onCycle(t, '2026-07');
 				assert.equal(yield* takenIn(t, '2026-07', code), 1000);
 			}).pipe(Effect.provide(workspace({ seed: TH_SEED, now: AUGUST })))
@@ -842,7 +857,7 @@ describe('a no-pay day in Thailand', () => {
 			const t = yield* TestWorkspace;
 			yield* take(t, TH_SEED, code, whole('2026-07-08'));
 			yield* onCycle(t, '2026-07');
-			yield* take(t, TH_SEED, code, whole('2026-08-05'), true);
+			yield* take(t, TH_SEED, code, whole('2026-08-05'), yield* sealedLeave(t));
 			yield* onCycle(t, '2026-08');
 			const given = yield* takenIn(t, '2026-08', code);
 			assert.equal(given, -Number((yield* takenIn(t, '2026-07', code)) ?? 0));
@@ -853,9 +868,16 @@ describe('a no-pay day in Thailand', () => {
 	it.live('a date in a period that has run is refused', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
+			for (const [index, item] of TH_NO_PAY.entries())
+				yield* take(t, TH_SEED, item, whole(`2026-06-${15 + index}`));
 			yield* onCycle(t, '2026-06');
+			const { leave_catalog_entry } = yield* t.storedQuery({ leave_catalog_entry: { limit: 10 } });
 			for (const item of TH_NO_PAY) {
-				const late = yield* Effect.flip(take(t, TH_SEED, item, whole('2026-06-10'), true));
+				const original = leave_catalog_entry.rows.find(
+					(row) => row.catalog_id === noPay(TH_SEED, item)
+				);
+				assert.ok(original !== undefined);
+				const late = yield* Effect.flip(take(t, TH_SEED, item, whole('2026-06-10'), original.id));
 				assert.match(String(late), /already run/);
 			}
 		}).pipe(Effect.provide(workspace({ seed: TH_SEED, now: AUGUST })))

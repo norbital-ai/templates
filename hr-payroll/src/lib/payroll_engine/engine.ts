@@ -1,8 +1,8 @@
-import { addMonths, datePeriod, eachDay, isPlainDate } from '@norbital-ai/std/date';
+import { datePeriod, eachDay, isPlainDate } from '@norbital-ai/std/date';
 import type { JsonObject, Lookup, Party, Direction, Rounding, Unit } from './contracts.js';
 import { lookupOf } from './contracts.js';
 import { evaluate } from './expressions.js';
-import { Refusal, isJsonObject, leaveDays, leaveEntry } from './foundation.js';
+import { Refusal, isJsonObject, leaveEntry } from './foundation.js';
 import { rounded } from './money.js';
 
 export interface PayLine {
@@ -379,8 +379,6 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 	const chain = subtotalChain(input.subtotals);
 	const coverage = period(input.run);
 	const settingsLookup = lookupOf(input.settings);
-	const paidOn = String(input.run.pay_date ?? coverage.to);
-	const payMonth = paidOn.slice(0, 7);
 	const balance = heldBalance(input);
 	// expressions read service entitlement dates, not the latest contract's start
 	const employment =
@@ -403,7 +401,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 					'day_rate'
 				)
 			: 0;
-	const base = (context: unknown, lookup: Lookup, field: string) => ({
+	const base = (context: unknown, lookup: Lookup) => ({
 		subject,
 		lookup: { ...settingsLookup, ...lookup },
 		balances: balance,
@@ -427,7 +425,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 		const previous = subtotal.previous_id;
 		const previousValue = typeof previous === 'string' ? (values.get(previous) ?? 0) : 0;
 		const baseContext = {
-			...base(previousValue, settingsLookup, code),
+			...base(previousValue, settingsLookup),
 			subtotals: Object.fromEntries(results.map((r) => [r.code, r.value]))
 		};
 		const computed =
@@ -461,7 +459,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 			const code = text(producer, 'code');
 			const lookup = lookupOf(producer);
 			const context = {
-				...base(previousValue + computed, lookup, code),
+				...base(previousValue + computed, lookup),
 				subtotals: Object.fromEntries(results.map((r) => [r.code, r.value]))
 			};
 			if (!eligible(producer.eligibility, context, `${code}.eligibility`)) continue;
@@ -525,7 +523,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 				if (catalog.pay_treatment === 'UNPAID') continue;
 				const lookup = lookupOf(catalog);
 				const context = {
-					...base(previousValue + computed, lookup, code),
+					...base(previousValue + computed, lookup),
 					entry,
 					subtotals: Object.fromEntries(results.map((r) => [r.code, r.value]))
 				};
@@ -621,7 +619,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 			throw new Refusal({ message: `${code}: its subtotal is not in this version.` });
 		const lookup = lookupOf(scheme);
 		const context = {
-			...base(values.get(id(subtotal)) ?? 0, lookup, code),
+			...base(values.get(id(subtotal)) ?? 0, lookup),
 			subtotals: Object.fromEntries(results.map((r) => [r.code, r.value])),
 			statutory: statutoryValues,
 			overtime: lines

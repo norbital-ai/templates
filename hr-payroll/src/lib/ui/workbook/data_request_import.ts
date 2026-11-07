@@ -2,7 +2,6 @@ import { Effect } from 'effect';
 import type { ActInput, Callable } from '@norbital-ai/bolt';
 import { bolt } from '$bolt';
 import { notifyOutcome } from '@norbital-ai/ui';
-import type { JsonObject } from '../../payroll_engine/foundation.js';
 import {
 	jurisdictionOf,
 	planDataRequest,

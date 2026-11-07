@@ -2,11 +2,11 @@ import { model } from '@norbital-ai/bolt';
 
 export default model('ledger_entry', {
 	description:
-		'One immutable operation on an employee balance account map: create an account, remove it, or add to/deduct from it.',
+		'One immutable movement of an employee balance: an amount added to or deducted from one account key.',
 	label: 'code',
 	fields: {
 		balance_id: { kind: 'ref', to: 'employee_balance', inverse: 'entries' },
-		operation: { kind: 'enum', values: ['CREATE', 'REMOVE', 'ADD', 'DEDUCT'] },
+		operation: { kind: 'enum', values: ['ADD', 'DEDUCT'] },
 		account: { kind: 'text', help: 'Catalogue family key, for example leave or claim.' },
 		code: { kind: 'text', help: 'Account code inside the family, for example ANNUAL_LEAVE.' },
 		period: {
@@ -47,6 +47,11 @@ export default model('ledger_entry', {
 				'measure',
 				'source'
 			]
+		},
+		transform: function* (rows, ctx) {
+			if (!ctx.policies.includes('payroll_execution'))
+				return yield* ctx.refuse('Only posting and sync write the ledger, an admin included.');
+			return rows;
 		}
 	}
 });

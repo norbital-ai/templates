@@ -2,12 +2,13 @@
 // A no-pay day is a catalog line, so a reversal after payment pays it back. Tax on the monthly table settles at year end.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
+import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, uuid, workspace } from './kit.ts';
+import { ENTITY, pack, sealedAdhoc, sealedLeave, uuid, workspace } from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const JUNE = '2026-06-20T02:00:00.000Z';
@@ -89,7 +90,7 @@ const enter = (
 	item: string,
 	quantity: number,
 	on: string,
-	is_reversal = false
+	reverses: Id<'adhoc_catalog_entry'> | null = null
 ) => {
 	const version = seed.employee_contract?.[0]?.input_schema_version_id;
 	const row = (seed.adhoc_catalog ?? []).find((r) => r.code === item && r.settings_id === version);
@@ -103,7 +104,7 @@ const enter = (
 			quantity,
 			unit: 'MONEY',
 			incurred_on: PlainDate(on),
-			is_reversal
+			reverses
 		}
 	]);
 };
@@ -156,8 +157,6 @@ const month = (t: Kit, period: string, codes: readonly string[], sides: readonly
 	);
 const BOTH = ['.employee', '.employer'];
 const EMPLOYEE = ['.employee'];
-const charged = (slip: PayslipBreakdown | undefined, code: string) =>
-	slip?.statutory.find((row) => row.code === code);
 
 /** One month of one on-cycle run, with whatever it is told to pay. */
 const oneRun = (
@@ -215,7 +214,7 @@ describe('too much, reversed in the next on-cycle run', () => {
 				const t = yield* TestWorkspace;
 				yield* enter(t, seed, item, extra, '2026-05-05');
 				yield* onCycle(t, '2026-05');
-				yield* enter(t, seed, item, extra, '2026-06-15', true);
+				yield* enter(t, seed, item, extra, '2026-06-15', yield* sealedAdhoc(t));
 				yield* onCycle(t, '2026-06');
 				const [may] = yield* runs(t, '2026-05');
 				const [slip] = yield* runs(t, '2026-06');
@@ -246,7 +245,7 @@ describe('too much, reversed in the next on-cycle run', () => {
 			const t = yield* TestWorkspace;
 			yield* enter(t, seed, 'WAGE_ADJUSTMENT', 200_000, '2026-06-05');
 			yield* onCycle(t, '2026-06');
-			yield* enter(t, seed, 'WAGE_ADJUSTMENT', 200_000, '2026-06-15', true);
+			yield* enter(t, seed, 'WAGE_ADJUSTMENT', 200_000, '2026-06-15', yield* sealedAdhoc(t));
 			const late = yield* Effect.flip(offCycle(t, '2026-06'));
 			assert.match(
 				String(late),
@@ -266,7 +265,7 @@ describe('corrected in the next on-cycle run', () => {
 				const t = yield* TestWorkspace;
 				yield* enter(t, seed, 'WAGE_ADJUSTMENT', WRONG, '2026-05-10');
 				yield* onCycle(t, '2026-05');
-				yield* enter(t, seed, 'WAGE_ADJUSTMENT', WRONG, '2026-06-10', true);
+				yield* enter(t, seed, 'WAGE_ADJUSTMENT', WRONG, '2026-06-10', yield* sealedAdhoc(t));
 				yield* onCycle(t, '2026-06');
 				return yield* month(t, '2026-06', FOLLOWING, BOTH);
 			}).pipe(Effect.provide(workspace({ seed, now: JUNE })));
@@ -310,7 +309,7 @@ describe('corrected in the next on-cycle run', () => {
 				Effect.gen(function* () {
 					yield* enter(t, seed, 'WAGE_ADJUSTMENT', WRONG, '2026-11-10');
 					yield* onCycle(t, '2026-11');
-					yield* enter(t, seed, 'WAGE_ADJUSTMENT', WRONG, '2026-12-10', true);
+					yield* enter(t, seed, 'WAGE_ADJUSTMENT', WRONG, '2026-12-10', yield* sealedAdhoc(t));
 					yield* onCycle(t, '2026-12');
 				})
 			);
@@ -358,7 +357,7 @@ describe('corrected in the next on-cycle run', () => {
 				Effect.gen(function* () {
 					yield* enter(t, seed, 'BONUS', WRONG, '2026-11-10');
 					yield* onCycle(t, '2026-11');
-					yield* enter(t, seed, 'BONUS', WRONG, '2026-12-10', true);
+					yield* enter(t, seed, 'BONUS', WRONG, '2026-12-10', yield* sealedAdhoc(t));
 					yield* onCycle(t, '2026-12');
 					const december = yield* month(t, '2026-12', PREMIUMS, EMPLOYEE);
 					assert.ok(Object.values(december).some((value) => value < 0));
@@ -410,11 +409,16 @@ describe('a no-pay day', () => {
 		{ date: PlainDate(date), part: 'AM' as const },
 		{ date: PlainDate(date), part: 'PM' as const }
 	];
-	const take = (t: Kit, seed: Seed, days: ReturnType<typeof whole>, is_reversal = false) =>
+	const take = (
+		t: Kit,
+		seed: Seed,
+		days: ReturnType<typeof whole>,
+		reverses: Id<'leave_catalog_entry'> | null = null
+	) =>
 		t
 			.as(t.admin)
 			.act('leave_catalog_entry.create', [
-				{ entity_id: ENTITY, employment_id: CONTRACT, catalog_id: noPay(seed), days, is_reversal }
+				{ entity_id: ENTITY, employment_id: CONTRACT, catalog_id: noPay(seed), days, reverses }
 			]);
 	const line = (slip: PayslipBreakdown | undefined) =>
 		slip?.lines.find((row) => row.code === 'UNPAID_LEAVE');
@@ -504,7 +508,7 @@ describe('a no-pay day', () => {
 			const t = yield* TestWorkspace;
 			yield* take(t, seed, whole('2026-06-10'));
 			yield* onCycle(t, '2026-06');
-			yield* take(t, seed, whole('2026-07-06'), true);
+			yield* take(t, seed, whole('2026-07-06'), yield* sealedLeave(t));
 			yield* onCycle(t, '2026-07');
 			const [june] = yield* runs(t, '2026-06');
 			const [july] = yield* runs(t, '2026-07');
@@ -523,7 +527,7 @@ describe('a no-pay day', () => {
 			const t = yield* TestWorkspace;
 			yield* take(t, seed, half('2026-06-10'));
 			yield* onCycle(t, '2026-06');
-			yield* take(t, seed, half('2026-07-06'), true);
+			yield* take(t, seed, half('2026-07-06'), yield* sealedLeave(t));
 			yield* onCycle(t, '2026-07');
 			const [july] = yield* runs(t, '2026-07');
 			assert.equal(line(july)?.amount, 10_500);
@@ -534,8 +538,9 @@ describe('a no-pay day', () => {
 		const seed = seedOf(440_000, FIXED);
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
+			yield* take(t, seed, whole('2026-06-10'));
 			yield* onCycle(t, '2026-06');
-			const late = yield* Effect.flip(take(t, seed, whole('2026-06-10'), true));
+			const late = yield* Effect.flip(take(t, seed, whole('2026-06-10'), yield* sealedLeave(t)));
 			assert.match(String(late), /already run/);
 			const missed = yield* Effect.flip(take(t, seed, whole('2026-06-11')));
 			assert.match(String(missed), /already run/);

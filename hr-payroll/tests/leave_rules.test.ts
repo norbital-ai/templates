@@ -1,12 +1,22 @@
 // Limits a statute sets across rows or years: joint leave draws on annual leave, Taiwan's hospital pool spans two years.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
+import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import type { Accounts } from '../src/lib/ledger/core.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, accountsIn, catalogRow, measureOf, pack, uuid, workspace } from './kit.ts';
+import {
+	ENTITY,
+	accountsIn,
+	catalogRow,
+	measureOf,
+	pack,
+	sealedLeave,
+	uuid,
+	workspace
+} from './kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -38,14 +48,21 @@ const dates = (from: string, count: number) =>
 		{ date: PlainDate(date), part: 'AM' as const },
 		{ date: PlainDate(date), part: 'PM' as const }
 	]);
-const take = (t: Kit, seed: Seed, code: string, from: string, count: number, is_reversal = false) =>
+const take = (
+	t: Kit,
+	seed: Seed,
+	code: string,
+	from: string,
+	count: number,
+	reverses: Id<'leave_catalog_entry'> | null = null
+) =>
 	t.as(t.admin).act('leave_catalog_entry.create', [
 		{
 			entity_id: ENTITY,
 			employment_id: CONTRACT,
 			catalog_id: idOf('leave_catalog', catalogRow(seed, 'leave_catalog', code)),
 			days: dates(from, count),
-			is_reversal
+			reverses
 		}
 	]);
 const usedOf = (t: Kit, code: string) =>
@@ -62,7 +79,11 @@ describe('Indonesian joint leave', () => {
 			yield* take(t, seed, 'JOINT_LEAVE', '2026-11-02', 2);
 			yield* t.runDue();
 			assert.equal(yield* usedOf(t, 'ANNUAL_LEAVE'), 2);
-			yield* take(t, seed, 'JOINT_LEAVE', '2026-11-16', 1, true);
+			yield* t
+				.as(t.admin)
+				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-11', kind: 'ON_CYCLE' }]);
+			yield* t.runDue();
+			yield* take(t, seed, 'JOINT_LEAVE', '2026-12-07', 1, yield* sealedLeave(t));
 			yield* t.runDue();
 			assert.equal(yield* usedOf(t, 'ANNUAL_LEAVE'), 1);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
