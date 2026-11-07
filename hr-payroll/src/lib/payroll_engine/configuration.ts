@@ -1,24 +1,8 @@
-import { Effect, Schema } from 'effect';
-import type { WriteCtx } from '@norbital-ai/bolt';
+import { Effect } from 'effect';
 import { checkExpression } from './expressions.js';
-import { PHASE_ROOTS, type JsonObject } from './contracts.js';
-import { queryRows, valueText, type Reader } from './reads.js';
+import { type JsonObject } from './contracts.js';
+import { queryRows, type Reader } from './reads.js';
 import { Refusal } from './foundation.js';
-
-export const CONFIG_CHILDREN = [
-	'leave_catalog',
-	'claim_catalog',
-	'adhoc_catalog',
-	'loan_catalog',
-	'allowance_catalog',
-	'overtime_catalog',
-	'workplace_case_catalog',
-	'work_interruption_catalog',
-	'subtotal',
-	'statutory_contribution_catalog',
-	'registered_rule',
-	'registered_effect'
-] as const;
 
 export const requireDraftSettings = Effect.fn('payroll.requireDraftSettings')(function* (
 	read: Reader,
@@ -66,17 +50,3 @@ export const guardConfigurationRows = Effect.fn('payroll.guardConfigurationRows'
 		}
 	}
 });
-
-export const guardConfiguration = <M extends string>(ctx: WriteCtx<M>, ids: readonly string[]) =>
-	requireDraftSettings(ctx.db.query, ids);
-
-export function registeredEvents(row: JsonObject): void {
-	const events = row.events;
-	if (!Array.isArray(events) || events.length === 0)
-		throw new Refusal({
-			message: `${valueText(row, 'code')}: register at least one event.`
-		});
-	const roots = new Set<unknown>(PHASE_ROOTS.CALCULATION);
-	void roots;
-	void Schema;
-}

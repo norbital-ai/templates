@@ -2,13 +2,15 @@
 	import { bolt } from '$bolt';
 	import type { Id, Row } from '@norbital-ai/bolt';
 	import { Effect } from 'effect';
-	import { PlainDate, addDays, datePeriod, eachDay, monthOf } from '@norbital-ai/std/date';
+	import { PlainDate, datePeriod, eachDay, monthOf } from '@norbital-ai/std/date';
 	import { Button, Combobox, notifyOutcome, toast } from '@norbital-ai/ui';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { fork } from '@norbital-ai/ui/effect';
 	import { todayKey } from '../format/calendar.js';
 	import { accountsOf, eventsOf, leftOn } from '../../ledger/core.js';
 	import { isJsonObject, jsonObject } from '../../payroll_engine/foundation.js';
+	import { idOf } from '../../payroll_engine/reads.js';
+	import ReversalEditor from './reversal_editor.svelte';
 
 	let {
 		entityId,
@@ -167,6 +169,7 @@
 	};
 	const catalogRows = $derived(catalogs?.current?.leave_catalog.rows ?? []);
 	let reversal = $state(false);
+	let reversing = $state<string | null>(null);
 	const catalogOptions = $derived(
 		catalogRows
 			.filter((row) => reversal || availableFor(row) > 0)
@@ -247,6 +250,7 @@
 	};
 	const submit = () => {
 		if (saving || chosen === null || catalog === null || sessions.length === 0) return;
+		if (reversal && reversing === null) return;
 		saving = true;
 		const effect =
 			record === null
@@ -259,7 +263,9 @@
 								date: PlainDate(session.date),
 								part: session.part
 							})),
-							is_reversal: reversal
+							...(reversal && reversing !== null
+								? { reverses: idOf('leave_catalog_entry', reversing) }
+								: {})
 						}
 					])
 				: bolt.act('leave_catalog_entry.update', [
@@ -313,6 +319,7 @@
 				checked={reversal}
 				onchange={(event) => {
 					reversal = event.currentTarget.checked;
+					reversing = null;
 					catalog = null;
 					sessions = [];
 					limitNotice = null;
@@ -321,8 +328,8 @@
 			<span>
 				Reversal of leave already paid
 				<span class="block text-xs text-muted-foreground">
-					Pick the same leave type and the days, dated in the next period to run. That run pays it
-					back.
+					Pick the leave type and the sealed entry it reverses, then the days, dated in the next
+					period to run. That run pays it back. An entry no run has sealed is deleted instead.
 				</span>
 			</span>
 		</label>
@@ -352,6 +359,7 @@
 				aria-label="Leave type"
 				onChange={(value) => {
 					catalog = value;
+					reversing = null;
 					limitNotice = null;
 				}}
 			/>
@@ -360,6 +368,16 @@
 					>{availableDays} d left</span
 				>{/if}
 		</Stack>
+		{#if reversal}<Stack gap="xs">
+				<span class="text-xs font-medium text-muted-foreground">Entry reversed</span>
+				<ReversalEditor
+					family="leave"
+					employment={chosen}
+					{catalog}
+					value={reversing}
+					onChange={(value) => (reversing = value)}
+				/>
+			</Stack>{/if}
 	</div>
 
 	<div class="rounded-xl border">
@@ -428,7 +446,11 @@
 			<Button variant="secondary" onclick={onDone} disabled={saving}>Cancel</Button>
 			<Button
 				onclick={submit}
-				disabled={saving || sessions.length === 0 || catalog === null || overLimit}
+				disabled={saving ||
+					sessions.length === 0 ||
+					catalog === null ||
+					overLimit ||
+					(reversal && reversing === null)}
 			>
 				{record !== null ? 'Save days' : reversal ? 'Reverse leave' : 'Request leave'}
 			</Button>

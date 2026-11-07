@@ -2,12 +2,13 @@
 // HR controller and dated in the next period to run. That run pays it, once.
 import assert from 'node:assert/strict';
 import { describe, it } from '@effect/vitest';
+import type { Id } from '@norbital-ai/bolt';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, uuid, workspace } from './kit.ts';
+import { ENTITY, pack, sealedLeave, uuid, workspace } from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const NOW = '2026-06-20T02:00:00.000Z';
@@ -40,11 +41,16 @@ const whole = (date: string) => [
 	{ date: PlainDate(date), part: 'AM' as const },
 	{ date: PlainDate(date), part: 'PM' as const }
 ];
-const entry = (t: Kit, seed: Seed, days: ReturnType<typeof whole>, is_reversal = false) =>
+const entry = (
+	t: Kit,
+	seed: Seed,
+	days: ReturnType<typeof whole>,
+	reverses: Id<'leave_catalog_entry'> | null = null
+) =>
 	t
 		.as(t.admin)
 		.act('leave_catalog_entry.create', [
-			{ entity_id: ENTITY, employment_id: CONTRACT, catalog_id: noPay(seed), days, is_reversal }
+			{ entity_id: ENTITY, employment_id: CONTRACT, catalog_id: noPay(seed), days, reverses }
 		]);
 const run = (t: Kit, period: string) =>
 	t
@@ -106,11 +112,11 @@ describe('a no-pay day', () => {
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* entry(t, seed, whole('2026-06-10'));
-			const refused = yield* Effect.flip(entry(t, seed, whole('2026-06-10'), true));
-			assert.match(String(refused), /not been paid yet/);
 			const [open] = (yield* t.storedQuery({ leave_catalog_entry: { limit: 1 } }))
 				.leave_catalog_entry.rows;
 			assert.ok(open !== undefined);
+			const refused = yield* Effect.flip(entry(t, seed, whole('2026-06-10'), open.id));
+			assert.match(String(refused), /not been paid yet/);
 			yield* t.as(t.admin).act('leave_catalog_entry.delete', [{ target: open.id }]);
 			yield* run(t, '2026-06');
 			assert.deepEqual(yield* paid(t, '2026-06'), { BASIC: 3120 });
@@ -123,7 +129,7 @@ describe('a no-pay day', () => {
 			const t = yield* TestWorkspace;
 			yield* entry(t, seed, whole('2026-06-10'));
 			yield* run(t, '2026-06');
-			yield* entry(t, seed, whole('2026-07-06'), true);
+			yield* entry(t, seed, whole('2026-07-06'), yield* sealedLeave(t));
 			yield* run(t, '2026-07');
 			// June took a thirtieth; July gives back the same, though it has 31 days
 			assert.equal((yield* paid(t, '2026-07'))['UNPAID_LEAVE'], 104);
@@ -136,8 +142,9 @@ describe('a no-pay day', () => {
 		const seed = malaysia();
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
+			yield* entry(t, seed, whole('2026-06-10'));
 			yield* run(t, '2026-06');
-			const late = yield* Effect.flip(entry(t, seed, whole('2026-06-10'), true));
+			const late = yield* Effect.flip(entry(t, seed, whole('2026-06-10'), yield* sealedLeave(t)));
 			assert.match(String(late), /already run/);
 			const missed = yield* Effect.flip(entry(t, seed, whole('2026-06-11')));
 			assert.match(String(missed), /already run/);

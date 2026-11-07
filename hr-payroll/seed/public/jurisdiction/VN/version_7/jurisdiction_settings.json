@@ -511,6 +511,12 @@
 								"format": "date",
 								"title": "Date"
 							},
+							"opened_on": {
+								"type": "string",
+								"format": "date",
+								"title": "Leave from",
+								"description": "The first day of leave, where it starts before the date above. The window stays here when the date changes."
+							},
 							"ended_on": {
 								"type": "string",
 								"format": "date",

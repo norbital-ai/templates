@@ -45,18 +45,6 @@ const groupOf = (source: string, code: string): string => {
 	}
 };
 
-const amountOf = (value: unknown): number => {
-	if (typeof value === 'number' && Number.isFinite(value)) return value;
-	if (typeof value === 'string' && Number.isFinite(Number(value))) return Number(value);
-	if (value !== null && typeof value === 'object') {
-		const decimal = Reflect.get(value, '$dec');
-		if (typeof decimal === 'string' && Number.isFinite(Number(decimal))) return Number(decimal);
-		const text = String(value);
-		if (text !== '[object Object]' && Number.isFinite(Number(text))) return Number(text);
-	}
-	return 0;
-};
-
 const signed = (row: ExportRow): Map<string, number> => {
 	const values = new Map<string, number>();
 	for (const line of row.breakdown.lines) {

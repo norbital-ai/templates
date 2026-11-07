@@ -62,67 +62,6 @@ const atDigits = (digits: number): Intl.NumberFormat =>
 		signDisplay: 'negative'
 	});
 
-const HOURS = new Intl.NumberFormat(undefined, {
-	minimumFractionDigits: 0,
-	maximumFractionDigits: 2
-});
-
-/**
- * A task title that is still its rule code (`REST_DAY_ROSTER`, where the lineage names its rows by code) as words:
- * "Rest day roster". Short tokens and tokens with digits stay as written (EPF, CP22). A real title passes through.
- */
-/** Short English words a code spells, lower-cased like the rest; every other short token reads as an acronym. */
-const WORDS = new Set([
-	'a',
-	'an',
-	'and',
-	'by',
-	'day',
-	'end',
-	'for',
-	'in',
-	'new',
-	'of',
-	'on',
-	'out',
-	'pay',
-	'tax',
-	'the',
-	'to'
-]);
-export function readableTitle(title: string): string {
-	if (!/^[A-Z0-9_]+$/.test(title) || !title.includes('_')) return title;
-	// ponytail: acronyms longer than three letters (SOCSO) read lower-case; a named seed row is the real fix
-	return title
-		.split('_')
-		.filter((word) => word !== '')
-		.map((word) =>
-			/\d/.test(word) || (word.length <= 3 && !WORDS.has(word.toLowerCase()))
-				? word
-				: word.toLowerCase()
-		)
-		.join(' ')
-		.replace(/^[a-z]/, (c) => c.toUpperCase());
-}
-
-/**
- * An integer-minutes column presented as hours.
- *
- * The column stays minutes — minutes are the exact unit the overtime and export arithmetic measures
- * in, and every half-hour a rota actually uses is a whole number of them. Only the label the
- * operator reads changes, so no stored value is reinterpreted.
- *
- * Deliberately *not* rounded to the half hour: the half-hour step belongs to the input, which is
- * where the operator's intent is expressed. A row that already holds 45 minutes must read `0.75 h`
- * and not be quietly reported as `0.5 h` — display that disagrees with storage is how a payroll
- * dispute starts.
- */
-export function formatDurationHours(value: unknown, t: Translator): string {
-	if (value == null || value === '') return '—';
-	const minutes = numberOf(value);
-	if (minutes == null) return '—';
-	return t('component.hours_short', { hours: HOURS.format(minutes / 60) });
-}
 /**
  * A `YYYY-MM-DD` calendar day from a day-precision instant, or `null` when there is not one.
  * Strings are read as characters and never routed through `Date`: precision changes presentation,

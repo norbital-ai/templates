@@ -16,12 +16,25 @@ const claimColumns = [
 	'evidence_file'
 ] as const;
 const claimUpdateColumns = ['quantity', 'incurred_on', 'evidence_file'] as const;
+const leaveColumns = ['entity_id', 'employment_id', 'catalog_id', 'days', 'evidence_file'] as const;
 export default policy({
 	description:
-		'Own identity, admitted requests, work, loans, balances, immutable ledger and payslips. User identity is the linked member ID.',
+		'Own identity and documents, admitted requests, work, loans, balances, immutable ledger and payslips. User identity is the linked member ID.',
 	capabilities: { apps: ['hr_employee'] },
 	grants: {
-		employee_profile: { read: { employee_profile: { where: OWN_EMPLOYEE } } },
+		employee_profile: {
+			read: { employee_profile: { where: OWN_EMPLOYEE } },
+			update: {
+				columns: { employee_profile: ['documents'] },
+				check: function* (changes, ctx) {
+					return changes.every(
+						({ before }) => ctx.actor.kind === 'member' && before.user_id === ctx.actor.id
+					)
+						? ctx.allow()
+						: ctx.deny('Upload documents to your own profile.');
+				}
+			}
+		},
 		employee_contract: { read: { employee_contract: { where: OWN_EMPLOYMENT } } },
 		entity: {
 			outputs: {
@@ -82,7 +95,22 @@ export default policy({
 				}
 			}
 		},
-		leave_catalog_entry: { read: { leave_catalog_entry: { where: OWN } } },
+		leave_catalog_entry: {
+			read: { leave_catalog_entry: { where: OWN } },
+			create: {
+				columns: { leave_catalog_entry: leaveColumns },
+				check: function* (rows, ctx) {
+					if (
+						!(yield* ownsEmployments(
+							ctx,
+							rows.map((r) => r.employment_id)
+						))
+					)
+						return ctx.deny('Request leave on your own employment.');
+					return ctx.approve(requestReview);
+				}
+			}
+		},
 		adhoc_catalog_entry: { read: { adhoc_catalog_entry: { where: OWN } } },
 		loan_catalog_entry: { read: { loan_catalog_entry: { where: OWN } } },
 		loan_repayment_entry: { read: { loan_repayment_entry: { where: OWN } } },

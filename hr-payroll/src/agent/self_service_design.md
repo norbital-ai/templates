@@ -1,15 +1,15 @@
 ---
-name: Norbital HR Payroll V2 — Employee Self-Service
-description: Incumbent native Norbital interface with V2 data.
+name: Norbital HR Payroll — Employee Self-Service
+description: Native Norbital interface for employee self-service.
 ---
 
-# Design System: Norbital HR Payroll V2
+# Design System: Norbital HR Payroll
 
 ## Overview
 
-**Creative North Star: "Incumbent native Norbital"**
+**Creative North Star: "Native Norbital"**
 
-Restore the incumbent employee self-service interface with native V2 data. This app inherits the realm design system (the realm root's `.agent/DESIGN.md`), implemented by the installed `@norbital-ai/ui` package. This document records the local application of that system; it does not define another palette, font scale, or component theme.
+The employee self-service interface, on native data. This app inherits the realm design system (the realm root's `.agent/DESIGN.md`), implemented by the installed `@norbital-ai/ui` package. This document records the local application of that system; it does not define another palette, font scale, or component theme.
 
 **Key Characteristics:**
 
@@ -29,7 +29,7 @@ Use native Geist Sans; reserve Geist Mono for appropriate technical data. Keep t
 
 ## Layout
 
-Use the full AppShell with its native banner/title and profile/face actions. Home is a bounded, inset Stack containing employment context and the real work calendar. Leave, Claim, Loan, and My payslips remain separate tabs. This is the restored self-service composition, not a mandate for unrelated apps.
+Use the full AppShell with its native banner/title and profile/face actions. Home is a bounded, inset Stack containing employment context and the real work calendar. Leave, Claim, Loan, Documents and Payslips are separate tabs. This composition is for self-service, not a mandate for unrelated apps.
 
 Use Cover/Table for record views and native Sheet/Form for requests. Preserve compact named spacing and full-height content. Multiple active employments expose a labeled native picker; no active employment shows an honest gate. The first viewport retains the native title/profile/tabs and the calendar when employment is selected. Narrow horizontal tab strips move overflow into the native More menu, retaining the active state; do not introduce a separate mobile navigation design.
 
@@ -61,5 +61,5 @@ Inherit compact control corners, restrained card corners, and native borders. Re
 ### Don't:
 
 - **Don't** add a separate app palette, font family, or oversized dashboard chrome.
-- **Don't** replace the incumbent navigation and calendar with invented summary cards.
+- **Don't** replace the native navigation and calendar with invented summary cards.
 - **Don't** present unavailable employment data as a real calendar or successful empty result.

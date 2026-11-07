@@ -19,7 +19,7 @@ import {
 	Refusal,
 	stableJson
 } from './foundation.js';
-import { decimal, nonnegative, roundStep, sum } from './money.js';
+import { decimal } from './money.js';
 
 const callable = Symbol('payroll expression callable');
 interface FunctionValue {
@@ -880,6 +880,3 @@ export function evaluateExact(
 }
 export const evaluate = (source: string, phase: Phase, context: object, field: string): unknown =>
 	materialise(evaluateExact(source, phase, context, field));
-/** The retained export renderer reads completed results through the same interpreter. */
-export const evaluateStrict = (source: string, context: Record<string, unknown> = {}): unknown =>
-	evaluate(source, 'EXPORT', context, 'Export expression');

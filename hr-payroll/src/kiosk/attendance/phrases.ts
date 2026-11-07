@@ -19,17 +19,6 @@ export const KIOSK_VOICE_CLIP_FORMAT = 'mp3';
 
 type Phrase = Readonly<Record<KioskVoiceLanguage, string>>;
 
-/*
- * Five clock phrases went when the kiosk stopped asking which direction to punch: `choose_action`,
- * `selected_in`, `selected_out`, `already_in` and `no_arrival` all belonged to a question the clock
- * answers for itself. `confirm_in` / `confirm_out` went with the blink challenge — the hold is
- * silent now, because the person is asked to do nothing and the countdown in the silhouette is the
- * whole instruction. Their clips are simply no longer shipped; the build ships the list, not the
- * directory.
- *
- * `no_shift_today` arrived with the schedule gate: a punch on a day nobody is rostered for is
- * refused, and saying "Nothing changed" at that person was truthful and useless.
- */
 const KIOSK_PHRASES = {
 	// Clock
 	move_closer: { en: 'Move closer.', zh: '请靠近一点。' },

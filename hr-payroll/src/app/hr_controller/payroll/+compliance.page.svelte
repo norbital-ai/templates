@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { bolt } from '$bolt';
-	import { AppShell, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table, EmptyState, RecordShell, Sheet } from '@norbital-ai/ui';
 	import CompanyScope from '../../../lib/ui/scopes/company_picker.svelte';
 	import { companyScope } from '../../../lib/ui/scopes/company_scope.svelte.js';

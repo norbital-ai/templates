@@ -2,7 +2,7 @@
 
 [How this HRMS works](0000-hrms-principles.md) is the plain-language version, for HR professionals.
 
-Status: normative. Section 0 is the owner's fixed design. [The model contract](0002-model-specification.md) defines the models, [the seed contract](0003-jurisdiction-seed-specification.md) the seed replacement and [verification](0004-verification-gates.md) the gates. The source tree is the final authority; these documents describe it and never create a second implementation plan.
+Status: normative. Section 0 is the owner's fixed design. [The model contract](0002-model-specification.md) defines the models, [the seed contract](0003-jurisdiction-seed-specification.md) the seed and [verification](0004-verification-gates.md) the gates. The source tree is the final authority; these documents describe it and never create a second implementation plan.
 
 ## 0. The design is fixed
 
@@ -21,7 +21,7 @@ This is the owner's design. Every agent working on this workspace reads this sec
 
 - A **catalog** row captures behaviour per family: eligibility, conversion, target subtotal, party, direction and lookup. Allowance, overtime and statutory catalogs are definitions only. Leave, claim, adhoc, loan, work interruption and workplace case catalogs take entries.
 - A **catalog entry** is one dated event against a catalog item. It records what happened, never how it is priced.
-- A **reversal entry** (`is_reversal`) reverses a mistake: a new entry against the same catalog item, created only by the HR controller from the Events tab. Nothing raises one automatically. Leave, claim, adhoc and loan repayment entries all carry it. Nothing posted is edited or deleted. Its ledger movement is the inverse, and its pay line flips direction.
+- A **reversal entry** reverses a mistake: a new entry against the same catalog item, linked through `reverses` to the sealed entry it undoes, created only by the HR controller from the Events tab. The link is what makes it a reversal; `is_reversal` follows from it and nothing sets it by hand. Nothing raises one automatically. Leave, claim, adhoc and loan repayment entries all carry it. Nothing posted is edited or deleted. Its ledger movement is the inverse, and its pay line flips direction.
 - A correction is a reversal entry or an adjustment entry against a catalog item. A statutory row may refund: where its statute has the employer repay, a result below zero pays a refund line on that run, and the balance falls with it. Where it does not, the row stops at zero and the next run nets it. No payslip line and no ledger amount is negative.
 - A company's own policy goes on the existing row, through `pay_treatment` or a cash `conversion`.
 
@@ -77,15 +77,16 @@ This is the owner's design. Every agent working on this workspace reads this sec
 
 Every fact has one owner. A value is read from its owner; it is not copied into a second model or JSON bag.
 
-| Owner                               | Owns                                                                                                          | Does not own                         |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `jurisdiction_settings`             | Sealed legal definitions, statutory schemes, statutory conversion constants, rounding                         | Employer operating hours, agreed pay |
-| `entity`, `entity_profile_version`  | Legal identity, registrations, payment schedule, non-working weekdays, disbursement, time zone                | Employee pay terms                   |
-| `employee_contract`                 | Agreed rate and its unit, normal hours per day, normal hours and days per week, agreed allowances, exit terms | Statutory law                        |
-| Catalogue definitions               | Eligibility, conversion, target subtotal, party, direction, lookup                                            | Employee-specific amounts            |
-| Catalogue entries                   | Dated employee activity and its evidence                                                                      | Pay calculation results              |
-| `ledger_entry` + `employee_balance` | Posted movements and their cumulative projection                                                              | Calculation inputs                   |
-| `payroll_run` + `payslip`           | Run state, coverage, source capture, per-employee totals                                                      | Line-level or checkpoint copies      |
+| Owner                               | Owns                                                                                                                       | Does not own                         |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `jurisdiction_settings`             | Sealed legal definitions, statutory schemes, statutory conversion constants, rounding                                      | Employer operating hours, agreed pay |
+| `entity`, `entity_profile_version`  | Legal identity, registrations, payment schedule, non-working weekdays, disbursement, time zone                             | Employee pay terms                   |
+| `employee_contract`                 | Agreed rate and its unit, normal hours per day, normal hours and days per week, agreed allowances, exit terms, dated facts | Statutory law                        |
+| `contract_change`                   | A dated change filed ahead of its day                                                                                      | Anything payroll or the ledger reads |
+| Catalogue definitions               | Eligibility, conversion, target subtotal, party, direction, lookup                                                         | Employee-specific amounts            |
+| Catalogue entries                   | Dated employee activity and its evidence                                                                                   | Pay calculation results              |
+| `ledger_entry` + `employee_balance` | Posted movements and their cumulative projection                                                                           | Calculation inputs                   |
+| `payroll_run` + `payslip`           | Run state, coverage, source capture, per-employee totals, the breakdown as calculated                                      | Figures a later run reads            |
 
 ### Ordinary hours and statutory conversion
 
@@ -115,32 +116,32 @@ leave · claim · adhoc · payslip            contract · entity · new law · a
          ledger_entry (append-only) + employee_balance.account
 ```
 
-`src/lib/ledger/` is the only writer. Model hooks schedule the `ledger` automation and write nothing, and it runs one at a time under its own policy, so posting never depends on who made the entry. A source says what it should have posted, and `settle` posts the difference, so repeating any of this posts nothing.
+`src/lib/ledger/` is the only writer. Model hooks schedule the `ledger` automation and write nothing, and it runs one at a time under the `payroll_execution` policy, so posting never depends on who made the entry. A source says what it should have posted, and `settle` posts the difference, so repeating any of this posts nothing.
 
-| Source              | Movement                                            |
-| ------------------- | --------------------------------------------------- |
-| Leave entry         | `leave/<code>/<period>/used`, per day of its window |
-| Claim entry         | `claim/<code>/<period>/used`                        |
-| Adhoc with accounts | What `lookup.accounts` names                        |
-| Payslip             | `pay/<checkpoint>` and `statutory/<scheme>.<party>` |
-| Entitlement         | `leave/<code>/<period>/entitled`, `carried`         |
-| Claim limit         | `claim/<code>/<period>/limit`                       |
+| Source              | Movement                                                                         |
+| ------------------- | -------------------------------------------------------------------------------- |
+| Leave entry         | `leave/<code>/<period>/used`, per day of its window                              |
+| Claim entry         | `claim/<code>/<period>/used`                                                     |
+| Adhoc with accounts | What `lookup.accounts` names                                                     |
+| Payslip             | `pay/<checkpoint>/<period>/total` and `statutory/<scheme>.<party>/<period>/paid` |
+| Entitlement         | `leave/<code>/<period>/entitled`, `carried`                                      |
+| Claim limit         | `claim/<code>/<period>/limit`                                                    |
 
-A reversal is its own entry, posted in the period of the entry it `reverses`. Loans stay out: a loan and its repayments are their own record. Workplace cases never move a balance.
+A reversal is its own entry, posted in the period of the entry it `reverses`. It undoes one entry a run has sealed, of the same person and catalog item, once, for no more than that entry held; an entry no run has sealed is deleted instead. Loans stay out: a loan and its repayments are their own record. Workplace cases never move a balance.
 
 Run effects look for their own task before raising it: raising one twice would fail every effect after it, so a second run in a period finds the first's task and raises nothing.
 
 A run effect reads only its own task: its exact key where the key is known up front, or the tasks at its own level, entity or person. A read covering every task of the entity would change whenever anything raised one, and the write after it would fail, so a contract sealing beside a run could cost that run its reminders. A run cannot be marked paid until every payslip's balance has it.
 
-Creating an entry posts it: once access control has approved the write, the model's `created` effect posts ledger rows and updates the balance projection. A reversal uses the recorded original amount, never today's rates.
+Creating an entry posts it: once access control has approved the write, the model's `created` effect schedules the `ledger` automation, which posts the ledger rows and moves the balance in one write. A claim reversal gives back no more than its original drew.
 
 ## 3. Payroll chain
 
 ### 3.1 Intake
 
-A run is created through `payroll_run.create`; its `transform` is the calculation entry point and produces the run's payslip children. It reads one sealed settings version, its `subtotal` chain, catalogues, statutory schemes, registered rules and registered effects; the employee profile and balance map; the contract and the entity profile version covering the period; approved period entries; the balance holds everything a formula needs from earlier runs.
+A run is created through `payroll_run.create`; its `transform` is the calculation entry point and produces the run's payslip children. It reads one sealed settings version, its `subtotal` chain, catalogues, statutory schemes and registered rules; the employee profile and balance map; the contract and the entity profile version covering the period; the period's entries. The balance holds everything a formula needs from earlier runs.
 
-A captured source is immutable until the run releases it, even when the run is unpaid; deleting a payslip never releases it.
+A captured source is immutable until the run releases it, even when the run is unpaid. Only deleting the run releases it.
 
 ### 3.2 First subtotal — base pay
 
@@ -165,21 +166,21 @@ There is no base-pay producer model and no implicit BASE stage. Base pay is read
 
 Each later subtotal's value is the previous subtotal plus every employee line whose `subtotal_id` points at it. Producers:
 
-| Producer              | Payroll line                     | Balance effect at payroll                |
-| --------------------- | -------------------------------- | ---------------------------------------- |
-| allowance             | cash, `party` from the catalogue | none                                     |
-| overtime              | cash, `party` from the catalogue | none                                     |
-| leave encashment      | cash from `conversion`           | none; approval already deducted the days |
-| leave taken, `PAID`   | none                             | none                                     |
-| leave taken, `UNPAID` | none; prorates base pay          | none                                     |
-| claim                 | reimbursement                    | none; approval already deducted          |
-| adhoc                 | cash `ADD` or `DEDUCT`           | none; approval already deducted          |
-| loan repayment        | recovery                         | none; approval already deducted          |
-| statutory scheme      | employee and employer amounts    | ledger at finalisation                   |
+| Producer              | Payroll line                          | Ledger                                            |
+| --------------------- | ------------------------------------- | ------------------------------------------------- |
+| allowance             | cash, `party` from the catalogue      | none                                              |
+| overtime              | cash, `party` from the catalogue      | none                                              |
+| leave encashment      | cash from `conversion`                | the entry posted its days when it was created     |
+| leave taken, `PAID`   | none, or a `DEDUCT` from `conversion` | the entry posted its days when it was created     |
+| leave taken, `UNPAID` | none; prorates base pay               | the entry posted its days when it was created     |
+| claim                 | reimbursement                         | the entry posted when it was created              |
+| adhoc                 | cash `ADD` or `DEDUCT`                | posted when created, if the row declares accounts |
+| loan repayment        | recovery                              | none; loans stay out of the ledger                |
+| statutory scheme      | employee and employer amounts         | posted from the payslip                           |
 
 `party EMPLOYEE` enters the running subtotal and net. `party EMPLOYER` is employer cost and never enters net.
 
-A catalogue whose definition creates no payroll line has a null `subtotal_id` — a taken-leave catalogue, for example. An interruption or workplace-case catalogue that never affects payroll likewise leaves it null.
+A catalogue whose definition creates no payroll line has a null `subtotal_id` — a taken-leave catalogue, for example. Interruption and workplace-case catalogues leave it null: the engine prices neither, and a run only seals their entries.
 
 `off_cycle_eligible` filters optional producers: an `OFF_CYCLE` run includes only catalogues that opt in. Statutory schemes always apply.
 
@@ -191,49 +192,50 @@ A row's result decides what happens. Above zero it is a deduction. Below zero, a
 
 ### 3.5 Creation is finalisation
 
-Creating a run computes and writes one payload: payslip totals and an `UNPAID` run. There is no preparing or separate finalise step. Payslips carry: `basic_earnings`, `gross_earnings`, `net_pay`, `total_deductions`, `employer_cost`, and `breakdown`, the checkpoints, lines and statutory amounts as calculated. The run owns `salary_coverage`.
+Creating a run computes and writes one payload: payslip totals and an `UNPAID` run. There is no preparing or separate finalise step. Payslips carry `basic_earnings`, `gross_earnings`, `net_pay`, `total_deductions`, `employer_cost`, `ordinary_wages`, `additional_wages`, `employee_statutory`, `employer_statutory`, `tax_withheld` and `breakdown`, the checkpoints, lines and statutory amounts as calculated. The run owns `salary_coverage`.
 
-The payslip is the run's entry: its checkpoints and statutory rows post once, in the period of its pay date, in one write with the balance. A new run is refused while the entity's latest run has not posted, and PAID is refused while the run itself has not. A deleted run's movements are inverted exactly.
+The payslip is the run's entry. `payroll_run.create` writes no ledger row: the `ledger` automation posts its checkpoints and statutory rows afterwards, once, in the period of its pay date, in one write with the balance. Run effects therefore read payslips, not ledger rows. A new run is refused while the entity's latest run has not posted, and PAID is refused while the run itself has not. A deleted run's movements are inverted exactly.
 
 ### 3.6 Ledger rows
 
-| Account                  | Code                | Operation             |
-| ------------------------ | ------------------- | --------------------- |
-| `payroll`                | `NET_PAY`           | `ADD` net pay         |
-| `ytd`                    | `<subtotal code>`   | `ADD` the run's value |
-| `statutory_contribution` | `<scheme>.employee` | `ADD` employee amount |
-| `statutory_contribution` | `<scheme>.employer` | `ADD` employer amount |
+| Account     | Code                | Measure | Posts                                           |
+| ----------- | ------------------- | ------- | ----------------------------------------------- |
+| `pay`       | `<subtotal code>`   | `total` | `ADD` the checkpoint's value, when above zero   |
+| `statutory` | `<scheme>.employee` | `paid`  | The employee amount; a refund posts as `DEDUCT` |
+| `statutory` | `<scheme>.employer` | `paid`  | The employer amount                             |
 
-A wrong payment corrects itself through later cycles, with no automatic entry. HR corrects the pay, and the next run's statutory rows count the total paid: a row with a band, ceiling or threshold computes on the pay month's total and charges the difference from what the month has charged. Below zero on the employee side, the row reports `overpaid` and pays no negative line. The employer side stops at zero. A row on a base fixed for a period does not move with the month's pay, and a cumulative tax settles itself.
+Each posts to the tax year's period, and also to the month's where `lookup.month_balance` names the code.
+
+A wrong payment corrects itself through later cycles, with no automatic entry. HR corrects the pay, and the next run's statutory rows count the total paid: a row with a band, ceiling or threshold computes on the pay month's total and charges the difference from what the month has charged. Below zero on the employee side, a row with `lookup.below_zero: 'REFUND'` pays a refund line and any other row stops at zero; neither pays a negative line. The employer side stops at zero. A row on a base fixed for a period does not move with the month's pay, and a cumulative tax settles itself.
 
 Singapore's AW ceiling works the same way across the year. `CPF_AW` records the additional wages that attracted CPF, and the ceiling counts each month's OW at that month's ceiling, so a raise past the ceiling stops counting the excess. The last month of the year or of the employment settles on the actual OW: AW the estimate left out attracts CPF, and an excess comes off that month's CPF.
 
-A jurisdiction's `lookup.month_balance` lists the subtotal and `<scheme>.<side>` codes its formulas need by month. Those also post to the `month` account as `<pay month>.<code>`, so a formula reads what this month has paid, what last month paid, or a year that runs April to March.
+A jurisdiction's `lookup.month_balance` lists the subtotal and `<scheme>.<side>` codes its formulas need by month. Those also post to the month's period, and `ctx.balances.month` holds them as `<pay month>.<code>`, so a formula reads what this month has paid, what last month paid, or a year that runs April to March.
 
 Where a statute fixes an amount on the month's total, a month's runs are one month: the formula reads what earlier runs of the month paid and charges the rest, so a bonus owes the same inside the on-cycle run or off-cycle, before or after it. Contributions follow the wage month, so a whole-month salary already in the pay month is another wage month's or another employer's and the run stands alone; tax follows the pay month and combines them. An off-cycle run in a transfer month reads both companies' month, so a bonus that month goes on-cycle, where each company stands alone. A scheme charged on salary alone charges nothing on an off-cycle run. A tax that projects the year stands an off-cycle run on the salary to come, and withholds only what the run adds.
 
-Year to date lives in the balance and nowhere else. A formula that needs earlier runs reads `ctx.balances.ytd` and `ctx.balances.statutory_contribution`; there is no payroll history read.
+Year to date lives in the balance and nowhere else. A formula that needs earlier runs reads `ctx.balances.ytd`, `ctx.balances.statutory_contribution`, `ctx.balances.month` or `ctx.balances.years`; there is no payroll history read.
 
-### 3.7 Closing the year
+### 3.7 The tax year
 
-`ytd` and `statutory_contribution` never run on. The first run of a tax year, or the first run under a new jurisdiction, posts a `DEDUCT` for every code in them, dated by the pay date, and marks the new year. Calculation then starts from an empty year. A new jurisdiction closes the `month` account too, and a month over a year old leaves it by a `DEDUCT` then a `REMOVE`. A same-jurisdiction transfer carries the balance unchanged; the comparison is by jurisdiction code, never by entity ([transfer semantics](transfer-semantics.md)). `jurisdiction_settings.tax_year_start_month` sets the year; the pay date decides which year a run falls in. Leave, claim, adhoc and loan accounts are untouched.
+The year is in the key, so nothing closes it. `ctx.balances.ytd` and `ctx.balances.statutory_contribution` hold the totals of the tax year the pay date falls in, so the first run of a new year reads an empty year. `jurisdiction_settings.tax_year_start_month` sets the year; the pay date decides which year a run falls in. A new jurisdiction is a new scope in the key and reads empty too, as does a new employer where `lookup.totals_by_employer` is set. A same-jurisdiction transfer keeps its keys; the comparison is by jurisdiction code, never by entity ([transfer semantics](transfer-semantics.md)). Sync takes old periods off the balance through dated movements: a month over a year old, and a year or service window that began more than three years back. The ledger keeps them.
 
 ## 4. Balances and ledger
 
 `employee_balance` is one row per employee: `employee_id` (unique) and a JSON `account` map. `ledger_entry` is immutable: `balance_id`, `operation` (`CREATE`, `REMOVE`, `ADD`, `DEDUCT`), `account`, `code`, `period`, `measure`, `amount`, `unit`, `effective_on` and `source`.
 
-The map is keyed by account family, then account code:
+The map is keyed by family, code, period and measure:
 
 ```json
 {
-	"leave": { "ANNUAL_LEAVE": 8 },
-	"loan": { "<loan entry id>": 5000 },
-	"ytd": { "TAX_YEAR": 2026, "GROSS": 12000 },
-	"statutory_contribution": { "CPF.employee": 10909.09, "CPF.employer": 9272.73 }
+	"leave": { "ANNUAL_LEAVE": { "MY.S.2026-03-05": { "entitled": 14, "carried": 3, "used": 6 } } },
+	"claim": { "MEDICAL_CLAIM": { "MY.Y.2026-01-01": { "limit": 576, "used": 400 } } },
+	"pay": { "GROSS": { "MY.Y.2026-01-01": { "total": 12000 } } },
+	"statutory": { "EPF.employee": { "MY.Y.2026-01-01": { "paid": 1320 } } }
 }
 ```
 
-The projection is rebuildable from `ledger_entry` and is written only by the posting service. A correction appends an inverse or a new movement; it never edits history.
+The projection is rebuildable from `ledger_entry` and is written only by the ledger service. A correction appends an inverse or a new movement; it never edits history.
 
 A movement and the balance it moves commit as one write, so they cannot disagree. No effect touches the ledger or the balance. `source` is plain text, so a movement outlives what caused it, and a deleted record's movements are still found and inverted.
 
@@ -251,18 +253,19 @@ left     = entitled + carried − used    derived, never stored
 
 The row's `lookup` holds the figure: `grant_days`, or `service_bands` by completed months of service, for its `window`. Eligibility, part-time bands, a first-year share by completed months and carry-forward come from the same lookup. A row with `no_cap`, or with no figure, has no cap to hold.
 
-The `ledger` automation does this for everyone, and `src/lib/ledger/entitlement.ts` holds the rule. It computes when any of these happens:
-
-One service, scoped by what it is given:
+The `ledger` automation computes this, and `src/lib/ledger/entitlement.ts` holds the rule. One service, scoped by what it is given:
 
 ```text
 WHEN                     CALLED BY              INPUT        WHO        WHAT MOVES
 ───────────────────────  ─────────────────────  ───────────  ─────────  ─────────────────────────
 A contract is created    contract effect        employees    them       new − 0
-or changes                                                              new − applied
+or seals                                                                new − applied
 HR runs it               employee profile       employees    them       whatever is due
 A catalog change         sealed version effect  none         everyone   new − applied
+An employer version      sealed version effect  none         everyone   new − applied
+seals
 A run marked paid        run effect             none         everyone   a service band
+A window's first day     the automation itself  none         everyone   a new window: reset, carry
 1 January                yearly cron            none         everyone   a new window: reset, carry
 ```
 
@@ -300,7 +303,7 @@ Catalog lowers it to 16          16      −2      3       13
 
 A new sealed version is the catalog change. In force now, its diff applies straight away; dated later, it applies on the day it starts. A cut stops the balance at zero: days already taken are never clawed back.
 
-A new window starts the balance again rather than moving it by a diff, because days used come back. A calendar year turns on 1 January, a service year on the anniversary, picked up by the first paid run on or after it. An `EVENT` row has no window: nothing gives or takes its days but a confirmed case (section 4.2).
+A new window starts the balance again rather than moving it by a diff, because days used come back. A calendar year turns on 1 January and a service year on its anniversary: each full sync schedules itself for the next day anyone's window turns, and the first paid run on or after that day picks it up too. A row opened by a fact has no window: only a fact on the contract gives or takes its days (section 4.2).
 
 ```text
 NEW WINDOW, RULE ON THE ROW        NEXT BALANCE
@@ -333,7 +336,7 @@ Each window is its own key, so nothing closes or resets. A balance seeded before
 
 ### 4.2 Dated facts open leave
 
-A birth, a marriage, a bereavement or a long illness is a fact about a person, so it lives on the sealed contract, in `employee_extension_data.events`. Each country's `employee_extension_schema` declares the kinds. Documents are uploaded on the employee profile.
+A birth, a marriage, a bereavement or a long illness is a fact about a person, so it lives on the sealed contract, in `employee_extension_data.events`. Each country's `employee_extension_schema` declares the kinds. Documents are uploaded on the employee profile, by HR or the employee.
 
 ```text
 HR adds to the contract: CHILD_BIRTH, 2 March, and seals it
@@ -347,9 +350,11 @@ ADD leave/MATERNITY_LEAVE/MY.E.2026-03-02/entitled 98
 
 | Row                    | Holds                                                        |
 | ---------------------- | ------------------------------------------------------------ |
-| Contract               | `events`: `kind`, `on`, `ended_on`, `document`               |
+| Contract               | `events`: `kind`, `on`, `opened_on`, `ended_on`, `document`  |
 | `leave_catalog.lookup` | `opened_by`: the kinds that open it, with `days` to override |
 | `leave_catalog.lookup` | `grant_days`, `eligibility`, `pay_steps`                     |
+
+A change known ahead of its day is filed as a `contract_change`. Nothing reads it until the `contract_materialize` automation seals it into a new version on that day.
 
 Each event is its own period, so days left from one birth do not stack onto the next. A complication is another event on the same date, so it adds to the same period and keeps its pay count.
 
@@ -375,36 +380,36 @@ Catalogues live under `jurisdiction_settings/catalog/`.
 - `static/` holds configured definitions with no employee rows: `allowance_catalog`, `overtime_catalog`, `statutory_contribution_catalog`.
 - `non_static/` holds a definition with an entry subfolder: `leave_catalog`, `claim_catalog`, `adhoc_catalog`, `loan_catalog`, `work_interruption_catalog`, `workplace_case_catalog`.
 
-Every definition carries `code`, `name`, `settings_id`, a flat `lookup`, `references`, `off_cycle_eligible` and an optional `subtotal_id`. Pay-producing definitions add `eligibility`, `conversion`, `incurred_on`, `direction` and `party`. Leave adds `pay_treatment` (`PAID` or `UNPAID`). Statutory adds `kind`, `depends_on`, `employee_amount` and `employer_amount`.
+Every definition carries `code`, `name`, `settings_id`, a `lookup`, `references`, `off_cycle_eligible` and an optional `subtotal_id`. Pay-producing definitions add `eligibility`, `conversion`, `incurred_on`, `direction` and `party`. Leave adds `pay_treatment` (`PAID` or `UNPAID`). Statutory adds `kind`, `depends_on`, `employee_amount`, `employer_amount` and an optional `employer_cost_subtotal_id`.
 
 `references` records the research and legal provenance of the definition. Entries never carry a `reference`.
 
-Entries carry `entity_id`, `employment_id`, `catalog_id`, optional `payroll_run_id`, evidence and status. `payroll_run_id` locks the row once a run captures it; the lock is never a payslip. Family fields:
+Leave, claim, adhoc and loan entries carry `entity_id`, `employment_id`, `catalog_id`, optional `payroll_run_id` and evidence. `payroll_run_id` locks the row once a run captures it; the lock is never a payslip. Family fields:
 
-| Entry          | Fields                                                                                        |
-| -------------- | --------------------------------------------------------------------------------------------- |
-| leave          | `days` — non-empty `{ date, part: AM \| PM }[]`; quantity is `days.length / 2`; `is_reversal` |
-| claim          | `quantity`, `unit`, `incurred_on`, `is_reversal`                                              |
-| adhoc          | `description`, `quantity`, `unit`, `incurred_on`, `is_reversal`                               |
-| loan           | `quantity` (principal), `unit`, `repayment_period`; no reversal flag                          |
-| loan repayment | `loan_id`, `amount`, `paid_on`, `payment_reference`, `is_reversal`                            |
+| Entry          | Fields                                                                                                                  |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| leave          | `days` — non-empty `{ date, part: AM \| PM }[]`; quantity is `days.length / 2`; `encashment`, `is_reversal`, `reverses` |
+| claim          | `quantity`, `unit`, `incurred_on`, `is_reversal`, `reverses`                                                            |
+| adhoc          | `description`, `quantity`, `unit`, `incurred_on`, `is_reversal`, `reverses`                                             |
+| loan           | `quantity` (principal), `repayment_period`; no reversal flag                                                            |
+| loan repayment | `loan_id`, `amount`, `paid_on`, `payment_reference`, `is_reversal`                                                      |
 
 There is no `quantity`, `unit` or session object on leave, no advance date/reference or repayment plan on loans, and no principal/interest/fee allocation on repayments.
 
 ## 6. Work, calendar and validation
 
-`shift_definition` declares one day variant: day type (`WORK`, `REST`, `OFF` or `ABS`), start/end time, next-day rollover, unpaid breaks and optional untimed hours. `shift_pattern` lists them by slot, slot 1 being Monday and slot 7 Sunday. `holiday` and the interruption/case catalogues supply dated source data.
+`shift_definition` declares one day variant: day type (`WORK`, `REST`, `OFF` or `ABS`), start/end time, next-day rollover, breaks and optional untimed hours. `shift_pattern` lists them by slot, counted from its `anchor_date`: anchored on a Monday, slot 1 is Monday and slot 7 Sunday. `holiday` and the interruption/case catalogues supply dated source data.
 
 The contract's pattern is the default. A day with no `roster_entry` is a day worked as planned: salary stands and no overtime is paid. `roster_entry` changes a day: `work_date`, `shift_definition_id`, `planned_overtime_intervals` and `actual_worked_intervals`. `ABS` is a day type like `REST`: the person did not come, and it is not leave.
 
 Overtime is paid only from planned intervals. The clock verifies them and never creates them, and no overtime is projected. A person who clocks at least the entity's `overtime_full_award_percent` of the plan is paid the whole plan; below it they are paid the clocked hours inside the plan, rounded down to the half hour.
 
-`registered_rule` validates a target collection: events, declared reads, condition and validation expression, evaluated inside the target model's write transform or delete check. `registered_effect` registers a post-commit expression; the target model's effect queries the registry and applies the records its declared action returns.
+`registered_rule` validates a target collection: events, declared reads, condition and validation expression, evaluated inside the target model's write transform or delete check. `registered_effect` registers a post-commit expression; the source model's effect queries the registry and writes the records the expression returns through its `target_action`. Every seeded effect raises an `obligation`.
 
 ```text
 write ──► registered_rule (target_collection, events) ──► commit
                                                            │
-commit ──► registered_effect (target_collection, events) ──┴──► target_action write
+commit ──► registered_effect (source_collection, events) ──┴──► target_action write
 ```
 
 ## 7. Obligations
@@ -419,19 +424,22 @@ An off-cycle run pays the contracts in its period, so a leaver's goes on the per
 
 Expressions are deterministic JavaScript function bodies with explicit returns, run by the bounded interpreter. Missing values are unknown, never zero. No database access, ambient clock or undeclared calls.
 
-| Evaluation      | Context                                               |
-| --------------- | ----------------------------------------------------- |
-| `ctx.subject`   | employee, employment, employer data                   |
-| `ctx.entry`     | catalogue entry and its admitted quantity/unit        |
-| `ctx.lookup`    | the jurisdiction's global lookup under the row's own  |
-| `ctx.balances`  | employee balance account map, including `ytd`         |
-| `ctx.base_pay`  | the running checkpoint; default base pay at the first |
-| `ctx.day_rate`  | the jurisdiction's day rate for this person           |
-| `ctx.subtotals` | completed earlier subtotal results only               |
-| `ctx.statutory` | completed earlier statutory results by scheme code    |
-| `ctx.work`      | the period's roster days and their priced minutes     |
-| `ctx.run`       | payroll frame during a run                            |
-| `ctx.reads`     | declared reads for validation and registered effects  |
+| Evaluation      | Context                                                               |
+| --------------- | --------------------------------------------------------------------- |
+| `ctx.subject`   | employee, employment, employer data                                   |
+| `ctx.entry`     | catalogue entry and its admitted quantity/unit                        |
+| `ctx.lookup`    | the jurisdiction's global lookup under the row's own                  |
+| `ctx.balances`  | `ytd`, `statutory_contribution`, `month`, `years`                     |
+| `ctx.base_pay`  | the running checkpoint; default base pay at the first                 |
+| `ctx.day_rate`  | the jurisdiction's day rate for this person                           |
+| `ctx.subtotals` | completed earlier subtotal results only                               |
+| `ctx.statutory` | completed earlier statutory results by scheme code                    |
+| `ctx.overtime`  | the run's overtime pay, in statutory evaluation                       |
+| `ctx.work`      | the period's roster days and their priced minutes                     |
+| `ctx.run`       | payroll frame during a run                                            |
+| `ctx.reads`     | declared reads for validation and registered effects                  |
+| `ctx.event`     | the write a rule or effect answers to; the fact an entitlement counts |
+| `ctx.as_of`     | the date the expression is evaluated for                              |
 
 ## 9. Governing constraints
 
@@ -442,6 +450,6 @@ Expressions are deterministic JavaScript function bodies with explicit returns, 
 5. A payroll run, never a payslip, owns source capture and row locks.
 6. Formula simplification means moving orchestration to the engine, not minifying legal distinctions.
 
-## 10. Migration principle
+## 10. Changing a formula
 
-Replace a jurisdiction's configuration and formulas as a whole. The engine owns balance admission, posting, dependency resolution and rounding; a formula selects its evidenced base and legal values and assesses the amount. Preserve legal distinctions and dated versions. A changed result requires an explained correction, not a silently updated expected value.
+The ledger service owns balance admission and posting; the engine owns dependency resolution and rounding. A formula selects its evidenced base and legal values and assesses the amount. Preserve legal distinctions and dated versions. A changed result requires an explained correction, not a silently updated expected value.

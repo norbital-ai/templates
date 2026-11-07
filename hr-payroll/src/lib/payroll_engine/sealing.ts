@@ -5,7 +5,6 @@ import { subtotalChain, statutoryOrder } from './engine.js';
 import { checkExpression } from './expressions.js';
 import { queryRows } from './reads.js';
 import { Refusal } from './foundation.js';
-import type { JsonObject } from './contracts.js';
 
 /** Sealing freezes the whole version: expressions parse, the chain is linear, dependencies acyclic. */
 export const sealConfiguration = Effect.fn('payroll.sealConfiguration')(function* (
@@ -56,5 +55,3 @@ export const sealConfiguration = Effect.fn('payroll.sealConfiguration')(function
 	if ((got.jurisdiction_settings ?? []).length !== ids.length)
 		throw new Refusal({ message: 'Every sealed version must exist in this workspace.' });
 });
-
-export type SealContext = JsonObject;

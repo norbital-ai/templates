@@ -111,6 +111,7 @@ export const leftIn = (measures: Readonly<Record<string, number>> | undefined): 
 export type Event = {
 	readonly kind: string;
 	readonly on: string;
+	readonly opened_on?: string | undefined;
 	readonly ended_on?: string | undefined;
 };
 const record = (value: unknown): JsonObject => (isJsonObject(value) ? value : {});
@@ -123,6 +124,7 @@ export const eventsOf = (contract: JsonObject): readonly Event[] => {
 					{
 						kind: item.kind,
 						on: item.on,
+						...(typeof item.opened_on === 'string' ? { opened_on: item.opened_on } : {}),
 						...(typeof item.ended_on === 'string' ? { ended_on: item.ended_on } : {})
 					}
 				]
@@ -130,16 +132,18 @@ export const eventsOf = (contract: JsonObject): readonly Event[] => {
 	);
 };
 export const openedBy = (lookup: JsonObject) => record(lookup.opened_by);
+/** The day an event's window opens, and its key: a later contract change can move `on` under it. */
+export const opensOn = (event: Event) => event.opened_on ?? event.on;
 /** The event a day counts under for a row it opens: the latest that has started and not ended. */
 export const eventOn = (lookup: JsonObject, events: readonly Event[], day: string) =>
 	events
 		.filter(
 			(event) =>
 				Object.hasOwn(openedBy(lookup), event.kind) &&
-				event.on <= day &&
+				opensOn(event) <= day &&
 				(event.ended_on === undefined || day <= event.ended_on)
 		)
-		.toSorted((left, right) => left.on.localeCompare(right.on))
+		.toSorted((left, right) => opensOn(left).localeCompare(opensOn(right)))
 		.at(-1);
 
 export type Window =
@@ -208,7 +212,7 @@ export const windowOf = (lookup: JsonObject): Window => {
 
 export const windowOn = (lookup: JsonObject, day: string, events: readonly Event[]): Window => {
 	const event = eventOn(lookup, events, day);
-	return event === undefined ? windowOf(lookup) : { kind: 'EVENT', on: event.on };
+	return event === undefined ? windowOf(lookup) : { kind: 'EVENT', on: opensOn(event) };
 };
 
 /** What a person has left of a code on a day, for pages and rules. */

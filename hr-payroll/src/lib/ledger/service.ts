@@ -18,6 +18,7 @@ import {
 	leftIn,
 	nextWindow,
 	openedBy,
+	opensOn,
 	periodKey,
 	totalsScope,
 	windowOf,
@@ -313,13 +314,9 @@ const grantsOf = (lookup: JsonObject, subject: Subject, person: LeavePerson) => 
 			typeof lookup.entitlement === 'string'
 				? (expressed(lookup, person, event.on, event) ?? 0)
 				: Number(objectValue(opens[event.kind]).days ?? lookup.grant_days ?? 0);
-		const period = periodKey(
-			subject.scope,
-			{ kind: 'EVENT', on: event.on },
-			event.on,
-			subject.started
-		);
-		grants.set(period, { from: event.on, days: (grants.get(period)?.days ?? 0) + days });
+		const from = opensOn(event);
+		const period = periodKey(subject.scope, { kind: 'EVENT', on: from }, from, subject.started);
+		grants.set(period, { from, days: (grants.get(period)?.days ?? 0) + days });
 	}
 	return grants;
 };
@@ -784,18 +781,49 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 	today: string,
 	replaced: readonly JsonObject[] = []
 ) {
-	if (entries.every((entry) => entry.is_reversal === true)) return;
+	if (entries.every((row) => row.is_reversal === true)) return;
+	const taking = entries.filter((row) => row.is_reversal !== true && row.encashment !== true);
+	const ids = uniqueIds(entries, 'employment_id');
+	const subject = subjectRead('leave_catalog', entries);
 	const first = yield* queryRows(read, {
-		...subjectRead('leave_catalog', entries),
-		[LEAVE]: {
-			where: {
-				employment_id: { in: uniqueIds(entries, 'employment_id') },
-				payroll_run_id: { isNull: true }
-			},
-			limit: 10000
-		}
+		...subject,
+		employee_contract: { ...subject.employee_contract, where: sameEmployee(ids) },
+		[LEAVE]: { where: { employment_id: { is: sameEmployee(ids) } }, limit: 10000 }
 	});
-	const open = first[LEAVE] ?? [];
+	const held = first[LEAVE] ?? [];
+	const person = new Map(
+		(first.employee_contract ?? []).map((row) => [String(row.id), String(row.employee_id)])
+	);
+	const slots = (row: JsonObject) =>
+		(Array.isArray(row.days) ? row.days : [])
+			.filter(isJsonObject)
+			.map(
+				(day) => `${person.get(String(row.employment_id))}/${String(day.date)}/${String(day.part)}`
+			);
+	// a reversal frees as many of its original's days as it holds, in order, as it posts them
+	const freed = new Map(
+		held.flatMap((row) =>
+			typeof row.reverses === 'string' ? [[row.reverses, slots(row).length] as const] : []
+		)
+	);
+	const gone = new Set(replaced.map((row) => String(row.id)));
+	const taken = new Set(
+		held
+			.filter(
+				(row) => row.is_reversal !== true && row.encashment !== true && !gone.has(String(row.id))
+			)
+			.flatMap((row) => slots(row).slice(freed.get(String(row.id)) ?? 0))
+	);
+	for (const slot of taking.flatMap(slots)) {
+		if (taken.has(slot))
+			return yield* Effect.fail(
+				new Refusal({ message: `Leave already covers ${slot.split('/')[1]}.` })
+			);
+		taken.add(slot);
+	}
+	const open = held.filter(
+		(row) => row.payroll_run_id == null && ids.includes(String(row.employment_id))
+	);
 	const second = yield* queryRows(read, {
 		...lawRead('leave_catalog', first),
 		ledger_entry: {
@@ -812,8 +840,12 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 	const plans = yield* entryPlans(read, 'leave', LEAVE, entries, known);
 	if (plans.length === 0) return;
 	const limited = new Map<string, boolean>();
+	const opened = new Set<string>();
 	for (const rows of known.rows.values())
-		for (const row of rows) limited.set(String(row.code), !unlimited(objectValue(row.lookup)));
+		for (const row of rows) {
+			limited.set(String(row.code), !unlimited(objectValue(row.lookup)));
+			if (Object.keys(openedBy(objectValue(row.lookup))).length > 0) opened.add(String(row.code));
+		}
 	const accounts = new Map(
 		[...known.balance.values()].map((row) => [String(row.id), accountsOf(row.account)])
 	);
@@ -840,11 +872,68 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 		const balance = key.slice(0, key.indexOf('/'));
 		const measures = accounts.get(balance)?.[row.account]?.[row.code]?.[row.period];
 		// a window no sync has opened yet has nothing to refuse against
-		if (measures === undefined && row.effective_on > today) continue;
+		const unopened = opened.has(row.code) && !row.period.includes('.E.');
+		if (measures === undefined && row.effective_on > today && !unopened) continue;
 		const left = leftIn(measures);
 		if (Number((left - amount).toFixed(8)) < 0)
 			return yield* Effect.fail(new Refusal({ message: `${row.code}: insufficient balance.` }));
 	}
+});
+
+type Entries = 'leave_catalog_entry' | 'claim_catalog_entry' | 'adhoc_catalog_entry';
+/** Every contract of the people who hold these: one read, so a gate spends one crossing. */
+const sameEmployee = (ids: readonly string[]) => ({
+	employee_id: { is: { employee_contract: { some: { id: { in: ids } } } } }
+});
+const sizeOf = (model: Entries, entry: JsonObject) =>
+	model === LEAVE
+		? (Array.isArray(entry.days) ? entry.days : []).length
+		: Math.abs(Number(entry.quantity ?? 0));
+
+/** A reversal undoes one sealed entry of the same person and catalog item, once, for no more than it held. */
+export const assertReversals = Effect.fn('ledger.assertReversals')(function* (
+	read: Reader,
+	model: Entries,
+	entries: readonly JsonObject[]
+) {
+	const reversals = entries.filter((entry) => typeof entry.reverses === 'string');
+	if (reversals.length === 0) return;
+	const catalog = model.replace('_entry', '');
+	const {
+		[model]: originals = [],
+		employee_contract: chain = [],
+		[catalog]: items = []
+	} = yield* queryRows(read, {
+		[model]: { where: { id: { in: uniqueIds(reversals, 'reverses') } }, limit: 10000 },
+		[`${model}.catalog_id`]: { fields: ['code'] },
+		employee_contract: {
+			where: sameEmployee(uniqueIds(reversals, 'employment_id')),
+			fields: ['employee_id'],
+			limit: 10000
+		},
+		[catalog]: {
+			where: { id: { in: uniqueIds(reversals, 'catalog_id') } },
+			fields: ['code'],
+			limit: 10000
+		}
+	});
+	const person = new Map(chain.map((row) => [String(row.id), String(row.employee_id)]));
+	const code = new Map(items.map((row) => [String(row.id), String(row.code)]));
+	const fits = (entry: JsonObject, original: JsonObject | undefined) =>
+		original !== undefined &&
+		original.is_reversal !== true &&
+		original.payroll_run_id != null &&
+		person.get(String(entry.employment_id)) === person.get(String(original.employment_id)) &&
+		code.get(String(entry.catalog_id)) === objectValue(original.catalog_id).code &&
+		sizeOf(model, entry) <= sizeOf(model, original);
+	const original = new Map(originals.map((row) => [String(row.id), row]));
+	if (!reversals.every((entry) => fits(entry, original.get(String(entry.reverses)))))
+		return yield* Effect.fail(
+			new Refusal({
+				message:
+					'A reversal undoes a sealed entry of the same person and catalog item, for no more than it held. An entry no run has sealed is deleted instead.'
+			})
+		);
 });
 
 /** The check before a contract seals: a fact it drops must not leave days taken under it with nothing behind them. */
@@ -906,7 +995,9 @@ export const assertFactsHold = Effect.fn('ledger.assertFactsHold')(function* (
 				const grant = grants.get(period);
 				if (used > 0 && (grant === undefined || (lookup.no_cap !== true && used > grant.days)))
 					return yield* Effect.fail(
-						new Refusal({ message: `${code}: days taken stand on a fact this version removes.` })
+						new Refusal({
+							message: `${code}: days taken stand on a fact this version removes or moves. Where only its date moved, give the old date as Leave from.`
+						})
 					);
 			}
 		}
@@ -1102,7 +1193,8 @@ export const retire = Effect.fn('ledger.retire')(function* (ctx: Ctx) {
 export const raiseFailure = Effect.fn('ledger.raiseFailure')(function* (
 	ctx: Ctx,
 	label: string,
-	reason: string
+	reason: string,
+	title = 'Ledger posting failed'
 ) {
 	const { entity: entities = [] } = yield* queryRows(ctx.query, {
 		entity: { fields: ['id'], limit: 1 }
@@ -1115,7 +1207,7 @@ export const raiseFailure = Effect.fn('ledger.raiseFailure')(function* (
 			input: [
 				{
 					entity_id: String(first.id),
-					title: `Ledger posting failed: ${label}. ${reason}`,
+					title: `${title}: ${label}. ${reason}`,
 					occurrence_key: `ledger-failure:${String(ctx.today)}:${label}`
 				}
 			]

@@ -40,6 +40,7 @@ export const READ_ALL = {
 	entity_profile_version: { read: true, history: true },
 	employee_profile: { read: true, history: true },
 	employee_contract: { read: true, history: true },
+	contract_change: { read: true },
 	jurisdiction_settings: { read: true, history: true },
 	statutory_change: { read: true, history: true },
 	statutory_finding: { read: true, history: true },
@@ -105,10 +106,10 @@ export const CONFIGURATION = {
 /** A reversal is the HR controller's alone; automations act under their own policy. */
 const REVERSAL = {
 	check: function* (
-		rows: readonly { readonly is_reversal?: boolean }[],
+		rows: readonly { readonly reverses?: unknown }[],
 		ctx: Pick<Judge, 'allow' | 'deny'> & { readonly policies: readonly string[] }
 	) {
-		return rows.some((row) => row.is_reversal === true) &&
+		return rows.some((row) => row.reverses != null) &&
 			!ctx.policies.includes('hr_controller') &&
 			!ctx.policies.includes('payroll_execution')
 			? ctx.deny('Only the HR controller makes a reversal.')
@@ -124,6 +125,7 @@ export const HR_OPERATIONS = {
 		moves: 'all'
 	},
 	employee_profile: { ...READ_ALL.employee_profile, create: true, update: true },
+	contract_change: { ...READ_ALL.contract_change, create: true, update: true, delete: true },
 	employee_contract: {
 		...READ_ALL.employee_contract,
 		create: true,
