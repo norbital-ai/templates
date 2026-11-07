@@ -5,8 +5,9 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
-import { expired } from '../src/lib/ledger/core.ts';
+import { expired, totalsScope, viewOf } from '../src/lib/ledger/core.ts';
 import { adhocWanted, entitlementPlans } from '../src/lib/ledger/service.ts';
+import { jsonObject } from '../src/lib/payroll_engine/foundation.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
 import {
@@ -224,6 +225,15 @@ describe('the pure rules', () => {
 			)[0]?.wanted[0]?.amount;
 		assert.equal(days(false), 98);
 		assert.equal(days(true), 113);
+	});
+	it('where each employer withholds alone, a move starts the totals again', () => {
+		const china = { code: 'CN', lookup: { totals_by_employer: true } };
+		const held = { pay: { GROSS: { [`CN.first.Y.2026-01-01`]: { total: 100 } } } };
+		const view = (entity: string, settings: object) =>
+			viewOf(held, totalsScope(jsonObject(settings), entity), 1, '2026-06-30').ytd;
+		assert.deepEqual(view('first', china), { GROSS: 100 });
+		assert.deepEqual(view('second', china), {});
+		assert.equal(totalsScope({ code: 'MY' }, 'first'), 'MY');
 	});
 	it('a statutory adjustment reversed counts in the year of what it reverses', () => {
 		const wanted = adhocWanted(

@@ -8,7 +8,7 @@ import type { PayWindow } from './pay_cycle.js';
 import { idOf, objectValue, queryRows, type Reader } from './reads.js';
 import { Refusal, isJsonObject } from './foundation.js';
 import { breakdownOf, type PayslipBreakdown } from './payslip_breakdown.js';
-import { accountsOf, viewOf } from '../ledger/core.js';
+import { accountsOf, totalsScope, viewOf } from '../ledger/core.js';
 import { claimLeft, claimWanted, startedOn } from '../ledger/service.js';
 
 /** One payslip row the run's create transform attaches as a child. */
@@ -500,7 +500,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 					balance: {
 						account: viewOf(
 							accountsOf(balance?.account),
-							String(settings.code),
+							totalsScope(settings, companyId),
 							Number(settings.tax_year_start_month ?? 1),
 							String(run.pay_date ?? objectValue(run.salary_coverage).to)
 						)

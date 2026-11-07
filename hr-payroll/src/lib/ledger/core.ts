@@ -184,6 +184,12 @@ export const windowStart = (window: Window, on: string, started: string): string
 };
 
 /** `<scope>.<kind>.<window start>`: scope is the country, so a move or a restart of service starts new keys. */
+/** Whose pay totals these are. Where each employer withholds on its own, as in China, a move starts them again. */
+export const totalsScope = (settings: JsonObject, entity: unknown) =>
+	record(settings.lookup).totals_by_employer === true
+		? `${String(settings.code)}.${String(entity)}`
+		: String(settings.code);
+
 export const periodKey = (scope: string, window: Window, on: string, started: string): string =>
 	`${scope}.${LETTER[window.kind]}.${windowStart(window, on, started)}`;
 

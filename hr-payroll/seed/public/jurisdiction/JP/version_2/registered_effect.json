@@ -2313,6 +2313,136 @@
 		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
 	},
 	{
+		"code": "ANNUAL_LEAVE_ATTENDANCE_REVIEW",
+		"name": "年次有給休暇の出勤率確認 (annual leave attendance review)",
+		"source_collection": "payslip",
+		"events": ["create"],
+		"reads": {
+			"obligation": {
+				"where": {
+					"occurrence_key": {
+						"eq": {
+							"var": "occurrence_key(['JP', 'ANNUAL_LEAVE_ATTENDANCE_REVIEW', ctx.entry.employee_id, ctx.entry.period])"
+						}
+					}
+				},
+				"fields": ["id"],
+				"limit": 1
+			},
+			"employee_contract": {
+				"where": {
+					"employee_id": {
+						"eq": {
+							"var": "ctx.entry.employee_id"
+						}
+					}
+				},
+				"fields": ["service_started_on", "effective_range"],
+				"limit": 50
+			},
+			"leave_catalog": {
+				"where": {
+					"settings_id": {
+						"eq": {
+							"var": "ctx.entry.settings_id"
+						}
+					},
+					"code": {
+						"eq": "ANNUAL_LEAVE"
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.entry.employee_id"
+								}
+							}
+						}
+					},
+					"work_date": {
+						"gte": {
+							"var": "add_months(ctx.entry.period + '-01', -12)"
+						},
+						"lte": {
+							"var": "month_end(ctx.entry.period + '-01')"
+						}
+					}
+				},
+				"fields": ["work_date", "shift_definition_id"],
+				"limit": 400
+			},
+			"shift_definition": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["id", "variant"],
+				"limit": 10000
+			},
+			"holiday": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["date"],
+				"limit": 10000
+			},
+			"leave_catalog_entry": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					},
+					"catalog_id": {
+						"is": {
+							"code": {
+								"in": [
+									"UNPAID_LEAVE",
+									"SICKNESS_ABSENCE",
+									"MENSTRUAL_LEAVE",
+									"CIVIC_DUTY_LEAVE",
+									"CHILD_NURSING_LEAVE",
+									"FAMILY_CARE_DAYS",
+									"NURSING_TIME",
+									"MATERNAL_HEALTH_CHECK"
+								]
+							}
+						}
+					}
+				},
+				"fields": ["employment_id", "days", "is_reversal", "reverses"],
+				"limit": 10000
+			}
+		},
+		"condition": "return ctx.reads.obligation.length === 0;",
+		"target_collection": "obligation",
+		"target_action": "create",
+		"effects": "// js\n// 労働基準法 art.39(1)–(2): each grant day closes the six months or the year whose attendance it turns on.\nconst contracts = ctx.reads.employee_contract;\nconst contract = contracts.find((row) => row.id === ctx.entry.employment_id);\nconst leave = first(ctx.reads.leave_catalog);\nif (contract == null || leave == null) return [];\nconst started = get(contract, 'service_started_on', contract.effective_range.from);\nconst month = (date) => Number(date.substring(0, 4)) * 12 + Number(date.substring(5, 7));\nconst served = month(ctx.entry.period + '-01') - month(started);\nconst offset = leave.lookup.service_offset_months;\nif (served < offset || (served - offset) % 12 !== 0) return [];\nconst grant = add_months(started, served);\nconst events = get(ctx.subject.employment, 'employee_extension_data.events', []);\nif (events.some((event) => event.kind === 'ATTENDANCE_BELOW_RATIO' && event.on === grant)) return [];\nconst scheduled = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nconst week = Number(get(ctx.subject.employment, 'terms.normal_days_per_week', 7 - scheduled.length));\nconst off = week === 7 - scheduled.length ? scheduled : [0, 6, 5, 4, 3, 2, 1].slice(0, 7 - week);\nconst shifts = group_by(ctx.reads.shift_definition, 'id');\nconst roster = Object.fromEntries(ctx.reads.roster_entry.map((row) => [row.work_date, get(first(get(shifts, String(row.shift_definition_id), [])) ?? {}, 'variant.day_type', 'WORK')]));\nconst holidays = ctx.reads.holiday.map((row) => row.date);\n// art.39(10): leave the reads leave out counts as attended; a reversed entry stands for nothing.\nconst own = ctx.reads.leave_catalog_entry.filter((entry) => contracts.some((row) => row.id === entry.employment_id));\nconst reversed = own.map((entry) => get(entry, 'reverses', null));\nconst absences = group_by(own.filter((entry) => entry.is_reversal !== true && !reversed.includes(entry.id)).flatMap((entry) => entry.days), 'date');\nconst from = served === offset ? started : add_months(grant, -12);\nlet working = 0;\nlet absent = 0;\nfor (let step = 0; step < calendar_distance_days(from, grant); step += 1) {\n\tconst date = add_days(from, step);\n\tconst type = get(roster, date, null);\n\tif (type == null ? off.includes(weekday(date)) || holidays.includes(date) : type !== 'WORK' && type !== 'ABS') continue;\n\tworking += 1;\n\tabsent += type === 'ABS' ? 1 : Math.min(1, get(absences, date, []).length / 2);\n}\nif (working - absent >= leave.lookup.attendance_ratio * working) return [];\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message + ' ' + (working - absent) + '/' + working + ' days recorded.',\n\tdue_on: grant,\n\toccurrence_key: occurrence_key(['JP', 'ANNUAL_LEAVE_ATTENDANCE_REVIEW', ctx.entry.employee_id, ctx.entry.period])\n}];",
+		"lookup": {
+			"message": "Recorded attendance before this annual leave grant day is below the statutory ratio. Confirm it, and where it stands record ATTENDANCE_BELOW_RATIO on the grant day (労働基準法 art.39(1)–(2))."
+		},
+		"references": [
+			{
+				"title": "労働基準法 art.39(1)–(2), (10): 80% of the working days of the six months or the year before the grant day. Work-injury, childcare, family care and maternity leave and annual leave taken count as attended (昭22.9.13 発基17). Days the employer closed, 代替休暇 and lawful strike days leave the working days (平25.7.10 基発0710第3号)."
+			}
+		],
+		"id": "1c9cabfe-c1a1-5e56-a871-90220b11d364",
+		"settings_id": "9ef01689-4591-5f22-b5f9-a07146f0de79"
+	},
+	{
 		"code": "MY_NUMBER_COLLECTION",
 		"name": "個人番号の提供の求め (My Number collection)",
 		"source_collection": "employee_contract",

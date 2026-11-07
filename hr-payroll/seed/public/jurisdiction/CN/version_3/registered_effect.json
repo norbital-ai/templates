@@ -877,7 +877,7 @@
 		"condition": "const row = ctx.entry;\nif (row == null || !Array.isArray(row.days) || row.days.length === 0) return false;\nconst catalog = first(ctx.reads.leave_catalog ?? []);\nif (catalog == null || !ctx.lookup.catalog_codes.includes(String(get(catalog, 'code', '')))) return false;\nconst key = 'WORK_INJURY_RECOGNITION:' + row.id;\nreturn !ctx.reads.obligation.some((task) => task.occurrence_key === key);",
 		"target_collection": "obligation",
 		"target_action": "create",
-		"effects": "const row = ctx.entry;\nreturn [{\n  entity_id: row.entity_id,\n  employment_id: row.employment_id,\n  title: ctx.lookup.title,\n  due_on: add_days(row.days[0].date, ctx.lookup.due_days),\n  occurrence_key: 'WORK_INJURY_RECOGNITION:' + row.id\n}];",
+		"effects": "const row = ctx.entry;\nconst injury = get(ctx.subject.employment, 'employee_extension_data.events', []).filter((event) => event.kind === 'WORK_INJURY' && event.on <= row.days[0].date).map((event) => event.on).toSorted().at(-1);\nreturn [{\n  entity_id: row.entity_id,\n  employment_id: row.employment_id,\n  title: ctx.lookup.title,\n  due_on: add_days(injury ?? row.days[0].date, ctx.lookup.due_days),\n  occurrence_key: 'WORK_INJURY_RECOGNITION:' + row.id\n}];",
 		"id": "04d011e7-1bf2-519d-a2f4-a13728481f2a",
 		"settings_id": "fee853a5-7391-5d9e-a153-bf367eff59f2"
 	},

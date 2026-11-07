@@ -8370,7 +8370,7 @@
 		"target_collection": "entity_profile_version",
 		"events": ["create", "update"],
 		"condition": "// js\nreturn get(ctx.entry, 'status', '') === 'SEALED';",
-		"validate": "// js\nconst data = get(ctx.entry, 'entity_extension_data', {});\nconst bad = (value, bounds) => {\n    if (value == null) return get(bounds, 'required', false) === true;\n    const length = String(value).length;\n    if (get(bounds, 'minLength', null) != null && length < Number(bounds.minLength)) return true;\n    if (get(bounds, 'maxLength', null) != null && length > Number(bounds.maxLength)) return true;\n    if (get(bounds, 'integer', false) === true && Number(value) !== Math.trunc(Number(value))) return true;\n    if (get(bounds, 'minimum', null) != null && Number(value) < Number(bounds.minimum)) return true;\n    if (get(bounds, 'maximum', null) != null && Number(value) > Number(bounds.maximum)) return true;\n    const allowed = get(bounds, 'enum', null);\n    return allowed != null && !allowed.includes(value);\n};\nreturn !Object.keys(ctx.lookup).some((key) => bad(get(data, key, null), get(ctx.lookup, key, {})));\n",
+		"validate": "// js\nconst data = get(ctx.entry, 'entity_extension_data', {});\nconst bad = (value, bounds) => {\n    if (value == null) return get(bounds, 'required', false) === true;\n    const length = String(value).length;\n    if (get(bounds, 'minLength', null) != null && length < Number(bounds.minLength)) return true;\n    if (get(bounds, 'maxLength', null) != null && length > Number(bounds.maxLength)) return true;\n    if (get(bounds, 'integer', false) === true && Number(value) !== Math.trunc(Number(value))) return true;\n    if (get(bounds, 'minimum', null) != null && Number(value) < Number(bounds.minimum)) return true;\n    if (get(bounds, 'maximum', null) != null && Number(value) > Number(bounds.maximum)) return true;\n    const allowed = get(bounds, 'enum', null);\n    return allowed != null && !allowed.includes(value);\n};\nreturn (\n    !bad(get(data, 'registration_number', null), ctx.lookup.registration_number) &&\n    !bad(get(data, 'tax_registration_number', null), ctx.lookup.tax_registration_number)\n);\n",
 		"order": 16,
 		"lookup": {
 			"registration_number": {
@@ -8513,6 +8513,29 @@
 		"validate": "// js\nconst item = first(ctx.reads.leave_catalog);\nif (item == null || !ctx.lookup.no_pay.includes(item.code)) return true;\nconst steps = get(item.lookup, 'pay_steps', []);\nconst events = get(ctx.subject.employment, 'employee_extension_data.events', []).filter((event) => Object.hasOwn(get(item.lookup, 'opened_by', {}), event.kind));\nconst stepping = (date) => events.some((event) => event.on <= date && (get(event, 'ended_on', null) == null || date <= event.ended_on) && calendar_completed_months(event.on, date) >= steps[0].until_month);\nif (steps.length > 0 && !ctx.entry.days.some((day) => stepping(day.date))) return true;\nconst employer = ctx.subject.employer;\nconst cutoff = Number(get(employer, 'pay_cutoff_day', 1));\nconst halves = get(employer, 'payment_schedule.frequency', 'MONTHLY') === 'SEMI_MONTHLY';\nconst shifted = (month, by) => add_months(month + '-01', by).slice(0, 7);\nconst periodOf = (date) => {\n\tconst month = date.slice(0, 7);\n\tconst dayOf = Number(date.slice(8, 10));\n\tconst part = dayOf <= 15 ? 1 : 2;\n\tif (!halves) return cutoff > 1 && dayOf >= cutoff ? shifted(month, 1) : month;\n\tif (cutoff <= 1) return month + '-' + part;\n\treturn part === 1 ? month + '-2' : shifted(month, 1) + '-1';\n};\nconst dates = ctx.entry.days.map((day) => day.date);\nif (get(ctx.entry, 'is_reversal', false) === true && ctx.reads.leave_catalog_entry.some((row) => row.days.some((day) => dates.includes(day.date))))\n\tthrow 'That day has not been paid yet. Delete the entry instead of reversing it.';\nconst ran = ctx.reads.payroll_run.map((run) => run.period);\nconst closed = ctx.entry.days.find((day) => ran.includes(periodOf(day.date)));\nif (closed != null)\n\tthrow closed.date + ' is in a period that has already run. Date this entry in the next period to run, and that run takes it.';\nreturn true;",
 		"order": 900,
 		"id": "c449cebd-10e8-57d1-8f5e-f3b54d3c4f7b",
+		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
+	},
+	{
+		"code": "CASE_INPUTS_REQUIRED",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"workplace_case_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			}
+		},
+		"validate": "// js\nconst form = first(ctx.reads.workplace_case_catalog);\nconst inputs = get(ctx.entry, 'inputs', {});\nconst missing = get(form, 'lookup.input_schema.required', []).filter((key) => get(inputs, key, '') === '');\nif (missing.length > 0) throw 'This case needs ' + missing.join(', ') + '.';\nreturn true;",
+		"order": 30,
+		"lookup": {},
+		"id": "18e60451-fc52-5b8b-abaf-6d15620ed8b2",
 		"settings_id": "35d8c4c6-2909-5ed3-a31f-76466a65f32d"
 	}
 ]

@@ -679,7 +679,8 @@
 				"PATTANI": 337,
 				"YALA": 337
 			},
-			"business_400": 400
+			"business_400": 400,
+			"totals_by_employer": true
 		},
 		"status": "SEALED",
 		"id": "e51f1c78-0ccd-5043-9757-cdff02259734"

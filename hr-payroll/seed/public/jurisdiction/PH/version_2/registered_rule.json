@@ -300,5 +300,28 @@
 		"order": 900,
 		"id": "785782de-eb3d-5d6e-916e-0febd605b884",
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
+	},
+	{
+		"code": "CASE_INPUTS_REQUIRED",
+		"target_collection": "workplace_case_catalog_entry",
+		"events": ["create", "update"],
+		"reads": {
+			"workplace_case_catalog": {
+				"where": {
+					"id": {
+						"eq": {
+							"var": "ctx.entry.catalog_id"
+						}
+					}
+				},
+				"fields": ["lookup"],
+				"limit": 1
+			}
+		},
+		"validate": "// js\nconst form = first(ctx.reads.workplace_case_catalog);\nconst inputs = get(ctx.entry, 'inputs', {});\nconst missing = get(form, 'lookup.input_schema.required', []).filter((key) => get(inputs, key, '') === '');\nif (missing.length > 0) throw 'This case needs ' + missing.join(', ') + '.';\nreturn true;",
+		"order": 30,
+		"lookup": {},
+		"id": "1c9058fd-ea88-5475-a855-47625f50b783",
+		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	}
 ]
