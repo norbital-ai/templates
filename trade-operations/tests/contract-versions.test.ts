@@ -279,7 +279,9 @@ it.live(
 					params: [own.order]
 				})
 			);
-			t.clock.set(new Date(retry.at).toISOString());
+			// the previous test in this file already ran the 03:05 source-health slot; start this
+			// delivery one minute later so the shared cron registry sees a fresh slot
+			t.clock.set(new Date(new Date(retry.at).getTime() + 60_000).toISOString());
 			yield* t.deliver();
 			t.clock.advance('2min');
 			yield* t.pull('orders');
