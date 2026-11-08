@@ -885,7 +885,7 @@
 						}
 					}
 				},
-				"fields": ["days", "is_reversal", "reverses"],
+				"fields": ["days", "reverses"],
 				"limit": 10000
 			}
 		},

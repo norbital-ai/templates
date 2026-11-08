@@ -70,18 +70,6 @@
 								"format": "date",
 								"title": "Ended on"
 							}
-						},
-						"sick_pay_share": {
-							"type": "number",
-							"minimum": 0,
-							"maximum": 1,
-							"title": "Agreed sick pay share of the wage",
-							"description": "劳部发〔1995〕309号 第59条: the law sets only a floor of 80% of the minimum wage. A higher share in the contract, collective contract or handbook binds."
-						},
-						"medical_period_extension": {
-							"type": "string",
-							"title": "Medical-period extension approval",
-							"description": "劳部发〔1995〕236号 第二条: the approval extending the medical period past 24 months for a special illness."
 						}
 					}
 				},
