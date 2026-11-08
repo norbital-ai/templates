@@ -14,8 +14,6 @@
 		"subtotal_id": "42975af4-33c6-5112-bf20-496b8d83cf77",
 		"eligibility": "// js\n\tconst ended = get(ctx.subject.employment.effective_range, 'to', null);\n\treturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "// js\n\treturn ctx.entry.quantity;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "08e291cb-19e0-5cd4-86fc-6e6264efc3f0",
 		"settings_id": "e51f1c78-0ccd-5043-9757-cdff02259734"
 	}

@@ -11,13 +11,13 @@ independent decisions meet. The two answers can disagree, and no reader knows wh
 
 It appears in five forms:
 
-| Form | What it looks like | Why it hurts |
-|---|---|---|
-| **Shadow state** | A flag stored beside the link, date or child row that already decides it: `is_reversal` beside `reverses`, `month_balance` beside a row's window, `days_per_year` beside the contract week | The copy drifts; a reader picks the wrong one |
-| **Overloaded switch** | One global flag answers several independent questions: `include_allowances` controlled rate inclusion, proration and statutory bases | Every new behaviour adds another special case to the switch |
-| **Hoisted constant** | A value read by one row or one formula lives in the jurisdiction bag: `no_part_xii_categories`, `wage_floor_factor`, `daily_hours`, `months_per_year` | The reader and its value are edited in different places |
-| **Stringly path** | A field is named by a string: `company_cap_terms_field: annual_leave_carry_limit_days`, `*_field` | Renaming a field silently reads nothing |
-| **Optional boundary** | A typed boundary makes every arm optional, or a flat object allows impossible combinations: all-optional catalog params, `day_basis: { basis, days? }` | The type says “valid” for a configuration that cannot run |
+| Form                  | What it looks like                                                                                                                                                                         | Why it hurts                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| **Shadow state**      | A flag stored beside the link, date or child row that already decides it: `is_reversal` beside `reverses`, `month_balance` beside a row's window, `days_per_year` beside the contract week | The copy drifts; a reader picks the wrong one               |
+| **Overloaded switch** | One global flag answers several independent questions: `include_allowances` controlled rate inclusion, proration and statutory bases                                                       | Every new behaviour adds another special case to the switch |
+| **Hoisted constant**  | A value read by one row or one formula lives in the jurisdiction bag: `no_part_xii_categories`, `wage_floor_factor`, `daily_hours`, `months_per_year`                                      | The reader and its value are edited in different places     |
+| **Stringly path**     | A field is named by a string: `company_cap_terms_field: annual_leave_carry_limit_days`, `*_field`                                                                                          | Renaming a field silently reads nothing                     |
+| **Optional boundary** | A typed boundary makes every arm optional, or a flat object allows impossible combinations: all-optional catalog params, `day_basis: { basis, days? }`                                     | The type says “valid” for a configuration that cannot run   |
 
 Two derived catalogues of the same fact are the same smell: `extension_fields.ts` (names) and
 `extension_schema.json` (schemas) both claim to describe the extension surface.
@@ -46,14 +46,14 @@ subtotal_id, direction, party, off_cycle_eligible, prorate, include_in_rate, con
 Every combination is representable, but only a few are legal. The seed audit shows the field product is larger than the
 behaviour:
 
-| Field | Observed | Consequence |
-|---|---|---|
-| `off_cycle_eligible` | always false on allowance (283), overtime (286), statutory (643) and loan (135) rows | the field has no reader that can ever see true in those families; remove it there |
-| `party` | always `EMPLOYEE` on overtime, leave and loan rows | the employee share is implicit in the role, not a selectable attribute |
-| `direction` | always `ADD` on allowance, always `DEDUCT` on loan | the role decides direction; do not ask |
-| `claim.off_cycle_eligible` | always true | the flag adds no choice; remove it |
-| `incurred_on` | empty on many allowance/overtime rows | default to coverage end rather than storing an empty expression |
-| `subtotal_id` | nullable on models that always produce a line | null encodes a missing target the engine silently skips |
+| Field                      | Observed                                                                             | Consequence                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `off_cycle_eligible`       | always false on allowance (283), overtime (286), statutory (643) and loan (135) rows | the field has no reader that can ever see true in those families; remove it there |
+| `party`                    | always `EMPLOYEE` on overtime, leave and loan rows                                   | the employee share is implicit in the role, not a selectable attribute            |
+| `direction`                | always `ADD` on allowance, always `DEDUCT` on loan                                   | the role decides direction; do not ask                                            |
+| `claim.off_cycle_eligible` | always true                                                                          | the flag adds no choice; remove it                                                |
+| `incurred_on`              | empty on many allowance/overtime rows                                                | default to coverage end rather than storing an empty expression                   |
+| `subtotal_id`              | nullable on models that always produce a line                                        | null encodes a missing target the engine silently skips                           |
 
 A field is needed only when it has a distinct semantic, a reader and a legal alternative. Otherwise it is one of:
 
@@ -68,18 +68,18 @@ workplace case; removed `party` from overtime, leave and loan; removed `directio
 
 ## 3. Ownership ladder
 
-| Fact | Owner |
-|---|---|
-| what was agreed: rate, hours, allowances, facts | `employee_contract` |
-| how this law converts: day/hour/proration/rounding | one typed `conversions` block on `jurisdiction_settings` |
-| whether an allowance is in the rate a day/hour divides | that `allowance_catalog` row (`include_in_rate`) |
-| whether an allowance line follows absence | that `allowance_catalog` row (`prorate`) |
-| what one catalog family pays or decides | that row's `lookup`/params |
-| what one rule or effect decides | that rule/effect |
-| a rate table read by many rows | `jurisdiction_settings.lookup`, with a declared shape |
-| which period a checkpoint or scheme posts to | that `subtotal`/`statutory_contribution_catalog` row (`balance_window`) |
-| whether an entry is a reversal | the entry's `reverses` link — never a separate flag |
-| the original impact of a correction | the original payslip/impact snapshot; the reversal mirrors it |
+| Fact                                                   | Owner                                                                   |
+| ------------------------------------------------------ | ----------------------------------------------------------------------- |
+| what was agreed: rate, hours, allowances, facts        | `employee_contract`                                                     |
+| how this law converts: day/hour/proration/rounding     | one typed `conversions` block on `jurisdiction_settings`                |
+| whether an allowance is in the rate a day/hour divides | that `allowance_catalog` row (`include_in_rate`)                        |
+| whether an allowance line follows absence              | that `allowance_catalog` row (`prorate`)                                |
+| what one catalog family pays or decides                | that row's `lookup`/params                                              |
+| what one rule or effect decides                        | that rule/effect                                                        |
+| a rate table read by many rows                         | `jurisdiction_settings.lookup`, with a declared shape                   |
+| which period a checkpoint or scheme posts to           | that `subtotal`/`statutory_contribution_catalog` row (`balance_window`) |
+| whether an entry is a reversal                         | the entry's `reverses` link — never a separate flag                     |
+| the original impact of a correction                    | the original payslip/impact snapshot; the reversal mirrors it           |
 
 A value read by one row must not live in settings. A value the contract states must not be copied into settings. A
 derived flag must not be stored.
@@ -121,15 +121,15 @@ These are the owner's words, recorded as rules.
 
 A change is not complete on `bolt check` alone.
 
-| Gate | Evidence |
-|---|---|
-| Ownership | `configuration_ownership.test.ts`: every settings key is a declared table, no single-row value, no `*_field`, no contract-term duplicate, no bare `ctx.` read |
-| Typed params | every catalog lookup key is in `params.ts` and decodes |
-| Extension | `extension_fields.test.ts`: no buckets, every field has a reader, every direct path is declared, latest schema matches its source |
-| Lookup inventory | `lookup_keys.test.ts`: no declared key without a reader |
-| Lineage | every version is sealed, unbroken and changed for a reason |
-| Figures | the country suites for the affected jurisdiction; a moved value needs a figure probe, not just a green shape test |
-| Full suite | the whole HR suite, not only the focused file |
+| Gate             | Evidence                                                                                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ownership        | `configuration_ownership.test.ts`: every settings key is a declared table, no single-row value, no `*_field`, no contract-term duplicate, no bare `ctx.` read |
+| Typed params     | every catalog lookup key is in `params.ts` and decodes                                                                                                        |
+| Extension        | `extension_fields.test.ts`: no buckets, every field has a reader, every direct path is declared, latest schema matches its source                             |
+| Lookup inventory | `lookup_keys.test.ts`: no declared key without a reader                                                                                                       |
+| Lineage          | every version is sealed, unbroken and changed for a reason                                                                                                    |
+| Figures          | the country suites for the affected jurisdiction; a moved value needs a figure probe, not just a green shape test                                             |
+| Full suite       | the whole HR suite, not only the focused file                                                                                                                 |
 
 A test that passes because a token appears in prose is not a reader test. A move is proved by the figure the formula
 produces.

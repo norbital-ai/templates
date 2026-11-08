@@ -38,10 +38,10 @@ const pcbIn = (month: number, taxPaid: number) =>
 				}
 			},
 			lookup: {
-			...(settings?.lookup as Record<string, unknown> | undefined)?.['constants'] as object,
-			...settings?.lookup,
-			...(isJsonObject(pcb.lookup) ? pcb.lookup : {})
-		},
+				...((settings?.lookup as Record<string, unknown> | undefined)?.['constants'] as object),
+				...settings?.lookup,
+				...(isJsonObject(pcb.lookup) ? pcb.lookup : {})
+			},
 			run: { period: `2026-${String(month).padStart(2, '0')}` },
 			subtotals: { ORDINARY_WAGES: 6000, ADDITIONAL_WAGES: 6000 },
 			statutory: {

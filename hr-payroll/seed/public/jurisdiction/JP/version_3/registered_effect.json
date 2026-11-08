@@ -3,9 +3,7 @@
 		"code": "SOCIAL_INSURANCE_PAYMENT",
 		"name": "健康保険・厚生年金保険料の納付 (social insurance premium payment)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -15,9 +13,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"obligation": {
@@ -31,9 +27,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -56,9 +50,7 @@
 		"code": "WITHHOLDING_TAX_PAYMENT",
 		"name": "源泉所得税の納付 (withholding tax payment)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -68,9 +60,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -84,9 +74,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -100,9 +88,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -125,9 +111,7 @@
 		"code": "RESIDENT_TAX_PAYMENT",
 		"name": "住民税特別徴収税額の納入 (resident tax payment)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -137,9 +121,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -153,9 +135,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -169,9 +149,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -194,9 +172,7 @@
 		"code": "WITHHOLDING_TAX_SEMIANNUAL",
 		"name": "源泉所得税の納期の特例による納付 (semi-annual withholding payment)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -206,9 +182,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -222,9 +196,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -238,9 +210,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -265,9 +235,7 @@
 		"code": "RESIDENT_TAX_SEMIANNUAL",
 		"name": "住民税特別徴収の納期の特例による納入 (semi-annual resident tax payment)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -277,9 +245,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -293,9 +259,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -309,9 +273,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -334,9 +296,7 @@
 		"code": "RESIDENT_TAX_RETIREMENT_PAYMENT",
 		"name": "退職所得に係る住民税の納入 (resident tax on retirement income)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -346,9 +306,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"obligation": {
@@ -362,9 +320,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -387,9 +343,7 @@
 		"code": "WAGE_LEDGER",
 		"name": "賃金台帳の記入 (wage ledger entry)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -399,9 +353,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -422,9 +374,7 @@
 		"code": "LABOUR_INSURANCE_ANNUAL_DECLARATION",
 		"name": "労働保険 年度更新 (labour insurance annual declaration and payment)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -434,9 +384,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"obligation": {
@@ -450,9 +398,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -475,9 +421,7 @@
 		"code": "SANTEI_KISO_REPORT",
 		"name": "算定基礎届 (standard remuneration annual report)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -487,9 +431,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"obligation": {
@@ -503,9 +445,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -528,9 +468,7 @@
 		"code": "YEAR_END_ADJUSTMENT",
 		"name": "年末調整 (year-end adjustment)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -540,9 +478,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -563,9 +499,7 @@
 		"code": "WITHHOLDING_SLIPS_TO_EMPLOYEES",
 		"name": "源泉徴収票の交付 (withholding slips to employees)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -575,9 +509,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -600,9 +532,7 @@
 		"code": "STATUTORY_RETURNS_SUMMARY",
 		"name": "法定調書合計表の提出 (statutory returns to the tax office)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -612,9 +542,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"obligation": {
@@ -628,9 +556,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -653,9 +579,7 @@
 		"code": "SALARY_PAYMENT_REPORT",
 		"name": "給与支払報告書の提出 (salary payment reports to municipalities)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -665,9 +589,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"obligation": {
@@ -681,9 +603,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -706,10 +626,7 @@
 		"code": "SOCIAL_INSURANCE_ACQUISITION",
 		"name": "健康保険・厚生年金保険 被保険者資格取得届 (social insurance enrolment)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -719,9 +636,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -744,10 +659,7 @@
 		"code": "EMPLOYMENT_INSURANCE_ACQUISITION",
 		"name": "雇用保険 被保険者資格取得届 (employment insurance enrolment)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -757,9 +669,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -782,10 +692,7 @@
 		"code": "WORKING_CONDITIONS_NOTICE",
 		"name": "労働条件通知書の明示 (written working conditions)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -804,10 +711,7 @@
 		"code": "WORKER_REGISTER",
 		"name": "労働者名簿の調製 (worker register)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -826,10 +730,7 @@
 		"code": "SOCIAL_INSURANCE_LOSS",
 		"name": "健康保険・厚生年金保険 被保険者資格喪失届 (social insurance exit)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -839,9 +740,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -864,10 +763,7 @@
 		"code": "EMPLOYMENT_INSURANCE_LOSS",
 		"name": "雇用保険 被保険者資格喪失届・離職証明書 (employment insurance exit and separation slip)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -877,9 +773,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -902,10 +796,7 @@
 		"code": "RESIDENT_TAX_TRANSFER",
 		"name": "給与所得者異動届出書 (resident tax special collection change)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -915,9 +806,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -940,10 +829,7 @@
 		"code": "LEAVER_WITHHOLDING_SLIP",
 		"name": "退職者の源泉徴収票の交付 (leaver's withholding slip)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
 		"target_collection": "obligation",
@@ -962,10 +848,7 @@
 		"code": "FINAL_WAGES_ON_REQUEST",
 		"name": "退職時の賃金の支払・金品の返還 (final wages on request)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
 		"target_collection": "obligation",
@@ -986,9 +869,7 @@
 		"code": "DISABILITY_EMPLOYMENT_REPORT",
 		"name": "障害者雇用状況報告 (disability employment status report)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -998,9 +879,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -1014,9 +893,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -1030,9 +907,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -1056,9 +931,7 @@
 		"code": "ELDERLY_EMPLOYMENT_REPORT",
 		"name": "高年齢者雇用状況等報告 (older workers employment report)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1068,9 +941,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"obligation": {
@@ -1084,9 +955,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -1109,9 +978,7 @@
 		"code": "DISABILITY_LEVY_DECLARATION",
 		"name": "障害者雇用納付金申告 (disability employment levy declaration)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1121,9 +988,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -1137,9 +1002,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -1153,9 +1016,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -1179,9 +1040,7 @@
 		"code": "SOCIAL_INSURANCE_NEW_ESTABLISHMENT",
 		"name": "新規適用届 (social insurance establishment notification)",
 		"source_collection": "entity_profile_version",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1191,9 +1050,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -1217,9 +1074,7 @@
 		"code": "LABOUR_INSURANCE_ESTABLISHMENT",
 		"name": "保険関係成立届 (labour insurance relationship notification)",
 		"source_collection": "entity_profile_version",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1229,9 +1084,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -1255,9 +1108,7 @@
 		"code": "LABOUR_INSURANCE_PROVISIONAL_DECLARATION",
 		"name": "概算保険料申告 (provisional labour insurance premium declaration)",
 		"source_collection": "entity_profile_version",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1267,9 +1118,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -1293,9 +1142,7 @@
 		"code": "EMPLOYMENT_INSURANCE_ESTABLISHMENT",
 		"name": "雇用保険適用事業所設置届 (employment insurance establishment notification)",
 		"source_collection": "entity_profile_version",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1305,9 +1152,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -1331,9 +1176,7 @@
 		"code": "PAYROLL_OFFICE_OPENING",
 		"name": "給与支払事務所等の開設届出書 (payroll office opening notification)",
 		"source_collection": "entity_profile_version",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1343,9 +1186,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -1369,9 +1210,7 @@
 		"code": "BONUS_PAYMENT_REPORT",
 		"name": "賞与支払届 (bonus payment report)",
 		"source_collection": "adhoc_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"adhoc_catalog": {
 				"where": {
@@ -1381,9 +1220,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			},
 			"holiday": {
@@ -1394,9 +1231,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -1419,9 +1254,7 @@
 		"code": "MATERNITY_PREMIUM_EXEMPTION",
 		"name": "産前産後休業取得者申出書 (maternity premium exemption application)",
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1431,9 +1264,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			},
 			"holiday": {
@@ -1444,9 +1275,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -1467,9 +1296,7 @@
 		"code": "CHILDCARE_PREMIUM_EXEMPTION",
 		"name": "育児休業等取得者申出書 (childcare premium exemption application)",
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1479,9 +1306,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			},
 			"holiday": {
@@ -1492,9 +1317,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -1515,9 +1338,7 @@
 		"code": "WORK_INJURY_REPORT",
 		"name": "労働者死傷病報告 (work-injury report, 4 days or more)",
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1527,9 +1348,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			},
 			"holiday": {
@@ -1540,9 +1359,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -1566,9 +1383,7 @@
 		"code": "WORK_INJURY_REPORT_QUARTERLY",
 		"name": "労働者死傷病報告 (work-injury report, under 4 days)",
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1578,9 +1393,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			},
 			"holiday": {
@@ -1591,9 +1404,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -1617,9 +1428,7 @@
 		"code": "WOMEN_ADVANCEMENT_PUBLICATION",
 		"name": "女性の活躍に関する情報公表 (women's advancement information publication)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1629,9 +1438,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -1645,9 +1452,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -1661,9 +1466,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -1688,10 +1491,7 @@
 		"code": "ANNUAL_LEAVE_FIVE_DAY_DESIGNATION",
 		"name": "年次有給休暇の時季指定 (5-day designated annual leave)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -1712,9 +1512,7 @@
 		"code": "OVERTIME_AGREEMENT_RENEWAL",
 		"name": "36協定の締結・届出 (overtime agreement renewal and filing)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1724,9 +1522,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -1740,9 +1536,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -1756,9 +1550,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -1779,9 +1571,7 @@
 		"code": "LABOUR_INSURANCE_INSTALMENT_2",
 		"name": "労働保険料 延納 第2期 (labour insurance instalment 2)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1791,9 +1581,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -1807,9 +1595,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -1823,9 +1609,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -1848,9 +1632,7 @@
 		"code": "LABOUR_INSURANCE_INSTALMENT_3",
 		"name": "労働保険料 延納 第3期 (labour insurance instalment 3)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1860,9 +1642,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -1876,9 +1656,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -1892,9 +1670,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -1917,10 +1693,7 @@
 		"code": "HEALTH_LOSS_AT_75",
 		"name": "健康保険 資格喪失届（75歳到達） (health insurance loss at 75)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1930,9 +1703,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -1956,10 +1727,7 @@
 		"code": "PENSION_AGE_70",
 		"name": "厚生年金 70歳到達届・70歳以上被用者該当届 (pension loss at 70)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -1969,9 +1737,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -1995,9 +1761,7 @@
 		"code": "MATERNITY_END_GRADE_CHANGE",
 		"name": "産前産後休業終了時報酬月額変更届 (grade change after maternity leave)",
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -2007,9 +1771,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			},
 			"holiday": {
@@ -2020,9 +1782,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -2046,9 +1806,7 @@
 		"code": "CHILDCARE_END_GRADE_CHANGE",
 		"name": "育児休業等終了時報酬月額変更届・養育期間特例申出 (grade change after childcare leave)",
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -2058,9 +1816,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			},
 			"holiday": {
@@ -2071,9 +1827,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -2097,9 +1851,7 @@
 		"code": "CHILDCARE_BENEFIT_APPLICATION",
 		"name": "育児休業給付金・出生後休業支援給付金 初回申請 (childcare leave benefit, first application)",
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -2109,9 +1861,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			},
 			"holiday": {
@@ -2122,9 +1872,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -2147,9 +1895,7 @@
 		"code": "CARE_LEAVE_BENEFIT_APPLICATION",
 		"name": "介護休業給付金 申請 (family care leave benefit)",
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -2159,9 +1905,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			},
 			"holiday": {
@@ -2172,9 +1916,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -2197,10 +1939,7 @@
 		"code": "OLDER_WORKER_CONTINUATION_BENEFIT",
 		"name": "高年齢雇用継続給付 受給資格確認・60歳到達時賃金証明書 (older worker continuation benefit)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -2210,9 +1949,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -2236,10 +1973,7 @@
 		"code": "SHORT_HOURS_CHILDCARE_BENEFIT",
 		"name": "育児時短就業給付金 初回申請 (shortened-hours childcare benefit)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -2249,9 +1983,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -2274,9 +2006,7 @@
 		"code": "RETIREMENT_INCOME_SLIP",
 		"name": "退職所得の源泉徴収票・特別徴収票 (retirement income slip)",
 		"source_collection": "adhoc_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"adhoc_catalog": {
 				"where": {
@@ -2286,9 +2016,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			},
 			"holiday": {
@@ -2299,9 +2027,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -2324,9 +2050,7 @@
 		"code": "PAYSLIP_DELIVERY",
 		"name": "給与支払明細書の交付 (pay statement delivery)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2336,9 +2060,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -2359,9 +2081,7 @@
 		"code": "STATUTORY_RETURNS_E_FILING",
 		"name": "法定調書の電子提出義務 (mandatory e-filing of statutory returns)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -2371,9 +2091,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -2387,9 +2105,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -2403,9 +2119,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -2429,10 +2143,7 @@
 		"code": "RESIDENT_TAX_SPECIAL_COLLECTION_SWITCH",
 		"name": "特別徴収への切替届出 (switch of resident tax to special collection)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -2442,9 +2153,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -2465,9 +2174,7 @@
 		"code": "WORK_RULES_FILING",
 		"name": "就業規則の作成・届出 (work rules filing)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -2477,9 +2184,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -2493,9 +2198,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -2509,9 +2212,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -2534,10 +2235,7 @@
 		"code": "NON_RENEWAL_NOTICE",
 		"name": "雇止めの予告 (notice of non-renewal)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (ctx.entry.effective_range.to == null) return false;\nif (ctx.entry.signed_contract_period == null) return false;\nif (Number(get(ctx.entry, 'employee_extension_data.renewal_count', 0)) >= ctx.lookup.renewal_count_threshold) return true;\nreturn calendar_completed_months(ctx.entry.effective_range.from, ctx.entry.effective_range.to) >= ctx.lookup.service_months_threshold;",
 		"target_collection": "obligation",
@@ -2560,10 +2258,7 @@
 		"code": "INDEFINITE_CONVERSION_NOTICE",
 		"name": "無期転換申込権の明示 (indefinite conversion right)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.signed_contract_period != null;",
 		"target_collection": "obligation",
@@ -2584,10 +2279,7 @@
 		"code": "PART_TIME_TERMS_NOTICE",
 		"name": "短時間・有期雇用労働者への特定事項の明示 (written specified terms for part-time and fixed-term workers)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nreturn ctx.entry.engagement === 'PART_TIME' || ctx.entry.signed_contract_period != null;",
 		"target_collection": "obligation",
@@ -2606,10 +2298,7 @@
 		"code": "ANNUAL_LEAVE_REGISTER",
 		"name": "年次有給休暇管理簿 (annual leave register)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -2630,9 +2319,7 @@
 		"code": "ANNUAL_LEAVE_ATTENDANCE_REVIEW",
 		"name": "年次有給休暇の出勤率確認 (annual leave attendance review)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2642,9 +2329,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"employee_contract": {
@@ -2655,10 +2340,7 @@
 						}
 					}
 				},
-				"fields": [
-					"service_started_on",
-					"effective_range"
-				],
+				"fields": ["service_started_on", "effective_range"],
 				"limit": 50
 			},
 			"leave_catalog": {
@@ -2672,9 +2354,7 @@
 						"eq": "ANNUAL_LEAVE"
 					}
 				},
-				"fields": [
-					"lookup"
-				],
+				"fields": ["lookup"],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -2697,10 +2377,7 @@
 						}
 					}
 				},
-				"fields": [
-					"work_date",
-					"shift_definition_id"
-				],
+				"fields": ["work_date", "shift_definition_id"],
 				"limit": 400
 			},
 			"shift_definition": {
@@ -2711,10 +2388,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"variant"
-				],
+				"fields": ["id", "variant"],
 				"limit": 10000
 			},
 			"holiday": {
@@ -2725,9 +2399,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"leave_catalog_entry": {
@@ -2754,12 +2426,7 @@
 						}
 					}
 				},
-				"fields": [
-					"employment_id",
-					"days",
-					"reverses",
-					"reverses"
-				],
+				"fields": ["employment_id", "days", "reverses", "reverses"],
 				"limit": 10000
 			}
 		},
@@ -2782,10 +2449,7 @@
 		"code": "MY_NUMBER_COLLECTION",
 		"name": "個人番号の提供の求め (My Number collection)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -2804,9 +2468,7 @@
 		"code": "SEPARATION_CERTIFICATE",
 		"name": "退職証明書 (certificate of employment on leaving)",
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'EMPLOYMENT_CERTIFICATE_REQUEST' && ctx.entry.closed_on == null;",
 		"target_collection": "obligation",
@@ -2826,9 +2488,7 @@
 		"code": "MALE_CHILDCARE_LEAVE_PUBLICATION",
 		"name": "男性の育児休業等取得状況の公表 (publication of men's childcare leave)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -2838,9 +2498,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -2854,9 +2512,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -2870,9 +2526,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -2897,9 +2551,7 @@
 		"code": "NEXT_GENERATION_ACTION_PLAN",
 		"name": "次世代法 一般事業主行動計画の策定・届出 (next-generation action plan)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -2909,9 +2561,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -2925,9 +2575,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -2941,9 +2589,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -2966,9 +2612,7 @@
 		"code": "WOMEN_ACTION_PLAN",
 		"name": "女性活躍推進法 一般事業主行動計画の策定・届出 (women's advancement action plan)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -2978,9 +2622,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -2994,9 +2636,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -3010,9 +2650,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -3035,9 +2673,7 @@
 		"code": "MID_CAREER_HIRING_PUBLICATION",
 		"name": "中途採用比率の公表 (publication of the mid-career hiring ratio)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -3047,9 +2683,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -3063,9 +2697,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -3079,9 +2711,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -3106,10 +2736,7 @@
 		"code": "CARE_INFORMATION_AT_40",
 		"name": "介護休業制度等の情報提供（40歳） (care leave information at 40)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'payroll.date_of_birth', '') !== '';",
 		"target_collection": "obligation",
@@ -3130,9 +2757,7 @@
 		"code": "CARE_INDIVIDUAL_NOTICE",
 		"name": "介護に直面した労働者への個別周知・意向確認 (individual notice to a worker facing care)",
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -3142,9 +2767,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			}
 		},
@@ -3165,10 +2788,7 @@
 		"code": "RECORDS_RETENTION",
 		"name": "労働関係書類の保存 (retention of employment records)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
 		"target_collection": "obligation",
@@ -3189,9 +2809,7 @@
 		"code": "CHILDCARE_ENVIRONMENT_MEASURES",
 		"name": "育児休業等を取得しやすい雇用環境の整備 (childcare leave environment measures)",
 		"source_collection": "entity_profile_version",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -3210,9 +2828,7 @@
 		"code": "HARASSMENT_PREVENTION_MEASURES",
 		"name": "ハラスメント防止措置 (harassment prevention measures)",
 		"source_collection": "entity_profile_version",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -3231,10 +2847,7 @@
 		"code": "HEALTH_CHECK_AT_HIRE",
 		"name": "雇入時の健康診断 (health check at hire)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -3253,10 +2866,7 @@
 		"code": "PERIODIC_HEALTH_CHECK",
 		"name": "定期健康診断 (annual health check)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -3277,9 +2887,7 @@
 		"code": "HEALTH_CHECK_REPORT",
 		"name": "定期健康診断結果報告書 (health check result report)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -3289,9 +2897,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -3305,9 +2911,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -3321,9 +2925,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -3346,9 +2948,7 @@
 		"code": "STRESS_CHECK",
 		"name": "ストレスチェックの実施・報告 (stress check and report)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -3358,9 +2958,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			},
 			"entity_profile_version": {
@@ -3374,9 +2972,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			},
 			"obligation": {
@@ -3390,9 +2986,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"occurrence_key"
-				],
+				"fields": ["occurrence_key"],
 				"limit": 10000
 			}
 		},
@@ -3415,9 +3009,7 @@
 		"code": "DEPENDANT_DECLARATION_COLLECTION",
 		"name": "扶養控除等申告書の受理 (dependant declaration for the coming year)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -3427,9 +3019,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -3450,9 +3040,7 @@
 		"code": "CHILDCARE_INDIVIDUAL_NOTICE",
 		"name": "妊娠・出産等の申出時の個別周知・意向確認 (individual notice on a pregnancy or birth report)",
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -3462,9 +3050,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			}
 		},
@@ -3485,9 +3071,7 @@
 		"code": "EMERGENCY_PAYMENT",
 		"name": "非常時払 (emergency payment of earned wages)",
 		"source_collection": "loan_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"loan_catalog": {
 				"where": {
@@ -3497,9 +3081,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			}
 		},
@@ -3520,9 +3102,7 @@
 		"code": "DEPENDANT_CHANGE_NOTICE",
 		"name": "健康保険 被扶養者(異動)届 (dependant change)",
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -3532,9 +3112,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -3557,10 +3135,7 @@
 		"code": "PERSONAL_DATA_DISPOSAL",
 		"name": "特定個人情報・個人データの廃棄 (disposal after retention)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && ctx.entry.effective_range.to != null;",
 		"target_collection": "obligation",
@@ -3582,9 +3157,7 @@
 		"code": "SOCIAL_INSURANCE_OFFICE_CHANGE",
 		"name": "適用事業所 名称・所在地変更届 (office name or location change)",
 		"source_collection": "entity_profile_version",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -3594,9 +3167,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -3619,9 +3190,7 @@
 		"code": "LABOUR_INSURANCE_OFFICE_CHANGE",
 		"name": "労働保険 名称・所在地等変更届 / 雇用保険 事業主事業所各種変更届 (labour insurance change)",
 		"source_collection": "entity_profile_version",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -3631,9 +3200,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -3656,9 +3223,7 @@
 		"code": "PERSONAL_DATA_BREACH_PRELIMINARY",
 		"name": "個人データ漏えい等 速報 (preliminary breach report)",
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -3668,9 +3233,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -3695,9 +3258,7 @@
 		"code": "PERSONAL_DATA_BREACH_FINAL",
 		"name": "個人データ漏えい等 確報 (final breach report)",
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"holiday": {
 				"where": {
@@ -3707,9 +3268,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 10000
 			}
 		},
@@ -3735,9 +3294,7 @@
 		"code": "PERSONAL_DATA_BREACH_NOTICE",
 		"name": "個人データ漏えい等 本人通知 (notice to the people affected)",
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "if (ctx.entry.kind !== 'DATA_BREACH') return false;\nif (get(ctx.entry, 'inputs.sensitive', false) === true) return true;\nif (get(ctx.entry, 'inputs.financial_harm', false) === true) return true;\nif (get(ctx.entry, 'inputs.misconduct', false) === true) return true;\nconst affected = Number(get(ctx.entry, 'inputs.affected_count', 0));\nif (affected > ctx.lookup.affected_people_count_threshold) return true;\nreturn get(ctx.entry, 'inputs.my_number', false) === true && affected > ctx.lookup.my_number_count_threshold;",
 		"target_collection": "obligation",
@@ -3759,9 +3316,7 @@
 		"code": "YEAR_END_DECLARATIONS_COLLECTION",
 		"name": "年末調整の各種申告書の受理 (year-end declarations)",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -3771,9 +3326,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -3794,20 +3347,14 @@
 		"code": "RETIREMENT_AGE_RULES",
 		"name": "定年・継続雇用制度の整備 (retirement age and continued employment)",
 		"source_collection": "entity_profile_version",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && !ctx.lookup.lawful_measures.includes(get(ctx.entry, 'entity_extension_data.continued_employment_measure', ''));",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const due = ctx.entry.effective_range.from;\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: \"定年・継続雇用制度の整備 (retirement age and continued employment)\",\n\tdue_on: due,\n\toccurrence_key: occurrence_key(['JP', 'RETIREMENT_AGE_RULES', ctx.entry.entity_id, ctx.entry.effective_range.from])\n}];",
 		"lookup": {
-			"lawful_measures": [
-				"RAISED_AGE",
-				"CONTINUED_EMPLOYMENT",
-				"NO_RETIREMENT_AGE"
-			]
+			"lawful_measures": ["RAISED_AGE", "CONTINUED_EMPLOYMENT", "NO_RETIREMENT_AGE"]
 		},
 		"references": [
 			{
@@ -3821,10 +3368,7 @@
 		"code": "CONTINUED_EMPLOYMENT_CONFIRMATION",
 		"name": "継続雇用の希望確認 (continued employment past the retirement age)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -3837,9 +3381,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			}
 		},
@@ -3862,10 +3404,7 @@
 		"code": "INDUSTRIAL_HEALTH_STAFF",
 		"name": "産業医・衛生管理者の選任 (industrial physician and health supervisor at 50 workers)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -3878,9 +3417,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"entity_extension_data"
-				],
+				"fields": ["entity_extension_data"],
 				"limit": 1
 			}
 		},
@@ -3904,10 +3441,7 @@
 		"code": "MINOR_AGE_CERTIFICATE",
 		"name": "年少者の証明書 (age certificate of a worker under 18)",
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst birth = get(ctx.entry, 'payroll.date_of_birth', '');\nif (birth === '') return false;\nreturn age_on(birth, ctx.entry.effective_range.from) < ctx.lookup.employee_age_years_threshold;",
 		"target_collection": "obligation",
@@ -3928,9 +3462,7 @@
 		"code": "OVERTIME_MONTHLY_45H",
 		"name": "時間外労働の限度時間 45時間 (monthly overtime limit)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -3940,9 +3472,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -3981,10 +3511,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"variant"
-				],
+				"fields": ["id", "variant"],
 				"limit": 10000
 			}
 		},
@@ -4009,9 +3536,7 @@
 		"code": "OVERTIME_REST_DAY_100H",
 		"name": "時間外・休日労働 100時間未満 (absolute monthly cap)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4021,9 +3546,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -4062,10 +3585,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"variant"
-				],
+				"fields": ["id", "variant"],
 				"limit": 10000
 			}
 		},
@@ -4089,9 +3609,7 @@
 		"code": "OVERTIME_WITHOUT_AGREEMENT",
 		"name": "36協定の有効期間外の時間外労働 (overtime outside the 36 agreement)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4101,9 +3619,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -4142,10 +3658,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"variant"
-				],
+				"fields": ["id", "variant"],
 				"limit": 10000
 			}
 		},
@@ -4168,9 +3681,7 @@
 		"code": "OVERTIME_YEAR_360H",
 		"name": "時間外労働の限度時間 年360時間 (yearly overtime limit)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4180,9 +3691,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -4221,10 +3730,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"variant"
-				],
+				"fields": ["id", "variant"],
 				"limit": 10000
 			}
 		},
@@ -4248,9 +3754,7 @@
 		"code": "OVERTIME_YEAR_720H",
 		"name": "特別条項の上限 年720時間 (yearly cap under a special clause)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4260,9 +3764,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -4301,10 +3803,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"variant"
-				],
+				"fields": ["id", "variant"],
 				"limit": 10000
 			}
 		},
@@ -4330,9 +3829,7 @@
 		"code": "OVERTIME_AVERAGE_80H",
 		"name": "複数月平均80時間以内 (2- to 6-month average cap)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4342,9 +3839,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -4383,10 +3878,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"variant"
-				],
+				"fields": ["id", "variant"],
 				"limit": 10000
 			}
 		},
@@ -4397,13 +3889,7 @@
 		"lookup": {
 			"message": "Overtime and rest-day work average more than 80 hours a month over a 2- to 6-month span (労働基準法 art.36(6)(iii)).",
 			"averaged_monthly_overtime_limit": 80,
-			"averaging_windows": [
-				2,
-				3,
-				4,
-				5,
-				6
-			]
+			"averaging_windows": [2, 3, 4, 5, 6]
 		},
 		"references": [
 			{
@@ -4417,9 +3903,7 @@
 		"code": "OVERTIME_SIX_MONTHS_OVER_45",
 		"name": "45時間超は年6か月まで (at most six months above 45 hours)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4429,9 +3913,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -4470,10 +3952,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"variant"
-				],
+				"fields": ["id", "variant"],
 				"limit": 10000
 			}
 		},
@@ -4498,9 +3977,7 @@
 		"code": "OVERTIME_80H_NOTICE",
 		"name": "月80時間超の時間外・休日労働 (over 80 hours: notice and doctor interview)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4510,9 +3987,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -4551,10 +4026,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"variant"
-				],
+				"fields": ["id", "variant"],
 				"limit": 10000
 			}
 		},
@@ -4578,9 +4050,7 @@
 		"code": "MINOR_LIMITS",
 		"name": "年少者の時間外・休日・深夜労働 (minors: no overtime, rest-day or night work)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4590,9 +4060,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -4631,10 +4099,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"variant"
-				],
+				"fields": ["id", "variant"],
 				"limit": 10000
 			}
 		},
@@ -4660,9 +4125,7 @@
 		"code": "MATERNITY_LIMITS",
 		"name": "妊産婦の請求による時間外・休日・深夜の制限 (pregnant and post-partum workers)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4672,9 +4135,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -4713,10 +4174,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"variant"
-				],
+				"fields": ["id", "variant"],
 				"limit": 10000
 			},
 			"workplace_case_catalog_entry": {
@@ -4727,12 +4185,7 @@
 						}
 					}
 				},
-				"fields": [
-					"kind",
-					"opened_on",
-					"closed_on",
-					"inputs"
-				],
+				"fields": ["kind", "opened_on", "closed_on", "inputs"],
 				"limit": 10000
 			}
 		},
@@ -4742,9 +4195,7 @@
 		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'MATERNITY_LIMITS', ctx.entry.id])\n}];",
 		"lookup": {
 			"message": "A pregnant or post-partum worker who asked to be excused did overtime, rest-day or night work (労働基準法 art.66).",
-			"case_kinds": [
-				"PREGNANCY_WORK_LIMIT_REQUEST"
-			],
+			"case_kinds": ["PREGNANCY_WORK_LIMIT_REQUEST"],
 			"night_from": "22:00",
 			"night_to": "05:00"
 		},
@@ -4760,9 +4211,7 @@
 		"code": "CHILDCARE_CARE_LIMITS",
 		"name": "育児・介護のための時間外・深夜の制限 (childcare and care limits)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4772,9 +4221,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -4813,10 +4260,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"variant"
-				],
+				"fields": ["id", "variant"],
 				"limit": 10000
 			},
 			"workplace_case_catalog_entry": {
@@ -4827,12 +4271,7 @@
 						}
 					}
 				},
-				"fields": [
-					"kind",
-					"opened_on",
-					"closed_on",
-					"inputs"
-				],
+				"fields": ["kind", "opened_on", "closed_on", "inputs"],
 				"limit": 10000
 			}
 		},
@@ -4844,15 +4283,9 @@
 			"message": "A worker who asked for the childcare or care limits did more overtime or night work than allowed (育児・介護休業法 arts.16の8, 17, 19).",
 			"monthly_overtime_hours_threshold": 24,
 			"annual_overtime_hours_threshold": 150,
-			"no_overtime_case_kinds": [
-				"CHILDCARE_NO_OVERTIME_REQUEST"
-			],
-			"overtime_limit_case_kinds": [
-				"CHILDCARE_OVERTIME_LIMIT_REQUEST"
-			],
-			"night_case_kinds": [
-				"CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST"
-			],
+			"no_overtime_case_kinds": ["CHILDCARE_NO_OVERTIME_REQUEST"],
+			"overtime_limit_case_kinds": ["CHILDCARE_OVERTIME_LIMIT_REQUEST"],
+			"night_case_kinds": ["CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST"],
 			"night_from": "22:00",
 			"night_to": "05:00"
 		},
@@ -4868,9 +4301,7 @@
 		"code": "DAYTIME_STUDENT_EI",
 		"name": "昼間学生の雇用保険適用 (daytime students outside employment insurance)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4880,9 +4311,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -4905,9 +4334,7 @@
 		"code": "SHORT_TIME_COVERAGE",
 		"name": "短時間労働者の社会保険適用 (short-time worker coverage)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4917,9 +4344,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"workplace_case_catalog_entry": {
@@ -4930,12 +4355,7 @@
 						}
 					}
 				},
-				"fields": [
-					"kind",
-					"opened_on",
-					"closed_on",
-					"inputs"
-				],
+				"fields": ["kind", "opened_on", "closed_on", "inputs"],
 				"limit": 10000
 			}
 		},
@@ -4949,10 +4369,7 @@
 			"standard_coverage_weekly_hours": 30,
 			"employer_headcount_threshold": 50,
 			"minimum_monthly_wage": 88000,
-			"employer_case_kinds": [
-				"SHORT_TIME_COVERAGE_NOTICE",
-				"SHORT_TIME_VOLUNTARY_APPROVAL"
-			]
+			"employer_case_kinds": ["SHORT_TIME_COVERAGE_NOTICE", "SHORT_TIME_VOLUNTARY_APPROVAL"]
 		},
 		"references": [
 			{
@@ -4967,9 +4384,7 @@
 		"code": "DISCIPLINARY_DEDUCTION_LIMIT",
 		"name": "減給の総額制限 (disciplinary reductions above one tenth)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -4979,9 +4394,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -5006,9 +4419,7 @@
 		"code": "DIGITAL_WAGE_CONSENT",
 		"name": "賃金のデジタル払いの同意 (digital wage payment consent)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -5018,9 +4429,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"workplace_case_catalog_entry": {
@@ -5031,12 +4440,7 @@
 						}
 					}
 				},
-				"fields": [
-					"kind",
-					"opened_on",
-					"closed_on",
-					"inputs"
-				],
+				"fields": ["kind", "opened_on", "closed_on", "inputs"],
 				"limit": 10000
 			},
 			"payroll_run": {
@@ -5047,9 +4451,7 @@
 						}
 					}
 				},
-				"fields": [
-					"pay_date"
-				],
+				"fields": ["pay_date"],
 				"limit": 1
 			}
 		},
@@ -5059,9 +4461,7 @@
 		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'DIGITAL_WAGE_CONSENT', ctx.entry.id])\n}];",
 		"lookup": {
 			"message": "Wages paid to a designated fund-transfer account need the worker's written consent (労働基準法施行規則 art.7の2(1)(iii)).",
-			"case_kinds": [
-				"DIGITAL_WAGE_PAYMENT_CONSENT"
-			],
+			"case_kinds": ["DIGITAL_WAGE_PAYMENT_CONSENT"],
 			"consent_kind": "DIGITAL_WAGE_PAYMENT_CONSENT"
 		},
 		"references": [
@@ -5076,9 +4476,7 @@
 		"code": "EI_COVERAGE_HOURS",
 		"name": "雇用保険の適用 (employment insurance by weekly hours)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -5088,9 +4486,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -5114,9 +4510,7 @@
 		"code": "JP_STANDARD_SHIFT_OVERTIME",
 		"name": "Statutory overtime cannot be hidden inside a planned ordinary shift",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -5126,9 +4520,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"roster_entry": {
@@ -5167,10 +4559,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"variant"
-				],
+				"fields": ["id", "variant"],
 				"limit": 10000
 			}
 		},
@@ -5195,9 +4584,7 @@
 		"code": "JP_SOURCE_IN_KIND",
 		"name": "Built-in in-kind remuneration values are verified through FY2026 only",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -5207,9 +4594,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"adhoc_catalog_entry": {
@@ -5240,9 +4625,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -5269,9 +4652,7 @@
 		"code": "JP_SOURCE_MINIMUM_WAGE",
 		"name": "Built-in regional minimum wage source coverage ends September2027",
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -5281,9 +4662,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -5310,9 +4689,7 @@
 		"code": "PREMIUM_EXEMPTION_CHARGED",
 		"name": "育休・産休の保険料免除月の控除 (premium charged in an exempt month)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -5322,9 +4699,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"leave_catalog_entry": {
@@ -5351,9 +4726,7 @@
 						}
 					}
 				},
-				"fields": [
-					"days"
-				],
+				"fields": ["days"],
 				"limit": 100
 			}
 		},
@@ -5386,9 +4759,7 @@
 		"code": "RETIREMENT_DECLARATION_MISSING",
 		"name": "退職所得の受給に関する申告書の未受領 (retirement pay without the declaration)",
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -5398,9 +4769,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			},
 			"workplace_case_catalog_entry": {
@@ -5411,12 +4780,7 @@
 						}
 					}
 				},
-				"fields": [
-					"kind",
-					"opened_on",
-					"closed_on",
-					"inputs"
-				],
+				"fields": ["kind", "opened_on", "closed_on", "inputs"],
 				"limit": 10000
 			}
 		},
@@ -5426,10 +4790,7 @@
 		"effects": "// js\nreturn [{\n\tentity_id: ctx.entry.entity_id,\n\temployee_id: ctx.entry.employee_id,\n\temployment_id: ctx.entry.employment_id,\n\ttitle: ctx.lookup.message,\n\toccurrence_key: occurrence_key(['JP', 'RETIREMENT_DECLARATION_MISSING', ctx.entry.id])\n}];",
 		"lookup": {
 			"message": "Retirement pay was withheld as declared but no 退職所得の受給に関する申告書 is on record: without it the rate is 20.42% (所得税法 art.201(3)); use RETIREMENT_ALLOWANCE_UNDECLARED.",
-			"declared_codes": [
-				"RETIREMENT_ALLOWANCE",
-				"DISMISSAL_NOTICE_ALLOWANCE"
-			],
+			"declared_codes": ["RETIREMENT_ALLOWANCE", "DISMISSAL_NOTICE_ALLOWANCE"],
 			"case_kind": "RETIREMENT_INCOME_DECLARATION"
 		},
 		"references": [
@@ -5446,9 +4807,7 @@
 		"name": "Follow up a contribution corrected for a closed month",
 		"lookup": {},
 		"source_collection": "adhoc_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"adhoc_catalog": {
 				"where": {
@@ -5458,11 +4817,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code",
-					"name",
-					"lookup"
-				],
+				"fields": ["code", "name", "lookup"],
 				"limit": 1
 			},
 			"obligation": {
@@ -5473,9 +4828,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},

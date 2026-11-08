@@ -50,18 +50,5 @@
 		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
 		"id": "03ddba51-d51d-5f79-a393-df9c9a15caec",
 		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
-	},
-	{
-		"code": "COMPANY",
-		"name": "Company loan",
-		"references": [
-			{
-				"title": "Labor Code art.113(c): a loan may be deducted from wages only with the employee's written authorisation."
-			}
-		],
-		"lookup": {},
-		"subtotal_id": "f420455e-e189-513f-ba1a-39f2c836a3ca",
-		"id": "484cd147-4bd8-52a9-8947-350ff4a3f22b",
-		"settings_id": "17fe0728-31a9-5ef4-bc88-7bb6cdb6ac62"
 	}
 ]

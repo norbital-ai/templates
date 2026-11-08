@@ -375,11 +375,7 @@ export const entityColumns = (
 	]);
 
 const extensionColumns = (schema: unknown): readonly SheetColumn[] =>
-	flatten(
-		isJsonObject(schema) ? schema : {},
-		'Country requirements',
-		['employee_extension_data']
-	);
+	flatten(isJsonObject(schema) ? schema : {}, 'Country requirements', ['employee_extension_data']);
 
 export const profileColumns: readonly SheetColumn[] = [
 	column('Employee Number', 'text', ['$number'], '', {

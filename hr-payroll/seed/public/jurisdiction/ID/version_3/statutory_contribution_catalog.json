@@ -287,9 +287,7 @@
 		"code": "JKP",
 		"name": "BPJS Ketenagakerjaan — Jaminan Kehilangan Pekerjaan (job loss)",
 		"kind": "CONTRIBUTION",
-		"depends_on": [
-			"JKK"
-		],
+		"depends_on": ["JKK"],
 		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
 		"employer_cost_subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
 		"lookup": {},
@@ -337,13 +335,7 @@
 		"code": "PPH21",
 		"name": "Pajak Penghasilan Pasal 21 (income tax withholding)",
 		"kind": "TAX",
-		"depends_on": [
-			"JHT",
-			"JP",
-			"JKK",
-			"JKM",
-			"KESEHATAN"
-		],
+		"depends_on": ["JHT", "JP", "JKK", "JKM", "KESEHATAN"],
 		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
 		"employer_cost_subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
 		"lookup": {
@@ -960,12 +952,7 @@
 		"code": "PPH21_DTP",
 		"name": "PPh 21 borne by the government (DTP)",
 		"kind": "TAX",
-		"depends_on": [
-			"PPH21",
-			"JKK",
-			"JKM",
-			"KESEHATAN"
-		],
+		"depends_on": ["PPH21", "JKK", "JKM", "KESEHATAN"],
 		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
 		"lookup": {
 			"tax_year": 2026,
@@ -1304,11 +1291,7 @@
 		"code": "PPH21_BENEFIT_NONFINAL",
 		"name": "PPh21 non-final — benefit instalments in year three and later",
 		"kind": "TAX",
-		"depends_on": [
-			"PPH21",
-			"PPH21_BUKAN_PEGAWAI",
-			"PPH26"
-		],
+		"depends_on": ["PPH21", "PPH21_BUKAN_PEGAWAI", "PPH26"],
 		"subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
 		"employer_cost_subtotal_id": "c54e691f-1f7e-5a6e-938c-778e60932fd1",
 		"lookup": {

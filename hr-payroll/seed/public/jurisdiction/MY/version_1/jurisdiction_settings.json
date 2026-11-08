@@ -22,18 +22,11 @@
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": [
-							"kind",
-							"on"
-						],
+						"required": ["kind", "on"],
 						"properties": {
 							"kind": {
 								"type": "string",
-								"enum": [
-									"CHILD_BIRTH",
-									"CHILD_BIRTH_NO_ALLOWANCE",
-									"CHILD_DEATH"
-								],
+								"enum": ["CHILD_BIRTH", "CHILD_BIRTH_NO_ALLOWANCE", "CHILD_DEATH"],
 								"title": "What happened"
 							},
 							"on": {
@@ -68,11 +61,7 @@
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": [
-							"event_id",
-							"lifetime_number",
-							"notification_requirement_met"
-						],
+						"required": ["event_id", "lifetime_number", "notification_requirement_met"],
 						"properties": {
 							"event_id": {
 								"type": "string",
@@ -320,10 +309,7 @@
 								},
 								"tax_residency": {
 									"type": "string",
-									"enum": [
-										"RESIDENT",
-										"NON_RESIDENT"
-									],
+									"enum": ["RESIDENT", "NON_RESIDENT"],
 									"title": "MTD tax residence",
 									"description": "Income Tax Act 1967 s.7: residence for the basis year. Unrecorded, a citizen or permanent resident is charged as resident and a FOREIGNER as non-resident at 30% (s.107(2); MTD Specification 2026 D(a))."
 								},
@@ -420,22 +406,13 @@
 			"properties": {
 				"hrd_scope": {
 					"type": "string",
-					"enum": [
-						"PART_I",
-						"PART_II_NGO",
-						"OUT_OF_SCOPE"
-					],
+					"enum": ["PART_I", "PART_II_NGO", "OUT_OF_SCOPE"],
 					"title": "HRD employer scope",
 					"description": "Part I industry, listed Part II NGO activity, or excluded employer under the effective First Schedule."
 				},
 				"hrd_registration_class": {
 					"type": "string",
-					"enum": [
-						"COMPULSORY",
-						"OPTIONAL",
-						"NOT_REGISTERED",
-						"DEREGISTERED"
-					],
+					"enum": ["COMPULSORY", "OPTIONAL", "NOT_REGISTERED", "DEREGISTERED"],
 					"title": "HRD employer registration class",
 					"description": "Employer-level HRD Corp standing, retained after a headcount fall until approved deregistration."
 				},
@@ -500,7 +477,6 @@
 				"salary_ceiling": 6000,
 				"highest_midpoint": 5950,
 				"midpoint_offset": 50,
-				"consecutive": true,
 				"first_band_months": 24,
 				"first_band_days": 10,
 				"second_band_months": 60,

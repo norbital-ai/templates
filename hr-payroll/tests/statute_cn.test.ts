@@ -500,7 +500,10 @@ describe('the day rate', () => {
 		const day = payBasis(
 			{
 				run: {},
-				settings: { ...settings, conversions: { ...(settings.conversions as object), day: { basis: 'FIXED', days: 10 } } },
+				settings: {
+					...settings,
+					conversions: { ...(settings.conversions as object), day: { basis: 'FIXED', days: 10 } }
+				},
 				subtotals: [],
 				allowance: [
 					{ code: 'FIXED_ALLOWANCE', include_in_rate: true },

@@ -62,9 +62,7 @@
 							"description": "Calendar year the first part of this same benefit was paid, including payments before imported payroll history."
 						}
 					},
-					"required": [
-						"first_payment_year"
-					]
+					"required": ["first_payment_year"]
 				},
 				"pension_tax_history": {
 					"type": "object",
@@ -78,9 +76,7 @@
 							"description": "Calendar year the first part of this same benefit was paid, including payments before imported payroll history."
 						}
 					},
-					"required": [
-						"first_payment_year"
-					]
+					"required": ["first_payment_year"]
 				},
 				"ptkp_dependents_count": {
 					"type": "integer",
@@ -124,10 +120,7 @@
 								"description": "Required for a married female employee; true requires the actual local-government statement reference."
 							}
 						},
-						"required": [
-							"as_of",
-							"ptkp_dependents_count"
-						]
+						"required": ["as_of", "ptkp_dependents_count"]
 					}
 				},
 				"worksite_kbli": {
@@ -138,11 +131,7 @@
 				},
 				"umsp_job_category": {
 					"type": "string",
-					"enum": [
-						"BUS_DRIVER_MECHANIC",
-						"NURSING_MIDWIFERY",
-						"MEDICAL_SUPPORT"
-					],
+					"enum": ["BUS_DRIVER_MECHANIC", "NURSING_MIDWIFERY", "MEDICAL_SUPPORT"],
 					"title": "Job category (sector minimum wage)",
 					"description": "DKI Kep. Gubernur 33/2026 rows 58–59 (bus drivers and mechanics of private companies) and 61 (nursing and midwifery, medical support at a class A private hospital)."
 				},
@@ -203,10 +192,7 @@
 				},
 				"pph21_payment_cadence": {
 					"type": "string",
-					"enum": [
-						"MONTHLY",
-						"NON_MONTHLY"
-					],
+					"enum": ["MONTHLY", "NON_MONTHLY"],
 					"title": "Non-permanent worker tax payment cadence",
 					"description": "A non-permanent worker's tax cadence. MONTHLY uses monthly TER without an annual reckoning (PMK 168/2023 art.12(2)(c), annex III.2). NON_MONTHLY uses the daily TER on the average day, or art.17 on 50% above Rp2,500,000 a day (arts.12(2)(a)–(b), 16(2))."
 				},
@@ -317,10 +303,7 @@
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": [
-							"kind",
-							"on"
-						],
+						"required": ["kind", "on"],
 						"properties": {
 							"kind": {
 								"type": "string",
@@ -368,10 +351,7 @@
 			"properties": {
 				"enterprise_size_class": {
 					"type": "string",
-					"enum": [
-						"OTHER",
-						"MICRO_OR_SMALL"
-					],
+					"enum": ["OTHER", "MICRO_OR_SMALL"],
 					"title": "Enterprise size for BPJS",
 					"description": "Perpres 82/2018 art.32(4)–(5) as amended by Perpres 59/2024: micro and small enterprises are outside the ordinary UMP/UMK contribution floor. Perpres 109/2013 art.6(3), PP 37/2021 art.4(3) as amended: they are outside JP."
 				},
@@ -489,13 +469,7 @@
 				},
 				"risk_class": {
 					"type": "string",
-					"enum": [
-						"I",
-						"II",
-						"III",
-						"IV",
-						"V"
-					],
+					"enum": ["I", "II", "III", "IV", "V"],
 					"title": "JKK risk class",
 					"description": "The BPJS Ketenagakerjaan work-accident risk group I–V (PP 44/2015 art.16(1)); it sets the JKK employer rate."
 				},

@@ -22,17 +22,11 @@
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": [
-							"kind",
-							"on"
-						],
+						"required": ["kind", "on"],
 						"properties": {
 							"kind": {
 								"type": "string",
-								"enum": [
-									"CHILD_BIRTH",
-									"DISCIPLINARY_SUSPENSION"
-								],
+								"enum": ["CHILD_BIRTH", "DISCIPLINARY_SUSPENSION"],
 								"title": "What happened"
 							},
 							"on": {
@@ -56,10 +50,7 @@
 				},
 				"work_permit_basis": {
 					"type": "string",
-					"enum": [
-						"ROYAL_ORDINANCE",
-						"SECTION_62"
-					],
+					"enum": ["ROYAL_ORDINANCE", "SECTION_62"],
 					"title": "Basis of a foreign worker's permission to work",
 					"description": "Royal Ordinance on the Management of the Employment of Foreign Workers B.E. 2560 s.62: SECTION_62 when the worker is permitted under the investment-promotion, petroleum or another law the section names; the employer is then exempt from the s.13 notices."
 				},
@@ -90,10 +81,7 @@
 				},
 				"overtime_category": {
 					"type": "string",
-					"enum": [
-						"MANAGER",
-						"SECTION_65_OTHER"
-					],
+					"enum": ["MANAGER", "SECTION_65_OTHER"],
 					"title": "Overtime-exempt category (LPA s.65)",
 					"description": "Labour Protection Act B.E. 2541 s.65: MANAGER — power to hire, reward, cut wages or dismiss for the employer (s.65(1)): no overtime or holiday overtime pay, and no holiday pay unless agreed (s.66); SECTION_65_OTHER — the work listed in s.65(2)-(8): paid 1 × the hourly wage for overtime."
 				},
@@ -127,10 +115,7 @@
 				},
 				"special_severance_ground": {
 					"type": "string",
-					"enum": [
-						"TECHNOLOGY",
-						"RELOCATION"
-					],
+					"enum": ["TECHNOLOGY", "RELOCATION"],
 					"title": "Special severance ground",
 					"description": "Labour Protection Act B.E. 2541 ss.120-122."
 				},
@@ -197,9 +182,7 @@
 									"description": "Provident Fund Act B.E. 2530 (1987) s.10: a member contributes 2% to 15% of wages to the registered fund the employer set up."
 								}
 							},
-							"required": [
-								"kind"
-							]
+							"required": ["kind"]
 						},
 						"PND1": {
 							"type": "object",
@@ -305,10 +288,7 @@
 								},
 								"spouse_income_status": {
 									"type": "string",
-									"enum": [
-										"WITHOUT_INCOME",
-										"WITH_INCOME"
-									],
+									"enum": ["WITHOUT_INCOME", "WITH_INCOME"],
 									"title": "PND1: spouse income status",
 									"description": "Revenue Code s.47(1)(b): a 60,000 baht allowance for a spouse without income. s.47(3): a non-resident gets this only for a spouse in Thailand, on the annual return, not in payroll."
 								}
@@ -321,11 +301,7 @@
 							"properties": {
 								"kind": {
 									"type": "string",
-									"enum": [
-										"MEMBER",
-										"VOLUNTARY",
-										"EXEMPT"
-									],
+									"enum": ["MEMBER", "VOLUNTARY", "EXEMPT"],
 									"title": "Registration or exemption status"
 								}
 							}
@@ -407,10 +383,7 @@
 				},
 				"sso_reviewed_rate_percent": {
 					"type": "number",
-					"enum": [
-						3,
-						5
-					],
+					"enum": [3, 5],
 					"title": "SSO: documented rate for the southern disaster-relief review",
 					"description": "The nine-province rate of 3 percent for December 2025 to May 2026 applies without any entry (Ministry of Labour notification B.E. 2569, Royal Gazette 8 January 2026). Enter 5 only with an SSO assessment showing the employer is registered outside those provinces; the month and reference below must match it."
 				},
@@ -593,11 +566,7 @@
 				"paid_multiple": 1,
 				"unpaid_multiple": 2,
 				"rounding_step": 0.01,
-				"severance_taxed_grounds": [
-					"RETIREMENT",
-					"END_OF_CONTRACT",
-					"RESIGNATION"
-				],
+				"severance_taxed_grounds": ["RETIREMENT", "END_OF_CONTRACT", "RESIGNATION"],
 				"severance_daily_wages_limit": 400,
 				"severance_exemption_limit": 600000,
 				"paid_share": 0.5,

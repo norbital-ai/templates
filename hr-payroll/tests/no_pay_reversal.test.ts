@@ -12,9 +12,7 @@ import { ENTITY, pack, sealedLeave, uuid, workspace } from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const NOW = '2026-06-20T02:00:00.000Z';
-const terms = (
-	allowances: Record<string, { readonly amount: number }> = {}
-) =>
+const terms = (allowances: Record<string, { readonly amount: number }> = {}) =>
 	({
 		rate: { amount: 3120, unit: 'MONTHLY' },
 		normal_hours_per_day: 8,

@@ -230,9 +230,11 @@ export default automation('statutory_materialize', {
 			rows: readonly JsonObject[]
 		) {
 			if (rows.length === 0) return [];
-			const answer = yield* ctx.act.checked([{ callable, input: rows }]).pipe(
-				Effect.mapError((error) => new Refusal({ message: `${callable}: ${String(error)}` }))
-			);
+			const answer = yield* ctx.act
+				.checked([{ callable, input: rows }])
+				.pipe(
+					Effect.mapError((error) => new Refusal({ message: `${callable}: ${String(error)}` }))
+				);
 			if (answer.kind !== 'committed')
 				return yield* Effect.fail(
 					new Refusal({ message: `${callable}: the write was held for approval.` })
@@ -310,7 +312,10 @@ export default automation('statutory_materialize', {
 			if (input.merge === true) {
 				const dated = changes.filter((change) => plan.change_ids.includes(change.id));
 				const finished = [...new Set(dated.map((change) => change.finding_id))].filter(
-					(id) => !changes.some((change) => change.finding_id === id && change.effective_from !== plan.effective_from)
+					(id) =>
+						!changes.some(
+							(change) => change.finding_id === id && change.effective_from !== plan.effective_from
+						)
 				);
 				const answer = yield* ctx.act.checked([
 					{
@@ -318,7 +323,12 @@ export default automation('statutory_materialize', {
 						input: [
 							{
 								target: valueText(baselineRow, 'id'),
-								set: { effective_range: { from: fromOf(baselineRow), to: addDays(plan.effective_from, -1) } }
+								set: {
+									effective_range: {
+										from: fromOf(baselineRow),
+										to: addDays(plan.effective_from, -1)
+									}
+								}
 							}
 						]
 					},

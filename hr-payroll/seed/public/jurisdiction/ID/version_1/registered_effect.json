@@ -3,12 +3,7 @@
 		"code": "BPJS_KETENAGAKERJAAN_REMITTANCE",
 		"name": "BPJS Ketenagakerjaan contributions (JHT, JKK, JKM, JP)",
 		"lookup": {
-			"scheme_codes": [
-				"JHT",
-				"JP",
-				"JKK",
-				"JKM"
-			],
+			"scheme_codes": ["JHT", "JP", "JKK", "JKM"],
 			"date_offset_days": 15
 		},
 		"references": [
@@ -17,9 +12,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -66,9 +59,7 @@
 		"code": "BPJS_KESEHATAN_REMITTANCE",
 		"name": "BPJS Kesehatan contribution",
 		"lookup": {
-			"scheme_codes": [
-				"KESEHATAN"
-			],
+			"scheme_codes": ["KESEHATAN"],
 			"date_offset_days": 9
 		},
 		"references": [
@@ -78,9 +69,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -145,9 +134,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -194,9 +181,7 @@
 		"code": "DKPTKA_PAYMENT",
 		"name": "DKPTKA foreign-worker compensation fund",
 		"lookup": {
-			"scheme_codes": [
-				"DKPTKA"
-			]
+			"scheme_codes": ["DKPTKA"]
 		},
 		"references": [
 			{
@@ -205,9 +190,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -270,9 +253,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -321,9 +302,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -361,9 +340,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -397,9 +374,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -434,9 +409,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -459,12 +432,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"entity_id",
-					"employee_id",
-					"employment_id"
-				],
+				"fields": ["id", "entity_id", "employee_id", "employment_id"],
 				"limit": 10000
 			}
 		},
@@ -479,7 +447,6 @@
 		"code": "BPJS_KETENAGAKERJAAN_REGISTRATION",
 		"name": "BPJS Ketenagakerjaan registration of a new worker",
 		"lookup": {
-			"work_months_threshold": 6,
 			"date_offset_days": 30
 		},
 		"references": [
@@ -499,10 +466,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -528,7 +492,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nreturn planned == null || planned >= ctx.lookup.work_months_threshold;",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nreturn planned == null || planned >= ctx.lookup.foreign_employee_minimum_months;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_REGISTRATION', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS Ketenagakerjaan registration of a new worker',\n  due_on: add_days(ctx.entry.effective_range.from, ctx.lookup.date_offset_days),\n  occurrence_key: key,\n}];",
@@ -538,9 +502,7 @@
 	{
 		"code": "BPJS_KESEHATAN_REGISTRATION",
 		"name": "BPJS Kesehatan registration of a new worker",
-		"lookup": {
-			"work_months_threshold": 6
-		},
+		"lookup": {},
 		"references": [
 			{
 				"title": "Perpres 82/2018 arts.13–14, 17 as amended",
@@ -548,10 +510,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -577,7 +536,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nreturn planned == null || planned >= ctx.lookup.work_months_threshold;",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nreturn planned == null || planned >= ctx.lookup.foreign_employee_minimum_months;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const key = occurrence_key(['ID', 'BPJS_KESEHATAN_REGISTRATION', ctx.entry.entity_id, ctx.entry.id]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS Kesehatan registration of a new worker',\n  due_on: ctx.entry.effective_range.from,\n  occurrence_key: key,\n}];",
@@ -599,10 +558,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -649,10 +605,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -697,10 +650,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -749,10 +699,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -803,10 +750,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -851,10 +795,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -904,10 +845,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -941,9 +879,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -994,9 +930,7 @@
 			}
 		],
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1046,9 +980,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1123,9 +1055,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1177,9 +1107,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1232,9 +1160,7 @@
 			}
 		],
 		"source_collection": "adhoc_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1289,10 +1215,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1340,10 +1263,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1390,9 +1310,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1439,9 +1357,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1506,9 +1422,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1562,9 +1476,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1599,9 +1511,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1636,10 +1546,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1676,7 +1583,6 @@
 		"code": "BPJS_KETENAGAKERJAAN_WAGE_CHANGE",
 		"name": "BPJS_KETENAGAKERJAAN_WAGE_CHANGE",
 		"lookup": {
-			"work_months_threshold": 6,
 			"working_day_offset": 7
 		},
 		"references": [
@@ -1687,10 +1593,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1726,7 +1629,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nif (planned != null && planned < ctx.lookup.work_months_threshold) return false;\nconst earlierSealed = (c) => {\n  if (c.id === ctx.entry.id) return false;\n  if (c.status !== 'SEALED') return false;\n  return c.effective_range.from < ctx.entry.effective_range.from;\n};\nconst previous = first(\n  ctx.reads.employee_contract\n    .filter(earlierSealed)\n    .toSorted((a, b) => (a.effective_range.from < b.effective_range.from ? 1 : -1)),\n);\nif (previous == null) return false;\nconst before = get(previous, 'terms.rate.amount', null);\nif (before == null) return false;\nconst after = get(ctx.entry, 'terms.rate.amount', null);\nif (after == null) return false;\nreturn before !== after;",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nif (planned != null && planned < ctx.lookup.foreign_employee_minimum_months) return false;\nconst earlierSealed = (c) => {\n  if (c.id === ctx.entry.id) return false;\n  if (c.status !== 'SEALED') return false;\n  return c.effective_range.from < ctx.entry.effective_range.from;\n};\nconst previous = first(\n  ctx.reads.employee_contract\n    .filter(earlierSealed)\n    .toSorted((a, b) => (a.effective_range.from < b.effective_range.from ? 1 : -1)),\n);\nif (previous == null) return false;\nconst before = get(previous, 'terms.rate.amount', null);\nif (before == null) return false;\nconst after = get(ctx.entry, 'terms.rate.amount', null);\nif (after == null) return false;\nreturn before !== after;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_WAGE_CHANGE', ctx.entry.entity_id, ctx.entry.employee_id, ctx.entry.effective_range.from, get(ctx.entry, 'terms.rate.amount', null)]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS_KETENAGAKERJAAN_WAGE_CHANGE',\n  due_on: add_working_days(ctx.entry.effective_range.from, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
@@ -1737,7 +1640,6 @@
 		"code": "BPJS_KETENAGAKERJAAN_EXIT_REPORT",
 		"name": "BPJS_KETENAGAKERJAAN_EXIT_REPORT",
 		"lookup": {
-			"work_months_threshold": 6,
 			"working_day_offset": 7
 		},
 		"references": [
@@ -1748,10 +1650,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1777,7 +1676,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "const exit = get(ctx.entry, 'employee_extension_data', {});\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (get(exit, 'termination_cause', null) == null) return false;\nif (ctx.entry.effective_range.to == null) return false;\nconst planned = get(exit, 'indonesia_work_months_planned', null);\nreturn planned == null || planned >= ctx.lookup.work_months_threshold;",
+		"condition": "const exit = get(ctx.entry, 'employee_extension_data', {});\nif (ctx.entry.status !== 'SEALED' && ctx.entry.status !== 'VOID') return false;\nif (get(exit, 'termination_cause', null) == null) return false;\nif (ctx.entry.effective_range.to == null) return false;\nconst planned = get(exit, 'indonesia_work_months_planned', null);\nreturn planned == null || planned >= ctx.lookup.foreign_employee_minimum_months;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_EXIT_REPORT', ctx.entry.entity_id, ctx.entry.id, ctx.entry.effective_range.to]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS_KETENAGAKERJAAN_EXIT_REPORT',\n  due_on: add_working_days(ctx.entry.effective_range.to, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
@@ -1798,10 +1697,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1856,9 +1752,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1895,9 +1789,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1934,9 +1826,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1963,7 +1853,6 @@
 		"code": "BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE",
 		"name": "BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE",
 		"lookup": {
-			"work_months_threshold": 6,
 			"working_day_offset": 7
 		},
 		"references": [
@@ -1974,10 +1863,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2013,7 +1899,7 @@
 				"limit": 10000
 			}
 		},
-		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nif (planned != null && planned < ctx.lookup.work_months_threshold) return false;\nconst earlierSealed = (c) => {\n  if (c.id === ctx.entry.id) return false;\n  if (c.status !== 'SEALED') return false;\n  return c.effective_range.from < ctx.entry.effective_range.from;\n};\nconst previous = first(\n  ctx.reads.employee_contract\n    .filter(earlierSealed)\n    .toSorted((a, b) => (a.effective_range.from < b.effective_range.from ? 1 : -1)),\n);\nif (previous == null) return false;\nconst beforeMarital = get(previous, 'payroll.marital_status', null);\nconst afterMarital = get(ctx.entry, 'payroll.marital_status', null);\nconst beforeDependents = get(previous, 'employee_extension_data.dependents_count', null);\nconst afterDependents = get(ctx.entry, 'employee_extension_data.dependents_count', null);\nreturn beforeMarital !== afterMarital || beforeDependents !== afterDependents;",
+		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nconst planned = get(ctx.entry, 'employee_extension_data.indonesia_work_months_planned', null);\nif (planned != null && planned < ctx.lookup.foreign_employee_minimum_months) return false;\nconst earlierSealed = (c) => {\n  if (c.id === ctx.entry.id) return false;\n  if (c.status !== 'SEALED') return false;\n  return c.effective_range.from < ctx.entry.effective_range.from;\n};\nconst previous = first(\n  ctx.reads.employee_contract\n    .filter(earlierSealed)\n    .toSorted((a, b) => (a.effective_range.from < b.effective_range.from ? 1 : -1)),\n);\nif (previous == null) return false;\nconst beforeMarital = get(previous, 'payroll.marital_status', null);\nconst afterMarital = get(ctx.entry, 'payroll.marital_status', null);\nconst beforeDependents = get(previous, 'employee_extension_data.dependents_count', null);\nconst afterDependents = get(ctx.entry, 'employee_extension_data.dependents_count', null);\nreturn beforeMarital !== afterMarital || beforeDependents !== afterDependents;",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "const key = occurrence_key(['ID', 'BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE', ctx.entry.entity_id, ctx.entry.employee_id, ctx.entry.effective_range.from, get(ctx.entry, 'payroll.marital_status', null), get(ctx.entry, 'employee_extension_data.dependents_count', null)]);\nif (ctx.reads.obligation.some((o) => o.occurrence_key === key)) return [];\nreturn [{\n  entity_id: ctx.entry.entity_id,\n  employee_id: ctx.entry.employee_id,\n  employment_id: ctx.entry.id,\n  title: 'BPJS_KETENAGAKERJAAN_FAMILY_DATA_CHANGE',\n  due_on: add_working_days(ctx.entry.effective_range.from, ctx.lookup.working_day_offset, ctx.reads.holiday, [0, 6]),\n  occurrence_key: key,\n}];",
@@ -2039,10 +1925,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2088,10 +1971,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2137,9 +2017,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2176,9 +2054,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2201,12 +2077,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"entity_id",
-					"employee_id",
-					"employment_id"
-				],
+				"fields": ["id", "entity_id", "employee_id", "employment_id"],
 				"limit": 10000
 			}
 		},
@@ -2227,9 +2098,7 @@
 			"title": "Long sick spell with no case: open a Long illness case so pay steps down from the start of the illness"
 		},
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -2239,9 +2108,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			},
 			"leave_catalog_entry": {
@@ -2260,9 +2127,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"days"
-				],
+				"fields": ["days"],
 				"limit": 500
 			},
 			"obligation": {
@@ -2273,9 +2138,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -2296,9 +2159,7 @@
 		"name": "Follow up a contribution corrected for a closed month",
 		"lookup": {},
 		"source_collection": "adhoc_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"adhoc_catalog": {
 				"where": {
@@ -2308,11 +2169,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code",
-					"name",
-					"lookup"
-				],
+				"fields": ["code", "name", "lookup"],
 				"limit": 1
 			},
 			"obligation": {
@@ -2323,9 +2180,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},

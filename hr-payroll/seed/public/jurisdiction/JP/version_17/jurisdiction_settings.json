@@ -23,10 +23,7 @@
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": [
-							"kind",
-							"on"
-						],
+						"required": ["kind", "on"],
 						"properties": {
 							"kind": {
 								"type": "string",
@@ -457,17 +454,11 @@
 			"title": "JP entity extension data",
 			"additionalProperties": false,
 			"description": "entity_extension_data. The entity region is the prefecture code of the prefectures rule set (HOKKAIDO … OKINAWA): it selects the 協会けんぽ rate and the regional minimum wage.",
-			"required": [
-				"workers_accident_rate_per_mille"
-			],
+			"required": ["workers_accident_rate_per_mille"],
 			"properties": {
 				"ei_industry_class": {
 					"type": "string",
-					"enum": [
-						"GENERAL",
-						"AGRICULTURE_SAKE",
-						"CONSTRUCTION"
-					],
+					"enum": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 					"default": "GENERAL",
 					"title": "雇用保険の事業の種類",
 					"description": "徴収法 art.12(4): general, agriculture/forestry/fisheries/sake brewing (with the listed exceptions that take the general rate), or construction."
@@ -509,10 +500,7 @@
 				},
 				"health_insurer": {
 					"type": "string",
-					"enum": [
-						"KYOKAI",
-						"SOCIETY"
-					],
+					"enum": ["KYOKAI", "SOCIETY"],
 					"default": "KYOKAI",
 					"title": "健康保険の保険者",
 					"description": "協会けんぽ (KYOKAI) or a 健康保険組合 (SOCIETY); a society employer records its own rates below."
@@ -575,12 +563,7 @@
 					"type": "string",
 					"title": "労働時間制度",
 					"description": "STANDARD, VARIABLE (変形労働時間制), FLEX (フレックスタイム制, one-month settlement) or DEEMED (みなし・裁量労働).",
-					"enum": [
-						"STANDARD",
-						"VARIABLE",
-						"FLEX",
-						"DEEMED"
-					],
+					"enum": ["STANDARD", "VARIABLE", "FLEX", "DEEMED"],
 					"default": "STANDARD"
 				},
 				"deemed_daily_hours": {
@@ -594,14 +577,7 @@
 					"type": "string",
 					"title": "時間外労働の上限規制の区分",
 					"description": "GENERAL, CONSTRUCTION, DRIVER (960 h), DOCTOR_A (960 h), DOCTOR_BC (1,860 h) or NEW_TECH_RD (outside the limits) (労働基準法 arts.36(11), 139–141).",
-					"enum": [
-						"GENERAL",
-						"CONSTRUCTION",
-						"DRIVER",
-						"DOCTOR_A",
-						"DOCTOR_BC",
-						"NEW_TECH_RD"
-					],
+					"enum": ["GENERAL", "CONSTRUCTION", "DRIVER", "DOCTOR_A", "DOCTOR_BC", "NEW_TECH_RD"],
 					"default": "GENERAL"
 				},
 				"disaster_recovery_work": {
@@ -661,11 +637,7 @@
 				},
 				"continued_employment_measure": {
 					"type": "string",
-					"enum": [
-						"RAISED_AGE",
-						"CONTINUED_EMPLOYMENT",
-						"NO_RETIREMENT_AGE"
-					],
+					"enum": ["RAISED_AGE", "CONTINUED_EMPLOYMENT", "NO_RETIREMENT_AGE"],
 					"title": "高年齢者雇用確保措置",
 					"description": "高年齢者雇用安定法 art.9(1): the measure securing employment to 65."
 				},

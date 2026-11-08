@@ -747,10 +747,7 @@ const near = (actual: number | undefined, expected: number) =>
 	assert.ok(Math.abs((actual ?? 0) - expected) < 0.01, `${actual ?? 0} is not ${expected}`);
 const AUGUST = '2026-08-20T02:00:00.000Z';
 
-const ID_SEED = seedOf(
-	INDONESIA,
-	terms(10_000_000, { HOUSE_ALLOWANCE: { amount: 1_000_000 } })
-);
+const ID_SEED = seedOf(INDONESIA, terms(10_000_000, { HOUSE_ALLOWANCE: { amount: 1_000_000 } }));
 const TH_SEED = seedOf(THAILAND, terms(28_000, { FIXED_ALLOWANCE: { amount: 2000 } }));
 
 describe('a no-pay day in Indonesia', () => {
@@ -765,10 +762,7 @@ describe('a no-pay day in Indonesia', () => {
 		}).pipe(Effect.provide(workspace({ seed: ID_SEED, now: JUNE })))
 	);
 	it.live('a half day is half, a variable allowance stays out', () => {
-		const seed = seedOf(
-			INDONESIA,
-			terms(11_000_000, { SPECIAL_ALLOWANCE: { amount: 900_000 } })
-		);
+		const seed = seedOf(INDONESIA, terms(11_000_000, { SPECIAL_ALLOWANCE: { amount: 900_000 } }));
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* take(t, seed, code, [{ date: PlainDate('2026-06-10'), part: 'AM' }]);
@@ -812,7 +806,9 @@ describe('a no-pay day in Indonesia', () => {
 			assert.match(String(late), /already run/);
 		}).pipe(Effect.provide(workspace({ seed: ID_SEED, now: AUGUST })))
 	);
-	it.live('an entry not yet paid is deleted, not reversed', () => notYetPaid(ID_SEED, code, 10_000_000));
+	it.live('an entry not yet paid is deleted, not reversed', () =>
+		notYetPaid(ID_SEED, code, 10_000_000)
+	);
 });
 
 const notYetPaid = (seed: Seed, code: string, full: number) =>
@@ -876,7 +872,9 @@ describe('a no-pay day in Thailand', () => {
 			assert.equal(given, 967.74);
 		}).pipe(Effect.provide(workspace({ seed: TH_SEED, now: AUGUST })))
 	);
-	it.live('an entry not yet paid is deleted, not reversed', () => notYetPaid(TH_SEED, code, 28_000));
+	it.live('an entry not yet paid is deleted, not reversed', () =>
+		notYetPaid(TH_SEED, code, 28_000)
+	);
 	it.live('a date in a period that has run is refused', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -979,11 +977,7 @@ describe('the catalogs', () => {
 				const leave = read(join(root, code, version, 'leave_catalog.json'));
 				const unpaid = leave.filter((one) => one.pay_treatment === 'UNPAID');
 				// the rows the salary basis takes: no conversion line, and the set the rule names
-				assert.deepEqual(
-					unpaid.map((one) => one.code).sort(),
-					[...taken].sort(),
-					version
-				);
+				assert.deepEqual(unpaid.map((one) => one.code).sort(), [...taken].sort(), version);
 				for (const one of unpaid) {
 					assert.equal(one.conversion, undefined, `${version} ${one.code}`);
 					assert.ok(one.subtotal_id !== null, `${version} ${one.code} posts its refund`);

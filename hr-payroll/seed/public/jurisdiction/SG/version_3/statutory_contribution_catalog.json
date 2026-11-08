@@ -23,9 +23,7 @@
 		"code": "CPF",
 		"name": "Central Provident Fund",
 		"kind": "CONTRIBUTION",
-		"depends_on": [
-			"CPF_AW"
-		],
+		"depends_on": ["CPF_AW"],
 		"subtotal_id": "9e5f643a-e386-5ddf-997c-abe871198bb8",
 		"employer_cost_subtotal_id": "802ccc34-51a9-55a2-bbf2-0e9001fe11e3",
 		"lookup": {
@@ -93,12 +91,7 @@
 					"amount": 3
 				}
 			],
-			"races": [
-				"CHINESE",
-				"SINO INDIAN",
-				"SINO JAPANESE",
-				"SINO KADAZAN"
-			]
+			"races": ["CHINESE", "SINO INDIAN", "SINO JAPANESE", "SINO KADAZAN"]
 		},
 		"eligibility": "const facts = ctx.subject.employment.employee_extension_data;\nif (Number(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) === 0) return false;\nconst approved =\n\tget(facts, 'student_training_class', 'NONE') === 'LOCAL_APPROVED_TRAINING' &&\n\tget(facts, 'student_training_approved', false) === true &&\n\tget(facts, 'student_training_moe_subsidised', false) === true &&\n\tget(facts, 'student_training_evidence', '') !== '';\nif (approved) return false;\nconst status = get(ctx.subject.employment.terms, 'residency_status', '');\nif (!['CITIZEN', 'PERMANENT_RESIDENT'].includes(status)) return false;\nif (!ctx.lookup.races.includes(get(facts, 'race', ''))) return false;\nreturn get(facts, 'statutory.CDAC.shg_opted_out', false) !== true;",
 		"employee_amount": "const month = get(ctx, 'balances.month', {});\nconst paidMonth = String(get(ctx.run, 'pay_date', ctx.run.salary_coverage.from)).slice(0, 7);\nconst heldIn = (code) => (Object.hasOwn(month, paidMonth + '.' + code) ? Number(month[paidMonth + '.' + code]) : 0);\nconst coverage = ctx.run.salary_coverage;\nconst wholeMonth =\n\tString(coverage.from) === String(month_start(coverage.from)) && String(coverage.to) === String(month_end(coverage.from));\nconst separate = get(ctx.run, 'kind', '') !== 'OFF_CYCLE' && wholeMonth && heldIn('BASIC') > 0;\nconst before = (code) => (separate ? 0 : heldIn(code));\nconst facts = ctx.subject.employment.employee_extension_data;\nconst declared = get(\n\tfacts,\n\t'statutory.CDAC.shg_monthly_amount',\n\tnull\n);\nconst owed =\n\tdeclared != null\n\t\t? Number(declared)\n\t\t: bracket(\n\t\t\t\tNumber(get(ctx, 'subtotals.ADDITIONAL_WAGES', 0)) + before('ADDITIONAL_WAGES'),\n\t\t\t\tctx.lookup.brackets\n\t\t\t);\nreturn owed - before('CDAC.employee');",
@@ -437,52 +430,6 @@
 			}
 		],
 		"id": "4accafe7-6a56-59a3-b49c-46f843d85e21",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"employer_cost_subtotal_id": null,
-		"balance_window": "YEAR"
-	},
-	{
-		"code": "APPENDIX_8A",
-		"name": "Appendix 8A benefits-in-kind (Form IR8A item d8)",
-		"kind": "TAX",
-		"depends_on": [],
-		"subtotal_id": "9e5f643a-e386-5ddf-997c-abe871198bb8",
-		"lookup": {},
-		"eligibility": "return false;",
-		"employee_amount": "return 0;",
-		"employer_amount": "return 0;",
-		"references": [
-			{
-				"title": "Income Tax Act 1947 s.10(1)(b); IRAS, Form IR8A and Appendix 8A notes (YA2027) — benefits-in-kind are reportable employment income, not a charge",
-				"locator": "Appendix 8A",
-				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-form-ir8a-and-appendix-8a-for-ya2027.pdf",
-				"effective_from": "2026-07-01"
-			}
-		],
-		"id": "51527500-4672-5690-9f53-212a063378c0",
-		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
-		"employer_cost_subtotal_id": null,
-		"balance_window": "YEAR"
-	},
-	{
-		"code": "APPENDIX_8B",
-		"name": "Appendix 8B share-plan gains (Form IR8A item d7)",
-		"kind": "TAX",
-		"depends_on": [],
-		"subtotal_id": "9e5f643a-e386-5ddf-997c-abe871198bb8",
-		"lookup": {},
-		"eligibility": "return false;",
-		"employee_amount": "return 0;",
-		"employer_amount": "return 0;",
-		"references": [
-			{
-				"title": "Income Tax Act 1947 s.10(1)(b),(6); IRAS, Appendix 8B notes (YA2027) — ESOP/ESOW gains are reportable employment income, not a charge",
-				"locator": "Appendix 8B",
-				"url": "https://www.iras.gov.sg/docs/default-source/individual-income-tax/employers/explanatory-notes-on-appendix-8b-for-ya2027.pdf",
-				"effective_from": "2026-07-01"
-			}
-		],
-		"id": "641ee916-d0f2-536a-8ff5-bd212d787841",
 		"settings_id": "519aae39-121e-506a-a69a-6fb253cf85ed",
 		"employer_cost_subtotal_id": null,
 		"balance_window": "YEAR"

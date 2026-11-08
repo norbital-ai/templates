@@ -3,9 +3,7 @@
 		"code": "retract-exit-effects",
 		"name": "Retract Exit Effects",
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -42,9 +40,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -73,9 +69,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -104,9 +98,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -138,9 +130,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -173,9 +163,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -195,9 +183,7 @@
 						}
 					}
 				},
-				"fields": [
-					"breakdown"
-				]
+				"fields": ["breakdown"]
 			}
 		},
 		"condition": "// js\nreturn true;",
@@ -223,9 +209,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -257,10 +241,7 @@
 						}
 					}
 				},
-				"fields": [
-					"payroll_run_id",
-					"breakdown"
-				]
+				"fields": ["payroll_run_id", "breakdown"]
 			}
 		},
 		"condition": "// js\nreturn true;",
@@ -268,10 +249,7 @@
 		"target_action": "create",
 		"effects": "// js\n// 全民健康保險法 §34; NHIA: (單位薪資總額 − 受僱者投保金額總額) × 2.11%, netted across the unit for the payment month. A second run in the month owes only the step it adds.\nconst key = 'NHI_EMPLOYER_SUPPLEMENTARY_PREMIUM:' + ctx.entry.id;\nif (ctx.reads.obligation.some((task) => task.occurrence_key === key)) return [];\nconst income = (slip) => {\n\tconst at = (code) => get(get(slip, 'breakdown.checkpoints', []).find((row) => row.code === code), 'value', 0);\n\treturn Math.max(0, at('SALARY_INCOME') + at('ADDITIONAL_WAGES') - at('ORDINARY_WAGES'));\n};\nconst total = sum(ctx.reads.payslip.map(income));\nconst own = sum(ctx.reads.payslip.filter((slip) => slip.payroll_run_id === ctx.entry.id).map(income));\nconst month = ctx.entry.pay_date.substring(0, 7);\nconst insured = get(ctx.subject.employer, 'entity_extension_data.nhi_month_insured_totals.' + month + '.amount', null);\nconst task = (title) => [{\n\tentity_id: ctx.entry.entity_id,\n\ttitle: title,\n\tdue_on: month_end(add_months(ctx.entry.pay_date, 1)),\n\toccurrence_key: key\n}];\nif (insured == null) return task('NHI employer supplementary premium (§34): record the reviewed insured total for ' + month);\nconst premium = (paid) => round(Math.max(0, paid - insured) * ctx.lookup.nhi_supplement_rate, 1, 'HALF_UP');\nconst amount = premium(total) - premium(total - own);\nif (!(amount > 0)) return [];\nreturn task('NHI employer supplementary premium (§34): NT$' + amount.toFixed(0));",
 		"id": "51e6b48a-7171-56c8-9cc6-fb4c5ed19cf3",
-		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3",
-		"lookup": {
-			"nhi_supplement_rate": 0.0211
-		}
+		"settings_id": "5d838bfa-3490-52a3-aaf3-4c5cae75c5a3"
 	},
 	{
 		"code": "WAGE_PAYMENT_AND_PAYSLIP",
@@ -289,9 +267,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -320,9 +296,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -354,9 +328,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -385,9 +357,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -416,9 +386,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -447,9 +415,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -478,9 +444,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -510,9 +474,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -541,9 +503,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -572,10 +532,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -605,10 +562,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -640,10 +594,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -675,10 +626,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -709,10 +657,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -741,9 +686,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -773,9 +716,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -807,9 +748,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -841,9 +780,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -873,9 +810,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -911,9 +846,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -942,9 +875,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -969,12 +900,7 @@
 		"name": "Severance payment",
 		"lookup": {
 			"days": 30,
-			"severance_grounds": [
-				"ARTICLE_11",
-				"ARTICLE_13_PROVISO",
-				"ARTICLE_14",
-				"ARTICLE_20"
-			]
+			"severance_grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20"]
 		},
 		"references": [
 			{
@@ -982,9 +908,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1009,14 +933,7 @@
 		"name": "LSA retirement payment",
 		"lookup": {
 			"days": 30,
-			"severance_grounds": [
-				"ARTICLE_11",
-				"ARTICLE_13_PROVISO",
-				"ARTICLE_14",
-				"ARTICLE_20"
-			],
-			"foreign_professional_covered": true,
-			"old_system_cutoff": "2005-07-01"
+			"severance_grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20"]
 		},
 		"references": [
 			{
@@ -1024,9 +941,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1039,7 +954,7 @@
 				"limit": 1
 			}
 		},
-		"condition": "// 勞基法 §53–55: an exit that owes no severance, by a worker with service on the Act who meets a retirement ground, is a retirement to settle.\nif (ctx.entry.status !== 'SEALED') return false;\nconst to = ctx.entry.effective_range.to;\nif (to == null) return false;\nconst extension = get(ctx.entry, 'employee_extension_data', {});\nconst facts = get(extension, 'facts', {});\nif (ctx.lookup.severance_grounds.includes(get(extension, 'lsa_termination_ground', 'OTHER'))) return false;\nconst start = get(ctx.entry, 'service_started_on', ctx.entry.effective_range.from);\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst foreign = get(ctx.entry, 'terms.residency_status', 'CITIZEN') === 'FOREIGNER' && !spouse && !professional;\nconst lsa = get(facts, 'statutory.LABOR_PENSION.pension_system', 'NEW') === 'LSA';\nconst recorded = Number(get(extension, 'old_system_service_months', 0));\nconst on_the_act = lsa || foreign || recorded > 0 || start < ctx.lookup.old_system_cutoff;\nif (!on_the_act) return false;\nif (get(extension, 'retirement_disability', false) === true) return true;\nconst born = get(ctx.entry, 'payroll.date_of_birth', null);\nif (born == null) return false;\nconst age = age_on(born, to);\nconst months = calendar_completed_months(start, add_days(to, 1));\nreturn ctx.lookup.retirement_eligibility.some((band) => {\n\tif (!(months >= band.months)) return false;\n\treturn band.age == null || age >= band.age;\n});",
+		"condition": "// 勞基法 §53–55: an exit that owes no severance, by a worker with service on the Act who meets a retirement ground, is a retirement to settle.\nif (ctx.entry.status !== 'SEALED') return false;\nconst to = ctx.entry.effective_range.to;\nif (to == null) return false;\nconst extension = get(ctx.entry, 'employee_extension_data', {});\nconst facts = extension;\nif (ctx.lookup.severance_grounds.includes(get(extension, 'lsa_termination_ground', 'OTHER'))) return false;\nconst start = get(ctx.entry, 'service_started_on', ctx.entry.effective_range.from);\nconst professional = ctx.lookup.foreign_professional_covered === true && get(facts, 'foreign_professional', false) === true;\nconst spouse = get(facts, 'foreign_spouse_of_national', false) === true;\nconst foreign = get(ctx.entry, 'terms.residency_status', 'CITIZEN') === 'FOREIGNER' && !spouse && !professional;\nconst lsa = get(facts, 'statutory.LABOR_PENSION.pension_system', 'NEW') === 'LSA';\nconst recorded = Number(get(extension, 'old_system_service_months', 0));\nconst on_the_act = lsa || foreign || recorded > 0 || start < ctx.lookup.old_system_cutoff;\nif (!on_the_act) return false;\nif (get(extension, 'retirement_disability', false) === true) return true;\nconst born = get(ctx.entry, 'payroll.date_of_birth', null);\nif (born == null) return false;\nconst age = age_on(born, to);\nconst months = calendar_completed_months(start, add_days(to, 1));\nreturn ctx.lookup.retirement_eligibility.some((band) => {\n\tif (!(months >= band.months)) return false;\n\treturn band.age == null || age >= band.age;\n});",
 		"target_collection": "obligation",
 		"target_action": "create",
 		"effects": "// js\nconst key = 'exit:' + ctx.entry.id + ':RETIREMENT_PAYMENT:' + ctx.entry.effective_range.to;\nconst raised = ctx.reads.obligation.some((task) => task.occurrence_key === key);\nreturn raised ? [] : [{\n\tentity_id: ctx.entry.entity_id,\n\temployment_id: ctx.entry.id,\n\ttitle: 'LSA retirement payment',\n\tdue_on: add_days(ctx.entry.effective_range.to, ctx.lookup.days),\n\toccurrence_key: key\n}];",
@@ -1051,11 +966,7 @@
 		"name": "Layoff report to the authority",
 		"lookup": {
 			"days": 10,
-			"notice_grounds": [
-				"ARTICLE_11",
-				"ARTICLE_13_PROVISO",
-				"ARTICLE_20"
-			]
+			"notice_grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_20"]
 		},
 		"references": [
 			{
@@ -1065,9 +976,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1091,11 +1000,7 @@
 		"code": "TERMINATION_NOTICE",
 		"name": "Termination notice or pay in lieu",
 		"lookup": {
-			"notice_grounds": [
-				"ARTICLE_11",
-				"ARTICLE_13_PROVISO",
-				"ARTICLE_20"
-			]
+			"notice_grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_20"]
 		},
 		"references": [
 			{
@@ -1109,9 +1014,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1140,9 +1043,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1174,9 +1075,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1209,10 +1108,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1235,10 +1131,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"employee_id",
-					"effective_range"
-				]
+				"fields": ["employee_id", "effective_range"]
 			}
 		},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.subject.employer, 'entity_extension_data.work_rules_approval_reference', '') !== '') return false;\nconst on = ctx.entry.effective_range.from;\nconst staff = ctx.reads.employee_contract\n  .filter((row) => {\n    const to = get(row, 'effective_range.to', null);\n    return to == null || to >= on;\n  })\n  .map((row) => row.employee_id)\n  .filter((id, index, all) => all.indexOf(id) === index).length;\nreturn staff >= ctx.lookup.workers;",
@@ -1258,9 +1151,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1290,9 +1181,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1316,12 +1205,7 @@
 		"code": "INVOLUNTARY_SEPARATION_CERTIFICATE",
 		"name": "Involuntary separation certificate",
 		"lookup": {
-			"severance_grounds": [
-				"ARTICLE_11",
-				"ARTICLE_13_PROVISO",
-				"ARTICLE_14",
-				"ARTICLE_20"
-			]
+			"severance_grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20"]
 		},
 		"references": [
 			{
@@ -1330,9 +1214,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1361,10 +1243,7 @@
 			}
 		],
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1406,9 +1285,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1441,9 +1318,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1473,9 +1348,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1510,9 +1383,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1535,10 +1406,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"employee_id",
-					"effective_range"
-				]
+				"fields": ["employee_id", "effective_range"]
 			}
 		},
 		"condition": "const on = ctx.entry.salary_coverage.to;\nconst staff = ctx.reads.employee_contract\n  .filter((row) => {\n    const to = get(row, 'effective_range.to', null);\n    return to == null || to >= on;\n  })\n  .map((row) => row.employee_id)\n  .filter((id, index, all) => all.indexOf(id) === index).length;\nif (staff < ctx.lookup.workers) return false;\nconst counted = Number(get(ctx.subject.employer, 'entity_extension_data.disabled_employees_counted', 0));\nreturn counted < Math.max(1, Math.floor(staff * ctx.lookup.quota_rate));",
@@ -1561,9 +1429,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1596,9 +1462,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1630,9 +1494,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1656,10 +1518,7 @@
 		"code": "MASS_LAYOFF_PLAN",
 		"name": "Mass layoff plan notified sixty days before",
 		"lookup": {
-			"grounds": [
-				"ARTICLE_11",
-				"ARTICLE_20"
-			],
+			"grounds": ["ARTICLE_11", "ARTICLE_20"],
 			"window_days": 59,
 			"advance_notice_days": 60,
 			"small_site_upper": 30,
@@ -1681,9 +1540,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"employee_contract": {
 				"where": {
@@ -1724,9 +1581,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1760,9 +1615,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1796,9 +1649,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1840,9 +1691,7 @@
 			}
 		],
 		"source_collection": "obligation",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1876,9 +1725,7 @@
 			}
 		],
 		"source_collection": "obligation",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1912,9 +1759,7 @@
 			}
 		],
 		"source_collection": "obligation",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1953,9 +1798,7 @@
 			}
 		],
 		"source_collection": "obligation",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1988,9 +1831,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2020,9 +1861,7 @@
 			}
 		],
 		"source_collection": "work_interruption_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2042,9 +1881,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			}
 		},
@@ -2069,9 +1906,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -2113,9 +1948,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -2154,10 +1987,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2180,10 +2010,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"employee_id",
-					"effective_range"
-				]
+				"fields": ["employee_id", "effective_range"]
 			}
 		},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.subject.employer, 'entity_extension_data.sexual_harassment_complaint_channel', false) === true) return false;\nconst on = ctx.entry.effective_range.from;\nconst staff = ctx.reads.employee_contract\n  .filter((row) => {\n    const to = get(row, 'effective_range.to', null);\n    return to == null || to >= on;\n  })\n  .map((row) => row.employee_id)\n  .filter((id, index, all) => all.indexOf(id) === index).length;\nreturn staff >= ctx.lookup.workers && staff < ctx.lookup.workers_below;",
@@ -2207,10 +2034,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2233,10 +2057,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"employee_id",
-					"effective_range"
-				]
+				"fields": ["employee_id", "effective_range"]
 			}
 		},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.subject.employer, 'entity_extension_data.sexual_harassment_prevention_rules', false) === true) return false;\nconst on = ctx.entry.effective_range.from;\nconst staff = ctx.reads.employee_contract\n  .filter((row) => {\n    const to = get(row, 'effective_range.to', null);\n    return to == null || to >= on;\n  })\n  .map((row) => row.employee_id)\n  .filter((id, index, all) => all.indexOf(id) === index).length;\nreturn staff >= ctx.lookup.workers;",
@@ -2260,10 +2081,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2288,9 +2106,7 @@
 		"name": "Follow up a contribution corrected for a closed month",
 		"lookup": {},
 		"source_collection": "adhoc_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"adhoc_catalog": {
 				"where": {
@@ -2300,11 +2116,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code",
-					"name",
-					"lookup"
-				],
+				"fields": ["code", "name", "lookup"],
 				"limit": 1
 			},
 			"obligation": {
@@ -2315,9 +2127,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},

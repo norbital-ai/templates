@@ -251,10 +251,7 @@
 		for (const row of repayments) {
 			if (row.payroll_run_id == null) continue;
 			const key = String(row.loan_id);
-			paid.set(
-				key,
-				(paid.get(key) ?? 0) + (row.reverses != null ? -1 : 1) * amountOf(row.amount)
-			);
+			paid.set(key, (paid.get(key) ?? 0) + (row.reverses != null ? -1 : 1) * amountOf(row.amount));
 		}
 		return loanRows
 			.map((row) => ({ row, amount: amountOf(row.quantity) - (paid.get(String(row.id)) ?? 0) }))

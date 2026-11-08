@@ -25,9 +25,7 @@
 		"code": "HEALTH_BONUS",
 		"name": "健康保険・介護保険 標準賞与額 (health insurance on bonuses)",
 		"kind": "CONTRIBUTION",
-		"depends_on": [
-			"HEALTH"
-		],
+		"depends_on": ["HEALTH"],
 		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"employer_cost_subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"lookup": {
@@ -55,9 +53,7 @@
 		"code": "PENSION",
 		"name": "厚生年金保険 (employees' pension insurance)",
 		"kind": "CONTRIBUTION",
-		"depends_on": [
-			"HEALTH"
-		],
+		"depends_on": ["HEALTH"],
 		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"employer_cost_subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"lookup": {},
@@ -80,9 +76,7 @@
 		"code": "PENSION_BONUS",
 		"name": "厚生年金保険 標準賞与額 (pension on bonuses)",
 		"kind": "CONTRIBUTION",
-		"depends_on": [
-			"PENSION"
-		],
+		"depends_on": ["PENSION"],
 		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"employer_cost_subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"lookup": {
@@ -109,9 +103,7 @@
 		"code": "CHILD_CONTRIBUTION",
 		"name": "子ども・子育て拠出金 (employer child contribution)",
 		"kind": "CONTRIBUTION",
-		"depends_on": [
-			"PENSION"
-		],
+		"depends_on": ["PENSION"],
 		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"employer_cost_subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"lookup": {
@@ -161,9 +153,7 @@
 		"code": "EI_BONUS",
 		"name": "雇用保険 賞与 (employment insurance on bonuses)",
 		"kind": "CONTRIBUTION",
-		"depends_on": [
-			"EI"
-		],
+		"depends_on": ["EI"],
 		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"employer_cost_subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"lookup": {
@@ -213,7 +203,7 @@
 		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"employer_cost_subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"lookup": {
-			"rate": 2e-05
+			"rate": 2e-5
 		},
 		"eligibility": "// js\nconst classification = get(ctx.subject.employment.terms, 'work_classification', 'EMPLOYEE');\nreturn classification !== 'OFFICER' && get(ctx.subtotals, 'ADDITIONAL_WAGES', 0) > 0;",
 		"employee_amount": "// js\nreturn 0;",
@@ -234,14 +224,7 @@
 		"code": "INCOME_TAX",
 		"name": "源泉所得税及び復興特別所得税 (salary and bonus withholding)",
 		"kind": "TAX",
-		"depends_on": [
-			"HEALTH",
-			"HEALTH_BONUS",
-			"PENSION",
-			"PENSION_BONUS",
-			"EI",
-			"EI_BONUS"
-		],
+		"depends_on": ["HEALTH", "HEALTH_BONUS", "PENSION", "PENSION_BONUS", "EI", "EI_BONUS"],
 		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"employer_cost_subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"lookup": {
@@ -2660,12 +2643,7 @@
 		"code": "YEAR_END_ADJUSTMENT",
 		"name": "年末調整 (year-end adjustment)",
 		"kind": "TAX",
-		"depends_on": [
-			"INCOME_TAX",
-			"HEALTH",
-			"PENSION",
-			"EI"
-		],
+		"depends_on": ["INCOME_TAX", "HEALTH", "PENSION", "EI"],
 		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"employer_cost_subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"lookup": {
@@ -2790,9 +2768,7 @@
 		"code": "RESIDENT_TAX_RETIREMENT",
 		"name": "退職所得の分離課税 住民税 (resident tax on retirement income)",
 		"kind": "TAX",
-		"depends_on": [
-			"RETIREMENT_TAX"
-		],
+		"depends_on": ["RETIREMENT_TAX"],
 		"subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"employer_cost_subtotal_id": "5a9d1ba3-0d8d-59dc-9465-01f15a9e9a90",
 		"lookup": {

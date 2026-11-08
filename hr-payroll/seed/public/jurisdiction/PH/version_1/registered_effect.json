@@ -9,9 +9,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
 		"target_collection": "obligation",
@@ -30,9 +28,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
 		"target_collection": "obligation",
@@ -53,9 +49,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tctx.entry.engagement !== 'PAYEE';",
 		"target_collection": "obligation",
@@ -77,9 +71,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tctx.entry.engagement !== 'PAYEE';",
 		"target_collection": "obligation",
@@ -101,9 +93,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tctx.entry.engagement !== 'PAYEE';",
 		"target_collection": "obligation",
@@ -125,9 +115,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tctx.entry.engagement !== 'PAYEE';",
 		"target_collection": "obligation",
@@ -149,9 +137,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
 		"target_collection": "obligation",
@@ -173,9 +159,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
 		"target_collection": "obligation",
@@ -195,9 +179,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'terms.residency_status', null) === null) return false;\nreturn !['CITIZEN', 'PERMANENT_RESIDENT'].includes(get(ctx.entry, 'terms.residency_status', ''));",
 		"target_collection": "obligation",
@@ -218,9 +200,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null &&\n\tget(ctx.entry, 'employee_extension_data.termination_cause', null) !== null;",
 		"target_collection": "obligation",
@@ -242,9 +222,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
 		"target_collection": "obligation",
@@ -264,9 +242,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'terms.statutory_work_category', null) === 'DOMESTIC';",
 		"target_collection": "obligation",
@@ -286,9 +262,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'terms.probation_period', null) !== null;",
 		"target_collection": "obligation",
@@ -311,9 +285,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'payroll.date_of_birth', null) !== null;",
 		"target_collection": "obligation",
@@ -335,9 +307,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'effective_range.to', null) === null) return false;\nreturn get(ctx.entry, 'terms.statutory_work_category', null) === 'DOMESTIC';",
 		"target_collection": "obligation",
@@ -357,9 +327,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'terms.probation_period', null) !== null;",
 		"target_collection": "obligation",
@@ -380,9 +348,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
 		"target_collection": "obligation",
@@ -402,9 +368,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'terms.statutory_work_category', null) === 'CAREGIVER';",
 		"target_collection": "obligation",
@@ -425,9 +389,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' && get(ctx.entry, 'effective_range.to', null) !== null;",
 		"target_collection": "obligation",
@@ -449,9 +411,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -470,9 +430,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -491,9 +449,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -513,9 +469,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -537,9 +491,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -559,9 +511,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED';",
 		"target_collection": "obligation",
@@ -583,9 +533,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.entry, 'entity_extension_data.processes_sensitive_pi_1000', null) === true) return true;\nif (get(ctx.entry, 'entity_extension_data.npc_processing_likely_risk', null) === true) return true;\nreturn get(ctx.entry, 'entity_extension_data.npc_automated_decisions_or_profiling', null) === true;",
 		"target_collection": "obligation",
@@ -607,9 +555,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.status === 'SEALED' &&\n\tget(ctx.entry, 'entity_extension_data.npc_registered_on', null) !== null;",
 		"target_collection": "obligation",
@@ -635,9 +581,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'EMPLOYMENT_CERTIFICATE_REQUEST' &&\n\tget(ctx.entry, 'closed_on', null) === null;",
 		"target_collection": "obligation",
@@ -657,9 +601,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'FINAL_COMPENSATION_PAYMENT' &&\n\tget(ctx.entry, 'scheduled_on', null) !== null;",
 		"target_collection": "obligation",
@@ -681,9 +623,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'WORK_ACCIDENT';",
 		"target_collection": "obligation",
@@ -705,9 +645,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'WORK_ACCIDENT' &&\n\t['DEATH', 'PERMANENT_TOTAL_DISABILITY'].includes(get(ctx.entry, 'inputs.outcome', null));",
 		"target_collection": "obligation",
@@ -727,9 +665,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'DANGEROUS_OCCURRENCE';",
 		"target_collection": "obligation",
@@ -751,9 +687,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'FLEXIBLE_WORK_ARRANGEMENT';",
 		"target_collection": "obligation",
@@ -773,9 +707,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'TELECOMMUTING_PROGRAM';",
 		"target_collection": "obligation",
@@ -797,9 +729,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'SUSPENSION_EXTENSION';",
 		"target_collection": "obligation",
@@ -818,9 +748,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'SOLO_PARENT_FLEXIBLE_SCHEDULE';",
 		"target_collection": "obligation",
@@ -842,9 +770,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'PERSONAL_DATA_BREACH';",
 		"target_collection": "obligation",
@@ -866,9 +792,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {},
 		"condition": "return ctx.entry.kind === 'PERSONAL_DATA_BREACH';",
 		"target_collection": "obligation",
@@ -887,9 +811,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -899,9 +821,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -925,9 +845,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -937,9 +855,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -963,9 +879,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -975,9 +889,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -1002,9 +914,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1014,9 +924,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -1038,9 +946,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1050,9 +956,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -1074,9 +978,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1086,9 +988,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -1111,9 +1011,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1123,9 +1021,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -1147,9 +1043,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1159,9 +1053,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -1183,9 +1075,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1195,9 +1085,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -1219,9 +1107,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1231,9 +1117,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -1255,9 +1139,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1267,9 +1149,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -1291,9 +1171,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1303,9 +1181,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -1327,9 +1203,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1339,9 +1213,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -1363,9 +1235,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1375,9 +1245,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -1399,9 +1267,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1411,9 +1277,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -1435,9 +1299,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1447,9 +1309,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -1465,9 +1325,7 @@
 		"name": "Follow up a contribution corrected for a closed month",
 		"lookup": {},
 		"source_collection": "adhoc_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"adhoc_catalog": {
 				"where": {
@@ -1477,11 +1335,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code",
-					"name",
-					"lookup"
-				],
+				"fields": ["code", "name", "lookup"],
 				"limit": 1
 			},
 			"obligation": {
@@ -1492,9 +1346,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},

@@ -79,7 +79,9 @@
 			])
 		);
 	const set = (model: string, key: 'limit' | 'fields', next: number | readonly string[]) =>
-		commit(entries.map(([name, value]) => [name, name === model ? { ...value, [key]: next } : value]));
+		commit(
+			entries.map(([name, value]) => [name, name === model ? { ...value, [key]: next } : value])
+		);
 	const rename = (from: string, to: string) => {
 		if (to === from || entries.some(([name]) => name === to)) return;
 		commit(entries.map(([name, value]) => [name === from ? to : name, value]));
@@ -138,7 +140,7 @@
 					</Button>
 				</Inline>
 				<FilterEditor
-					model={model}
+					{model}
 					value={{ where: value.where ?? {} }}
 					readonly={disabled}
 					{variables}

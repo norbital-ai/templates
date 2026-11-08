@@ -34,7 +34,7 @@ const ruleOf = (code: string, ruleCode: string): Rule => {
 	return {
 		...rule,
 		lookup: {
-			...(settings?.lookup as Record<string, unknown> | undefined)?.['constants'] as object,
+			...((settings?.lookup as Record<string, unknown> | undefined)?.['constants'] as object),
 			...settings?.lookup,
 			...rule.lookup
 		}
@@ -70,11 +70,7 @@ describe('seeded overtime eligibility', () => {
 			return {
 				// the engine puts the month's wage on the row (salary plus included allowances; a day or hour is multiplied out)
 				month_wage:
-					unit === 'MONTHLY'
-						? amount + fixed
-						: unit === 'DAILY'
-							? amount * 26
-							: amount * 8 * 26,
+					unit === 'MONTHLY' ? amount + fixed : unit === 'DAILY' ? amount * 26 : amount * 8 * 26,
 				subject: {
 					employment: {
 						terms: {
@@ -105,10 +101,7 @@ describe('seeded overtime eligibility', () => {
 			false
 		);
 		assert.equal(
-			eligible(
-				rule,
-				context(threshold, { allowances: { VAR: { amount: 1000 } } })
-			),
+			eligible(rule, context(threshold, { allowances: { VAR: { amount: 1000 } } })),
 			true
 		);
 		assert.equal(eligible(rule, context(150, { unit: 'DAILY' })), true);

@@ -542,7 +542,7 @@ describe('twice a month', () => {
 						entity_id: ENTITY,
 						employment_id: CONTRACT,
 						catalog_id: noPay,
-						days,
+						days
 					}
 				]);
 				yield* onCycle(t, '2026-06-2');
@@ -717,7 +717,8 @@ describe('a no-pay day', () => {
 						const [august] = yield* slips(t, '2026-08');
 						assert.ok(june !== undefined && july !== undefined && august !== undefined);
 						const full = checkpoint(august.checkpoints, one.wages);
-						const taken = checkpoint(august.checkpoints, one.wages) - checkpoint(june.checkpoints, one.wages);
+						const taken =
+							checkpoint(august.checkpoints, one.wages) - checkpoint(june.checkpoints, one.wages);
 						assert.ok(taken > 0);
 						// a reversal is one refund line on NET; the current month's allowance lines stay whole
 						for (const code of one.noPayLines.filter((line) => line !== 'UNPAID_LEAVE'))

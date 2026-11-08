@@ -94,7 +94,7 @@ export default model('allowance_catalog', {
 				changes.some(
 					({ before, set }) =>
 						({ ...before, ...set }).include_in_rate === true &&
-						({ ...before, ...set }).party === 'EMPLOYER'
+						{ ...before, ...set }.party === 'EMPLOYER'
 				)
 			)
 				return yield* ctx.refuse('An employer-only allowance cannot be part of the employee rate.');

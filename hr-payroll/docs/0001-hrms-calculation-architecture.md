@@ -93,7 +93,7 @@ Every fact has one owner. A value is read from its owner; it is not copied into 
 | `entity`, `entity_profile_version`  | Legal identity, registrations, payment schedule, non-working weekdays, disbursement, time zone                             | Employee pay terms                   |
 | `employee_contract`                 | Agreed rate and its unit, normal hours per day, normal hours and days per week, agreed allowances, exit terms, dated facts | Statutory law                        |
 | `contract_change`                   | A dated change filed ahead of its day                                                                                      | Anything payroll or the ledger reads |
-| Catalogue definitions               | Eligibility, conversion, target subtotal, lookup and the role fields its family declares                                    | Employee-specific amounts            |
+| Catalogue definitions               | Eligibility, conversion, target subtotal, lookup and the role fields its family declares                                   | Employee-specific amounts            |
 | Catalogue entries                   | Dated employee activity and its evidence                                                                                   | Pay calculation results              |
 | `ledger_entry` + `employee_balance` | Posted movements and their cumulative projection                                                                           | Calculation inputs                   |
 | `payroll_run` + `payslip`           | Run state, coverage, source capture, per-employee totals, the breakdown as calculated                                      | Figures a later run reads            |
@@ -186,7 +186,7 @@ Each later subtotal's value is the previous subtotal plus every employee line wh
 | Producer              | Payroll line                          | Ledger                                            |
 | --------------------- | ------------------------------------- | ------------------------------------------------- |
 | allowance             | cash, `party` from the catalogue      | none                                              |
-| overtime              | cash, employee                         | none                                              |
+| overtime              | cash, employee                        | none                                              |
 | leave encashment      | cash from `conversion`                | the entry posted its days when it was created     |
 | leave taken, `PAID`   | none, or a `DEDUCT` from `conversion` | the entry posted its days when it was created     |
 | leave taken, `UNPAID` | none; prorates base pay               | the entry posted its days when it was created     |
@@ -403,13 +403,13 @@ Every definition carries `code`, `name`, `settings_id`, a `lookup`, `references`
 
 Leave, claim, adhoc and loan entries carry `entity_id`, `employment_id`, `catalog_id`, optional `payroll_run_id` and evidence. `payroll_run_id` locks the row once a run captures it; the lock is never a payslip. Family fields:
 
-| Entry          | Fields                                                                                                                  |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Entry          | Fields                                                                                                   |
+| -------------- | -------------------------------------------------------------------------------------------------------- |
 | leave          | `days` — non-empty `{ date, part: AM \| PM }[]`; quantity is `days.length / 2`; `encashment`, `reverses` |
-| claim          | `quantity`, `unit`, `incurred_on`, `reverses`                                                                           |
-| adhoc          | `description`, `quantity`, `unit`, `incurred_on`, `reverses`                                                            |
-| loan           | `quantity` (principal), `repayment_period`; no reversal flag                                                            |
-| loan repayment | `loan_id`, `amount`, `paid_on`, `payment_reference`, `reverses`                                                         |
+| claim          | `quantity`, `unit`, `incurred_on`, `reverses`                                                            |
+| adhoc          | `description`, `quantity`, `unit`, `incurred_on`, `reverses`                                             |
+| loan           | `quantity` (principal), `repayment_period`; no reversal flag                                             |
+| loan repayment | `loan_id`, `amount`, `paid_on`, `payment_reference`, `reverses`                                          |
 
 There is no `quantity`, `unit` or session object on leave, no advance date/reference or repayment plan on loans, and no principal/interest/fee allocation on repayments.
 
@@ -441,26 +441,26 @@ An off-cycle run pays the contracts in its period, so a leaver's goes on the per
 
 Expressions are deterministic JavaScript function bodies with explicit returns, run by the bounded interpreter. Missing values are unknown, never zero. No database access, ambient clock or undeclared calls.
 
-| Evaluation      | Context                                                               |
-| --------------- | --------------------------------------------------------------------- |
-| `ctx.subject`   | employee, employment, employer data                                   |
-| `ctx.entry`     | catalogue entry and its admitted quantity/unit                        |
-| `ctx.lookup`    | the jurisdiction's global lookup under the row's own                  |
-| `ctx.balances`  | `ytd`, `statutory_contribution`, `month`, `years`                     |
-| `ctx.base_pay`  | the running checkpoint; default base pay at the first                 |
-| `ctx.day_rate`  | the jurisdiction's day rate for this person                           |
-| `ctx.hour_rate` | the jurisdiction's hour rate for this person                          |
-| `ctx.month_wage` | the person's monthly wage, included allowances with it               |
-| `ctx.calendar_days` | calendar days of the salary coverage                              |
-| `ctx.working_days` | ordinary working days of the salary coverage                        |
-| `ctx.subtotals` | completed earlier subtotal results only                               |
-| `ctx.statutory` | completed earlier statutory results by scheme code                    |
-| `ctx.overtime`  | the run's overtime pay, in statutory evaluation                       |
-| `ctx.work`      | the period's roster days and their priced minutes                     |
-| `ctx.run`       | payroll frame during a run                                            |
-| `ctx.reads`     | declared reads for validation and registered effects                  |
-| `ctx.event`     | the write a rule or effect answers to; the fact an entitlement counts |
-| `ctx.as_of`     | the date the expression is evaluated for                              |
+| Evaluation          | Context                                                               |
+| ------------------- | --------------------------------------------------------------------- |
+| `ctx.subject`       | employee, employment, employer data                                   |
+| `ctx.entry`         | catalogue entry and its admitted quantity/unit                        |
+| `ctx.lookup`        | the jurisdiction's global lookup under the row's own                  |
+| `ctx.balances`      | `ytd`, `statutory_contribution`, `month`, `years`                     |
+| `ctx.base_pay`      | the running checkpoint; default base pay at the first                 |
+| `ctx.day_rate`      | the jurisdiction's day rate for this person                           |
+| `ctx.hour_rate`     | the jurisdiction's hour rate for this person                          |
+| `ctx.month_wage`    | the person's monthly wage, included allowances with it                |
+| `ctx.calendar_days` | calendar days of the salary coverage                                  |
+| `ctx.working_days`  | ordinary working days of the salary coverage                          |
+| `ctx.subtotals`     | completed earlier subtotal results only                               |
+| `ctx.statutory`     | completed earlier statutory results by scheme code                    |
+| `ctx.overtime`      | the run's overtime pay, in statutory evaluation                       |
+| `ctx.work`          | the period's roster days and their priced minutes                     |
+| `ctx.run`           | payroll frame during a run                                            |
+| `ctx.reads`         | declared reads for validation and registered effects                  |
+| `ctx.event`         | the write a rule or effect answers to; the fact an entitlement counts |
+| `ctx.as_of`         | the date the expression is evaluated for                              |
 
 ## 9. Governing constraints
 

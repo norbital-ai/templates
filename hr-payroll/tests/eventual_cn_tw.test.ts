@@ -521,7 +521,9 @@ describe('Taiwan’s month of salary', () => {
 							}
 						},
 						lookup: {
-							...(settings?.lookup as Record<string, unknown> | undefined)?.['constants'] as object,
+							...((settings?.lookup as Record<string, unknown> | undefined)?.[
+								'constants'
+							] as object),
 							...settings?.lookup,
 							...row.lookup
 						},

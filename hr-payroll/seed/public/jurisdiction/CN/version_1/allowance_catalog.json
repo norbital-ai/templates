@@ -149,12 +149,7 @@
 		"lookup": {
 			"region": "SH",
 			"monthly": 300,
-			"months": [
-				6,
-				7,
-				8,
-				9
-			]
+			"months": [6, 7, 8, 9]
 		},
 		"references": [
 			{

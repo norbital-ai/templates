@@ -27,7 +27,15 @@ const salary = (settings: JsonObject, absent: readonly string[]) => {
 		adhoc_catalog: [],
 		loan_catalog: [],
 		employee: {},
-		employment: { id: 'contract', terms: { rate: { amount: 3100, unit: 'MONTHLY' }, normal_hours_per_day: 8, normal_hours_per_week: 40, normal_days_per_week: 5 } },
+		employment: {
+			id: 'contract',
+			terms: {
+				rate: { amount: 3100, unit: 'MONTHLY' },
+				normal_hours_per_day: 8,
+				normal_hours_per_week: 40,
+				normal_days_per_week: 5
+			}
+		},
 		employer: {},
 		balance: { account: {} },
 		entries: {},

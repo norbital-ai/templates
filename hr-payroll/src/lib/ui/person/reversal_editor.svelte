@@ -48,25 +48,13 @@ reversed yet. An entry no run has sealed is deleted, not reversed.
 					'leave_catalog_entry.catalog_id': { fields: ['code'] },
 					claim_catalog_entry: {
 						where: { employment_id: { is: { employee_id: { eq: person } } } },
-						fields: [
-							'quantity',
-							'incurred_on',
-							'payroll_run_id',
-										'reverses',
-							'catalog_id'
-						],
+						fields: ['quantity', 'incurred_on', 'payroll_run_id', 'reverses', 'catalog_id'],
 						limit: 10000
 					},
 					'claim_catalog_entry.catalog_id': { fields: ['code'] },
 					adhoc_catalog_entry: {
 						where: { employment_id: { is: { employee_id: { eq: person } } } },
-						fields: [
-							'quantity',
-							'incurred_on',
-							'payroll_run_id',
-										'reverses',
-							'catalog_id'
-						],
+						fields: ['quantity', 'incurred_on', 'payroll_run_id', 'reverses', 'catalog_id'],
 						limit: 10000
 					},
 					'adhoc_catalog_entry.catalog_id': { fields: ['code'] },

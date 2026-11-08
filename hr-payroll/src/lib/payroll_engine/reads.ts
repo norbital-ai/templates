@@ -83,8 +83,17 @@ export const READS_SHAPE = {
 	of: {
 		kind: 'object',
 		fields: {
-			where: { kind: 'json', optional: true, help: 'The filter over the model, as a saved filter writes it.' },
-			limit: { kind: 'number', optional: true, min: 1, help: 'The most rows this layer may answer.' },
+			where: {
+				kind: 'json',
+				optional: true,
+				help: 'The filter over the model, as a saved filter writes it.'
+			},
+			limit: {
+				kind: 'number',
+				optional: true,
+				min: 1,
+				help: 'The most rows this layer may answer.'
+			},
 			fields: {
 				kind: 'list',
 				of: { kind: 'text' },

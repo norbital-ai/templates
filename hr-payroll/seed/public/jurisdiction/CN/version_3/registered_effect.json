@@ -15,9 +15,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -56,9 +54,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -113,9 +109,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -161,9 +155,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -209,9 +201,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -251,9 +241,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -293,9 +281,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -334,10 +320,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -376,10 +359,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -417,10 +397,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -458,10 +435,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -499,10 +473,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -541,10 +512,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -583,10 +551,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -629,10 +594,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -658,9 +620,7 @@
 						}
 					}
 				},
-				"fields": [
-					"date"
-				],
+				"fields": ["date"],
 				"limit": 1000
 			}
 		},
@@ -684,10 +644,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -728,10 +685,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -779,9 +733,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -821,10 +773,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -863,10 +812,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -897,9 +843,7 @@
 		"name": "Work-injury recognition application",
 		"lookup": {
 			"title": "Work-injury recognition application",
-			"catalog_codes": [
-				"WORK_INJURY_LEAVE"
-			],
+			"catalog_codes": ["WORK_INJURY_LEAVE"],
 			"due_days": 30
 		},
 		"references": [
@@ -908,9 +852,7 @@
 			}
 		],
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -936,9 +878,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			}
 		},
@@ -962,10 +902,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -991,11 +928,7 @@
 						}
 					}
 				},
-				"fields": [
-					"entity_id",
-					"effective_range",
-					"status"
-				],
+				"fields": ["entity_id", "effective_range", "status"],
 				"limit": 100
 			}
 		},
@@ -1020,10 +953,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1049,11 +979,7 @@
 						}
 					}
 				},
-				"fields": [
-					"entity_id",
-					"effective_range",
-					"status"
-				],
+				"fields": ["entity_id", "effective_range", "status"],
 				"limit": 100
 			}
 		},
@@ -1077,10 +1003,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1106,11 +1029,7 @@
 						}
 					}
 				},
-				"fields": [
-					"entity_id",
-					"effective_range",
-					"status"
-				],
+				"fields": ["entity_id", "effective_range", "status"],
 				"limit": 100
 			}
 		},
@@ -1133,10 +1052,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1175,10 +1091,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1216,9 +1129,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1259,9 +1170,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1304,9 +1213,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1346,9 +1253,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1388,9 +1293,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1433,9 +1336,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1474,10 +1375,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1516,10 +1414,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1558,10 +1453,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1592,11 +1484,7 @@
 		"name": "Separate consent for a medical certificate",
 		"lookup": {
 			"title": "Separate consent for a medical certificate",
-			"catalog_codes": [
-				"SICK_LEAVE",
-				"WORK_INJURY_LEAVE",
-				"MATERNITY_LEAVE"
-			]
+			"catalog_codes": ["SICK_LEAVE", "WORK_INJURY_LEAVE", "MATERNITY_LEAVE"]
 		},
 		"references": [
 			{
@@ -1606,9 +1494,7 @@
 			}
 		],
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1634,9 +1520,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			}
 		},
@@ -1664,10 +1548,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1693,11 +1574,7 @@
 						}
 					}
 				},
-				"fields": [
-					"entity_id",
-					"effective_range",
-					"status"
-				],
+				"fields": ["entity_id", "effective_range", "status"],
 				"limit": 100
 			}
 		},
@@ -1721,9 +1598,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1768,10 +1643,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1812,10 +1684,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1855,10 +1724,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1897,9 +1763,7 @@
 			}
 		],
 		"source_collection": "obligation",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1940,9 +1804,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1980,9 +1842,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2026,9 +1886,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2070,9 +1928,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2114,9 +1970,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2159,9 +2013,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2206,9 +2058,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2243,9 +2093,7 @@
 		"name": "Follow up a contribution corrected for a closed month",
 		"lookup": {},
 		"source_collection": "adhoc_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"adhoc_catalog": {
 				"where": {
@@ -2255,11 +2103,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code",
-					"name",
-					"lookup"
-				],
+				"fields": ["code", "name", "lookup"],
 				"limit": 1
 			},
 			"obligation": {
@@ -2270,9 +2114,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},

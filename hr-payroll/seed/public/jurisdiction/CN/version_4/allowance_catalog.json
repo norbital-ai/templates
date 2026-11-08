@@ -27,7 +27,7 @@
 			}
 		],
 		"eligibility": "return true;",
-		"conversion": "// js\n// 工资支付暂行规定 第十一条、第十二条: no wage for days not worked. A fixed allowance is paid for the days BASIC pays, so it falls and returns with the no-pay lines there, and BASIC stays the salary alone.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst amount = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nconst coverage = ctx.run.salary_coverage;\nconst off = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nlet working = 0;\nfor (let date = coverage.from; date <= coverage.to; date = add_days(date, 1)) if (!off.includes(weekday(date))) working += 1;\nconst hours = Number(get(terms, 'normal_hours_per_month', working * Number(get(terms, 'normal_hours_per_day', 8))));\nconst salary = unit === 'DAILY' ? rate * working : unit === 'HOURLY' ? rate * hours : rate;\nreturn salary > 0 ? (amount * ctx.subtotals.BASIC) / salary : amount;",
+		"conversion": "// js\n// 工资支付暂行规定 第十一条、第十二条: no wage for days not worked. A fixed allowance is paid for the days BASIC pays, so it falls and returns with the no-pay lines there, and BASIC stays the salary alone.\nconst terms = ctx.subject.employment.terms;\nconst unit = get(terms, 'rate.unit', 'MONTHLY');\nconst rate = Number(get(terms, 'rate.amount', 0));\nconst amount = Number(get(terms, 'allowances.FIXED_ALLOWANCE.amount', 0));\nconst coverage = ctx.run.salary_coverage;\nconst off = get(ctx.subject.employer, 'payment_schedule.non_working_weekdays', [0, 6]);\nlet working = 0;\nfor (let date = coverage.from; date <= coverage.to; date = add_days(date, 1)) if (!off.includes(weekday(date))) working += 1;\nconst hours = working * Number(get(terms, 'normal_hours_per_day', 8));\nconst salary = unit === 'DAILY' ? rate * working : unit === 'HOURLY' ? rate * hours : rate;\nreturn salary > 0 ? (amount * ctx.subtotals.BASIC) / salary : amount;",
 		"incurred_on": "return ctx.as_of;",
 		"party": "EMPLOYEE",
 		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
@@ -149,12 +149,7 @@
 		"lookup": {
 			"region": "SH",
 			"monthly": 300,
-			"months": [
-				6,
-				7,
-				8,
-				9
-			]
+			"months": [6, 7, 8, 9]
 		},
 		"references": [
 			{

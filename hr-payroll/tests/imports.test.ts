@@ -335,8 +335,8 @@ describe('entry workbook', () => {
 							{
 								employment_id: employee,
 								catalog_id: leaveCatalog,
-								days: [{ date: '2026-03-05', part: 'AM' }],
-									}
+								days: [{ date: '2026-03-05', part: 'AM' }]
+							}
 						]
 					}
 				),

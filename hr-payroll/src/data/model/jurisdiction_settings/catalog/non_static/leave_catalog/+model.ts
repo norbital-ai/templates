@@ -54,10 +54,7 @@ export default model('leave_catalog', {
 		transform: function* (rows, ctx) {
 			if (
 				rows.some(
-					(row) =>
-						row.pay_treatment === 'UNPAID' &&
-						row.conversion != null &&
-						row.conversion !== ''
+					(row) => row.pay_treatment === 'UNPAID' && row.conversion != null && row.conversion !== ''
 				)
 			)
 				return yield* ctx.refuse('An unpaid leave row cannot also carry a conversion.');
@@ -83,7 +80,7 @@ export default model('leave_catalog', {
 				'references',
 				'eligibility',
 				'incurred_on',
-				'direction',
+				'direction'
 			]
 		},
 		transform: function* (changes, ctx) {
@@ -91,8 +88,8 @@ export default model('leave_catalog', {
 				changes.some(
 					({ before, set }) =>
 						({ ...before, ...set }).pay_treatment === 'UNPAID' &&
-						({ ...before, ...set }).conversion != null &&
-						({ ...before, ...set }).conversion !== ''
+						{ ...before, ...set }.conversion != null &&
+						{ ...before, ...set }.conversion !== ''
 				)
 			)
 				return yield* ctx.refuse('An unpaid leave row cannot also carry a conversion.');

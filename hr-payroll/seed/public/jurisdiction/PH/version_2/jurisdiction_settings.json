@@ -129,20 +129,13 @@
 				},
 				"ebet_program": {
 					"type": "string",
-					"enum": [
-						"GENERAL",
-						"APPRENTICESHIP",
-						"UPSKILLING"
-					],
+					"enum": ["GENERAL", "APPRENTICESHIP", "UPSKILLING"],
 					"title": "Registered EBET programme",
 					"description": "Customer input. RA 12063 (Enterprise-Based Education and Training Framework Act) s.4: the programme an INTERN or APPRENTICE contract is enrolled in — general training (an allowance, no wage floor, s.13(a)), apprenticeship (75% of the floor, s.13(b)), upskilling (the full wage, s.12)."
 				},
 				"mine_worker": {
 					"type": "string",
-					"enum": [
-						"UNDERGROUND",
-						"SURFACE"
-					],
+					"enum": ["UNDERGROUND", "SURFACE"],
 					"title": "Mine worker",
 					"description": "Customer input. RA 8558 / RA 10757: retirement from fifty, compulsory at sixty."
 				},
@@ -198,10 +191,7 @@
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": [
-							"kind",
-							"on"
-						],
+						"required": ["kind", "on"],
 						"properties": {
 							"kind": {
 								"type": "string",

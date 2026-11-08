@@ -22,10 +22,7 @@
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": [
-							"kind",
-							"on"
-						],
+						"required": ["kind", "on"],
 						"properties": {
 							"kind": {
 								"type": "string",
@@ -95,10 +92,7 @@
 				},
 				"retirement_category": {
 					"type": "string",
-					"enum": [
-						"FEMALE_50",
-						"FEMALE_55"
-					],
+					"enum": ["FEMALE_50", "FEMALE_55"],
 					"title": "Original statutory retirement age (women)",
 					"description": "全国人民代表大会常务委员会《关于实施渐进式延迟法定退休年龄的决定》(2024年9月13日, 自2025年1月1日) 及《国务院关于渐进式延迟法定退休年龄的办法》第二条: 男职工和原法定退休年龄为五十五周岁的女职工每四个月延迟一个月, 分别逐步延迟至六十三周岁和五十八周岁; 原法定退休年龄为五十周岁的女职工每二个月延迟一个月, 逐步延迟至五十五周岁 https://www.gov.cn/yaowen/liebiao/202409/content_6974294.htm. Women record `retirement_category` FEMALE_55 (cadres) or FEMALE_50 (default, workers)."
 				},
@@ -112,12 +106,7 @@
 					"type": "array",
 					"items": {
 						"type": "string",
-						"enum": [
-							"PENSION",
-							"MEDICAL",
-							"UNEMPLOYMENT",
-							"WORK_INJURY"
-						]
+						"enum": ["PENSION", "MEDICAL", "UNEMPLOYMENT", "WORK_INJURY"]
 					},
 					"title": "Schemes exempted by a social-security agreement",
 					"description": "人社部令第16号 and the bilateral agreement: the schemes the certificate of coverage exempts."
@@ -224,12 +213,7 @@
 							"minLength": 1
 						}
 					},
-					"required": [
-						"month",
-						"settlement_on",
-						"excess_nonholiday_hours",
-						"reference"
-					]
+					"required": ["month", "settlement_on", "excess_nonholiday_hours", "reference"]
 				},
 				"annual_leave_year_reviews": {
 					"type": "array",
@@ -562,25 +546,13 @@
 			"properties": {
 				"region": {
 					"type": "string",
-					"enum": [
-						"SH",
-						"KM"
-					],
+					"enum": ["SH", "KM"],
 					"title": "Employer region",
 					"description": "Shanghai (SH) or Kunming (KM); selects the statutory contribution tables and local leave rules."
 				},
 				"risk_class": {
 					"type": "string",
-					"enum": [
-						"1",
-						"2",
-						"3",
-						"4",
-						"5",
-						"6",
-						"7",
-						"8"
-					],
+					"enum": ["1", "2", "3", "4", "5", "6", "7", "8"],
 					"title": "Work-injury industry risk class",
 					"description": "工伤保险条例 第八条; 人社部发〔2015〕71号 行业基准费率 0.2%–1.9%; used when work_injury_rate_percent is not recorded."
 				},
@@ -667,11 +639,7 @@
 				},
 				"wage_zone": {
 					"type": "string",
-					"enum": [
-						"1",
-						"2",
-						"3"
-					],
+					"enum": ["1", "2", "3"],
 					"default": "1",
 					"title": "Minimum-wage zone of the region (最低工资档次)",
 					"description": "The zone key of the region's minimum-wage table (Kunming classes 1–3); blank = the region's default zone. Also the Kunming housing-fund floor."

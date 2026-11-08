@@ -5,9 +5,7 @@
 		"lookup": {},
 		"references": [],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -32,9 +30,7 @@
 		},
 		"references": [],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -64,9 +60,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -107,9 +101,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -127,9 +119,7 @@
 						"eq": "ctx.entry.id"
 					}
 				},
-				"fields": [
-					"breakdown"
-				]
+				"fields": ["breakdown"]
 			}
 		},
 		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst key = 'SG:SDL_REMITTANCE:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
@@ -153,9 +143,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -191,9 +179,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -208,9 +194,7 @@
 						"eq": "ctx.entry.id"
 					}
 				},
-				"fields": [
-					"breakdown"
-				]
+				"fields": ["breakdown"]
 			}
 		},
 		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst withheld = sum(\n\tget(ctx, 'reads.payslip', [])\n\t\t.flatMap((slip) => get(slip, 'breakdown.statutory', []))\n\t\t.filter((scheme) => scheme.code === ctx.lookup.scheme)\n\t\t.map((scheme) => scheme.employee)\n);\nif (!(withheld > 0)) return false;\nconst key = 'SG:NR_DIRECTOR_WITHHOLDING:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
@@ -236,9 +220,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -253,9 +235,7 @@
 						"eq": "ctx.entry.id"
 					}
 				},
-				"fields": [
-					"breakdown"
-				]
+				"fields": ["breakdown"]
 			}
 		},
 		"condition": "// js\nconst run = ctx.entry;\nif (run == null) return false;\nconst withheld = sum(\n\tget(ctx, 'reads.payslip', [])\n\t\t.flatMap((slip) => get(slip, 'breakdown.statutory', []))\n\t\t.filter((scheme) => scheme.code === ctx.lookup.scheme)\n\t\t.map((scheme) => scheme.employee)\n);\nif (!(withheld > 0)) return false;\nconst key = 'SG:NR_ENTERTAINER_WITHHOLDING:' + run.id;\nreturn !get(ctx, 'reads.obligation', []).some((task) => task.occurrence_key === key);",
@@ -274,9 +254,7 @@
 		},
 		"references": [],
 		"source_collection": "employee_contract",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -307,9 +285,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -347,9 +323,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -381,9 +355,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -413,9 +385,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -435,12 +405,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"entity_id",
-					"employee_id",
-					"employment_id"
-				],
+				"fields": ["id", "entity_id", "employee_id", "employment_id"],
 				"limit": 10000
 			}
 		},
@@ -469,9 +434,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -503,10 +466,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -540,10 +500,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -574,10 +531,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -606,10 +560,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -641,9 +592,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -676,9 +625,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -708,9 +655,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -741,10 +686,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -787,9 +729,7 @@
 			}
 		],
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -823,9 +763,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -847,10 +785,7 @@
 		"name": "Work accident report to MOM",
 		"lookup": {
 			"title": "Work accident report to MOM",
-			"catalog_codes": [
-				"WORK_INJURY_MEDICAL_LEAVE",
-				"WORK_INJURY_HOSPITALISATION_LEAVE"
-			],
+			"catalog_codes": ["WORK_INJURY_MEDICAL_LEAVE", "WORK_INJURY_HOSPITALISATION_LEAVE"],
 			"offset_days": 10
 		},
 		"references": [
@@ -859,9 +794,7 @@
 			}
 		],
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -895,9 +828,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -941,9 +872,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -966,9 +895,7 @@
 						}
 					}
 				},
-				"fields": [
-					"pay_date"
-				],
+				"fields": ["pay_date"],
 				"limit": 1
 			}
 		},
@@ -993,10 +920,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1026,10 +950,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1059,10 +980,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1095,10 +1013,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1131,9 +1046,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1164,9 +1077,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1198,9 +1109,7 @@
 			}
 		],
 		"source_collection": "adhoc_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1234,9 +1143,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1258,10 +1165,7 @@
 		"name": "Reply to a personal data access or correction request",
 		"lookup": {
 			"title": "Reply to a personal data access or correction request",
-			"kinds": [
-				"PERSONAL_DATA_ACCESS_REQUEST",
-				"PERSONAL_DATA_CORRECTION_REQUEST"
-			],
+			"kinds": ["PERSONAL_DATA_ACCESS_REQUEST", "PERSONAL_DATA_CORRECTION_REQUEST"],
 			"offset_days": 30
 		},
 		"references": [
@@ -1270,9 +1174,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1302,9 +1204,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1334,10 +1234,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1367,9 +1264,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1400,9 +1295,7 @@
 			}
 		],
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1442,9 +1335,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1480,9 +1371,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1512,9 +1401,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1545,9 +1432,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1578,9 +1463,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1598,9 +1481,7 @@
 						"eq": "ctx.entry.employment_id"
 					}
 				},
-				"fields": [
-					"final_pay_due_on"
-				],
+				"fields": ["final_pay_due_on"],
 				"limit": 1
 			}
 		},
@@ -1634,9 +1515,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1662,17 +1541,8 @@
 		"lookup": {
 			"title": "Overtime over 72 hours in the month",
 			"monthly_hours": 72,
-			"statutory_work_categories": [
-				"NON_MANUAL",
-				"MANUAL_LABOUR",
-				"MANUAL_LABOUR_SUPERVISOR"
-			],
-			"covered_engagements": [
-				"EMPLOYEE",
-				"PART_TIME",
-				"INTERN",
-				"APPRENTICE"
-			],
+			"statutory_work_categories": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
+			"covered_engagements": ["EMPLOYEE", "PART_TIME", "INTERN", "APPRENTICE"],
 			"manual_monthly_ceiling": 4500,
 			"nonmanual_monthly_ceiling": 2600
 		},
@@ -1684,9 +1554,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1707,11 +1575,7 @@
 						"eq": "ctx.entry.payroll_run_id"
 					}
 				},
-				"fields": [
-					"work_date",
-					"actual_worked_intervals",
-					"planned_overtime_intervals"
-				]
+				"fields": ["work_date", "actual_worked_intervals", "planned_overtime_intervals"]
 			}
 		},
 		"condition": "// js\nconst terms = get(ctx.subject, 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nif (!ctx.lookup.statutory_work_categories.includes(category)) return false;\nconst ceiling = category === 'NON_MANUAL' ? ctx.lookup.nonmanual_monthly_ceiling : ctx.lookup.manual_monthly_ceiling;\nif (!(Number(get(terms, 'rate.amount', 0)) <= ceiling)) return false;\nif (!ctx.lookup.covered_engagements.includes(get(ctx.subject, 'employment.engagement', ''))) return false;\nconst worked = get(ctx, 'reads.roster_entry', []).filter((day) => get(day, 'actual_worked_intervals', []).length > 0);\nconst minutes = sum(\n\tworked.map((day) => interval_minutes(get(day, 'planned_overtime_intervals', []).filter((span) => span.end != null)))\n);\nif (minutes <= ctx.lookup.monthly_hours * 60) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
@@ -1737,9 +1601,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1764,10 +1626,7 @@
 		"name": "Accommodation recovery over the limit",
 		"lookup": {
 			"title": "Accommodation or amenities recovery over 25% of the salary",
-			"codes": [
-				"ACCOMMODATION_RECOVERY",
-				"AMENITIES_RECOVERY"
-			],
+			"codes": ["ACCOMMODATION_RECOVERY", "AMENITIES_RECOVERY"],
 			"gross_multiplier": 0.25
 		},
 		"references": [
@@ -1778,9 +1637,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1806,11 +1663,7 @@
 		"lookup": {
 			"title": "An advance instalment over 25% of the salary",
 			"share": 0.25,
-			"instalment_codes": [
-				"SALARY_ADVANCE",
-				"FESTIVE_ADVANCE",
-				"TRAVEL_ADVANCE"
-			]
+			"instalment_codes": ["SALARY_ADVANCE", "FESTIVE_ADVANCE", "TRAVEL_ADVANCE"]
 		},
 		"references": [
 			{
@@ -1820,9 +1673,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1856,9 +1707,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1883,10 +1732,7 @@
 		"name": "Pay under the Progressive Wage floor",
 		"lookup": {
 			"title": "Pay under the Progressive Wage floor",
-			"local_residencies": [
-				"CITIZEN",
-				"PERMANENT_RESIDENT"
-			],
+			"local_residencies": ["CITIZEN", "PERMANENT_RESIDENT"],
 			"full_time_weekly_hours": 44,
 			"full_time_minimum_hours": 35
 		},
@@ -1902,9 +1748,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1929,17 +1773,8 @@
 		"name": "Work over the daily limit",
 		"lookup": {
 			"title": "Over 12 hours worked in a day",
-			"statutory_work_categories": [
-				"NON_MANUAL",
-				"MANUAL_LABOUR",
-				"MANUAL_LABOUR_SUPERVISOR"
-			],
-			"covered_engagements": [
-				"EMPLOYEE",
-				"PART_TIME",
-				"INTERN",
-				"APPRENTICE"
-			],
+			"statutory_work_categories": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
+			"covered_engagements": ["EMPLOYEE", "PART_TIME", "INTERN", "APPRENTICE"],
 			"manual_monthly_ceiling": 4500,
 			"nonmanual_monthly_ceiling": 2600
 		},
@@ -1951,9 +1786,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1974,11 +1807,7 @@
 						"eq": "ctx.entry.payroll_run_id"
 					}
 				},
-				"fields": [
-					"work_date",
-					"actual_worked_intervals",
-					"planned_overtime_intervals"
-				]
+				"fields": ["work_date", "actual_worked_intervals", "planned_overtime_intervals"]
 			}
 		},
 		"condition": "// js\nconst terms = get(ctx.subject, 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nif (!ctx.lookup.statutory_work_categories.includes(category)) return false;\nconst ceiling = category === 'NON_MANUAL' ? ctx.lookup.nonmanual_monthly_ceiling : ctx.lookup.manual_monthly_ceiling;\nif (!(Number(get(terms, 'rate.amount', 0)) <= ceiling)) return false;\nif (!ctx.lookup.covered_engagements.includes(get(ctx.subject, 'employment.engagement', ''))) return false;\nconst over = get(ctx, 'reads.roster_entry', []).some(\n\t(day) =>\n\t\tinterval_minutes(get(day, 'actual_worked_intervals', []).filter((span) => span.end != null)) >\n\t\t12 * 60\n);\nif (!over) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
@@ -1994,17 +1823,8 @@
 		"lookup": {
 			"title": "Seven or more days worked in a row",
 			"consecutive_days": 7,
-			"statutory_work_categories": [
-				"NON_MANUAL",
-				"MANUAL_LABOUR",
-				"MANUAL_LABOUR_SUPERVISOR"
-			],
-			"covered_engagements": [
-				"EMPLOYEE",
-				"PART_TIME",
-				"INTERN",
-				"APPRENTICE"
-			],
+			"statutory_work_categories": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
+			"covered_engagements": ["EMPLOYEE", "PART_TIME", "INTERN", "APPRENTICE"],
 			"manual_monthly_ceiling": 4500,
 			"nonmanual_monthly_ceiling": 2600
 		},
@@ -2016,9 +1836,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2039,11 +1857,7 @@
 						"eq": "ctx.entry.payroll_run_id"
 					}
 				},
-				"fields": [
-					"work_date",
-					"actual_worked_intervals",
-					"planned_overtime_intervals"
-				]
+				"fields": ["work_date", "actual_worked_intervals", "planned_overtime_intervals"]
 			}
 		},
 		"condition": "// js\nconst terms = get(ctx.subject, 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nif (!ctx.lookup.statutory_work_categories.includes(category)) return false;\nconst ceiling = category === 'NON_MANUAL' ? ctx.lookup.nonmanual_monthly_ceiling : ctx.lookup.manual_monthly_ceiling;\nif (!(Number(get(terms, 'rate.amount', 0)) <= ceiling)) return false;\nif (!ctx.lookup.covered_engagements.includes(get(ctx.subject, 'employment.engagement', ''))) return false;\nconst dates = get(ctx, 'reads.roster_entry', [])\n\t.filter((day) => get(day, 'actual_worked_intervals', []).length > 0)\n\t.map((day) => day.work_date)\n\t.toSorted((left, right) => (left < right ? -1 : 1));\nlet streak = 0;\nlet longest = 0;\nlet previous = '';\nfor (const date of dates) {\n\tstreak = previous !== '' && add_days(previous, 1) === date ? streak + 1 : 1;\n\tlongest = Math.max(longest, streak);\n\tprevious = date;\n}\nif (longest < ctx.lookup.consecutive_days) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
@@ -2067,9 +1881,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2107,14 +1919,8 @@
 			},
 			"annual_due_month": "12",
 			"service_months": 12,
-			"bonus_codes": [
-				"bonus"
-			],
-			"weeks_per_year": 52,
-			"local_residencies": [
-				"CITIZEN",
-				"PERMANENT_RESIDENT"
-			]
+			"bonus_codes": ["bonus"],
+			"weeks_per_year": 52
 		},
 		"references": [
 			{
@@ -2134,9 +1940,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2154,10 +1958,7 @@
 						"eq": "ctx.entry.employee_id"
 					}
 				},
-				"fields": [
-					"period",
-					"breakdown"
-				]
+				"fields": ["period", "breakdown"]
 			}
 		},
 		"condition": "// js\nconst employment = ctx.subject.employment;\nconst role = get(ctx.lookup.pwm_roles, String(get(employment, 'employee_extension_data.pwm_role', '')), null);\nif (role === null) return false;\n// MOM: the Progressive Wage requirements cover citizens and permanent residents\nif (!ctx.lookup.local_residencies.includes(get(employment, 'terms.residency_status', ''))) return false;\nconst rule = get(ctx.lookup.sectors, role.sector, null);\nif (rule === null) return false;\nconst period = String(ctx.entry.period);\nif (period.slice(5, 7) !== ctx.lookup.annual_due_month) return false;\nconst since = get(employment, 'effective_range.from', null);\nif (since === null) return false;\nif (calendar_completed_months(String(since), month_end(period.slice(0, 7) + '-01')) < ctx.lookup.service_months) return false;\nconst year = get(ctx, 'reads.payslip', []).filter((slip) => String(slip.period).slice(0, 4) === period.slice(0, 4));\nconst paid = sum(\n\tyear\n\t\t.flatMap((slip) => get(slip, 'breakdown.lines', []))\n\t\t.filter((line) => ctx.lookup.bonus_codes.includes(line.code))\n\t\t.map((line) => line.amount)\n);\nconst basic = Number(ctx.entry.basic_earnings);\nconst weekly = (basic * 12) / ctx.lookup.weeks_per_year;\nif (paid >= weekly * get(rule, 'weeks', 0) + basic * get(rule, 'months', 0)) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
@@ -2180,9 +1981,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2215,9 +2014,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2242,12 +2039,7 @@
 		"name": "Daily rate without a working week",
 		"lookup": {
 			"title": "A daily rate needs the working week",
-			"codes": [
-				"REST_DAY_WORK",
-				"HOLIDAY_WORK",
-				"ANNUAL_LEAVE",
-				"SALARY_IN_LIEU_OF_NOTICE"
-			]
+			"codes": ["REST_DAY_WORK", "HOLIDAY_WORK", "ANNUAL_LEAVE", "SALARY_IN_LIEU_OF_NOTICE"]
 		},
 		"references": [
 			{
@@ -2257,9 +2049,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2287,9 +2077,7 @@
 		},
 		"references": [],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2310,9 +2098,7 @@
 						"eq": "ctx.entry.payroll_run_id"
 					}
 				},
-				"fields": [
-					"id"
-				]
+				"fields": ["id"]
 			}
 		},
 		"condition": "// js\nconst employment = ctx.subject.employment;\nif (get(employment, 'engagement', '') !== 'PART_TIME') return false;\nif (get(ctx, 'reads.leave_catalog_entry', []).length === 0) return false;\nconst open = get(ctx, 'reads.obligation', []).length === 0;\nconst extension = get(employment, 'employee_extension_data', {});\nif (get(employment, 'terms.normal_hours_per_week', null) == null) return open;\nif (get(employment, 'terms.normal_days_per_week', null) == null) return open;\nif (get(extension, 'no_similar_full_time_employee', false) === true) return false;\nif (get(extension, 'comparable_full_time_hours_per_day', null) == null) return open;\nif (get(extension, 'comparable_full_time_hours_per_week', null) == null) return open;\nreturn false;",
@@ -2330,9 +2116,7 @@
 		},
 		"references": [],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2356,9 +2140,7 @@
 						"eq": true
 					}
 				},
-				"fields": [
-					"id"
-				]
+				"fields": ["id"]
 			}
 		},
 		"condition": "// js\nif (get(ctx.subject, 'employment.engagement', '') !== 'PART_TIME') return false;\nif (get(ctx, 'reads.leave_catalog_entry', []).length === 0) return false;\nconst leaving = get(ctx.subject, 'employment.effective_range.to', null);\nif (leaving != null && leaving <= month_end(String(ctx.entry.period).slice(0, 7) + '-01')) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
@@ -2376,9 +2158,7 @@
 		},
 		"references": [],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2401,17 +2181,12 @@
 					"catalog_id": {
 						"is": {
 							"code": {
-								"in": [
-									"WORK_INJURY_MEDICAL_LEAVE",
-									"WORK_INJURY_HOSPITALISATION_LEAVE"
-								]
+								"in": ["WORK_INJURY_MEDICAL_LEAVE", "WORK_INJURY_HOSPITALISATION_LEAVE"]
 							}
 						}
 					}
 				},
-				"fields": [
-					"evidence_file"
-				]
+				"fields": ["evidence_file"]
 			}
 		},
 		"condition": "// js\nconst rows = get(ctx, 'reads.leave_catalog_entry', []);\nif (rows.every((row) => get(row, 'evidence_file', null) != null)) return false;\nreturn get(ctx, 'reads.obligation', []).length === 0;",
@@ -2429,9 +2204,7 @@
 		},
 		"references": [],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2465,9 +2238,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2501,9 +2272,7 @@
 			}
 		],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2531,9 +2300,7 @@
 		},
 		"references": [],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2558,19 +2325,14 @@
 		"name": "Annual leave paid in hourly wages",
 		"lookup": {
 			"title": "Review the annual leave paid in hourly wages",
-			"codes": [
-				"PT_ANNUAL_HOURLY_OW",
-				"PT_ANNUAL_HOURLY_AW"
-			],
+			"codes": ["PT_ANNUAL_HOURLY_OW", "PT_ANNUAL_HOURLY_AW"],
 			"days_threshold": 5,
 			"hours_threshold": 30,
 			"hours_threshold_ceiling": 34
 		},
 		"references": [],
 		"source_collection": "payslip",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2598,15 +2360,7 @@
 			"monthly_floor": 1600,
 			"hourly_floor": 10.5,
 			"weeks_per_year": 52,
-			"local_residencies": [
-				"CITIZEN",
-				"PERMANENT_RESIDENT"
-			],
-			"work_pass_categories": [
-				"WORK_PERMIT",
-				"S_PASS",
-				"EMPLOYMENT_PASS"
-			],
+			"work_pass_categories": ["WORK_PERMIT", "S_PASS", "EMPLOYMENT_PASS"],
 			"full_time_weekly_hours": 44,
 			"full_time_minimum_hours": 35
 		},
@@ -2618,9 +2372,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2637,13 +2389,7 @@
 						"eq": "ctx.entry.id"
 					}
 				},
-				"fields": [
-					"employee_id",
-					"employment_id",
-					"entity_id",
-					"ordinary_wages",
-					"breakdown"
-				]
+				"fields": ["employee_id", "employment_id", "entity_id", "ordinary_wages", "breakdown"]
 			},
 			"employee_contract": {
 				"where": {
@@ -2654,13 +2400,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"id",
-					"employee_id",
-					"effective_range",
-					"terms",
-					"employee_extension_data"
-				]
+				"fields": ["id", "employee_id", "effective_range", "terms", "employee_extension_data"]
 			}
 		},
 		"condition": "// js\nreturn get(ctx, 'reads.obligation', []).length === 0;",
@@ -2675,9 +2415,7 @@
 		"name": "Additional Wage ceiling recalculation",
 		"lookup": {
 			"title": "Re-calculate CPF on Additional Wages: pay any shortfall, apply for a refund of any excess",
-			"offset_days": 14,
-			"ordinary_ceiling": 7400.0,
-			"annual_ceiling": 102000.0
+			"offset_days": 14
 		},
 		"references": [
 			{
@@ -2687,9 +2425,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2706,13 +2442,7 @@
 						"eq": "ctx.entry.id"
 					}
 				},
-				"fields": [
-					"employee_id",
-					"employment_id",
-					"entity_id",
-					"ordinary_wages",
-					"breakdown"
-				]
+				"fields": ["employee_id", "employment_id", "entity_id", "ordinary_wages", "breakdown"]
 			},
 			"employee_contract": {
 				"where": {
@@ -2723,20 +2453,11 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"id",
-					"employee_id",
-					"effective_range",
-					"terms",
-					"employee_extension_data"
-				]
+				"fields": ["id", "employee_id", "effective_range", "terms", "employee_extension_data"]
 			},
 			"employee_balance": {
 				"where": {},
-				"fields": [
-					"employee_id",
-					"account"
-				]
+				"fields": ["employee_id", "account"]
 			}
 		},
 		"condition": "// js\nreturn ctx.entry.state === 'PAID' && get(ctx, 'reads.obligation', []).length === 0;",
@@ -2751,9 +2472,7 @@
 		"name": "Follow up a contribution corrected for a closed month",
 		"lookup": {},
 		"source_collection": "adhoc_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"adhoc_catalog": {
 				"where": {
@@ -2763,11 +2482,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code",
-					"name",
-					"lookup"
-				],
+				"fields": ["code", "name", "lookup"],
 				"limit": 1
 			},
 			"obligation": {
@@ -2778,9 +2493,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},

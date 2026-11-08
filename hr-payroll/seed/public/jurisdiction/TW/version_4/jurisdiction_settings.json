@@ -22,18 +22,11 @@
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": [
-							"kind",
-							"on"
-						],
+						"required": ["kind", "on"],
 						"properties": {
 							"kind": {
 								"type": "string",
-								"enum": [
-									"CHILD_BIRTH",
-									"MARRIAGE",
-									"PREGNANCY"
-								],
+								"enum": ["CHILD_BIRTH", "MARRIAGE", "PREGNANCY"],
 								"title": "What happened"
 							},
 							"on": {
@@ -77,12 +70,7 @@
 				},
 				"fixed_term_category": {
 					"type": "string",
-					"enum": [
-						"TEMPORARY",
-						"SHORT_TERM",
-						"SEASONAL",
-						"SPECIFIC"
-					],
+					"enum": ["TEMPORARY", "SHORT_TERM", "SEASONAL", "SPECIFIC"],
 					"description": "勞動基準法 §9(1), 施行細則 §6: TEMPORARY 臨時性 (unforeseeable, non-continuing, six months at most); SHORT_TERM 短期性 (expected to finish within six months); SEASONAL 季節性 (nine months at most); SPECIFIC 特定性 (finishable in a set period; over a year needs the authority’s approval). Recorded on the first terms of a fixed-term (CONTRACT) employment."
 				},
 				"under_15_exception_reference": {
@@ -91,11 +79,7 @@
 				},
 				"worker_category": {
 					"type": "string",
-					"enum": [
-						"DOMESTIC_CAREGIVER",
-						"DOMESTIC_HELPER",
-						"SHELTERED_EMPLOYMENT"
-					],
+					"enum": ["DOMESTIC_CAREGIVER", "DOMESTIC_HELPER", "SHELTERED_EMPLOYMENT"],
 					"description": "就業服務法 §46(1)(9): a foreign domestic caregiver or helper employed by a household, outside the 勞動基準法 (work_classification NON_EA); the DOMESTIC_MIGRANT_WAGE validation holds the terms to the MOL wage for new and renewed contracts. SHELTERED_EMPLOYMENT is the legally assessed sheltered employment category under Disability Rights Act40-42, with a signed productivity wage agreement filed with the local labour authority. Disability status alone is insufficient."
 				},
 				"responsibility_system_agreement": {
@@ -124,13 +108,7 @@
 				},
 				"lsa_termination_ground": {
 					"type": "string",
-					"enum": [
-						"ARTICLE_11",
-						"ARTICLE_13_PROVISO",
-						"ARTICLE_14",
-						"ARTICLE_20",
-						"OTHER"
-					],
+					"enum": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
 					"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop."
 				},
 				"old_system_service_months": {
@@ -167,12 +145,7 @@
 								},
 								"disability_subsidy": {
 									"type": "number",
-									"enum": [
-										0,
-										25,
-										50,
-										100
-									],
+									"enum": [0, 25, 50, 100],
 									"description": "LI (and EI) or NHI — 身心障礙者權益保障法 §73: the government pays this percentage of the disabled worker’s own premium share (極重度/重度 100, 中度 50, 輕度 25)."
 								},
 								"insured_amount": {
@@ -189,12 +162,7 @@
 							"properties": {
 								"disability_subsidy": {
 									"type": "number",
-									"enum": [
-										0,
-										25,
-										50,
-										100
-									],
+									"enum": [0, 25, 50, 100],
 									"description": "LI (and EI) or NHI — 身心障礙者權益保障法 §73: the government pays this percentage of the disabled worker’s own premium share (極重度/重度 100, 中度 50, 輕度 25)."
 								},
 								"enrolled_dependants": {
@@ -246,10 +214,7 @@
 								},
 								"pension_system": {
 									"type": "string",
-									"enum": [
-										"NEW",
-										"LSA"
-									],
+									"enum": ["NEW", "LSA"],
 									"default": "NEW",
 									"description": "LABOR_PENSION — 勞工退休金條例 §8–9 (and, from 2026, 外國專業人才延攬及僱用法 §24): LSA where the worker kept the 勞動基準法 (old) pension system; LABOR_PENSION then charges nothing and LABOR_PENSION_RESERVE carries the worker's wages. Unrecorded is the new system."
 								},
@@ -308,10 +273,7 @@
 												"description": "The reviewed Income Tax Act7 basis. Citizenship or permanent residence alone does not decide tax residence."
 											},
 											"resident_from": {
-												"type": [
-													"string",
-													"null"
-												],
+												"type": ["string", "null"],
 												"format": "date",
 												"description": "Payments in this tax year on or after this date use resident withholding. Null means nonresident. A supported expectation requires permit/contract evidence and review on early departure."
 											},
@@ -391,11 +353,7 @@
 					"additionalProperties": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": [
-							"amount",
-							"reviewed_on",
-							"evidence_reference"
-						],
+						"required": ["amount", "reviewed_on", "evidence_reference"],
 						"properties": {
 							"amount": {
 								"type": "number",
@@ -456,97 +414,17 @@
 			"description": "Additional local compliance data on the sealed entity profile, stored as entity_extension_data. The 職業災害保險 industry class is the 1–55 class of 勞工職業災害保險適用行業別及費率表, not a fact."
 		},
 		"lookup": {
-			"li_grades": [
-				29500,
-				30300,
-				31800,
-				33300,
-				34800,
-				36300,
-				38200,
-				40100,
-				42000,
-				43900,
-				45800
-			],
+			"li_grades": [29500, 30300, 31800, 33300, 34800, 36300, 38200, 40100, 42000, 43900, 45800],
 			"li_part_time_grades": [
-				11100,
-				12540,
-				13500,
-				15840,
-				16500,
-				17280,
-				17880,
-				19047,
-				20008,
-				21009,
-				22000,
-				23100,
-				24000,
-				25250,
-				26400,
-				27600,
-				28590
+				11100, 12540, 13500, 15840, 16500, 17280, 17880, 19047, 20008, 21009, 22000, 23100, 24000,
+				25250, 26400, 27600, 28590
 			],
 			"nhi_grades": [
-				29500,
-				30300,
-				31800,
-				33300,
-				34800,
-				36300,
-				38200,
-				40100,
-				42000,
-				43900,
-				45800,
-				48200,
-				50600,
-				53000,
-				55400,
-				57800,
-				60800,
-				63800,
-				66800,
-				69800,
-				72800,
-				76500,
-				80200,
-				83900,
-				87600,
-				92100,
-				96600,
-				101100,
-				105600,
-				110100,
-				115500,
-				120900,
-				126300,
-				131700,
-				137100,
-				142500,
-				147900,
-				150000,
-				156400,
-				162800,
-				169200,
-				175600,
-				182000,
-				189500,
-				197000,
-				204500,
-				212000,
-				219500,
-				228200,
-				236900,
-				245600,
-				254300,
-				263000,
-				273000,
-				283000,
-				293000,
-				303000,
-				313000
+				29500, 30300, 31800, 33300, 34800, 36300, 38200, 40100, 42000, 43900, 45800, 48200, 50600,
+				53000, 55400, 57800, 60800, 63800, 66800, 69800, 72800, 76500, 80200, 83900, 87600, 92100,
+				96600, 101100, 105600, 110100, 115500, 120900, 126300, 131700, 137100, 142500, 147900,
+				150000, 156400, 162800, 169200, 175600, 182000, 189500, 197000, 204500, 212000, 219500,
+				228200, 236900, 245600, 254300, 263000, 273000, 283000, 293000, 303000, 313000
 			],
 			"retirement_eligibility": [
 				{

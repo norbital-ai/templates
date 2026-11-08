@@ -9,7 +9,6 @@ export type Program = {
 	readonly outputs: Readonly<Record<string, Schema.ConstraintDecoder<unknown>>>;
 };
 
-
 const number = Schema.Number;
 const boolean = Schema.Boolean;
 const date = Schema.String;

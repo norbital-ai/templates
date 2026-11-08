@@ -96,13 +96,13 @@ lookup                      the statute's numbers, and:
 
 **Defaults.** Most rows declare no `accounts`.
 
-| Row       | Default accounts                                                        |
-| --------- | ----------------------------------------------------------------------- |
-| Leave     | `leave/<own code>/<period>/used`                                        |
-| Claim     | `claim/<own code>/<period>/used`                                        |
+| Row       | Default accounts                                                                        |
+| --------- | --------------------------------------------------------------------------------------- |
+| Leave     | `leave/<own code>/<period>/used`                                                        |
+| Claim     | `claim/<own code>/<period>/used`                                                        |
 | Statutory | `statutory/<code>.<party>/` year, and month where the row's `balance_window` is `MONTH` |
-| Subtotal  | `pay/<code>/` year, and month where the row's `balance_window` is `MONTH` |
-| Adhoc     | None                                                                    |
+| Subtotal  | `pay/<code>/` year, and month where the row's `balance_window` is `MONTH`               |
+| Adhoc     | None                                                                                    |
 
 A row that declares `accounts` replaces its default entirely.
 
@@ -118,12 +118,12 @@ Leave rows share one entitlement rule, which reads the standard keys (`service_b
 
 A fact is something true of a person. Every fact lives on the contract, because the contract is sealed and is what a payroll run reads. Each country's `employee_extension_schema` declares its facts, so a new fact needs no code.
 
-| Fact       | Where on the contract                                   | Examples                                             |
-| ---------- | ------------------------------------------------------- | ---------------------------------------------------- |
-| Native     | Contract fields                                         | Gender, marital status, date of birth, service start |
-| Person     | `employee_extension_data.<field>`                       | Dependants, tax elections, exit answers              |
-| Statutory  | `employee_extension_data.statutory.<SCHEME>.<field>`    | Scheme elections and registration numbers            |
-| Dated list | `employee_extension_data.events`, one per event         | Children, confinements, illnesses, marriage          |
+| Fact       | Where on the contract                                | Examples                                             |
+| ---------- | ---------------------------------------------------- | ---------------------------------------------------- |
+| Native     | Contract fields                                      | Gender, marital status, date of birth, service start |
+| Person     | `employee_extension_data.<field>`                    | Dependants, tax elections, exit answers              |
+| Statutory  | `employee_extension_data.statutory.<SCHEME>.<field>` | Scheme elections and registration numbers            |
+| Dated list | `employee_extension_data.events`, one per event      | Children, confinements, illnesses, marriage          |
 
 Every schema is flat: there are no `facts`, `term_facts`, `exit_facts` or `elections` buckets.
 

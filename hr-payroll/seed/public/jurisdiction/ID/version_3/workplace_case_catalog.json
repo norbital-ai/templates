@@ -126,20 +126,14 @@
 								}
 							},
 							"additionalProperties": false,
-							"required": [
-								"date"
-							]
+							"required": ["date"]
 						},
 						"title": "Actual worked dates",
 						"description": "Only dates actually worked in the stated country. Supply actual hours when the external source records them; absent hours stay unknown and may not become a full day. Do not copy hours already held in native roster records."
 					}
 				},
 				"additionalProperties": false,
-				"required": [
-					"period",
-					"country",
-					"work_days"
-				],
+				"required": ["period", "country", "work_days"],
 				"description": "One continuous actual overseas work record for one employee/country, supported by the original timesheet or equivalent factual record. A planned posting letter alone does not prove actual work or presence. Native roster/source records retain ownership of dates/hours already recorded there.",
 				"$defs": {
 					"country": {
@@ -415,10 +409,7 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": [
-							"from",
-							"to"
-						],
+						"required": ["from", "to"],
 						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
 					}
 				}
@@ -447,10 +438,7 @@
 				"properties": {
 					"record_type": {
 						"type": "string",
-						"enum": [
-							"PAYMENT",
-							"COST_ALLOCATION"
-						],
+						"enum": ["PAYMENT", "COST_ALLOCATION"],
 						"title": "Original record type"
 					},
 					"original_payment_reference": {
@@ -779,10 +767,7 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": [
-							"from",
-							"to"
-						],
+						"required": ["from", "to"],
 						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
 					},
 					"party": {
@@ -803,11 +788,7 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": [
-							"registered_name",
-							"country",
-							"registration_reference"
-						],
+						"required": ["registered_name", "country", "registration_reference"],
 						"description": "The real legal entity named on the source document. This is not the employee; the native case employment identifies the employee. Do not invent a native entity row for an outside organisation."
 					}
 				},
@@ -819,14 +800,10 @@
 									"const": "COST_ALLOCATION"
 								}
 							},
-							"required": [
-								"record_type"
-							]
+							"required": ["record_type"]
 						},
 						"then": {
-							"required": [
-								"cost_bearer"
-							]
+							"required": ["cost_bearer"]
 						}
 					},
 					{
@@ -836,14 +813,10 @@
 									"exclusiveMaximum": 0
 								}
 							},
-							"required": [
-								"amount"
-							]
+							"required": ["amount"]
 						},
 						"then": {
-							"required": [
-								"reverses_reference"
-							]
+							"required": ["reverses_reference"]
 						}
 					}
 				]
@@ -886,12 +859,7 @@
 					}
 				},
 				"additionalProperties": false,
-				"required": [
-					"benefit_reference",
-					"service_period",
-					"country",
-					"service_employer"
-				],
+				"required": ["benefit_reference", "service_period", "country", "service_employer"],
 				"description": "One actual continuous service period attributable to the named benefit/retirement award, in its actual service country and legal employer. Record every source-supported period for that award, including external prior service; do not substitute all employment history or a domestic-service percentage. Gaps and missing source periods remain unknown rather than zero. opened_on is the actual statement/certificate issue date.",
 				"$defs": {
 					"country": {
@@ -1167,10 +1135,7 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": [
-							"from",
-							"to"
-						],
+						"required": ["from", "to"],
 						"description": "Actual source-covered ordered dates, inclusive. A payroll month or agreement effective date is not a substitute."
 					},
 					"party": {
@@ -1191,11 +1156,7 @@
 							}
 						},
 						"additionalProperties": false,
-						"required": [
-							"registered_name",
-							"country",
-							"registration_reference"
-						],
+						"required": ["registered_name", "country", "registration_reference"],
 						"description": "The real legal entity named on the source document. This is not the employee; the native case employment identifies the employee. Do not invent a native entity row for an outside organisation."
 					}
 				}

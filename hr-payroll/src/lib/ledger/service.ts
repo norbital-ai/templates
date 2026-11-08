@@ -388,10 +388,7 @@ const grantsOf = (lookup: JsonObject, subject: Subject, person: LeavePerson) => 
 	}
 	return grants;
 };
-const eventPeriods = (
-	periods: Accounts[string][string] | undefined,
-	scope: string
-): PeriodKey[] =>
+const eventPeriods = (periods: Accounts[string][string] | undefined, scope: string): PeriodKey[] =>
 	Object.keys(periods ?? {})
 		.filter(isPeriodKey)
 		.filter((period) => period.startsWith(`${scope}.E.`));
@@ -866,9 +863,7 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 	const gone = new Set(replaced.map((row) => String(row.id)));
 	const taken = new Set(
 		held
-			.filter(
-				(row) => row.reverses == null && row.encashment !== true && !gone.has(String(row.id))
-			)
+			.filter((row) => row.reverses == null && row.encashment !== true && !gone.has(String(row.id)))
 			.flatMap((row) => slots(row).slice(freed.get(String(row.id)) ?? 0))
 	);
 	for (const slot of taking.flatMap(slots)) {

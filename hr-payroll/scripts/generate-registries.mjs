@@ -124,8 +124,7 @@ for (const [family, file] of Object.entries(families)) {
 				const name = String(row.code ?? '');
 				const held = (perCode[family][name] ??= { sets: [], values: {} });
 				held.sets.push(new Set(Object.keys(lookup)));
-				for (const [key, value] of Object.entries(lookup))
-					(held.values[key] ??= []).push(value);
+				for (const [key, value] of Object.entries(lookup)) (held.values[key] ??= []).push(value);
 			}
 		}
 }
@@ -137,7 +136,9 @@ const paramLines = [
 ];
 for (const [family, codes] of Object.entries(perCode)) {
 	paramLines.push(`\t${family}: {`);
-	for (const [code, held] of Object.entries(codes).toSorted(([left], [right]) => left.localeCompare(right))) {
+	for (const [code, held] of Object.entries(codes).toSorted(([left], [right]) =>
+		left.localeCompare(right)
+	)) {
 		const required = [...held.sets[0]].filter((key) => held.sets.every((set) => set.has(key)));
 		const optional = [...new Set(held.sets.flatMap((set) => [...set]))].filter(
 			(key) => !required.includes(key)
@@ -146,7 +147,9 @@ for (const [family, codes] of Object.entries(perCode)) {
 		for (const key of required.toSorted())
 			paramLines.push(`\t\t\t${JSON.stringify(key)}: ${schema(held.values[key])},`);
 		for (const key of optional.toSorted())
-			paramLines.push(`\t\t\t${JSON.stringify(key)}: Schema.optional(${schema(held.values[key])}),`);
+			paramLines.push(
+				`\t\t\t${JSON.stringify(key)}: Schema.optional(${schema(held.values[key])}),`
+			);
 		paramLines.push('\t\t}),');
 	}
 	paramLines.push('\t},');

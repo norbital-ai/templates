@@ -2,11 +2,7 @@
 	{
 		"code": "MINIMUM_WAGE_CONTRACT",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update",
-			"seal"
-		],
+		"events": ["create", "update", "seal"],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000
@@ -540,10 +536,7 @@
 	{
 		"code": "ROSTER_DAILY_8H",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"employee_contract": {
 				"limit": 10000
@@ -591,10 +584,7 @@
 	{
 		"code": "ROSTER_WEEKLY_40H",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"employee_contract": {
 				"limit": 10000
@@ -638,10 +628,7 @@
 	{
 		"code": "ROSTER_OVERTIME_UNRECORDED",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"employee_contract": {
 				"limit": 10000
@@ -684,10 +671,7 @@
 	{
 		"code": "ROSTER_BREAK",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"employee_contract": {
 				"limit": 10000
@@ -733,10 +717,7 @@
 	{
 		"code": "ROSTER_REST_DAY",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"employee_contract": {
 				"limit": 10000
@@ -779,10 +760,7 @@
 	{
 		"code": "ROSTER_MINOR_OVERTIME",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"employee_contract": {
 				"limit": 10000
@@ -826,10 +804,7 @@
 	{
 		"code": "ROSTER_MINOR_HOURS",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"employee_contract": {
 				"limit": 10000
@@ -874,10 +849,7 @@
 	{
 		"code": "ROSTER_MINOR_NIGHT",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"employee_contract": {
 				"limit": 10000
@@ -920,10 +892,7 @@
 	{
 		"code": "ROSTER_MATERNITY_OVERTIME",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"employee_contract": {
 				"limit": 10000
@@ -954,9 +923,7 @@
 		"lookup": {
 			"name": "Overtime beyond 8 hours or rest-day work recorded for a pregnant or post-partum worker who asked to be excused",
 			"message": "Overtime beyond 8 hours a day, or rest-day work, recorded for a pregnant or post-partum worker who asked to be excused (労働基準法 art.66(2)).",
-			"case_kinds": [
-				"PREGNANCY_WORK_LIMIT_REQUEST"
-			],
+			"case_kinds": ["PREGNANCY_WORK_LIMIT_REQUEST"],
 			"night_from": "22:00",
 			"night_to": "05:00",
 			"standard_daily_hours": 8
@@ -972,10 +939,7 @@
 	{
 		"code": "ROSTER_MATERNITY_NIGHT",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"employee_contract": {
 				"limit": 10000
@@ -1006,9 +970,7 @@
 		"lookup": {
 			"name": "A pregnant or post-partum worker who asked to be excused worked at night",
 			"message": "A pregnant or post-partum worker who asked to be excused worked at night (労働基準法 art.66(3)).",
-			"case_kinds": [
-				"PREGNANCY_WORK_LIMIT_REQUEST"
-			],
+			"case_kinds": ["PREGNANCY_WORK_LIMIT_REQUEST"],
 			"night_from": "22:00",
 			"night_to": "05:00"
 		},
@@ -1023,10 +985,7 @@
 	{
 		"code": "ROSTER_CHILDCARE_OVERTIME",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"employee_contract": {
 				"limit": 10000
@@ -1057,9 +1016,7 @@
 		"lookup": {
 			"name": "Overtime approved for a worker who asked not to work beyond the schedule for childcare or care",
 			"message": "Overtime approved for a worker who asked not to work beyond the schedule for childcare or care (育児・介護休業法 arts.16の8, 16の9).",
-			"case_kinds": [
-				"CHILDCARE_NO_OVERTIME_REQUEST"
-			],
+			"case_kinds": ["CHILDCARE_NO_OVERTIME_REQUEST"],
 			"night_from": "22:00",
 			"night_to": "05:00"
 		},
@@ -1074,10 +1031,7 @@
 	{
 		"code": "ROSTER_CHILDCARE_NIGHT",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"employee_contract": {
 				"limit": 10000
@@ -1108,9 +1062,7 @@
 		"lookup": {
 			"name": "A worker who asked to be excused from night work for childcare or care worked between 22:00 and 05:00",
 			"message": "A worker who asked to be excused from night work for childcare or care worked between 22:00 and 05:00 (育児・介護休業法 arts.19, 20).",
-			"case_kinds": [
-				"CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST"
-			],
+			"case_kinds": ["CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST"],
 			"night_from": "22:00",
 			"night_to": "05:00"
 		},
@@ -1125,10 +1077,7 @@
 	{
 		"code": "ROSTER_HAZARDOUS_OVERTIME",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"employee_contract": {
 				"limit": 10000
@@ -1171,10 +1120,7 @@
 	{
 		"code": "ROSTER_REST_INTERVAL",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"employee_contract": {
 				"limit": 10000
@@ -1217,10 +1163,7 @@
 	{
 		"code": "ROSTER_LEAVE_ON_WORKED_DAY",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"leave_catalog_entry": {
 				"limit": 10000
@@ -1244,11 +1187,7 @@
 	{
 		"code": "WAGE_PAYMENT_MONTHLY",
 		"target_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update",
-			"seal"
-		],
+		"events": ["create", "update", "seal"],
 		"validate": "const schedule = get(ctx.entry, 'payment_schedule', {});\nreturn get(schedule, 'frequency', null) !== ctx.lookup.forbidden_frequency;",
 		"order": 31,
 		"lookup": {
@@ -1267,10 +1206,7 @@
 	{
 		"code": "JP_SUBSTITUTE_LEAVE_REVIEW",
 		"target_collection": "leave_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"leave_catalog": {
 				"limit": 10000
@@ -1296,10 +1232,7 @@
 	{
 		"code": "JP_PRENATAL_WINDOW",
 		"target_collection": "leave_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1309,10 +1242,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code",
-					"lookup"
-				],
+				"fields": ["code", "lookup"],
 				"limit": 1
 			}
 		},
@@ -1335,10 +1265,7 @@
 	{
 		"code": "JP_ANNUAL_LEAVE_HOURS_CAP",
 		"target_collection": "leave_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1348,10 +1275,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code",
-					"lookup"
-				],
+				"fields": ["code", "lookup"],
 				"limit": 1
 			},
 			"employee_contract": {
@@ -1362,10 +1286,7 @@
 						}
 					}
 				},
-				"fields": [
-					"service_started_on",
-					"effective_range"
-				],
+				"fields": ["service_started_on", "effective_range"],
 				"limit": 1
 			},
 			"leave_catalog_entry": {
@@ -1387,11 +1308,7 @@
 						}
 					}
 				},
-				"fields": [
-					"days",
-					"reverses",
-					"reverses"
-				],
+				"fields": ["days", "reverses", "reverses"],
 				"limit": 1000
 			}
 		},
@@ -1414,41 +1331,22 @@
 	{
 		"code": "CONTRACT_CATEGORIES",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update",
-			"seal"
-		],
+		"events": ["create", "update", "seal"],
 		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst ext = get(ctx.entry, 'employee_extension_data', {});\nconst employmentType = get(ext, 'employment_type', null);\nif (employmentType != null && !ctx.lookup.employment_types.includes(employmentType)) return false;\nconst classification = get(ext, 'work_classification', null);\nif (classification != null && !ctx.lookup.work_classifications.includes(classification)) return false;\nconst category = get(terms, 'statutory_work_category', null);\nif (category != null && !ctx.lookup.statutory_work_categories.includes(category)) return false;\nconst residency = get(terms, 'residency_status', null);\nif (residency != null && !ctx.lookup.residency_statuses.includes(residency)) return false;\nconst method = get(terms, 'wage_payment_method', null);\nif (method != null && !ctx.lookup.wage_payment_methods.includes(method)) return false;\nreturn true;",
 		"order": 39,
 		"lookup": {
 			"name": "Use the recorded employment categories",
 			"message": "Select the employment type, work classification, statutory work category and residency status permitted by this jurisdiction version.",
-			"employment_types": [
-				"INDEFINITE",
-				"FIXED_TERM",
-				"PART_TIME"
-			],
-			"work_classifications": [
-				"ORDINARY",
-				"MANAGERIAL",
-				"OFFICER"
-			],
+			"employment_types": ["INDEFINITE", "FIXED_TERM", "PART_TIME"],
+			"work_classifications": ["ORDINARY", "MANAGERIAL", "OFFICER"],
 			"statutory_work_categories": [
 				"SOCIAL_AND_EMPLOYMENT",
 				"SOCIAL_ONLY",
 				"EMPLOYMENT_ONLY",
 				"NONE"
 			],
-			"residency_statuses": [
-				"RESIDENT",
-				"NON_RESIDENT"
-			],
-			"wage_payment_methods": [
-				"BANK",
-				"DIGITAL",
-				"CASH"
-			]
+			"residency_statuses": ["RESIDENT", "NON_RESIDENT"],
+			"wage_payment_methods": ["BANK", "DIGITAL", "CASH"]
 		},
 		"references": [
 			{
@@ -1463,11 +1361,7 @@
 	{
 		"code": "SHARED_CONTRACT_TERMS",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update",
-			"seal"
-		],
+		"events": ["create", "update", "seal"],
 		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst day = get(terms, 'normal_hours_per_day', null);\nif (day != null && (day < ctx.lookup.normal_hours_per_day_min || day > ctx.lookup.normal_hours_per_day_max)) return false;\nconst week = get(terms, 'normal_hours_per_week', null);\nif (week != null && week < ctx.lookup.normal_hours_per_week_min) return false;\nconst days = get(terms, 'normal_days_per_week', null);\nif (days != null && (days < 0 || days > 7 || days !== Math.trunc(days))) return false;\nreturn true;",
 		"order": 40,
 		"lookup": {
@@ -1490,11 +1384,7 @@
 	{
 		"code": "SHARED_STRUCTURED_EMPLOYEE_INPUTS",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update",
-			"seal"
-		],
+		"events": ["create", "update", "seal"],
 		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst ext = get(ctx.entry, 'employee_extension_data', {});\nconst region = get(terms, 'work_region', get(ext, 'work_region', null));\nif (region != null && !ctx.lookup.work_regions.includes(region)) return false;\nreturn true;",
 		"order": 41,
 		"lookup": {
@@ -1563,11 +1453,7 @@
 	{
 		"code": "SHARED_STRUCTURED_ENTITY_INPUTS",
 		"target_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update",
-			"seal"
-		],
+		"events": ["create", "update", "seal"],
 		"validate": "const ext = get(ctx.entry, 'entity_extension_data', {});\nconst registration = get(ext, 'registration_number', null);\nif (registration != null && String(registration).length !== ctx.lookup.registration_number_length) return false;\nconst month = get(ext, 'financial_year_end_month', null);\nif (month != null && (Number(month) < 1 || Number(month) > 12 || Number(month) !== Math.trunc(Number(month)))) return false;\nconst week = get(ext, 'week_start', null);\nif (week != null && (Number(week) < 0 || Number(week) > 6 || Number(week) !== Math.trunc(Number(week)))) return false;\nconst hours = get(ext, 'normal_hours_per_year', null);\nif (hours != null && (Number(hours) <= 0 || Number(hours) > ctx.lookup.normal_hours_per_year_max)) return false;\nconst rest = get(ext, 'minimum_shift_rest_hours', null);\nif (rest != null && (Number(rest) < 0 || Number(rest) > 24)) return false;\nconst age = get(ext, 'retirement_age_years', null);\nif (age != null && (Number(age) < 0 || Number(age) !== Math.trunc(Number(age)))) return false;\nreturn true;",
 		"order": 42,
 		"lookup": {
@@ -1589,20 +1475,13 @@
 	{
 		"code": "SOCIAL_INSURANCE_EVENT_DATE_REQUIRED",
 		"target_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update",
-			"seal"
-		],
+		"events": ["create", "update", "seal"],
 		"validate": "return get(ctx.entry, 'registrations', []).every((r) => {\n\tif (!ctx.lookup.registration_schemes.includes(r.scheme_code)) return true;\n\tif (r.number == null || r.number === '') return true;\n\treturn get(r, 'period', null) != null && r.period.from != null;\n});",
 		"order": 43,
 		"lookup": {
 			"name": "Record the actual social-insurance applicability date for this registered office.",
 			"message": "Record the actual social-insurance applicability date for this registered office.",
-			"registration_schemes": [
-				"HEALTH_PENSION_OFFICE_SYMBOL",
-				"HEALTH_PENSION_OFFICE_NUMBER"
-			]
+			"registration_schemes": ["HEALTH_PENSION_OFFICE_SYMBOL", "HEALTH_PENSION_OFFICE_NUMBER"]
 		},
 		"references": [
 			{
@@ -1617,19 +1496,13 @@
 	{
 		"code": "LABOUR_INSURANCE_EVENT_DATE_REQUIRED",
 		"target_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update",
-			"seal"
-		],
+		"events": ["create", "update", "seal"],
 		"validate": "return get(ctx.entry, 'registrations', []).every((r) => {\n\tif (!ctx.lookup.registration_schemes.includes(r.scheme_code)) return true;\n\tif (r.number == null || r.number === '') return true;\n\treturn get(r, 'period', null) != null && r.period.from != null;\n});",
 		"order": 44,
 		"lookup": {
 			"name": "Record when the registered Japanese labour-insurance relationship actually arose.",
 			"message": "Record when the registered Japanese labour-insurance relationship actually arose.",
-			"registration_schemes": [
-				"LABOUR_INSURANCE"
-			]
+			"registration_schemes": ["LABOUR_INSURANCE"]
 		},
 		"references": [
 			{
@@ -1644,19 +1517,13 @@
 	{
 		"code": "EMPLOYMENT_INSURANCE_EVENT_DATE_REQUIRED",
 		"target_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update",
-			"seal"
-		],
+		"events": ["create", "update", "seal"],
 		"validate": "return get(ctx.entry, 'registrations', []).every((r) => {\n\tif (!ctx.lookup.registration_schemes.includes(r.scheme_code)) return true;\n\tif (r.number == null || r.number === '') return true;\n\treturn get(r, 'period', null) != null && r.period.from != null;\n});",
 		"order": 45,
 		"lookup": {
 			"name": "Record when this registered employment-insurance office actually became applicable.",
 			"message": "Record when this registered employment-insurance office actually became applicable.",
-			"registration_schemes": [
-				"EI"
-			]
+			"registration_schemes": ["EI"]
 		},
 		"references": [
 			{
@@ -1671,11 +1538,7 @@
 	{
 		"code": "PAYROLL_OFFICE_EVENT_DATE_REQUIRED",
 		"target_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update",
-			"seal"
-		],
+		"events": ["create", "update", "seal"],
 		"validate": "const ext = get(ctx.entry, 'entity_extension_data', {});\nif (get(ext, 'withholding_tax_office', '') === '') return true;\nconst opened = get(ext, 'payroll_office_opened_on', null);\nreturn opened != null && opened !== '';",
 		"order": 46,
 		"lookup": {
@@ -1695,10 +1558,7 @@
 	{
 		"code": "BUSINESS_CASE_SUBJECT_AND_REFERENCE",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"validate": "if (!ctx.lookup.case_kinds.includes(ctx.entry.kind)) return true;\nreturn get(ctx.entry.inputs, 'employment_id', null) != null && get(ctx.entry.inputs, 'reference', '') !== '';",
 		"order": 47,
 		"lookup": {
@@ -1726,10 +1586,7 @@
 	{
 		"code": "BUSINESS_CASE_EFFECTIVE_INTERVAL",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"validate": "if (!ctx.lookup.case_kinds.includes(ctx.entry.kind)) return true;\nconst from = get(ctx.entry.inputs, 'effective_from', null);\nconst to = get(ctx.entry.inputs, 'effective_to', null);\nif (from == null || to == null) return false;\nreturn from >= ctx.entry.opened_on && to >= from;",
 		"order": 48,
 		"lookup": {
@@ -1755,10 +1612,7 @@
 	{
 		"code": "BUSINESS_CASE_SIGNED_CONSENT",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"validate": "if (ctx.entry.kind !== 'DIGITAL_WAGE_PAYMENT_CONSENT') return true;\nconst signed = get(ctx.entry.inputs, 'signed_on', null);\nif (signed == null) return false;\nif (!(signed <= ctx.entry.opened_on)) return false;\nreturn get(ctx.entry, 'evidence_file', null) != null;",
 		"order": 49,
 		"lookup": {
@@ -1778,10 +1632,7 @@
 	{
 		"code": "DIGITAL_CONSENT_EFFECTIVE_DATE",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"validate": "if (ctx.entry.kind !== 'DIGITAL_WAGE_PAYMENT_CONSENT') return true;\nconst from = get(ctx.entry.inputs, 'effective_from', null);\nreturn from != null && from >= ctx.entry.opened_on;",
 		"order": 50,
 		"lookup": {
@@ -1801,9 +1652,7 @@
 	{
 		"code": "NO_PAY_OPEN_PERIOD",
 		"target_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"lookup": {
 			"no_pay": [
 				"PRENATAL_LEAVE",
@@ -1836,9 +1685,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			},
 			"payroll_run": {
@@ -1852,9 +1699,7 @@
 						"eq": "ON_CYCLE"
 					}
 				},
-				"fields": [
-					"period"
-				],
+				"fields": ["period"],
 				"limit": 10000
 			},
 			"leave_catalog_entry": {
@@ -1876,9 +1721,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"days"
-				],
+				"fields": ["days"],
 				"limit": 1000
 			}
 		},

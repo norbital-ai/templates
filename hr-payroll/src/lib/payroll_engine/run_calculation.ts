@@ -2,12 +2,7 @@ import { datePeriod, eachDay } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import { awardedMinutes, holidaysForDay, overlapSpans, scheduled } from './attendance.js';
 import { intervalSpans } from './time_evidence.js';
-import {
-	calculatePayroll,
-	isWorkingDay,
-	offDaysFor,
-	type ProjectedDay
-} from './engine.js';
+import { calculatePayroll, isWorkingDay, offDaysFor, type ProjectedDay } from './engine.js';
 import type { JsonObject } from './contracts.js';
 import type { PayWindow } from './pay_cycle.js';
 import { idOf, objectValue, queryRows, type Reader } from './reads.js';
@@ -162,11 +157,23 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 	const data = yield* queryRows(read, {
 		jurisdiction_settings: {
 			where: { id: { eq: settingsId } },
-			fields: ['id', 'code', 'status', 'timezone', 'tax_year_start_month', 'lookup', 'conversions', 'ledger'],
+			fields: [
+				'id',
+				'code',
+				'status',
+				'timezone',
+				'tax_year_start_month',
+				'lookup',
+				'conversions',
+				'ledger'
+			],
 			limit: 1
 		},
 		subtotal: { ...inVersion, fields: ['id', 'code', 'name', 'previous_id', 'calculation'] },
-		allowance_catalog: { ...inVersion, fields: [...CATALOG, 'party', 'prorate', 'include_in_rate'] },
+		allowance_catalog: {
+			...inVersion,
+			fields: [...CATALOG, 'party', 'prorate', 'include_in_rate']
+		},
 		overtime_catalog: { ...inVersion, fields: [...CATALOG, 'direction'] },
 		statutory_contribution_catalog: {
 			...inVersion,
@@ -186,7 +193,10 @@ export const loadRun = Effect.fn('payroll.loadRun')(function* (
 		},
 		leave_catalog: { ...inVersion, fields: [...CATALOG, 'direction', 'pay_treatment'] },
 		claim_catalog: { ...inVersion, fields: [...CATALOG, 'direction', 'party'] },
-		adhoc_catalog: { ...inVersion, fields: [...CATALOG, 'direction', 'party', 'off_cycle_eligible'] },
+		adhoc_catalog: {
+			...inVersion,
+			fields: [...CATALOG, 'direction', 'party', 'off_cycle_eligible']
+		},
 		loan_catalog: {
 			...inVersion,
 			fields: ['id', 'code', 'name', 'subtotal_id']

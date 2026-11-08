@@ -111,7 +111,7 @@ describe('overtime bands', () => {
 				{ date, part: 'AM' },
 				{ date, part: 'PM' }
 			];
-			const entry = { entity_id: ENTITY, employment_id: uuid(6),  };
+			const entry = { entity_id: ENTITY, employment_id: uuid(6) };
 			return run(
 				{
 					...seed,
@@ -301,7 +301,7 @@ describe('overtime bands', () => {
 						days: [
 							{ date: '2026-02-10', part: 'AM' },
 							{ date: '2026-02-10', part: 'PM' }
-						],
+						]
 					}
 				]
 			},
@@ -640,8 +640,8 @@ describe('overtime bands', () => {
 										{ date: '2026-01-06', part: 'AM' },
 										{ date: '2026-01-06', part: 'PM' },
 										{ date: '2026-02-10', part: 'AM' }
-									],
-											}
+									]
+								}
 							]
 						},
 						now: '2026-02-26T02:00:00.000Z'

@@ -165,24 +165,14 @@
 				key="work_interruption_catalog"
 				where={{ settings_id: { eq: versionId } }}
 				toolbar={{ new: draft, title: labels.work_interruption_catalog }}
-				columns={[
-					'code',
-					'name',
-					'events',
-					{ field: 'lookup', cell: jsonCell }
-				]}
+				columns={['code', 'name', 'events', { field: 'lookup', cell: jsonCell }]}
 			/>
 		{:else}<Table
 				of="workplace_case_catalog"
 				key="workplace_case_catalog"
 				where={{ settings_id: { eq: versionId } }}
 				toolbar={{ new: draft, title: labels.workplace_case_catalog }}
-				columns={[
-					'code',
-					'name',
-					'events',
-					{ field: 'lookup', cell: jsonCell }
-				]}
+				columns={['code', 'name', 'events', { field: 'lookup', cell: jsonCell }]}
 			/>{/if}
 	</section>
 {/snippet}

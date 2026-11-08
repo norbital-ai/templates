@@ -453,27 +453,6 @@
 		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
 	},
 	{
-		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
-		"name": "13th month pay (year end)",
-		"description": "The entry quantity is the year-end 13th-month amount due for the entitlement year; the engine posts it as gross earnings. Practical treatment: SSS/MPF/EC and HDMF use ordinary wages; PHIC uses basic salary; 13th month and Christmas bonus are outside all four monthly bases. The SSS IRR expressly excludes Christmas bonus and does not name 13th month. WTAX uses final gross and includes both in the 90,000 aggregate benefits pool. If a written SSS ruling requires 13th-month inclusion, change only the SSS checkpoint routing.",
-		"lookup": {},
-		"references": [
-			{
-				"title": "PD851/DOLE2024 Handbook ch.13 C-H; Reyes GR160233; PAL GR142399. Automatic calculation uses original payroll_history and ordered current.priced_lines: signed eligible basic by earning_year, documented personal-sales/integrated components, less actual13th/evidenced equivalent grants only for matching entitlement_year. Current component dependencies order maternity/basic-backpay/commission and other selected awards before13th regardless input order. HR supplies dated source-completeness and confirmed attendance/salary-through facts, not a calculated total. Year-end daily additional unpriced paid days multiply an unchanged captured daily rate. Future unknown records, missing original attribution/classification or unsupported rate changes require the existing dated reviewed residual-base fallback or refuse. A later change requires a differential. Generic gifts and separately promised CBA Christmas bonuses never become automatic credits.",
-				"url": "https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf"
-			}
-		],
-		"off_cycle_eligible": true,
-		"subtotal_id": "1fe27bd2-4ea2-5419-a8d8-052fa33e187e",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
-		"eligibility": "// js\nconst end = get(ctx.subject.employment, 'effective_range.to', null);\nif (ctx.entry.unit !== 'MONEY') return false;\nif (!(ctx.entry.quantity > 0)) return false;\nif (end != null && !(ctx.entry.incurred_on <= end)) return false;\nif (get(ctx.subject.employment, 'terms.statutory_work_category', '') === 'TASK_BASIS') return false;\nconst from = get(ctx.subject.employment, 'effective_range.from', ctx.entry.incurred_on);\nreturn calendar_completed_months(from, ctx.entry.incurred_on) >= 1;",
-		"conversion": "// js\nreturn ctx.entry.quantity;",
-		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
-		"id": "47f874e6-124c-5adf-ba0b-0fa0f6a9f795",
-		"settings_id": "b256a118-49fe-537d-9404-ccfe47bc234c"
-	},
-	{
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
 		"description": "The entry quantity is the separation amount; the recorded termination cause and service remain the legal basis.",

@@ -486,7 +486,11 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 			},
 			limit: 10000
 		},
-		jurisdiction_settings: { where: law, fields: ['id', 'lookup', 'conversions', 'ledger'], limit: 10000 },
+		jurisdiction_settings: {
+			where: law,
+			fields: ['id', 'lookup', 'conversions', 'ledger'],
+			limit: 10000
+		},
 		...subjectLayers(rows, cache)
 	});
 	const rules = (first.registered_rule ?? []).toSorted(
@@ -495,10 +499,7 @@ export const validateRegistered = Effect.fn('payroll.validateRegistered')(functi
 	if (rules.length === 0) return;
 	primeFrom(first, cache);
 	const globals = new Map(
-		(first.jurisdiction_settings ?? []).map((row) => [
-			String(row.id),
-			settingsConstants(row)
-		])
+		(first.jurisdiction_settings ?? []).map((row) => [String(row.id), settingsConstants(row)])
 	);
 	const source = rules
 		.map(
@@ -659,10 +660,7 @@ export const applyRegisteredEffects = Effect.fn('payroll.applyRegisteredEffects'
 	if (effects.length === 0) return;
 	primeFrom(first, cache);
 	const lookups = new Map(
-		(first.jurisdiction_settings ?? []).map((row) => [
-			String(row.id),
-			settingsConstants(row)
-		])
+		(first.jurisdiction_settings ?? []).map((row) => [String(row.id), settingsConstants(row)])
 	);
 	const globals = new Map(
 		effects

@@ -75,9 +75,7 @@ const flattenExtension = (value: JsonObject): JsonObject => {
 		merged.statutory = Object.fromEntries(
 			Object.entries(merged.statutory).map(([scheme, body]) => [
 				scheme,
-				isJsonObject(body) && isJsonObject(body.elections)
-					? { ...body, ...body.elections }
-					: body
+				isJsonObject(body) && isJsonObject(body.elections) ? { ...body, ...body.elections } : body
 			])
 		);
 	return jsonObject(merged);

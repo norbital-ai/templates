@@ -8,7 +8,11 @@ const conversionArmError = (row: {
 	readonly conversions?: unknown;
 	readonly code?: unknown;
 }): string | undefined => {
-	if (row.conversions === null || typeof row.conversions !== 'object' || Array.isArray(row.conversions))
+	if (
+		row.conversions === null ||
+		typeof row.conversions !== 'object' ||
+		Array.isArray(row.conversions)
+	)
 		return undefined;
 	const conversions = row.conversions as Record<string, unknown>;
 	for (const [name, unit] of [
@@ -49,14 +53,7 @@ export default model('jurisdiction_settings', {
 					fields: {
 						basis: {
 							kind: 'enum',
-							values: [
-								'CALENDAR_DAYS',
-								'WORKING_DAYS',
-								'YEAR',
-								'YEAR_REST_DAYS',
-								'HOUR',
-								'FIXED'
-							]
+							values: ['CALENDAR_DAYS', 'WORKING_DAYS', 'YEAR', 'YEAR_REST_DAYS', 'HOUR', 'FIXED']
 						},
 						days: {
 							kind: 'number',

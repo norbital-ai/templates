@@ -401,10 +401,7 @@ const includedAllowances = (input: PayrollInput, terms: JsonObject): number => {
  * `YEAR_REST_DAYS` = 365 − 52 rest days, `HOUR` = the hour rate × contract hours, or the FIXED arm's days) and its hour
  * basis (`CONTRACT_HOURS`, `CONTRACT_WEEKLY` = 52 contract weeks, or the FIXED arm's hours).
  */
-export const payBasis = (
-	input: PayrollInput,
-	coverage: { from: string; to: string }
-) => {
+export const payBasis = (input: PayrollInput, coverage: { from: string; to: string }) => {
 	const { terms, amount: rate, unit, hoursPerDay, daysPerWeek, weeklyHours } = rateOf(input);
 	const off = offDaysOf(input);
 	const month = monthBounds(coverage.from);
@@ -552,7 +549,9 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 	 */
 	const producerRefund = (original: JsonObject, salaryRefund: number): number => {
 		if (salaryRefund === 0) return 0;
-		const inRate = new Map(input.allowance.map((row) => [String(row.code), row.include_in_rate === true]));
+		const inRate = new Map(
+			input.allowance.map((row) => [String(row.code), row.include_in_rate === true])
+		);
 		const dates = (Array.isArray(original.days) ? original.days : [])
 			.flatMap((day) => (isJsonObject(day) && isPlainDate(day.date) ? [String(day.date)] : []))
 			.sort();
@@ -582,8 +581,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 		}
 		return total;
 	};
-	const openingPay =
-		input.run.kind === 'OFF_CYCLE' ? 0 : defaultBasePay(input, coverage);
+	const openingPay = input.run.kind === 'OFF_CYCLE' ? 0 : defaultBasePay(input, coverage);
 	const lines: PayLine[] = [];
 	const values = new Map<string, number>();
 	const results: SubtotalResult[] = [];
@@ -649,9 +647,7 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 					subtotal,
 					amount: round(input.settings, value),
 					direction:
-						model === 'overtime_catalog'
-							? ((producer.direction as Direction) ?? 'ADD')
-							: 'ADD',
+						model === 'overtime_catalog' ? ((producer.direction as Direction) ?? 'ADD') : 'ADD',
 					party:
 						model === 'overtime_catalog' ? 'EMPLOYEE' : ((producer.party as Party) ?? 'EMPLOYEE'),
 					incurred_on: incurredOn(
@@ -751,11 +747,13 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 						direction:
 							((catalog.direction as Direction) ?? 'ADD') === 'ADD' && entry.reverses != null
 								? 'DEDUCT'
-								: ((catalog.direction as Direction) ?? 'ADD') === 'DEDUCT' &&
-									  entry.reverses != null
+								: ((catalog.direction as Direction) ?? 'ADD') === 'DEDUCT' && entry.reverses != null
 									? 'ADD'
 									: ((catalog.direction as Direction) ?? 'ADD'),
-						party: group.model === 'leave_catalog' ? 'EMPLOYEE' : ((catalog.party as Party) ?? 'EMPLOYEE'),
+						party:
+							group.model === 'leave_catalog'
+								? 'EMPLOYEE'
+								: ((catalog.party as Party) ?? 'EMPLOYEE'),
 						incurred_on: incurredOn(
 							catalog.incurred_on,
 							context,

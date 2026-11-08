@@ -566,13 +566,7 @@
 			}
 		],
 		"kind": "TAX",
-		"depends_on": [
-			"EPF",
-			"EPF_PR",
-			"EPF_NON_CITIZEN",
-			"SOCSO",
-			"EIS"
-		],
+		"depends_on": ["EPF", "EPF_PR", "EPF_NON_CITIZEN", "SOCSO", "EIS"],
 		"subtotal_id": "c6b02f8a-4a07-5bb8-964e-b826b6b48b30",
 		"employer_cost_subtotal_id": "c6b02f8a-4a07-5bb8-964e-b826b6b48b30",
 		"lookup": {

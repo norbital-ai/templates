@@ -5,8 +5,9 @@ import { join } from 'node:path';
 import { describe, it } from 'vitest';
 import SCHEMA_SOURCE_JSON from '../src/lib/payroll_engine/extension_schema.json';
 
-const SCHEMA_SOURCE: Readonly<Record<string, { readonly employee: unknown; readonly entity: unknown }>> =
-	SCHEMA_SOURCE_JSON;
+const SCHEMA_SOURCE: Readonly<
+	Record<string, { readonly employee: unknown; readonly entity: unknown }>
+> = SCHEMA_SOURCE_JSON;
 
 /** The one catalogue is the schema source; names are derived, never a second file. */
 const sourceFields = (code: string): readonly string[] => {
@@ -27,11 +28,7 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 const sources = (dir: string): readonly string[] =>
 	readdirSync(dir).flatMap((name) => {
 		const path = join(dir, name);
-		return statSync(path).isDirectory()
-			? sources(path)
-			: /\.(ts|svelte)$/.test(name)
-				? [path]
-				: [];
+		return statSync(path).isDirectory() ? sources(path) : /\.(ts|svelte)$/.test(name) ? [path] : [];
 	});
 
 const leaves = (schema: unknown, prefix = ''): readonly string[] => {
@@ -40,8 +37,7 @@ const leaves = (schema: unknown, prefix = ''): readonly string[] => {
 	return Object.entries(properties).flatMap(([key, spec]) => {
 		const here = prefix === '' ? key : `${prefix}.${key}`;
 		if (!isObject(spec)) return [];
-		if (spec.type === 'object' && isObject(spec.properties))
-			return leaves(spec, here);
+		if (spec.type === 'object' && isObject(spec.properties)) return leaves(spec, here);
 		if (spec.type === 'array' && isObject(spec.items) && isObject(spec.items.properties))
 			return leaves(spec.items, `${here}[]`);
 		return [here];
@@ -92,9 +88,9 @@ describe('country extension fields', () => {
 							);
 							if (
 								!path.endsWith('registration_number') &&
-								!new RegExp(`(?<![A-Za-z0-9_])${path.split('.').at(-1)?.replace('[]', '')}(?![A-Za-z0-9_])`).test(
-									text
-								)
+								!new RegExp(
+									`(?<![A-Za-z0-9_])${path.split('.').at(-1)?.replace('[]', '')}(?![A-Za-z0-9_])`
+								).test(text)
 							)
 								unread.push(`${code}/${version}: ${label}.${path}`);
 						}

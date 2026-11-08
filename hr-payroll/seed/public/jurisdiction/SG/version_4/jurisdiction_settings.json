@@ -22,17 +22,11 @@
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": [
-							"kind",
-							"on"
-						],
+						"required": ["kind", "on"],
 						"properties": {
 							"kind": {
 								"type": "string",
-								"enum": [
-									"ADOPTION",
-									"CHILD_BIRTH"
-								],
+								"enum": ["ADOPTION", "CHILD_BIRTH"],
 								"title": "What happened"
 							},
 							"on": {
@@ -60,11 +54,7 @@
 				},
 				"student_training_class": {
 					"type": "string",
-					"enum": [
-						"NONE",
-						"LOCAL_APPROVED_TRAINING",
-						"OTHER_REQUIRES_REVIEW"
-					],
+					"enum": ["NONE", "LOCAL_APPROVED_TRAINING", "OTHER_REQUIRES_REVIEW"],
 					"description": "Required for INTERN. NONE means no student-training exemption is claimed; an internship label alone does not exempt. LOCAL_APPROVED_TRAINING requires the institution approval, MOE-subsidy answer, dates and documentary reference below. Other student exemption classes require separately reviewed treatment. OTHER_REQUIRES_REVIEW covers other claimed student exemptions, including overseas-required training or school-holiday cases: their evidence/wage allocation is reviewed before payroll."
 				},
 				"student_training_institution": {
@@ -213,18 +203,12 @@
 				},
 				"annual_leave_unpaid_service_policy": {
 					"type": "string",
-					"enum": [
-						"COUNT_APPROVED_UNPAID",
-						"EXCLUDE_REQUIRES_REVIEW"
-					],
+					"enum": ["COUNT_APPROVED_UNPAID", "EXCLUDE_REQUIRES_REVIEW"],
 					"description": "COUNT_APPROVED_UNPAID expressly grants the more generous entitlement. The excluded-service path requires reviewed qualifying-service allocation and is refused instead of using raw calendar months. The seed otherwise grants the more generous calendar-service annual entitlement, counting approved unpaid service; it never silently applies an exclusion."
 				},
 				"leave_year_employment_basis": {
 					"type": "string",
-					"enum": [
-						"CONTINUOUS_SAME_BASIS",
-						"MIXED_REQUIRES_REVIEW"
-					],
+					"enum": ["CONTINUOUS_SAME_BASIS", "MIXED_REQUIRES_REVIEW"],
 					"description": "Mixed full/part-time service in a leave year needs reviewed entitlement allocation, including a worker now full-time."
 				},
 				"comparable_full_time_hours_per_day": {
@@ -262,11 +246,7 @@
 				},
 				"ir21_exemption": {
 					"type": "string",
-					"enum": [
-						"SPR_UNDERTAKING",
-						"SHORT_STINT_60_DAYS",
-						"BELOW_21000"
-					],
+					"enum": ["SPR_UNDERTAKING", "SHORT_STINT_60_DAYS", "BELOW_21000"],
 					"description": "IRAS, Tax clearance for employees: no IR21 for an SPR not leaving Singapore permanently who gives a letter of undertaking, for an employment of 60 days or less (not a director), or for income below $21,000 a year under the IRAS conditions. Recorded, the IR21 task is not raised and the final pay is released. Customer input."
 				},
 				"ir21_additional_clearance_on": {
@@ -422,12 +402,7 @@
 							"properties": {
 								"sdl_household_role": {
 									"type": "string",
-									"enum": [
-										"NONE",
-										"DOMESTIC_SERVANT",
-										"GARDENER",
-										"CHAUFFEUR"
-									],
+									"enum": ["NONE", "DOMESTIC_SERVANT", "GARDENER", "CHAUFFEUR"],
 									"description": "SDL Act 1979 s.2: a domestic servant, gardener or chauffeur wholly and exclusively employed by an individual otherwise than in connection with a trade, business, profession or vocation is not an “employee” (with sdl_wholly_exclusive and sdl_nonbusiness true)."
 								},
 								"sdl_nonbusiness": {
@@ -1433,10 +1408,7 @@
 				"ordinary_ceiling": 8000,
 				"annual_ceiling": 102000,
 				"weekly_limit": 2500,
-				"local_residencies": [
-					"CITIZEN",
-					"PERMANENT_RESIDENT"
-				],
+				"local_residencies": ["CITIZEN", "PERMANENT_RESIDENT"],
 				"max_months": 12
 			}
 		},

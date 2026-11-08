@@ -12,8 +12,6 @@
 		"eligibility": "// js\nconst ended = ctx.subject.employment.effective_range?.to;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "// js\nreturn ctx.entry.unit === 'MONEY' ? ctx.entry.quantity : 0;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "1e7a96db-4a41-5dda-87e4-8537abcdaadc",
 		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
 	},
@@ -30,8 +28,6 @@
 		"eligibility": "// js\nconst ended = ctx.subject.employment.effective_range?.to;\nreturn ended == null || ctx.entry.incurred_on <= ended;",
 		"conversion": "// js\nreturn ctx.entry.unit === 'MONEY' ? ctx.entry.quantity : 0;",
 		"incurred_on": "// js\nreturn ctx.entry.incurred_on;",
-		"direction": "ADD",
-		"party": "EMPLOYEE",
 		"id": "297049c7-ab1e-5d86-ad46-38b7888ab838",
 		"settings_id": "07f1a5d9-9338-5659-808c-734d8b10d069"
 	}

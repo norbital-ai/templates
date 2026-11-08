@@ -5,9 +5,7 @@
 		"lookup": {
 			"encash_on_exit": {
 				"allowed": true,
-				"refused_on": [
-					"MISCONDUCT_DISMISSAL"
-				]
+				"refused_on": ["MISCONDUCT_DISMISSAL"]
 			},
 			"window": "SERVICE_YEAR",
 			"service_bands": [

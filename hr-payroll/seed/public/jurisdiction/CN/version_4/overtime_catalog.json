@@ -11,7 +11,7 @@
 			}
 		],
 		"eligibility": "const premiumDay = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\n// js\nconst terms = ctx.subject.employment.terms;\nif (!['STANDARD', ''].includes(get(terms, 'statutory_work_category', ''))) return false;\nif (['PART_TIME', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(ctx.subject.employment, 'engagement', 'EMPLOYEE'))) return false;\nreturn sum(get(ctx, 'work.days', []).filter((day) => day.day_type === 'WORK' && !premiumDay(day)).map((day) => get(day, 'overtime_hours', 0))) > 0;",
-		"conversion": "const premiumDay = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\n// js\nconst terms = ctx.subject.employment.terms;\nreturn sum(get(ctx, 'work.days', []).filter((day) => day.day_type === 'WORK' && !premiumDay(day)).map((day) => get(day, 'overtime_hours', 0))) * ctx.lookup.multiplier * ctx.day_rate / 8;",
+		"conversion": "const premiumDay = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\n// js\nreturn sum(get(ctx, 'work.days', []).filter((day) => day.day_type === 'WORK' && !premiumDay(day)).map((day) => get(day, 'overtime_hours', 0))) * ctx.lookup.multiplier * ctx.day_rate / 8;",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
 		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
@@ -30,7 +30,7 @@
 			}
 		],
 		"eligibility": "// js\nconst review = get(\n\tctx.subject.employment.employee_extension_data,\n\t'comprehensive_overtime_review',\n\tnull\n);\nconst from = ctx.run.salary_coverage.from;\nconst to = ctx.run.salary_coverage.to;\nconst terms = ctx.subject.employment.terms;\nif (get(terms, 'statutory_work_category', '') !== 'COMPREHENSIVE') return false;\nif (['PART_TIME', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(ctx.subject.employment, 'engagement', 'EMPLOYEE'))) return false;\nif (review == null) return false;\nif (review.month !== from.slice(0, 7)) return false;\nif (review.reference === '') return false;\nif (!(review.settlement_on >= from)) return false;\nif (!(review.settlement_on <= to)) return false;\nreturn Number(review.excess_nonholiday_hours) > 0;",
-		"conversion": "// js\nconst review = get(\n\tctx.subject.employment.employee_extension_data,\n\t'comprehensive_overtime_review',\n\tnull\n);\nconst terms = ctx.subject.employment.terms;\nreturn Number(review.excess_nonholiday_hours) * ctx.lookup.multiplier * ctx.day_rate / 8;",
+		"conversion": "// js\nconst review = get(\n\tctx.subject.employment.employee_extension_data,\n\t'comprehensive_overtime_review',\n\tnull\n);\nreturn Number(review.excess_nonholiday_hours) * ctx.lookup.multiplier * ctx.day_rate / 8;",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
 		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
@@ -49,7 +49,7 @@
 			}
 		],
 		"eligibility": "const premiumDay = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\n// js\nconst terms = ctx.subject.employment.terms;\nif (!['STANDARD', ''].includes(get(terms, 'statutory_work_category', ''))) return false;\nif (['PART_TIME', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(ctx.subject.employment, 'engagement', 'EMPLOYEE'))) return false;\nif (get(ctx.subject.employer, 'entity_extension_data.rest_day_work_compensated', false) === true) return false;\nreturn sum(get(ctx, 'work.days', []).filter((day) => ['REST', 'OFF'].includes(day.day_type) && !premiumDay(day)).map((day) => get(day, 'worked_hours', 0))) > 0;",
-		"conversion": "const premiumDay = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\n// js\nconst terms = ctx.subject.employment.terms;\nreturn sum(get(ctx, 'work.days', []).filter((day) => ['REST', 'OFF'].includes(day.day_type) && !premiumDay(day)).map((day) => get(day, 'worked_hours', 0))) * ctx.lookup.multiplier * ctx.day_rate / 8;",
+		"conversion": "const premiumDay = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\n// js\nreturn sum(get(ctx, 'work.days', []).filter((day) => ['REST', 'OFF'].includes(day.day_type) && !premiumDay(day)).map((day) => get(day, 'worked_hours', 0))) * ctx.lookup.multiplier * ctx.day_rate / 8;",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
 		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",
@@ -68,7 +68,7 @@
 			}
 		],
 		"eligibility": "const premiumDay = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\n// js\nconst terms = ctx.subject.employment.terms;\nconst category = get(terms, 'statutory_work_category', '');\n// 上海市企业工资支付办法 第十三条: 不定时工时制在法定休假节日安排工作的按300%; 工资支付暂行规定 第十三条 excludes it elsewhere\nconst shanghaiFlexible =\n\tcategory === 'FLEXIBLE' && get(ctx.subject.employer, 'entity_extension_data.region', '') === 'SH';\nif (!shanghaiFlexible && !['STANDARD', '', 'COMPREHENSIVE'].includes(category)) return false;\nif (['PART_TIME', 'CONTRACTOR', 'CONSULTANT', 'PAYEE'].includes(get(ctx.subject.employment, 'engagement', 'EMPLOYEE'))) return false;\nreturn sum(get(ctx, 'work.days', []).filter((day) => premiumDay(day)).map((day) => get(day, 'worked_hours', 0))) > 0;",
-		"conversion": "const premiumDay = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\n// js\nconst terms = ctx.subject.employment.terms;\nreturn sum(get(ctx, 'work.days', []).filter((day) => premiumDay(day)).map((day) => get(day, 'worked_hours', 0))) * ctx.lookup.multiplier * ctx.day_rate / 8;",
+		"conversion": "const premiumDay = (day) => {\n\tconst kind = get(day, 'holiday_kind', '');\n\treturn kind !== '' && kind !== 'MAKEUP_WORKDAY';\n};\n// js\nreturn sum(get(ctx, 'work.days', []).filter((day) => premiumDay(day)).map((day) => get(day, 'worked_hours', 0))) * ctx.lookup.multiplier * ctx.day_rate / 8;",
 		"incurred_on": "return ctx.as_of;",
 		"direction": "ADD",
 		"subtotal_id": "07ca7854-5937-5233-92e2-128abdd58b42",

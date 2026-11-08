@@ -2,10 +2,7 @@
 	{
 		"code": "MINIMUM_WAGE_FLOOR",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"monthly_wage": 28590
 		},
@@ -24,10 +21,7 @@
 	{
 		"code": "OVERTIME_DAILY_CAP",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"daily_limit_minutes": 720
 		},
@@ -46,10 +40,7 @@
 	{
 		"code": "MINIMUM_WAGE_HOURLY",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"hourly_wage": 190
 		},
@@ -68,10 +59,7 @@
 	{
 		"code": "UNDER_FIFTEEN_EMPLOYMENT",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"minimum_age": 15
 		},
@@ -90,10 +78,7 @@
 	{
 		"code": "CHILD_WORKER_LIMITS",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"maximum_age": 16,
 			"weekly_hours": 40
@@ -113,10 +98,7 @@
 	{
 		"code": "BREAK_AFTER_FOUR_HOURS",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"break_after_minutes": 240,
 			"break_minutes": 30
@@ -136,10 +118,7 @@
 	{
 		"code": "NORMAL_HOURS",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"normal_minutes_per_day": 480
 		},
@@ -158,10 +137,7 @@
 	{
 		"code": "DOMESTIC_MIGRANT_WAGE",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"monthly_wage": 20000
 		},
@@ -180,10 +156,7 @@
 	{
 		"code": "ROSTER_DAILY_HOURS_CAP",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"roster_warnings": {
 				"daily_hours": 12,
@@ -210,10 +183,7 @@
 	{
 		"code": "ROSTER_BREAK_AFTER_FOUR_HOURS",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"break_after_minutes": 240,
 			"break_minutes": 30
@@ -233,10 +203,7 @@
 	{
 		"code": "ROSTER_ATTENDANCE_TO_THE_MINUTE",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"references": [
 			{
 				"title": "勞動基準法 §30(5)–(6)",
@@ -252,10 +219,7 @@
 	{
 		"code": "SHELTERED_EMPLOYMENT_EVIDENCE",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"references": [
 			{
 				"title": "Disability Rights Act §40, §41, §42",
@@ -271,20 +235,11 @@
 	{
 		"code": "CONTRACT_CATEGORIES",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"categories": {
-				"statutory_work_category": [
-					"NON_MANUAL"
-				],
-				"residency_status": [
-					"CITIZEN",
-					"PERMANENT_RESIDENT",
-					"FOREIGNER"
-				]
+				"statutory_work_category": ["NON_MANUAL"],
+				"residency_status": ["CITIZEN", "PERMANENT_RESIDENT", "FOREIGNER"]
 			}
 		},
 		"references": [
@@ -302,10 +257,7 @@
 	{
 		"code": "SHARED_CONTRACT_TERMS",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"normal_hours_per_day_minimum": 0.5,
 			"normal_hours_per_day_maximum": 12
@@ -325,10 +277,7 @@
 	{
 		"code": "SICK_LEAVE_PAY_POOL",
 		"target_collection": "leave_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -342,10 +291,7 @@
 						]
 					}
 				},
-				"fields": [
-					"id",
-					"code"
-				]
+				"fields": ["id", "code"]
 			},
 			"leave_catalog_entry": {
 				"where": {
@@ -359,22 +305,14 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"catalog_id",
-					"days",
-					"reverses"
-				]
+				"fields": ["id", "catalog_id", "days", "reverses"]
 			}
 		},
 		"lookup": {
 			"sick_pool_days": 30,
 			"menstrual_free_days": 3,
 			"menstrual_days_per_month": 1,
-			"hospital_codes": [
-				"HOSPITALISED_SICK_LEAVE",
-				"SICK_LEAVE_UNPAID"
-			],
+			"hospital_codes": ["HOSPITALISED_SICK_LEAVE", "SICK_LEAVE_UNPAID"],
 			"hospital_pool_days": 365
 		},
 		"condition": "// js\nif (get(ctx.entry, 'reverses', null) != null) return false;\nreturn ctx.reads.leave_catalog.some((row) => row.id === ctx.entry.catalog_id);",
@@ -393,10 +331,7 @@
 	{
 		"code": "MARRIAGE_LEAVE_DAYS",
 		"target_collection": "leave_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -404,9 +339,7 @@
 						"eq": "MARRIAGE_LEAVE"
 					}
 				},
-				"fields": [
-					"id"
-				]
+				"fields": ["id"]
 			}
 		},
 		"lookup": {
@@ -428,9 +361,7 @@
 	{
 		"code": "NO_PAY_OPEN_PERIOD",
 		"target_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"lookup": {
 			"no_pay": [
 				"PERSONAL_LEAVE",
@@ -456,9 +387,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			},
 			"payroll_run": {
@@ -472,9 +401,7 @@
 						"eq": "ON_CYCLE"
 					}
 				},
-				"fields": [
-					"period"
-				],
+				"fields": ["period"],
 				"limit": 10000
 			},
 			"leave_catalog_entry": {
@@ -496,9 +423,7 @@
 						"isNull": true
 					}
 				},
-				"fields": [
-					"days"
-				],
+				"fields": ["days"],
 				"limit": 1000
 			}
 		},
@@ -510,10 +435,7 @@
 	{
 		"code": "CASE_INPUTS_REQUIRED",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"workplace_case_catalog": {
 				"where": {
@@ -523,9 +445,7 @@
 						}
 					}
 				},
-				"fields": [
-					"lookup"
-				],
+				"fields": ["lookup"],
 				"limit": 1
 			}
 		},

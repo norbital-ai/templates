@@ -22,18 +22,11 @@
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": [
-							"kind",
-							"on"
-						],
+						"required": ["kind", "on"],
 						"properties": {
 							"kind": {
 								"type": "string",
-								"enum": [
-									"BEREAVEMENT",
-									"CHILD_MARRIAGE",
-									"MARRIAGE"
-								],
+								"enum": ["BEREAVEMENT", "CHILD_MARRIAGE", "MARRIAGE"],
 								"title": "What happened"
 							},
 							"on": {
@@ -84,11 +77,7 @@
 							"description": "Untaken eligible leave from two years before at the start of this year; allowed only under the three-year combining agreement. Required, including explicit zero, when annual_leave_combined is true."
 						}
 					},
-					"required": [
-						"year",
-						"as_of",
-						"reference"
-					]
+					"required": ["year", "as_of", "reference"]
 				},
 				"nationality": {
 					"type": "string",
@@ -103,12 +92,7 @@
 				},
 				"prior_floor_region": {
 					"type": "string",
-					"enum": [
-						"I",
-						"II",
-						"III",
-						"IV"
-					],
+					"enum": ["I", "II", "III", "IV"],
 					"title": "Worksite region on 31 December 2025",
 					"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
 				},
@@ -119,22 +103,13 @@
 				},
 				"probation_class": {
 					"type": "string",
-					"enum": [
-						"ENTERPRISE_MANAGER",
-						"COLLEGE_OR_ABOVE",
-						"INTERMEDIATE_OR_TECHNICAL",
-						"OTHER"
-					],
+					"enum": ["ENTERPRISE_MANAGER", "COLLEGE_OR_ABOVE", "INTERMEDIATE_OR_TECHNICAL", "OTHER"],
 					"title": "Probation job class (Labour Code art.25)",
 					"description": "Labour Code 45/2019/QH14 art.25: probation at most 180 days for an enterprise manager (Law on Enterprises, Law on State Capital), 60 days for a job needing college-level or higher qualifications, 30 days for intermediate-level, technical-worker or clerical jobs, 6 working days for any other job. Record it on probation terms."
 				},
 				"pass_type": {
 					"type": "string",
-					"enum": [
-						"WORK_PERMIT",
-						"INTRA_COMPANY_TRANSFER",
-						"OTHER"
-					],
+					"enum": ["WORK_PERMIT", "INTRA_COMPANY_TRANSFER", "OTHER"],
 					"title": "Work-permit basis",
 					"description": "INTRA_COMPANY_TRANSFER is outside compulsory SI (Law 41/2024/QH15 art.2(2))."
 				},
@@ -191,11 +166,7 @@
 							"description": "Insurance agency/employment-wage calculation establishing the month, salary, any suspension and arrears. Partial/split-month stoppage is not approximated."
 						}
 					},
-					"required": [
-						"month",
-						"salary_vnd",
-						"reference"
-					]
+					"required": ["month", "salary_vnd", "reference"]
 				},
 				"encashment_review": {
 					"type": "object",
@@ -211,10 +182,7 @@
 							"description": "Previous-month contract/allowance evidence; required because earned.previous_month has no historical allowance list."
 						}
 					},
-					"required": [
-						"month",
-						"reference"
-					]
+					"required": ["month", "reference"]
 				},
 				"cash_meal_policy_limit_vnd": {
 					"type": "number",
@@ -310,9 +278,7 @@
 									"description": "SI standing: a foreign employee an international agreement Vietnam is party to exempts (Law 41/2024/QH15 art.2(2))."
 								}
 							},
-							"required": [
-								"kind"
-							]
+							"required": ["kind"]
 						},
 						"HI": {
 							"type": "object",
@@ -334,9 +300,7 @@
 									"description": "HI standing only: an applicable international agreement specifically exempts Vietnamese HI under Health Insurance Law art.12(1)(c). SI pension-treaty exemption alone does not establish HI exemption."
 								}
 							},
-							"required": [
-								"kind"
-							]
+							"required": ["kind"]
 						},
 						"UI": {
 							"type": "object",
@@ -366,9 +330,7 @@
 									"description": "UI standing: a disabled worker hired from 1 January 2026, registered with the SI agency with the disability certificate; the employer pays 0% UI for 12 months (Decree 374/2025/NĐ-CP art.5)."
 								}
 							},
-							"required": [
-								"kind"
-							]
+							"required": ["kind"]
 						},
 						"UNION_FEE": {
 							"type": "object",
@@ -386,9 +348,7 @@
 									"title": "Effective from"
 								}
 							},
-							"required": [
-								"kind"
-							]
+							"required": ["kind"]
 						},
 						"PIT": {
 							"type": "object",
@@ -432,9 +392,7 @@
 									"description": "PIT standing: the employee’s own monthly contribution to voluntary pension, deducted with the employer’s up to 1,000,000 a month (Circular 111/2013/TT-BTC art.9(2)(c))."
 								}
 							},
-							"required": [
-								"kind"
-							]
+							"required": ["kind"]
 						},
 						"UNION_DUES": {
 							"type": "object",
@@ -458,9 +416,7 @@
 									"description": "UNION_DUES standing: a member pays 0.5% of the insurance salary, at most 10% of the reference level (Law 50/2024 art.29(1)(a); Decision 61/QĐ-TLĐ)."
 								}
 							},
-							"required": [
-								"kind"
-							]
+							"required": ["kind"]
 						}
 					}
 				},
@@ -547,12 +503,7 @@
 				},
 				"region": {
 					"type": "string",
-					"enum": [
-						"I",
-						"II",
-						"III",
-						"IV"
-					],
+					"enum": ["I", "II", "III", "IV"],
 					"title": "Worksite minimum-wage region",
 					"description": "The regional minimum wage that applies to the worksite (Decree 293/2025/NĐ-CP art.3). Drives the wage floors, the unemployment-insurance cap and the union dues cap."
 				},
@@ -592,14 +543,7 @@
 				"hi_employer_rate": 0.03,
 				"ui_employer_rate": 0.01,
 				"ui_cap_multiple": 20,
-				"vietnamese_nationality": [
-					"VN",
-					"VNM",
-					"VIETNAM",
-					"VIETNAMESE",
-					"Vietnam",
-					"Vietnamese"
-				],
+				"vietnamese_nationality": ["VN", "VNM", "VIETNAM", "VIETNAMESE", "Vietnam", "Vietnamese"],
 				"foreign_minimum_contract_months": 12,
 				"minimum_contract_months": 1,
 				"half_month_share": 0.5,

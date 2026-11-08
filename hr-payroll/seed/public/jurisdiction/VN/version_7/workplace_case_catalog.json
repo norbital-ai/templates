@@ -4,7 +4,6 @@
 		"name": "Personal data protection violation (Law 91/2025 art.23; Decree 13/2023 art.23 before 2026)",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {},
 		"id": "05b07d94-4b1d-5b38-8191-331d011f9acc",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
 		"references": [
@@ -21,7 +20,6 @@
 		"name": "Written agreement combining annual leave across years",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {},
 		"id": "7a0fc7c1-aea9-55bb-98f2-18e6819da370",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
 		"references": [
@@ -37,7 +35,6 @@
 		"name": "Actual overseas work dates and country",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {},
 		"id": "3876f734-3432-5acb-b777-d1efce9f46e7",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
 		"references": [
@@ -52,7 +49,6 @@
 		"name": "Original external wage payment or cost allocation",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {},
 		"id": "2519c835-d753-5c28-b431-0b6d8659a050",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
 		"references": [
@@ -69,7 +65,6 @@
 		"name": "Actual service attributable to a benefit award",
 		"lookup": {},
 		"subtotal_id": null,
-		"events": {},
 		"id": "d45949bc-5681-509f-b886-f06a4b918aa2",
 		"settings_id": "8e432dd5-0c83-572a-89a4-967f425b5d69",
 		"references": [

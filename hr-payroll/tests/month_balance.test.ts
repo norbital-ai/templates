@@ -20,7 +20,7 @@ const rowOf = (code: string, n: number, scheme: string) => {
 	return {
 		source: row.employee_amount,
 		lookup: {
-			...(settings?.lookup as Record<string, unknown> | undefined)?.['constants'] as object,
+			...((settings?.lookup as Record<string, unknown> | undefined)?.['constants'] as object),
 			...settings?.lookup,
 			...row.lookup
 		}

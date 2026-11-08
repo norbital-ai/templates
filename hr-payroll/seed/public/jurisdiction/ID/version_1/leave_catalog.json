@@ -86,7 +86,6 @@
 		"name": "Medical leave",
 		"pay_treatment": "PAID",
 		"lookup": {
-			"code": "MEDICAL_LEAVE",
 			"pay_steps": [
 				{
 					"until_month": 4,
@@ -129,7 +128,6 @@
 		"name": "Maternity leave",
 		"pay_treatment": "PAID",
 		"lookup": {
-			"code": "MATERNITY_LEAVE",
 			"pay_steps": [
 				{
 					"until_month": 4,
