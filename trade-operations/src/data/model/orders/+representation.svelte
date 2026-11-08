@@ -465,7 +465,9 @@
 		{/if}
 		{#if check && Result.isSuccess(check)}
 			{#if !purchaseCosts && check.success.below_inventory_cost.length}<p class="text-sm">
-					{bolt.t('component.below_inventory_cost')}: {check.success.below_inventory_cost.join(', ')}
+					{bolt.t('component.below_inventory_cost')}: {check.success.below_inventory_cost.join(
+						', '
+					)}
 				</p>{/if}
 			{#if purchaseCosts && !form.dirty}
 				{#if !quote?.warehouse}

@@ -13,7 +13,8 @@
 		TimeInput,
 		useKinds,
 		useBolt
-	} from '@norbital-ai/ui';	import { AppShell, Scroll, Stack } from '@norbital-ai/ui/layout';
+	} from '@norbital-ai/ui';
+	import { AppShell, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { openCreate } from '../../lib/ui/create-values.js';
 	import {
 		monthDays,
@@ -72,13 +73,15 @@
 	let chosenMonth = $state<string | null>(null);
 	let search = $state('');
 	const group = $derived(chosenGroup ?? defaultPair?.group ?? null);
-	const currencies = $derived([
-		...new Set(
-			(catalog.current?.pricing_floors.rows ?? [])
-				.filter((row) => row.group_code === group)
-				.map((row) => row.currency)
-		)
-	].sort((a, b) => a.localeCompare(b)));
+	const currencies = $derived(
+		[
+			...new Set(
+				(catalog.current?.pricing_floors.rows ?? [])
+					.filter((row) => row.group_code === group)
+					.map((row) => row.currency)
+			)
+		].sort((a, b) => a.localeCompare(b))
+	);
 	const currency = $derived(
 		chosenCurrency !== null && currencies.includes(chosenCurrency)
 			? chosenCurrency

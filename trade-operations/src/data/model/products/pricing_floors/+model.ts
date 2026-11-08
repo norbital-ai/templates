@@ -72,7 +72,9 @@ export default model('pricing_floors', {
 			schema: priceBook,
 			read: function* ({ records }, ctx) {
 				const codes = [...new Set(records.map((r) => r.product_code))];
-				const ids = [...new Set([...codes, ...records.flatMap((r) => r.item_id ? [r.item_id] : [])])];
+				const ids = [
+					...new Set([...codes, ...records.flatMap((r) => (r.item_id ? [r.item_id] : []))])
+				];
 				const { products } = yield* ctx.db.query({
 					products: {
 						where: {
@@ -95,11 +97,13 @@ export default model('pricing_floors', {
 					const lookup = key(ledger, product_code);
 					const numberMatch = byNumber.get(lookup);
 					const idMatch = byId.get(key(ledger, item_id || product_code));
-					const ambiguous = !item_id && (numberMatch === null ||
-						(numberMatch && idMatch && numberMatch.id !== idMatch.id));
+					const ambiguous =
+						!item_id &&
+						(numberMatch === null || (numberMatch && idMatch && numberMatch.id !== idMatch.id));
 					const product = item_id ? idMatch : (numberMatch ?? idMatch);
 					const codeMatches =
-						product && (product.source_number === product_code || product.external_code === product_code);
+						product &&
+						(product.source_number === product_code || product.external_code === product_code);
 					const message = ambiguous
 						? 'More than one product matches this code in this ledger. Add its Kingdee item ID.'
 						: !codeMatches

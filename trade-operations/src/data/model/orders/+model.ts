@@ -1241,7 +1241,9 @@ export default model('orders', {
 					}
 				});
 				const lineAt = (order: string, key: string | undefined) =>
-					key ? lines.rows.find((line) => line.order === order && line.line_key === key) : undefined;
+					key
+						? lines.rows.find((line) => line.order === order && line.line_key === key)
+						: undefined;
 				const findings: Finding[] = [];
 				const rows: Record<string, string | number>[] = [];
 				for (const record of records) {
@@ -1342,8 +1344,7 @@ export default model('orders', {
 					}))
 					.sort(
 						(a, b) =>
-							a.order_number.localeCompare(b.order_number) ||
-							a.line_key.localeCompare(b.line_key)
+							a.order_number.localeCompare(b.order_number) || a.line_key.localeCompare(b.line_key)
 					);
 			}
 		},
@@ -1429,8 +1430,7 @@ export default model('orders', {
 					}
 					const matches = parties.rows.filter(
 						(party) =>
-							party.external_code === record.party_code ||
-							party.source_number === record.party_code
+							party.external_code === record.party_code || party.source_number === record.party_code
 					);
 					const scoped = existing ? matches.filter((p) => p.source === existing.ledger) : matches;
 					if (scoped.length !== 1) {

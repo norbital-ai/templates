@@ -68,8 +68,7 @@ export default model('commercial_settings', {
 				const allowed = new Set(document_templates.rows.map((row) => row.id));
 				const invalid = changes.findIndex(
 					({ set }) =>
-						(set.default_document_layout != null &&
-							!allowed.has(set.default_document_layout)) ||
+						(set.default_document_layout != null && !allowed.has(set.default_document_layout)) ||
 						(set.default_purchase_document_layout != null &&
 							!allowed.has(set.default_purchase_document_layout))
 				);

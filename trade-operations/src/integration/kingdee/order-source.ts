@@ -744,8 +744,7 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 								: null,
 						...(costAccount
 							? {
-									costAmount:
-										costAmount === null ? null : red ? costAmount.neg() : costAmount
+									costAmount: costAmount === null ? null : red ? costAmount.neg() : costAmount
 								}
 							: {}),
 						localLine: source.localLine,

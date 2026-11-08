@@ -404,7 +404,9 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 				{ target: layout, set: { status: 'published' } }
 			]);
 			const { order } = yield* draft(t);
-			yield* admin.act('orders.update', [{ target: order, set: { document_template: fixtureId('document_templates', layout) } }]);
+			yield* admin.act('orders.update', [
+				{ target: order, set: { document_template: fixtureId('document_templates', layout) } }
+			]);
 			expect((yield* documentOf(admin, { order })).stamp).toBeNull();
 			yield* confirm(t, order);
 			expect((yield* documentOf(admin, { order })).stamp?.id).toBe(upload.output.id);
@@ -430,11 +432,7 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 					'Quotation',
 					'This quotation is valid for the period'
 				],
-				[
-					'00000000-0000-4000-8000-000000000505',
-					'Sales contract',
-					'The seller supplies the goods'
-				],
+				['00000000-0000-4000-8000-000000000505', 'Sales contract', 'The seller supplies the goods'],
 				['00000000-0000-4000-8000-000000000506', '报价单', '本报价在以上有效期内有效'],
 				['00000000-0000-4000-8000-000000000507', '销售合同', '卖方按上述数量']
 			] as const;
@@ -512,7 +510,9 @@ layer(workspace, { excludeTestServices: true })('order documents', (test) => {
 					params: ['A-110 <grade>', PRODUCT]
 				});
 				const { order } = yield* draft(t, 'purchasing', undefined, '2026-10-09');
-				yield* admin.act('orders.update', [{ target: order, set: { document_template: fixtureId('document_templates', layout) } }]);
+				yield* admin.act('orders.update', [
+					{ target: order, set: { document_template: fixtureId('document_templates', layout) } }
+				]);
 				const draftPdf = yield* documentOf(admin, { order });
 				expect(draftPdf.filename).toMatch(/-purchase-commitment\.pdf$/);
 				expect(draftPdf.html).toContain('A-110 &lt;grade&gt;');

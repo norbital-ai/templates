@@ -37,28 +37,26 @@ const orderHeader = [
 const orderRow = (values: { [key: string]: string }) =>
 	orderHeader.map((header) => values[header] ?? '').join(',');
 
-const readExport =
-	(t: T) =>
-	(runId: string) =>
-		Effect.gen(function* () {
-			const [row] = yield* t.db.rows(
-				Schema.Struct({
-					state: Schema.String,
-					output: Schema.Struct({
-						file: Schema.Struct({ id: Schema.String, name: Schema.String })
-					})
-				}),
-				{ text: 'SELECT state, output FROM sys_run WHERE id = $1', params: [runId] }
-			);
-			if (row?.state !== 'succeeded') throw new Error(JSON.stringify(row));
-			const [stored] = yield* t.db.rows(Schema.Struct({ key: Schema.String }), {
-				text: 'SELECT key FROM sys_file WHERE id = $1',
-				params: [row.output.file.id]
-			});
-			const bytes = stored ? t.fakes.files.blobs.get(stored.key) : undefined;
-			if (bytes === undefined) throw new Error('The export stored no file');
-			return { name: row.output.file.name, bytes, text: new TextDecoder().decode(bytes) };
+const readExport = (t: T) => (runId: string) =>
+	Effect.gen(function* () {
+		const [row] = yield* t.db.rows(
+			Schema.Struct({
+				state: Schema.String,
+				output: Schema.Struct({
+					file: Schema.Struct({ id: Schema.String, name: Schema.String })
+				})
+			}),
+			{ text: 'SELECT state, output FROM sys_run WHERE id = $1', params: [runId] }
+		);
+		if (row?.state !== 'succeeded') throw new Error(JSON.stringify(row));
+		const [stored] = yield* t.db.rows(Schema.Struct({ key: Schema.String }), {
+			text: 'SELECT key FROM sys_file WHERE id = $1',
+			params: [row.output.file.id]
 		});
+		const bytes = stored ? t.fakes.files.blobs.get(stored.key) : undefined;
+		if (bytes === undefined) throw new Error('The export stored no file');
+		return { name: row.output.file.name, bytes, text: new TextDecoder().decode(bytes) };
+	});
 
 const exportRun =
 	(t: T, who = t.admin) =>
@@ -78,8 +76,8 @@ it.live('round-trips the order workbook by sequential number', () =>
 		const t = yield* workspace();
 		const as = t.as(t.admin);
 		const { order } = yield* draft(t);
-		const number = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } }))
-			.orders.rows[0]?.number;
+		const number = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
+			.rows[0]?.number;
 		if (!number) throw new Error('The draft needs a number');
 		const load = (lines: readonly string[]) =>
 			Effect.gen(function* () {
@@ -95,10 +93,10 @@ it.live('round-trips the order workbook by sequential number', () =>
 				});
 				if (run.kind !== 'committed') throw new Error('The import needs to start');
 				yield* t.runDue();
-				return yield* t.db.rows(
-					Schema.Struct({ state: Schema.String, output: Schema.Json }),
-					{ text: 'SELECT state, output FROM sys_run WHERE id = $1', params: [run.output.id] }
-				);
+				return yield* t.db.rows(Schema.Struct({ state: Schema.String, output: Schema.Json }), {
+					text: 'SELECT state, output FROM sys_run WHERE id = $1',
+					params: [run.output.id]
+				});
 			});
 		const updated = orderRow({
 			'Order number': number,
@@ -114,8 +112,8 @@ it.live('round-trips the order workbook by sequential number', () =>
 		expect(yield* load([updated])).toMatchObject([
 			{ state: 'succeeded', output: { applied: true, updated: 1 } }
 		]);
-		const current = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } }))
-			.orders.rows[0];
+		const current = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
+			.rows[0];
 		expect(current).toMatchObject({
 			title: 'Sheet title',
 			payment_terms: 'Net 45',
@@ -183,8 +181,8 @@ it.live('updates and inserts order lines by the order number and stable line key
 		const t = yield* workspace();
 		const as = t.as(t.admin);
 		const { order, line } = yield* draft(t);
-		const number = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } }))
-			.orders.rows[0]?.number;
+		const number = (yield* as.query({ orders: { where: { id: { eq: order } }, limit: 1 } })).orders
+			.rows[0]?.number;
 		const stored = (yield* as.query({
 			order_lines: { where: { id: { eq: line } }, fields: ['line_key'], limit: 1 }
 		})).order_lines.rows[0]?.line_key;
@@ -212,10 +210,10 @@ it.live('updates and inserts order lines by the order number and stable line key
 				});
 				if (run.kind !== 'committed') throw new Error('The import needs to start');
 				yield* t.runDue();
-				return yield* t.db.rows(
-					Schema.Struct({ state: Schema.String, output: Schema.Json }),
-					{ text: 'SELECT state, output FROM sys_run WHERE id = $1', params: [run.output.id] }
-				);
+				return yield* t.db.rows(Schema.Struct({ state: Schema.String, output: Schema.Json }), {
+					text: 'SELECT state, output FROM sys_run WHERE id = $1',
+					params: [run.output.id]
+				});
 			});
 		expect(
 			yield* load([[number, stored, 'RESIN-A', '12', '2.5', '0', '9'].join(',')])
@@ -225,9 +223,9 @@ it.live('updates and inserts order lines by the order number and stable line key
 		})).order_lines.rows[0];
 		expect(updated?.quantity.eq('12')).toBe(true);
 		expect(updated?.unit_price.eq('2.5')).toBe(true);
-		expect(
-			yield* load([[number, '', 'RESIN-A', '3', '1', '0', '9'].join(',')])
-		).toMatchObject([{ state: 'succeeded', output: { applied: true, created: 1 } }]);
+		expect(yield* load([[number, '', 'RESIN-A', '3', '1', '0', '9'].join(',')])).toMatchObject([
+			{ state: 'succeeded', output: { applied: true, created: 1 } }
+		]);
 		const lines = (yield* as.query({
 			order_lines: { where: { order: { eq: order } }, fields: ['line_key', 'quantity'] }
 		})).order_lines.rows;
@@ -235,9 +233,9 @@ it.live('updates and inserts order lines by the order number and stable line key
 		expect(lines.every((row) => typeof row.line_key === 'string' && row.line_key.length > 0)).toBe(
 			true
 		);
-		expect(
-			yield* load([['MISSING', '', 'RESIN-A', '1', '1', '0', '9'].join(',')])
-		).toMatchObject([{ state: 'succeeded', output: { applied: false } }]);
+		expect(yield* load([['MISSING', '', 'RESIN-A', '1', '1', '0', '9'].join(',')])).toMatchObject([
+			{ state: 'succeeded', output: { applied: false } }
+		]);
 		const runLines = yield* as.start('orders.sync.lines', { mode: 'export', format: 'csv' });
 		if (runLines.kind !== 'committed') throw new Error(JSON.stringify(runLines));
 		yield* t.runDue();

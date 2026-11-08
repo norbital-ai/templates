@@ -64,11 +64,7 @@ const sheetXml = (
 		.map((row, rowIndex) =>
 			columns
 				.map((column, columnIndex) =>
-					cellXml(
-						`${columnName(columnIndex)}${rowIndex + 2}`,
-						row[column.field] as Cell,
-						column
-					)
+					cellXml(`${columnName(columnIndex)}${rowIndex + 2}`, row[column.field] as Cell, column)
 				)
 				.join('')
 		)

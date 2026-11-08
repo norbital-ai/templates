@@ -61,14 +61,7 @@ export default model('warehouses', {
 			write: function* (_input, ctx) {
 				const { warehouses } = yield* ctx.db.query({
 					warehouses: {
-						fields: [
-							'source',
-							'external_code',
-							'source_number',
-							'name',
-							'group_code',
-							'active'
-						],
+						fields: ['source', 'external_code', 'source_number', 'name', 'group_code', 'active'],
 						orderBy: { external_code: 'asc' },
 						limit: 10000
 					}

@@ -128,26 +128,28 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 				yield* t.pull('products', second);
 				const before = firstRow(
 					yield* t.db.rows(
-						Schema.Struct({ cursor: Schema.NullOr(Schema.Json), health: Schema.NullOr(Schema.Json) }),
+						Schema.Struct({
+							cursor: Schema.NullOr(Schema.Json),
+							health: Schema.NullOr(Schema.Json)
+						}),
 						{
 							text: "SELECT cursor, health FROM sys_sync WHERE sync='products.sync.kingdee' AND instance=$1",
 							params: [second]
 						}
 					)
 				);
-				routes.set(
-					String(second),
-					() =>
-						Effect.fail(
-							new FacilityFailure({ kind: 'upstream', message: 'Second ledger offline' })
-						)
+				routes.set(String(second), () =>
+					Effect.fail(new FacilityFailure({ kind: 'upstream', message: 'Second ledger offline' }))
 				);
 				expect(Exit.isFailure(yield* Effect.exit(t.pull('products', second)))).toBe(true);
 				expect(Exit.isSuccess(yield* Effect.exit(t.pull('products', first)))).toBe(true);
 				expect(
 					firstRow(
 						yield* t.db.rows(
-							Schema.Struct({ cursor: Schema.NullOr(Schema.Json), health: Schema.NullOr(Schema.Json) }),
+							Schema.Struct({
+								cursor: Schema.NullOr(Schema.Json),
+								health: Schema.NullOr(Schema.Json)
+							}),
 							{
 								text: "SELECT cursor, health FROM sys_sync WHERE sync='products.sync.kingdee' AND instance=$1",
 								params: [second]

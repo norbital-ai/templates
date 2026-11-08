@@ -651,7 +651,8 @@ export default messages({
 	'errors.contract_validity': 'Valid until must be on or after valid from.',
 	'errors.payment_terms': 'Enter payment terms.',
 	'errors.product_inactive': 'Choose an active product.',
-	'errors.product_source_owned': 'Products come from Kingdee. Use the workbook to update commission fields.',
+	'errors.product_source_owned':
+		'Products come from Kingdee. Use the workbook to update commission fields.',
 	'errors.floor_missing': 'A compatible pricing floor is required.',
 	'errors.currency_price': 'Enter a price in this order’s currency.',
 	'errors.quantity_positive': 'Quantity must be greater than zero.',

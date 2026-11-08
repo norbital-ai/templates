@@ -67,9 +67,10 @@ const cellOf = (row: Answer['pricing_floors']['rows'][number]): PriceCell => ({
 });
 
 /** Every month in the book, newest first. */
-export const priceBookMonths = (answer: Answer): readonly string[] => [
-	...new Set(answer.pricing_floors.rows.map((row) => row.effective_on.slice(0, 7)))
-].sort((a, b) => b.localeCompare(a));
+export const priceBookMonths = (answer: Answer): readonly string[] =>
+	[...new Set(answer.pricing_floors.rows.map((row) => row.effective_on.slice(0, 7)))].sort((a, b) =>
+		b.localeCompare(a)
+	);
 
 /** The chosen month's rows, one per product and quantity band, with the cells stored on their exact days. */
 export function priceBookRows(answer: Answer, month: string, search = ''): readonly PriceRow[] {
@@ -81,20 +82,18 @@ export function priceBookRows(answer: Answer, month: string, search = ''): reado
 		const cell = cellOf(row);
 		const key = `${product.id}|${cell.minimum_quantity}`;
 		const found = rows.get(key);
-		const target =
-			found ??
-			{
-				key,
-				product: product.id,
-				code: product.source_number || product.external_code,
-				name: product.name,
-				unit: cell.unit,
-				minimum_quantity: cell.minimum_quantity,
-				band: Decimal.of(cell.minimum_quantity).gt(0) ? `≥ ${cell.minimum_quantity}` : '',
-				cells: new Map<string, PriceCell>(),
-				latest: cell,
-				inMonth: false
-			};
+		const target = found ?? {
+			key,
+			product: product.id,
+			code: product.source_number || product.external_code,
+			name: product.name,
+			unit: cell.unit,
+			minimum_quantity: cell.minimum_quantity,
+			band: Decimal.of(cell.minimum_quantity).gt(0) ? `≥ ${cell.minimum_quantity}` : '',
+			cells: new Map<string, PriceCell>(),
+			latest: cell,
+			inMonth: false
+		};
 		if (row.effective_on.startsWith(month)) {
 			target.cells.set(row.effective_on, cell);
 			target.inMonth = true;
@@ -127,5 +126,8 @@ export const priceText = (value: string): string => {
 export function monthDays(month: string): readonly string[] {
 	const [year = 0, number = 1] = month.split('-').map(Number);
 	const count = new Date(Date.UTC(year, number, 0)).getUTCDate();
-	return Array.from({ length: count }, (_, index) => `${month}-${String(index + 1).padStart(2, '0')}`);
+	return Array.from(
+		{ length: count },
+		(_, index) => `${month}-${String(index + 1).padStart(2, '0')}`
+	);
 }

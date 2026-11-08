@@ -113,6 +113,6 @@ export default model('products', {
 					preserveSource({ model: 'products', instance, projection: projections.products, ctx })
 				);
 			}
-		},
+		}
 	}
 });

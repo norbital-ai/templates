@@ -275,7 +275,6 @@ test.live('a draft with no lines is refused before any confirmation', () =>
 	})
 );
 
-
 test.live('commercial trade and shipping fields stay queryable and are retained by the seal', () =>
 	Effect.gen(function* () {
 		const t = yield* sealingWorkspace();
