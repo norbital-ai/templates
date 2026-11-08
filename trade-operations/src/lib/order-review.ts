@@ -44,7 +44,8 @@ export function reviewOrders(
 	changes: readonly OrderChange[],
 	ctx: PolicyCtx<'orders', 'update'>,
 	scope: (order: Scope) => boolean,
-	outside: string
+	outside: string,
+	managerApproval = true
 ) {
 	const away = changes.findIndex(
 		({ before, set }) =>
@@ -62,7 +63,7 @@ export function reviewOrders(
 	);
 	const refused = changes.findIndex(({ set }, i) => sealed[i] && !changed(set).includes('status'));
 	if (refused >= 0) return ctx.deny('errors.order_sealed', { row: refused });
-	return sealed.some(Boolean)
+	return managerApproval && sealed.some(Boolean)
 		? ctx.approve((flow) => flow.step('Commercial review', { teams: ['commercial_managers'] }))
 		: ctx.allow();
 }

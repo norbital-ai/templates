@@ -1,4 +1,4 @@
-import { Instant } from '@norbital-ai/std/date';
+import { Instant, PlainDate } from '@norbital-ai/std/date';
 import { Decimal } from '@norbital-ai/std/decimal';
 import { Effect } from 'effect';
 import { expect, it as test } from '@effect/vitest';
@@ -40,6 +40,7 @@ const sealingWorkspace = () =>
 				{
 					id: '00000000-0000-4000-8000-000000000401',
 					code: 'default',
+					default_document_layout: '00000000-0000-4000-8000-000000000502',
 					require_floor: false,
 					credit_fresh_minutes: 60,
 					stock_fresh_minutes: 30
@@ -48,7 +49,6 @@ const sealingWorkspace = () =>
 			document_templates: [
 				{
 					id: '00000000-0000-4000-8000-000000000502',
-					kind: 'contract',
 					locale: 'en',
 					version: '1',
 					title: 'Synthetic agreement',
@@ -128,7 +128,6 @@ test.live('confirmation seals this SO and blocks all subsequent commercial edits
 			'document_templates',
 			yield* as.act('document_templates.create', [
 				{
-					kind: 'contract',
 					locale: 'en',
 					version: '2',
 					title: 'New terms',
@@ -250,6 +249,115 @@ test.live('a credit acknowledgment cannot confirm changed pricing or another SO'
 			status: 'draft',
 			sealed_snapshot: null,
 			seal_hash: null
+		});
+	})
+);
+
+test.live('a draft with no lines is refused before any confirmation', () =>
+	Effect.gen(function* () {
+		const t = yield* sealingWorkspace();
+		const as = t.as(t.admin);
+		const order = committed(
+			'orders',
+			yield* as.act('orders.create', [
+				{
+					title: 'Empty draft',
+					direction: 'sales',
+					party: fixtureId('parties', '00000000-0000-4000-8000-000000000101'),
+					currency: 'SGD',
+					payment_terms: 'Net 30'
+				}
+			])
+		);
+		expect(
+			yield* Effect.flip(confirmationOf(as, { as_of: Instant(t.clock.now()), order }))
+		).toMatchObject({ message: 'errors.lines_required' });
+	})
+);
+
+
+test.live('commercial trade and shipping fields stay queryable and are retained by the seal', () =>
+	Effect.gen(function* () {
+		const t = yield* sealingWorkspace();
+		const as = t.as(t.admin);
+		const order = committed(
+			'orders',
+			yield* as.act('orders.create', [
+				{
+					title: 'Trade terms',
+					direction: 'sales',
+					party: fixtureId('parties', '00000000-0000-4000-8000-000000000101'),
+					currency: 'SGD',
+					payment_terms: 'Net 30',
+					shipping_terms: 'FOB Shanghai',
+					place_of_loading: 'Shanghai',
+					place_of_delivery: 'Singapore',
+					packaging: '25kg/bag',
+					shipping_mark: 'EPG/TEST',
+					time_of_shipment: 'October 2026',
+					other_terms: 'Arbitration in Singapore',
+					payment_method: 'acceptance',
+					buyer_contact: 'Li Wei',
+					buyer_mobile: '+6590000000',
+					delivery_address: '1 Test Road, Singapore',
+					delivery_date: PlainDate('2026-10-20')
+				}
+			])
+		);
+		yield* as.act('order_lines.create', [
+			{
+				order,
+				product: fixtureId('products', '00000000-0000-4000-8000-000000000201'),
+				quantity: Decimal.of('10'),
+				unit_price: Decimal.of('2'),
+				discount_pct: Decimal.of('0'),
+				tax_rate: Decimal.of('9')
+			}
+		]);
+		const check = yield* confirmationOf(as, { order, as_of: Instant(t.clock.now()) });
+		yield* as.act('orders.update', [
+			{ target: order, set: { status: 'confirmed', check_hash: check.check_hash } }
+		]);
+		const row = (yield* as.query({
+			orders: {
+				where: { id: { eq: order } },
+				fields: [
+					'shipping_terms',
+					'place_of_loading',
+					'place_of_delivery',
+					'packaging',
+					'shipping_mark',
+					'time_of_shipment',
+					'other_terms',
+					'payment_method',
+					'buyer_contact',
+					'buyer_mobile',
+					'delivery_address',
+					'delivery_date',
+					'sealed_snapshot'
+				],
+				limit: 1
+			}
+		})).orders.rows[0];
+		expect(row).toMatchObject({
+			shipping_terms: 'FOB Shanghai',
+			place_of_loading: 'Shanghai',
+			place_of_delivery: 'Singapore',
+			packaging: '25kg/bag',
+			shipping_mark: 'EPG/TEST',
+			time_of_shipment: 'October 2026',
+			other_terms: 'Arbitration in Singapore',
+			payment_method: 'acceptance',
+			buyer_contact: 'Li Wei',
+			buyer_mobile: '+6590000000',
+			delivery_address: '1 Test Road, Singapore',
+			delivery_date: '2026-10-20'
+		});
+		expect(row?.sealed_snapshot).toMatchObject({
+			shipping_terms: 'FOB Shanghai',
+			place_of_delivery: 'Singapore',
+			buyer_contact: 'Li Wei',
+			delivery_address: '1 Test Road, Singapore'
 		});
 	})
 );

@@ -23,8 +23,8 @@
 		wide?: readonly string[];
 		/** A secondary section: closed until opened, showing this line ("No notes", "Not set"). */
 		closed?: string;
-		actions?: Snippet;
-		body?: Snippet;
+		actions?: Snippet<[FormState]>;
+		body?: Snippet<[FormState]>;
 	};
 	export type RecordFormProps = {
 		view: RecordView<ModelName>;
@@ -32,6 +32,8 @@
 		subtitle?: readonly string[];
 		/** Ordered sections; the shared controller keeps readable fields visible and makes permitted fields editable. */
 		sections: readonly FormSection[];
+		/** Fields that remain editable when a create opens with preset values. */
+		editablePresets?: readonly string[];
 		/** A field's own editor (a picker filtered by another field, say). */
 		editors?: {
 			readonly [field: string]: Snippet<[FormState, FieldEditor]>;
@@ -83,6 +85,7 @@
 		view,
 		subtitle,
 		sections,
+		editablePresets = [],
 		editors = {},
 		viewers = {},
 		actions,
@@ -161,7 +164,7 @@
 		...(wide ? { class: 'col-span-full' } : {})
 	}}
 	{#snippet readonlyValue()}{#if viewers[name]}{@render viewers[name]!(form)}{/if}{/snippet}
-	{#if Object.entries(values).some(([field, value]) => field === name && value != null)}
+	{#if values[name] != null && !editablePresets.includes(name)}
 		<!-- the parent scoping this create: fixed, not asked -->
 	{:else if readonlyField}
 		{@const stored = form.spec.fields.find((field) => field.name === name)}
@@ -242,7 +245,7 @@
 										section.wide?.includes(name)
 									)}{/each}
 							</Grid>
-							{#if section.body}{@render section.body()}{/if}
+							{#if section.body}{@render section.body(form)}{/if}
 						</Section>
 					{/each}
 				{/snippet}

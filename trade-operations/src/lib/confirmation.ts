@@ -1,10 +1,15 @@
 import { Result } from 'effect';
-import { sum } from '@norbital-ai/std/decimal';
+import { Decimal, sum } from '@norbital-ai/std/decimal';
 import { type Id, type ReadAnswer } from '@norbital-ai/bolt';
 import { confirmationBasis } from './agreements.js';
 import { creditWarning, currentFloors, hash, price, snapshot } from './commercial.js';
-import { averageLotCost } from './lot-cost.js';
-import { agreementText, publishedTemplate } from './order-document.js';
+import {
+	averageLotCost,
+	estimateFifoCost,
+	fifoStockFields,
+	type PurchaseLotCosts
+} from './lot-cost.js';
+import { agreementText, agreementTemplate, sealDocument } from './order-document.js';
 /** One draft's quotation read: the order with its party and lines, the published templates and the settings. */
 export const quotationRead = (order: Id<'orders'>) =>
 	({
@@ -18,7 +23,7 @@ export const quotationRead = (order: Id<'orders'>) =>
 export const confirmationRead = (order: Id<'orders'>) =>
 	({
 		...quotationRead(order),
-		stock_snapshots: { fields: ['product', 'unit', 'currency', 'on_hand', 'unit_cost'] },
+		stock_snapshots: { fields: [...fifoStockFields, 'currency', 'unit_cost'], limit: 10000 },
 		pricing_floors: {},
 		warehouses: {},
 		credit_snapshots: { where: { party: { is: { orders: { some: { id: { eq: order } } } } } } }
@@ -28,9 +33,9 @@ type QuotationAnswer = ReadAnswer<ReturnType<typeof quotationRead>>;
 function draftOf(answer: QuotationAnswer, revision: number | null | undefined) {
 	const doc = answer.orders.rows[0];
 	const config = answer.commercial_settings.rows[0];
-	const template = publishedTemplate(answer.document_templates.rows, 'contract');
-	if (!doc || !doc.party || !config || !template)
-		return Result.fail('errors.configuration_missing' as const);
+	const template = doc && agreementTemplate(answer.document_templates.rows, doc.document_template);
+	if (!doc || !doc.party || !config) return Result.fail('errors.configuration_missing' as const);
+	if (!template) return Result.fail('errors.document_layout_unpublished' as const);
 	if (revision != null && revision !== doc.revision)
 		return Result.fail('errors.check_changed' as const);
 	return Result.succeed({ doc, party: doc.party, config, template });
@@ -45,7 +50,12 @@ export function quotationExport(answer: QuotationAnswer, revision?: number | nul
 	return Result.succeed({
 		number: doc.number,
 		revision: doc.revision,
-		contract: agreementText(template, snapshot(doc, party, doc.lines, template.version), doc.number)
+		contract: agreementText(
+			template,
+			snapshot(doc, party, doc.lines, template.version),
+			doc.number,
+			doc.ordered_on
+		)
 	});
 }
 /**
@@ -60,6 +70,7 @@ export function confirmationCheck(
 	const draft = draftOf(answer, input.revision);
 	if (Result.isFailure(draft)) return Result.fail(draft.failure);
 	const { doc, party, config, template } = draft.success;
+	if (!doc.lines.length) return Result.fail('errors.lines_required' as const);
 	if (doc.draft_setup) return Result.fail('errors.contract_setup' as const);
 	const lines = doc.lines;
 	const credit = answer.credit_snapshots.rows
@@ -73,7 +84,7 @@ export function confirmationCheck(
 			currentFloors(doc, lines, answer.pricing_floors.rows, group),
 			template.version
 		),
-		document_title: template.title
+		...sealDocument(template)
 	};
 	return Result.succeed({
 		basis: confirmationBasis(doc.revision, sealed, config, template),
@@ -100,6 +111,51 @@ export function confirmationCheck(
 						})
 						.map((line) => line.product_name)
 				: []
+	});
+}
+export function quotationFifoCosts(
+	answer: ReadAnswer<ReturnType<typeof confirmationRead>>,
+	purchase: PurchaseLotCosts,
+	asOf: string
+) {
+	const doc = answer.orders.rows[0];
+	if (!doc || doc.direction !== 'sales' || !doc.warehouse || !doc.ledger) return [];
+	const source = doc.ledger;
+	const warehouse = doc.warehouse;
+	const groups = new Map<
+		string,
+		{ line: (typeof doc.lines)[number]; quantity: Decimal; net: Decimal }
+	>();
+	for (const line of doc.lines) {
+		const key = JSON.stringify([line.product, line.unit.normalize('NFKC').trim().toLowerCase()]);
+		const previous = groups.get(key);
+		const net = price(doc, line).net;
+		if (previous) {
+			previous.quantity = previous.quantity.plus(line.quantity);
+			previous.net = previous.net.plus(net);
+		} else groups.set(key, { line, quantity: Decimal.of(line.quantity), net });
+	}
+	return [...groups].map(([key, { line, quantity, net }]) => {
+		const estimate = answer.stock_snapshots.next
+			? null
+			: estimateFifoCost(answer.stock_snapshots.rows, purchase, {
+					product: line.product,
+					productCode: line.product_code,
+					source,
+					warehouses: [warehouse],
+					quantity,
+					unit: line.unit,
+					currency: doc.currency,
+					asOf
+				});
+		return {
+			key,
+			product: line.product_name,
+			quantity,
+			unit: line.unit,
+			estimate,
+			below: estimate !== null && net.lt(estimate.total)
+		};
 	});
 }
 /** The `check_hash` a confirmation sends: the hash of its seal basis. */

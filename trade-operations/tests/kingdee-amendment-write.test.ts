@@ -18,10 +18,12 @@ const original = {
 	tax: '2.60',
 	total: '22.60'
 };
+const account = '11111111-1111-4111-8111-111111111111/11111111-1111-4111-8111-111111111111';
 const amended: OrderPayload = {
 	order_id: 'order-a',
 	reference: 'SO-A',
 	direction: 'sales',
+	write_target: { account, branch: '0' },
 	agreement_hash: 'seal-b',
 	version: 2,
 	owner_id: 'member-a',
@@ -45,6 +47,7 @@ const amended: OrderPayload = {
 const { previous: _previous, ...withoutPrevious } = amended;
 const configuration = {
 	baseCurrency: 'CNY',
+	writeAccount: account,
 	branchNo: '0',
 	billerId: '1',
 	salespersonBindings: JSON.stringify({ 'member-a': { employeeId: '701', departmentId: '601' } }),

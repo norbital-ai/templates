@@ -1,0 +1,21 @@
+export const commercialSalesFields = [
+	'order',
+	'source',
+	'source_dimensions',
+	'currency',
+	'order_line',
+	'seal_hash',
+	'reference',
+	'external_code',
+	'business_on',
+	'source_updated_at',
+	'kind',
+	'unit',
+	'quantity',
+	'lot_number',
+	'unit_cost',
+	'net_amount',
+	'tax_amount',
+	'freight',
+	'active'
+] as const;

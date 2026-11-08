@@ -46,7 +46,20 @@ export default model('stock_snapshots', {
 	},
 	outputs: {
 		logistics: {
-			stock_snapshots: { fields: 'all' },
+			stock_snapshots: {
+				fields: [
+					'lot_number',
+					'external_code',
+					'unit',
+					'on_hand',
+					'erp_committed',
+					'as_of',
+					'orders_as_of',
+					'source',
+					'product',
+					'warehouse'
+				]
+			},
 			'stock_snapshots.product': { fields: logisticsProduct },
 			'stock_snapshots.warehouse': { fields: 'all' }
 		}

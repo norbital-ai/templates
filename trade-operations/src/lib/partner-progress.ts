@@ -4,13 +4,14 @@ import {
 	agreements,
 	currentAgreement,
 	executableAgreement,
+	kingdeeAgreement,
 	type AgreementOrder
 } from './agreements.js';
 
 import { PlainDate } from '@norbital-ai/std/date';
 import { type Id, type ReadAnswer, type Row } from '@norbital-ai/bolt';
 /** A party's progress read: its orders with their documents, and the sales facts of those orders. */
-export const progressRead = (party: Id<'parties'>) =>
+export const progressRead = (party: Id<'parties'>, commercial = false) =>
 	({
 		orders: {
 			where: { party: { eq: party } },
@@ -18,7 +19,8 @@ export const progressRead = (party: Id<'parties'>) =>
 		},
 		'orders.transactions': { fields: ['seal_hash', 'status', 'kind', 'items', 'issued_on'] },
 		source_sales_lines: {
-			where: { order: { is: { party: { eq: party } } } },
+			...(commercial ? { output: 'commercial' as const } : {}),
+			where: { order: { is: { party: { eq: party } } }, kind: { ne: 'invoice' } },
 			fields: [
 				'order',
 				'active',
@@ -68,13 +70,16 @@ export function partnerProgress(
 			current = currentAgreement(order);
 		if (!current) return [];
 		const executable = executableAgreement(order);
+		const source = kingdeeAgreement(versions)?.kingdee;
 		const lines = new Map(
 			versions.flatMap((version) =>
 				version.snapshot.lines.map((line) => [`${version.seal_hash}:${line.id}`, line] as const)
 			)
 		);
 		const issued = documents.filter((doc) => doc.order === order.id && doc.status === 'issued');
-		const facts = sales.filter((fact) => fact.order === order.id && fact.active);
+		const facts = sales.filter(
+			(fact) => fact.order === order.id && fact.active && fact.kind !== 'invoice'
+		);
 		return current.snapshot.lines.map((line) => {
 			const deliveries = issued.filter((doc) => doc.kind === 'delivery');
 			const quantities = deliveries.flatMap((doc) =>
@@ -152,9 +157,9 @@ export function partnerProgress(
 				| 'in_progress'
 				| 'source_void'
 				| 'source_closed' =
-				current.kingdee?.status === 'void'
+				source?.status === 'void'
 					? 'source_void'
-					: current.kingdee?.closed
+					: source?.closed
 						? 'source_closed'
 						: quantity === null
 							? 'unknown'

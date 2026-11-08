@@ -67,6 +67,8 @@ const fields = {
 		'external_code',
 		'lot_number',
 		'unit_cost',
+		'booked_cost',
+		'booked_cost_currency',
 		'kind',
 		'reference',
 		'business_on',

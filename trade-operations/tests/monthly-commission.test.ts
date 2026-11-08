@@ -42,6 +42,7 @@ it.live(
 			yield* fact(true, '2026-10-10T00:00:00Z');
 			const finance = t.member(['finance']);
 			const f = t.as(finance);
+			const manager = t.as(t.member(['manager']));
 			const board = () => boardOf(f, { period: PlainDate('2026-10-10') });
 			const current = firstRow(yield* board());
 			expect(current).toMatchObject({
@@ -52,11 +53,14 @@ it.live(
 				order_count: 1,
 				state: 'unacknowledged'
 			});
-			expect(yield* boardOf(t.as(sales), { period: PlainDate('2026-10-01') })).toMatchObject([
-				{ owner: fixtureId('sys_user', sales.id), amount: decimalText('210.00') }
-			]);
 			expect(
-				yield* boardOf(t.as(t.member(['sales'])), { period: PlainDate('2026-10-01') })
+				yield* boardOf(t.as(sales), { period: PlainDate('2026-10-01'), commercial: true })
+			).toMatchObject([{ owner: fixtureId('sys_user', sales.id), amount: decimalText('210.00') }]);
+			expect(
+				yield* boardOf(t.as(t.member(['sales'])), {
+					period: PlainDate('2026-10-01'),
+					commercial: true
+				})
 			).toEqual([]);
 			const input = {
 				owner: current.owner,
@@ -109,7 +113,7 @@ it.live(
 			});
 			committed(
 				'commission_statements',
-				yield* f.act('commission_statements.create', [
+				yield* manager.act('commission_statements.create', [
 					{ ...input, calculation_hash: changed.calculation_hash }
 				])
 			);

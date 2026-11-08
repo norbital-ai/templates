@@ -176,6 +176,26 @@
 					"kind": "int",
 					"min": 1
 				},
+				"default_document_layout": {
+					"kind": "ref",
+					"optional": true,
+					"to": "document_templates",
+					"where": {
+						"status": {
+							"eq": "published"
+						}
+					}
+				},
+				"default_purchase_document_layout": {
+					"kind": "ref",
+					"optional": true,
+					"to": "document_templates",
+					"where": {
+						"status": {
+							"eq": "published"
+						}
+					}
+				},
 				"freight_treatment": {
 					"default": "deduct",
 					"kind": "enum",
@@ -470,12 +490,29 @@
 					"default": "{agreement}",
 					"kind": "text"
 				},
-				"kind": {
+				"contract_stamp": {
+					"accept": [
+						"image/png"
+					],
+					"kind": "file",
+					"max": "512KiB",
+					"optional": true
+				},
+				"layout": {
 					"kind": "enum",
+					"optional": true,
 					"values": [
-						"quotation",
-						"contract"
+						"text",
+						"table_v1"
 					]
+				},
+				"letterhead": {
+					"accept": [
+						"image/png"
+					],
+					"kind": "file",
+					"max": "512KiB",
+					"optional": true
 				},
 				"locale": {
 					"kind": "enum",
@@ -483,6 +520,44 @@
 						"en",
 						"zh"
 					]
+				},
+				"print_fields": {
+					"kind": "list",
+					"of": {
+						"fields": {
+							"default_value": {
+								"kind": "text",
+								"optional": true
+							},
+							"key": {
+								"kind": "text"
+							},
+							"label": {
+								"kind": "text"
+							},
+							"multiline": {
+								"kind": "bool",
+								"optional": true
+							},
+							"scope": {
+								"kind": "enum",
+								"values": [
+									"order",
+									"line"
+								]
+							}
+						},
+						"kind": "object"
+					},
+					"optional": true
+				},
+				"print_layout": {
+					"accept": [
+						"text/html"
+					],
+					"kind": "file",
+					"max": "3MiB",
+					"optional": true
 				},
 				"published_at": {
 					"kind": "instant",
@@ -510,16 +585,10 @@
 				}
 			},
 			"nativeRules": 2,
-			"natural": [
-				"kind",
-				"locale",
-				"version"
-			],
 			"recordLabel": "record.title",
 			"search": {
 				"text": [
-					"title",
-					"kind"
+					"title"
 				]
 			}
 		},
@@ -625,6 +694,34 @@
 			],
 			"recordLabel": "record.reference"
 		},
+		"order_files": {
+			"audit": true,
+			"fields": {
+				"file": {
+					"accept": [
+						"application/pdf",
+						"image/jpeg",
+						"image/png"
+					],
+					"kind": "file",
+					"max": "20MiB"
+				},
+				"order": {
+					"inverse": "filed_documents",
+					"kind": "ref",
+					"to": "orders"
+				},
+				"seal_hash": {
+					"hidden": true,
+					"kind": "text"
+				},
+				"title": {
+					"kind": "text"
+				}
+			},
+			"nativeRules": 2,
+			"recordLabel": "record.title"
+		},
 		"order_lines": {
 			"audit": true,
 			"check": {
@@ -665,6 +762,11 @@
 					"kind": "date",
 					"optional": true
 				},
+				"line_key": {
+					"hidden": true,
+					"kind": "text",
+					"optional": true
+				},
 				"net": {
 					"currency": "currency",
 					"kind": "money"
@@ -675,6 +777,21 @@
 					"owned": true,
 					"to": "orders"
 				},
+				"print_values": {
+					"kind": "list",
+					"of": {
+						"fields": {
+							"key": {
+								"kind": "text"
+							},
+							"value": {
+								"kind": "text"
+							}
+						},
+						"kind": "object"
+					},
+					"optional": true
+				},
 				"product": {
 					"kind": "ref",
 					"to": "products"
@@ -684,6 +801,10 @@
 				},
 				"product_name": {
 					"kind": "text"
+				},
+				"product_spec": {
+					"kind": "text",
+					"optional": true
 				},
 				"quantity": {
 					"kind": "decimal",
@@ -719,6 +840,10 @@
 				}
 			},
 			"nativeRules": 2,
+			"natural": [
+				"order",
+				"line_key"
+			],
 			"recordLabel": "[record.product_name != null ? string(record.product_name) : '', record.quantity != null ? string(record.quantity) : ''].filter(part, part != '').join(' · ')",
 			"search": {
 				"text": [
@@ -738,6 +863,15 @@
 				"archived": {
 					"default": false,
 					"kind": "bool"
+				},
+				"buyer_contact": {
+					"kind": "text",
+					"optional": true
+				},
+				"buyer_mobile": {
+					"format": "phone",
+					"kind": "text",
+					"optional": true
 				},
 				"check_hash": {
 					"hidden": true,
@@ -990,13 +1124,34 @@
 								"seal_hash": {
 									"kind": "text"
 								},
+								"signature_version": {
+									"kind": "id",
+									"of": "salesperson_signatures",
+									"optional": true
+								},
 								"snapshot": {
 									"fields": {
+										"buyer_contact": {
+											"kind": "text",
+											"optional": true
+										},
+										"buyer_mobile": {
+											"kind": "text",
+											"optional": true
+										},
 										"contract_version": {
 											"kind": "text"
 										},
 										"currency": {
 											"kind": "text"
+										},
+										"delivery_address": {
+											"kind": "text",
+											"optional": true
+										},
+										"delivery_date": {
+											"kind": "text",
+											"optional": true
 										},
 										"delivery_terms": {
 											"kind": "text"
@@ -1007,6 +1162,10 @@
 												"sales",
 												"purchasing"
 											]
+										},
+										"document_template_id": {
+											"kind": "text",
+											"optional": true
 										},
 										"document_title": {
 											"kind": "text",
@@ -1034,6 +1193,21 @@
 													"net": {
 														"kind": "text"
 													},
+													"print_values": {
+														"kind": "list",
+														"of": {
+															"fields": {
+																"key": {
+																	"kind": "text"
+																},
+																"value": {
+																	"kind": "text"
+																}
+															},
+															"kind": "object"
+														},
+														"optional": true
+													},
 													"product": {
 														"kind": "text",
 														"optional": true
@@ -1043,6 +1217,10 @@
 													},
 													"product_name": {
 														"kind": "text"
+													},
+													"product_spec": {
+														"kind": "text",
+														"optional": true
 													},
 													"quantity": {
 														"kind": "text"
@@ -1076,20 +1254,67 @@
 										"order_id": {
 											"kind": "text"
 										},
+										"other_terms": {
+											"kind": "text",
+											"optional": true
+										},
+										"packaging": {
+											"kind": "text",
+											"optional": true
+										},
 										"party_code": {
 											"kind": "text"
 										},
 										"party_name": {
 											"kind": "text"
 										},
+										"payment_method": {
+											"kind": "text",
+											"optional": true
+										},
 										"payment_terms": {
 											"kind": "text"
+										},
+										"place_of_delivery": {
+											"kind": "text",
+											"optional": true
+										},
+										"place_of_loading": {
+											"kind": "text",
+											"optional": true
+										},
+										"print_values": {
+											"kind": "list",
+											"of": {
+												"fields": {
+													"key": {
+														"kind": "text"
+													},
+													"value": {
+														"kind": "text"
+													}
+												},
+												"kind": "object"
+											},
+											"optional": true
+										},
+										"shipping_mark": {
+											"kind": "text",
+											"optional": true
+										},
+										"shipping_terms": {
+											"kind": "text",
+											"optional": true
 										},
 										"tax": {
 											"kind": "text"
 										},
 										"tax_inclusive": {
 											"kind": "bool"
+										},
+										"time_of_shipment": {
+											"kind": "text",
+											"optional": true
 										},
 										"title": {
 											"kind": "text",
@@ -1128,6 +1353,18 @@
 								},
 								"version": {
 									"kind": "int"
+								},
+								"write_target": {
+									"fields": {
+										"account": {
+											"kind": "text"
+										},
+										"branch": {
+											"kind": "text"
+										}
+									},
+									"kind": "object",
+									"optional": true
 								}
 							},
 							"kind": "object"
@@ -1136,6 +1373,14 @@
 				},
 				"currency": {
 					"kind": "currency"
+				},
+				"delivery_address": {
+					"kind": "text",
+					"optional": true
+				},
+				"delivery_date": {
+					"kind": "date",
+					"optional": true
 				},
 				"delivery_terms": {
 					"kind": "text",
@@ -1147,6 +1392,16 @@
 						"sales",
 						"purchasing"
 					]
+				},
+				"document_template": {
+					"kind": "ref",
+					"optional": true,
+					"to": "document_templates",
+					"where": {
+						"status": {
+							"eq": "published"
+						}
+					}
 				},
 				"draft_document_ids": {
 					"hidden": true,
@@ -1181,6 +1436,11 @@
 				"line_count": {
 					"kind": "count",
 					"of": "lines"
+				},
+				"logistics_handler": {
+					"kind": "ref",
+					"optional": true,
+					"to": "sys_user"
 				},
 				"net": {
 					"kind": "sum",
@@ -1241,12 +1501,20 @@
 					},
 					"kind": "date"
 				},
+				"other_terms": {
+					"kind": "text",
+					"optional": true
+				},
 				"owner": {
 					"default": {
 						"var": "requestor.id"
 					},
 					"kind": "ref",
 					"to": "sys_user"
+				},
+				"packaging": {
+					"kind": "text",
+					"optional": true
 				},
 				"party": {
 					"inverse": "orders",
@@ -1257,8 +1525,35 @@
 					"kind": "text",
 					"optional": true
 				},
+				"payment_method": {
+					"kind": "text",
+					"optional": true
+				},
 				"payment_terms": {
 					"kind": "text"
+				},
+				"place_of_delivery": {
+					"kind": "text",
+					"optional": true
+				},
+				"place_of_loading": {
+					"kind": "text",
+					"optional": true
+				},
+				"print_values": {
+					"kind": "list",
+					"of": {
+						"fields": {
+							"key": {
+								"kind": "text"
+							},
+							"value": {
+								"kind": "text"
+							}
+						},
+						"kind": "object"
+					},
+					"optional": true
 				},
 				"seal_hash": {
 					"hidden": true,
@@ -1345,11 +1640,27 @@
 					"optional": true,
 					"shape": {
 						"fields": {
+							"buyer_contact": {
+								"kind": "text",
+								"optional": true
+							},
+							"buyer_mobile": {
+								"kind": "text",
+								"optional": true
+							},
 							"contract_version": {
 								"kind": "text"
 							},
 							"currency": {
 								"kind": "text"
+							},
+							"delivery_address": {
+								"kind": "text",
+								"optional": true
+							},
+							"delivery_date": {
+								"kind": "text",
+								"optional": true
 							},
 							"delivery_terms": {
 								"kind": "text"
@@ -1360,6 +1671,10 @@
 									"sales",
 									"purchasing"
 								]
+							},
+							"document_template_id": {
+								"kind": "text",
+								"optional": true
 							},
 							"document_title": {
 								"kind": "text",
@@ -1387,6 +1702,21 @@
 										"net": {
 											"kind": "text"
 										},
+										"print_values": {
+											"kind": "list",
+											"of": {
+												"fields": {
+													"key": {
+														"kind": "text"
+													},
+													"value": {
+														"kind": "text"
+													}
+												},
+												"kind": "object"
+											},
+											"optional": true
+										},
 										"product": {
 											"kind": "text",
 											"optional": true
@@ -1396,6 +1726,10 @@
 										},
 										"product_name": {
 											"kind": "text"
+										},
+										"product_spec": {
+											"kind": "text",
+											"optional": true
 										},
 										"quantity": {
 											"kind": "text"
@@ -1429,20 +1763,67 @@
 							"order_id": {
 								"kind": "text"
 							},
+							"other_terms": {
+								"kind": "text",
+								"optional": true
+							},
+							"packaging": {
+								"kind": "text",
+								"optional": true
+							},
 							"party_code": {
 								"kind": "text"
 							},
 							"party_name": {
 								"kind": "text"
 							},
+							"payment_method": {
+								"kind": "text",
+								"optional": true
+							},
 							"payment_terms": {
 								"kind": "text"
+							},
+							"place_of_delivery": {
+								"kind": "text",
+								"optional": true
+							},
+							"place_of_loading": {
+								"kind": "text",
+								"optional": true
+							},
+							"print_values": {
+								"kind": "list",
+								"of": {
+									"fields": {
+										"key": {
+											"kind": "text"
+										},
+										"value": {
+											"kind": "text"
+										}
+									},
+									"kind": "object"
+								},
+								"optional": true
+							},
+							"shipping_mark": {
+								"kind": "text",
+								"optional": true
+							},
+							"shipping_terms": {
+								"kind": "text",
+								"optional": true
 							},
 							"tax": {
 								"kind": "text"
 							},
 							"tax_inclusive": {
 								"kind": "bool"
+							},
+							"time_of_shipment": {
+								"kind": "text",
+								"optional": true
 							},
 							"title": {
 								"kind": "text",
@@ -1466,6 +1847,14 @@
 						},
 						"kind": "object"
 					}
+				},
+				"shipping_mark": {
+					"kind": "text",
+					"optional": true
+				},
+				"shipping_terms": {
+					"kind": "text",
+					"optional": true
 				},
 				"source_order_key": {
 					"hidden": true,
@@ -1498,12 +1887,27 @@
 								"freight_treatment",
 								"warehouse",
 								"ordered_on",
+								"document_template",
+								"print_values",
 								"currency",
 								"tax_inclusive",
 								"valid_from",
 								"valid_until",
 								"payment_terms",
 								"delivery_terms",
+								"shipping_terms",
+								"place_of_loading",
+								"place_of_delivery",
+								"packaging",
+								"shipping_mark",
+								"time_of_shipment",
+								"other_terms",
+								"payment_method",
+								"buyer_contact",
+								"buyer_mobile",
+								"delivery_address",
+								"delivery_date",
+								"logistics_handler",
 								"supporting_documents",
 								"draft_document_ids"
 							],
@@ -1539,6 +1943,10 @@
 					"default": false,
 					"kind": "bool"
 				},
+				"time_of_shipment": {
+					"kind": "text",
+					"optional": true
+				},
 				"title": {
 					"kind": "text"
 				},
@@ -1562,7 +1970,6 @@
 			},
 			"nativeRules": 2,
 			"natural": [
-				"ledger",
 				"source_order_key"
 			],
 			"recordLabel": "record.number",
@@ -1725,6 +2132,14 @@
 					"default": true,
 					"kind": "bool"
 				},
+				"brand": {
+					"kind": "text",
+					"optional": true
+				},
+				"brand_en": {
+					"kind": "text",
+					"optional": true
+				},
 				"commission_basis_unit": {
 					"kind": "text",
 					"optional": true
@@ -1743,6 +2158,10 @@
 				},
 				"name": {
 					"kind": "text"
+				},
+				"producing_area": {
+					"kind": "text",
+					"optional": true
 				},
 				"source": {
 					"kind": "ref",
@@ -1807,6 +2226,86 @@
 			},
 			"key": "text",
 			"nativeRules": 2
+		},
+		"salesperson_signatures": {
+			"audit": true,
+			"fields": {
+				"owner": {
+					"default": {
+						"var": "requestor.id"
+					},
+					"kind": "ref",
+					"to": "sys_user"
+				},
+				"signature": {
+					"fields": {
+						"png": {
+							"kind": "text",
+							"max": 174764
+						}
+					},
+					"kind": "object",
+					"optional": true
+				}
+			},
+			"index": [
+				"owner"
+			],
+			"nativeRules": 2
+		},
+		"source_lot_costs": {
+			"audit": true,
+			"fields": {
+				"currency": {
+					"kind": "currency"
+				},
+				"entries": {
+					"kind": "json",
+					"shape": {
+						"kind": "list",
+						"of": {
+							"fields": {
+								"lot_number": {
+									"kind": "text"
+								},
+								"product_code": {
+									"kind": "text"
+								},
+								"received_on": {
+									"kind": "date"
+								},
+								"received_qty": {
+									"kind": "text"
+								},
+								"unit": {
+									"kind": "text"
+								},
+								"unit_cost": {
+									"kind": "text"
+								}
+							},
+							"kind": "object"
+						}
+					}
+				},
+				"observed_at": {
+					"kind": "instant"
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				}
+			},
+			"nativeRules": 2,
+			"natural": [
+				"source"
+			],
+			"recordLabel": "record.observed_at"
 		},
 		"source_payments": {
 			"audit": true,
@@ -1881,12 +2380,100 @@
 				}
 			]
 		},
+		"source_receivables": {
+			"audit": true,
+			"fields": {
+				"currency": {
+					"kind": "currency"
+				},
+				"entries": {
+					"kind": "json",
+					"shape": {
+						"kind": "list",
+						"of": {
+							"fields": {
+								"business_on": {
+									"kind": "date"
+								},
+								"contact_id": {
+									"kind": "text"
+								},
+								"customer": {
+									"kind": "text"
+								},
+								"customer_id": {
+									"kind": "text"
+								},
+								"due_on": {
+									"kind": "date",
+									"optional": true
+								},
+								"kind": {
+									"kind": "enum",
+									"values": [
+										"invoice",
+										"receipt"
+									]
+								},
+								"reference": {
+									"kind": "text"
+								},
+								"remaining": {
+									"kind": "text"
+								},
+								"settlements": {
+									"kind": "list",
+									"of": {
+										"fields": {
+											"amount": {
+												"kind": "text"
+											},
+											"on": {
+												"kind": "date"
+											}
+										},
+										"kind": "object"
+									}
+								}
+							},
+							"kind": "object"
+						}
+					}
+				},
+				"observed_at": {
+					"kind": "instant"
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				}
+			},
+			"nativeRules": 2,
+			"natural": [
+				"source"
+			],
+			"recordLabel": "record.observed_at"
+		},
 		"source_sales_lines": {
 			"audit": true,
 			"fields": {
 				"active": {
 					"default": true,
 					"kind": "bool"
+				},
+				"booked_cost": {
+					"kind": "decimal",
+					"optional": true,
+					"scale": 10
+				},
+				"booked_cost_currency": {
+					"kind": "currency",
+					"optional": true
 				},
 				"business_on": {
 					"kind": "date"
@@ -1907,7 +2494,8 @@
 					"values": [
 						"shipment",
 						"return",
-						"invoice_only"
+						"invoice_only",
+						"invoice"
 					]
 				},
 				"lot_number": {
@@ -1922,11 +2510,13 @@
 				"order": {
 					"inverse": "source_sales_lines",
 					"kind": "ref",
+					"optional": true,
 					"to": "orders"
 				},
 				"order_line": {
 					"hidden": true,
-					"kind": "text"
+					"kind": "text",
+					"optional": true
 				},
 				"quantity": {
 					"kind": "decimal",
@@ -1937,7 +2527,8 @@
 				},
 				"seal_hash": {
 					"hidden": true,
-					"kind": "text"
+					"kind": "text",
+					"optional": true
 				},
 				"source": {
 					"kind": "ref",
@@ -1946,6 +2537,32 @@
 						"integration": {
 							"eq": "kingdee"
 						}
+					}
+				},
+				"source_dimensions": {
+					"hidden": true,
+					"kind": "json",
+					"optional": true,
+					"shape": {
+						"fields": {
+							"customer": {
+								"kind": "text",
+								"optional": true
+							},
+							"employee": {
+								"kind": "text",
+								"optional": true
+							},
+							"employee_id": {
+								"kind": "text",
+								"optional": true
+							},
+							"product": {
+								"kind": "text",
+								"optional": true
+							}
+						},
+						"kind": "object"
 					}
 				},
 				"source_updated_at": {
@@ -1971,6 +2588,53 @@
 				"external_code"
 			],
 			"recordLabel": "record.reference"
+		},
+		"source_stock_commitments": {
+			"audit": true,
+			"fields": {
+				"entries": {
+					"kind": "json",
+					"shape": {
+						"kind": "list",
+						"of": {
+							"fields": {
+								"product_code": {
+									"kind": "text"
+								},
+								"quantity": {
+									"kind": "text"
+								},
+								"unit": {
+									"kind": "text",
+									"optional": true
+								},
+								"warehouse": {
+									"kind": "text",
+									"optional": true
+								}
+							},
+							"kind": "object"
+						}
+					}
+				},
+				"observed_at": {
+					"kind": "instant"
+				},
+				"source": {
+					"kind": "ref",
+					"to": "sys_integration",
+					"where": {
+						"integration": {
+							"eq": "kingdee"
+						}
+					}
+				}
+			},
+			"nativeRules": 2,
+			"natural": [
+				"source"
+			],
+			"recordLabel": "record.observed_at"
 		},
 		"stock_snapshots": {
 			"audit": true,

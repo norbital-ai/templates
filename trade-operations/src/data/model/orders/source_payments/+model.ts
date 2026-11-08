@@ -98,6 +98,7 @@ export default model('source_payments', {
 	read: {
 		source_payments: { fields: 'all' },
 		'source_payments.order': { fields: 'all' },
+		'source_payments.order.ledger': { fields: ['name'] },
 		'source_payments.order.party': { fields: 'all' },
 		'source_payments.invoice': { fields: 'all' }
 	},

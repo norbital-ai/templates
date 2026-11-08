@@ -7,7 +7,7 @@ import { Decimal, currency } from '@norbital-ai/std/decimal';
 import { inputSchema } from '@norbital-ai/std/kind';
 import { Instant, PlainDate } from '@norbital-ai/std/date';
 import type { SourceProjection as Projection } from './sql.js';
-import { sourceIdentity, sourceMetadata, sourceClock, sourcePage, sourceMarkers } from './sql.js';
+import { sourceCheckpoint, sourcePage, sourceMarkers } from './sql.js';
 import { bindings, normalizeSourceRow } from './source-bindings.js';
 export class SourceRowInvalid extends Schema.TaggedError<SourceRowInvalid>()('SourceRowInvalid', {
 	column: Schema.String,
@@ -136,25 +136,30 @@ export const sourceState = Effect.fnUntraced(function* (
 	ctx: DatabaseContext,
 	projection: Projection
 ) {
-	const identityRows = yield* sourceIdentity(ctx);
-	const identity = yield* Schema.decodeUnknownEffect(
-		Schema.Struct({ database_guid: Schema.String, recovery_fork_guid: Schema.String })
-	)(identityRows[0]).pipe(
+	// Capture the ceiling before reading any rows. Keep the fingerprint's metadata shape unchanged.
+	const checkpoint = yield* sourceCheckpoint(ctx, projection);
+	const current = yield* Schema.decodeUnknownEffect(
+		Schema.Struct({
+			database_guid: Schema.String,
+			recovery_fork_guid: Schema.String,
+			maximum: Rowversion,
+			observed_at: Schema.String,
+			metadata: Schema.fromJsonString(
+				Schema.Array(
+					Schema.Struct({
+						alias: Schema.String,
+						column: Schema.NullOr(Schema.String),
+						object_id: Schema.Int,
+						created: Schema.String,
+						rowversion_type: Schema.NullOr(Schema.Int)
+					})
+				)
+			)
+		})
+	)(checkpoint[0]).pipe(
 		Effect.mapError((cause) => new SourceUnavailable({ reason: String(cause) }))
 	);
-	const metadata = yield* Schema.decodeUnknownEffect(
-		Schema.Array(
-			Schema.Struct({
-				alias: Schema.String,
-				column: Schema.NullOr(Schema.String),
-				object_id: Schema.Int,
-				created: Schema.String,
-				rowversion_type: Schema.NullOr(Schema.Int)
-			})
-		)
-	)(yield* sourceMetadata(ctx, projection)).pipe(
-		Effect.mapError((cause) => new SourceUnavailable({ reason: String(cause) }))
-	);
+	const { metadata } = current;
 	const declared = sourceMarkers(projection);
 	const relations = [
 		{ alias: projection.alias ?? 'source', table: projection.table },
@@ -182,18 +187,12 @@ export const sourceState = Effect.fnUntraced(function* (
 		return yield* new SourceUnavailable({
 			reason: 'A declared Kingdee table or native rowversion column is unavailable'
 		});
-	// Capture the ceiling before reading any rows; never derive it from the last row returned.
-	const clockRows = yield* sourceClock(ctx);
-	const current = yield* Schema.decodeUnknownEffect(
-		Schema.Struct({ maximum: Rowversion, observed_at: Schema.String })
-	)(clockRows[0]).pipe(
-		Effect.mapError((cause) => new SourceUnavailable({ reason: String(cause) }))
-	);
 	if (!Number.isFinite(Date.parse(current.observed_at)))
 		return yield* new SourceUnavailable({ reason: 'The SQL Server clock is unavailable' });
 	return {
+		account: `${current.database_guid}/${current.recovery_fork_guid}`.toLowerCase(),
 		source: yield* sha256Hex(
-			JSON.stringify([identity.database_guid, identity.recovery_fork_guid, metadata, projection])
+			JSON.stringify([current.database_guid, current.recovery_fork_guid, metadata, projection])
 		),
 		maximum: current.maximum.toLowerCase(),
 		now: current.observed_at
@@ -230,8 +229,9 @@ export const readSource = Effect.fnUntraced(function* <R extends object, M exten
 			readonly baseCurrency: string;
 		};
 	},
-	build: (row: SqlRow) => R,
-	reconcile?: Reconciler<M>
+	build: (row: SqlRow, observedAt: string) => R,
+	reconcile?: Reconciler<M>,
+	account?: string
 ): Effect.fn.Return<
 	SourcePage<R | M>,
 	| FacilityFailure
@@ -242,6 +242,10 @@ export const readSource = Effect.fnUntraced(function* <R extends object, M exten
 	| DigestUnavailable
 > {
 	const current = yield* sourceState(ctx, projection);
+	if (account !== undefined && current.account !== account)
+		return yield* new SourceUnavailable({
+			reason: 'The verified Kingdee read account identity does not match'
+		});
 	const versioned = sourceMarkers(projection).length > 0;
 	let state: Cursor =
 		cursor === null
@@ -325,12 +329,17 @@ export const readSource = Effect.fnUntraced(function* <R extends object, M exten
 			health
 		};
 	}
-	const result = yield* sourcePage(
-		ctx,
-		projection,
-		position.after,
-		position.mode === 'changes' ? { from: state.bookmark, to: position.upper } : undefined
-	);
+	if (
+		position.mode === 'changes' &&
+		state.continuation === null &&
+		position.upper === state.bookmark
+	)
+		return { rows: [], cursor: state, more: false, health };
+	const result = yield* sourcePage(ctx, projection, {
+		after: position.after,
+		window: position.mode === 'changes' ? { from: state.bookmark, to: position.upper } : undefined,
+		account
+	});
 	const binding = EffectRecord.keys(bindings).find((name) => bindings[name] === projection);
 	if (result.length > PAGE + 1)
 		return yield* new SourceRowInvalid({
@@ -366,7 +375,8 @@ export const readSource = Effect.fnUntraced(function* <R extends object, M exten
 				...build(
 					binding === undefined
 						? row
-						: normalizeSourceRow(binding, row, ctx.configuration, current.now)
+						: normalizeSourceRow(binding, row, ctx.configuration, current.now),
+					current.now
 				),
 				$id: remote,
 				...(version === undefined || position.mode === 'snapshot'

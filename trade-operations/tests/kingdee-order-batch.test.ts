@@ -15,10 +15,12 @@ import {
 	submitOrder
 } from '../src/integration/kingdee/submission.js';
 
+const account = '11111111-1111-4111-8111-111111111111/11111111-1111-4111-8111-111111111111';
 const payload: OrderPayload = {
 	order_id: 'order-a',
 	reference: "SO-';&<",
 	direction: 'sales',
+	write_target: { account, branch: '0' },
 	agreement_hash: 'seal-a',
 	version: 1,
 	owner_id: 'member-a',
@@ -59,6 +61,7 @@ const bindings: SourceOrderBindings = {
 };
 const configuration = {
 	baseCurrency: 'CNY',
+	writeAccount: account,
 	branchNo: '0',
 	billerId: '1',
 	salespersonBindings: JSON.stringify({ 'member-a': { employeeId: '701', departmentId: '601' } }),
@@ -199,6 +202,29 @@ it.effect('uses only the existing RPC with stable provenance and bound data on r
 			sourceOrderSql.indexOf('INSERT INTO dbo.SEOrderEntry')
 		);
 		expect(sourceOrderSql).not.toMatch(/\bTHROW\b|\bMERGE\b|\bOPENJSON\b/);
+	})
+);
+
+it.effect('keeps unpinned and retargeted orders out of the SQL connection', () =>
+	Effect.gen(function* () {
+		const ctx = context();
+		const { write_target: _target, ...unpinned } = payload;
+		for (const [order, config] of [
+			[payload, { ...configuration, writeAccount: null }],
+			[unpinned, configuration],
+			[payload, { ...configuration, branchNo: '1' }],
+			[payload, { ...configuration, writeAccount: account.replaceAll('1', '2') }]
+		] as const) {
+			expect(
+				yield* Effect.flip(
+					submitOrder(order, 'order-a:seal-a', {
+						...ctx,
+						configuration: config
+					})
+				)
+			).toMatchObject({ _tag: 'SourceRowInvalid', column: 'writeAccount' });
+		}
+		expect(ctx.calls).toHaveLength(0);
 	})
 );
 

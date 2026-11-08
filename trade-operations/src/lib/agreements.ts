@@ -32,7 +32,63 @@ export type AgreementOrder = Pick<
 	| 'supporting_documents'
 >;
 export type ContractVersion = NonNullable<StoredRow<'orders'>['contract_versions']>[number];
-/** Approved versions only; a pending replacement never becomes an approved source basis. */
+/** Source execution follows the newest live Kingdee version, regardless of local approval. */
+export function kingdeeAgreement(versions: readonly ContractVersion[]) {
+	let latest: ContractVersion | undefined;
+	for (const version of versions) {
+		if (
+			version.kingdee &&
+			!version.kingdee.archived &&
+			(!latest?.kingdee || version.kingdee.source_version > latest.kingdee.source_version)
+		)
+			latest = version;
+	}
+	return latest;
+}
+
+/** Compare the terms represented on the Kingdee SO. */
+export function kingdeeTermsChanged(previous: ContractVersion, next: ContractVersion['snapshot']) {
+	const before = previous.snapshot;
+	if (
+		before.currency !== next.currency ||
+		before.tax_inclusive !== next.tax_inclusive ||
+		before.party_code !== next.party_code ||
+		before.payment_terms !== next.payment_terms ||
+		before.lines.length !== next.lines.length
+	)
+		return true;
+	const priorLines = new Map(before.lines.map((line) => [line.id, line]));
+	const effective = (line: (typeof before.lines)[number]) =>
+		Decimal.of(line.unit_price).times(Decimal.of(100).minus(line.discount_pct));
+	return next.lines.some((line) => {
+		const prior = priorLines.get(line.id);
+		return (
+			!prior ||
+			prior.product_code !== line.product_code ||
+			prior.unit !== line.unit ||
+			!effective(line).eq(effective(prior)) ||
+			(['quantity', 'tax_rate', 'net', 'tax', 'total'] as const).some(
+				(field) => !Decimal.of(line[field]).eq(prior[field])
+			)
+		);
+	});
+}
+
+/** A locally approved mapped change needs proof against the source terms it followed. */
+export function awaitingKingdee(current: ContractVersion, versions: readonly ContractVersion[]) {
+	if (
+		!(versions[0]?.write_target || current.write_target) ||
+		current.kingdee ||
+		current.origin === 'kingdee'
+	)
+		return false;
+	const prior = versions.findLast(
+		(version) => version.version < current.version && version.kingdee
+	);
+	return !prior || kingdeeTermsChanged(prior, current.snapshot);
+}
+
+/** Retained local seals and observed source versions. */
 export function agreements(order: AgreementOrder): ContractVersion[] {
 	const versions = order.contract_versions ? [...order.contract_versions] : [];
 	if (
@@ -61,7 +117,7 @@ export function agreements(order: AgreementOrder): ContractVersion[] {
 	}
 	return versions;
 }
-/** Only source-accepted replacements displace the previous current agreement. */
+/** The current commercial agreement changes at local approval. */
 const currentContractVersion = (versions: readonly ContractVersion[]) =>
 	versions.find((version) => version.lifecycle === 'current') ??
 	versions.filter((version) => version.lifecycle == null).at(-1);
@@ -74,8 +130,9 @@ export const currentAgreement = (order: AgreementOrder) =>
 	currentContractVersion(agreements(order));
 /** A source void or closure ends execution without deleting the retained contract. */
 export const executableAgreement = (order: AgreementOrder) => {
-	const current = currentAgreement(order);
-	return current?.kingdee?.status === 'void' || current?.kingdee?.closed ? undefined : current;
+	const versions = agreements(order);
+	const source = kingdeeAgreement(versions)?.kingdee;
+	return source?.status === 'void' || source?.closed ? undefined : currentContractVersion(versions);
 };
 export const agreement = (order: AgreementOrder, seal: string | null | undefined) =>
 	agreements(order).find((v) => v.seal_hash === seal);
@@ -89,6 +146,18 @@ export function withAgreement<T extends AgreementOrder>(
 		tax_inclusive: version.snapshot.tax_inclusive,
 		payment_terms: version.snapshot.payment_terms,
 		delivery_terms: version.snapshot.delivery_terms,
+		shipping_terms: version.snapshot.shipping_terms ?? '',
+		place_of_loading: version.snapshot.place_of_loading ?? '',
+		place_of_delivery: version.snapshot.place_of_delivery ?? '',
+		packaging: version.snapshot.packaging ?? '',
+		shipping_mark: version.snapshot.shipping_mark ?? '',
+		time_of_shipment: version.snapshot.time_of_shipment ?? '',
+		other_terms: version.snapshot.other_terms ?? '',
+		payment_method: version.snapshot.payment_method ?? '',
+		buyer_contact: version.snapshot.buyer_contact ?? '',
+		buyer_mobile: version.snapshot.buyer_mobile ?? '',
+		delivery_address: version.snapshot.delivery_address ?? '',
+		delivery_date: version.snapshot.delivery_date ?? '',
 		party_name: version.snapshot.party_name,
 		supporting_documents: version.supporting_documents ?? [],
 		seal_hash: version.seal_hash,
@@ -129,7 +198,18 @@ export function confirmationBasis(
 			credit_fresh_minutes: settings.credit_fresh_minutes,
 			stock_fresh_minutes: settings.stock_fresh_minutes
 		},
-		template
+		template: {
+			id: template.id,
+			revision: template.revision,
+			locale: template.locale,
+			version: template.version,
+			title: template.title,
+			body: template.body,
+			contract_stamp: template.contract_stamp?.id ?? null,
+			layout: template.layout ?? null,
+			print_layout: template.print_layout?.id ?? null,
+			letterhead: template.letterhead?.id ?? null
+		}
 	};
 }
 /** The fulfillment basis retained for an approved snapshot. */

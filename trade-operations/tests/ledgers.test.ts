@@ -1,6 +1,6 @@
 import { fixtureId, firstRow } from './test-runtime.js';
 import { Decimal } from '@norbital-ai/std/decimal';
-import { Context, Effect, Layer, Schema } from 'effect';
+import { Context, Effect, Exit, Layer, Schema } from 'effect';
 import { expect, layer } from '@effect/vitest';
 import { DatabaseRequest, type DatabaseResult } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
@@ -119,6 +119,50 @@ layer(Layer.effect(Ledgers, ledgers()), { excludeTestServices: true })(
 						)
 					).toMatchObject({ _tag: 'ActRefused', message: 'errors.ledger_mismatch' });
 				})
+		);
+
+		test.effect('a failing ledger leaves the other ledger readable and reports the failure', () =>
+			Effect.gen(function* () {
+				const { t, second, routes } = yield* Ledgers;
+				yield* t.pull('products', first);
+				yield* t.pull('products', second);
+				const before = firstRow(
+					yield* t.db.rows(
+						Schema.Struct({ cursor: Schema.NullOr(Schema.Json), health: Schema.NullOr(Schema.Json) }),
+						{
+							text: "SELECT cursor, health FROM sys_sync WHERE sync='products.sync.kingdee' AND instance=$1",
+							params: [second]
+						}
+					)
+				);
+				routes.set(
+					String(second),
+					() =>
+						Effect.fail(
+							new FacilityFailure({ kind: 'upstream', message: 'Second ledger offline' })
+						)
+				);
+				expect(Exit.isFailure(yield* Effect.exit(t.pull('products', second)))).toBe(true);
+				expect(Exit.isSuccess(yield* Effect.exit(t.pull('products', first)))).toBe(true);
+				expect(
+					firstRow(
+						yield* t.db.rows(
+							Schema.Struct({ cursor: Schema.NullOr(Schema.Json), health: Schema.NullOr(Schema.Json) }),
+							{
+								text: "SELECT cursor, health FROM sys_sync WHERE sync='products.sync.kingdee' AND instance=$1",
+								params: [second]
+							}
+						)
+					)
+				).toMatchObject({
+					cursor: before?.cursor,
+					health: { state: 'attention', failures: 1, code: 'guestError' }
+				});
+				const products = yield* t.as(t.admin).query({
+					products: { where: { source: { eq: first } }, fields: ['name'] }
+				});
+				expect(products.products.rows.length).toBeGreaterThan(0);
+			})
 		);
 
 		test.effect(

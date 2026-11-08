@@ -1,9 +1,10 @@
 import { PlainDate } from '@norbital-ai/std/date';
+import { randomUUID } from 'node:crypto';
 import { Decimal } from '@norbital-ai/std/decimal';
 import type { Id } from '@norbital-ai/bolt';
 import { committed, confirm, type T } from './kit.js';
 import { fixtureId } from './test-runtime.js';
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import type { DatabaseRequest, DatabaseResult, Json } from '@norbital-ai/bolt/engine';
 import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { sourceOrderSql } from '../src/integration/kingdee/submission.js';
@@ -97,12 +98,14 @@ export type FixtureSubmission = {
 };
 /** A narrow scripted SQL link for native model tests; real SQL compatibility is covered by local server probes. */
 export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCatalogue()) {
-	const read = sourceFixture(records);
+	const identity = randomUUID();
+	const read = sourceFixture(records, identity);
 	const calls: DatabaseRequest[] = [];
 	const submissions = new Map<string, FixtureSubmission>();
 	const tables: Record<string, SqlRow[]> = {
 		SEOrder: [],
 		SEOrderEntry: [],
+		ICOrderAlter: [],
 		ICStockBill: [],
 		ICStockBillEntry: [],
 		ICSale: [],
@@ -112,6 +115,7 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 	const configuration = (owner: string) => ({
 		baseCurrency: 'CNY',
 		branchNo: '0',
+		writeAccount: `${identity}/${identity}`,
 		billerId: '1',
 		fullSnapshotMinutes: 1440,
 		maxWindowMinutes: 15,
@@ -138,6 +142,30 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 		const statement = string(args.stmt, 'static SQL');
 		return yield* Effect.try({
 			try: (): DatabaseResult | null => {
+				if (statement.includes('kingdee-amendment-proofs')) {
+					const expected = Schema.decodeUnknownSync(
+						Schema.fromJsonString(
+							Schema.Array(
+								Schema.Struct({
+									seal: Schema.String,
+									sourceId: Schema.String,
+									sourceVersion: Schema.String,
+									cause: Schema.String
+								})
+							)
+						)
+					)(args.expected);
+					return {
+						rows: expected
+							.filter(({ sourceId, sourceVersion, cause }) =>
+								tables.ICOrderAlter?.some(
+									(log) =>
+										log.fid === sourceId && log.version === sourceVersion && log.cause === cause
+								)
+							)
+							.map(({ seal }) => ({ seal }))
+					};
+				}
 				if (statement === sourceAmendmentSql) {
 					const correlation = string(args.correlation, 'owned UUID');
 					const existing = submissions.get(correlation);
@@ -147,6 +175,7 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 					const source = tables.SEOrder?.find((row) => row.fid === existing.remote);
 					if (!source || source.version !== args.source_version)
 						throw new Error('The source version changed');
+					const version = String(Number(source.version) + 1).padStart(3, '0');
 					const document = string(args.document, 'target source document');
 					const header = attributes(/<header\s+([^>]*)\/>/.exec(document)?.[1] ?? '');
 					const lines = [...document.matchAll(/<item\s+([^>]*)\/>/g)].map((match) =>
@@ -176,7 +205,7 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 						row === source
 							? {
 									...row,
-									version: String(Number(source.version) + 1).padStart(3, '0'),
+									version,
 									changed_at: '2026-10-10T00:00:00',
 									changed_by: '1'
 								}
@@ -205,6 +234,11 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 						});
 					}
 					submissions.set(correlation, { ...existing, hash, header, lines });
+					tables.ICOrderAlter?.push({
+						fid: existing.remote,
+						version,
+						cause: string(args.change_cause, 'amendment cause')
+					});
 					return { rows: [{ remote: existing.remote, hash }] };
 				}
 				if (statement === sourceOrderSql) {
@@ -329,6 +363,21 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 						)
 					);
 					const after = string(args.after, 'native continuation');
+					if (statement.includes('kingdee-document-ids')) {
+						const sourceType = table === 'ICStockBillEntry' ? '81' : '21';
+						const fids = new Set(
+							tables[table]
+								.filter((row) => row.source_type === sourceType && ids.has(String(row.source_fid)))
+								.map((row) => String(row.fid))
+						);
+						return {
+							rows: [...fids]
+								.map((fid) => ({ __key: padded(fid), fid }))
+								.filter((row) => row.__key > after)
+								.sort((a, b) => a.__key.localeCompare(b.__key))
+								.slice(0, 1000)
+						};
+					}
 					return {
 						rows: tables[table]
 							.filter((row) => {
@@ -346,7 +395,7 @@ export function kingdeeFixture(records: () => KingdeeRecords = () => kingdeeCata
 									}
 									return ids.has(String(row.uuid)) && row.branch === args.branch;
 								}
-								return ids.has(String(args.discovery === 1 ? row.source_fid : row.fid));
+								return ids.has(String(row.fid));
 							})
 							.sort((a, b) => String(a.__key).localeCompare(String(b.__key)))
 							.slice(0, 1000)

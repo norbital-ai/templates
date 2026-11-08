@@ -56,7 +56,7 @@ export default model('commission_statements', {
 				orders: { where: { direction: { eq: 'sales' } }, fields: reportFields },
 				commission_statements: { fields: statementFields },
 				sys_user: { fields: ['name'] },
-				source_sales_lines: { fields: commissionFactFields }
+				source_sales_lines: { where: { kind: { ne: 'invoice' } }, fields: commissionFactFields }
 			});
 			return yield* Effect.forEach(
 				rows,

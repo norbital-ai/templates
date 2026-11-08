@@ -74,6 +74,9 @@ export const bindings = {
 			'source_number',
 			'name',
 			'spec',
+			'producing_area',
+			'brand',
+			'brand_en',
 			'unit',
 			'deleted',
 			'unused',
@@ -84,6 +87,9 @@ export const bindings = {
 			source_number: column('products', 'FNumber'),
 			name: column('products', 'FName'),
 			spec: column('detail', 'FModel'),
+			producing_area: column('detail', 'FProducingArea'),
+			brand: column('brand', 'FName'),
+			brand_en: column('detail', 'F_102'),
 			unit: column('unit', 'FName'),
 			deleted: column('products', 'FDeleted'),
 			unused: column('products', 'FUnUsed'),
@@ -102,6 +108,13 @@ export const bindings = {
 				alias: 'unit',
 				on: [{ left: ref('detail', 'FUnitID'), right: ref('unit', 'FItemID') }],
 				where: { FItemClassID: 7 }
+			},
+			{
+				kind: 'left',
+				table: { schema: 'dbo', name: 't_Item' },
+				alias: 'brand',
+				on: [{ left: ref('detail', 'FComBrandID'), right: ref('brand', 'FItemID') }],
+				where: { FItemClassID: 2038 }
 			}
 		],
 		filters: [
@@ -112,7 +125,8 @@ export const bindings = {
 		rowversions: [
 			ref('products', 'FModifyTime'),
 			ref('detail', 'FModifyTime'),
-			ref('unit', 'FModifyTime')
+			ref('unit', 'FModifyTime'),
+			ref('brand', 'FModifyTime')
 		],
 		texts: ['external_code']
 	},

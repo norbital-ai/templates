@@ -5,6 +5,7 @@ export default policy({
 		apps: ['operations']
 	},
 	grants: {
+		source_stock_commitments: { read: true },
 		ext_sales_orders: { history: true, outputs: { logistics: true } },
 		ext_purchase_orders: { history: true, outputs: { logistics: true } },
 		transactions: { history: true, outputs: { logistics: true } },

@@ -9,13 +9,20 @@ import {
 	draftLineTarget
 } from '../../../../lib/contract-draft.js';
 import { price } from '../../../../lib/commercial.js';
+import {
+	printValueKind,
+	orderedPrintValues,
+	validPrintValues
+} from '../../../../lib/print-details.js';
 const cells = ['quantity', 'unit_price', 'discount_pct', 'tax_rate'] as const;
 type Cell = Decimal | number | `${number}`;
 /** One line to price: its order and product, the cells the writer sent, and the stored line an update changes. */
 type Pricing = {
 	readonly order: Id<'orders'>;
 	readonly product: Id<'products'>;
-	readonly cells: { readonly [K in (typeof cells)[number]]?: Cell | null };
+	readonly cells: { readonly [K in (typeof cells)[number]]?: Cell | null } & {
+		readonly print_values?: StoredRow<'order_lines'>['print_values'];
+	};
 	readonly before: StoredRow<'order_lines'> | null;
 	readonly source_entry_id?: string | null;
 };
@@ -57,6 +64,8 @@ const priced = Effect.fnUntraced(function* (
 		| 'tax_rate'
 		| 'product_code'
 		| 'product_name'
+		| 'product_spec'
+		| 'print_values'
 		| 'unit'
 		| 'currency'
 		| 'net'
@@ -121,6 +130,11 @@ const priced = Effect.fnUntraced(function* (
 			Decimal.of(tax_rate).gt(100)
 		)
 			return yield* ctx.refuse('errors.percentage');
+		const details =
+			input.print_values !== undefined ? input.print_values : (old?.print_values ?? null);
+		if (details && !validPrintValues(details))
+			return yield* ctx.refuse('errors.print_values_invalid', { field: 'print_values' });
+		const print_values = details ? orderedPrintValues(details) : null;
 		let setupTarget;
 		if (order.draft_setup) {
 			const current = currentAgreement(order);
@@ -135,6 +149,7 @@ const priced = Effect.fnUntraced(function* (
 					product: productId,
 					source_entry_id,
 					unit,
+					print_values,
 					quantity: Decimal.of(quantity),
 					unit_price: Decimal.of(unit_price),
 					discount_pct: Decimal.of(discount_pct),
@@ -147,6 +162,7 @@ const priced = Effect.fnUntraced(function* (
 		const floor = floors.rows
 			.filter(
 				(f) =>
+					order.direction === 'sales' &&
 					f.product === product.id &&
 					f.currency === order.currency &&
 					f.group_code === group &&
@@ -173,8 +189,14 @@ const priced = Effect.fnUntraced(function* (
 			unit_price: Decimal.of(unit_price),
 			discount_pct: Decimal.of(discount_pct),
 			tax_rate: Decimal.of(tax_rate),
+			print_values,
 			product_code: setupTarget?.product_code ?? old?.product_code ?? product.external_code,
 			product_name: setupTarget?.product_name ?? old?.product_name ?? product.name,
+			product_spec: setupTarget
+				? (setupTarget.product_spec ?? null)
+				: old
+					? old.product_spec
+					: product.spec,
 			unit,
 			...price(order, { quantity, unit_price, discount_pct, tax_rate }),
 			floor_net,
@@ -190,6 +212,7 @@ export default model('order_lines', {
 	label: ['product_name', 'quantity'],
 	fields: {
 		order: { kind: 'ref', to: 'orders', inverse: 'lines', owned: true },
+		line_key: { kind: 'text', optional: true, hidden: true },
 		product: { kind: 'ref', to: 'products' },
 		source_entry_id: { kind: 'text', optional: true, hidden: true },
 		product_code: {
@@ -198,6 +221,8 @@ export default model('order_lines', {
 		product_name: {
 			kind: 'text'
 		},
+		product_spec: { kind: 'text', optional: true },
+		print_values: printValueKind,
 		unit: {
 			kind: 'text'
 		},
@@ -268,6 +293,7 @@ export default model('order_lines', {
 		}
 	},
 	search: { text: ['product', 'product_code'] },
+	key: ['order', 'line_key'],
 	read: {
 		order_lines: { fields: 'all' },
 		'order_lines.product': { fields: ['name', 'external_code'] },
@@ -282,7 +308,9 @@ export default model('order_lines', {
 	},
 	// a line created through its order's `'orders.lines'` layer runs this after the order's own `create.transform`
 	create: {
-		columns: { order_lines: ['order', 'product', ...cells, 'source_entry_id'] },
+		columns: {
+			order_lines: ['order', 'line_key', 'product', ...cells, 'print_values', 'source_entry_id']
+		},
 		filled: { order_lines: ['unit_price', 'tax_rate'] },
 		transform: function* (rows, ctx) {
 			const derived = yield* priced(
@@ -295,11 +323,15 @@ export default model('order_lines', {
 					...(row.source_entry_id !== undefined ? { source_entry_id: row.source_entry_id } : {})
 				}))
 			);
-			return rows.map((row, i) => ({ ...row, ...derived[i] }));
+			return rows.map((row, i) => ({
+				...row,
+				line_key: row.line_key ?? crypto.randomUUID(),
+				...derived[i]
+			}));
 		}
 	},
 	update: {
-		columns: { order_lines: [...cells, 'source_entry_id'] },
+		columns: { order_lines: [...cells, 'print_values', 'source_entry_id'] },
 		transform: function* (changes, ctx) {
 			const derived = yield* priced(
 				ctx,

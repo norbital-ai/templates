@@ -1,5 +1,7 @@
 import { Decimal } from '@norbital-ai/std/decimal';
-import { SourceRowInvalid } from './polling.js';
+import { Effect } from 'effect';
+import { query, SourceRowInvalid, type DatabaseContext } from './polling.js';
+import { requireWriteAccount } from './sql.js';
 import {
 	headerTypes,
 	itemTypes,
@@ -36,6 +38,64 @@ const xmlValues = (types: Readonly<Record<string, string>>) =>
 const fail = (message: string) => `BEGIN RAISERROR('${message}',16,1); RETURN; END;`;
 const sameText = (left: string, right: string) =>
 	`CONVERT(nvarchar(max),${left}) COLLATE Latin1_General_BIN2=CONVERT(nvarchar(max),${right}) COLLATE Latin1_General_BIN2 AND DATALENGTH(CONVERT(nvarchar(max),${left}))=DATALENGTH(CONVERT(nvarchar(max),${right}))`;
+export const amendmentCause = (version: number, seal: string) =>
+	`Colony contract ${version} [${seal}]`;
+
+type AmendmentProof = {
+	readonly seal: string;
+	readonly version: number;
+	readonly sourceId: string;
+	readonly sourceVersion: string;
+};
+const amendmentProofSql = `/* kingdee-amendment-proofs */
+SELECT expected.seal
+FROM OPENJSON(@expected) WITH (
+ seal nvarchar(100), sourceId nvarchar(32), sourceVersion nvarchar(30), cause nvarchar(200)
+) expected
+WHERE EXISTS (
+ SELECT 1 FROM dbo.ICOrderAlter log
+ WHERE log.FInterID=TRY_CONVERT(int,expected.sourceId) AND log.FBillType=81
+ AND log.FVersionNo=expected.sourceVersion AND ${sameText('log.FChangeCauses', 'expected.cause')}
+)`;
+
+/** Query the change log only for changed source families with an unbound local amendment. */
+export const readAmendmentProofs = Effect.fnUntraced(function* (
+	ctx: DatabaseContext,
+	proofs: readonly AmendmentProof[]
+) {
+	const proven = new Set<string>();
+	for (let offset = 0; offset < proofs.length; offset += 200) {
+		const batch = proofs.slice(offset, offset + 200);
+		const rows = yield* query(ctx, {
+			op: 'call',
+			procedure: { schema: 'sys', name: 'sp_executesql' },
+			arguments: {
+				stmt: amendmentProofSql,
+				params: '@expected nvarchar(max)',
+				expected: JSON.stringify(
+					batch.map(({ seal, version, sourceId, sourceVersion }) => ({
+						seal,
+						sourceId,
+						sourceVersion,
+						cause: amendmentCause(version, seal)
+					}))
+				)
+			},
+			maxRows: batch.length
+		});
+		const requested = new Set(batch.map((proof) => proof.seal));
+		for (const row of rows) {
+			const seal = row['seal'];
+			if (typeof seal !== 'string' || !requested.delete(seal))
+				return yield* new SourceRowInvalid({
+					column: 'ICOrderAlter',
+					reason: 'The source returned an unexpected amendment proof'
+				});
+			proven.add(seal);
+		}
+	}
+	return proven;
+});
 const logText = (value: string, column: string) =>
 	`LEFT(CONVERT(nvarchar(max),${value}),COALESCE((SELECT capacity FROM @log_limits WHERE name=N'${column}'),2147483647))`;
 const header = [
@@ -127,6 +187,7 @@ export function previousOrderDocument(
 /** Existing lines keep their physical identity and source-only fields; only agreed monetary/quantity fields change. */
 export const sourceAmendmentSql = `SET XACT_ABORT ON;
 SET LOCK_TIMEOUT 5000;
+${requireWriteAccount}
 DECLARE @payload xml=CONVERT(xml,@document),@prior xml=CONVERT(xml,@previous_document),@remote int=CAST(@source_id AS int),@archive int,@lock_result int,@actual_version nvarchar(30),@new_version nvarchar(3),@user nvarchar(255),@sql nvarchar(max),@cols nvarchar(max),@values nvarchar(max);
 DECLARE @header TABLE (${declaration(headerTypes)});
 DECLARE @lines TABLE (${declaration(itemTypes)});
@@ -152,6 +213,7 @@ IF @actual_version=@new_version BEGIN
  SELECT CONVERT(varchar(32),@remote) AS remote,@fingerprint AS hash; RETURN;
 END;
 IF @actual_version<>@source_version ${fail('Source business version changed; import it before amending')}
+IF NOT EXISTS(SELECT 1 FROM dbo.SEOrder WHERE FBrNo=@branch AND FInterID=@remote AND FCheckerID>0 AND FCheckDate>=CONVERT(datetime,'19010102',112)) ${fail('The source order is no longer audited')}
 IF EXISTS(SELECT 1 FROM dbo.SEOrder WHERE FBrNo=@branch AND FInterID=@remote AND (FCancellation<>0 OR FChangeMark<>0 OR FClosed<>0 OR FStatus=3)) ${fail('Source order is void, archived or closed')}
 IF (SELECT COUNT(*) FROM dbo.SEOrder actual CROSS JOIN @header expected WHERE actual.FBrNo=@branch AND actual.FBillNo=expected.FBillNo AND actual.FCancellation=0 AND actual.FChangeMark=0)<>1 ${fail('The source document family has an ambiguous live order')}
 IF (SELECT COUNT(*) FROM dbo.SEOrderEntry WHERE FBrNO=@branch AND FInterID=@remote)<>(SELECT COUNT(*) FROM @previous) OR EXISTS(SELECT 1 FROM @previous expected WHERE NOT EXISTS(SELECT 1 FROM dbo.SEOrderEntry actual JOIN dbo.t_Item unit ON unit.FItemID=actual.FUnitID AND unit.FItemClassID=7 WHERE actual.FBrNO=@branch AND actual.FInterID=@remote AND actual.FEntryID=expected.entry_id AND actual.FItemID=expected.item_id AND ${sameText('unit.FName', 'expected.unit_name')} AND actual.FQty=expected.quantity AND actual.Fauxqty=expected.quantity AND actual.FComplexQty=expected.quantity AND actual.FAuxPrice=expected.exclusive AND actual.FPrice=expected.exclusive AND actual.FAuxTaxPrice=expected.inclusive AND actual.FTaxPrice=expected.inclusive AND actual.FPriceDiscount=expected.inclusive AND actual.FAuxPriceDiscount=expected.inclusive AND actual.FCESS=expected.tax_rate AND actual.FAmount=expected.net AND actual.FTaxAmt=expected.tax AND actual.FAllAmount=expected.total AND actual.FAllStdAmount=expected.standard_total)) ${fail('Source contents changed since the previous contract observation')}

@@ -10,6 +10,7 @@ export default policy({
 	},
 	automations: ['orders_revise'],
 	grants: {
+		source_stock_commitments: { read: true },
 		ext_sales_orders: {
 			read: { ext_sales_orders: { where: own } },
 			history: own
@@ -117,6 +118,21 @@ export default policy({
 				}
 			}
 		},
+		order_files: {
+			read: { order_files: { where: own } },
+			history: own,
+			create: {
+				check: function* (rows, ctx) {
+					return (yield* ordersIn(
+						ctx,
+						rows.map((row) => row.order),
+						ownSales(ctx)
+					))
+						? ctx.allow()
+						: ctx.deny('errors.sales_scope');
+				}
+			}
+		},
 		activities: {
 			read: { activities: { where: own } },
 			history: own,
@@ -148,8 +164,7 @@ export default policy({
 			read: { source_payments: { where: own } }
 		},
 		source_sales_lines: {
-			history: own,
-			read: { source_sales_lines: { where: own } }
+			outputs: { commercial: { source_sales_lines: { where: own } } }
 		}
 	}
 });

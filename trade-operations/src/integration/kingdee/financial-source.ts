@@ -11,6 +11,7 @@ import {
 	type OrderSourceContext
 } from './order-source.js';
 import { columns, SourceRowInvalid, SourceUnavailable, type SqlRow } from './polling.js';
+import { kingdeeDeliveryCostAccount } from './configuration.js';
 
 const invalid = (column: string, reason: string): never => {
 	throw new SourceRowInvalid({ column, reason });
@@ -41,11 +42,13 @@ type Owner = {
 };
 type FinancialLine = {
 	readonly entryId: string;
+	readonly detailId: string;
 	readonly unit: string;
 	readonly quantity: Decimal;
 	readonly lotNumber: string | null;
 	readonly netAmount: Decimal | null;
 	readonly grossAmount: Decimal | null;
+	readonly costAmount?: Decimal | null;
 	readonly localLine: { readonly id: string };
 	readonly upstream: { readonly fid: string; readonly entryId: string } | null;
 };
@@ -73,64 +76,128 @@ type SalesFact = Pick<
 	| 'currency'
 	| 'lot_number'
 	| 'unit_cost'
+	| 'booked_cost'
+	| 'booked_cost_currency'
 	| 'net_amount'
 	| 'tax_amount'
 	| 'freight'
 	| 'active'
 >;
 
+/** A red document reverses both quantity and money; every part must share one sign and tax may not exceed gross. */
+const signedAmounts = (
+	quantity: Decimal | null,
+	net: Decimal | null,
+	gross: Decimal | null
+): boolean => {
+	if (quantity !== null && quantity.isZero()) return false;
+	if (net === null || gross === null) return true;
+	if (net.lt(0) !== gross.lt(0)) return false;
+	return gross.abs().gte(net.abs());
+};
 /** Invoice money belongs to its exact delivery line; matching only product or local line would double-count split deliveries. */
 export function mapSalesFacts(
 	deliveries: readonly FinancialDocument[],
 	invoices: readonly FinancialDocument[],
-	observedAt: string
+	observedAt: string,
+	costCurrency?: ReturnType<typeof currency>
 ): readonly (SalesFact & { readonly $id: string })[] {
 	const observed = Instant(observedAt);
-	return deliveries.flatMap((delivery) =>
+	const deliveryLines = new Map<string, { delivery: FinancialDocument; line: FinancialLine }>(
+		deliveries.flatMap((delivery) =>
+			delivery.lines.map((line) => [`${delivery.fid}:${line.entryId}`, { delivery, line }] as const)
+		)
+	);
+	const billedByDelivery = new Map<string, FinancialLine[]>();
+	const invoiceFacts = invoices
+		.filter((invoice) => invoice.status === 'issued')
+		.flatMap((invoice) =>
+			invoice.lines.map((line): SalesFact & { $id: string } => {
+				const key = line.upstream ? `${line.upstream.fid}:${line.upstream.entryId}` : '';
+				const source = deliveryLines.get(key);
+				if (
+					!source ||
+					invoice.owner.order !== source.delivery.owner.order ||
+					invoice.owner.seal !== source.delivery.owner.seal ||
+					invoice.currency !== source.delivery.currency ||
+					line.localLine.id !== source.line.localLine.id ||
+					line.unit !== source.line.unit
+				)
+					return invalid('FSourceEntryID', 'Invoice evidence has no matching sealed delivery line');
+				const net = line.netAmount;
+				const gross = line.grossAmount;
+				if (
+					!signedAmounts(line.quantity, net, gross) ||
+					(net !== null && line.quantity.lt(0) !== net.lt(0))
+				)
+					return invalid(
+						'FAmount',
+						'Source invoice amounts have an unsupported sign or tax relationship'
+					);
+				const billed = billedByDelivery.get(key) ?? [];
+				billed.push(line);
+				billedByDelivery.set(key, billed);
+				const external = `invoice:${invoice.fid}:${line.detailId}`;
+				// An invoice may bill only part of its delivery line, so it carries that line's cost by quantity.
+				const booked =
+					costCurrency && source.line.costAmount != null && source.line.quantity.gt(0)
+						? source.line.costAmount.times(line.quantity).div(source.line.quantity, 10)
+						: null;
+				return {
+					$id: external,
+					external_code: external,
+					order: invoice.owner.order,
+					order_line: line.localLine.id,
+					kind: 'invoice',
+					reference: `${invoice.reference}/${line.entryId}`,
+					business_on: invoice.issuedOn,
+					source_updated_at: observed,
+					seal_hash: invoice.owner.seal,
+					unit: line.unit,
+					quantity: line.quantity,
+					currency: currency(invoice.currency),
+					lot_number: source.line.lotNumber,
+					unit_cost: null,
+					booked_cost: booked,
+					booked_cost_currency: booked === null ? null : (costCurrency ?? null),
+					net_amount: net,
+					tax_amount: net !== null && gross !== null ? gross.minus(net) : null,
+					freight: null,
+					active: true
+				};
+			})
+		);
+	const shipmentFacts = deliveries.flatMap((delivery) =>
 		delivery.lines.map((line): SalesFact & { $id: string } => {
-			if (delivery.currency !== delivery.owner.currency || line.quantity.lte(0))
-				return invalid(
-					'FQty',
-					'An owned delivery requires positive quantity and its sealed currency'
-				);
-			const billed = invoices
-				.filter((invoice) => invoice.status === 'issued')
-				.flatMap((invoice) =>
-					invoice.lines
-						.filter(
-							(entry) =>
-								entry.upstream?.fid === delivery.fid && entry.upstream.entryId === line.entryId
-						)
-						.map((entry) => {
-							if (
-								invoice.owner.order !== delivery.owner.order ||
-								invoice.owner.seal !== delivery.owner.seal ||
-								invoice.currency !== delivery.currency ||
-								entry.localLine.id !== line.localLine.id ||
-								entry.unit !== line.unit
-							)
-								return invalid('FSourceEntryID', 'Invoice evidence crosses a sealed delivery line');
-							return entry;
-						})
-				);
+			if (delivery.currency !== delivery.owner.currency || line.quantity.isZero())
+				return invalid('FQty', 'An owned delivery requires a quantity and its sealed currency');
+			const returned = line.quantity.lt(0);
+			if (
+				returned &&
+				((line.netAmount !== null && line.netAmount.gt(0)) ||
+					(line.grossAmount !== null && line.grossAmount.gt(0)))
+			)
+				return invalid('FAmount', 'A return requires negative money with its negative quantity');
+			const billed = billedByDelivery.get(`${delivery.fid}:${line.entryId}`) ?? [];
 			const complete =
 				billed.length > 0 &&
 				sum(billed.map((entry) => entry.quantity)).eq(line.quantity) &&
 				billed.every((entry) => entry.netAmount !== null && entry.grossAmount !== null);
 			const net = complete ? sum(billed.flatMap((entry) => entry.netAmount ?? [])) : null;
 			const gross = complete ? sum(billed.flatMap((entry) => entry.grossAmount ?? [])) : null;
-			if (net !== null && gross !== null && (net.lt(0) || gross.lt(net)))
+			if (!signedAmounts(null, net, gross))
 				return invalid(
 					'FAmount',
 					'Source invoice amounts have an unsupported sign or tax relationship'
 				);
-			const external = `shipment:${delivery.fid}:${line.entryId}`;
+			const external = `${returned ? 'return' : 'shipment'}:${delivery.fid}:${line.entryId}`;
+			const booked = costCurrency ? (line.costAmount ?? null) : null;
 			return {
 				$id: external,
 				external_code: external,
 				order: delivery.owner.order,
 				order_line: line.localLine.id,
-				kind: 'shipment',
+				kind: returned ? 'return' : 'shipment',
 				reference: `${delivery.reference}/${line.entryId}`,
 				business_on: delivery.issuedOn,
 				source_updated_at: observed,
@@ -140,6 +207,8 @@ export function mapSalesFacts(
 				currency: currency(delivery.currency),
 				lot_number: line.lotNumber,
 				unit_cost: null,
+				booked_cost: booked,
+				booked_cost_currency: booked === null ? null : (costCurrency ?? null),
 				net_amount: net,
 				tax_amount: net !== null && gross !== null ? gross.minus(net) : null,
 				freight: null,
@@ -147,10 +216,18 @@ export function mapSalesFacts(
 			};
 		})
 	);
+	return [...shipmentFacts, ...invoiceFacts];
 }
 
 const idsSql = "(SELECT n.value('.', 'nvarchar(100)') FROM @ids.nodes('/ids/id') AS keys(n))";
-/** All header entries are re-read before using its amount; the amount is not a per-line allocation. */
+const paymentDiscovery: NativeProjection = {
+	sql: `/* kingdee-settlement-ids */
+SELECT DISTINCT RIGHT(REPLICATE('0',20)+CONVERT(varchar(20),ce.FInterID),20) AS __key,
+ CONVERT(varchar(30),ce.FInterID) AS check_id
+FROM dbo.t_rp_CheckEntry ce
+WHERE ce.FType=3 AND ce.FInvoiceID IN ${idsSql}`
+};
+/** All header entries are read before using its amount; the amount is not a per-line allocation. */
 const paymentProjection: NativeProjection = {
 	sql: `
 SELECT RIGHT(REPLICATE('0',20)+CONVERT(varchar(20),ce.FDetailID),20) AS __key,
@@ -170,13 +247,12 @@ LEFT JOIN dbo.t_RP_NewCheckInfo checkhead ON checkhead.FInterID=ce.FInterID
 LEFT JOIN dbo.t_RP_Contact contact ON contact.FID=checkhead.FContactID
 LEFT JOIN dbo.t_RP_NewReceiveBill receipt ON ce.FType_SRC=5 AND receipt.FBillID=ce.FBillID_SRC
 LEFT JOIN dbo.t_Currency cur ON cur.FCurrencyID=receipt.FCurrencyID
-WHERE (@discovery=0 AND ce.FType=3 AND ce.FInvoiceID IN ${idsSql})
- OR (@discovery=1 AND ce.FInterID IN ${idsSql})`
+WHERE ce.FInterID IN ${idsSql}`
 };
 const readPayments = Effect.fnUntraced(function* (
 	ctx: OrderSourceContext,
-	identifiers: readonly string[],
-	discovery: number
+	projection: NativeProjection,
+	identifiers: readonly string[]
 ) {
 	const result: SqlRow[] = [];
 	const unique = [...new Set(identifiers)];
@@ -192,7 +268,7 @@ const readPayments = Effect.fnUntraced(function* (
 					})
 					.join('')}</ids>`
 		);
-		result.push(...(yield* readNativeRows(ctx, paymentProjection, { ids: xml, discovery })));
+		result.push(...(yield* readNativeRows(ctx, projection, { ids: xml })));
 	}
 	return result;
 });
@@ -332,14 +408,14 @@ export const readPaymentSource = Effect.fnUntraced(function* (
 		return yield* new SourceUnavailable({
 			reason: 'Purchase payments have no verified original-order and invoice allocation binding'
 		});
-	const graph = yield* readSalesGraph(instance, ctx);
+	const graph = yield* readSalesGraph(instance, cursor, ctx);
 	const found = yield* readPayments(
 		ctx,
-		graph.invoices.map((invoice) => invoice.fid),
-		0
+		paymentDiscovery,
+		graph.invoices.map((invoice) => invoice.fid)
 	);
 	const headers = yield* checked(() => found.map((row) => id(row, 'check_id')));
-	const complete = yield* readPayments(ctx, headers, 1);
+	const complete = yield* readPayments(ctx, paymentProjection, headers);
 	const facts = yield* checked(() => {
 		const returned = new Set(complete.map((row) => id(row, 'check_id')));
 		if (headers.some((header) => !returned.has(header)))
@@ -384,19 +460,44 @@ export const readSalesFactSource = Effect.fnUntraced(function* (
 	cursor: Json | null,
 	ctx: OrderSourceContext
 ) {
-	const graph = yield* readSalesGraph(instance, ctx);
+	const costAccount = kingdeeDeliveryCostAccount(ctx.configuration);
+	if (ctx.configuration.deliveryCostAccount?.trim() && costAccount === null)
+		return yield* new SourceUnavailable({
+			reason: 'Booked delivery cost requires a verified account identity'
+		});
+	const costCurrency = costAccount
+		? yield* checked(() => currency(ctx.configuration.baseCurrency))
+		: undefined;
+	const graph = yield* readSalesGraph(instance, cursor, ctx, costAccount ?? undefined);
 	const facts = yield* checked(() =>
-		mapSalesFacts(graph.deliveries, graph.invoices, graph.observedAt)
+		mapSalesFacts(graph.deliveries, graph.invoices, graph.observedAt, costCurrency)
 	);
 	const { source_sales_lines: previous } = yield* ctx.db.query({
 		source_sales_lines: {
-			where: { source: { eq: instance } },
-			fields: ['external_code', 'order', 'order_line', 'seal_hash', 'source_updated_at', 'active']
+			where: { source: { eq: instance }, order: { isNull: false } },
+			fields: [
+				'external_code',
+				'order',
+				'order_line',
+				'seal_hash',
+				'source_updated_at',
+				'active',
+				'booked_cost_currency'
+			]
 		}
 	});
 	yield* checked(() => {
 		for (const fact of facts) {
 			const old = previous.rows.find((candidate) => candidate.external_code === fact.external_code);
+			if (
+				old?.booked_cost_currency &&
+				fact.booked_cost_currency &&
+				old.booked_cost_currency !== fact.booked_cost_currency
+			)
+				return invalid(
+					'baseCurrency',
+					'The verified denomination of retained delivery costs changed'
+				);
 			if (
 				old &&
 				(old.order !== fact.order ||

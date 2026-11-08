@@ -2,7 +2,8 @@ import { Decimal, type DecimalLike } from '@norbital-ai/std/decimal';
 /** A total is unknown if any constituent transaction lacks its consumed-lot cost. */
 export function marginSeries(
 	rows: readonly {
-		owner: string;
+		owner: string | null;
+		source_owner?: string | null;
 		owner_name: string;
 		currency: string;
 		net?: DecimalLike | null;
@@ -19,7 +20,7 @@ export function marginSeries(
 		}
 	>();
 	for (const row of rows) {
-		const key = `${row.owner}/${row.currency}`;
+		const key = `${row.owner ?? row.source_owner ?? ''}/${row.currency}`;
 		const group = groups.get(key) ?? {
 			currency: row.currency,
 			salesperson: row.owner_name,

@@ -6,7 +6,7 @@
 	"description": "Order-centered B2B trading, distribution and manufacturing commerce with sealed pricing and contracts, purchasing, fulfillment and ERP-synced models.",
 	"visibility": "public",
 	"counts": {
-		"models": 19,
+		"models": 24,
 		"apps": 5,
 		"automations": 2
 	},

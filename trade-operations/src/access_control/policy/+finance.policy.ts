@@ -5,6 +5,8 @@ export default policy({
 		apps: ['operations']
 	},
 	grants: {
+		source_lot_costs: { read: true },
+		source_stock_commitments: { read: true },
 		ext_sales_orders: { read: true, history: true },
 		ext_purchase_orders: { read: true, history: true },
 		document_templates: {
@@ -17,6 +19,7 @@ export default policy({
 			read: true
 		},
 		source_sales_lines: { read: true, history: true },
+		source_receivables: { read: true, history: true },
 		parties: {
 			read: true
 		},
@@ -53,6 +56,7 @@ export default policy({
 			read: true,
 			history: true
 		},
+		order_files: { read: true, history: true },
 		activities: {
 			read: true,
 			history: true,

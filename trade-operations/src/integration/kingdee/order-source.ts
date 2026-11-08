@@ -1,11 +1,12 @@
 import { Effect, Schema } from 'effect';
-import type { CreateRow, Id, SyncCtx } from '@norbital-ai/bolt';
+import type { Id, SyncCtx } from '@norbital-ai/bolt';
 import type { Json } from '@norbital-ai/bolt/engine';
 import { Decimal, currency, sum } from '@norbital-ai/std/decimal';
 import { Instant, PlainDate } from '@norbital-ai/std/date';
 import { agreements, agreementFields } from '../../lib/agreements.js';
 import { sha256Hex } from '../../lib/commercial.js';
 import { sourceOrderUuid } from './submission.js';
+import { requireReadAccount } from './sql.js';
 import {
 	columns,
 	query,
@@ -27,6 +28,7 @@ type SalesLine = {
 	readonly lotNumber: string | null;
 	readonly netAmount: Decimal | null;
 	readonly grossAmount: Decimal | null;
+	readonly costAmount?: Decimal | null;
 	readonly localLine: LocalLine;
 	readonly upstream: { readonly fid: string; readonly entryId: string } | null;
 };
@@ -111,19 +113,21 @@ const nativeSql = Effect.fnUntraced(function* (
 		readonly ids?: string;
 		readonly branch?: string;
 		readonly after?: string;
-		readonly discovery?: number;
+		readonly account?: string;
 	} = {}
 ) {
 	return yield* query(ctx, {
 		op: 'call',
 		procedure: { schema: 'sys', name: 'sp_executesql' },
 		arguments: {
-			stmt: statement,
-			params: '@ids xml,@branch nvarchar(10),@after nvarchar(512),@discovery int',
+			stmt: values.account ? requireReadAccount + '\n' + statement : statement,
+			params:
+				'@ids xml,@branch nvarchar(10),@after nvarchar(512)' +
+				(values.account ? ',@read_account nvarchar(73)' : ''),
 			ids: values.ids ?? '<ids/>',
 			branch: values.branch ?? '',
 			after: values.after ?? '',
-			discovery: values.discovery ?? 0
+			...(values.account ? { read_account: values.account } : {})
 		}
 	});
 });
@@ -131,7 +135,7 @@ const nativeSql = Effect.fnUntraced(function* (
 export const readNativeRows = Effect.fnUntraced(function* (
 	ctx: DatabaseContext,
 	source: NativeProjection,
-	values: { readonly ids?: string; readonly branch?: string; readonly discovery?: number } = {}
+	values: { readonly ids?: string; readonly branch?: string; readonly account?: string } = {}
 ) {
 	const rows: SqlRow[] = [];
 	let after = '';
@@ -170,7 +174,7 @@ const selectByIds = Effect.fnUntraced(function* (
 	projection: NativeProjection,
 	values: readonly string[],
 	branch = '',
-	discovery = 0
+	account?: string
 ) {
 	const rows: SqlRow[] = [];
 	for (const batch of batches([...new Set(values)])) {
@@ -184,7 +188,13 @@ const selectByIds = Effect.fnUntraced(function* (
 					})
 					.join('')}</ids>`
 		);
-		rows.push(...(yield* readNativeRows(ctx, projection, { ids: xml, branch, discovery })));
+		rows.push(
+			...(yield* readNativeRows(ctx, projection, {
+				ids: xml,
+				branch,
+				...(account === undefined ? {} : { account })
+			}))
+		);
 	}
 	return rows;
 });
@@ -201,16 +211,19 @@ SELECT ${padded('line.FDetailID')} AS __key,${textId('line.FInterID')} AS fid,
 FROM dbo.SEOrderEntry line LEFT JOIN dbo.t_Item unit ON unit.FItemID=line.FUnitID AND unit.FItemClassID=7
 WHERE line.FBrNO=@branch AND line.FInterID IN ${ids}`
 };
-const deliveryLineProjection: NativeProjection = {
+const deliveryLineProjection = (cost: boolean): NativeProjection => ({
 	sql: `
 SELECT ${padded('line.FInterID')}+':'+${padded('line.FEntryID')} AS __key,
  ${textId('line.FInterID')} AS fid,${textId('line.FEntryID')} AS entry_id,
  ${textId('line.FSourceTranType')} AS source_type,${textId('line.FSourceInterId')} AS source_fid,
  ${textId('line.FSourceEntryID')} AS source_entry,${textId('line.FItemID')} AS item_id,unit.FName AS unit,
  CONVERT(varchar(100),line.FQty) AS quantity,line.FBatchNo AS lot
+ ${cost ? ',CONVERT(varchar(100),line.FAmount) AS cost_amount' : ''}
 FROM dbo.ICStockBillEntry line LEFT JOIN dbo.t_Item unit ON unit.FItemID=line.FUnitID AND unit.FItemClassID=7
-WHERE (@discovery=0 AND line.FInterID IN ${ids}) OR (@discovery=1 AND line.FSourceTranType=81 AND line.FSourceInterId IN ${ids})`
-};
+WHERE line.FInterID IN ${ids}`
+});
+export const testDeliveryCosts = (ctx: DatabaseContext, account: string) =>
+	readNativeRows(ctx, deliveryLineProjection(true), { account });
 const invoiceLineProjection: NativeProjection = {
 	sql: `
 SELECT ${padded('line.FDetailID')} AS __key,${textId('line.FInterID')} AS fid,
@@ -220,8 +233,14 @@ SELECT ${padded('line.FDetailID')} AS __key,${textId('line.FInterID')} AS fid,
  CONVERT(varchar(100),line.FQty) AS quantity,CONVERT(varchar(100),line.FAmount) AS net_amount,
  CONVERT(varchar(100),line.FAllAmount) AS gross_amount
 FROM dbo.ICSaleEntry line LEFT JOIN dbo.t_Item unit ON unit.FItemID=line.FUnitID AND unit.FItemClassID=7
-WHERE (@discovery=0 AND line.FInterID IN ${ids}) OR (@discovery=1 AND line.FSourceTranType=21 AND line.FSourceInterId IN ${ids})`
+WHERE line.FInterID IN ${ids}`
 };
+const documentDiscovery = (kind: 'delivery' | 'invoice'): NativeProjection => ({
+	sql: `/* kingdee-document-ids */
+SELECT DISTINCT ${padded('line.FInterID')} AS __key,${textId('line.FInterID')} AS fid
+FROM dbo.${kind === 'delivery' ? 'ICStockBillEntry' : 'ICSaleEntry'} line
+WHERE line.FSourceTranType=${kind === 'delivery' ? 81 : 21} AND line.FSourceInterId IN ${ids}`
+});
 const documentHeaderProjection = (kind: 'delivery' | 'invoice'): NativeProjection => ({
 	sql: `
 SELECT ${padded('head.FInterID')} AS __key,${textId('head.FInterID')} AS fid,head.FBillNo AS reference,
@@ -241,6 +260,11 @@ export type SealedSalesOwner = {
 				Partial<Pick<Agreement['snapshot'], 'party_code' | 'payment_terms'>>;
 		};
 };
+/** The initial FUUID is the only identity we can infer without an observed amendment. */
+export const sourceContractVersion = (agreement: {
+	readonly version: number;
+	readonly kingdee?: { readonly source_version: string } | null;
+}) => agreement.kingdee?.source_version ?? (agreement.version === 1 ? '000' : null);
 /** Pending new lines follow the writer's ordered allocation; accepted versions use captured bindings. */
 export function sourceContractLine<
 	L extends { readonly id: string; readonly source_entry_id?: string | null }
@@ -248,6 +272,7 @@ export function sourceContractLine<
 	version: {
 		readonly version: number;
 		readonly lifecycle?: string | null;
+		readonly write_target?: object | null;
 		readonly snapshot: { readonly lines: readonly L[] };
 		readonly kingdee?: {
 			readonly entries?:
@@ -261,7 +286,10 @@ export function sourceContractLine<
 	if (mapping) return version.snapshot.lines.find((line) => line.id === mapping.local_line_id);
 	const explicit = version.snapshot.lines.find((line) => line.source_entry_id === position);
 	if (explicit) return explicit;
-	if (version.lifecycle === 'pending' && version.version > 1) {
+	if (
+		version.version > 1 &&
+		(version.lifecycle === 'pending' || (version.write_target && !version.kingdee))
+	) {
 		const bound = new Set(version.snapshot.lines.flatMap((line) => line.source_entry_id ?? []));
 		for (const entry of version.kingdee?.entries ?? []) bound.add(entry.entry_id);
 		const unboundEntries = entryIds
@@ -302,7 +330,9 @@ export const readSourceOrderFamilies = Effect.fnUntraced(function* (
 ) {
 	const anchors = new Map<string, Id<'orders'>>();
 	for (const owner of local) {
-		const values = [yield* sourceOrderUuid(owner.order, owner.agreement.seal_hash)];
+		const values: string[] = [];
+		if (owner.agreement.version === 1)
+			values.push(yield* sourceOrderUuid(owner.order, owner.agreement.seal_hash));
 		if (owner.agreement.kingdee?.source_uuid) values.push(owner.agreement.kingdee.source_uuid);
 		for (const raw of values) {
 			const uuid = raw.toLowerCase();
@@ -406,21 +436,19 @@ export const readOwnedSales = Effect.fnUntraced(function* (
 		for (const family of families) {
 			const owners = local.filter((owner) => owner.order === family.order);
 			const liveVersion = text(family.live, 'version');
-			if (
-				!owners.some(
-					(owner) =>
-						(owner.agreement.kingdee?.source_version ??
-							String(owner.agreement.version - 1).padStart(3, '0')) === liveVersion
-				)
-			)
+			if (!owners.some((owner) => sourceContractVersion(owner.agreement) === liveVersion))
 				return invalid(
 					'FVersionNo',
 					'Import the new Kingdee contract version before attributing its documents'
 				);
+			const claimed = new Set<string>();
 			for (const owner of owners) {
 				const { agreement } = owner;
-				const version =
-					agreement.kingdee?.source_version ?? String(agreement.version - 1).padStart(3, '0');
+				const version = sourceContractVersion(agreement);
+				if (version === null) continue;
+				if (claimed.has(version))
+					return invalid('FVersionNo', 'Multiple agreement seals claim the same Kingdee version');
+				claimed.add(version);
 				const header = family.headers.find((header) => text(header, 'version') === version);
 				const fid = header ? exactId(header, 'fid') : agreement.kingdee?.source_id;
 				if (!fid) continue;
@@ -570,27 +598,42 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 	ctx: DatabaseContext,
 	kind: 'delivery' | 'invoice',
 	deliveries: readonly SalesDocument[] = [],
-	retained: readonly { readonly kind: string; readonly fid: string; readonly seal: string }[] = []
+	retained: readonly { readonly kind: string; readonly fid: string; readonly seal: string }[] = [],
+	costAccount?: string
 ) {
-	const lineProjection = kind === 'delivery' ? deliveryLineProjection : invoiceLineProjection;
+	const lineProjection =
+		kind === 'delivery' ? deliveryLineProjection(costAccount !== undefined) : invoiceLineProjection;
 	const sourceType = kind === 'delivery' ? 81 : 21;
 	const sources =
 		kind === 'delivery'
 			? orders.flatMap((order) => [order.fid, order.liveFid])
 			: deliveries.map((delivery) => delivery.fid);
-	const candidates = yield* selectByIds(ctx, lineProjection, sources, '', 1);
+	const candidates = yield* selectByIds(ctx, documentDiscovery(kind), sources);
 	const fids = yield* checked(() => [...new Set(candidates.map((row) => exactId(row, 'fid')))]);
 	const headers = yield* selectByIds(ctx, documentHeaderProjection(kind), fids);
-	// Re-read ALL lines by captured IDs. Never publish only the lines that matched a discovery join.
-	const entries = yield* selectByIds(ctx, lineProjection, fids);
-	const pendingIds = yield* checked(() =>
-		headers
+	const pendingIds = yield* checked(() => {
+		const present = new Set(headers.map((header) => exactId(header, 'fid')));
+		if (fids.some((fid) => !present.has(fid)))
+			return invalid(
+				'FInterID',
+				'A discovered Kingdee document is missing its header; retry the observation'
+			);
+		return headers
 			.filter((header) => sourceDate(header, 'checked_on') === null)
-			.map((header) => exactId(header, 'fid'))
+			.map((header) => exactId(header, 'fid'));
+	});
+	const pending = new Set(pendingIds);
+	// Read all lines of issued documents, including lines that did not match discovery.
+	const entries = yield* selectByIds(
+		ctx,
+		lineProjection,
+		fids.filter((fid) => !pending.has(fid)),
+		'',
+		costAccount
 	);
 	const documents = yield* checked(() =>
 		headers
-			.filter((header) => !pendingIds.includes(exactId(header, 'fid')))
+			.filter((header) => !pending.has(exactId(header, 'fid')))
 			.map((header): SalesDocument => {
 				const fid = exactId(header, 'fid');
 				if (exactId(header, 'type') !== (kind === 'delivery' ? '21' : '80'))
@@ -598,8 +641,10 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 						'FTranType',
 						'This source document type has no verified transaction mapping'
 					);
-				if (String(header['rob']) !== '1')
-					return invalid('FROB', 'Owned red/return documents require an explicit reversal mapping');
+				const rob = String(header['rob']);
+				if (rob !== '1' && rob !== '-1')
+					return invalid('FROB', 'Owned documents must be blue or red');
+				const red = rob === '-1';
 				const rows = entries.filter((entry) => exactId(entry, 'fid') === fid);
 				if (!rows.length) return invalid('FInterID', 'Owned source document has no lines');
 				let owner: OwnedSales | undefined;
@@ -667,12 +712,14 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 						);
 					if (
 						kind === 'invoice' &&
+						!red &&
 						(r.decimal('net_amount').lt(0) || r.decimal('gross_amount').lt(0))
 					)
 						return invalid(
 							'ICSaleEntry',
 							'A blue invoice line has a negative amount requiring an explicit reversal mapping'
 						);
+					const costAmount = r.decimal('cost_amount', null);
 					return {
 						entryId: exactId(entry, 'entry_id'),
 						detailId:
@@ -681,10 +728,26 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 								: `${fid}:${exactId(entry, 'entry_id')}`,
 						itemId: source.itemId,
 						unit: source.unit,
-						quantity: r.decimal('quantity'),
+						quantity: red ? r.decimal('quantity').neg() : r.decimal('quantity'),
 						lotNumber: kind === 'delivery' ? nullableText(entry, 'lot') : source.lotNumber,
-						netAmount: kind === 'invoice' ? r.decimal('net_amount') : null,
-						grossAmount: kind === 'invoice' ? r.decimal('gross_amount') : null,
+						netAmount:
+							kind === 'invoice'
+								? red
+									? r.decimal('net_amount').neg()
+									: r.decimal('net_amount')
+								: null,
+						grossAmount:
+							kind === 'invoice'
+								? red
+									? r.decimal('gross_amount').neg()
+									: r.decimal('gross_amount')
+								: null,
+						...(costAccount
+							? {
+									costAmount:
+										costAmount === null ? null : red ? costAmount.neg() : costAmount
+								}
+							: {}),
 						localLine: source.localLine,
 						upstream: { fid: sourceFid, entryId: sourceEntry }
 					};
@@ -712,36 +775,41 @@ export const readSalesDocuments = Effect.fnUntraced(function* (
 	return { documents, pendingIds };
 });
 
-export const observation = Effect.fnUntraced(function* (ctx: DatabaseContext) {
-	const identity = yield* nativeSql(
+export const observation = Effect.fnUntraced(function* (
+	ctx: DatabaseContext & { readonly configuration: { readonly branchNo: string } },
+	cursor: Json | null
+) {
+	const [current] = yield* nativeSql(
 		ctx,
-		'SELECT database_guid,recovery_fork_guid FROM sys.database_recovery_status WHERE database_id=DB_ID()'
+		`SELECT database_guid,recovery_fork_guid,
+CONVERT(varchar(33),SYSUTCDATETIME(),126)+'Z' AS observed_at
+FROM sys.database_recovery_status WHERE database_id=DB_ID()`
 	);
-	const clock = yield* nativeSql(
-		ctx,
-		"SELECT CONVERT(varchar(33),SYSUTCDATETIME(),126)+'Z' AS observed_at"
-	);
-	return yield* checked(() => ({
+	const observed = yield* checked(() => ({
 		identity: {
-			database: text(identity[0] ?? {}, 'database_guid'),
-			fork: text(identity[0] ?? {}, 'recovery_fork_guid')
+			database: text(current ?? {}, 'database_guid'),
+			fork: text(current ?? {}, 'recovery_fork_guid')
 		},
-		observedAt: Instant(text(clock[0] ?? {}, 'observed_at'))
+		observedAt: Instant(text(current ?? {}, 'observed_at'))
 	}));
+	const scope = `${yield* sha256Hex(JSON.stringify(observed.identity))}:${yield* sha256Hex(ctx.configuration.branchNo)}`;
+	yield* verifyOwnedCursor(cursor, scope);
+	return { observedAt: observed.observedAt, scope };
 });
 export const ownershipSource = Effect.fnUntraced(function* (
-	identity: { readonly database: string; readonly fork: string },
-	branch: string,
+	scope: string,
 	ownership: readonly string[]
 ) {
-	return `${yield* sha256Hex(JSON.stringify(identity))}:${yield* sha256Hex(JSON.stringify([branch, ownership]))}`;
+	return `${scope}:${yield* sha256Hex(JSON.stringify(ownership))}`;
 });
 /** Read only records whose existing FUUID belongs to one local sealed order; never adopt ERP history by bill number. */
 export const readSalesGraph = Effect.fnUntraced(function* (
 	instance: Id<'sys_integration'>,
-	ctx: OrderSourceContext
+	cursor: Json | null,
+	ctx: OrderSourceContext,
+	costAccount?: string
 ) {
-	const decoded = yield* observation(ctx);
+	const decoded = yield* observation(ctx, cursor);
 	const owned = yield* graphOrders(instance, ctx);
 	const { ext_sales_orders: parents, transactions: retained } = yield* ctx.db.query({
 		ext_sales_orders: {
@@ -761,7 +829,7 @@ export const readSalesGraph = Effect.fnUntraced(function* (
 		const match = /^(delivery|invoice):(\d+):/.exec(row.erp_id);
 		return match?.[1] && match[2] ? [{ kind: match[1], fid: match[2], seal: row.seal_hash }] : [];
 	});
-	const delivery = yield* readSalesDocuments(orders, ctx, 'delivery', [], pins);
+	const delivery = yield* readSalesDocuments(orders, ctx, 'delivery', [], pins, costAccount);
 	const invoice = yield* readSalesDocuments(orders, ctx, 'invoice', delivery.documents, pins);
 	const pending = [
 		...delivery.pendingIds.map((id) => `delivery:${id}:`),
@@ -783,7 +851,7 @@ export const readSalesGraph = Effect.fnUntraced(function* (
 		deliveries: delivery.documents,
 		invoices: invoice.documents,
 		observedAt: decoded.observedAt,
-		source: yield* ownershipSource(decoded.identity, ctx.configuration.branchNo, owned.ownership)
+		source: yield* ownershipSource(decoded.scope, owned.ownership)
 	} satisfies SalesGraph;
 });
 const Cursor = Schema.Struct({
@@ -792,12 +860,7 @@ const Cursor = Schema.Struct({
 	after: Schema.String.check(Schema.isPattern(/^(?:[\x21-\x7e]{1,512})?$/)),
 	finish: Schema.Boolean
 });
-/** Page an already collected owned listing. Callers explicitly void missing records; no native hard-delete reconciliation. */
-export const snapshotPage = Effect.fnUntraced(function* <R extends object>(
-	rows: readonly (R & { readonly $id: string })[],
-	cursor: Json | null,
-	source: string
-): Effect.fn.Return<SourcePage<R>, SourceRowInvalid> {
+const verifyOwnedCursor = Effect.fnUntraced(function* (cursor: Json | null, source: string) {
 	const previous =
 		cursor === null
 			? null
@@ -806,19 +869,30 @@ export const snapshotPage = Effect.fnUntraced(function* <R extends object>(
 						(cause) => new SourceRowInvalid({ column: '$cursor', reason: String(cause) })
 					)
 				);
+	const old = previous?.source.split(':');
+	const current = source.split(':');
 	if (
-		previous?.source.includes(':') &&
-		source.includes(':') &&
-		previous.source.split(':')[0] !== source.split(':')[0]
+		old &&
+		old.length >= 2 &&
+		current.length >= 2 &&
+		(old[0] !== current[0] || (old.length === 3 && old[1] !== current[1]))
 	)
 		return yield* new SourceRowInvalid({
 			column: '$cursor',
 			reason:
-				'The source database or recovery fork changed; review the source before resetting its cursor'
+				'The source database, recovery fork or branch changed; review the source before resetting its cursor'
 		});
+	return previous;
+});
+/** Page an already collected owned listing. Callers explicitly void missing records; no native hard-delete reconciliation. */
+export const snapshotPage = Effect.fnUntraced(function* <R extends object>(
+	rows: readonly (R & { readonly $id: string })[],
+	cursor: Json | null,
+	source: string
+): Effect.fn.Return<SourcePage<R>, SourceRowInvalid> {
+	const previous = yield* verifyOwnedCursor(cursor, source);
 	// A newly approved local agreement starts a new authoritative listing, never finishes the previous scope.
-	const current = previous?.source === source ? previous : null;
-	if (current?.finish) return { rows: [], cursor: null, more: false };
+	const current = previous?.source === source && !previous.finish ? previous : null;
 	const sorted = yield* checked(() => {
 		const result = [...rows].sort((a, b) => (a.$id < b.$id ? -1 : a.$id > b.$id ? 1 : 0));
 		if (result.some((row, index) => index > 0 && row.$id === result[index - 1]?.$id))
@@ -827,14 +901,15 @@ export const snapshotPage = Effect.fnUntraced(function* <R extends object>(
 	});
 	const pending = sorted.filter((row) => row.$id > (current?.after ?? ''));
 	const page = pending.slice(0, 999);
+	const more = pending.length > page.length;
 	return {
 		rows: page,
-		more: true,
+		more,
 		cursor: {
 			protocol: 'kingdee-owned-v1',
 			source,
-			after: page.at(-1)?.$id ?? current?.after ?? '',
-			finish: pending.length <= 999
+			after: more ? (page.at(-1)?.$id ?? '') : '',
+			finish: !more
 		}
 	};
 });
@@ -843,13 +918,9 @@ export const readSalesOrders = Effect.fnUntraced(function* (
 	cursor: Json | null,
 	ctx: OrderSourceContext
 ) {
-	const observed = yield* observation(ctx);
+	const observed = yield* observation(ctx, cursor);
 	const owned = yield* graphOrders(instance, ctx);
-	const source = yield* ownershipSource(
-		observed.identity,
-		ctx.configuration.branchNo,
-		owned.ownership
-	);
+	const source = yield* ownershipSource(observed.scope, owned.ownership);
 	const { ext_sales_orders: existing } = yield* ctx.db.query({
 		ext_sales_orders: {
 			where: { source: { eq: instance } },
@@ -885,35 +956,12 @@ export const readSalesOrders = Effect.fnUntraced(function* (
 		}));
 	return yield* snapshotPage([...rows, ...missing], cursor, source);
 });
-export const readPurchaseOrders = Effect.fnUntraced(function* (
-	instance: Id<'sys_integration'>,
-	cursor: Json | null,
-	ctx: OrderSourceContext
-) {
-	const { orders } = yield* ctx.db.query({
-		orders: {
-			where: { ledger: { eq: instance }, direction: { eq: 'purchasing' } },
-			fields: agreementFields
-		}
-	});
-	if (orders.rows.some((order) => agreements(order).length > 0))
-		return yield* new SourceRowInvalid({
-			column: 'POOrder',
-			reason:
-				'The purchase-order source has no verified sealed-order correlation; configure a verified binding before importing purchase orders'
-		});
-	return yield* snapshotPage<Pick<CreateRow<'ext_purchase_orders'>, 'external_id'>>(
-		[],
-		cursor,
-		`purchase-empty:${instance}`
-	);
-});
 export const readTransactions = Effect.fnUntraced(function* (
 	instance: Id<'sys_integration'>,
 	cursor: Json | null,
 	ctx: OrderSourceContext
 ) {
-	const graph = yield* readSalesGraph(instance, ctx);
+	const graph = yield* readSalesGraph(instance, cursor, ctx);
 	const { ext_sales_orders: parents, transactions: existing } = yield* ctx.db.query({
 		ext_sales_orders: {
 			where: { source: { eq: instance } },

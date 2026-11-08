@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { expect, layer } from '@effect/vitest';
-import { agreements, currentAgreement } from '../src/lib/agreements.js';
+import { agreements, currentAgreement, kingdeeAgreement } from '../src/lib/agreements.js';
 import { kingdeeFixture, kingdeeSale } from './kingdee-fixture.js';
 import { Trade, shared, type T } from './kit.js';
 import { fixtureId } from './test-runtime.js';
@@ -93,7 +93,7 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 					seal_hash: first.seal_hash,
 					snapshot: first.snapshot,
 					contract: first.contract,
-					lifecycle: 'superseded',
+					lifecycle: 'current',
 					kingdee: {
 						source_version: '000',
 						source_id: '50001',
@@ -101,9 +101,10 @@ layer(shared({ source: source.request }), { excludeTestServices: true })(
 						binding_id: first.kingdee.binding_id
 					}
 				});
-				expect(currentAgreement(after)).toMatchObject({
+				expect(currentAgreement(after)?.seal_hash).toBe(first.seal_hash);
+				expect(kingdeeAgreement(versions)).toMatchObject({
 					origin: 'kingdee',
-					lifecycle: 'current',
+					lifecycle: 'superseded',
 					kingdee: {
 						source_version: '001',
 						archived: false,

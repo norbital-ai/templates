@@ -122,7 +122,13 @@ function fixture(records: Readonly<Record<string, readonly SqlRow[]>>) {
 			const after = request.arguments.after;
 			if (typeof after !== 'string') throw new Error('Bound source key required');
 			return {
-				rows: (records[table] ?? [])
+				rows: (statement.includes('kingdee-document-ids')
+					? [...new Set(records[table]?.map((row) => Number(row.fid)))].map((fid) => ({
+							__key: key(fid),
+							fid: String(fid)
+						}))
+					: (records[table] ?? [])
+				)
 					.filter((row) => typeof row.__key === 'string' && row.__key > after)
 					.slice(0, 1000)
 			};
@@ -201,6 +207,19 @@ test.effect(
 				SEOrderEntry: [line]
 			});
 			expect(yield* Effect.flip(readOwnedSales([local], changedVersion))).toMatchObject({
+				_tag: 'SourceRowInvalid',
+				column: 'FVersionNo'
+			});
+			const pending = {
+				...local,
+				agreement: {
+					...local.agreement,
+					seal_hash: 'pending-seal',
+					version: 2,
+					lifecycle: 'pending' as const
+				}
+			};
+			expect(yield* Effect.flip(readOwnedSales([local, pending], changedVersion))).toMatchObject({
 				_tag: 'SourceRowInvalid',
 				column: 'FVersionNo'
 			});
@@ -320,6 +339,25 @@ test.effect(
 			};
 			const ctx = fixture({ ICStockBillEntry: [deliveryLine], ICStockBill: [deliveryHeader] });
 			const { documents: deliveries } = yield* readSalesDocuments(owned, ctx, 'delivery');
+			const [discovery] = ctx.calls;
+			if (discovery?.op !== 'call') throw new Error('Document discovery call required');
+			expect(discovery.arguments.stmt).toContain('SELECT DISTINCT');
+			expect(discovery.arguments.stmt).not.toContain('FQty');
+			const missing = fixture({ ICStockBillEntry: [deliveryLine], ICStockBill: [] });
+			expect(yield* Effect.flip(readSalesDocuments(owned, missing, 'delivery'))).toMatchObject({
+				_tag: 'SourceRowInvalid',
+				column: 'FInterID'
+			});
+			expect(missing.calls).toHaveLength(2);
+			const unaudited = fixture({
+				ICStockBillEntry: [deliveryLine],
+				ICStockBill: [{ ...deliveryHeader, checked_on: null }]
+			});
+			expect(yield* readSalesDocuments(owned, unaudited, 'delivery')).toEqual({
+				documents: [],
+				pendingIds: ['64599']
+			});
+			expect(unaudited.calls).toHaveLength(2);
 			expect(deliveries[0]?.lines[0]).toMatchObject({
 				localLine: { id: 'line-owned' },
 				upstream: { fid: '34135', entryId: '1' },
@@ -337,10 +375,8 @@ test.effect(
 				ICStockBillEntry: [deliveryLine],
 				ICStockBill: [{ ...deliveryHeader, rob: -1 }]
 			});
-			expect(yield* Effect.flip(readSalesDocuments(owned, red, 'delivery'))).toMatchObject({
-				_tag: 'SourceRowInvalid',
-				column: 'FROB'
-			});
+			const { documents: redDocuments } = yield* readSalesDocuments(owned, red, 'delivery');
+			expect(redDocuments[0]?.lines[0]?.quantity.eq('-100')).toBe(true);
 			const invoiceHeader: SqlRow = {
 				__key: key(2001),
 				fid: '2001',
@@ -398,19 +434,28 @@ test.effect(
 		})
 );
 test.effect(
-	'owned paging ends explicitly and never requests native hard-delete reconciliation',
+	'owned paging finishes with the last data page and pins the account across completed polls',
 	() =>
 		Effect.gen(function* () {
 			const rows = [{ $id: 'sales:0:1:seal', external_id: 'sales:0:1:seal' }];
-			const first = yield* snapshotPage(rows, null, 'source-a');
-			expect(first).toMatchObject({ more: true });
-			const end = yield* snapshotPage(rows, first.cursor, 'source-a');
-			expect(end).toMatchObject({ more: false, rows: [] });
+			const first = yield* snapshotPage(rows, null, 'account-a:branch-a:scope-a');
+			expect(first).toMatchObject({ more: false, rows });
+			const next = yield* snapshotPage(rows, first.cursor, 'account-a:branch-a:scope-a');
+			expect(next).toEqual(first);
 			expect(first.snapshot).toBeUndefined();
-			expect(end.snapshot).toBeUndefined();
-			const changed = yield* snapshotPage(rows, first.cursor, 'source-b');
-			expect(changed).toMatchObject({ more: true, rows });
+			const changed = yield* snapshotPage(rows, first.cursor, 'account-a:branch-a:scope-b');
+			expect(changed).toMatchObject({ more: false, rows });
+			for (const wrong of ['account-b:branch-a:scope-a', 'account-a:branch-b:scope-a'])
+				expect(yield* Effect.flip(snapshotPage(rows, first.cursor, wrong))).toMatchObject({
+					_tag: 'SourceRowInvalid',
+					column: '$cursor'
+				});
 			const empty = yield* snapshotPage<Readonly<Record<string, Json>>>([], null, 'empty');
-			expect(empty).toMatchObject({ more: true });
+			expect(empty).toMatchObject({ more: false });
+			const many = Array.from({ length: 1001 }, (_, i) => ({ $id: key(i) }));
+			const page = yield* snapshotPage(many, null, 'account-a:scope-a');
+			expect(page).toMatchObject({ more: true, rows: many.slice(0, 999) });
+			const end = yield* snapshotPage(many, page.cursor, 'account-a:scope-a');
+			expect(end).toMatchObject({ more: false, rows: many.slice(999) });
 		})
 );

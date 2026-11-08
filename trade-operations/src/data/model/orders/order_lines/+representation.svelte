@@ -8,6 +8,7 @@
 		type FormState,
 		type FieldEditor
 	} from '@norbital-ai/ui';
+	import PrintDetails from '../../../../lib/ui/print-details.svelte';
 	import RecordForm from '../../../../lib/ui/record-form.svelte';
 	import { createValues } from '../../../../lib/ui/create-values.js';
 	let {
@@ -63,6 +64,19 @@
 		invalid={Boolean(field.error)}
 	/>
 {/snippet}
+{#snippet printDetails(_form: FormState, field: FieldEditor)}
+	<PrintDetails
+		layout={header?.document_template}
+		scope="line"
+		value={field.value}
+		onChange={field.onChange}
+		id={field.id}
+		disabled={field.disabled}
+	/>
+{/snippet}
+{#snippet printDetailsView(form: FormState)}
+	<PrintDetails layout={header?.document_template} scope="line" value={form.get('print_values')} />
+{/snippet}
 <RecordForm
 	{view}
 	readonly={header?.status !== 'draft' || Boolean(header?.archived || header?.draft_setup)}
@@ -74,13 +88,22 @@
 				: 'component.sealed'
 	)}
 	subtitle={['order']}
-	editors={{ product, unit_price: unitPrice }}
+	editors={{ product, unit_price: unitPrice, print_values: printDetails }}
+	viewers={{ print_values: printDetailsView }}
 	sections={[
 		{
 			name: 'line',
 			icon: 'lucide:list',
 			title: bolt.t('section.lines'),
-			fields: ['product', 'quantity', 'unit_price', 'discount_pct', 'tax_rate']
+			fields: [
+				'product',
+				'quantity',
+				'unit_price',
+				'discount_pct',
+				'tax_rate',
+				...(header?.document_template ? ['print_values'] : [])
+			],
+			wide: ['print_values']
 		}
 	]}
 />

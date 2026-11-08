@@ -12,7 +12,14 @@ import {
 	type OrderPayload,
 	type SourceOrderBindings
 } from './order-batch.js';
-import { amendmentFingerprint, previousOrderDocument, sourceAmendmentSql } from './amendment.js';
+import {
+	amendmentCause,
+	amendmentFingerprint,
+	previousOrderDocument,
+	sourceAmendmentSql
+} from './amendment.js';
+import { kingdeeWriteTarget } from './configuration.js';
+import { requireWriteAccount } from './sql.js';
 export type { OrderPayload } from './order-batch.js';
 
 const failure = (cause: unknown) =>
@@ -72,7 +79,8 @@ export const sourceOrderUuid = (orderId: string, sealHash: string) =>
 		})
 	);
 
-const lookupSql = `DECLARE @lines xml=CONVERT(xml,@items);
+const lookupSql = `${requireWriteAccount}
+DECLARE @lines xml=CONVERT(xml,@items);
 SELECT 'customer' AS kind,'' AS local,CONVERT(varchar(32),FItemID) AS id,'' AS unit_id,'' AS unit_name,'' AS rate FROM dbo.t_Organization WHERE FItemID=CAST(@customer AS int) AND FDeleted=0
 UNION ALL SELECT 'settlement','',CONVERT(varchar(32),FItemID),'','','' FROM dbo.t_Settle WHERE FNumber=@settlement AND FDeleted=0 AND FItemID<>0
 UNION ALL SELECT 'employee','',CONVERT(varchar(32),FItemID),'','','' FROM dbo.t_Emp WHERE FItemID=CAST(@employee AS int) AND FDeleted=0
@@ -145,6 +153,7 @@ const immutableItems = [
 /** Only static template-authored SQL reaches this existing RPC; business values are bound XML/scalars. */
 export const sourceOrderSql = `SET XACT_ABORT ON;
 SET LOCK_TIMEOUT 5000;
+${requireWriteAccount}
 DECLARE @payload xml=CONVERT(xml,@document),@remote int,@lock_result int;
 DECLARE @header TABLE (${declaration(headerTypes)});
 DECLARE @lines TABLE (${declaration(itemTypes)});
@@ -198,6 +207,21 @@ export const submitOrder = Effect.fnUntraced(function* (
 			column: '$key',
 			reason: 'Submission identity does not match the sealed agreement'
 		});
+	const target = kingdeeWriteTarget(ctx.configuration);
+	if (target === null)
+		return yield* new SourceRowInvalid({
+			column: 'writeAccount',
+			reason:
+				'Kingdee is read-only until the destination account and recovery fork are verified for order writes'
+		});
+	if (
+		payload.write_target?.account !== target.account ||
+		payload.write_target?.branch !== target.branch
+	)
+		return yield* new SourceRowInvalid({
+			column: 'writeAccount',
+			reason: 'The sealed order was not authorized for the configured Kingdee account and branch'
+		});
 	const config = yield* decode(Configuration, ctx.configuration);
 	const people = yield* decode(Salespeople, yield* json(config.salespersonBindings));
 	const currencies = yield* decode(Currencies, yield* json(config.currencyBindings));
@@ -241,7 +265,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 		arguments: {
 			stmt: lookupSql,
 			params:
-				'@items nvarchar(max),@customer nvarchar(200),@settlement nvarchar(200),@employee nvarchar(32),@department nvarchar(32),@currency nvarchar(32),@branch nvarchar(20),@correlation nvarchar(36)',
+				'@items nvarchar(max),@customer nvarchar(200),@settlement nvarchar(200),@employee nvarchar(32),@department nvarchar(32),@currency nvarchar(32),@branch nvarchar(20),@correlation nvarchar(36),@write_account nvarchar(73)',
 			items: `<items>${payload.lines.map((line) => `<item id="${escape(line.id)}" item="${escape(line.product_code)}"/>`).join('')}</items>`,
 			customer: payload.party_code,
 			settlement: payload.payment_terms,
@@ -249,7 +273,8 @@ export const submitOrder = Effect.fnUntraced(function* (
 			department: selected.person.departmentId,
 			currency: selected.denomination.id,
 			branch: config.branchNo,
-			correlation
+			correlation,
+			write_account: target.account
 		},
 		maxRows: 1000
 	});
@@ -330,7 +355,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 			arguments: {
 				stmt: payload.previous ? sourceAmendmentSql : sourceOrderSql,
 				params:
-					'@document nvarchar(max),@branch nvarchar(20),@correlation nvarchar(36),@resource nvarchar(255),@fingerprint nvarchar(64)' +
+					'@document nvarchar(max),@branch nvarchar(20),@correlation nvarchar(36),@resource nvarchar(255),@fingerprint nvarchar(64),@write_account nvarchar(73)' +
 					(payload.previous
 						? ',@previous_document nvarchar(max),@source_id nvarchar(32),@source_version nvarchar(30),@source_exchange_rate decimal(28,10),@biller nvarchar(32),@change_cause nvarchar(200)'
 						: ''),
@@ -339,6 +364,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 				correlation,
 				resource: `norbital:trade:order:${correlation}`,
 				fingerprint,
+				write_account: target.account,
 				...(payload.previous && previousDocument !== null
 					? {
 							previous_document: previousDocument,
@@ -346,7 +372,7 @@ export const submitOrder = Effect.fnUntraced(function* (
 							source_version: payload.previous.source_version,
 							source_exchange_rate: payload.previous.source_exchange_rate,
 							biller: config.billerId,
-							change_cause: `Colony contract ${payload.version} [${payload.agreement_hash}]`
+							change_cause: amendmentCause(payload.version, payload.agreement_hash)
 						}
 					: {})
 			},

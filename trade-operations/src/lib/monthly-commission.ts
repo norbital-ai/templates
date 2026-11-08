@@ -27,12 +27,16 @@ export const statementFields = [
 	'snapshot'
 ] as const;
 /** The board's read for one month (`period`, its first day): sales orders, statements, salespeople and sales facts. */
-export const boardRead = (period: PlainDate) =>
+export const boardRead = (period: PlainDate, commercial = false) =>
 	({
 		orders: { where: { direction: { eq: 'sales' } }, fields: reportFields },
 		commission_statements: { where: { period: { eq: period } }, fields: statementFields },
 		sys_user: { output: 'directory', fields: ['name'] },
-		source_sales_lines: { fields: commissionFactFields }
+		source_sales_lines: {
+			...(commercial ? { output: 'commercial' as const } : {}),
+			where: { kind: { ne: 'invoice' } },
+			fields: commissionFactFields
+		}
 	}) as const;
 export const monthlyCommission = Effect.fnUntraced(function* (
 	orders: readonly MonthlyOrder[],
@@ -53,7 +57,12 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 		}
 	>();
 	for (const fact of facts) {
-		if (!fact.active || fact.business_on.slice(0, 7) !== period.slice(0, 7)) continue;
+		if (
+			!fact.active ||
+			fact.kind === 'invoice' ||
+			fact.business_on.slice(0, 7) !== period.slice(0, 7)
+		)
+			continue;
 		const record = orders.find((order) => order.id === fact.order);
 		if (!record) continue;
 		const version = agreement(record, fact.seal_hash);
@@ -90,6 +99,7 @@ export const monthlyCommission = Effect.fnUntraced(function* (
 						.filter(
 							(fact) =>
 								fact.active &&
+								fact.kind !== 'invoice' &&
 								fact.order === order.id &&
 								fact.seal_hash === order.seal_hash &&
 								fact.business_on.slice(0, 7) === period.slice(0, 7)

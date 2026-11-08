@@ -6,13 +6,12 @@ const Record = Schema.Record(Schema.String, Schema.Json);
 const hex = (value: number) => '0x' + value.toString(16).padStart(16, '0');
 const VERSIONED = new Set(['parties', 'products', 'warehouses']);
 /** Scripted physical projection rows at the native request boundary; this is not a SQL engine. */
-export function sourceFixture(records: () => Record<string, Json[]>) {
+export function sourceFixture(records: () => Record<string, Json[]>, identity = randomUUID()) {
 	let sequence = 10;
 	const stored = new Map<
 		string,
 		Map<string, { encoded: string; row: Record<string, Json>; version: number }>
 	>();
-	const identity = randomUUID();
 	const objects = new Map<string, number>();
 	return (op: DatabaseRequest): Effect.Effect<DatabaseResult, FacilityFailure> =>
 		Effect.try({
@@ -48,14 +47,6 @@ export function sourceFixture(records: () => Record<string, Json[]>) {
 				const args = op.arguments;
 				const statement = args.stmt;
 				if (typeof statement !== 'string') throw new Error('SQL statement required');
-				if (statement.includes('sys.database_recovery_status'))
-					return { rows: [{ database_guid: identity, recovery_fork_guid: identity }] };
-				if (statement.includes('MIN_ACTIVE_ROWVERSION()'))
-					return {
-						rows: [{ maximum: hex(sequence + 1), observed_at: '2026-10-10T00:00:00.000Z' }]
-					};
-				if (statement.includes('SYSUTCDATETIME()'))
-					return { rows: [{ observed_at: '2026-10-10T00:00:00.000Z' }] };
 				if (statement.includes('sys.objects')) {
 					const rows: Record<string, Json>[] = [];
 					for (let i = 0; args[`p${i}`] !== undefined; i += 4) {
@@ -85,8 +76,28 @@ export function sourceFixture(records: () => Record<string, Json[]>) {
 							right = `${String(b.alias)}:${String(b.column)}`;
 						return left < right ? -1 : left > right ? 1 : 0;
 					});
-					return { rows };
+					return {
+						rows: [
+							{
+								database_guid: identity,
+								recovery_fork_guid: identity,
+								maximum: hex(sequence + 1),
+								observed_at: '2026-10-10T00:00:00.000Z',
+								metadata: JSON.stringify(rows)
+							}
+						]
+					};
 				}
+				if (statement.includes('sys.database_recovery_status'))
+					return {
+						rows: [
+							{
+								database_guid: identity,
+								recovery_fork_guid: identity,
+								observed_at: '2026-10-10T00:00:00.000Z'
+							}
+						]
+					};
 				const relation = /FROM\s+\[([^\]]+)\]\.\[([^\]]+)\]\s+AS\s+\[([^\]]+)\]/i.exec(statement);
 				if (relation === null) throw new Error('Unexpected fixture SQL statement');
 				const resource = relation[3] === 'source' ? relation[2] : relation[3];

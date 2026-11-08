@@ -16,17 +16,31 @@
 			{bolt.t('component.template_help')} <code>{'{agreement}'}</code> ·
 			<code>{'{reference}'}</code>
 			· <code>{'{title}'}</code> · <code>{'{version}'}</code>
+		</p>
+		<p class="text-sm text-muted-foreground">
+			{bolt.t('component.print_layout_help')}
 		</p>{/if}{/snippet}
 <RecordForm
-	subtitle={['kind', 'locale', 'version']}
+	subtitle={['locale', 'version']}
 	editors={{ body: longText }}
 	{view}
 	readonly={published}
 	sections={[
 		{
 			name: 'template',
-			fields: ['kind', 'locale', 'version', 'title', 'body', 'status'],
-			wide: ['body'],
+			fields: [
+				'locale',
+				'version',
+				'title',
+				'layout',
+				'body',
+				'print_layout',
+				'print_fields',
+				'letterhead',
+				'contract_stamp',
+				'status'
+			],
+			wide: ['body', 'print_layout', 'print_fields', 'letterhead', 'contract_stamp'],
 			body: placeholders
 		}
 	]}

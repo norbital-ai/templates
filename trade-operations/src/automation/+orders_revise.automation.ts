@@ -25,16 +25,22 @@ export default automation('orders_revise', {
 		const [order] = (yield* ctx.query({ orders: { where: { id: { eq: target } }, limit: 1 } }))
 			.orders.rows;
 		if (!order) return yield* new Refusal({ message: 'errors.agreement_access' });
+		const starter = ctx.run.trigger;
+		if (starter.kind !== 'person' || starter.actor.kind !== 'member')
+			return yield* new Refusal({ message: 'errors.agreement_access' });
+		const { actor } = starter;
+		const inScope =
+			actor.admin ||
+			actor.teams.includes('commercial_managers') ||
+			(order.direction === 'purchasing'
+				? actor.teams.includes('procurement')
+				: actor.teams.includes('sales') && order.owner === actor.id);
+		if (!inScope) return yield* new Refusal({ message: 'errors.agreement_access' });
 		if (order.archived) return yield* new Refusal({ message: 'errors.order_archived' });
 		if (order.status !== 'confirmed' && !order.draft_setup)
 			return yield* new Refusal({ message: 'errors.transition' });
 		const current = currentAgreement(order);
 		if (!current) return yield* new Refusal({ message: 'errors.order_not_confirmed' });
-		if (current.kingdee?.status === 'void' || current.kingdee?.closed)
-			return yield* new Refusal({ message: 'errors.contract_source_closed' });
-		if (!current.kingdee?.binding_id || current.kingdee.status !== 'issued')
-			return yield* new Refusal({ message: 'errors.contract_pending' });
-
 		// Parent aggregates cannot be read prospectively inside a combined parent/line write.
 		const opened = yield* ctx.act(
 			'orders.update',
@@ -44,6 +50,10 @@ export default automation('orders_revise', {
 					set: {
 						status: 'draft',
 						draft_setup: current.seal_hash,
+						document_template: current.snapshot.document_template_id
+							? yield* identity('document_templates', current.snapshot.document_template_id)
+							: null,
+						print_values: current.snapshot.print_values ?? null,
 						currency: currency(current.snapshot.currency),
 						tax_inclusive: current.snapshot.tax_inclusive,
 						ordered_on: current.ordered_on,
@@ -80,6 +90,7 @@ export default automation('orders_revise', {
 					product: yield* identity('products', line.product),
 					set: {
 						source_entry_id,
+						print_values: line.print_values ?? null,
 						quantity: Decimal.of(line.quantity),
 						unit_price: Decimal.of(line.unit_price),
 						discount_pct: Decimal.of(line.discount_pct),

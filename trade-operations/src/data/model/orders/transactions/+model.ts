@@ -183,7 +183,11 @@ export default model('transactions', {
 	key: ['source', 'erp_id'],
 	// aging names each invoice's order
 	search: { text: ['reference', 'kind'] },
-	read: { transactions: { fields: 'all' }, 'transactions.order': { fields: 'all' } },
+	read: {
+		transactions: { fields: 'all' },
+		'transactions.order': { fields: 'all' },
+		'transactions.order.ledger': { fields: ['name'] }
+	},
 	outputs: {
 		logistics: {
 			transactions: { fields: logisticsDocument },

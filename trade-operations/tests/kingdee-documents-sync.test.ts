@@ -1,5 +1,7 @@
 import { expect, it } from '@effect/vitest';
 import { Effect } from 'effect';
+import { PlainDate } from '@norbital-ai/std/date';
+import { salesDetail, salesReadDuring } from '../src/lib/reports.js';
 import { workspace } from './kit.js';
 import { fixtureId } from './test-runtime.js';
 import { kingdeeFixture, kingdeeSale } from './kingdee-fixture.js';
@@ -121,6 +123,7 @@ it.live(
 			addDelivery(source, '20002', fid);
 			addDelivery(source, '20003', fid, '');
 			addInvoice(source, '30001', ['20001', '20002']);
+			replaceHeader(source, 'ICSale', '30001', { date: '2026-11-02', checked_on: '2026-11-03' });
 			yield* t.pull('transactions');
 			expect(
 				(yield* as.query({ transactions: { where: { order: { eq: order } } } })).transactions.rows
@@ -129,7 +132,7 @@ it.live(
 				(yield* as.query({ sys_integration: { where: { id: { eq: instance } }, limit: 1 } }))
 					.sys_integration.rows[0]
 			).toMatchObject({ status: { health: { state: 'attention', code: 'parentPending' } } });
-			clock.at = new Date(Date.parse(clock.at) + 60_000).toISOString();
+			clock.at = '2026-11-03T00:00:00.000Z';
 			yield* t.pull('ext_sales_orders');
 			yield* t.pull('transactions');
 			yield* t.pull('source_sales_lines');
@@ -163,7 +166,27 @@ it.live(
 			expect(item.net_amount?.eq(20)).toBe(true);
 			const facts = (yield* as.query({ source_sales_lines: { where: { order: { eq: order } } } }))
 				.source_sales_lines.rows;
-			expect(facts).toHaveLength(2);
+			expect(facts).toHaveLength(4);
+			const october = { from: PlainDate('2026-10-01'), to: PlainDate('2026-10-31') };
+			const november = { from: PlainDate('2026-11-01'), to: PlainDate('2026-11-30') };
+			const octoberInvoices = yield* as.query(salesReadDuring({ ...october, basis: 'invoice' }));
+			expect(salesDetail(octoberInvoices, { basis: 'invoice' })).toEqual([]);
+			const delivered = salesDetail(
+				yield* as.query(salesReadDuring({ ...october, basis: 'delivery' })),
+				{ basis: 'delivery' }
+			);
+			const invoiced = salesDetail(
+				yield* as.query(salesReadDuring({ ...november, basis: 'invoice' })),
+				{ basis: 'invoice' }
+			);
+			expect(delivered).toHaveLength(2);
+			expect(invoiced).toHaveLength(2);
+			expect(
+				invoiced.every((row) => row.business_on === '2026-11-02' && row.source_net?.eq(10))
+			).toBe(true);
+			expect(
+				delivered.every((row) => row.business_on === '2026-10-26' && row.source_net?.eq(10))
+			).toBe(true);
 			expect(
 				facts.every(
 					(row) =>

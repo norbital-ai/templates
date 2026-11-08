@@ -36,4 +36,15 @@ export const logisticsDocument = [
 	'status',
 	'source_updated_at'
 ] as const;
-export const logisticsProduct = ['external_code', 'name', 'spec', 'unit', 'active'] as const;
+export const logisticsProduct = [
+	'external_code',
+	'source_number',
+	'source',
+	'name',
+	'spec',
+	'producing_area',
+	'brand',
+	'brand_en',
+	'unit',
+	'active'
+] as const;

@@ -1,11 +1,12 @@
 import { PlainDate } from '@norbital-ai/std/date';
 import { fixtureId, decimalText } from './test-runtime.js';
-import { Schema, Effect } from 'effect';
+import { Schema, Effect, Exit } from 'effect';
 import { businessRows } from './business-source.js';
 import { expect, it } from '@effect/vitest';
 import type { Json } from '@norbital-ai/bolt/engine';
 import { committed, confirm, draft, SETTINGS, workspace, type T } from './kit.js';
 import { salesAnalysisOf, salesDetailOf } from './reads.js';
+import { salesDetail, salesRead } from '../src/lib/reports.js';
 const stamp = '2026-10-10T00:00:00Z';
 const fact = Effect.fnUntraced(function* (
 	t: T,
@@ -57,7 +58,11 @@ it.live(
 				tax_amount: '-0.36',
 				freight: '-0.60'
 			};
-			const foreignFact = yield* fact(t, foreign, 'FOREIGN-1');
+			const foreignFact = {
+				...(yield* fact(t, foreign, 'FOREIGN-1')),
+				booked_cost: '3.456',
+				booked_cost_currency: 'USD'
+			};
 			const missing = {
 				...shipment,
 				external_code: 'MISSING-1',
@@ -66,9 +71,34 @@ it.live(
 				lot_number: null,
 				unit_cost: null
 			};
-			yield* pull(t, [shipment, returned, foreignFact, missing]);
-			yield* pull(t, [shipment, returned, foreignFact, missing]);
-			expect((yield* as.query({ source_sales_lines: {} })).source_sales_lines.rows).toHaveLength(4);
+			const bookedShipment = { ...shipment, booked_cost: '11.52', booked_cost_currency: 'SGD' };
+			yield* pull(t, [bookedShipment, returned, foreignFact, missing]);
+			yield* pull(t, [bookedShipment, returned, foreignFact, missing]);
+			const raw = (yield* as.query({ source_sales_lines: {} })).source_sales_lines.rows;
+			expect(raw).toHaveLength(4);
+			const physicalShipment = raw.find((row) => row.external_code === 'SHIP-1');
+			if (!physicalShipment) throw new Error('Expected an owned delivery fact');
+			const seller = t.as(sales);
+			expect(
+				Exit.isFailure(
+					yield* Effect.exit(seller.query({ source_sales_lines: { fields: ['booked_cost'] } }))
+				)
+			).toBe(true);
+			const history = yield* seller.history('source_sales_lines', physicalShipment.id);
+			expect(history).toHaveLength(1);
+			expect(history[0]?.changed).not.toHaveProperty('booked_cost');
+			expect(history[0]?.changed).not.toHaveProperty('booked_cost_currency');
+			const privileged = salesDetail(yield* as.query(salesRead));
+			expect(privileged.find((row) => row.external_code === 'SHIP-1')).toMatchObject({
+				cost: decimalText('11.52'),
+				cost_currency: 'SGD',
+				margin: decimalText('5.48')
+			});
+			expect(privileged.find((row) => row.external_code === 'FOREIGN-1')).toMatchObject({
+				cost: decimalText('3.46'),
+				cost_currency: 'USD',
+				margin: null
+			});
 			yield* Effect.tryPromise({
 				try: () =>
 					expect(

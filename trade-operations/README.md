@@ -4,6 +4,11 @@ A public Bolt starter for trading and manufacturing teams. Customer quotations a
 share one agreement model; supplier purchase orders use the same model with purchasing direction.
 A quotation becomes a finalized agreement without moving to another table.
 
+## Documentation
+
+Start with [the documentation index](docs/README.md). It orders the objective, architecture, integration,
+source inventory and the deeper Kingdee, parity, print and probe references.
+
 ## Apps and roles
 
 Operations contains Trade (one filterable Orders table), Partners (one customer/supplier table),
@@ -17,22 +22,37 @@ owns its documents. Partners has General, POC and Orders.
 
 Editable child tables use an explicit create form in a modal opened by a right-aligned
 `+ Model` toolbar button. Source-owned tables have no create button or editable form.
-Native Actions owns order actions and on-demand document preview/PDF export.
+The base pack supplies generic commercial settings and EN/ZH document layouts. To customise an
+output, publish a named layout in Document Templates and select it in the order draft. A recorded
+revision retains that layout, its wording and its artwork. Preview and Export PDF use the same
+generated file. The commercial table includes the saved item specification, quantity, price,
+discount, tax and totals. Company letterhead and contract-stamp artwork are optional tenant PNGs.
+The stamp is applied when the layout is used on a sealed local sales agreement.
+
+A published layout can also carry an optional **Print layout HTML** upload. It controls print
+CSS, typography and artwork placement. Use this when recreating an approved document or
+workbook. The [print layout guide](docs/0007-print-layouts.md) lists supported fields and the renderer
+configuration.
 
 Contract SKU, quota, prices, credit terms and validity belong to the agreement in General. The
 approved-version selector shows earlier terms, and native Actions previews or exports the selected
-version on demand. Native order history retains record changes; there are no separate contract-file
-or revision models. Matching issued confirmations appear as record links in General. Transactions shows deliveries and invoices.
+version on demand. Attach supporting documents before recording the agreement. To keep a customer
+PO or signed return received later, select its recorded version and choose **File a document**.
+The filing retains the received bytes with that version while the agreement and order stay intact.
 
-The main Orders view contains customer sales agreements. Supplier purchase orders are created in the supplier’s Orders tab. Direction is fixed at creation. Draft contracts are editable and validity uses one date range; sealing uses native Bolt approval. Credit limits and balances are read-only source facts, with credit enforcement owned by the source system.
+Orders has Sales orders and Purchase orders views for the teams that use them. Supplier commitments can
+also start from the supplier record. Record a purchase commitment when the terms are worth retaining,
+revise it if quantities or prices change, and archive it if the purchase falls through. A recorded
+version preserves the terms from that point in time. The purchase action needs no Kingdee submission or
+commercial manager approval. Sales agreements use native Bolt commercial approval. Credit limits and
+balances are read-only source facts, with credit enforcement owned by the source system.
 
 Stock rows represent remaining lots, including lot number and unit cost. Price warnings compare a sales item’s net unit price with quantity-weighted remaining inventory cost for the same SKU, unit and currency. Realized sales margins use the consumed lot’s captured cost; missing costs remain unknown. Aging combines unpaid invoices and unallocated receipts in one grid without pretending that a receipt has been allocated to an invoice.
 
 Teams (`src/access_control/team/+team.ts`) link one policy each, by handle: **Sales** (`sales` →
 `sales`), **Procurement** (`procurement` → `procurement`), **Commercial Managers**
 (`commercial_managers` → `manager`), **Finance** (`finance` → `finance`), **Logistics**
-(`logistics` → `logistics`) and **Configurators** (`configurators` → `configuration`). Sales and
-procurement confirmations go to a `commercial_managers` approval step.
+(`logistics` → `logistics`) and **Configurators** (`configurators` → `configuration`). Sales confirmations go to a `commercial_managers` approval step.
 
 Sales reads its own customer agreements and financial facts; procurement reads its own supplier
 agreements. Logistics sees operational quantities with commercial fields masked. Finance and
@@ -45,7 +65,8 @@ history, permissions, approvals, Actions, kinds and runs are reused.
 ## Data model
 
 - `orders` / `order_lines`: our sales or purchase agreement and its editable contract SKU rows.
-  Confirmation seals the agreement permanently; its header and lines cannot return to draft or be rewritten.
+  Confirmation seals that version permanently. Revision starts a separate draft on the same order
+  and approval makes it current even when the Kingdee link is off.
   Read-only Kingdee SOs, deliveries and invoices retain that agreement seal.
 - `ext_sales_orders` / `ext_purchase_orders`: read-only source confirmations linked to our agreement.
 - `transactions`: read-only deliveries and invoices linked to the appropriate external order.
@@ -75,14 +96,15 @@ required. Issued transactions or active payments prevent cancellation.
 | --------------- | ----------------------------------------- | ----------------------------------------------------------------------- |
 | `source_health` | every 5 minutes, over `kingdee` instances | Notifies configuration holders when a ledger connection needs attention |
 
-Order documents need no automation. The Orders page converts the previewed quotation or contract
-version to PDF (`bolt.convert`), and `orders` declares a `document` file sync whose `write` returns
-the same rendered document for a view's Export menu.
+Order documents need no automation. The shared preview generates a PDF with `bolt.convert` and uses
+its file for both preview and download. The `orders` file export renders the same saved quotation or
+retained agreement. The price book opens a month matrix per warehouse group and currency with inline day-cell editing; the dated rows keep native Excel and CSV import/export with ledger-scoped SKU codes.
 
-The custom [Kingdee integration](docs/kingdee-implementation.md) lives in
+The custom [Kingdee integration](docs/0004-kingdee-implementation.md) lives in
 `src/integration/kingdee/`. It owns SQL Server rowversion polling and complete listings, source identity,
 ordered positions and header/item submission. Each source model declares a `kingdee` sync with a
-`read`; `orders` declares one with only a `write` for verified initial sales-order submissions. Unsupported purchase/amendment writes fail explicitly.
+`read`; `orders` reads observed sales versions and writes verified sales submissions and supported amendments.
+Supplier commitments are local records.
 Bolt supplies the generic SQL Server request driver, sync scheduling, the outbox and its retries,
 ledger-scoped identity and atomic cursor/model writes.
 Each Kingdee ledger is one `sys_integration` instance with its sealed credential and safe
@@ -90,14 +112,19 @@ configuration; the named `kingdee` connection is the first, and more can be adde
 Every source record carries its ledger (`source`), and an order belongs to its party's ledger
 (`ledger`), which is where its sealed agreement is submitted.
 
-Settings → Integrations sets each ledger’s full-reconciliation interval and window-age alert, and pauses or resumes it.
+Trade Configuration → Commercial settings shows whether the ledger is off, connected, or needs
+attention. Manage connection opens Bolt’s native pairing and test controls plus sync options.
+Saving a SQL credential checks the master and stock projections and their SQL read permissions
+before activating SQL sync. Unpaired or paused
+instances leave queued sales work waiting.
 Configurators are notified when a ledger needs attention. Commercial Settings holds business
 controls. A matching issued `ext_*` confirmation confirms business receipt; source documents remain
 read-only.
 
 The Kingdee bindings use actual `dbo` masters, sales orders and verified source-document relationships.
-Focused local probes use synthetic physical tables with CDC disabled. Live SQL Server 2019,
-relay TLS, source defaults/permissions and query plans remain deployment checks. Credit-policy
+Focused local probes use synthetic physical tables with CDC disabled. Trade Operations connects directly
+to on-premises SQL Server 2017 over the Alibaba network path. Deployment acceptance covers the SQL
+endpoint’s address policy and TLS, source defaults, permissions and query plans. Credit-policy
 binding and unsupported document/write types remain explicitly unavailable.
 
 ## Seed
@@ -126,4 +153,8 @@ Tests and mockups do not replace the manual acceptance gate.
 
 ## Maintained source reference
 
-See [the source reference](docs/source-reference.md) for the current applications/pages, model outputs and writes, automation policies, integrations and browser screenshot. The inventory is checked against this template's declarations; provider setup and deployed-release readiness remain separate checks.
+See [the source reference](docs/0003-source-reference.md) for the current applications/pages, model outputs and writes, automation policies, integrations and browser screenshot. The inventory is checked against this template's declarations; provider setup and deployed-release readiness remain separate checks.
+
+For the boundary that keeps Kingdee reliable and cheap, read [the integration document](docs/0002-integration.md). It lists the local tables the sync writes and the platform cursor/outbox tables beside them.
+
+See the [SalesBridge parity catalogue](docs/0006-salesbridge-parity.md), [manual probe matrix](docs/0008-manual-probe-matrix.md) and [Kingdee order lifecycle](docs/0005-kingdee-order-lifecycle.md) for coverage, acceptance evidence and the source writer incident.

@@ -38,9 +38,7 @@ function argumentsOf(request: DatabaseRequest | undefined) {
 function kind(request: DatabaseRequest) {
 	const stmt = argumentsOf(request).stmt;
 	if (typeof stmt !== 'string') throw new Error('SQL text is required');
-	if (stmt.includes('sys.database_recovery_status')) return 'identity';
-	if (stmt.includes('MIN_ACTIVE_ROWVERSION()')) return 'clock';
-	if (stmt.includes('sys.objects')) return 'metadata';
+	if (stmt.includes('sys.objects') && stmt.includes('MIN_ACTIVE_ROWVERSION()')) return 'checkpoint';
 	return 'page';
 }
 function fixture({
@@ -64,23 +62,28 @@ function fixture({
 			const request = Schema.decodeUnknownSync(DatabaseRequest)(value);
 			calls.push(request);
 			const operation = kind(request);
-			if (operation === 'identity')
-				return { rows: [{ database_guid: 'db-a', recovery_fork_guid: fork }] };
-			if (operation === 'metadata') {
+			if (operation === 'checkpoint') {
 				const versioned = Object.values(argumentsOf(request)).includes('source_version');
 				return {
 					rows: [
 						{
-							alias: 'probe',
-							column: versioned ? 'source_version' : null,
-							object_id: 10,
-							created: '2026-10-01',
-							rowversion_type: versioned ? marker : null
+							database_guid: 'db-a',
+							recovery_fork_guid: fork,
+							maximum: rv(maximum),
+							observed_at: now,
+							metadata: JSON.stringify([
+								{
+									alias: 'probe',
+									column: versioned ? 'source_version' : null,
+									object_id: 10,
+									created: '2026-10-01',
+									rowversion_type: versioned ? marker : null
+								}
+							])
 						}
 					]
 				};
 			}
-			if (operation === 'clock') return { rows: [{ maximum: rv(maximum), observed_at: now }] };
 			return { rows };
 		})
 	};
@@ -141,7 +144,7 @@ test.effect(
 				}))
 			});
 			const page = yield* readSource(source, start.cursor, context, row);
-			expect(context.calls.map(kind)).toEqual(['identity', 'metadata', 'clock', 'page']);
+			expect(context.calls.map(kind)).toEqual(['checkpoint', 'page']);
 			expect(argumentsOf(context.calls.at(-1))).toMatchObject({ from: rv(10), to: rv(2000) });
 			expect(page.cursor).toMatchObject({ bookmark: rv(10), continuation: { upper: rv(2000) } });
 			const next = fixture({ maximum: 3000, rows: [{ __key: 'P-0999', __rowversion: rv(1010) }] });
@@ -164,6 +167,18 @@ test.effect('empty incremental windows advance without fabricating deletes', () 
 		const page = yield* readSource(source, start.cursor, fixture({ maximum: 20 }), row);
 		expect(page).toMatchObject({ rows: [], more: false, cursor: { bookmark: rv(20) } });
 		expect(page.snapshot).toBeUndefined();
+	})
+);
+test.effect('an unchanged native ceiling needs no data page and retains its cursor', () =>
+	Effect.gen(function* () {
+		const start = yield* baseline();
+		expect(start.cursor).toMatchObject({
+			source: '5ebb79192cf6b1b9ac0e3bc074fea08c6425597ed7eb9d0e2d5741676ee95076'
+		});
+		const ctx = fixture();
+		const page = yield* readSource(source, start.cursor, ctx, row);
+		expect(ctx.calls.map(kind)).toEqual(['checkpoint']);
+		expect(page).toMatchObject({ rows: [], more: false, cursor: start.cursor });
 	})
 );
 test.effect(
@@ -339,7 +354,7 @@ test.effect(
 				]
 			};
 			const ctx = fixture();
-			yield* sourcePage(ctx, joined, 'P-0998', { from: rv(10), to: rv(2000) });
+			yield* sourcePage(ctx, joined, { after: 'P-0998', window: { from: rv(10), to: rv(2000) } });
 			const args = argumentsOf(ctx.calls.at(-1));
 			expect(args).toMatchObject({ after: 'P-0998', from: rv(10), to: rv(2000) });
 			expect(typeof args.stmt).toBe('string');

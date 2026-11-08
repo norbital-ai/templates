@@ -2,6 +2,7 @@ import { model } from '@norbital-ai/bolt';
 import { columns, readSource } from '../../../integration/kingdee/polling.js';
 import { projections } from '../../../integration/kingdee/projections.js';
 import { preserveSource } from '../../../integration/kingdee/reconciliation.js';
+import { warehouseWorkbook } from '../../../lib/workbook.js';
 export default model('warehouses', {
 	description: 'warehouses',
 	label: 'name',
@@ -51,6 +52,35 @@ export default model('warehouses', {
 					},
 					preserveSource({ model: 'warehouses', instance, projection: projections.warehouses, ctx })
 				);
+			}
+		},
+		sheet: {
+			with: 'file',
+			parser: ['xlsx', 'csv'],
+			schema: warehouseWorkbook,
+			write: function* (_input, ctx) {
+				const { warehouses } = yield* ctx.db.query({
+					warehouses: {
+						fields: [
+							'source',
+							'external_code',
+							'source_number',
+							'name',
+							'group_code',
+							'active'
+						],
+						orderBy: { external_code: 'asc' },
+						limit: 10000
+					}
+				});
+				return warehouses.rows.map((warehouse) => ({
+					ledger: warehouse.source,
+					external_code: warehouse.external_code,
+					source_number: warehouse.source_number ?? '',
+					name: warehouse.name,
+					group_code: warehouse.group_code ?? '',
+					active: warehouse.active
+				}));
 			}
 		}
 	}

@@ -6,7 +6,7 @@
 	import { Chart, EmptyState, Table, Show, useKinds, type RecordView } from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
-	import { salesDetail, salesRead } from '../../../lib/reports.js';
+	import { commercialSalesRead, salesDetail, salesRead } from '../../../lib/reports.js';
 	let {
 		view
 	}: {
@@ -14,7 +14,13 @@
 	} = $props();
 	const id = $derived(view.mode !== 'create' ? view.record.id : null);
 	const kinds = useKinds();
-	const sales = $derived(id && kinds.catalog?.source_sales_lines ? bolt.query(salesRead) : null);
+	const sales = $derived(
+		id && kinds.catalog?.source_sales_lines
+			? kinds.catalog.source_sales_lines.output === 'commercial'
+				? bolt.query(commercialSalesRead)
+				: bolt.query(salesRead)
+			: null
+	);
 	const rows = $derived(
 		(sales?.current ? salesDetail(sales.current) : [])
 			.filter((r) => r.product === id && r.kind !== 'return')

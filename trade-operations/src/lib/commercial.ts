@@ -50,8 +50,21 @@ type Header = Pick<
 	| 'direction'
 	| 'currency'
 	| 'tax_inclusive'
+	| 'print_values'
 	| 'payment_terms'
 	| 'delivery_terms'
+	| 'shipping_terms'
+	| 'place_of_loading'
+	| 'place_of_delivery'
+	| 'packaging'
+	| 'shipping_mark'
+	| 'time_of_shipment'
+	| 'other_terms'
+	| 'payment_method'
+	| 'buyer_contact'
+	| 'buyer_mobile'
+	| 'delivery_address'
+	| 'delivery_date'
 	| 'valid_from'
 	| 'valid_until'
 	| 'title'
@@ -75,7 +88,20 @@ export function snapshot(
 		valid_from: order.valid_from ?? '',
 		valid_until: order.valid_until ?? '',
 		payment_terms: order.payment_terms,
+		...(order.print_values?.length ? { print_values: order.print_values } : {}),
 		delivery_terms: order.delivery_terms ?? '',
+		shipping_terms: order.shipping_terms ?? '',
+		place_of_loading: order.place_of_loading ?? '',
+		place_of_delivery: order.place_of_delivery ?? '',
+		packaging: order.packaging ?? '',
+		shipping_mark: order.shipping_mark ?? '',
+		time_of_shipment: order.time_of_shipment ?? '',
+		other_terms: order.other_terms ?? '',
+		payment_method: order.payment_method ?? '',
+		buyer_contact: order.buyer_contact ?? '',
+		buyer_mobile: order.buyer_mobile ?? '',
+		delivery_address: order.delivery_address ?? '',
+		delivery_date: order.delivery_date ?? '',
 		contract_version: contractVersion,
 		lines: [...lines]
 			.sort((a, b) => a.id.localeCompare(b.id))
@@ -85,6 +111,8 @@ export function snapshot(
 				product: l.product,
 				product_code: l.product_code,
 				product_name: l.product_name,
+				...(l.print_values?.length ? { print_values: l.print_values } : {}),
+				...(l.product_spec ? { product_spec: l.product_spec } : {}),
 				unit: l.unit,
 				quantity: Decimal.of(l.quantity).toString(),
 				unit_price: Decimal.of(l.unit_price).toString(),
@@ -103,16 +131,32 @@ export function snapshot(
 		total: sum(lines.map((l) => l.total)).toString()
 	};
 }
-export function contract(template: string, seal: ReturnType<typeof snapshot>, reference: string) {
+export function contract(
+	template: string,
+	seal: NonNullable<Row<'orders'>['sealed_snapshot']>,
+	reference: string
+) {
 	const values = {
 		number: reference,
 		reference,
 		party: seal.party_name,
 		currency: seal.currency,
-		valid_from: seal.valid_from,
-		valid_until: seal.valid_until,
+		valid_from: seal.valid_from ?? '',
+		valid_until: seal.valid_until ?? '',
 		payment_terms: seal.payment_terms,
 		delivery_terms: seal.delivery_terms,
+		shipping_terms: seal.shipping_terms ?? '',
+		place_of_loading: seal.place_of_loading ?? '',
+		place_of_delivery: seal.place_of_delivery ?? '',
+		packaging: seal.packaging ?? '',
+		shipping_mark: seal.shipping_mark ?? '',
+		time_of_shipment: seal.time_of_shipment ?? '',
+		other_terms: seal.other_terms ?? '',
+		payment_method: seal.payment_method ?? '',
+		buyer_contact: seal.buyer_contact ?? '',
+		buyer_mobile: seal.buyer_mobile ?? '',
+		delivery_address: seal.delivery_address ?? '',
+		delivery_date: seal.delivery_date ?? '',
 		total: seal.total,
 		lines: seal.lines
 			.map(
@@ -122,7 +166,7 @@ export function contract(template: string, seal: ReturnType<typeof snapshot>, re
 			.join('\n')
 	};
 	return template.replace(
-		/\{(number|party|currency|payment_terms|delivery_terms|total|lines|reference|valid_from|valid_until)\}/g,
+		/\{(number|party|currency|payment_terms|delivery_terms|shipping_terms|place_of_loading|place_of_delivery|packaging|shipping_mark|time_of_shipment|other_terms|payment_method|buyer_contact|buyer_mobile|delivery_address|delivery_date|total|lines|reference|valid_from|valid_until)\}/g,
 		(_, key: keyof typeof values) => values[key]
 	);
 }

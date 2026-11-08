@@ -1,17 +1,6 @@
 [
 	{
-		"id": "00000000-0000-4000-8000-000000000501",
-		"kind": "quotation",
-		"locale": "en",
-		"version": "1",
-		"title": "Quotation",
-		"body": "{agreement}",
-		"status": "published",
-		"published_at": "2026-01-01T00:00:00Z"
-	},
-	{
 		"id": "00000000-0000-4000-8000-000000000502",
-		"kind": "contract",
 		"locale": "en",
 		"version": "1",
 		"title": "Commercial agreement",
@@ -21,22 +10,51 @@
 	},
 	{
 		"id": "00000000-0000-4000-8000-000000000503",
-		"kind": "quotation",
-		"locale": "zh",
+		"locale": "en",
 		"version": "1",
-		"title": "报价单",
-		"body": "{agreement}",
+		"title": "Purchase contract",
+		"body": "{agreement}\n1. The buyer purchases the goods in the quantities, at the prices and on the terms stated above.\n2. The supplier confirms that the goods match the stated specification, packaging and shipment terms.\n3. Delivery is complete when the goods reach the place of delivery stated above; risk passes as stated in the delivery terms.\n4. Payment follows the stated payment terms and currency. Any change requires a recorded revision signed by both parties.\n\nSupplier: ______________________________    Date: ______________\n\nBuyer: _________________________________    Date: ______________",
 		"status": "published",
 		"published_at": "2026-01-01T00:00:00Z"
 	},
 	{
 		"id": "00000000-0000-4000-8000-000000000504",
-		"kind": "contract",
+		"locale": "en",
+		"version": "1",
+		"title": "Quotation",
+		"body": "{agreement}\nThis quotation is valid for the period stated above. Prices exclude freight unless the delivery terms state otherwise.",
+		"status": "published",
+		"published_at": "2026-01-01T00:00:00Z",
+		"layout": "table_v1"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000000505",
+		"locale": "en",
+		"version": "1",
+		"title": "Sales contract",
+		"body": "{agreement}\n1. The seller supplies the goods in the quantities, at the prices and on the terms stated above.\n2. The buyer inspects the goods on delivery and confirms any shortage or damage in writing.\n3. Title and risk pass as stated in the delivery terms. Payment follows the stated payment terms.\n\nSeller: ______________________________    Date: ______________\n\nBuyer: _______________________________    Date: ______________",
+		"status": "published",
+		"published_at": "2026-01-01T00:00:00Z",
+		"layout": "table_v1"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000000506",
 		"locale": "zh",
 		"version": "1",
-		"title": "商务协议",
-		"body": "{agreement}",
+		"title": "报价单",
+		"body": "{agreement}\n本报价在以上有效期内有效。除交付条款另有约定外，价格不含运费。",
 		"status": "published",
-		"published_at": "2026-01-01T00:00:00Z"
+		"published_at": "2026-01-01T00:00:00Z",
+		"layout": "table_v1"
+	},
+	{
+		"id": "00000000-0000-4000-8000-000000000507",
+		"locale": "zh",
+		"version": "1",
+		"title": "销售合同",
+		"body": "{agreement}\n1. 卖方按上述数量、价格和条款供货。\n2. 买方应在收货时验收，并以书面形式确认短缺或损坏。\n3. 所有权和风险按交付条款转移，付款按上述付款条款执行。\n\n卖方：______________________________    日期：______________\n\n买方：______________________________    日期：______________",
+		"status": "published",
+		"published_at": "2026-01-01T00:00:00Z",
+		"layout": "table_v1"
 	}
 ]

@@ -10,5 +10,5 @@
 	icon="lucide:file-text"
 	variant="full"
 >
-	<Table of="document_templates" columns={['title', 'kind', 'locale', 'version', 'status']} />
+	<Table of="document_templates" columns={['title', 'locale', 'version', 'status']} />
 </AppShell>

@@ -8,6 +8,7 @@ export default policy({
 	},
 	automations: ['orders_revise'],
 	grants: {
+		source_stock_commitments: { read: true },
 		ext_purchase_orders: {
 			read: { ext_purchase_orders: { where: own } },
 			history: own
@@ -61,10 +62,10 @@ export default policy({
 						: ctx.allow();
 				}
 			},
-			// a confirmation needs a commercial manager; any other edit of an unconfirmed order is direct
+			// Purchase commitments are tracked directly by procurement.
 			update: {
 				check: function* (changes, ctx) {
-					return reviewOrders(changes, ctx, purchasing, 'errors.purchasing_scope');
+					return reviewOrders(changes, ctx, purchasing, 'errors.purchasing_scope', false);
 				}
 			},
 			moves: 'all'
@@ -95,6 +96,21 @@ export default policy({
 				}
 			},
 			delete: {
+				check: function* (rows, ctx) {
+					return (yield* ordersIn(
+						ctx,
+						rows.map((row) => row.order),
+						purchasing
+					))
+						? ctx.allow()
+						: ctx.deny('errors.purchasing_scope');
+				}
+			}
+		},
+		order_files: {
+			read: { order_files: { where: own } },
+			history: own,
+			create: {
 				check: function* (rows, ctx) {
 					return (yield* ordersIn(
 						ctx,
@@ -137,8 +153,7 @@ export default policy({
 			read: { source_payments: { where: own } }
 		},
 		source_sales_lines: {
-			history: own,
-			read: { source_sales_lines: { where: own } }
+			outputs: { commercial: { source_sales_lines: { where: own } } }
 		}
 	}
 });

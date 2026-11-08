@@ -27,11 +27,11 @@ import {
 	arAging,
 	commissionRead,
 	commissionReport,
+	commercialSalesRead,
 	ledgerRead,
 	paymentLedger,
 	salesAnalysis,
-	salesDetail,
-	salesRead
+	salesDetail
 } from '../src/lib/reports.js';
 type Reader = Pick<Caller, 'query'>;
 /** A helper's refusal surfaces as the message key the declared query refused with. */
@@ -58,11 +58,9 @@ export const quotationOf = Effect.fnUntraced(function* (
 });
 export const documentOf = Effect.fnUntraced(function* (
 	as: Reader,
-	input: { order: Id<'orders'>; version?: number | null; locale?: 'en' | 'zh' }
+	input: { order: Id<'orders'>; version?: number | null }
 ) {
-	const locale = input.locale ?? 'en';
-	return yield* orderDocument(yield* as.query(documentRead(input.order, locale)), {
-		locale,
+	return yield* orderDocument(yield* as.query(documentRead(input.order)), {
 		version: input.version ?? null
 	});
 });
@@ -84,7 +82,7 @@ export const salesAnalysisOf = Effect.fnUntraced(function* (
 ) {
 	if (range.from && range.to && range.from > range.to)
 		return yield* new Refusal({ message: 'errors.report_range' });
-	return salesAnalysis(yield* as.query(salesRead), range);
+	return salesAnalysis(yield* as.query(commercialSalesRead), range);
 });
 export const salesDetailOf = Effect.fnUntraced(function* (
 	as: Reader,
@@ -92,7 +90,7 @@ export const salesDetailOf = Effect.fnUntraced(function* (
 ) {
 	if (range.from && range.to && range.from > range.to)
 		return yield* new Refusal({ message: 'errors.report_range' });
-	return salesDetail(yield* as.query(salesRead), range);
+	return salesDetail(yield* as.query(commercialSalesRead), range);
 });
 export const agingOf = Effect.fnUntraced(function* (as: Reader, input: { as_of: PlainDate }) {
 	return arAging(yield* as.query(agingRead(input.as_of)), input.as_of);
@@ -108,9 +106,12 @@ export const ledgerOf = Effect.fnUntraced(function* (
 ) {
 	return paymentLedger(yield* as.query(ledgerRead(input)), input);
 });
-export const boardOf = Effect.fnUntraced(function* (as: Reader, input: { period: string }) {
+export const boardOf = Effect.fnUntraced(function* (
+	as: Reader,
+	input: { period: string; commercial?: boolean }
+) {
 	const period = monthOf(input.period);
-	return yield* commissionBoard(yield* as.query(boardRead(period)), period);
+	return yield* commissionBoard(yield* as.query(boardRead(period, input.commercial)), period);
 });
 export const progressOfParty = Effect.fnUntraced(function* (
 	as: Reader,

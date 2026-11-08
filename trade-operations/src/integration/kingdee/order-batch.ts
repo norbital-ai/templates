@@ -28,6 +28,7 @@ export type OrderPayload = {
 	readonly tax_inclusive: boolean;
 	readonly party_code: string;
 	readonly payment_terms: string;
+	readonly write_target?: { readonly account: string; readonly branch: string };
 	readonly lines: readonly OrderLine[];
 	readonly previous?: {
 		readonly binding_id: string;

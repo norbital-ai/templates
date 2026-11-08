@@ -18,6 +18,9 @@ export default model('products', {
 			kind: 'text',
 			optional: true
 		},
+		producing_area: { kind: 'text', optional: true },
+		brand: { kind: 'text', optional: true },
+		brand_en: { kind: 'text', optional: true },
 		unit: {
 			kind: 'text',
 			optional: true
@@ -96,6 +99,9 @@ export default model('products', {
 							source_number: r.text('source_number', null),
 							name: r.text('name'),
 							spec: r.text('spec', null),
+							producing_area: r.text('producing_area', null),
+							brand: r.text('brand', null),
+							brand_en: r.text('brand_en', null),
 							unit: r.text('unit', null),
 							currency: r.currency('currency'),
 							unit_price: r.decimal('unit_price', null),
@@ -107,6 +113,6 @@ export default model('products', {
 					preserveSource({ model: 'products', instance, projection: projections.products, ctx })
 				);
 			}
-		}
+		},
 	}
 });

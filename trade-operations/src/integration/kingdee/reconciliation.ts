@@ -4,7 +4,7 @@ import { columns, SourceRowInvalid, type DatabaseContext } from './polling.js';
 import { sourceKeys, type SourceProjection } from './sql.js';
 
 const PAGE = 999;
-type PreservedModel = 'parties' | 'products' | 'warehouses';
+type PreservedModel = 'parties' | 'products' | 'warehouses' | 'source_sales_lines';
 type Context = DatabaseContext & Pick<SyncCtx<'kingdee'>, 'db'>;
 
 /** A completed source listing verifies absence again before retaining a local master as inactive. */
@@ -12,12 +12,14 @@ export const preserveSource = ({
 	model,
 	instance,
 	projection,
-	ctx
+	ctx,
+	account
 }: {
 	readonly model: PreservedModel;
 	readonly instance: InstanceId<'kingdee'>;
 	readonly projection: SourceProjection;
 	readonly ctx: Context;
+	readonly account?: string;
 }) =>
 	Effect.fnUntraced(function* (after: string) {
 		const page = {
@@ -31,9 +33,23 @@ export const preserveSource = ({
 				? (yield* ctx.db.query({ parties: page })).parties
 				: model === 'products'
 					? (yield* ctx.db.query({ products: page })).products
-					: (yield* ctx.db.query({ warehouses: page })).warehouses;
-		const keys = local.rows.map((row) => row.external_code);
-		const found = keys.length === 0 ? [] : yield* sourceKeys(ctx, projection, keys);
+					: model === 'warehouses'
+						? (yield* ctx.db.query({ warehouses: page })).warehouses
+						: (yield* ctx.db.query({
+								source_sales_lines: {
+									...page,
+									where: {
+										...page.where,
+										kind: { eq: 'invoice_only' },
+										order: { isNull: true },
+										active: { eq: true }
+									}
+								}
+							})).source_sales_lines;
+		const remoteKey = (external: string) =>
+			model === 'source_sales_lines' ? external.replace(/^invoice-only:/, '') : external;
+		const keys = local.rows.map((row) => remoteKey(row.external_code));
+		const found = keys.length === 0 ? [] : yield* sourceKeys(ctx, projection, keys, account);
 		const present = yield* Effect.try({
 			try: () => {
 				const requested = new Set(keys);
@@ -57,9 +73,9 @@ export const preserveSource = ({
 		return {
 			// The key also lets the engine adopt a retained local row whose id map was not populated yet.
 			rows: local.rows
-				.filter((row) => row.active && !present.has(row.external_code))
+				.filter((row) => row.active && !present.has(remoteKey(row.external_code)))
 				.map((row) => ({
-					$id: row.external_code,
+					$id: remoteKey(row.external_code),
 					external_code: row.external_code,
 					active: false as const
 				})),

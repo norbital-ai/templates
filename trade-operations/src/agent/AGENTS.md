@@ -11,6 +11,7 @@ commercial_settings/
   commission_rules/
   document_templates/
 commission_statements/
+source_receivables/
 orders/
   activities/
   ext_purchase_orders/
@@ -46,11 +47,11 @@ Keep a new model in the branch of the record that owns it. Moving a model folder
 ## Invariants
 
 - A confirmed agreement is sealed permanently; header and lines never return to draft.
-- Source confirmations, transactions, payments and stock facts are read-only; only their sync writes them.
+- Source confirmations, transactions, payments, receivables snapshots and stock facts are read-only.
 - There is one delivery/invoice ledger and one payment ledger; do not create a parallel one.
 - Money is a value and a currency together; never add or convert across currencies.
 
 ## Read next
 
 - [`+agent.md`](./+agent.md) — the workspace brief Norbius loads.
-- `README.md` and `docs/` — operator walkthrough and design detail.
+- [`README.md`](../README.md) and [`docs/README.md`](../docs/README.md) — operator walkthrough and the numbered design set.

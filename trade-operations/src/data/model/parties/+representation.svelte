@@ -14,7 +14,9 @@
 	const kinds = useKinds();
 	const clock = bolt.clock('day');
 	const progressAnswer = $derived(
-		id && kinds.catalog?.source_sales_lines ? bolt.query(progressRead(id)) : null
+		id && kinds.catalog?.source_sales_lines
+			? bolt.query(progressRead(id, kinds.catalog.source_sales_lines.output === 'commercial'))
+			: null
 	);
 	const progressRows = $derived(
 		progressAnswer?.current ? progressOf(progressAnswer.current, clock.today) : null
@@ -43,6 +45,7 @@
 							openCreate('orders', {
 								party: id,
 								direction: supplier ? 'purchasing' : 'sales',
+								...(supplier ? { payment_terms: '' } : {}),
 								...(view.mode !== 'create' ? { currency: view.record.currency } : {})
 							})
 			}}
@@ -71,7 +74,11 @@
 				{ field: 'valid_until', label: bolt.t('models.orders.fields.valid_until') },
 				{ field: 'state', label: bolt.t('models.orders.fields.status'), cell: progressState }
 			]}
-			toolbar={{ new: false, title: bolt.t('component.partner_progress') }}
+			toolbar={{
+				new: false,
+				title: bolt.t('component.partner_progress'),
+				description: bolt.t('component.partner_progress_help')
+			}}
 		/>{/if}{/snippet}
 
 {#snippet credit()}{#if id && !supplier}<Table
@@ -90,8 +97,6 @@
 	sections={[
 		{
 			name: 'partner',
-			icon: 'lucide:handshake',
-			title: bolt.t('component.partners'),
 			fields: ['name', 'external_code', 'kind', 'currency', 'active', 'address', 'phone'],
 			wide: ['address']
 		},

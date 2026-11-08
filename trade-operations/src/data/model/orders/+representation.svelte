@@ -2,12 +2,19 @@
 	import { attach, fork, bolt } from '$bolt';
 	import { Effect, Result, Schema, Scope } from 'effect';
 	import { Decimal } from '@norbital-ai/std/decimal';
-	import { agreements, currentAgreement } from '../../../lib/agreements.js';
+	import {
+		agreements,
+		awaitingKingdee,
+		currentAgreement,
+		type ContractVersion
+	} from '../../../lib/agreements.js';
 	import {
 		confirmationCheck,
 		confirmationHash,
-		confirmationRead
+		confirmationRead,
+		quotationFifoCosts
 	} from '../../../lib/confirmation.js';
+	import { purchaseLotCostRead } from '../../../lib/lot-cost.js';
 	import {
 		selectedContractDocuments,
 		retainedContractDocuments
@@ -21,6 +28,7 @@
 		FileInput,
 		Combobox,
 		Badge,
+		Popover,
 		EmptyState,
 		Tooltip,
 		Icon,
@@ -36,8 +44,11 @@
 		openRecord
 	} from '@norbital-ai/ui';
 	import { Stack, Grid, Cluster, Scroll } from '@norbital-ai/ui/layout';
+	import { kingdeeConnectionStatus } from '../../../integration/kingdee/connection-status.js';
+	import OrderDocumentDialog from './order-document-dialog.svelte';
+	import PrintDetails from '../../../lib/ui/print-details.svelte';
 	import RecordForm from '../../../lib/ui/record-form.svelte';
-	import { openCreate } from '../../../lib/ui/create-values.js';
+	import { createValues, openCreate } from '../../../lib/ui/create-values.js';
 	const moneyKind = { kind: 'money', currency: 'currency' } as const;
 	function displayDecimal(value: string) {
 		const exact = Decimal.of(value).toString();
@@ -75,6 +86,26 @@
 	const recordController = useRecordController();
 	let pending = $state(false);
 	const id = $derived(view.mode !== 'create' ? view.record.id : null);
+	const preset = createValues();
+	const purchase = $derived(
+		view.mode === 'create'
+			? (view.values && 'direction' in view.values
+					? view.values.direction
+					: 'direction' in preset
+						? preset.direction
+						: undefined) === 'purchasing'
+			: view.record.direction === 'purchasing'
+	);
+	const ledgerRead = $derived(
+		id && commercial && !purchase
+			? bolt.query({
+					orders: { where: { id: { eq: id } }, fields: ['ledger'], limit: 1 },
+					'orders.ledger': { fields: ['active', 'status'] }
+				})
+			: null
+	);
+	const ledger = $derived(ledgerRead?.current?.orders.rows[0]?.ledger);
+	const sourceState = $derived(ledger ? kingdeeConnectionStatus(ledger) : null);
 	const draftSetup = $derived(view.mode !== 'create' && Boolean(view.record.draft_setup));
 	// credit freshness is judged against the minute, so the check re-answers as the minute turns
 	const clock = bolt.clock('minute');
@@ -91,11 +122,24 @@
 				})
 			: null
 	);
+	const quote = $derived(checkRead?.current?.orders.rows[0]);
+	const purchaseCostRead = $derived(
+		quote?.direction === 'sales' && quote.ledger && kinds.catalog?.source_lot_costs
+			? bolt.query(purchaseLotCostRead(quote.ledger))
+			: null
+	);
+	const purchaseCosts = $derived(purchaseCostRead?.current?.source_lot_costs.rows[0]);
+	const fifoCosts = $derived(
+		checkRead?.current && purchaseCosts
+			? quotationFifoCosts(checkRead.current, purchaseCosts, clock.now)
+			: []
+	);
 	const versions = $derived(view.mode !== 'create' ? agreements(view.record) : []);
 	const currentContract = $derived(
 		view.mode !== 'create' ? currentAgreement(view.record) : undefined
 	);
 	const archived = $derived(view.mode !== 'create' && view.record.archived);
+	let documentRequest = $state<{ version: number | null } | null>(null);
 	let selectedVersion = $state<string | null>(null);
 	const draftContract = $derived(
 		view.mode !== 'create' &&
@@ -105,7 +149,7 @@
 	const selectedContract = $derived(
 		draftContract
 			? undefined
-			: (versions.find((v) => String(v.version) === selectedVersion) ?? versions.at(-1))
+			: (versions.find((v) => String(v.version) === selectedVersion) ?? currentContract)
 	);
 	const confirmationModel = $derived(
 		view.mode !== 'create' && view.record.direction === 'purchasing'
@@ -142,7 +186,7 @@
 		}
 	);
 	const pushFailed = $derived(
-		selectedContract?.seal_hash === versions.at(-1)?.seal_hash &&
+		selectedContract?.seal_hash === currentContract?.seal_hash &&
 			view.mode !== 'create' &&
 			view.record.status !== 'draft' &&
 			view.record.$sync?.kingdee?.status === 'failed'
@@ -163,21 +207,27 @@
 					? translate('component.kingdee_status_closed')
 					: event.status === 'superseded'
 						? translate('component.contract_superseded')
-						: event.status === 'changedUnversioned'
+						: event.status === 'changedUnversioned' || event.status === 'sourceConflict'
 							? translate('component.kingdee_status_changedUnversioned')
 							: statusText(event.status),
 			kind: translate(`component.kingdee_event_${event.kind}`)
 		}))
 	);
 	const needsReconciliation = $derived(
-		selectedContract?.events?.at(-1)?.kind === 'unversionedChange'
+		selectedContract?.events?.at(-1)?.kind === 'unversionedChange' ||
+			selectedContract?.events?.at(-1)?.kind === 'sourceConflict'
 	);
-	const replacementPending = $derived(
-		versions.some(
-			(version) =>
-				version.lifecycle === 'pending' && version.version > (currentContract?.version ?? 0)
-		)
-	);
+	function contractLabel(version: ContractVersion) {
+		return bolt.t(
+			version.seal_hash === currentContract?.seal_hash
+				? 'component.contract_current'
+				: version.lifecycle === 'pending'
+					? 'component.contract_pending'
+					: version.origin === 'kingdee' && version.kingdee && !version.kingdee.archived
+						? 'component.kingdee_version'
+						: 'component.contract_superseded'
+		);
+	}
 	function confirmationPresentation(
 		status: 'draft' | 'issued' | 'void' | 'closed' | null | undefined
 	) {
@@ -192,10 +242,10 @@
 							: status === 'void'
 								? `models.${confirmationModel}.fields.status.void`
 								: status === 'draft'
-									? 'component.confirmation_pending'
+									? 'component.contract_pending'
 									: pushFailed || confirmationRows?.error
 										? 'component.confirmation_error'
-										: 'component.confirmation_pending'
+										: 'component.contract_pending'
 			),
 			variant: needsReconciliation
 				? ('warning' as const)
@@ -252,7 +302,12 @@
 				confirmOrder().pipe(
 					Effect.catch((failure) =>
 						Effect.sync(() => {
-							feedback = failure._tag === 'ActRefused' ? translate(failure.message) : uncertain;
+							feedback =
+								failure._tag === 'ActRefused'
+									? translate(failure.message)
+									: failure._tag === 'ActConflict'
+										? bolt.t('component.order_changed')
+										: uncertain;
 						})
 					),
 					Effect.ensuring(
@@ -277,6 +332,7 @@
 			const outcome = yield* started;
 			if (outcome.kind === 'pendingApproval') feedback = bolt.t('component.awaiting_approval');
 			else if (outcome.kind === 'committed') selectedVersion = 'draft';
+			else if (outcome.kind === 'refused') feedback = translate(outcome.message);
 			else feedback = bolt.t('component.seal_uncertain');
 			return;
 		}
@@ -351,6 +407,25 @@
 		onChange={field.onChange}
 	/>
 {/snippet}
+{#snippet printDetails(form: FormState, field: FieldEditor)}
+	<PrintDetails
+		layout={form.id<'document_templates'>('document_template')}
+		scope="order"
+		value={field.value}
+		onChange={field.onChange}
+		id={field.id}
+		disabled={field.disabled}
+	/>
+{/snippet}
+
+{#snippet printDetailsView(form: FormState)}
+	<PrintDetails
+		layout={form.id<'document_templates'>('document_template')}
+		scope="order"
+		value={form.get('print_values')}
+	/>
+{/snippet}
+
 {#snippet documents(form: FormState, field: FieldEditor)}
 	{#if field.kind.kind === 'file'}
 		<FileInput
@@ -381,28 +456,70 @@
 	{@const kind = kinds.catalog?.orders?.fields?.supporting_documents}
 	{#if kind}<Show readonly {kind} value={draftDocuments(form)} />{/if}
 {/snippet}
-{#snippet confirmation(form: FormState)}
-	{#if checkRead && draftContract}<Stack gap="sm">
-			{#if form.dirty}<p class="text-sm text-muted-foreground">
-					{bolt.t('component.seal_explanation')}
+{#snippet confirmationNotices(form: FormState)}
+	{#if checkRead && draftContract}
+		{#if form.dirty}
+			<p class="text-sm text-muted-foreground">
+				{bolt.t(purchase ? 'component.commitment_save_first' : 'component.seal_explanation')}
+			</p>
+		{/if}
+		{#if check && Result.isSuccess(check)}
+			{#if !purchaseCosts && check.success.below_inventory_cost.length}<p class="text-sm">
+					{bolt.t('component.below_inventory_cost')}: {check.success.below_inventory_cost.join(', ')}
 				</p>{/if}
-
-			{#if check && Result.isSuccess(check)}
-				{#if check.success.below_inventory_cost.length}<p class="text-sm">
-						{bolt.t('component.below_inventory_cost')}: {check.success.below_inventory_cost.join(
-							', '
-						)}
-					</p>{/if}
-				<Button
-					disabled={pending || archived || draftSetup || form.dirty || form.pending}
-					onclick={confirm}>{bolt.t('component.confirm_seal')}</Button
-				>
-			{:else}<p>
-					{check && Result.isFailure(check)
-						? translate(check.failure)
-						: (checkRead.error?.message ?? bolt.t('component.check_loading'))}
-				</p>{/if}
-		</Stack>{/if}
+			{#if purchaseCosts && !form.dirty}
+				{#if !quote?.warehouse}
+					<p class="text-sm text-muted-foreground">{bolt.t('stock.fifo.choose_warehouse')}</p>
+				{:else if fifoCosts.length}
+					<details class="rounded-md border border-input px-3 py-2 text-sm">
+						<summary class="cursor-pointer font-medium">{bolt.t('stock.fifo.title')}</summary>
+						<p class="mt-2 text-muted-foreground">{bolt.t('stock.fifo.scope')}</p>
+						<ul class="mt-2 space-y-2">
+							{#each fifoCosts as row (row.key)}
+								<li>
+									<span class="font-medium">{row.product}</span> · {row.quantity.toString()}
+									{row.unit}
+									{#if row.estimate}
+										· {purchaseCosts.currency}
+										{row.estimate.unit_cost.round(4).toString()} / {row.unit}
+										{#if row.below}
+											· {bolt.t('stock.fifo.below_quote')}{/if}
+										<div class="text-muted-foreground">
+											{row.estimate.lots
+												.map((lot) => `${lot.lot_number} × ${lot.quantity.toString()}`)
+												.join(' · ')}
+										</div>
+									{:else}
+										· {bolt.t('component.inventory_cost_unavailable')}{/if}
+								</li>
+							{/each}
+						</ul>
+					</details>
+				{/if}
+			{/if}
+		{:else}
+			<p>
+				{check && Result.isFailure(check)
+					? translate(check.failure)
+					: (checkRead.error?.message ?? bolt.t('component.check_loading'))}
+			</p>
+		{/if}
+	{/if}
+{/snippet}
+{#snippet sealButton(form: FormState)}
+	{#if checkRead && draftContract}
+		<Button
+			disabled={pending ||
+				archived ||
+				draftSetup ||
+				form.dirty ||
+				form.pending ||
+				!check ||
+				Result.isFailure(check)}
+			onclick={confirm}
+			>{bolt.t(purchase ? 'component.record_commitment' : 'component.confirm_seal')}</Button
+		>
+	{/if}
 {/snippet}
 {#snippet agreement()}
 	{#if versions.length && selectedContract}
@@ -500,9 +617,41 @@
 					<Show readonly kind={documents} value={selectedContract.supporting_documents ?? []} />
 				</Stack>
 			{/if}
+			{#if id && commercial && kinds.catalog?.order_files}
+				{@const seal = selectedContract.seal_hash}
+				<Section
+					name="filed-documents"
+					icon="lucide:paperclip"
+					title={bolt.t('models.order_files.label')}
+					collapsible={false}
+				>
+					{#snippet actions()}
+						{#if kinds.catalog?.order_files?.create && !archived && selectedContract?.lifecycle !== 'pending' && !recordController?.historical}
+							<Button
+								variant="outline"
+								aria-label={bolt.t('component.file_order_document')}
+								onclick={() => openCreate('order_files', { order: id, seal_hash: seal })}
+							>
+								<Icon name="lucide:file-plus" class="size-4 md:hidden" />
+								<span class="hidden md:inline">{bolt.t('component.file_order_document')}</span>
+							</Button>
+						{/if}
+					{/snippet}
+					<p class="mb-2 text-sm text-muted-foreground">
+						{bolt.t('component.filed_order_documents_help')}
+					</p>
+					<Table
+						of="order_files"
+						where={{ order: { eq: id }, seal_hash: { eq: seal } }}
+						columns={['title', 'file', 'created_at']}
+						orderBy={{ created_at: 'desc' }}
+						toolbar={false}
+					/>
+				</Section>
+			{/if}
 			{@const currency = { currency: selectedContract.snapshot.currency }}
 			<Scroll name="agreement-lines" axis="x" class="rounded-md border border-border">
-				<table class="w-full text-sm">
+				<table class="w-max min-w-full text-sm">
 					<thead class="bg-muted/50 text-left text-muted-foreground">
 						<tr>
 							<th class="px-3 py-2 font-medium">{bolt.t('models.order_lines.fields.product')}</th>
@@ -630,7 +779,10 @@
 			{/if}
 		</Stack>
 	{:else if view.mode !== 'create' && view.record.status === 'draft'}
-		<EmptyState variant="inset" title={bolt.t('component.unfinalized_quotation')} />
+		<EmptyState
+			variant="inset"
+			title={bolt.t(purchase ? 'component.commitment_draft' : 'component.unfinalized_quotation')}
+		/>
 	{:else}<EmptyState variant="inset" title={bolt.t('errors.agreement_access')} />{/if}
 {/snippet}
 {#snippet lines()}{#if id}<Table
@@ -657,7 +809,6 @@
 			}}
 		/>{/if}{/snippet}
 {#snippet fulfillment()}{#if id}<Stack gap="md">
-			<Cluster align="center" gap="sm">{@render versionPicker()}</Cluster>
 			{#if selectedContract}
 				<Table
 					of="transactions"
@@ -667,7 +818,7 @@
 						kind: { in: ['delivery', 'invoice'] }
 					}}
 					columns={['reference', 'kind', 'status', 'source_updated_at']}
-					toolbar={{ new: false }}
+					toolbar={{ new: false, controls: versionPicker }}
 				/>
 			{:else}<EmptyState
 					variant="inset"
@@ -688,8 +839,12 @@
 				}}
 			/>
 		</Stack>{/if}{/snippet}
-{#snippet versionPicker()}{#if versions.length}<label class="w-44">
-			<span class="sr-only">{bolt.t('models.orders.fields.contract_version')}</span>
+{#snippet versionPicker()}{#if versions.length}<label class="w-36 md:w-44">
+			<span class="sr-only"
+				>{bolt.t(
+					purchase ? 'component.commitment_version' : 'models.orders.fields.contract_version'
+				)}</span
+			>
 			<Combobox
 				readonly={false}
 				options={[
@@ -703,14 +858,8 @@
 						: []),
 					...versions.map((v) => ({
 						value: String(v.version),
-						label: `${bolt.t('section.seal')} ${String(v.version).padStart(3, '0')}`,
-						description: bolt.t(
-							v.lifecycle === 'pending'
-								? 'component.contract_pending'
-								: v.seal_hash === currentContract?.seal_hash
-									? 'component.contract_current'
-									: 'component.contract_superseded'
-						)
+						label: `${bolt.t(purchase ? 'component.commitment' : 'section.seal')} ${String(v.version).padStart(3, '0')}`,
+						description: contractLabel(v)
 					}))
 				]}
 				value={draftContract ? 'draft' : String(selectedContract?.version)}
@@ -720,7 +869,9 @@
 			/>
 		</label>{/if}{/snippet}
 {#snippet sourceConfirmation()}
-	{#if selectedContract}
+	{#if selectedContract && !purchase && sourceState && sourceState !== 'connected'}
+		<Badge variant="outline">{bolt.t(`component.kingdee_${sourceState}`)}</Badge>
+	{:else if selectedContract && !purchase && (selectedContract.kingdee || awaitingKingdee(selectedContract, versions) || needsReconciliation)}
 		{@const status = selectedContract.kingdee?.closed ? 'closed' : selectedContract.kingdee?.status}
 		{@const presentation = confirmationPresentation(status)}
 		<Tooltip
@@ -739,7 +890,9 @@
 	{/if}
 {/snippet}
 {#snippet confirmationLink()}{#if id && view.mode !== 'create' && selectedContract}
-		{#if confirmationRows?.current}
+		{#if !purchase && sourceState && sourceState !== 'connected'}
+			{@render sourceConfirmation()}
+		{:else if confirmationRows?.current}
 			{#each confirmationRows.current.rows as receipt (receipt.id)}
 				{@const status = selectedContract.kingdee?.closed
 					? 'closed'
@@ -760,21 +913,63 @@
 					{/snippet}
 				</Tooltip>
 			{:else}{@render sourceConfirmation()}{/each}
-		{:else}{@render sourceConfirmation()}{/if}
+		{:else if !purchase}{@render sourceConfirmation()}{/if}
 	{/if}{/snippet}
-{#snippet contractActions()}<Cluster gap="sm" align="center">
+{#snippet contractActions(form: FormState)}
+	{@const lockedLabel = selectedContract
+		? bolt.t(purchase ? 'component.commitment_recorded' : 'component.sealed')
+		: null}
+	<div class="flex items-center gap-1.5 md:hidden">
 		{@render versionPicker()}
-		{#if selectedContract}
+		{@render sealButton(form)}
+		<Popover.Root>
+			<Popover.Trigger
+				class="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring/40 grid size-9 shrink-0 place-items-center rounded-md outline-none focus-visible:ring-2"
+				aria-label={bolt.t('component.more_actions')}
+			>
+				<Icon name="lucide:ellipsis" class="size-4" />
+			</Popover.Trigger>
+			<Popover.Content align="end" class="w-56 p-1">
+				{#if id && commercial && !recordController?.historical && (selectedContract || (draftContract && !draftSetup))}
+					<Popover.Close
+						class="hover:bg-muted flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm"
+						onclick={() => (documentRequest = { version: selectedContract?.version ?? null })}
+					>
+						<Icon name="lucide:file-text" class="size-4" />
+						{bolt.t('component.preview_document')}
+					</Popover.Close>
+				{/if}
+				{#if lockedLabel}
+					<div class="text-muted-foreground flex items-center gap-2 px-2 py-2 text-sm">
+						<Icon name="lucide:lock-keyhole" class="size-4" />
+						{lockedLabel}
+					</div>
+				{/if}
+			</Popover.Content>
+		</Popover.Root>
+	</div>
+	<Cluster gap="sm" align="center" class="hidden md:flex">
+		{@render versionPicker()}
+		{#if id && commercial && !recordController?.historical && (selectedContract || (draftContract && !draftSetup))}
+			<Button
+				type="button"
+				variant="outline"
+				onclick={() => (documentRequest = { version: selectedContract?.version ?? null })}
+				>{bolt.t('component.preview_document')}</Button
+			>
+		{/if}
+		{@render sealButton(form)}
+		{#if lockedLabel}
 			<Tooltip
-				text={selectedContract.origin === 'kingdee'
-					? `${bolt.t('component.contract_imported')}. ${bolt.t('component.sealed')}`
-					: bolt.t('component.sealed')}
+				text={selectedContract?.origin === 'kingdee'
+					? `${bolt.t('component.contract_imported')}. ${lockedLabel}`
+					: lockedLabel}
 			>
 				{#snippet trigger({ props })}<span
 						{...props}
 						role="img"
 						tabindex="0"
-						aria-label={bolt.t('component.sealed')}
+						aria-label={lockedLabel}
 						class="inline-flex size-8 items-center justify-center text-muted-foreground"
 						data-contract-lock><Icon name="lucide:lock-keyhole" class="size-4" /></span
 					>{/snippet}
@@ -791,32 +986,19 @@
 						? 'success'
 						: 'outline'}
 			>
-				{bolt.t(
-					selectedContract.lifecycle === 'pending'
-						? 'component.contract_pending'
-						: selectedContract.seal_hash === currentContract?.seal_hash
-							? 'component.contract_current'
-							: 'component.contract_superseded'
-				)}
+				{contractLabel(selectedContract)}
 			</Badge>
-			{@render confirmationLink()}
+			{#if selectedContract.lifecycle !== 'pending'}{@render confirmationLink()}{/if}
 		{/if}
-		{#if view.mode !== 'create' && !archived && kinds.automations?.orders_revise && (draftSetup || (view.record.status === 'confirmed' && !replacementPending))}
-			<Button
-				variant="ghost"
-				disabled={disabled ||
-					Boolean(
-						!currentContract?.kingdee?.binding_id ||
-						currentContract?.kingdee?.status !== 'issued' ||
-						currentContract?.kingdee?.closed
-					)}
-				title={currentContract?.kingdee?.status === 'void' || currentContract?.kingdee?.closed
-					? bolt.t('errors.contract_source_closed')
-					: !currentContract?.kingdee?.binding_id || currentContract?.kingdee?.status !== 'issued'
-						? bolt.t('errors.contract_pending')
-						: undefined}
-				onclick={() => change('revise')}
-				>{bolt.t(draftSetup ? 'component.resume_contract_setup' : 'component.new_contract')}</Button
+		{#if view.mode !== 'create' && !archived && kinds.automations?.orders_revise && (draftSetup || view.record.status === 'confirmed')}
+			<Button variant="ghost" {disabled} onclick={() => change('revise')}
+				>{bolt.t(
+					draftSetup
+						? 'component.resume_contract_setup'
+						: purchase
+							? 'component.revise_commitment'
+							: 'component.new_contract'
+				)}</Button
 			>
 		{/if}
 	</Cluster>
@@ -824,8 +1006,12 @@
 {#snippet generalDetails()}{#if feedback}<p role="status" class="text-sm">
 			{feedback}
 		</p>{/if}{/snippet}
-{#snippet contractBody()}<Stack gap="md">
+{#snippet contractBody(form: FormState)}<Stack gap="md">
 		{#if selectedContract || draftSetup}{@render contractControls()}{/if}
+		{@render confirmationNotices(form)}
+		{#if purchase && (draftContract || view.mode === 'create')}
+			<p class="text-sm text-muted-foreground">{bolt.t('component.commitment_help')}</p>
+		{/if}
 		{#if revisionRun}<RunStatus automation="orders_revise" run={revisionRun} />{/if}
 		{#if draftContract || view.mode === 'create'}{@render lines()}{:else}{@render agreement()}{/if}
 	</Stack>{/snippet}
@@ -850,6 +1036,7 @@
 {/snippet}
 <span hidden {@attach actionLifetime}></span>
 <RecordForm
+	editablePresets={['document_template']}
 	trailing={orderState}
 	readonly={archived || draftSetup}
 	readonlyReason={bolt.t(archived ? 'component.order_archived' : 'errors.contract_setup')}
@@ -864,11 +1051,25 @@
 			'archived',
 			'total',
 			'ordered_on',
+			'document_template',
 			'currency',
 			'valid_from',
 			'valid_until',
 			'payment_terms',
 			'delivery_terms',
+			'shipping_terms',
+			'place_of_loading',
+			'place_of_delivery',
+			'packaging',
+			'shipping_mark',
+			'time_of_shipment',
+			'other_terms',
+			'payment_method',
+			'buyer_contact',
+			'buyer_mobile',
+			'delivery_address',
+			'delivery_date',
+			'logistics_handler',
 			'notes',
 			'supporting_documents',
 			'contract_version'
@@ -883,7 +1084,7 @@
 							? 'ext_purchase_orders'
 							: 'ext_sales_orders',
 						...(view.mode !== 'create' && commercial
-							? ['source_payments', 'source_sales_lines']
+							? ['source_payments', 'source_sales_lines', 'order_files']
 							: [])
 					].map((of) => ({ of, where: { order: { eq: id } } }))
 				]
@@ -891,10 +1092,14 @@
 	}}
 	mainTitle={bolt.t('section.general')}
 	afterForm={generalDetails}
-	editors={{ party, valid_from: validity, supporting_documents: documents }}
-	viewers={{ supporting_documents: documentView }}
+	editors={{
+		party,
+		valid_from: validity,
+		supporting_documents: documents,
+		print_values: printDetails
+	}}
+	viewers={{ supporting_documents: documentView, print_values: printDetailsView }}
 	{view}
-	{...id && draftContract && !archived && !draftSetup ? { formActions: confirmation } : {}}
 	sections={[
 		{
 			name: 'order',
@@ -905,7 +1110,7 @@
 		{
 			name: 'contract',
 			icon: 'lucide:file-signature',
-			title: bolt.t('section.seal'),
+			title: bolt.t(purchase ? 'component.purchase_commitment' : 'section.seal'),
 			actions: contractActions,
 			body: contractBody,
 			fields:
@@ -918,6 +1123,21 @@
 							'valid_from',
 							'payment_terms',
 							'delivery_terms',
+							'shipping_terms',
+							'place_of_loading',
+							'place_of_delivery',
+							'packaging',
+							'shipping_mark',
+							'time_of_shipment',
+							'other_terms',
+							'payment_method',
+							'buyer_contact',
+							'buyer_mobile',
+							'delivery_address',
+							'delivery_date',
+							'logistics_handler',
+							'document_template',
+							'print_values',
 							'supporting_documents'
 						]
 					: [],
@@ -933,6 +1153,19 @@
 										'valid_from',
 										'payment_terms',
 										'delivery_terms',
+										'shipping_terms',
+										'place_of_loading',
+										'place_of_delivery',
+										'packaging',
+										'shipping_mark',
+										'time_of_shipment',
+										'other_terms',
+										'payment_method',
+										'buyer_contact',
+										'buyer_mobile',
+										'delivery_address',
+										'delivery_date',
+										'logistics_handler',
 										'supporting_documents'
 									]
 								: []),
@@ -942,7 +1175,13 @@
 								: [])
 						]
 					: [],
-			wide: ['supporting_documents']
+			wide: [
+				'shipping_mark',
+				'other_terms',
+				'delivery_address',
+				'print_values',
+				'supporting_documents'
+			]
 		}
 	]}
 	tabs={id
@@ -952,3 +1191,11 @@
 			]
 		: []}
 />
+
+{#if id && documentRequest}
+	<OrderDocumentDialog
+		order={id}
+		version={documentRequest.version}
+		onClose={() => (documentRequest = null)}
+	/>
+{/if}

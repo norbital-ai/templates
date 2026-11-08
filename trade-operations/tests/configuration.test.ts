@@ -1,8 +1,11 @@
 import { fixtureId } from './test-runtime.js';
-import { Effect } from 'effect';
-import { expect, layer } from '@effect/vitest';
+import { Context, Effect, Exit } from 'effect';
+import { expect, it, layer } from '@effect/vitest';
+import { Syncs } from '@norbital-ai/bolt/engine';
+import { FacilityFailure } from '@norbital-ai/bolt/errors';
 import { direct } from './synced-kit.js';
-import { committed, SETTINGS, shared, Trade } from './kit.js';
+import { committed, SETTINGS, shared, Trade, workspace } from './kit.js';
+import { sourceFixture } from './source-fixture.js';
 layer(shared(), { excludeTestServices: true })('configuration', (test) => {
 	test.effect(
 		'configuration edits the authoritative settings without creating ignored alternatives',
@@ -50,3 +53,31 @@ layer(shared(), { excludeTestServices: true })('configuration', (test) => {
 		})
 	);
 });
+
+it.effect(
+	'Kingdee pairing checks SELECT access on every configured master and stock projection',
+	() =>
+		Effect.gen(function* () {
+			const metadata = sourceFixture(() => ({}));
+			const reads: string[] = [];
+			let canReadStock = false;
+			const t = yield* workspace({
+				source: (operation) => {
+					const statement = operation.op === 'call' ? operation.arguments.stmt : undefined;
+					if (typeof statement !== 'string' || !statement.startsWith('SELECT TOP 0 '))
+						return metadata(operation);
+					reads.push(statement);
+					return !canReadStock && statement.includes('[dbo].[ICInventory]')
+						? Effect.fail(new FacilityFailure({ kind: 'upstream', message: 'SELECT denied' }))
+						: Effect.succeed({ rows: [] });
+				}
+			});
+			const testConnection = () => Context.get(t.services, Syncs).test('kingdee');
+			expect(Exit.isFailure(yield* Effect.exit(testConnection()))).toBe(true);
+			expect(reads).toHaveLength(4);
+			expect(reads.at(-1)).toContain('[dbo].[ICInventory]');
+			canReadStock = true;
+			yield* testConnection();
+			expect(reads).toHaveLength(8);
+		})
+);

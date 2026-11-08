@@ -94,7 +94,8 @@ test('product dependencies include detail and unit edits, and deleted details re
 	expect(bindings.products.rowversions).toEqual([
 		{ tableAlias: 'products', name: 'FModifyTime' },
 		{ tableAlias: 'detail', name: 'FModifyTime' },
-		{ tableAlias: 'unit', name: 'FModifyTime' }
+		{ tableAlias: 'unit', name: 'FModifyTime' },
+		{ tableAlias: 'brand', name: 'FModifyTime' }
 	]);
 	expect(bindings.products.joins[0]).not.toHaveProperty('where');
 	const product = {

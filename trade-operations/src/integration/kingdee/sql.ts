@@ -95,17 +95,19 @@ const execute = Effect.fnUntraced(function* (
 		}
 	})).rows;
 });
-export const sourceIdentity = (ctx: DatabaseContext) =>
-	execute(
-		ctx,
-		'SELECT database_guid,recovery_fork_guid FROM sys.database_recovery_status WHERE database_id=DB_ID()'
-	);
-export const sourceClock = (ctx: DatabaseContext) =>
-	execute(
-		ctx,
-		"SELECT CONVERT(varchar(18),MIN_ACTIVE_ROWVERSION(),1) AS maximum,CONVERT(varchar(33),SYSUTCDATETIME(),126)+'Z' AS observed_at"
-	);
-export const sourceMetadata = (ctx: DatabaseContext, source: SourceProjection) => {
+/** Check inside each batch so a reconnect between lookup and mutation cannot target another account. */
+const requireAccount = (parameter: string, label: string) => `IF NOT EXISTS (
+ SELECT 1 FROM sys.database_recovery_status WHERE database_id=DB_ID()
+ AND database_guid=TRY_CONVERT(uniqueidentifier,LEFT(${parameter},36))
+ AND recovery_fork_guid=TRY_CONVERT(uniqueidentifier,RIGHT(${parameter},36))
+) BEGIN RAISERROR('Kingdee ${label} account identity does not match',16,1); RETURN; END;`;
+export const requireWriteAccount = requireAccount('@write_account', 'write');
+export const requireReadAccount = requireAccount('@read_account', 'read');
+const readAccount = (p: ReturnType<typeof parameters>, account?: string) =>
+	account === undefined ? '' : requireAccount(p.bind(account, 'read_account'), 'read') + '\n';
+
+/** One SQL request establishes the account identity, marker schema and safe polling ceiling. */
+export const sourceCheckpoint = (ctx: DatabaseContext, source: SourceProjection) => {
 	const p = parameters(),
 		markers = sourceMarkers(source);
 	const selects = relations(source).flatMap((relation) => {
@@ -120,7 +122,16 @@ FROM sys.objects obj LEFT JOIN sys.columns col ON col.object_id=obj.object_id AN
 WHERE obj.schema_id=SCHEMA_ID(${schema}) AND obj.name=${name} AND obj.type IN ('U','V')`;
 		});
 	});
-	return execute(ctx, `${selects.join('\nUNION ALL\n')} ORDER BY [alias],[column]`, p.values);
+	return execute(
+		ctx,
+		`SELECT database_guid,recovery_fork_guid,
+CONVERT(varchar(18),MIN_ACTIVE_ROWVERSION(),1) AS maximum,
+CONVERT(varchar(33),SYSUTCDATETIME(),126)+'Z' AS observed_at,
+(SELECT [alias],[column],object_id,created,rowversion_type FROM (${selects.join('\nUNION ALL\n')}) AS markers
+ ORDER BY [alias],[column] FOR JSON PATH, INCLUDE_NULL_VALUES) AS metadata
+FROM sys.database_recovery_status WHERE database_id=DB_ID()`,
+		p.values
+	);
 };
 
 /** SQL Server 2019: bounded keyset paging and XML, without native CDC objects. */
@@ -221,8 +232,12 @@ const projection = (source: SourceProjection, bind: (value: Scalar) => string) =
 export const sourcePage = (
 	ctx: DatabaseContext,
 	source: SourceProjection,
-	after: string,
-	window?: Window
+	{
+		after = '',
+		window,
+		limit = 1000,
+		account
+	}: { after?: string; window?: Window | undefined; limit?: 0 | 1000; account?: string | undefined }
 ) => {
 	const p = parameters(),
 		selected = projection(source, p.bind);
@@ -253,7 +268,7 @@ export const sourcePage = (
 	);
 	return execute(
 		ctx,
-		`SELECT TOP 1000 ${selected.key} AS __key${selected.versioned ? ',CONVERT(varchar(18),CONVERT(binary(8),__rowversion),1) AS __rowversion' : ''},${columns.join(', ')} FROM (${selected.sql}) AS projected WHERE ${conditions.join(' AND ')} ORDER BY ${selected.key} COLLATE ${binaryOrder}`,
+		`${readAccount(p, account)}SELECT TOP ${limit} ${selected.key} AS __key${selected.versioned ? ',CONVERT(varchar(18),CONVERT(binary(8),__rowversion),1) AS __rowversion' : ''},${columns.join(', ')} FROM (${selected.sql}) AS projected WHERE ${conditions.join(' AND ')} ORDER BY ${selected.key} COLLATE ${binaryOrder}`,
 		p.values
 	);
 };
@@ -261,7 +276,8 @@ export const sourcePage = (
 export const sourceKeys = (
 	ctx: DatabaseContext,
 	source: SourceProjection,
-	keys: readonly string[]
+	keys: readonly string[],
+	account?: string
 ) => {
 	if (keys.length > 999 || keys.some((key) => !/^[\x21-\x7e]{1,4096}$/.test(key)))
 		throw new Error('Invalid source key batch');
@@ -275,7 +291,7 @@ export const sourceKeys = (
 	);
 	return execute(
 		ctx,
-		`DECLARE @source_keys xml; SET @source_keys=CONVERT(xml,${xml});
+		`${readAccount(p, account)}DECLARE @source_keys xml; SET @source_keys=CONVERT(xml,${xml});
 SELECT DISTINCT TOP 1000 ${selected.key} COLLATE ${binaryOrder} AS __key FROM (${selected.sql}) AS projected
 WHERE ${selected.key} COLLATE ${binaryOrder} IN (SELECT item.value('.', 'varchar(4096)') COLLATE ${binaryOrder} FROM @source_keys.nodes('/keys/key') AS wanted(item)) ORDER BY __key`,
 		p.values

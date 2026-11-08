@@ -1,6 +1,5 @@
 import { Effect } from 'effect';
 import { logisticsReceipt } from '../../../../lib/logistics.js';
-import { readPurchaseOrders } from '../../../../integration/kingdee/order-source.js';
 import { model, type CreateRow, type StoredRow, type WriteCtx } from '@norbital-ai/bolt';
 import { agreement, agreementFields } from '../../../../lib/agreements.js';
 type Header = Pick<
@@ -75,7 +74,7 @@ export default model('ext_purchase_orders', {
 	key: ['source', 'external_id'],
 	read: 'all',
 	outputs: { logistics: { ext_purchase_orders: { fields: logisticsReceipt } } },
-	// the sync alone writes confirmations (no local columns); its rows pass through these checks
+	// Retain existing confirmation evidence. No PO sync is scheduled without a verified source binding.
 	create: {
 		columns: { ext_purchase_orders: [] },
 		transform: function* (rows, ctx) {
@@ -94,15 +93,6 @@ export default model('ext_purchase_orders', {
 				ctx
 			);
 			return changes.map(({ set }) => set);
-		}
-	},
-	syncs: {
-		kingdee: {
-			with: 'kingdee',
-			every: '5min',
-			read: function* ({ cursor, instance }, ctx) {
-				return yield* readPurchaseOrders(instance, cursor, ctx);
-			}
 		}
 	}
 });

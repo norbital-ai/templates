@@ -27,9 +27,10 @@ export type Synced =
 	| 'products'
 	| 'warehouses'
 	| 'stock_snapshots'
+	| 'source_stock_commitments'
+	| 'source_lot_costs'
 	| 'credit_snapshots'
 	| 'ext_sales_orders'
-	| 'ext_purchase_orders'
 	| 'transactions'
 	| 'source_payments'
 	| 'source_sales_lines';

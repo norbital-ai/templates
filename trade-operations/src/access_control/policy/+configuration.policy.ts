@@ -5,6 +5,8 @@ export default policy({
 		apps: ['trade_configuration']
 	},
 	grants: {
+		source_lot_costs: { read: true },
+		source_stock_commitments: { read: true },
 		sys_integration: {
 			read: { sys_integration: { where: { integration: { eq: 'kingdee' } } } },
 			update: {

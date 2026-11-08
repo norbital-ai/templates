@@ -4,6 +4,11 @@ export default policy({
 		'Reopens a confirmed order as a replacement draft; a start names only an order its starter reads.',
 	grants: {
 		orders: { read: true, update: true, moves: { status: ['confirmed->draft'] } },
-		order_lines: { read: true, create: true, update: true, delete: true }
+		order_lines: { read: true, create: true, update: true, delete: true },
+		document_templates: {
+			read: { document_templates: { where: { status: { eq: 'published' } } } }
+		},
+		products: { read: true },
+		warehouses: { read: true }
 	}
 });

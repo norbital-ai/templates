@@ -7,11 +7,13 @@ import {
 	agreedTotal,
 	agreements,
 	agreementFields,
+	awaitingKingdee,
 	currentAgreement,
 	executableAgreement,
 	operationalLines,
 	type ContractVersion
 } from '../../lib/agreements.js';
+import { contractEntryId } from '../../lib/contract-draft.js';
 import { hash, sha256Hex } from '../../lib/commercial.js';
 import { columns, SourceRowInvalid, type SqlRow } from './polling.js';
 import {
@@ -27,10 +29,12 @@ import {
 	sourceDate,
 	sourceChecker,
 	sourceContractLine,
+	sourceContractVersion,
 	text,
 	type OrderSourceContext
 } from './order-source.js';
 import { sourceOrderUuid } from './submission.js';
+import { readAmendmentProofs } from './amendment.js';
 
 type Snapshot = ContractVersion['snapshot'];
 type Source = NonNullable<ContractVersion['kingdee']>;
@@ -38,8 +42,6 @@ type Event = NonNullable<ContractVersion['events']>[number];
 const invalid = (column: string, reason: string): never => {
 	throw new SourceRowInvalid({ column, reason });
 };
-const sourceVersion = (version: ContractVersion) =>
-	version.kingdee?.source_version ?? String(version.version - 1).padStart(3, '0');
 const sourceStatus = (header: SqlRow): 'draft' | 'issued' | 'void' =>
 	flag(header, 'cancelled') && !flag(header, 'archive')
 		? 'void'
@@ -115,7 +117,7 @@ export const readContractVersions = Effect.fnUntraced(function* (
 	cursor: Json | null,
 	ctx: OrderSourceContext
 ) {
-	const observed = yield* observation(ctx);
+	const observed = yield* observation(ctx, cursor);
 	const owned = { ledger: { eq: instance }, direction: { eq: 'sales' } } as const;
 	const {
 		orders,
@@ -124,7 +126,7 @@ export const readContractVersions = Effect.fnUntraced(function* (
 	} = yield* ctx.db.query({
 		orders: {
 			where: owned,
-			fields: [...agreementFields, 'number', 'source_order_key']
+			fields: [...agreementFields, 'number', 'source_order_key', 'draft_setup']
 		},
 		products: { where: { source: { eq: instance } } },
 		order_lines: { where: { order: { is: owned } } }
@@ -133,6 +135,45 @@ export const readContractVersions = Effect.fnUntraced(function* (
 		agreements(order).map((agreement) => ({ order: order.id, agreement }))
 	);
 	const families = yield* readSourceOrderFamilies(owners, ctx);
+	const orderVersions = new Map(orders.rows.map((order) => [order.id, agreements(order)]));
+	const candidates = families.flatMap((family) => {
+		const versions = orderVersions.get(family.order) ?? [];
+		const sourceId = exactId(family.live, 'fid');
+		const observedVersions = new Set(family.headers.map((header) => text(header, 'version')));
+		for (const version of versions)
+			if (version.kingdee) observedVersions.delete(version.kingdee.source_version);
+		return versions.flatMap((version) => {
+			if (
+				version.version === 1 ||
+				version.origin === 'kingdee' ||
+				version.kingdee ||
+				(version.lifecycle !== 'pending' && !awaitingKingdee(version, versions))
+			)
+				return [];
+			const previous = versions.findLast(
+				(candidate) =>
+					candidate.version < version.version &&
+					candidate.kingdee?.live_source_id === sourceId &&
+					candidate.kingdee.binding_id
+			);
+			const prior = previous?.kingdee;
+			if (!previous || !prior || !/^\d{3}$/.test(prior.source_version)) return [];
+			const sourceVersion = String(Number(prior.source_version) + 1).padStart(3, '0');
+			return observedVersions.has(sourceVersion)
+				? [
+						{
+							order: family.order,
+							seal: version.seal_hash,
+							version: version.version,
+							sourceId,
+							sourceVersion,
+							previous
+						}
+					]
+				: [];
+		});
+	});
+	const proven = yield* readAmendmentProofs(ctx, candidates);
 	const update = (
 		order: (typeof orders.rows)[number],
 		versions: ContractVersion[],
@@ -166,7 +207,7 @@ export const readContractVersions = Effect.fnUntraced(function* (
 				column: 'FUUID',
 				reason: 'Owned contract order is unavailable'
 			});
-		const previous = agreements(order);
+		const previous = orderVersions.get(order.id) ?? [];
 		const first = previous[0];
 		if (!first) continue;
 		const anchorUuid = yield* sourceOrderUuid(order.id, first.seal_hash);
@@ -184,6 +225,12 @@ export const readContractVersions = Effect.fnUntraced(function* (
 				reason: 'The original outbound SO binding cannot be proven'
 			});
 		let versions = [...previous];
+		const current = currentAgreement(order);
+		const active = order.draft_setup
+			? current
+			: (previous.findLast(
+					(version) => version.origin !== 'kingdee' && version.lifecycle !== 'pending'
+				) ?? current);
 		let liveSeal: string | null = null;
 		const headers = [...family.headers].sort((a, b) =>
 			text(a, 'version').localeCompare(text(b, 'version'))
@@ -242,23 +289,74 @@ export const readContractVersions = Effect.fnUntraced(function* (
 				...(changed ? { source_changed_at: changed } : {}),
 				...(by ? { source_changed_by: by } : {})
 			};
-			const exact = yield* checked(() =>
-				versions.filter(
-					(version) =>
-						sourceVersion(version) === versionNo && sourceMatchesContract(version, header, rows)
-				)
+			const possible = candidates.filter(
+				(candidate) => candidate.order === order.id && candidate.sourceVersion === versionNo
 			);
-			const pending = !archived
-				? yield* checked(() =>
-						versions.filter(
-							(version) =>
-								version.lifecycle === 'pending' && sourceMatchesContract(version, header, rows)
-						)
-					)
-				: [];
-			let known = pending.at(-1) ?? exact.at(-1);
+			const matches = possible.filter((candidate) => proven.has(candidate.seal));
+			if (matches.length > 1)
+				return yield* new SourceRowInvalid({
+					column: 'ICOrderAlter',
+					reason: 'Multiple local amendments claim the same Kingdee version'
+				});
+			const matchedAmendment = matches[0];
+			const localSeal = matchedAmendment?.seal;
+			const candidate = possible.at(-1);
+			if (
+				candidate &&
+				!localSeal &&
+				!versions.some((version) => version.kingdee?.source_version === versionNo)
+			) {
+				versions = versions.map((version) =>
+					version.seal_hash === candidate.seal
+						? addEvent(version, {
+								...eventBase,
+								key: `source-conflict:${versionNo}:${eventBase.source_id}`,
+								kind: 'sourceConflict',
+								status: 'sourceConflict'
+							})
+						: version
+				);
+				attention.push(
+					`${family.reference}: Kingdee version ${versionNo} has no change-log proof for the local amendment. Both versions were retained.`
+				);
+			}
+			const sameVersion = versions.filter(
+				(version) => sourceContractVersion(version) === versionNo || version.seal_hash === localSeal
+			);
+			if (sameVersion.length > 1)
+				return yield* new SourceRowInvalid({
+					column: 'FVersionNo',
+					reason: 'Multiple agreement seals claim the same Kingdee version'
+				});
+			const matched = sameVersion[0];
+			const previousBasis = matchedAmendment?.previous;
+			// The editor could have copied this line before its predecessor gained a source entry.
+			const matchBasis =
+				matched && previousBasis
+					? {
+							...matched,
+							write_target: matched.write_target ?? first.write_target ?? null,
+							snapshot: {
+								...matched.snapshot,
+								lines: matched.snapshot.lines.map((line) => {
+									const priorLine = previousBasis.snapshot.lines.find(
+										(prior) => prior.id === line.id
+									);
+									const entryId = priorLine && contractEntryId(previousBasis, priorLine);
+									return entryId && !line.source_entry_id
+										? { ...line, source_entry_id: entryId }
+										: line;
+								})
+							}
+						}
+					: matched;
+			let known =
+				matched &&
+				matchBasis &&
+				(yield* checked(() => sourceMatchesContract(matchBasis, header, rows)))
+					? matched
+					: undefined;
 			const newEntries = new Map<string, string>();
-			const sameVersion = versions.filter((version) => sourceVersion(version) === versionNo);
 			if (!known && sameVersion.length) {
 				const event: Event = {
 					...eventBase,
@@ -361,7 +459,7 @@ export const readContractVersions = Effect.fnUntraced(function* (
 				const localLine = importedId
 					? known.snapshot.lines.find((line) => line.id === importedId)
 					: sourceContractLine(
-							known,
+							matchBasis ?? known,
 							rows.map((entry) => exactId(entry, 'entry_id')),
 							position
 						);
@@ -409,17 +507,38 @@ export const readContractVersions = Effect.fnUntraced(function* (
 			versions = versions.map((version) =>
 				version.seal_hash === updated.seal_hash ? updated : version
 			);
-			if (
-				!archived &&
-				(status === 'issued' || known.lifecycle === 'current' || versions.length === 1)
-			)
-				liveSeal = known.seal_hash;
+			if (!archived) liveSeal = known.seal_hash;
 		}
-		if (liveSeal)
+		const live = versions.find((version) => version.seal_hash === liveSeal);
+		if (active && active.origin !== 'kingdee' && live?.origin === 'kingdee' && live.kingdee) {
+			const source = live.kingdee;
 			versions = versions.map((version) =>
-				version.seal_hash === liveSeal
+				version.seal_hash === active.seal_hash
+					? addEvent(version, {
+							key: `source-conflict:${source.source_version}:${source.source_id}`,
+							at: observed.observedAt,
+							kind: 'sourceConflict',
+							status: 'sourceConflict',
+							source_version: source.source_version,
+							source_id: source.source_id
+						})
+					: version
+			);
+			attention.push(
+				`${family.reference}: Kingdee version ${source.source_version} changed outside Trade Operations. Both versions were retained.`
+			);
+		}
+		const commercial = order.draft_setup
+			? active
+			: active?.origin !== 'kingdee'
+				? (active ?? live)
+				: (live ?? active);
+		if (commercial)
+			versions = versions.map((version) =>
+				version.seal_hash === commercial.seal_hash
 					? { ...version, lifecycle: 'current' }
-					: version.lifecycle === 'current'
+					: version.lifecycle === 'current' ||
+						  (version.origin === 'kingdee' && version.lifecycle === 'pending')
 						? { ...version, lifecycle: 'superseded' }
 						: version
 			);
@@ -429,8 +548,12 @@ export const readContractVersions = Effect.fnUntraced(function* (
 				family.headers.some((header) => text(header, 'version') === prior.kingdee?.source_version)
 			)
 				continue;
-			const expectedVersion = sourceVersion(prior);
-			if (family.headers.some((header) => text(header, 'version') === expectedVersion)) continue;
+			const expectedVersion = sourceContractVersion(prior);
+			if (
+				!expectedVersion ||
+				family.headers.some((header) => text(header, 'version') === expectedVersion)
+			)
+				continue;
 			const event: Event = {
 				key: `history-unavailable:${expectedVersion}`,
 				at: observed.observedAt,
@@ -475,8 +598,7 @@ export const readContractVersions = Effect.fnUntraced(function* (
 			updates.push(update(order, retained, binding, first));
 	}
 	const source = yield* ownershipSource(
-		observed.identity,
-		ctx.configuration.branchNo,
+		observed.scope,
 		owners.map((owner) => `${owner.order}:${owner.agreement.seal_hash}`).sort()
 	);
 	const result = yield* snapshotPage(updates, cursor, source);
