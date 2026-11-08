@@ -834,6 +834,59 @@
 					"effective_range"
 				],
 				"limit": 1
+			},
+			"shift_definition": {
+				"where": {
+					"entity_id": {
+						"eq": {
+							"var": "ctx.entry.entity_id"
+						}
+					}
+				},
+				"fields": ["variant"],
+				"limit": 1000
+			},
+			"roster_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.subject.employment.employee_id"
+								}
+							}
+						}
+					},
+					"work_date": {
+						"gte": {
+							"var": "add_months(ctx.entry.days.0.date, -12)"
+						}
+					}
+				},
+				"fields": ["work_date", "shift_definition_id"],
+				"limit": 10000
+			},
+			"leave_catalog_entry": {
+				"where": {
+					"employment_id": {
+						"is": {
+							"employee_id": {
+								"eq": {
+									"var": "ctx.subject.employment.employee_id"
+								}
+							}
+						}
+					},
+					"catalog_id": {
+						"is": {
+							"code": {
+								"eq": "UNPAID_LEAVE"
+							}
+						}
+					}
+				},
+				"fields": ["days", "is_reversal", "reverses"],
+				"limit": 10000
 			}
 		},
 		"condition": "// js\nif (get(ctx.entry, 'reverses', null) != null) return false;\nreturn get(first(ctx.reads.leave_catalog), 'code', '') === 'PATERNITY_LEAVE';",
