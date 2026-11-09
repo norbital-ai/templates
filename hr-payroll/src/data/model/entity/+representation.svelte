@@ -5,6 +5,7 @@
 		EmptyState,
 		Field,
 		Form,
+		Icon,
 		openRecord,
 		RecordShell,
 		Sheet,
@@ -75,15 +76,18 @@
 	</Form>
 {/snippet}
 
-{#snippet versionsTab()}
+{#snippet versionsOnly()}
 	{#if record}
 		<Stack gap="sm">
-			<Cluster justify="end" gap="sm">
-				<Button variant="outline" onclick={() => (scheduling = true)}
-					>{t('entity.schedule_change')}</Button
-				>
-				<Button variant="outline" onclick={() => openRecord('entity_profile_version', 'new')}
-					>{t('employer_version.new')}</Button
+			<Cluster justify="between">
+				<h3 class="text-heading">{t('employer_version.plural')}</h3>
+				<Button
+					size="icon"
+					variant="outline"
+					aria-label={t('employer_version.new')}
+					title={t('employer_version.new')}
+					onclick={() => openRecord('entity_profile_version', 'new')}
+					><Icon name="lucide:plus" class="size-4" /></Button
 				>
 			</Cluster>
 			{#if versions?.loading}
@@ -97,14 +101,43 @@
 					onOpen={(id) => openRecord('entity_profile_version', id)}
 				/>
 			{/if}
-			<Table
-				of="entity_change"
-				key="entity-scheduled-changes"
-				where={{ entity_id: { eq: record.id }, applied_version_id: { isNull: true } }}
-				toolbar={{ new: false, title: t('section.scheduled_changes') }}
-				columns={['effective_from', 'field_path', 'new_value', 'notes']}
-			/>
 		</Stack>
+	{/if}
+{/snippet}
+
+{#snippet changesOnly()}
+	{#if record}
+		<Table
+			of="entity_change"
+			key="entity-scheduled-changes"
+			where={{ entity_id: { eq: record.id }, applied_version_id: { isNull: true } }}
+			toolbar={{
+				title: t('section.scheduled_changes'),
+				new: () => (scheduling = true)
+			}}
+			columns={['effective_from', 'field_path', 'new_value', 'notes']}
+		/>
+	{/if}
+{/snippet}
+
+{#snippet versionsTab()}
+	{#if record}
+		<Tabs
+			tabs={[
+				{
+					name: 'versions',
+					title: t('employer_version.plural'),
+					icon: 'lucide:history',
+					body: versionsOnly
+				},
+				{
+					name: 'changes',
+					title: t('section.scheduled_changes'),
+					icon: 'lucide:calendar-clock',
+					body: changesOnly
+				}
+			]}
+		/>
 	{/if}
 {/snippet}
 
