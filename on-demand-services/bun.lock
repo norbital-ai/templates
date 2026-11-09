@@ -5,16 +5,16 @@
     "": {
       "name": "@template/on-demand-services",
       "dependencies": {
-        "@norbital-ai/bolt": "0.0.21",
-        "@norbital-ai/std": "0.0.21",
-        "@norbital-ai/ui": "0.0.21",
+        "@norbital-ai/bolt": "0.0.23",
+        "@norbital-ai/std": "0.0.23",
+        "@norbital-ai/ui": "0.0.23",
         "effect": "4.0.6",
         "svelte": "5.57.3",
         "vite": "8.3.5",
       },
       "devDependencies": {
         "@effect/vitest": "4.0.6",
-        "@norbital-ai/bolt-cli": "0.0.21",
+        "@norbital-ai/bolt-cli": "0.0.23",
         "@sveltejs/vite-plugin-svelte": "7.3.1",
         "@types/node": "26.6.5",
         "@typescript/native": "npm:typescript@7.0.2",
@@ -124,15 +124,15 @@
 
     "@modelcontextprotocol/core": ["@modelcontextprotocol/core@2.4.0", "", { "dependencies": { "zod": "^4.2.0" } }, "sha512-z8QBKqdfXLPzkLQuG4xp8hrVEMm1PZ1IgxMN2sMbJiFiAKOWXnAzogXn2W4aqIBlP1ea6U5yiqVquvUNM1Cj6Q=="],
 
-    "@norbital-ai/bolt": ["@norbital-ai/bolt@0.0.21", "https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.21/1daed9162db4b2bc3e240bcd9a1c46b5845993b0", { "dependencies": { "@cfworker/json-schema": "4.1.1", "@effect/platform-node": "4.0.6", "@electric-sql/pglite": "^0.5.12", "@electric-sql/pglite-pgvector": "^0.0.13", "@iconify/svelte": "^5.2.3", "@jridgewell/trace-mapping": "^0.3.31", "@modelcontextprotocol/client": "2.4.0", "@norbital-ai/std": "0.0.21", "@norbital-ai/store": "0.0.21", "@norbital-ai/ui": "0.0.21", "@typescript/native": "npm:typescript@7.0.2", "exifr": "7.1.3", "fast-png": "8.0.0", "fflate": "0.8.3", "jpeg-js": "0.4.4", "libheif-js": "1.23.5", "pdq-wasm": "0.3.9", "rolldown": "1.2.15", "runed": "^0.38.0", "svelte2tsx": "0.7.62", "tailwindcss": "4.3.3", "typescript": "6.0.3" }, "peerDependencies": { "effect": "4.0.6", "svelte": "^5.0.0" } }, "sha512-4comwCR1fe+wMBTRdWHHFqH3tkYJ368whkBP5xI/KSS4F2GPHsh8eMTDmCI+yTCo3UzkLB1+gxuB+ARLHp2FVw=="],
+    "@norbital-ai/bolt": ["@norbital-ai/bolt@0.0.23", "https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.23/3b6a611d26c65d700c2591ae6c6f2f476be7f5f5", { "dependencies": { "@cfworker/json-schema": "4.1.1", "@effect/platform-node": "4.0.6", "@electric-sql/pglite": "^0.5.12", "@electric-sql/pglite-pgvector": "^0.0.13", "@iconify/svelte": "^5.2.3", "@jridgewell/trace-mapping": "^0.3.31", "@modelcontextprotocol/client": "2.4.0", "@norbital-ai/std": "0.0.23", "@norbital-ai/store": "0.0.23", "@norbital-ai/ui": "0.0.23", "@typescript/native": "npm:typescript@7.0.2", "exifr": "7.1.3", "fast-png": "8.0.0", "fflate": "0.8.3", "jpeg-js": "0.4.4", "libheif-js": "1.23.5", "pdq-wasm": "0.3.9", "rolldown": "1.2.15", "runed": "^0.38.0", "svelte2tsx": "0.7.62", "tailwindcss": "4.3.3", "typescript": "6.0.3" }, "peerDependencies": { "effect": "4.0.6", "svelte": "^5.0.0" } }, "sha512-It85gxWGs4HA8YorJ9Z3AI+JBNVsnpduAU8Iug1l50iyo3jQ9dymUsLchcU3bRZ8xYpxy5Ulk7q6k/Mi0B+2/w=="],
 
-    "@norbital-ai/bolt-cli": ["@norbital-ai/bolt-cli@0.0.21", "https://npm.pkg.github.com/download/@norbital-ai/bolt-cli/0.0.21/9df29cdaef2582ffacdc720d9dcc150671ab2bfe", { "dependencies": { "@effect/platform-node": "4.0.6", "@effect/vitest": "4.0.6", "@electric-sql/pglite": "^0.5.12", "@iconify-json/lucide": "1.2.147", "@iconify/svelte": "^5.2.3", "@norbital-ai/bolt": "0.0.21", "@norbital-ai/std": "0.0.21", "@norbital-ai/store": "0.0.21", "@norbital-ai/ui": "0.0.21", "@sveltejs/vite-plugin-svelte": "^7.3.1", "@tailwindcss/vite": "4.3.3", "tailwindcss": "4.3.3", "typescript": "6.0.3", "vite": "^8.3.5" }, "peerDependencies": { "effect": "4.0.6", "svelte": "^5.0.0" }, "bin": { "bolt": "build/cli/main.js" } }, "sha512-f+Y6AzZfQWVMEUIgagzw4oA0iWvAFaeedu8kt+dWgP4iz9qJ5hjStuHrh+QBypq8WoYJIaXhB4sb5hgW3uABjw=="],
+    "@norbital-ai/bolt-cli": ["@norbital-ai/bolt-cli@0.0.23", "https://npm.pkg.github.com/download/@norbital-ai/bolt-cli/0.0.23/6fc5a99186229fb9d73229232b2a053e4ae82186", { "dependencies": { "@effect/platform-node": "4.0.6", "@effect/vitest": "4.0.6", "@electric-sql/pglite": "^0.5.12", "@iconify-json/lucide": "1.2.147", "@iconify/svelte": "^5.2.3", "@norbital-ai/bolt": "0.0.23", "@norbital-ai/std": "0.0.23", "@norbital-ai/store": "0.0.23", "@norbital-ai/ui": "0.0.23", "@sveltejs/vite-plugin-svelte": "^7.3.1", "@tailwindcss/vite": "4.3.3", "tailwindcss": "4.3.3", "typescript": "6.0.3", "vite": "^8.3.5" }, "peerDependencies": { "effect": "4.0.6", "svelte": "^5.0.0" }, "bin": { "bolt": "build/cli/main.js" } }, "sha512-IntMTTRLXsoMiS42FXy9rYl9J2xX6PASr2ImNf6X6/mo/VWXs1foz06PLTmxz4T6ujEyT/7A0c8CNZzG+38BhQ=="],
 
-    "@norbital-ai/std": ["@norbital-ai/std@0.0.21", "https://npm.pkg.github.com/download/@norbital-ai/std/0.0.21/3b846f21892176acecddd87078fa9a601de87f21", { "dependencies": { "@marcbachmann/cel-js": "^8.0.0" }, "peerDependencies": { "effect": "4.0.6" } }, "sha512-0lVCOgu0RgIqwYOYKc4GzRFLgcArkuoVdjqUjcyRCu6RTNXU7TQ7xTABBNb+cQfnnsso/rZO3giBSzfsn8rK9g=="],
+    "@norbital-ai/std": ["@norbital-ai/std@0.0.23", "https://npm.pkg.github.com/download/@norbital-ai/std/0.0.23/aac937434c7a72eb0d9f9b22c1d6f9c071d1470a", { "dependencies": { "@marcbachmann/cel-js": "^8.0.0" }, "peerDependencies": { "effect": "4.0.6" } }, "sha512-SHsQhMsr4qz1K5uun8giqMSuD+y38HU/USSsEkfRqhCIj6J04Tjh8531PN1vYpXZOsWZm5Wi/RjaXruxjSJUQA=="],
 
-    "@norbital-ai/store": ["@norbital-ai/store@0.0.21", "https://npm.pkg.github.com/download/@norbital-ai/store/0.0.21/c50af0b660b2bfa8b87018485549ce572877ccd5", { "dependencies": { "@norbital-ai/std": "0.0.21", "fflate": "0.8.3" }, "peerDependencies": { "effect": "4.0.6" } }, "sha512-H3eZvlN3BC/0f8iawq0j12cZk/rd7znqEXuRbDtftXNz8khy3QJ2usuewA7UNxxjR+K9Q15/1z2DiWOaaMLR2A=="],
+    "@norbital-ai/store": ["@norbital-ai/store@0.0.23", "https://npm.pkg.github.com/download/@norbital-ai/store/0.0.23/68bc2ec687ea4c7c7553811cece18dcba102f1f9", { "dependencies": { "@norbital-ai/std": "0.0.23", "fflate": "0.8.3" }, "peerDependencies": { "effect": "4.0.6" } }, "sha512-095HIZbHvTIllUoG9vLdW1z0WmEgECOuG1MOslvB51ZUclvXafBQUA2TFIvFMw16RUJcrXC/F46afWRpMWExsw=="],
 
-    "@norbital-ai/ui": ["@norbital-ai/ui@0.0.21", "https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.21/5f89414ea0dc746519788f8d0cdcbadc32a384f2", { "dependencies": { "@codemirror/lang-javascript": "^6.2.5", "@codemirror/lang-json": "^6.0.2", "@codemirror/language": "^6.13.1", "@codemirror/state": "^6.7.6", "@codemirror/view": "^6.43.15", "@fontsource-variable/geist": "^5.3.0", "@fontsource-variable/geist-mono": "^5.3.0", "@iconify/svelte": "^5.2.3", "@internationalized/date": "^3.12.4", "@lezer/highlight": "^1.2.5", "@norbital-ai/std": "0.0.21", "@tailwindcss/typography": "^0.5.20", "bits-ui": "^2.20.2", "clsx": "^2.1.1", "codemirror": "^6.0.2", "d3-shape": "^3.2.0", "fflate": "0.8.3", "layerchart": "2.9.1", "leaflet": "1.9.4", "marked": "18.1.2", "qrcode": "^1.5.4", "runed": "^0.38.0", "tailwind-merge": "^3.7.0", "tailwind-variants": "^3.3.1", "tw-animate-css": "^1.4.0" }, "peerDependencies": { "effect": "4.0.6", "svelte": "^5.56.10" } }, "sha512-7IFsrjJhp6Wj48UMHk7dVbdMQoglPRKG2rlkPAzhbq347aeUBsno36VnsecnAT3qVgAjf9mEEwNe8oNPWNGeMA=="],
+    "@norbital-ai/ui": ["@norbital-ai/ui@0.0.23", "https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.23/26590650d3efdb57006418f71ad3f28260df80c8", { "dependencies": { "@codemirror/lang-javascript": "^6.2.5", "@codemirror/lang-json": "^6.0.2", "@codemirror/language": "^6.13.1", "@codemirror/state": "^6.7.6", "@codemirror/view": "^6.43.15", "@fontsource-variable/geist": "^5.3.0", "@fontsource-variable/geist-mono": "^5.3.0", "@iconify/svelte": "^5.2.3", "@internationalized/date": "^3.12.4", "@lezer/highlight": "^1.2.5", "@norbital-ai/std": "0.0.23", "@tailwindcss/typography": "^0.5.20", "bits-ui": "^2.20.2", "clsx": "^2.1.1", "codemirror": "^6.0.2", "d3-shape": "^3.2.0", "fflate": "0.8.3", "layerchart": "2.9.1", "leaflet": "1.9.4", "marked": "18.1.2", "qrcode": "^1.5.4", "runed": "^0.38.0", "tailwind-merge": "^3.7.0", "tailwind-variants": "^3.3.1", "tw-animate-css": "^1.4.0" }, "peerDependencies": { "effect": "4.0.6", "svelte": "^5.56.10" } }, "sha512-9k7k7ClVEqnxCBr77yweDv22pmgiEfJoYWsOF/tE9OXJ8iwHWQ6YF68nh0FhzgYypmSkSwYnKAR7m970SFa+CQ=="],
 
     "@oxc-project/types": ["@oxc-project/types@0.155.0", "", {}, "sha512-SeE8JPwW1xs1tHeNycjUtUBdhorRa8o4jlvjwk49R7/Z291i+4DQa7JJIgOm/TaYQZx+QrPQbVJ/9c8dMIZN8Q=="],
 
