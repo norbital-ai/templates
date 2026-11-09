@@ -32,7 +32,10 @@ const span = (start: string, hours: number) => ({
 	start: Instant(start),
 	end: Instant(new Date(Date.parse(start) + hours * HOUR).toISOString())
 });
-const entry = { work_date: '2027-05-03', planned_overtime_intervals: [span('2027-05-03T10:00:00.000Z', 2)] };
+const entry = {
+	work_date: '2027-05-03',
+	planned_overtime_intervals: [span('2027-05-03T10:00:00.000Z', 2)]
+};
 const sibling = (hours: number) => ({
 	work_date: '2027-01-05',
 	planned_overtime_intervals: hours === 0 ? [] : [span('2027-01-05T00:00:00.000Z', hours)]
@@ -50,7 +53,10 @@ const valid = (before: number, sector: boolean, versions = [employer(sector)]) =
 			lookup: rule.lookup ?? {},
 			entry,
 			subject: { employment: { entity_id: 'entity-1' } },
-			reads: { roster_entry: before === 0 ? [] : [sibling(before)], entity_profile_version: versions }
+			reads: {
+				roster_entry: before === 0 ? [] : [sibling(before)],
+				entity_profile_version: versions
+			}
 		},
 		rule.code
 	);

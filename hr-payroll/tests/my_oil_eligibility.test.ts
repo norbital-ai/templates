@@ -39,7 +39,10 @@ const leave = (t: Kit, source: ReturnType<typeof pack>, date: string) =>
 		leaveCreate({
 			entity_id: ENTITY,
 			employment_id: CONTRACT,
-			catalog_id: idOf('leave_catalog', catalogRow(source, 'leave_catalog', 'PUBLIC_HOLIDAY_IN_LIEU')),
+			catalog_id: idOf(
+				'leave_catalog',
+				catalogRow(source, 'leave_catalog', 'PUBLIC_HOLIDAY_IN_LIEU')
+			),
 			days: wholeDays(date)
 		})
 	]);
@@ -50,10 +53,7 @@ describe('a day in lieu of a rest-day holiday', () => {
 		assert.deepEqual([...six], [0]);
 		assert.deepEqual([...restDaySubstitutions(HOLIDAYS, six)], ['2026-06-08']);
 		const five = weeklyRestDays(5);
-		assert.deepEqual([...restDaySubstitutions(HOLIDAYS, five)], [
-			'2026-06-08',
-			'2026-06-15'
-		]);
+		assert.deepEqual([...restDaySubstitutions(HOLIDAYS, five)], ['2026-06-08', '2026-06-15']);
 		assert.equal(restDaySubstitutions(HOLIDAYS, weeklyRestDays(7)).size, 0);
 	});
 

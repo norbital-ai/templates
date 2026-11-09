@@ -5,7 +5,11 @@ import { readFileSync } from 'node:fs';
 import { describe, it } from '@effect/vitest';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 
-type Effect = { readonly code: string; readonly condition?: string; readonly lookup?: Record<string, unknown> };
+type Effect = {
+	readonly code: string;
+	readonly condition?: string;
+	readonly lookup?: Record<string, unknown>;
+};
 const effects = JSON.parse(
 	readFileSync(
 		new URL('../seed/public/jurisdiction/ID/version_3/registered_effect.json', import.meta.url),
@@ -49,7 +53,11 @@ const holds = (code: string, entry: object) =>
 	evaluate(
 		effectOf(code).condition!,
 		'CALCULATION',
-		{ lookup: effectOf(code).lookup ?? {}, entry, reads: { obligation: [], employee_contract: [] } },
+		{
+			lookup: effectOf(code).lookup ?? {},
+			entry,
+			reads: { obligation: [], employee_contract: [] }
+		},
 		code
 	);
 

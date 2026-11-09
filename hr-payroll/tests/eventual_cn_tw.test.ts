@@ -683,9 +683,7 @@ describe('a no-pay day', () => {
 				const t = yield* TestWorkspace;
 				yield* take(t, seed, code, whole('2026-06-10'));
 				yield* onCycle(t, '2026-06');
-				const late = yield* Effect.flip(
-					take(t, seed, code, whole('2026-06-11'))
-				);
+				const late = yield* Effect.flip(take(t, seed, code, whole('2026-06-11')));
 				assert.match(String(late), /already run/);
 			}).pipe(Effect.provide(workspace({ seed, now: JULY })))
 		);
@@ -790,9 +788,7 @@ describe('a no-pay day', () => {
 				const t = yield* TestWorkspace;
 				yield* take(t, seed, code, whole('2026-06-10'));
 				yield* onCycle(t, '2026-06');
-				const late = yield* Effect.flip(
-					take(t, seed, code, whole('2026-06-11'))
-				);
+				const late = yield* Effect.flip(take(t, seed, code, whole('2026-06-11')));
 				assert.match(String(late), /already run/);
 			}).pipe(Effect.provide(workspace({ seed, now: JULY })))
 		);

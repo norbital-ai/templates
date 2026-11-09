@@ -8,7 +8,11 @@ export default model('loan_catalog_entry_repayment', {
 	label: 'payment_reference',
 	fields: {
 		entity_id: { kind: 'ref', to: 'entity' },
-		employment_id: { kind: 'ref', to: 'employee_contract', inverse: 'loan_catalog_entry_repayment' },
+		employment_id: {
+			kind: 'ref',
+			to: 'employee_contract',
+			inverse: 'loan_catalog_entry_repayment'
+		},
 		loan_id: {
 			kind: 'ref',
 			to: 'loan_catalog_entry',
@@ -19,7 +23,12 @@ export default model('loan_catalog_entry_repayment', {
 		amount: { kind: 'decimal', scale: 12, min: 0 },
 		paid_on: { kind: 'date', optional: true },
 		payment_reference: { kind: 'text', optional: true },
-		reverses: { kind: 'ref', to: 'loan_catalog_entry_repayment', optional: true, onDelete: 'restrict' }
+		reverses: {
+			kind: 'ref',
+			to: 'loan_catalog_entry_repayment',
+			optional: true,
+			onDelete: 'restrict'
+		}
 	},
 	unique: [{ fields: ['reverses'] }],
 	locked: { payroll_run_id: { isNull: false } },
@@ -103,7 +112,10 @@ export default model('loan_catalog_entry_repayment', {
 			yield* tap(
 				ctx,
 				'update',
-				{ collection: 'loan_catalog_entry_repayment', ids: changes.map((change) => change.after.id) },
+				{
+					collection: 'loan_catalog_entry_repayment',
+					ids: changes.map((change) => change.after.id)
+				},
 				changes
 			);
 		}

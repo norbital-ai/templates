@@ -20,14 +20,21 @@ const terms = {
 	allowances: {}
 };
 const seed = pack('TW', 'Asia/Taipei', terms, {}, [], [], '2027-01-15');
-const CATALOG = idOf('work_event_catalog', catalogRow(seed, 'work_event_catalog', 'REDUCED_WORK_AGREEMENT'));
+const CATALOG = idOf(
+	'work_event_catalog',
+	catalogRow(seed, 'work_event_catalog', 'REDUCED_WORK_AGREEMENT')
+);
 const live = workspace({ seed, now: '2027-01-20T02:00:00.000Z' });
 const notices = (t: Kit) =>
-	t.storedQuery({ obligation: { limit: 100 } }).pipe(
-		Effect.map(({ obligation }) =>
-			obligation.rows.filter((row) => String(row.occurrence_key).startsWith('REDUCED_HOURS_NOTICE:'))
-		)
-	);
+	t
+		.storedQuery({ obligation: { limit: 100 } })
+		.pipe(
+			Effect.map(({ obligation }) =>
+				obligation.rows.filter((row) =>
+					String(row.occurrence_key).startsWith('REDUCED_HOURS_NOTICE:')
+				)
+			)
+		);
 const create = (t: Kit, to = '2027-01-31') =>
 	t.as(t.admin).act('work_event.create', [
 		{
@@ -51,9 +58,9 @@ describe('TW reduced-hours notice', () => {
 			assert.equal(first.length, 1);
 			assert.equal(String(first[0]?.due_on), '2027-01-04');
 			assert.equal(String(first[0]?.title), 'Reduced-hours agreement notified');
-			yield* t.as(t.admin).act('work_event.update', [
-				{ target: id, set: { to: PlainDate('2027-02-28') } }
-			]);
+			yield* t
+				.as(t.admin)
+				.act('work_event.update', [{ target: id, set: { to: PlainDate('2027-02-28') } }]);
 			yield* t.runDue();
 			const extended = yield* notices(t);
 			assert.equal(extended.length, 2);
@@ -61,18 +68,17 @@ describe('TW reduced-hours notice', () => {
 			assert.ok(second !== undefined);
 			assert.equal(String(second.due_on), '2027-02-01');
 			assert.equal(String(second.title), 'Reduced-hours agreement extension notified');
-			yield* t.as(t.admin).act('work_event.update', [
-				{ target: id, set: { description: 'Description only' } }
-			]);
+			yield* t
+				.as(t.admin)
+				.act('work_event.update', [{ target: id, set: { description: 'Description only' } }]);
 			yield* t.runDue();
 			assert.equal((yield* notices(t)).length, 2);
-			yield* t.as(t.admin).act('work_event.update', [
-				{ target: id, set: { to: PlainDate('2027-02-15') } }
-			]);
+			yield* t
+				.as(t.admin)
+				.act('work_event.update', [{ target: id, set: { to: PlainDate('2027-02-15') } }]);
 			yield* t.runDue();
 			assert.equal((yield* notices(t)).length, 2);
-		}).pipe(Effect.provide(live))
-	);
+		}).pipe(Effect.provide(live)));
 	it('keeps the full-time monthly minimum floor and insurance for the reduced month', () => {
 		const event = (seed.work_event_catalog ?? []).find(
 			(row) => row.code === 'REDUCED_WORK_AGREEMENT'

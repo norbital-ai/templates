@@ -68,7 +68,7 @@
 		}}
 	>
 		{#snippet children()}<Stack gap="md"
-								>{#each ['code', 'name', 'settings_code', 'epf_registered_on', 'socso_registered_on'] as name (name)}<Field
+				>{#each ['code', 'name', 'settings_code', 'epf_registered_on', 'socso_registered_on'] as name (name)}<Field
 						{name}
 					/>{/each}</Stack
 			>{/snippet}

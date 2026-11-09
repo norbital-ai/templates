@@ -21,9 +21,7 @@ export const assertInLieu = Effect.fn('ledger.assertInLieu')(function* (
 	if (inLieu.length === 0) return;
 	const dates = inLieu.flatMap((row) =>
 		(Array.isArray(row.days) ? row.days : []).flatMap((day) =>
-			day !== null && typeof day === 'object' && 'date' in day
-				? [String(day.date)]
-				: []
+			day !== null && typeof day === 'object' && 'date' in day ? [String(day.date)] : []
 		)
 	);
 	if (dates.length === 0) return;

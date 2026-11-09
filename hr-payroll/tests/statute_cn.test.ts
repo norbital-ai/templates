@@ -14,7 +14,19 @@ import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { payBasis } from '../src/lib/payroll_engine/engine.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, accountsIn, catalogRow, measureOf, pack, read, syncAll, uuid, wholeDays, workspace, leaveCreate } from './kit.ts';
+import {
+	ENTITY,
+	accountsIn,
+	catalogRow,
+	measureOf,
+	pack,
+	read,
+	syncAll,
+	uuid,
+	wholeDays,
+	workspace,
+	leaveCreate
+} from './kit.ts';
 
 const ROOT = 'seed/public/jurisdiction/CN';
 const file = (version: number, name: string) =>
@@ -568,13 +580,13 @@ describe('the only-child and high-temperature allowances', () => {
 				{
 					subject: {
 						employment: {
-								...(typeof extension.only_child === 'boolean'
-									? { only_child: extension.only_child }
-									: {}),
-								employee_extension_data: Object.fromEntries(
-									Object.entries(extension).filter(([key]) => key !== 'only_child')
-								)
-							},
+							...(typeof extension.only_child === 'boolean'
+								? { only_child: extension.only_child }
+								: {}),
+							employee_extension_data: Object.fromEntries(
+								Object.entries(extension).filter(([key]) => key !== 'only_child')
+							)
+						},
 						employer: { entity_extension_data: { region: 'SH' } }
 					},
 					lookup: objectValue(row.lookup),

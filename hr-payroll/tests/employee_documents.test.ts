@@ -5,7 +5,16 @@ import { describe, it } from '@effect/vitest';
 import { TestWorkspace } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, catalogRow, pack, syncAll, uuid, wholeDays, workspace, leaveCreate } from './kit.ts';
+import {
+	ENTITY,
+	catalogRow,
+	pack,
+	syncAll,
+	uuid,
+	wholeDays,
+	workspace,
+	leaveCreate
+} from './kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
 const PROFILE = idOf('employee_profile', uuid(4));

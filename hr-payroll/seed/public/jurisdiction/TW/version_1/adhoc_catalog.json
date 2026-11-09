@@ -24,12 +24,7 @@
 			"new_months_per_year": 0.5,
 			"new_cap_months": 6,
 			"old_months_per_year": 1,
-			"severance_grounds": [
-				"ARTICLE_11",
-				"ARTICLE_13_PROVISO",
-				"ARTICLE_14",
-				"ARTICLE_20"
-			]
+			"severance_grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20"]
 		},
 		"references": [
 			{
@@ -65,11 +60,7 @@
 					"days": 30
 				}
 			],
-			"notice_grounds": [
-				"ARTICLE_11",
-				"ARTICLE_13_PROVISO",
-				"ARTICLE_20"
-			]
+			"notice_grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_20"]
 		},
 		"references": [
 			{

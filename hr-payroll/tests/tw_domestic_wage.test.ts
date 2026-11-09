@@ -5,12 +5,21 @@ import { readFileSync } from 'node:fs';
 import { describe, it } from '@effect/vitest';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 
-type Rule = { readonly code: string; readonly validate?: string; readonly lookup?: Record<string, unknown> };
+type Rule = {
+	readonly code: string;
+	readonly validate?: string;
+	readonly lookup?: Record<string, unknown>;
+};
 const read = <T>(file: string): T =>
 	JSON.parse(
-		readFileSync(new URL(`../seed/public/jurisdiction/TW/version_5/${file}`, import.meta.url), 'utf8')
+		readFileSync(
+			new URL(`../seed/public/jurisdiction/TW/version_5/${file}`, import.meta.url),
+			'utf8'
+		)
 	) as T;
-const [settings] = read<readonly { lookup?: Record<string, unknown> }[]>('jurisdiction_settings.json');
+const [settings] = read<readonly { lookup?: Record<string, unknown> }[]>(
+	'jurisdiction_settings.json'
+);
 const ruleOf = (code: string) => {
 	const rule = read<readonly Rule[]>('registered_rule.json').find((row) => row.code === code);
 	assert.ok(rule?.validate !== undefined);
@@ -57,7 +66,10 @@ describe('TW domestic wage floor', () => {
 	it('part-time, non-monthly, pre-2022 and non-domestic contracts are outside it', () => {
 		assert.equal(valid(domestic, 'DOMESTIC_CAREGIVER', 'PART_TIME', 'MONTHLY', 10_000), true);
 		assert.equal(valid(domestic, 'DOMESTIC_CAREGIVER', 'EMPLOYEE', 'HOURLY', 100), true);
-		assert.equal(valid(domestic, 'DOMESTIC_CAREGIVER', 'EMPLOYEE', 'MONTHLY', 15_000, '2021-01-01'), true);
+		assert.equal(
+			valid(domestic, 'DOMESTIC_CAREGIVER', 'EMPLOYEE', 'MONTHLY', 15_000, '2021-01-01'),
+			true
+		);
 		assert.equal(valid(domestic, 'SHOP_ASSISTANT', 'EMPLOYEE', 'MONTHLY', 1), true);
 	});
 });

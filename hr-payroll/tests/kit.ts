@@ -242,11 +242,11 @@ export const pack = (
 					: day.hours === 0
 						? null
 						: [
-							{
-								start: instant(day.date, day.hours - (day.overtime ?? day.hours)),
-								end: instant(day.date, day.hours)
-							}
-						],
+								{
+									start: instant(day.date, day.hours - (day.overtime ?? day.hours)),
+									end: instant(day.date, day.hours)
+								}
+							],
 			findings: []
 		}))
 	};
@@ -375,12 +375,8 @@ export const sealEvents = (t: Kit, on: string, events: readonly JsonObject[], by
 					...event,
 					kind: String(event.kind ?? ''),
 					on: PlainDate(String(event.on ?? '')),
-					...(event.opened_on == null
-						? {}
-						: { opened_on: PlainDate(String(event.opened_on)) }),
-					...(event.ended_on == null
-						? {}
-						: { ended_on: PlainDate(String(event.ended_on)) })
+					...(event.opened_on == null ? {} : { opened_on: PlainDate(String(event.opened_on)) }),
+					...(event.ended_on == null ? {} : { ended_on: PlainDate(String(event.ended_on)) })
 				})),
 				service_started_on: held.service_started_on,
 				effective_range: { from: PlainDate(from), to: null },

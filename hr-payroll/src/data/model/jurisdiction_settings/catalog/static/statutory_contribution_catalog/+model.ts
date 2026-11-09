@@ -53,7 +53,7 @@ export default model('statutory_contribution_catalog', {
 		statutory_contribution_catalog: { fields: 'all' },
 		'statutory_contribution_catalog.settings_id': { fields: 'all' },
 		'statutory_contribution_catalog.subtotal_id': { fields: ['code', 'name'] },
-		'statutory_contribution_catalog.employer_cost_subtotal_id': { fields: ['code', 'name'] },
+		'statutory_contribution_catalog.employer_cost_subtotal_id': { fields: ['code', 'name'] }
 	},
 	create: {
 		columns: {

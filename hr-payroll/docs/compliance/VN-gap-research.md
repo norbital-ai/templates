@@ -8,28 +8,28 @@ No statutory figure below is invented. Figures used in test scenarios are fixtur
 
 ## Official sources
 
-| Instrument | Official URL | Articles used |
-| --- | --- | --- |
-| Labour Code 45/2019/QH14 | https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf (record: https://vanban.chinhphu.vn/?pageid=27160&docid=198540) | 90, 91, 107, 111, 112, 113, 114, 115, 137, 156 |
-| Decree 145/2020/NĐ-CP | https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2020/12/32732/33806-1-20201203-1204145-2020-nd-cp.pdf | 58, 59, 60, 61, 62, 66, 67 |
-| Decree 393/2026/NĐ-CP | https://vanban.chinhphu.vn/?pageid=27160&docid=220059 ; signed PDF: https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf | 9(8), 17(1), 21(3), 29(1), 30, 31, 32, 33, 34, 35 |
-| Decree 399/2026/NĐ-CP | https://vanban.chinhphu.vn/?pageid=27160&docid=220166 ; signed PDF: https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/11/399_2026_nd-cp_02112026_6-signed.signed.pdf | 3, 4 |
-| Decree 293/2025/NĐ-CP | https://vanban.chinhphu.vn/?pageid=27160&docid=215832 | 2026 minimum-wage table |
-| Law on Social Insurance 41/2024/QH15 | https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm | 31(3), 33(1)(b), 34(4)(a) |
-| Decree 158/2025/NĐ-CP | https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-158-2025-nd-cp-quy-dinh-ve-bao-hiem-xa-hoi-bat-buoc-119250629171336803.htm | 8(1)(a) |
+| Instrument                           | Official URL                                                                                                                                                         | Articles used                                     |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Labour Code 45/2019/QH14             | https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf (record: https://vanban.chinhphu.vn/?pageid=27160&docid=198540)    | 90, 91, 107, 111, 112, 113, 114, 115, 137, 156    |
+| Decree 145/2020/NĐ-CP                | https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2020/12/32732/33806-1-20201203-1204145-2020-nd-cp.pdf                                                                | 58, 59, 60, 61, 62, 66, 67                        |
+| Decree 393/2026/NĐ-CP                | https://vanban.chinhphu.vn/?pageid=27160&docid=220059 ; signed PDF: https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/10/393_2026_nd-cp_20102026-signed.signed.pdf   | 9(8), 17(1), 21(3), 29(1), 30, 31, 32, 33, 34, 35 |
+| Decree 399/2026/NĐ-CP                | https://vanban.chinhphu.vn/?pageid=27160&docid=220166 ; signed PDF: https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/11/399_2026_nd-cp_02112026_6-signed.signed.pdf | 3, 4                                              |
+| Decree 293/2025/NĐ-CP                | https://vanban.chinhphu.vn/?pageid=27160&docid=215832                                                                                                                | 2026 minimum-wage table                           |
+| Law on Social Insurance 41/2024/QH15 | https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm                                                            | 31(3), 33(1)(b), 34(4)(a)                         |
+| Decree 158/2025/NĐ-CP                | https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-158-2025-nd-cp-quy-dinh-ve-bao-hiem-xa-hoi-bat-buoc-119250629171336803.htm                                   | 8(1)(a)                                           |
 
 ## Summary
 
-| # | Gap | Decision |
-| --- | --- | --- |
-| 1 | `ENCASHMENT_PRIOR_WAGE_REVIEW` never fires | Only annual leave is encashable, only on termination/job loss. Do not set `can_encash`. Declare `encash_on_exit`, a payable conversion and a prior-month wage field; key the review off annual leave plus `encashment === true`. |
-| 2 | Pregnancy/infant consent has no fact | Per roster day, not per work event or contract attestation. Split pregnancy (no consent exception) from infant under 12 months (consent required). |
-| 3 | Two return obligations on one termination | One statutory act. Invalidation effect owns recorded grounds (permit or certificate); termination effect is the fallback only for a permit with no complete invalidation record. Shared key; use `work_authorisation_category`, not `pass_type`. |
-| 4 | Two prompts for route/extension count | Distinguish. Route is an onboarding fact; extension count is a renewal fact with a legal window. Narrow both conditions and titles. |
-| 5 | Annual overtime prose vs expression | The expression is the implementable truth: sum planned overtime intervals. `hours.year` does not exist and must be removed from the prose. |
-| 6 | `entity_profile_version[0]` | Select the sealed employer version covering the relevant date (contract start for contract rules, `work_date` for roster rules); fail closed if none. |
-| 7 | Contribution correction not closed-month gated | Required. Raise the fund follow-up only when the corrected month has a paid on-cycle run; otherwise the ordinary run absorbs it. |
-| 8 | Exit review sees every employee's combining agreement | Scope the read to the exiting employment and entity. The agreement is individual under art. 113(4). |
+| #   | Gap                                                   | Decision                                                                                                                                                                                                                                         |
+| --- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | `ENCASHMENT_PRIOR_WAGE_REVIEW` never fires            | Only annual leave is encashable, only on termination/job loss. Do not set `can_encash`. Declare `encash_on_exit`, a payable conversion and a prior-month wage field; key the review off annual leave plus `encashment === true`.                 |
+| 2   | Pregnancy/infant consent has no fact                  | Per roster day, not per work event or contract attestation. Split pregnancy (no consent exception) from infant under 12 months (consent required).                                                                                               |
+| 3   | Two return obligations on one termination             | One statutory act. Invalidation effect owns recorded grounds (permit or certificate); termination effect is the fallback only for a permit with no complete invalidation record. Shared key; use `work_authorisation_category`, not `pass_type`. |
+| 4   | Two prompts for route/extension count                 | Distinguish. Route is an onboarding fact; extension count is a renewal fact with a legal window. Narrow both conditions and titles.                                                                                                              |
+| 5   | Annual overtime prose vs expression                   | The expression is the implementable truth: sum planned overtime intervals. `hours.year` does not exist and must be removed from the prose.                                                                                                       |
+| 6   | `entity_profile_version[0]`                           | Select the sealed employer version covering the relevant date (contract start for contract rules, `work_date` for roster rules); fail closed if none.                                                                                            |
+| 7   | Contribution correction not closed-month gated        | Required. Raise the fund follow-up only when the corrected month has a paid on-cycle run; otherwise the ordinary run absorbs it.                                                                                                                 |
+| 8   | Exit review sees every employee's combining agreement | Scope the read to the exiting employment and entity. The agreement is individual under art. 113(4).                                                                                                                                              |
 
 ---
 

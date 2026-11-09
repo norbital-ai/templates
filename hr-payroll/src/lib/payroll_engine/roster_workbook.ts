@@ -124,7 +124,11 @@ type RawRow = {
 };
 
 /** A per-day consent row: all three columns go together, and a blank boolean is false. */
-type Consent = { readonly night_work: boolean; readonly overtime: boolean; readonly reference: string };
+type Consent = {
+	readonly night_work: boolean;
+	readonly overtime: boolean;
+	readonly reference: string;
+};
 const consentOf = (row: RawRow, problems: string[]): Consent | undefined => {
 	const night = cellText(row.consentNight);
 	const overtime = cellText(row.consentOvertime);
@@ -170,7 +174,17 @@ const sheetRows = (
 			cellText(consentReference) === ''
 		)
 			continue;
-		rows.push({ at: row.at, number, day, shift, first, last, consentNight, consentOvertime, consentReference });
+		rows.push({
+			at: row.at,
+			number,
+			day,
+			shift,
+			first,
+			last,
+			consentNight,
+			consentOvertime,
+			consentReference
+		});
 	}
 	raiseProblems(problems.map((problem) => `${table.name}: ${problem}`));
 	return rows;

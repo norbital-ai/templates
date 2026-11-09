@@ -223,25 +223,25 @@ A green automated suite is not acceptance evidence. A red probe is always a defe
 
 ### Employee profile and self-service
 
-| Probe | Expected |
-|---|---|
-| Employee profile tabs | Only Profile, Employment contract, Loans, Workplace cases and Entitlement and balances. No Leave, Payslips or Face enrolment tab. |
-| Entitlement and balances | The employee balance `account` is displayed raw, not wrapped in a table or a synthetic record representation. |
-| Face enrolment | Available from Profile, not a separate tab. |
-| Self-service leave request | The employment selector is hidden when the page already knows the employment; the catalog and calendar remain. |
+| Probe                      | Expected                                                                                                                          |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Employee profile tabs      | Only Profile, Employment contract, Loans, Workplace cases and Entitlement and balances. No Leave, Payslips or Face enrolment tab. |
+| Entitlement and balances   | The employee balance `account` is displayed raw, not wrapped in a table or a synthetic record representation.                     |
+| Face enrolment             | Available from Profile, not a separate tab.                                                                                       |
+| Self-service leave request | The employment selector is hidden when the page already knows the employment; the catalog and calendar remain.                    |
 
 ### Ledger, sealing and reversals
 
-| Probe | Expected |
-|---|---|
-| Sealed leave slot | A leave slot captured by a run cannot be edited or deleted. The entry refuses the change. |
-| Uncaptured leave slot | Removing a slot before a run posts the inverse ledger movement only; no pay line appears. |
-| Partially paid leave | A reversal names the original entry and only the captured subset. The ledger posts the inverse once; the next run repays only those days. |
-| No double reversal | A second reversal of the same slot is refused. A reversal outside the captured set is refused. |
-| Full leave cancellation | A reversal containing every captured slot returns the leave balance and pay to zero, once. |
-| Sealed loan repayment | A repayment captured by a run cannot be edited. There is no loan repayment reversal; corrections use the loan schedule's own route. |
-| Ledger conservation | Every posting has one inverse; no negative amount, no duplicate source, and the balance returns exactly after a full cancellation. |
-| Work event | An event never posts by itself; only the allowance/ad-hoc/leave row it qualifies posts. |
+| Probe                   | Expected                                                                                                                                  |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Sealed leave slot       | A leave slot captured by a run cannot be edited or deleted. The entry refuses the change.                                                 |
+| Uncaptured leave slot   | Removing a slot before a run posts the inverse ledger movement only; no pay line appears.                                                 |
+| Partially paid leave    | A reversal names the original entry and only the captured subset. The ledger posts the inverse once; the next run repays only those days. |
+| No double reversal      | A second reversal of the same slot is refused. A reversal outside the captured set is refused.                                            |
+| Full leave cancellation | A reversal containing every captured slot returns the leave balance and pay to zero, once.                                                |
+| Sealed loan repayment   | A repayment captured by a run cannot be edited. There is no loan repayment reversal; corrections use the loan schedule's own route.       |
+| Ledger conservation     | Every posting has one inverse; no negative amount, no duplicate source, and the balance returns exactly after a full cancellation.        |
+| Work event              | An event never posts by itself; only the allowance/ad-hoc/leave row it qualifies posts.                                                   |
 
 ### Roster and kiosk
 
@@ -275,6 +275,7 @@ A green automated suite is not acceptance evidence. A red probe is always a defe
 Run these against the local demo after `env status` says READY and the demo digest matches the current build.
 
 ### 7.1 Effects: exit encashment and final pay
+
 1. Pick a current employee with a positive annual-leave balance and `encash_on_exit.allowed`.
 2. End the contract (effective range `to`, `final_pay_due_on`) through the UI.
 3. Expect an encashment leave entry immediately, before any payroll run; quantity equals the remaining balance;
@@ -282,6 +283,7 @@ Run these against the local demo after `env status` says READY and the demo dige
 4. Record balance before, entry id, quantity, ledger movement, final net.
 
 ### 7.2 Ledger: reversal, deletion, addition
+
 1. Create a leave entry, run payroll, reverse one captured half-day.
 2. Expect exactly one inverse ledger row (same account/code/period, opposite operation), original row untouched,
    original slot still `payroll_run_id`.
@@ -291,6 +293,7 @@ Run these against the local demo after `env status` says READY and the demo dige
 5. Add a new entry after reversal: allowed, posts once, balance returns to the expected figure.
 
 ### 7.3 Mid-cycle changes
+
 1. Pay bump mid-month: change the rate for the next contract version; run the next cycle; expect the new rate from its
    effective date, statutory bands recomputed, YTD carried.
 2. Mid-month leaver: end the contract mid-month; expect prorated base pay, final statutory amounts, no later payslip.
@@ -299,17 +302,20 @@ Run these against the local demo after `env status` says READY and the demo dige
 4. For each, record the before/after wage, band, statutory amounts, leave balance and ledger rows.
 
 ### 7.4 Transfers
+
 1. Same jurisdiction: create a successor contract with no employment gap; expect leave and YTD to continue, no
    encashment.
 2. Transfer out: create a contract in another jurisdiction or end without a successor; expect leave settled by
    encashment, final pay, then a clean new balance under the new entity/version.
 
 ### 7.5 Allowance proration with unpaid leave
+
 1. Run a full-paid cycle and note each `prorate` allowance.
 2. Add NPL in the next cycle; expect allowance = agreed amount × paid share, exactly the base-pay share.
 3. Mix paid leave and NPL; paid leave must not reduce the allowance.
 
 ### 7.6 China prior employment
+
 1. Give a contract `prior_employment` rows for the same withholding agent with gross income, employee contributions,
    months and IIT withheld.
 2. Run the first CN payroll of the year; expect the cumulative taxable base and tax to include the prior rows and
@@ -317,6 +323,7 @@ Run these against the local demo after `env status` says READY and the demo dige
 3. Repeat with a different withholding agent: those rows must not enter the current agent's cumulative base.
 
 ### 7.7 Overtime day bands
+
 1. For each pattern (Mon–Fri rest Sat/Sun; Sun–Thu rest Fri/Sat; six-day week), create work entries on a workday,
    rest day, public holiday and a swapped rest day.
 2. Expect the multiplier band to follow the entry's day type and the statutory week, not a fixed weekday assumption.
@@ -324,8 +331,10 @@ Run these against the local demo after `env status` says READY and the demo dige
 4. Record hours, day type, multiplier, expected and actual line.
 
 ### 7.8 Holiday kept on Saturday, weekday in lieu
+
 A holiday the six-day staff keep on the Saturday after, and the five-day staff take on the weekday in lieu (seeded on
 Company C: [amount] Apr Araw ng Kagitingan is `ONLY_IF_OFF_ON_REPLACED_DATE`, replacing Saturday [amount] Apr, which is `EVERYONE`).
+
 1. Open the entity's holiday calendar: the Saturday row is the holiday for everyone; the weekday row names the Saturday
    it replaces and is given only to those off on it.
 2. Run the period with a six-day worker who works the weekday and a five-day worker who works it too.
@@ -337,6 +346,7 @@ Company C: [amount] Apr Araw ng Kagitingan is `ONLY_IF_OFF_ON_REPLACED_DATE`, re
 6. Record each person's day type on both dates, the holiday lines and the expected and actual amounts.
 
 ### 7.9 Public holiday in lieu
+
 1. Publish a public holiday on a Sunday and run the period with a five-day and a six-day worker; both may receive
    Monday as a day in lieu.
 2. Publish a public holiday on a Saturday; a five-day worker may receive Monday, a six-day worker may not.
@@ -345,6 +355,7 @@ Company C: [amount] Apr Araw ng Kagitingan is `ONLY_IF_OFF_ON_REPLACED_DATE`, re
 4. Record the employee's normal week, the holiday dates, the entry date and the refusal message.
 
 ### 7.10 UI
+
 1. Settings: all top-level tabs visible; `More` only for genuine overflow.
 2. Catalog: every row shows a description; row sheet has no Settings section.
 3. Event catalog pickers: only current-version codes, no duplicates.

@@ -200,13 +200,15 @@
 								<Icon name="lucide:info" class="size-3.5" />
 							</Popover.Trigger>
 							<Popover.Content align="start" class="max-w-sm space-y-1.5 text-xs">
-							<p><span class="font-medium">Code.</span> <span class="font-mono">{node.code}</span></p>
-							<p><span class="font-medium">Calculation.</span> {guide(node.code).how}</p>
-							<p>
-								<span class="font-medium">Can access.</span>
-								<span class="font-mono">{guide(node.code).access}</span>
-							</p>
-						</Popover.Content>
+								<p>
+									<span class="font-medium">Code.</span> <span class="font-mono">{node.code}</span>
+								</p>
+								<p><span class="font-medium">Calculation.</span> {guide(node.code).how}</p>
+								<p>
+									<span class="font-medium">Can access.</span>
+									<span class="font-mono">{guide(node.code).access}</span>
+								</p>
+							</Popover.Content>
 						</Popover.Root>
 						<span class="shrink-0 text-[10px] text-muted-foreground"
 							>{nodeDirection(node.code)}</span
@@ -240,19 +242,29 @@
 													<Icon name="lucide:info" class="size-3.5" />
 												</Popover.Trigger>
 												<Popover.Content align="start" class="max-w-md space-y-3 text-xs">
-														<div class="space-y-1">
-															<span class="text-xs font-medium text-muted-foreground">Eligibility</span>
-															{#if eligibilityOf(producer.row) !== ''}
-																<pre class="max-h-40 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code>{eligibilityOf(producer.row)}</code></pre>
-															{:else}
-																<p class="text-muted-foreground">Always eligible</p>
-															{/if}
-														</div>
-														<div class="space-y-1">
-															<span class="text-xs font-medium text-muted-foreground">Payroll amount</span>
-															<pre class="max-h-52 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code>{amountOf(producer.row, producer.model)}</code></pre>
-														</div>
-													</Popover.Content>
+													<div class="space-y-1">
+														<span class="text-xs font-medium text-muted-foreground"
+															>Eligibility</span
+														>
+														{#if eligibilityOf(producer.row) !== ''}
+															<pre
+																class="max-h-40 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code
+																	>{eligibilityOf(producer.row)}</code
+																></pre>
+														{:else}
+															<p class="text-muted-foreground">Always eligible</p>
+														{/if}
+													</div>
+													<div class="space-y-1">
+														<span class="text-xs font-medium text-muted-foreground"
+															>Payroll amount</span
+														>
+														<pre
+															class="max-h-52 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code
+																>{amountOf(producer.row, producer.model)}</code
+															></pre>
+													</div>
+												</Popover.Content>
 											</Popover.Root>
 											<span class="ml-auto shrink-0 text-[10px] text-muted-foreground">
 												{producer.model.replaceAll('_', ' ')}
@@ -287,20 +299,32 @@
 														</Popover.Trigger>
 														<Popover.Content align="start" class="max-w-md space-y-3 text-xs">
 															<div class="space-y-1">
-																<span class="text-xs font-medium text-muted-foreground">Eligibility</span>
+																<span class="text-xs font-medium text-muted-foreground"
+																	>Eligibility</span
+																>
 																{#if eligibilityOf(scheme) !== ''}
-																	<pre class="max-h-40 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code>{eligibilityOf(scheme)}</code></pre>
+																	<pre
+																		class="max-h-40 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code
+																			>{eligibilityOf(scheme)}</code
+																		></pre>
 																{:else}
 																	<p class="text-muted-foreground">Always eligible</p>
 																{/if}
 															</div>
 															<div class="space-y-1">
-																<span class="text-xs font-medium text-muted-foreground">Payroll amount</span>
-																<pre class="max-h-52 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code>{amountOf(scheme, 'statutory_contribution_catalog')}</code></pre>
+																<span class="text-xs font-medium text-muted-foreground"
+																	>Payroll amount</span
+																>
+																<pre
+																	class="max-h-52 overflow-auto rounded-md border bg-muted/40 p-2 text-[11px] leading-snug"><code
+																		>{amountOf(scheme, 'statutory_contribution_catalog')}</code
+																	></pre>
 															</div>
 														</Popover.Content>
 													</Popover.Root>
-													<span class="ml-auto shrink-0 text-[10px] text-muted-foreground">{scheme.kind}</span>
+													<span class="ml-auto shrink-0 text-[10px] text-muted-foreground"
+														>{scheme.kind}</span
+													>
 												</div>
 												{#if textOf(scheme.description) !== ''}
 													<p class="mt-0.5 text-[11px] leading-snug text-muted-foreground">

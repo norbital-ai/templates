@@ -18,7 +18,10 @@ type Row = {
 };
 const load = <T>(file: string): T =>
 	JSON.parse(
-		readFileSync(new URL(`../seed/public/jurisdiction/VN/version_7/${file}`, import.meta.url), 'utf8')
+		readFileSync(
+			new URL(`../seed/public/jurisdiction/VN/version_7/${file}`, import.meta.url),
+			'utf8'
+		)
 	) as T;
 const effects = load<readonly Row[]>('registered_effect.json');
 const rules = load<readonly Row[]>('registered_rule.json');
@@ -61,14 +64,28 @@ describe('VN contribution correction', () => {
 		assert.equal(condition(correctionContext('2027-01-15', closed)), true);
 		assert.equal(condition(correctionContext('2027-01-15', [])), false);
 		assert.equal(condition(correctionContext('2027-02-15', closed)), false);
-		assert.equal(condition(correctionContext('2027-01-15', closed, { reverses: 'original' })), false);
+		assert.equal(
+			condition(correctionContext('2027-01-15', closed, { reverses: 'original' })),
+			false
+		);
 		const noAccounts = { code: 'SI_ADJUSTMENT', lookup: { accounts: [] } };
-		assert.equal(condition(correctionContext('2027-01-15', closed, { catalog: noAccounts })), false);
+		assert.equal(
+			condition(correctionContext('2027-01-15', closed, { catalog: noAccounts })),
+			false
+		);
 	});
 	it('titles arrears and refunds with the catalogue code', () => {
 		const result = (row: object) =>
-			evaluate(correction!.effects!, 'CALCULATION', correctionContext('2027-01-15', closed, { catalog: row }), 'correction') as readonly { title: string }[];
-		assert.equal(result(siAdjustment)[0]?.title, 'Pay 1000000 in arrears to the fund: SI_ADJUSTMENT');
+			evaluate(
+				correction!.effects!,
+				'CALCULATION',
+				correctionContext('2027-01-15', closed, { catalog: row }),
+				'correction'
+			) as readonly { title: string }[];
+		assert.equal(
+			result(siAdjustment)[0]?.title,
+			'Pay 1000000 in arrears to the fund: SI_ADJUSTMENT'
+		);
 		assert.equal(result(siRefund)[0]?.title, 'Claim 1000000 back from the fund: SI_REFUND');
 	});
 });
@@ -107,7 +124,10 @@ describe('VN annual-service exit review', () => {
 		const own = [agreement('employment-a', '2027-01-01', '2027-12-31')];
 		assert.equal(validate(contract(review), own), false);
 		assert.equal(
-			validate(contract({ ...review, carry_previous_year_days: 2, carry_second_previous_year_days: 1 }), own),
+			validate(
+				contract({ ...review, carry_previous_year_days: 2, carry_second_previous_year_days: 1 }),
+				own
+			),
 			true
 		);
 	});

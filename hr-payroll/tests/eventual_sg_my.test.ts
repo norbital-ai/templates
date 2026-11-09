@@ -8,7 +8,17 @@ import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
 import type { Accounts } from '../src/lib/ledger/core.ts';
-import { ENTITY, accountsIn, pack, sealedAdhoc, sealedLeave, uuid, workspace, leaveCreate, reversalSlots } from './kit.ts';
+import {
+	ENTITY,
+	accountsIn,
+	pack,
+	sealedAdhoc,
+	sealedLeave,
+	uuid,
+	workspace,
+	leaveCreate,
+	reversalSlots
+} from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const JUNE = '2026-06-20T02:00:00.000Z';

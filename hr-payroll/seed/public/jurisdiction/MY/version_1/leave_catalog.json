@@ -49,9 +49,7 @@
 			"maternity_allowance": true,
 			"eligibility": {
 				"gender": "FEMALE",
-				"excluded_employment_types": [
-					"DOMESTIC"
-				],
+				"excluded_employment_types": ["DOMESTIC"],
 				"max_surviving_natural_children": 4,
 				"qualifying_service_days": 90,
 				"qualifying_window_months": 9
@@ -86,9 +84,7 @@
 			},
 			"eligibility": {
 				"gender": "FEMALE",
-				"excluded_employment_types": [
-					"DOMESTIC"
-				],
+				"excluded_employment_types": ["DOMESTIC"],
 				"max_surviving_natural_children": 4,
 				"qualifying_service_days": 90,
 				"qualifying_window_months": 9
@@ -115,9 +111,7 @@
 			"window": "CALENDAR_YEAR",
 			"grant_days": 60,
 			"eligibility": {
-				"excluded_employment_types": [
-					"DOMESTIC"
-				]
+				"excluded_employment_types": ["DOMESTIC"]
 			},
 			"entitlement": "// js\n// EA First Schedule para 2(5): s.60F does not apply to a domestic employee.\n// EA s.60F(1)(bb): sixty days in the aggregate in each calendar year.\nconst employment = ctx.subject.employment;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nreturn ctx.lookup.grant_days;"
 		},
@@ -167,9 +161,7 @@
 				}
 			],
 			"eligibility": {
-				"excluded_employment_types": [
-					"DOMESTIC"
-				]
+				"excluded_employment_types": ["DOMESTIC"]
 			},
 			"entitlement": "// js\n// EA First Schedule para 2(5): s.60F does not apply to a domestic employee.\n// EA s.60F(1)(aa); Employment (Part-Time Employees) Regulations 2010 reg.8(1): the days for the length of service.\nconst employment = ctx.subject.employment;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? ctx.lookup.part_time_service_bands : ctx.lookup.service_bands;\nconst months = calendar_completed_months(get(employment, 'service_started_on', get(employment, 'effective_range.from')), ctx.as_of);\nreturn get(bands.filter((band) => band.service_months <= months).at(-1), 'days', 0);"
 		},
@@ -232,14 +224,10 @@
 			"service_unpaid_leave_ignored_after_days": 30,
 			"encash_on_exit": {
 				"allowed": true,
-				"refused_on": [
-					"MISCONDUCT_DISMISSAL"
-				]
+				"refused_on": ["MISCONDUCT_DISMISSAL"]
 			},
 			"eligibility": {
-				"excluded_employment_types": [
-					"DOMESTIC"
-				]
+				"excluded_employment_types": ["DOMESTIC"]
 			},
 			"entitlement": "// js\n// EA First Schedule para 2(5): s.60E does not apply to a domestic employee.\n// EA s.60E(1); Employment (Part-Time Employees) Regulations 2010 reg.7(1): the days for the length of service, a share by completed months before the first band.\nconst employment = ctx.subject.employment;\nif (ctx.lookup.eligibility.excluded_employment_types.includes(get(employment, 'terms.statutory_work_category', ''))) return 0;\nconst bands = get(employment, 'engagement', '') === 'PART_TIME' ? ctx.lookup.part_time_service_bands : ctx.lookup.service_bands;\nconst months = calendar_completed_months(get(employment, 'service_started_on', get(employment, 'effective_range.from')), ctx.as_of);\nconst [opening] = bands;\nif (months < opening.service_months) return Math.round((opening.days * months) / opening.service_months);\nreturn bands.filter((band) => band.service_months <= months).at(-1).days;"
 		},
@@ -285,9 +273,7 @@
 			"eligibility": {
 				"gender": "MALE",
 				"marital_status": "MARRIED",
-				"excluded_employment_types": [
-					"DOMESTIC"
-				],
+				"excluded_employment_types": ["DOMESTIC"],
 				"min_service_months": 12,
 				"max_lifetime_confinements": 5
 			},

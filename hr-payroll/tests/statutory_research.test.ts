@@ -39,7 +39,7 @@ const law = (code: string) => {
 				business_day: 'PREVIOUS',
 				non_working_weekdays: [0, 6],
 				short_month: 'LAST_DAY',
-					pay_cutoff_day: 1,
+				pay_cutoff_day: 1,
 				pay_days: [25]
 			}
 		}

@@ -44,9 +44,7 @@
 			({ effective_range: { from, to } }) => from <= today && (to === null || today <= to)
 		)
 	);
-	const schedule = $derived(
-		jsonObject(known?.current?.entity.rows[0]?.payment_schedule ?? {})
-	);
+	const schedule = $derived(jsonObject(known?.current?.entity.rows[0]?.payment_schedule ?? {}));
 	const runs = $derived(known?.current?.payroll_run.rows ?? []);
 	/** An earlier cycle would rewrite the year to date of runs already made. */
 	const latest = $derived(runs.map((run) => run.period).reduce((a, b) => (a > b ? a : b), ''));

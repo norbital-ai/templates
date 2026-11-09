@@ -130,7 +130,10 @@ const assertTerms = (
 	rows: readonly { readonly terms?: unknown; readonly input_schema_version_id?: unknown }[],
 	lookups: ReadonlyMap<string, unknown>
 ): string | null => {
-	const first = (lookup: Readonly<Record<string, unknown>>, names: readonly string[]): number | null => {
+	const first = (
+		lookup: Readonly<Record<string, unknown>>,
+		names: readonly string[]
+	): number | null => {
 		for (const name of names) {
 			const value = lookup[name];
 			const number = numberOf(value);
@@ -154,15 +157,34 @@ const assertTerms = (
 			first({ ...lookup, ...limits }, names) ?? first(limits, names);
 		const day = numberOf(terms.normal_hours_per_day);
 		if (day !== null) {
-			const min = limit(['normal_hours_per_day_minimum', 'minimum_daily_hours', 'hours_per_day_minimum', 'normal_hours_per_day_min']);
-			const max = limit(['normal_hours_per_day_maximum', 'maximum_daily_hours', 'daily_hours', 'normal_hours_per_day_max', 'hours_per_day_maximum']);
+			const min = limit([
+				'normal_hours_per_day_minimum',
+				'minimum_daily_hours',
+				'hours_per_day_minimum',
+				'normal_hours_per_day_min'
+			]);
+			const max = limit([
+				'normal_hours_per_day_maximum',
+				'maximum_daily_hours',
+				'daily_hours',
+				'normal_hours_per_day_max',
+				'hours_per_day_maximum'
+			]);
 			if (!(day > 0) || (min !== null && day < min) || (max !== null && day > max))
 				return 'The normal hours a day must be within the jurisdiction’s contract limits.';
 		}
 		const week = numberOf(terms.normal_hours_per_week);
 		if (week !== null) {
-			const min = limit(['normal_hours_per_week_minimum', 'hours_per_week_minimum', 'normal_hours_per_week_min']);
-			const max = limit(['normal_hours_per_week_maximum', 'weekly_hours', 'normal_hours_per_week_max']);
+			const min = limit([
+				'normal_hours_per_week_minimum',
+				'hours_per_week_minimum',
+				'normal_hours_per_week_min'
+			]);
+			const max = limit([
+				'normal_hours_per_week_maximum',
+				'weekly_hours',
+				'normal_hours_per_week_max'
+			]);
 			if (!(week > 0) || (min !== null && week < min) || (max !== null && week > max))
 				return 'The normal hours a week must be within the jurisdiction’s contract limits.';
 		}

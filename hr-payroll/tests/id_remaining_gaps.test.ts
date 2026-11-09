@@ -101,9 +101,11 @@ describe('ID remaining contract and case gates', () => {
 			'key'
 		);
 		assert.equal(
-			wlkpHolds('2027-02-01', [profile(null)], [
-				{ occurrence_key: key, state: 'FULFILLED', fulfilled_on: '2026-02-01' }
-			]),
+			wlkpHolds(
+				'2027-02-01',
+				[profile(null)],
+				[{ occurrence_key: key, state: 'FULFILLED', fulfilled_on: '2026-02-01' }]
+			),
 			true
 		);
 	});

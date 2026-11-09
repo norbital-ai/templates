@@ -127,7 +127,6 @@
 	}
 </script>
 
-
 {#snippet requests()}{#if scope.id !== null}<Table
 			of="leave_catalog_entry"
 			key="leave-requests"
@@ -191,16 +190,16 @@
 		><LeaveEntryForm allowReversal entityId={scope.id} onDone={() => (creating = false)} /></Sheet
 	>{/if}
 {#if reversingRow !== null && scope.id !== null}{#key reversingRow.id}<Sheet
-		open
-		onOpenChange={(open) => !open && (reversingRow = null)}
-		title="Reverse leave"
-		><LeaveEntryForm
-			allowReversal
-			entityId={scope.id}
-			employmentId={reversingRow.employment_id}
-			catalogId={reversingRow.catalog_id}
-			encashment={reversingRow.encashment}
-			reverses={reversingRow.id}
-			onDone={() => (reversingRow = null)}
-		/></Sheet
-	>{/key}{/if}
+			open
+			onOpenChange={(open) => !open && (reversingRow = null)}
+			title="Reverse leave"
+			><LeaveEntryForm
+				allowReversal
+				entityId={scope.id}
+				employmentId={reversingRow.employment_id}
+				catalogId={reversingRow.catalog_id}
+				encashment={reversingRow.encashment}
+				reverses={reversingRow.id}
+				onDone={() => (reversingRow = null)}
+			/></Sheet
+		>{/key}{/if}

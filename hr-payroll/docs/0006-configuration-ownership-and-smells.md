@@ -171,7 +171,6 @@ field.
 `leave_catalog_entry_day` and `loan_catalog_entry_repayment` are the two split children; `payroll_run_id` lives on the
 child, never on the catalog or the entry.
 
-
 - ~~Partially sealed entries.~~ Leave now uses `leave_catalog_entry_day`; a run seals each day, the entry remains editable
   for uncaptured days, and a reversal names a subset of captured days. Loan repayments keep the whole-child lock and no
   reversal. The ledger posts the inverse once.

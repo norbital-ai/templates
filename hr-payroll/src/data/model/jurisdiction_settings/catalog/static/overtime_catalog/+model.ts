@@ -41,7 +41,7 @@ export default model('overtime_catalog', {
 	read: {
 		overtime_catalog: { fields: 'all' },
 		'overtime_catalog.settings_id': { fields: 'all' },
-		'overtime_catalog.subtotal_id': { fields: ['code', 'name'] },
+		'overtime_catalog.subtotal_id': { fields: ['code', 'name'] }
 	},
 	create: {
 		columns: {

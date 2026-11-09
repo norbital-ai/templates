@@ -100,8 +100,7 @@ export default model('entity_change', {
 			const openOf = (entity: unknown) =>
 				versions.find(
 					(row) =>
-						String(row.entity_id) === String(entity) &&
-						objectValue(row.effective_range).to == null
+						String(row.entity_id) === String(entity) && objectValue(row.effective_range).to == null
 				);
 			if (rows.some((row) => openOf(row.entity_id) === undefined))
 				return yield* ctx.refuse('No open employer version to change.');
@@ -126,16 +125,11 @@ export default model('entity_change', {
 			const materializing = ctx.policies.includes('payroll_execution');
 			if (changes.some(({ set }) => set.applied_version_id !== undefined) && !materializing)
 				return yield* ctx.refuse('Only the seal applies a change.');
-			if (
-				changes.some(
-					({ set }) => set.field_path != null && !entityChangeable(set.field_path)
-				)
-			)
+			if (changes.some(({ set }) => set.field_path != null && !entityChangeable(set.field_path)))
 				return yield* ctx.refuse(REFUSED.field_path, { field: 'field_path' });
 			if (
 				changes.some(
-					({ set }) =>
-						set.effective_from != null && !scheduled(set.effective_from, ctx.today)
+					({ set }) => set.effective_from != null && !scheduled(set.effective_from, ctx.today)
 				)
 			)
 				return yield* ctx.refuse(REFUSED.effective_from, { field: 'effective_from' });

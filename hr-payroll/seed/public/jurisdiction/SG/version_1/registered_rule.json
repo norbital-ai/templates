@@ -3,10 +3,7 @@
 		"code": "ROSTER_DAILY_12_HOURS",
 		"description": "Refuse a roster day longer than 12 hours for a Part 4 employee within the salary ceiling.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"order": 13,
 		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nif (!get(ctx.lookup, 'statutory_work_categories', []).includes(category)) return false;\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nif (!(Number(get(terms, 'rate.amount', 0)) <= ceiling)) return false;\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nif (engagements === null) return true;\nreturn engagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', ''));",
 		"validate": "const intervals = get(ctx.entry, 'actual_worked_intervals', []);\nreturn interval_minutes(intervals) <= ctx.lookup.roster_warnings.daily_hours * 60;",
@@ -18,17 +15,8 @@
 				"consecutive_days": 6,
 				"weekly_rest_days": 1
 			},
-			"statutory_work_categories": [
-				"NON_MANUAL",
-				"MANUAL_LABOUR",
-				"MANUAL_LABOUR_SUPERVISOR"
-			],
-			"covered_engagements": [
-				"EMPLOYEE",
-				"PART_TIME",
-				"INTERN",
-				"APPRENTICE"
-			],
+			"statutory_work_categories": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
+			"covered_engagements": ["EMPLOYEE", "PART_TIME", "INTERN", "APPRENTICE"],
 			"manual_monthly_ceiling": 4500,
 			"nonmanual_monthly_ceiling": 2600
 		},
@@ -46,27 +34,15 @@
 		"code": "ROSTER_CONSECUTIVE_HOURS",
 		"description": "Refuse more than 6 consecutive hours without a 45-minute meal break.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"order": 14,
 		"condition": "const terms = get(get(ctx, 'subject', {}), 'employment.terms', {});\nconst category = get(terms, 'statutory_work_category', '');\nif (!get(ctx.lookup, 'statutory_work_categories', []).includes(category)) return false;\nconst ceiling =\n\tcategory === 'NON_MANUAL'\n\t\t? get(ctx.lookup, 'nonmanual_monthly_ceiling', 0)\n\t\t: get(ctx.lookup, 'manual_monthly_ceiling', 0);\nif (!(Number(get(terms, 'rate.amount', 0)) <= ceiling)) return false;\nconst engagements = get(ctx.lookup, 'covered_engagements', null);\nif (engagements === null) return true;\nreturn engagements.includes(get(get(ctx, 'subject', {}), 'employment.engagement', ''));",
 		"validate": "const intervals = get(ctx.entry, 'actual_worked_intervals', []);\nreturn intervals.every(\n\t(interval) =>\n\t\telapsed_minutes(interval.start, interval.end) <=\n\t\t\tget(ctx.lookup, 'consecutive_hours', 6) * 60 ||\n\t\tsum(\n\t\t\tget(interval, 'breaks', []).map((pause) => elapsed_minutes(pause.start, pause.end))\n\t\t) >=\n\t\t\tget(ctx.lookup, 'meal_break_minutes', 45)\n);",
 		"lookup": {
 			"consecutive_hours": 6,
 			"meal_break_minutes": 45,
-			"statutory_work_categories": [
-				"NON_MANUAL",
-				"MANUAL_LABOUR",
-				"MANUAL_LABOUR_SUPERVISOR"
-			],
-			"covered_engagements": [
-				"EMPLOYEE",
-				"PART_TIME",
-				"INTERN",
-				"APPRENTICE"
-			],
+			"statutory_work_categories": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"],
+			"covered_engagements": ["EMPLOYEE", "PART_TIME", "INTERN", "APPRENTICE"],
 			"manual_monthly_ceiling": 4500,
 			"nonmanual_monthly_ceiling": 2600
 		},
@@ -84,19 +60,13 @@
 		"code": "ROSTER_YOUNG_NIGHT_WORK",
 		"description": "Refuse night work between 23:00 and 06:00 for a manual worker under 16.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"order": 16,
 		"condition": "const born = get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', null);\nconst date = get(ctx.entry, 'work_date', null);\nif (born === null || date === null) return false;\nconst manual = get(ctx.lookup, 'manual_categories', []).includes(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'statutory_work_category', '')\n);\nreturn manual && age_on(String(born), String(date)) < get(ctx.lookup, 'young_age', 16);",
 		"validate": "const intervals = get(ctx.entry, 'actual_worked_intervals', []);\nreturn (\n\tclock_window_minutes(\n\t\tintervals,\n\t\tget(ctx.subject.employer, 'time_zone', 'Asia/Singapore'),\n\t\t'23:00',\n\t\t'06:00'\n\t) === 0\n);",
 		"lookup": {
 			"young_age": 16,
-			"manual_categories": [
-				"MANUAL_LABOUR",
-				"MANUAL_LABOUR_SUPERVISOR"
-			]
+			"manual_categories": ["MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"]
 		},
 		"references": [
 			{
@@ -112,10 +82,7 @@
 		"code": "ROSTER_YOUNG_DAILY_HOURS",
 		"description": "Refuse more than 6 hours a day for a child under 15, or 7 hours for a young person under 16.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"order": 17,
 		"condition": "const born = get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', null);\nconst date = get(ctx.entry, 'work_date', null);\nif (born === null || date === null) return false;\nconst manual = get(ctx.lookup, 'manual_categories', []).includes(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'statutory_work_category', '')\n);\nreturn manual && age_on(String(born), String(date)) < get(ctx.lookup, 'young_age', 16);",
 		"validate": "const elapsed =\n\tinterval_minutes(get(ctx.entry, 'actual_worked_intervals', [])) / 60;\nconst born = String(get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', ''));\nconst date = String(get(ctx.entry, 'work_date', ''));\nif (born === '' || date === '') return true;\nconst age = age_on(born, date);\nconst limit =\n\tage < get(ctx.lookup, 'child_age', 15)\n\t\t? get(ctx.lookup, 'child_hours', 6)\n\t\t: get(ctx.lookup, 'young_hours', 7);\nreturn elapsed <= limit;",
@@ -124,10 +91,7 @@
 			"child_age": 15,
 			"child_hours": 6,
 			"young_hours": 7,
-			"manual_categories": [
-				"MANUAL_LABOUR",
-				"MANUAL_LABOUR_SUPERVISOR"
-			]
+			"manual_categories": ["MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"]
 		},
 		"references": [
 			{
@@ -143,10 +107,7 @@
 		"code": "ROSTER_YOUNG_REST_DAY",
 		"description": "Refuse work on a rest day by a manual worker under 16 unless the Commissioner permits it.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"order": 18,
 		"reads": {
 			"shift_definition": {
@@ -155,9 +116,7 @@
 						"eq": "ctx.entry.shift_definition_id"
 					}
 				},
-				"fields": [
-					"variant"
-				],
+				"fields": ["variant"],
 				"limit": 1
 			},
 			"workplace_case_catalog_entry": {
@@ -176,10 +135,7 @@
 						}
 					}
 				},
-				"fields": [
-					"opened_on",
-					"closed_on"
-				],
+				"fields": ["opened_on", "closed_on"],
 				"limit": 100
 			}
 		},
@@ -187,10 +143,7 @@
 		"validate": "const on = String(ctx.entry.work_date);\nreturn (ctx.reads.workplace_case_catalog_entry ?? []).some(\n\t(row) => String(row.opened_on) <= on && (row.closed_on == null || String(row.closed_on) >= on)\n);",
 		"lookup": {
 			"young_age": 16,
-			"manual_categories": [
-				"MANUAL_LABOUR",
-				"MANUAL_LABOUR_SUPERVISOR"
-			]
+			"manual_categories": ["MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"]
 		},
 		"references": [
 			{
@@ -206,10 +159,7 @@
 		"code": "ROSTER_YOUNG_BREAK",
 		"description": "Refuse a continuous stretch over 3 hours for a child under 15, or 4 hours for a young person under 16, without a 30-minute break.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"order": 19,
 		"condition": "const born = get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', null);\nconst date = get(ctx.entry, 'work_date', null);\nif (born === null || date === null) return false;\nconst manual = get(ctx.lookup, 'manual_categories', []).includes(\n\tget(get(get(ctx, 'subject', {}), 'employment.terms', {}), 'statutory_work_category', '')\n);\nreturn manual && age_on(String(born), String(date)) < get(ctx.lookup, 'young_age', 16);",
 		"validate": "const born = String(get(get(ctx, 'subject', {}), 'employment.payroll.date_of_birth', ''));\nconst date = String(get(ctx.entry, 'work_date', ''));\nif (born === '' || date === '') return true;\nconst age = age_on(born, date);\nconst limit =\n\tage < get(ctx.lookup, 'child_age', 15)\n\t\t? get(ctx.lookup, 'child_continuous_hours', 3)\n\t\t: get(ctx.lookup, 'young_continuous_hours', 4);\nreturn get(ctx.entry, 'actual_worked_intervals', []).every(\n\t(interval) =>\n\t\telapsed_minutes(interval.start, interval.end) <= limit * 60 ||\n\t\tsum(\n\t\t\tget(interval, 'breaks', []).map((pause) => elapsed_minutes(pause.start, pause.end))\n\t\t) >=\n\t\t\tget(ctx.lookup, 'break_minutes', 30)\n);",
@@ -219,10 +169,7 @@
 			"child_continuous_hours": 3,
 			"young_continuous_hours": 4,
 			"break_minutes": 30,
-			"manual_categories": [
-				"MANUAL_LABOUR",
-				"MANUAL_LABOUR_SUPERVISOR"
-			]
+			"manual_categories": ["MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"]
 		},
 		"references": [
 			{
@@ -238,34 +185,14 @@
 		"code": "CONTRACT_CATEGORIES",
 		"description": "Refuse a residency, work pass or work classification outside the Singapore categories the version declares.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"order": 36,
 		"validate": "const terms = get(ctx.entry, 'terms', {});\nif (!get(ctx.lookup, 'residency_statuses', []).includes(get(terms, 'residency_status', ''))) return false;\nconst pass = get(terms, 'work_authorisation_category', '');\nif (pass !== '' && !get(ctx.lookup, 'work_pass_categories', []).includes(pass)) return false;\nconst classification = get(terms, 'work_classification', '');\nif (!(classification === '' || get(ctx.lookup, 'work_classifications', []).includes(classification))) return false;\nconst category = get(terms, 'statutory_work_category', '');\nreturn category === '' || get(ctx.lookup, 'statutory_work_categories', []).includes(category);",
 		"lookup": {
-			"residency_statuses": [
-				"CITIZEN",
-				"PERMANENT_RESIDENT",
-				"FOREIGNER"
-			],
-			"work_classifications": [
-				"EA_COVERED",
-				"NON_EA",
-				"ORDINARY",
-				"MANAGERIAL"
-			],
-			"work_pass_categories": [
-				"WORK_PERMIT",
-				"S_PASS",
-				"EMPLOYMENT_PASS"
-			],
-			"statutory_work_categories": [
-				"NON_MANUAL",
-				"MANUAL_LABOUR",
-				"MANUAL_LABOUR_SUPERVISOR"
-			]
+			"residency_statuses": ["CITIZEN", "PERMANENT_RESIDENT", "FOREIGNER"],
+			"work_classifications": ["EA_COVERED", "NON_EA", "ORDINARY", "MANAGERIAL"],
+			"work_pass_categories": ["WORK_PERMIT", "S_PASS", "EMPLOYMENT_PASS"],
+			"statutory_work_categories": ["NON_MANUAL", "MANUAL_LABOUR", "MANUAL_LABOUR_SUPERVISOR"]
 		},
 		"id": "788723a7-55e2-541e-acef-49764784a2a0",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
@@ -274,10 +201,7 @@
 		"code": "RESIDENCY_SINCE_REQUIRED",
 		"description": "Require the permanent-residence start date so the CPF graduated rates can be chosen.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"order": 37,
 		"validate": "const terms = get(ctx.entry, 'terms', {});\nreturn (\n\tget(terms, 'residency_status', '') !== 'PERMANENT_RESIDENT' ||\n\tget(get(ctx.entry, 'employee_extension_data', {}), 'residency_since', '') !== ''\n);",
 		"lookup": {},
@@ -288,10 +212,7 @@
 		"code": "SHARED_STRUCTURED_EMPLOYEE_INPUTS",
 		"description": "Refuse contract hours and days outside their sane bounds.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"order": 38,
 		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst extension = get(ctx.entry, 'employee_extension_data', {});\nconst limits = get(ctx.lookup, 'terms', {});\nreturn Object.keys(limits).every((key) => {\n\tconst rule = limits[key];\n\tconst value = get(terms, key, get(extension, key, null));\n\tif (value == null) return get(rule, 'required', false) !== true;\n\tconst number = Number(value);\n\tif (get(rule, 'integer', false) === true && number !== Math.trunc(number)) return false;\n\tconst floor = get(rule, 'exclusive_minimum', null);\n\tif (floor !== null && !(number > floor)) return false;\n\tconst minimum = get(rule, 'minimum', null);\n\tif (minimum !== null && !(number >= minimum)) return false;\n\tconst maximum = get(rule, 'maximum', null);\n\treturn maximum === null || number <= maximum;\n});",
 		"lookup": {
@@ -324,10 +245,7 @@
 		"code": "SHARED_STRUCTURED_ENTITY_INPUTS",
 		"description": "Require the entity registration number.",
 		"target_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"order": 39,
 		"validate": "const extension = get(ctx.entry, 'entity_extension_data', {});\nconst limits = get(ctx.lookup, 'entity', {});\nreturn Object.keys(limits).every((key) => {\n\tconst rule = limits[key];\n\tconst value = get(extension, key, null);\n\tif (value == null) return get(rule, 'required', false) !== true;\n\tif (typeof value === 'string') return value !== '';\n\tconst number = Number(value);\n\tif (get(rule, 'integer', false) === true && number !== Math.trunc(number)) return false;\n\tconst floor = get(rule, 'exclusive_minimum', null);\n\tif (floor !== null && !(number > floor)) return false;\n\tconst maximum = get(rule, 'maximum', null);\n\treturn maximum === null || number <= maximum;\n});",
 		"lookup": {
@@ -344,18 +262,12 @@
 		"code": "BUSINESS_CASE_SUBJECT_AND_REFERENCE",
 		"description": "Require an employment and a reference on a retrenchment or overseas-departure notice.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"order": 41,
 		"condition": "return get(ctx.lookup, 'kinds', []).includes(get(ctx.entry, 'kind', ''));",
 		"validate": "return get(ctx.entry, 'employment_id', null) != null && get(ctx.entry, 'reference', '') !== '';",
 		"lookup": {
-			"kinds": [
-				"RETRENCHMENT_EMPLOYEE_NOTICE",
-				"OVERSEAS_DEPARTURE_NOTICE"
-			]
+			"kinds": ["RETRENCHMENT_EMPLOYEE_NOTICE", "OVERSEAS_DEPARTURE_NOTICE"]
 		},
 		"id": "5b73f6c1-1140-5db7-80aa-f229cc86976f",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
@@ -364,17 +276,12 @@
 		"code": "BUSINESS_CASE_DOCUMENT_REQUIRED",
 		"description": "Require the retrenchment notice document.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"order": 42,
 		"condition": "return get(ctx.lookup, 'kinds', []).includes(get(ctx.entry, 'kind', ''));",
 		"validate": "return get(ctx.entry, 'evidence_file', null) != null;",
 		"lookup": {
-			"kinds": [
-				"RETRENCHMENT_EMPLOYEE_NOTICE"
-			]
+			"kinds": ["RETRENCHMENT_EMPLOYEE_NOTICE"]
 		},
 		"id": "3202ca5c-8bb2-562c-a5fb-5a06f2e37040",
 		"settings_id": "094e6ecf-b596-576a-bed4-9a8a47340e34"
@@ -383,10 +290,7 @@
 		"code": "DEPARTURE_CASE_ACTUAL_SCHEDULE",
 		"description": "Require the expected departure date; a recorded expected return may not precede it.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"order": 43,
 		"condition": "return get(ctx.entry, 'kind', '') === 'OVERSEAS_DEPARTURE_NOTICE';",
 		"validate": "const scheduled = get(ctx.entry, 'scheduled_on', null);\nif (scheduled == null || scheduled === '') return false;\nconst expected = get(get(ctx.entry, 'inputs', {}), 'expected_return_on', null);\nif (expected == null || expected === '') return true;\nreturn String(expected) >= String(scheduled);",
@@ -398,9 +302,7 @@
 		"code": "SICK_WITHIN_HOSPITALISATION",
 		"description": "Refuse sick and hospitalisation leave together above the year's hospitalisation entitlement.",
 		"target_collection": "leave_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"lookup": {
 			"hospitalisation": "HOSPITALIZATION_LEAVE"
 		},
@@ -413,16 +315,10 @@
 			"leave_catalog": {
 				"where": {
 					"code": {
-						"in": [
-							"SICK_LEAVE",
-							"HOSPITALIZATION_LEAVE"
-						]
+						"in": ["SICK_LEAVE", "HOSPITALIZATION_LEAVE"]
 					}
 				},
-				"fields": [
-					"code",
-					"lookup"
-				],
+				"fields": ["code", "lookup"],
 				"limit": 100
 			},
 			"leave_catalog_entry": {
@@ -433,11 +329,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"catalog_id",
-					"reverses"
-				],
+				"fields": ["id", "catalog_id", "reverses"],
 				"limit": 1000
 			},
 			"leave_catalog_entry_day": {
@@ -452,13 +344,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"leave_entry_id",
-					"incurred_on",
-					"part",
-					"payroll_run_id"
-				],
+				"fields": ["id", "leave_entry_id", "incurred_on", "part", "payroll_run_id"],
 				"limit": 10000
 			}
 		},
@@ -471,10 +357,7 @@
 		"code": "CASE_INPUTS_REQUIRED",
 		"description": "Refuse a workplace case missing an input its catalog form declares required.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"workplace_case_catalog": {
 				"where": {
@@ -484,9 +367,7 @@
 						}
 					}
 				},
-				"fields": [
-					"lookup"
-				],
+				"fields": ["lookup"],
 				"limit": 1
 			}
 		},

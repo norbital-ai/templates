@@ -206,14 +206,14 @@ export default automation('encashment', {
 			// A leave balance is in working days. A cash-out carries the same days as slot pairs on working
 			// days of the final settlement month: calendar days would pay fewer days than the balance takes.
 			// The contract's normal week decides the weekly rest days; the pay schedule's business-day list is not it.
-			const daysPerWeek = Number(
-				jsonObject(row.terms).normal_days_per_week ?? 5
-			);
+			const daysPerWeek = Number(jsonObject(row.terms).normal_days_per_week ?? 5);
 			const nonWorking = weeklyRestDays(daysPerWeek);
 			// The final run attends from the previous cutoff to the day before this one: date the cash-out
 			// inside that window, or the run captures slots it cannot price.
 			const month = effectiveTo.slice(0, 7);
-			const cutoff = Number(jsonObject(employer.entity?.rows?.[0]?.payment_schedule).pay_cutoff_day ?? 1);
+			const cutoff = Number(
+				jsonObject(employer.entity?.rows?.[0]?.payment_schedule).pay_cutoff_day ?? 1
+			);
 			const windowFrom =
 				cutoff <= 1
 					? `${month}-01`
@@ -231,9 +231,7 @@ export default automation('encashment', {
 					}
 				})
 			);
-			const closed = new Set(
-				(holidays.holiday?.rows ?? []).map((holiday) => String(holiday.date))
-			);
+			const closed = new Set((holidays.holiday?.rows ?? []).map((holiday) => String(holiday.date)));
 			const working: string[] = [];
 			for (let index = 0; working.length < 62 && index < 366; index += 1) {
 				const date = String(addDays(PlainDate(windowFrom), index));

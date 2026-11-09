@@ -58,7 +58,8 @@ export default model('obligation', {
 	effect: {
 		updated: function* (changes, ctx) {
 			const edited = changes.filter(
-				({ before, after }) => before.state !== after.state || before.fulfilled_on !== after.fulfilled_on
+				({ before, after }) =>
+					before.state !== after.state || before.fulfilled_on !== after.fulfilled_on
 			);
 			if (edited.length === 0) return;
 			yield* tap(

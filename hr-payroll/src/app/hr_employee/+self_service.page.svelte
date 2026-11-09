@@ -231,9 +231,7 @@
 			}}
 			where={mine}
 			orderBy={{ created_at: 'desc' }}
-			columns={[
-				{ field: 'catalog_id', label: bolt.t('component.catalogue_leave') }
-			]}
+			columns={[{ field: 'catalog_id', label: bolt.t('component.catalogue_leave') }]}
 		/>
 	</Cover>
 {/snippet}

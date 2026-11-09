@@ -19,7 +19,9 @@ const load = <T>(version: number, file: string): T =>
 		)
 	) as T;
 const ruleOf = (version: number, code: string) => {
-	const rule = load<readonly Row[]>(version, 'registered_rule.json').find((row) => row.code === code);
+	const rule = load<readonly Row[]>(version, 'registered_rule.json').find(
+		(row) => row.code === code
+	);
 	assert.ok(rule?.validate !== undefined);
 	const [settings] = load<readonly { lookup?: Record<string, unknown> }[]>(
 		version,
@@ -45,16 +47,30 @@ describe('VN employer version selection', () => {
 		const v7 = ruleOf(7, 'MINIMUM_WAGE_FLOOR');
 		const a = employer('IV', '2026-01-01', '2026-12-31');
 		const b = employer('I', '2027-01-01', null);
-		const context = (rule: typeof v6, from: string, amount: number, versions: readonly object[]) => ({
+		const context = (
+			rule: typeof v6,
+			from: string,
+			amount: number,
+			versions: readonly object[]
+		) => ({
 			lookup: rule.lookup ?? {},
 			entry: { effective_range: { from }, terms: { rate: { amount, unit: 'MONTHLY' } } },
 			reads: { entity_profile_version: versions }
 		});
 		// B is first: reading [0] would take region I's 5,310,000 and fail 4,000,000
-		assert.equal(evaluate(v6.validate!, 'CALCULATION', context(v6, '2026-12-20', 4_000_000, [b, a]), 'x'), true);
-		assert.equal(evaluate(v7.validate!, 'CALCULATION', context(v7, '2027-02-01', 5_000_000, [a, b]), 'x'), false);
+		assert.equal(
+			evaluate(v6.validate!, 'CALCULATION', context(v6, '2026-12-20', 4_000_000, [b, a]), 'x'),
+			true
+		);
+		assert.equal(
+			evaluate(v7.validate!, 'CALCULATION', context(v7, '2027-02-01', 5_000_000, [a, b]), 'x'),
+			false
+		);
 		// no sealed version covers the date: refuse
-		assert.equal(evaluate(v7.validate!, 'CALCULATION', context(v7, '2027-02-01', 5_000_000, [a]), 'x'), false);
+		assert.equal(
+			evaluate(v7.validate!, 'CALCULATION', context(v7, '2027-02-01', 5_000_000, [a]), 'x'),
+			false
+		);
 	});
 	it('weekly rest uses the version in force on the roster day', () => {
 		const rule = ruleOf(7, 'WEEKLY_REST');
@@ -63,11 +79,16 @@ describe('VN employer version selection', () => {
 		const days = Array.from({ length: 27 }, (_, index) => {
 			const date = `2026-02-${String(index + 1).padStart(2, '0')}`;
 			// one rest day in the final seven, so the weekly cycle has its 24 hours
-			return date === '2026-02-22' ? { work_date: date, actual_worked_intervals: [] } : worked(date);
+			return date === '2026-02-22'
+				? { work_date: date, actual_worked_intervals: [] }
+				: worked(date);
 		});
 		const context = (versions: readonly object[]) => ({
 			lookup: rule.lookup ?? {},
-			entry: { work_date: '2026-02-28', actual_worked_intervals: worked('2026-02-28').actual_worked_intervals },
+			entry: {
+				work_date: '2026-02-28',
+				actual_worked_intervals: worked('2026-02-28').actual_worked_intervals
+			},
 			reads: { roster_entry: days, entity_profile_version: versions }
 		});
 		// B is first: reading [0] would apply the monthly averaging (1 rest < 4) and fail
@@ -91,7 +112,10 @@ describe('VN employer version selection', () => {
 		const b = employer('I', '2027-01-01', null, true);
 		(a.entity_extension_data as Record<string, unknown>).overtime_300h_sector = false;
 		(b.entity_extension_data as Record<string, unknown>).overtime_300h_sector = true;
-		const hour = { start: Instant('2026-06-01T00:00:00.000Z'), end: Instant('2026-06-09T09:00:00.000Z') };
+		const hour = {
+			start: Instant('2026-06-01T00:00:00.000Z'),
+			end: Instant('2026-06-09T09:00:00.000Z')
+		};
 		const entry = { work_date: '2026-06-09', planned_overtime_intervals: [hour] };
 		const context = (versions: readonly object[]) => ({
 			lookup: rule.lookup ?? {},

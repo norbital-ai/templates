@@ -466,7 +466,10 @@
 		});
 		return {
 			held,
-			outstanding: outstandingOf(held.loan_catalog_entry.rows, held.loan_catalog_entry_repayment.rows)
+			outstanding: outstandingOf(
+				held.loan_catalog_entry.rows,
+				held.loan_catalog_entry_repayment.rows
+			)
 		};
 	}
 	async function clearOpenSchedule({ held, outstanding }: Awaited<ReturnType<typeof readLoans>>) {

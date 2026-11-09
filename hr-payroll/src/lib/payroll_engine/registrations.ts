@@ -145,7 +145,7 @@ const SUBJECT_EMPLOYER = [
 	'entity_id',
 	'effective_range',
 	'time_zone',
-	'entity_extension_data',
+	'entity_extension_data'
 ] as const;
 const SUBJECT_ENTITY = ['id', 'name', 'payment_schedule'] as const;
 const latestVersion = (rows: readonly JsonObject[]): JsonObject | undefined => {
@@ -227,7 +227,7 @@ const withEntity = (version: JsonObject, entity: JsonObject | undefined): JsonOb
 				...version,
 				...(entity['payment_schedule'] === undefined
 					? {}
-					: { payment_schedule: entity['payment_schedule'] }),
+					: { payment_schedule: entity['payment_schedule'] })
 			};
 const primeFrom = (found: Record<string, readonly JsonObject[]>, cache: SubjectCache) => {
 	for (const row of found.employee_contract ?? []) cache.contracts.set(String(row.id), row);

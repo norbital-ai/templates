@@ -12,7 +12,19 @@ import { lookupOf } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, WORK, accountsIn, pack, read, sealedAdhoc, sealedLeave, uuid, workspace, leaveCreate, reversalSlots } from './kit.ts';
+import {
+	ENTITY,
+	WORK,
+	accountsIn,
+	pack,
+	read,
+	sealedAdhoc,
+	sealedLeave,
+	uuid,
+	workspace,
+	leaveCreate,
+	reversalSlots
+} from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const JUNE = '2026-06-20T02:00:00.000Z';
@@ -792,9 +804,7 @@ describe('a no-pay day in Indonesia', () => {
 			const t = yield* TestWorkspace;
 			yield* take(t, ID_SEED, code, whole('2026-06-10'));
 			yield* onCycle(t, '2026-06');
-			const late = yield* Effect.flip(
-				take(t, ID_SEED, code, whole('2026-06-11'))
-			);
+			const late = yield* Effect.flip(take(t, ID_SEED, code, whole('2026-06-11')));
 			assert.match(String(late), /already run/);
 		}).pipe(Effect.provide(workspace({ seed: ID_SEED, now: AUGUST })))
 	);

@@ -9,7 +9,21 @@ import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { payBasis } from '../src/lib/payroll_engine/engine.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, accountsIn, catalogRow, measureOf, pack, read, sealedLeave, syncAll, uuid, wholeDays, workspace, leaveCreate, reversalSlots } from './kit.ts';
+import {
+	ENTITY,
+	accountsIn,
+	catalogRow,
+	measureOf,
+	pack,
+	read,
+	sealedLeave,
+	syncAll,
+	uuid,
+	wholeDays,
+	workspace,
+	leaveCreate,
+	reversalSlots
+} from './kit.ts';
 
 const NOW = '2026-11-20T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -99,9 +113,7 @@ const take = (
 ) =>
 	Effect.gen(function* () {
 		const selected =
-			more.reverses == null
-				? wholeDays(...days)
-				: yield* reversalSlots(t, more.reverses);
+			more.reverses == null ? wholeDays(...days) : yield* reversalSlots(t, more.reverses);
 		yield* t.as(t.admin).act('leave_catalog_entry.create', [
 			leaveCreate({
 				entity_id: ENTITY,

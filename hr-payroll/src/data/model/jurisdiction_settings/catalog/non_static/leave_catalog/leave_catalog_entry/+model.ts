@@ -70,7 +70,7 @@ export default model('leave_catalog_entry', {
 										part: child.part,
 										payroll_run_id: child.payroll_run_id ?? null
 									}
-								] 
+								]
 							: []
 				);
 			const entries = rows.map((row) => jsonObject({ ...row, days: slotsOf(row) }));
@@ -113,17 +113,14 @@ export default model('leave_catalog_entry', {
 					limit: 10000
 				}
 			});
-			const slotsByEntry = Map.groupBy(
-				held.leave_catalog_entry_day.rows,
-				(row) => String(row.leave_entry_id)
+			const slotsByEntry = Map.groupBy(held.leave_catalog_entry_day.rows, (row) =>
+				String(row.leave_entry_id)
 			);
 			const actionsOf = (change: { readonly set: Record<string, unknown> }) =>
 				jsonObject(change.set.leave_catalog_entry_day ?? {});
 			for (const change of changes) {
 				const actions = actionsOf(change);
-				const deleted = new Set(
-					Array.isArray(actions.delete) ? actions.delete.map(String) : []
-				);
+				const deleted = new Set(Array.isArray(actions.delete) ? actions.delete.map(String) : []);
 				const existing = slotsByEntry.get(String(change.before.id)) ?? [];
 				if (existing.some((row) => row.payroll_run_id != null && deleted.has(String(row.id))))
 					return yield* ctx.refuse(
@@ -133,14 +130,16 @@ export default model('leave_catalog_entry', {
 			const proposed = changes.map((change) => {
 				const actions = actionsOf(change);
 				const created = Array.isArray(actions.create) ? actions.create.filter(isJsonObject) : [];
-				const deleted = new Set(
-					Array.isArray(actions.delete) ? actions.delete.map(String) : []
-				);
+				const deleted = new Set(Array.isArray(actions.delete) ? actions.delete.map(String) : []);
 				const existing = slotsByEntry.get(String(change.before.id)) ?? [];
 				const days = [
 					...existing
 						.filter((row) => !deleted.has(String(row.id)))
-						.map((row) => ({ date: row.incurred_on, part: row.part, payroll_run_id: row.payroll_run_id })),
+						.map((row) => ({
+							date: row.incurred_on,
+							part: row.part,
+							payroll_run_id: row.payroll_run_id
+						})),
 					...created.map((row) => ({ date: row.incurred_on, part: row.part }))
 				];
 				return jsonObject({

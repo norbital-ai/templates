@@ -71,17 +71,27 @@ const validates = (category: string, days: readonly RosterDay[], entry: RosterDa
 
 describe('TH normal hours', () => {
 	it('ordinary work: six eight-hour days pass, the seventh is refused', () => {
-		const days = ['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06'].map(
-			(date, index) => day(String(index), date, 8)
-		);
+		const days = [
+			'2026-11-01',
+			'2026-11-02',
+			'2026-11-03',
+			'2026-11-04',
+			'2026-11-05',
+			'2026-11-06'
+		].map((date, index) => day(String(index), date, 8));
 		const seventh = day('6', '2026-11-07', 8);
 		assert.equal(validates('ORDINARY', days, seventh), false);
 		assert.equal(validates('ORDINARY', days, days[5]!), true);
 	});
 	it('hazardous work: six seven-hour days pass, the seventh is refused', () => {
-		const days = ['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06'].map(
-			(date, index) => day(String(index), date, 7)
-		);
+		const days = [
+			'2026-11-01',
+			'2026-11-02',
+			'2026-11-03',
+			'2026-11-04',
+			'2026-11-05',
+			'2026-11-06'
+		].map((date, index) => day(String(index), date, 7));
 		const seventh = day('6', '2026-11-07', 7);
 		assert.equal(validates('HAZARDOUS', days, seventh), false);
 		assert.equal(validates('HAZARDOUS', days, days[5]!), true);
@@ -96,9 +106,7 @@ describe('TH normal hours', () => {
 				{
 					start: '2026-11-06T01:00:00.000Z',
 					end: '2026-11-06T12:00:00.000Z',
-					breaks: [
-						{ start: '2026-11-06T05:00:00.000Z', end: '2026-11-06T06:00:00.000Z' }
-					]
+					breaks: [{ start: '2026-11-06T05:00:00.000Z', end: '2026-11-06T06:00:00.000Z' }]
 				}
 			]
 		};

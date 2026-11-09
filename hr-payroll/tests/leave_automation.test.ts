@@ -6,7 +6,21 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import { leftOn, type Accounts } from '../src/lib/ledger/core.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, accountsIn, catalogRow, ledgerRows as allLedgerRows, measureOf, pack, reversalSlots, sealedLeave, syncAll as compute, uuid, wholeDays, workspace, leaveCreate } from './kit.ts';
+import {
+	ENTITY,
+	accountsIn,
+	catalogRow,
+	ledgerRows as allLedgerRows,
+	measureOf,
+	pack,
+	reversalSlots,
+	sealedLeave,
+	syncAll as compute,
+	uuid,
+	wholeDays,
+	workspace,
+	leaveCreate
+} from './kit.ts';
 
 const NOW = '2026-11-06T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -335,7 +349,9 @@ describe('posting', () => {
 				t.as(t.member(['hr_manager'])).act('leave_catalog_entry.create', [leaveCreate(reversal)])
 			);
 			assert.match(String(refused), /Only the HR controller makes a reversal/);
-			yield* t.as(t.member(['hr_controller'])).act('leave_catalog_entry.create', [leaveCreate(reversal)]);
+			yield* t
+				.as(t.member(['hr_controller']))
+				.act('leave_catalog_entry.create', [leaveCreate(reversal)]);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))
 	);
 

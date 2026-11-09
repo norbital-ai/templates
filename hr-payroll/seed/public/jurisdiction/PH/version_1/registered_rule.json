@@ -3,10 +3,7 @@
 		"code": "PROBATION_PAST_SIX_MONTHS",
 		"description": "Refuses a probationary period longer than six months from its start.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "const terms = get(ctx.entry, 'terms', {});\nreturn get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\tget(terms, 'probation_period', null) !== null;",
 		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst probation = get(terms, 'probation_period', null);\nconst end = get(probation, 'to', null);\nreturn end !== null && end <= add_months(probation.from, ctx.lookup.maximum_months);",
 		"order": 6,
@@ -25,19 +22,13 @@
 		"code": "EBET_PROGRAM_RECORDED",
 		"description": "Requires an intern or apprentice contract to name the registered EBET programme that matches the engagement.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "const role = get(ctx.entry, 'engagement', null);\nreturn get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\t(role === 'INTERN' || role === 'APPRENTICE');",
 		"validate": "const role = get(ctx.entry, 'engagement', null);\nconst program = get(get(ctx.entry, 'employee_extension_data', {}), 'ebet_program', null);\nreturn role === 'APPRENTICE'\n\t? program === ctx.lookup.apprenticeship_program\n\t: ctx.lookup.trainee_programs.includes(program);",
 		"order": 9,
 		"lookup": {
 			"apprenticeship_program": "APPRENTICESHIP",
-			"trainee_programs": [
-				"GENERAL",
-				"UPSKILLING"
-			]
+			"trainee_programs": ["GENERAL", "UPSKILLING"]
 		},
 		"references": [
 			{
@@ -51,10 +42,7 @@
 		"code": "WAGE_PAYMENT_PLACE",
 		"description": "Refuses payment in a bar, club or gaming place unless the employee works there.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\tget(get(ctx.entry, 'employee_extension_data', {}), 'wage_payment_place', null) !== null;",
 		"validate": "const extension = get(ctx.entry, 'employee_extension_data', {});\nconst place = get(extension, 'wage_payment_place', null);\nreturn place !== ctx.lookup.prohibited_place ||\n\tget(extension, 'employed_at_payment_place', false) === true;",
 		"order": 12,
@@ -73,10 +61,7 @@
 		"code": "CONTRACT_CATEGORIES",
 		"description": "Requires a declared statutory work category and residency status on every sealed contract.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT';",
 		"validate": "const terms = get(ctx.entry, 'terms', null);\nif (terms === null) return false;\nreturn ctx.lookup.statutory_work_categories.includes(get(terms, 'statutory_work_category', null)) &&\n\tctx.lookup.residency_statuses.includes(get(terms, 'residency_status', null));",
 		"order": 23,
@@ -111,10 +96,7 @@
 		"code": "SHARED_FINAL_PAY_DEADLINE",
 		"description": "Requires final pay on or after the last day and within thirty days of separation.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT' &&\n\tget(ctx.entry, 'final_pay_due_on', null) !== null;",
 		"validate": "const due = get(ctx.entry, 'final_pay_due_on', null);\nconst end = get(get(ctx.entry, 'effective_range', {}), 'to', null);\nif (end === null) return false;\nif (!(due >= end)) return false;\nreturn due <= add_days(end, ctx.lookup.final_pay_maximum_days);",
 		"order": 27,
@@ -133,10 +115,7 @@
 		"code": "NPC_REGISTRATION_SCOPE_REVIEW_REQUIRED",
 		"description": "Requires the three NPC registration-scope declarations on every sealed entity version.",
 		"target_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "return ctx.entry.status === ctx.lookup.sealed_status;",
 		"validate": "const facts = get(ctx.entry, 'entity_extension_data', {});\nreturn ctx.lookup.required_declarations.every((name) => get(facts, name, null) !== null);",
 		"order": 30,
@@ -161,10 +140,7 @@
 		"code": "BUSINESS_CASE_SUBJECT_AND_REFERENCE",
 		"description": "Requires a tax year and a linked final-compensation case when BIR Form 2316 delivery is recorded.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "return ctx.entry.kind === ctx.lookup.kind;",
 		"validate": "const inputs = get(ctx.entry, 'inputs', {});\nconst year = get(inputs, 'tax_year', null);\nconst payment = get(inputs, 'compensation_payment_case_id', '');\nif (year === null) return false;\nif (!(year >= ctx.lookup.minimum_year)) return false;\nreturn String(payment).trim() !== '';",
 		"order": 32,
@@ -185,10 +161,7 @@
 		"code": "BUSINESS_CASE_DOCUMENT_REQUIRED",
 		"description": "Requires the furnished BIR Form 2316 as evidence when its delivery is recorded.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "return ctx.entry.kind === ctx.lookup.kind;",
 		"validate": "return get(ctx.entry, 'evidence_file', null) !== null;",
 		"order": 33,
@@ -208,10 +181,7 @@
 		"code": "ROSTER_WARNINGS",
 		"description": "Carries the daily-hour and rest-day caps the roster check warns against.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "return true;",
 		"validate": "return true;",
 		"order": 34,
@@ -234,10 +204,7 @@
 		"code": "MINIMUM_WAGE_FLOOR",
 		"description": "Refuses a contract rate below the applicable regional or domestic minimum wage unless the employer is exempt.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"order": 25,
 		"condition": "return get(ctx.entry, 'status', 'DRAFT') !== 'DRAFT';",
 		"validate": "const employer = get(ctx.subject, 'employer.entity_extension_data', {});\nif (get(employer, 'bmbe_certificate_of_authority', false) === true) return true;\nif (get(employer, 'minimum_wage_exemption_approved', false) === true) return true;\nconst terms = get(ctx.entry, 'terms', {});\nconst domestic = get(terms, 'statutory_work_category', '') === 'DOMESTIC';\nconst region = get(ctx.subject, 'employment.terms.work_region', get(employer, 'region', ''));\nif (region === '') return true;\nconst table = domestic ? ctx.lookup.minimum_wage_domestic : ctx.lookup.minimum_wage_by_region;\nconst start = get(ctx.entry, 'effective_range.from', '9999-12-31');\nconst rates = table.filter((entry) => entry.region === region && entry.from <= start);\nif (rates.length === 0) return false;\nconst floor = Number(rates.toSorted((a, b) => (a.from < b.from ? 1 : -1))[0].monthly);\nconst rate = get(terms, 'rate', {});\nconst amount = Number(get(rate, 'amount', 0));\nconst unit = get(rate, 'unit', 'MONTHLY');\nif (domestic && unit === 'MONTHLY') return amount + 0.005 >= floor;\nconst hours = Number(get(terms, 'normal_hours_per_day', 0));\n// DOLE ch.2: a day is the monthly wage × 12 ÷ the contract week's working days (365 − 52 rest days).\nconst daysPerYear = 365 - 52 * (7 - Number(get(terms, 'normal_days_per_week', 6)));\nconst daily = unit === 'DAILY'\n\t? amount\n\t: unit === 'HOURLY'\n\t\t? amount * hours\n\t\t: (amount * 12) / daysPerYear;\nreturn daily + 0.005 >= (floor * 12) / daysPerYear;",
@@ -254,10 +221,7 @@
 		"code": "CASE_INPUTS_REQUIRED",
 		"description": "Requires every input the workplace case's own form declares.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"workplace_case_catalog": {
 				"where": {
@@ -267,9 +231,7 @@
 						}
 					}
 				},
-				"fields": [
-					"lookup"
-				],
+				"fields": ["lookup"],
 				"limit": 1
 			}
 		},

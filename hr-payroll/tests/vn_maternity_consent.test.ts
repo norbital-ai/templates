@@ -34,50 +34,55 @@ const seedOf = (children: readonly ChildFact[]) => {
 const NIGHT = [
 	{ start: Instant('2027-05-04T15:00:00.000Z'), end: Instant('2027-05-04T17:00:00.000Z') }
 ];
-type Consent = { readonly night_work: boolean; readonly overtime: boolean; readonly reference: string };
+type Consent = {
+	readonly night_work: boolean;
+	readonly overtime: boolean;
+	readonly reference: string;
+};
 const CONSENT: Consent = { night_work: true, overtime: true, reference: 'signed form 4/5' };
-const create = (date: string, overtime = false, actual = false, consent?: Consent) =>
-	({
-		employment_id: CONTRACT,
-		work_date: PlainDate(date),
-		planned_overtime_intervals: overtime ? NIGHT : null,
-		actual_worked_intervals: actual ? NIGHT : null,
-		...(consent === undefined ? {} : { consent })
-	});
+const create = (date: string, overtime = false, actual = false, consent?: Consent) => ({
+	employment_id: CONTRACT,
+	work_date: PlainDate(date),
+	planned_overtime_intervals: overtime ? NIGHT : null,
+	actual_worked_intervals: actual ? NIGHT : null,
+	...(consent === undefined ? {} : { consent })
+});
 const seedInfant = seedOf([{ born_on: '2026-12-01' }]);
 const seedPregnant = seedOf([{ expected_on: '2027-07-15' }]);
 const live = (seed: ReturnType<typeof seedOf>) =>
 	workspace({ seed, now: '2027-05-20T02:00:00.000Z' });
 
 describe('VN night work and overtime while pregnant or raising an infant', () => {
-	it.live('an infant needs the day\u2019s overtime consent before planned overtime is entered', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const hr = t.as(t.admin);
-			const refused = yield* Effect.flip(
-				hr.act('roster_entry.create', [create('2027-05-04', true)])
-			);
-			assert.match(String(refused), /ROSTER_MATERNITY_NIGHT_OVERTIME/);
-			yield* hr.act('roster_entry.create', [create('2027-05-04', true, false, CONSENT)]);
-		}).pipe(Effect.provide(live(seedInfant)))
+	it.live(
+		'an infant needs the day\u2019s overtime consent before planned overtime is entered',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const hr = t.as(t.admin);
+				const refused = yield* Effect.flip(
+					hr.act('roster_entry.create', [create('2027-05-04', true)])
+				);
+				assert.match(String(refused), /ROSTER_MATERNITY_NIGHT_OVERTIME/);
+				yield* hr.act('roster_entry.create', [create('2027-05-04', true, false, CONSENT)]);
+			}).pipe(Effect.provide(live(seedInfant)))
 	);
-	it.live('an infant needs the day\u2019s night-work consent before actual night work is entered', () =>
-		Effect.gen(function* () {
-			const t = yield* TestWorkspace;
-			const hr = t.as(t.admin);
-			const created = yield* hr.act('roster_entry.create', [create('2027-05-05')]);
-			const id = created.records.find((row) => row.model === 'roster_entry')?.id;
-			assert.ok(id !== undefined);
-			const refused = yield* Effect.flip(
-				hr.act('roster_entry.update', [
-					{ target: id, set: { actual_worked_intervals: NIGHT } }
-				])
-			);
-			assert.match(String(refused), /PREGNANT_OR_INFANT_NIGHT_OVERTIME/);
-			yield* hr.act('roster_entry.update', [
-				{ target: id, set: { actual_worked_intervals: NIGHT, consent: CONSENT } }
-			]);
-		}).pipe(Effect.provide(live(seedInfant)))
+	it.live(
+		'an infant needs the day\u2019s night-work consent before actual night work is entered',
+		() =>
+			Effect.gen(function* () {
+				const t = yield* TestWorkspace;
+				const hr = t.as(t.admin);
+				const created = yield* hr.act('roster_entry.create', [create('2027-05-05')]);
+				const id = created.records.find((row) => row.model === 'roster_entry')?.id;
+				assert.ok(id !== undefined);
+				const refused = yield* Effect.flip(
+					hr.act('roster_entry.update', [{ target: id, set: { actual_worked_intervals: NIGHT } }])
+				);
+				assert.match(String(refused), /PREGNANT_OR_INFANT_NIGHT_OVERTIME/);
+				yield* hr.act('roster_entry.update', [
+					{ target: id, set: { actual_worked_intervals: NIGHT, consent: CONSENT } }
+				]);
+			}).pipe(Effect.provide(live(seedInfant)))
 	);
 	it.live('a pregnancy refuses planned overtime even with consent', () =>
 		Effect.gen(function* () {

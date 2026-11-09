@@ -276,10 +276,9 @@ export const attachmentsOf = (data: RunData, { attendance: cover, pays }: RunFra
 		};
 	const within = (date: unknown) => typeof date === 'string' && date >= cover.from && due(date);
 	const leaveDue = (row: JsonObject) => {
-		const slots = (Array.isArray(row.leave_catalog_entry_day)
-			? row.leave_catalog_entry_day
-			: []
-		).filter(isJsonObject).filter((child) => child.payroll_run_id == null);
+		const slots = (Array.isArray(row.leave_catalog_entry_day) ? row.leave_catalog_entry_day : [])
+			.filter(isJsonObject)
+			.filter((child) => child.payroll_run_id == null);
 		return row.reverses != null
 			? slots.length > 0
 			: slots.some((child) => within(child.incurred_on));
@@ -423,7 +422,11 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 	// a holiday given only to those off on the date it replaces reads that date's plan, rostered or not: a six-day week
 	// works its Saturday, so the weekday in lieu of a Saturday holiday is not its holiday
 	const replaced = [
-		...new Set((data.holiday ?? []).flatMap((row) => (typeof row.replaces === 'string' ? [row.replaces] : [])))
+		...new Set(
+			(data.holiday ?? []).flatMap((row) =>
+				typeof row.replaces === 'string' ? [row.replaces] : []
+			)
+		)
 	];
 	for (const [owner, days] of rosterDayTypes) {
 		const own = answering.find((row) => String(row.id) === owner);
@@ -476,10 +479,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 		typeof date === 'string' && date >= start && date <= end;
 	const leaveWithin = (rows: readonly JsonObject[]): readonly JsonObject[] =>
 		rows.flatMap((row) => {
-			const days = (Array.isArray(row.leave_catalog_entry_day)
-				? row.leave_catalog_entry_day
-				: []
-			)
+			const days = (Array.isArray(row.leave_catalog_entry_day) ? row.leave_catalog_entry_day : [])
 				.filter(isJsonObject)
 				.flatMap((child) =>
 					child.payroll_run_id == null &&
@@ -570,10 +570,7 @@ export const calculateRun = Effect.fn('payroll.calculateRun')(function* (
 			.filter((row) => undoneIds.has(String(row.id)))
 			.map((row) => ({
 				...row,
-				days: (Array.isArray(row.leave_catalog_entry_day)
-					? row.leave_catalog_entry_day
-					: []
-				)
+				days: (Array.isArray(row.leave_catalog_entry_day) ? row.leave_catalog_entry_day : [])
 					.filter(isJsonObject)
 					.map((child) => ({
 						date: PlainDate(String(child.incurred_on)),

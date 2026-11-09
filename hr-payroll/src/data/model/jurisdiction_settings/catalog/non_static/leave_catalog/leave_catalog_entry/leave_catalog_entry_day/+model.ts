@@ -24,13 +24,9 @@ export default model('leave_catalog_entry_day', {
 	unique: [{ fields: ['leave_entry_id', 'incurred_on', 'part'] }],
 	read: {
 		leave_catalog_entry_day: { fields: 'all' },
-		'leave_catalog_entry_day.leave_entry_id': { fields: [
-			'id',
-			'employment_id',
-			'catalog_id',
-			'reverses',
-			'payroll_run_id'
-		] },
+		'leave_catalog_entry_day.leave_entry_id': {
+			fields: ['id', 'employment_id', 'catalog_id', 'reverses', 'payroll_run_id']
+		},
 		'leave_catalog_entry_day.payroll_run_id': { fields: ['id', 'period', 'state'] }
 	},
 	create: {

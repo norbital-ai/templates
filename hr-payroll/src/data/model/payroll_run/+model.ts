@@ -357,7 +357,7 @@ export default model('payroll_run', {
 					typeof coverage === 'string'
 						? (() => {
 								const [start, end] = coverage.slice(1, -1).split(',');
-								return [start ?? '', end === '' ? null : end ?? null, true] as const;
+								return [start ?? '', end === '' ? null : (end ?? null), true] as const;
 							})()
 						: (() => {
 								const range = jsonObject(coverage);
@@ -374,8 +374,7 @@ export default model('payroll_run', {
 					slots.leave_catalog_entry_day.rows
 						.filter(
 							(slot) =>
-								cashOutIds.has(String(slot.leave_entry_id)) &&
-								inRun(String(slot.incurred_on))
+								cashOutIds.has(String(slot.leave_entry_id)) && inRun(String(slot.incurred_on))
 						)
 						.map((slot) => String(slot.leave_entry_id))
 				);

@@ -36,18 +36,21 @@ const seedOf = (facts: Facts) => {
 		}))
 	};
 };
-const live = (facts: Facts) =>
-	workspace({ seed: seedOf(facts), now: '2026-07-01T02:00:00.000Z' });
+const live = (facts: Facts) => workspace({ seed: seedOf(facts), now: '2026-07-01T02:00:00.000Z' });
 const tasks = (t: Kit) =>
-	t.storedQuery({ obligation: { limit: 100 } }).pipe(
-		Effect.map(({ obligation }) =>
-			obligation.rows.filter((row) =>
-				String(row.occurrence_key).startsWith('MY:HRD_EMPLOYER_REGISTRATION:')
+	t
+		.storedQuery({ obligation: { limit: 100 } })
+		.pipe(
+			Effect.map(({ obligation }) =>
+				obligation.rows.filter((row) =>
+					String(row.occurrence_key).startsWith('MY:HRD_EMPLOYER_REGISTRATION:')
+				)
 			)
-		)
-	);
+		);
 const touch = (t: Kit) =>
-	t.as(t.admin).act('entity_profile_version.update', [{ target: PROFILE, set: { reason: 'Review' } }]);
+	t
+		.as(t.admin)
+		.act('entity_profile_version.update', [{ target: PROFILE, set: { reason: 'Review' } }]);
 
 const rule = (
 	JSON.parse(
@@ -84,8 +87,7 @@ describe('MY HRD registration', () => {
 					hrd_registration_liability_on: '2026-03-01'
 				})
 			)
-		)
-	);
+		));
 	const none: readonly (readonly [string, Facts])[] = [
 		[
 			'compulsory',
@@ -131,11 +133,16 @@ describe('MY HRD registration', () => {
 				);
 				assert.match(String(refused), /HRD_LIABILITY_EVENT_DATE_REQUIRED/);
 			}
-		})
-	);
+		}));
 	it('the liability-date rule requires the date for compulsory and not-registered classes', () => {
-		assert.equal(ruleHolds('SEALED', { hrd_scope: 'PART_I', hrd_registration_class: 'NOT_REGISTERED' }), false);
-		assert.equal(ruleHolds('SEALED', { hrd_scope: 'PART_I', hrd_registration_class: 'COMPULSORY' }), false);
+		assert.equal(
+			ruleHolds('SEALED', { hrd_scope: 'PART_I', hrd_registration_class: 'NOT_REGISTERED' }),
+			false
+		);
+		assert.equal(
+			ruleHolds('SEALED', { hrd_scope: 'PART_I', hrd_registration_class: 'COMPULSORY' }),
+			false
+		);
 		assert.equal(
 			ruleHolds('SEALED', {
 				hrd_scope: 'PART_I',
@@ -144,7 +151,10 @@ describe('MY HRD registration', () => {
 			}),
 			true
 		);
-		assert.equal(ruleHolds('SEALED', { hrd_scope: 'OUT_OF_SCOPE', hrd_registration_class: 'COMPULSORY' }), true);
+		assert.equal(
+			ruleHolds('SEALED', { hrd_scope: 'OUT_OF_SCOPE', hrd_registration_class: 'COMPULSORY' }),
+			true
+		);
 		assert.equal(ruleHolds('DRAFT', { hrd_registration_class: 'COMPULSORY' }), true);
 		assert.equal(ruleHolds('SEALED', { hrd_registration_class: 'OPTIONAL' }), true);
 	});

@@ -55,15 +55,15 @@ const seedOf = ({ category = null, count = null, status = 'SEALED' }: SeedOption
 const live = (options: SeedOptions = {}) =>
 	workspace({ seed: seedOf(options), now: '2027-01-20T02:00:00.000Z' });
 const keys = (t: Kit, prefix: string) =>
-	t.storedQuery({ obligation: { limit: 400 } }).pipe(
-		Effect.map(({ obligation }) =>
-			obligation.rows.filter((row) => String(row.occurrence_key).startsWith(prefix))
-		)
-	);
-const seal = (t: Kit) =>
 	t
-		.as(t.admin)
-		.act('employee_contract.update', [{ target: CONTRACT, set: { status: 'SEALED' } }]);
+		.storedQuery({ obligation: { limit: 400 } })
+		.pipe(
+			Effect.map(({ obligation }) =>
+				obligation.rows.filter((row) => String(row.occurrence_key).startsWith(prefix))
+			)
+		);
+const seal = (t: Kit) =>
+	t.as(t.admin).act('employee_contract.update', [{ target: CONTRACT, set: { status: 'SEALED' } }]);
 const run = (t: Kit, period: string) =>
 	t.as(t.admin).act('payroll_run.create', [{ entity_id: ENTITY, period, kind: 'ON_CYCLE' }]);
 

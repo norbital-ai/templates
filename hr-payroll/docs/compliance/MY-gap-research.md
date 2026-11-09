@@ -15,14 +15,14 @@ Paths name `version_8` for orientation. `version_8` is sealed (effective 2031-06
 
 ## Summary
 
-| Gap | Lawful trigger | Decision | Payroll amount? |
-| --- | --- | --- | --- |
-| 1. Exit ground | Redundancy/closure for Form PK; age-based retirement for the MRA review; a redundancy selection for s.60N | Native contract enum; Form PK and s.60N are exercise-level, retirement is per-contract | Yes — the same fact excludes resignation/retirement/misconduct from termination benefit |
-| 2. Work pass expiry | The pass expiry date; the renewal window opens three months before. No statutory 90-day notice | Native contract date, editable when SEALED; reminder key includes the expiry | No |
-| 3. Employer registration | First contribution month (EPF); first employee (SOCSO/EIS), with a 30-day deadline | Two registration dates on the mutable `entity`; stop the reminder once recorded | No |
-| 4. Accident report | A reportable employment-injury accident, not a boolean | `WORKPLACE_ACCIDENT` catalog kind with an `accident_type` input | No |
-| 5. HRD registration | Compulsory only for a covered employer with 10+ Malaysian employees; approved deregistration ends the duty | Raise only for `NOT_REGISTERED` with a liability date; suppress `DEREGISTERED`, missing and `OUT_OF_SCOPE` | No (the levy row is separate) |
-| 6. Public holiday in lieu | A public holiday that falls on the employee's weekly rest day (s.60D(1)) | Stays a manual `PUBLIC_HOLIDAY_IN_LIEU` entry; eligibility is implicit from `terms.normal_days_per_week`; the entry date must be the next working day after the rest-day holiday | Yes as a paid leave day; exit cash-out is priced by the catalog conversion |
+| Gap                       | Lawful trigger                                                                                             | Decision                                                                                                                                                                         | Payroll amount?                                                                         |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 1. Exit ground            | Redundancy/closure for Form PK; age-based retirement for the MRA review; a redundancy selection for s.60N  | Native contract enum; Form PK and s.60N are exercise-level, retirement is per-contract                                                                                           | Yes — the same fact excludes resignation/retirement/misconduct from termination benefit |
+| 2. Work pass expiry       | The pass expiry date; the renewal window opens three months before. No statutory 90-day notice             | Native contract date, editable when SEALED; reminder key includes the expiry                                                                                                     | No                                                                                      |
+| 3. Employer registration  | First contribution month (EPF); first employee (SOCSO/EIS), with a 30-day deadline                         | Two registration dates on the mutable `entity`; stop the reminder once recorded                                                                                                  | No                                                                                      |
+| 4. Accident report        | A reportable employment-injury accident, not a boolean                                                     | `WORKPLACE_ACCIDENT` catalog kind with an `accident_type` input                                                                                                                  | No                                                                                      |
+| 5. HRD registration       | Compulsory only for a covered employer with 10+ Malaysian employees; approved deregistration ends the duty | Raise only for `NOT_REGISTERED` with a liability date; suppress `DEREGISTERED`, missing and `OUT_OF_SCOPE`                                                                       | No (the levy row is separate)                                                           |
+| 6. Public holiday in lieu | A public holiday that falls on the employee's weekly rest day (s.60D(1))                                   | Stays a manual `PUBLIC_HOLIDAY_IN_LIEU` entry; eligibility is implicit from `terms.normal_days_per_week`; the entry date must be the next working day after the rest-day holiday | Yes as a paid leave day; exit cash-out is priced by the catalog conversion              |
 
 ---
 
@@ -86,11 +86,11 @@ If the owner refuses a model field in this cycle, the only seed-only fallback is
 
 ### 1.3 Effect-by-effect
 
-| Effect | Lawful trigger | Decision |
-| --- | --- | --- |
-| `RETRENCHMENT_NOTIFICATION` | A redundancy or company closure affecting one or more employees. Form PK is one filing per exercise, not one per employee. | Condition on `RETRENCHMENT` (covers redundancy and closure) or a separate `CLOSURE`/`REDUNDANCY` value if the owner adds one. Remove `RETRENCHMENT_TERM_CONTRACT` unless it means an early termination because the role is redundant; a fixed term merely expiring is not retrenchment. Exclude `UNILATERAL` and `BREACH_BY_EMPLOYER`: they are not redundancy. Key the obligation by `entity_id` + action date, not by contract, so one exercise raises one reminder. Due `effective_range.to − 30`; title includes the action date. |
-| `RETIREMENT_AGE_REVIEW` | A contract ending on the ground of age, with the employee below 60 at the exit. | Keep. Read native `exit_ground`; condition `exit_ground = RETIREMENT` (or the existing `retirement_grounds` list) and `age_on(date_of_birth, effective_range.to) < 60`. Key per contract; due the exit date. The task asks whether this was a s.6 optional retirement or a s.5 premature retirement. |
-| `RETRENCHMENT_FOREIGN_FIRST` | A redundancy exercise in which a **local** employee is selected while a comparable foreign employee remains. | **Delete the per-foreign-employee effect.** It fires on the foreign employee’s exit and says “retrench foreign employees first”, which is the opposite of s.60N. Have `RETRENCHMENT_NOTIFICATION` return a **second obligation** from the same effect, keyed `<entity_id>:<action date>:FOREIGN_FIRST`, titled “Confirm all foreign employees in a similar capacity were terminated before local employees (EA s.60N; s.60O excludes permanent residents)”. Same due date. The comparison is a human determination; the contract row does not hold comparable-capacity headcount. |
+| Effect                       | Lawful trigger                                                                                                             | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RETRENCHMENT_NOTIFICATION`  | A redundancy or company closure affecting one or more employees. Form PK is one filing per exercise, not one per employee. | Condition on `RETRENCHMENT` (covers redundancy and closure) or a separate `CLOSURE`/`REDUNDANCY` value if the owner adds one. Remove `RETRENCHMENT_TERM_CONTRACT` unless it means an early termination because the role is redundant; a fixed term merely expiring is not retrenchment. Exclude `UNILATERAL` and `BREACH_BY_EMPLOYER`: they are not redundancy. Key the obligation by `entity_id` + action date, not by contract, so one exercise raises one reminder. Due `effective_range.to − 30`; title includes the action date.                                             |
+| `RETIREMENT_AGE_REVIEW`      | A contract ending on the ground of age, with the employee below 60 at the exit.                                            | Keep. Read native `exit_ground`; condition `exit_ground = RETIREMENT` (or the existing `retirement_grounds` list) and `age_on(date_of_birth, effective_range.to) < 60`. Key per contract; due the exit date. The task asks whether this was a s.6 optional retirement or a s.5 premature retirement.                                                                                                                                                                                                                                                                              |
+| `RETRENCHMENT_FOREIGN_FIRST` | A redundancy exercise in which a **local** employee is selected while a comparable foreign employee remains.               | **Delete the per-foreign-employee effect.** It fires on the foreign employee’s exit and says “retrench foreign employees first”, which is the opposite of s.60N. Have `RETRENCHMENT_NOTIFICATION` return a **second obligation** from the same effect, keyed `<entity_id>:<action date>:FOREIGN_FIRST`, titled “Confirm all foreign employees in a similar capacity were terminated before local employees (EA s.60N; s.60O excludes permanent residents)”. Same due date. The comparison is a human determination; the contract row does not hold comparable-capacity headcount. |
 
 The Form PK coverage limit: the effect above reminds for Parts I–IV only (the 30-day pre-action filing) and only for retrenchment/closure. VSS, temporary lay-off and pay-cut also require Form PK, but the contract row is not their source; they are out of scope here. Parts V and VI are post-action filings and are not modelled by this effect. If the owner wants them tracked, the existing mechanism is a `RETRENCHMENT_EXERCISE` workplace case (`opened_on` = decision date, `scheduled_on` = action date, `inputs` = affected headcount) with its own obligations; that is a larger change. The minimal fix here is the pre-action notification and the s.60N check.
 
@@ -111,7 +111,12 @@ Both records are entity-level: leave `employee_id` and `employment_id` null. For
 ```js
 // existing eligibility remains; add before the rate/category checks
 // EMPLOYEE_RETIREMENT is the legacy MY value; drop it once the native enum is normalized to RETIREMENT
-if (['RESIGNATION', 'RETIREMENT', 'EMPLOYEE_RETIREMENT', 'MISCONDUCT_DISMISSAL'].includes(get(employment, 'exit_ground', ''))) return false;
+if (
+	['RESIGNATION', 'RETIREMENT', 'EMPLOYEE_RETIREMENT', 'MISCONDUCT_DISMISSAL'].includes(
+		get(employment, 'exit_ground', '')
+	)
+)
+	return false;
 // legacy rows may carry the extension boolean; keep it as a fallback only
 if (get(employment, 'employee_extension_data.misconduct_dismissal', false) === true) return false;
 ```
@@ -132,14 +137,14 @@ Inputs:
 
 Expected:
 
-| `exit_ground` / fact | Eligible | Amount |
-| --- | --- | --- |
-| `RETRENCHMENT` | yes | 4,438.36 |
-| `RESIGNATION` | no | 0 |
-| `RETIREMENT` (date of birth 1966-06-30; age 60 at exit) | no | 0 |
-| `MISCONDUCT_DISMISSAL` | no | 0 |
-| `DISMISSAL` + legacy `misconduct_dismissal = true` | no | 0 |
-| `UNILATERAL` | yes | 4,438.36 |
+| `exit_ground` / fact                                    | Eligible | Amount   |
+| ------------------------------------------------------- | -------- | -------- |
+| `RETRENCHMENT`                                          | yes      | 4,438.36 |
+| `RESIGNATION`                                           | no       | 0        |
+| `RETIREMENT` (date of birth 1966-06-30; age 60 at exit) | no       | 0        |
+| `MISCONDUCT_DISMISSAL`                                  | no       | 0        |
+| `DISMISSAL` + legacy `misconduct_dismissal = true`      | no       | 0        |
+| `UNILATERAL`                                            | yes      | 4,438.36 |
 
 This is a red test today for the refusal rows; it becomes green after the eligibility check. The `UNILATERAL` row follows the seed’s own regs. 3–4 reading; if the owner reads the Regulations as redundancy/closure only, drop that row from the test and keep `RETRENCHMENT` as the only positive case.
 
@@ -187,25 +192,27 @@ return get(r, 'work_pass_valid_until', null) != null;
 // effects
 const key = 'MY:WORK_PASS_RENEWAL:' + r.id + ':' + get(r, 'work_pass_valid_until', '');
 if (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];
-return [{
-  entity_id: r.entity_id,
-  employee_id: r.employee_id,
-  employment_id: r.id,
-  title: 'Start work pass renewal (pass expires ' + get(r, 'work_pass_valid_until', '') + ')',
-  due_on: add_days(get(r, 'work_pass_valid_until', ''), -ctx.lookup.advance_notice_days),
-  occurrence_key: key
-}];
+return [
+	{
+		entity_id: r.entity_id,
+		employee_id: r.employee_id,
+		employment_id: r.id,
+		title: 'Start work pass renewal (pass expires ' + get(r, 'work_pass_valid_until', '') + ')',
+		due_on: add_days(get(r, 'work_pass_valid_until', ''), -ctx.lookup.advance_notice_days),
+		occurrence_key: key
+	}
+];
 ```
 
 Keep `advance_notice_days: 90` for the VP(TE) window and document it as “start of the Immigration Department’s three-month renewal window”, not a statutory deadline. For another pass type, set the lead time the issuer applies. The key includes the expiry date so a renewed pass raises a new reminder and a corrected date does not dedupe against the old one. The effect has one lead time for all pass types; if a tenant uses pass types with different windows, the lookup needs a per-category map later. That is not needed for the minimal fix.
 
 Options and recommendation:
 
-| Option | Fit | Recommendation |
-| --- | --- | --- |
-| Native `employee_contract.work_pass_valid_until` | Correct for a mid-contract renewal; readable by any effect | **Recommended** |
-| MY `employee_extension_schema` top-level date | Seed-only, but `employee_extension_data` is frozen when SEALED; a renewal needs a new contract version, and the mid-month contract rule may refuse it | Fallback only |
-| New `work_authorisation` record (number, kind, valid from/to, status) | Correct if pass history or multiple passes must be kept | Later, if renewals become frequent |
+| Option                                                                | Fit                                                                                                                                                   | Recommendation                     |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Native `employee_contract.work_pass_valid_until`                      | Correct for a mid-contract renewal; readable by any effect                                                                                            | **Recommended**                    |
+| MY `employee_extension_schema` top-level date                         | Seed-only, but `employee_extension_data` is frozen when SEALED; a renewal needs a new contract version, and the mid-month contract rule may refuse it | Fallback only                      |
+| New `work_authorisation` record (number, kind, valid from/to, status) | Correct if pass history or multiple passes must be kept                                                                                               | Later, if renewals become frequent |
 
 Do not call the 90 days a statutory notice period. If the owner wants the task due at the hard boundary, set `due_on = work_pass_valid_until`; that is the last lawful day, not a renewal window. The recommended lead time is the window start with the expiry in the title.
 
@@ -313,30 +320,30 @@ Path: `seed/public/jurisdiction/MY/version_8/workplace_case_catalog.json`, new r
 
 ```json
 {
-  "code": "WORKPLACE_ACCIDENT",
-  "lookup": {
-    "input_schema": {
-      "type": "object",
-      "properties": {
-        "accident_type": {
-          "type": "string",
-          "enum": ["INDUSTRIAL", "COMMUTING", "EMERGENCY"],
-          "title": "Accident type"
-        }
-      },
-      "required": ["accident_type"],
-      "additionalProperties": false,
-      "description": "opened_on is the date the employer received notice of the accident; occurred_on is the accident date; severity is the existing injury classification. Do not record a near miss as this kind."
-    }
-  },
-  "subtotal_id": null,
-  "references": [
-    {
-      "title": "Employees' Social Security Act 1969 (Act 4); Employees' Social Security (General) Regulations 1971; PERKESO, Social Security Protection (2020).",
-      "locator": "Act 4 ss.24, 25, 94(e), 94A(3); Regulations regs. 68, 71; PERKESO: report within 48 hours of notification.",
-      "url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf"
-    }
-  ]
+	"code": "WORKPLACE_ACCIDENT",
+	"lookup": {
+		"input_schema": {
+			"type": "object",
+			"properties": {
+				"accident_type": {
+					"type": "string",
+					"enum": ["INDUSTRIAL", "COMMUTING", "EMERGENCY"],
+					"title": "Accident type"
+				}
+			},
+			"required": ["accident_type"],
+			"additionalProperties": false,
+			"description": "opened_on is the date the employer received notice of the accident; occurred_on is the accident date; severity is the existing injury classification. Do not record a near miss as this kind."
+		}
+	},
+	"subtotal_id": null,
+	"references": [
+		{
+			"title": "Employees' Social Security Act 1969 (Act 4); Employees' Social Security (General) Regulations 1971; PERKESO, Social Security Protection (2020).",
+			"locator": "Act 4 ss.24, 25, 94(e), 94A(3); Regulations regs. 68, 71; PERKESO: report within 48 hours of notification.",
+			"url": "https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf"
+		}
+	]
 }
 ```
 
@@ -387,22 +394,25 @@ const r = ctx.entry;
 if (r.status !== 'SEALED') return false;
 const facts = get(r, 'entity_extension_data', {});
 if (get(facts, 'hrd_scope', '') === 'OUT_OF_SCOPE') return false;
-if (['COMPULSORY', 'OPTIONAL', 'DEREGISTERED'].includes(get(facts, 'hrd_registration_class', ''))) return false;
+if (['COMPULSORY', 'OPTIONAL', 'DEREGISTERED'].includes(get(facts, 'hrd_registration_class', '')))
+	return false;
 const liabilityOn = get(facts, 'hrd_registration_liability_on', null);
-return get(facts, 'hrd_registration_class', '') === 'NOT_REGISTERED'
-  && typeof liabilityOn === 'string'
-  && liabilityOn !== '';
+return (
+	get(facts, 'hrd_registration_class', '') === 'NOT_REGISTERED' &&
+	typeof liabilityOn === 'string' &&
+	liabilityOn !== ''
+);
 ```
 
-| Class / scope | Reminder? | Reason |
-| --- | --- | --- |
-| `COMPULSORY` | no | Registered; levy at 1% |
-| `OPTIONAL` | no | Registered voluntarily; levy at 0.5% |
-| `NOT_REGISTERED` + `hrd_registration_liability_on` | **yes** | The employer has declared that it met the compulsory coverage conditions and is not registered |
-| `NOT_REGISTERED` without the date | no | Liability is not established; a registration duty cannot be asserted |
-| `DEREGISTERED` | no | Approved under s.16(2); no current registration duty. If the employer again meets the compulsory threshold, the operator changes the class to `NOT_REGISTERED` and sets the new liability date; the reminder then fires |
-| missing class | no | Unknown is not “liable”. A separate data-quality task “Classify HRD coverage” may be raised, but it must not be titled “Register” |
-| `OUT_OF_SCOPE` | no | The Act does not apply |
+| Class / scope                                      | Reminder? | Reason                                                                                                                                                                                                                  |
+| -------------------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `COMPULSORY`                                       | no        | Registered; levy at 1%                                                                                                                                                                                                  |
+| `OPTIONAL`                                         | no        | Registered voluntarily; levy at 0.5%                                                                                                                                                                                    |
+| `NOT_REGISTERED` + `hrd_registration_liability_on` | **yes**   | The employer has declared that it met the compulsory coverage conditions and is not registered                                                                                                                          |
+| `NOT_REGISTERED` without the date                  | no        | Liability is not established; a registration duty cannot be asserted                                                                                                                                                    |
+| `DEREGISTERED`                                     | no        | Approved under s.16(2); no current registration duty. If the employer again meets the compulsory threshold, the operator changes the class to `NOT_REGISTERED` and sets the new liability date; the reminder then fires |
+| missing class                                      | no        | Unknown is not “liable”. A separate data-quality task “Classify HRD coverage” may be raised, but it must not be titled “Register”                                                                                       |
+| `OUT_OF_SCOPE`                                     | no        | The Act does not apply                                                                                                                                                                                                  |
 
 Due date: use `hrd_registration_liability_on + 30`. The rule below requires the date for `COMPULSORY` and `NOT_REGISTERED`, so no fallback is needed. Keep the existing `offset_days: 30`; it is the prescribed registration period already encoded in the seed. The liability date is the correct anchor; the entity version date is not.
 
@@ -431,12 +441,12 @@ OIL stays a **manual** leave entry. HR names the employee and the substitution d
 
 ### 6.3 The four roster cases
 
-| Roster day | Planned / came | Behaviour |
-| --- | --- | --- |
-| Rest day + PH | Planned, came | `HOLIDAY_WORK` pays two days' ordinary wages for normal hours, `HOLIDAY_OVERTIME` three times the hourly rate beyond normal. Rest-day work bands are skipped on a holiday. The monthly basic already includes the paid holiday. |
-| Rest day + PH | Planned, did not come | No work line. Basic is unchanged; the day is a paid holiday, not an absence. OIL remains a manual entry. |
-| Working day + PH | Planned, came | Ordinary work bands skip the day; `HOLIDAY_WORK` and `HOLIDAY_OVERTIME` apply as above. Basic includes the paid holiday. |
-| Working day + PH | Planned, did not come | No work line. Basic is unchanged; absence is deducted only when the roster marks `ABS` or unpaid leave is filed. |
+| Roster day       | Planned / came        | Behaviour                                                                                                                                                                                                                       |
+| ---------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rest day + PH    | Planned, came         | `HOLIDAY_WORK` pays two days' ordinary wages for normal hours, `HOLIDAY_OVERTIME` three times the hourly rate beyond normal. Rest-day work bands are skipped on a holiday. The monthly basic already includes the paid holiday. |
+| Rest day + PH    | Planned, did not come | No work line. Basic is unchanged; the day is a paid holiday, not an absence. OIL remains a manual entry.                                                                                                                        |
+| Working day + PH | Planned, came         | Ordinary work bands skip the day; `HOLIDAY_WORK` and `HOLIDAY_OVERTIME` apply as above. Basic includes the paid holiday.                                                                                                        |
+| Working day + PH | Planned, did not come | No work line. Basic is unchanged; absence is deducted only when the roster marks `ABS` or unpaid leave is filed.                                                                                                                |
 
 A normal holiday applies by date even on a rest day; the shift-pattern gate is the **substitute holiday** path (`given_to = ONLY_IF_OFF_ON_REPLACED_DATE`), where the weekday in lieu belongs only to people who were off on the replaced date.
 
@@ -463,26 +473,26 @@ A normal holiday applies by date even on a rest day; the shift-pattern gate is t
 
 ## Sources
 
-| Law / authority | Locator | URL |
-| --- | --- | --- |
-| Employment Act 1955 (Act 265) | ss.60K, 60KA, 60N, 60O, 63 | <https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf> |
-| JTKSM, Employees’ Retrenchment FAQ | Form PK, 30/14/30-day parts; exclusions | <https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment> |
-| JTKSM, Employees’ Retrenchment service | Form PK procedure | <https://jtksm.mohr.gov.my/en/services/employees-retrenchment> |
-| Employment (Retrenchment) Notification 2004, P.U.(B) 430/2004 | Form PK | <https://jtksm.mohr.gov.my/sites/default/files/2023-01/Pemberitahuan-Pemberhentian-Pekerja-20014-Borang-PK.pdf> |
-| Minimum Retirement Age Act 2012 (Act 753) | ss.4–8 | <https://jtksm.mohr.gov.my/sites/default/files/2023-03/6.%20Minimum%20Retirement%20Age%20Act%202012.pdf> |
-| Employment (Termination and Lay-Off Benefits) Regulations 1980 | regs. 3–6 | <https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20(TERMINATION%20%26%20LAY%20OFF%20BENEFITS)%20REGULATIONS%201980_0.pdf> |
-| Employees Provident Fund Act 1991 (Act 452) | s.41 | <https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf> |
-| KWSP employer registration | registration summary | <https://www.kwsp.gov.my/en/employer/responsibilities/registration> |
-| Employees’ Social Security Act 1969 (Act 4) | ss.4, 24, 25, 94, 94A | <https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf> |
-| PERKESO employer registration | 30-day registration | <https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html> |
-| Employment Insurance System Act 2017 (Act 800) | ss.14–16 | <https://www.perkeso.gov.my/images/imej/akta_dan_peraturan/EMPLOYMENT_INSURANCE_SYSTEM_ACT_2017_Act_800.pdf> |
-| PERKESO, Social Security Protection (2020) | 48-hour accident report | <https://www.perkeso.gov.my/images/dokumen/SEPT_2020-RISALAH_EN.pdf> |
-| Immigration Act 1959/63 s.55B; Immigration Department enforcement | employing without a valid pass | <https://www.imi.gov.my/index.php/en/enforcement> |
-| Immigration Department, Foreign Worker | VP(TE) validity and three-month extension window | <https://www.imi.gov.my/index.php/en/main-services/foreign-worker> |
-| Pembangunan Sumber Manusia Berhad Act 2001 (Act 612) | ss.13, 16, 17 | <https://lom.agc.gov.my/> |
-| HRD Corp employer FAQ | registration, s.16 deregistration | <https://hrdcorp.gov.my/faq> |
-| HRD Corp support centre, cessation and deregistration | s.16(1)–(2) | <https://supportcentre.hrdcorp.gov.my/portal/en/kb/articles/cessation-and-deregistration-of-an-employer> |
-| HRD Corp registered employers | 10+ compulsory; 1% | <https://hrdcorp.gov.my/registered-employers> |
+| Law / authority                                                   | Locator                                          | URL                                                                                                                                             |
+| ----------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Employment Act 1955 (Act 265)                                     | ss.60K, 60KA, 60N, 60O, 63                       | <https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf>                                      |
+| JTKSM, Employees’ Retrenchment FAQ                                | Form PK, 30/14/30-day parts; exclusions          | <https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment>                                                                |
+| JTKSM, Employees’ Retrenchment service                            | Form PK procedure                                | <https://jtksm.mohr.gov.my/en/services/employees-retrenchment>                                                                                  |
+| Employment (Retrenchment) Notification 2004, P.U.(B) 430/2004     | Form PK                                          | <https://jtksm.mohr.gov.my/sites/default/files/2023-01/Pemberitahuan-Pemberhentian-Pekerja-20014-Borang-PK.pdf>                                 |
+| Minimum Retirement Age Act 2012 (Act 753)                         | ss.4–8                                           | <https://jtksm.mohr.gov.my/sites/default/files/2023-03/6.%20Minimum%20Retirement%20Age%20Act%202012.pdf>                                        |
+| Employment (Termination and Lay-Off Benefits) Regulations 1980    | regs. 3–6                                        | <https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20(TERMINATION%20%26%20LAY%20OFF%20BENEFITS)%20REGULATIONS%201980_0.pdf> |
+| Employees Provident Fund Act 1991 (Act 452)                       | s.41                                             | <https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf>                                        |
+| KWSP employer registration                                        | registration summary                             | <https://www.kwsp.gov.my/en/employer/responsibilities/registration>                                                                             |
+| Employees’ Social Security Act 1969 (Act 4)                       | ss.4, 24, 25, 94, 94A                            | <https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf>                                          |
+| PERKESO employer registration                                     | 30-day registration                              | <https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html>                                                       |
+| Employment Insurance System Act 2017 (Act 800)                    | ss.14–16                                         | <https://www.perkeso.gov.my/images/imej/akta_dan_peraturan/EMPLOYMENT_INSURANCE_SYSTEM_ACT_2017_Act_800.pdf>                                    |
+| PERKESO, Social Security Protection (2020)                        | 48-hour accident report                          | <https://www.perkeso.gov.my/images/dokumen/SEPT_2020-RISALAH_EN.pdf>                                                                            |
+| Immigration Act 1959/63 s.55B; Immigration Department enforcement | employing without a valid pass                   | <https://www.imi.gov.my/index.php/en/enforcement>                                                                                               |
+| Immigration Department, Foreign Worker                            | VP(TE) validity and three-month extension window | <https://www.imi.gov.my/index.php/en/main-services/foreign-worker>                                                                              |
+| Pembangunan Sumber Manusia Berhad Act 2001 (Act 612)              | ss.13, 16, 17                                    | <https://lom.agc.gov.my/>                                                                                                                       |
+| HRD Corp employer FAQ                                             | registration, s.16 deregistration                | <https://hrdcorp.gov.my/faq>                                                                                                                    |
+| HRD Corp support centre, cessation and deregistration             | s.16(1)–(2)                                      | <https://supportcentre.hrdcorp.gov.my/portal/en/kb/articles/cessation-and-deregistration-of-an-employer>                                        |
+| HRD Corp registered employers                                     | 10+ compulsory; 1%                               | <https://hrdcorp.gov.my/registered-employers>                                                                                                   |
 
 ### Gap 1 implementation status (2026-11-09)
 

@@ -13,7 +13,12 @@ export default model('loan_catalog_entry', {
 		catalog_id: { kind: 'ref', to: 'loan_catalog', onDelete: 'restrict' },
 		payroll_run_id: { kind: 'ref', to: 'payroll_run', optional: true, onDelete: 'setNull' },
 		quantity: { kind: 'decimal', scale: 12, min: 0 },
-		recovered: { kind: 'sum', of: 'repayments.amount', where: { reverses: { isNull: true } }, hidden: true },
+		recovered: {
+			kind: 'sum',
+			of: 'repayments.amount',
+			where: { reverses: { isNull: true } },
+			hidden: true
+		},
 		repayment_period: { kind: 'period', of: 'date' },
 		evidence_file: {
 			kind: 'file',

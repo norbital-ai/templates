@@ -621,7 +621,7 @@ const known = Effect.fn('ledger.known')(function* (
 			jsonObject({
 				...row,
 				catalog_id: objectValue(row.catalog_id).id ?? row.catalog_id,
-				reverses: isJsonObject(row.reverses) ? row.reverses.id ?? row.reverses : row.reverses
+				reverses: isJsonObject(row.reverses) ? (row.reverses.id ?? row.reverses) : row.reverses
 			})
 		),
 		codes: new Map(stored.map((row) => [String(row.id), String(objectValue(row.catalog_id).code)])),
@@ -915,17 +915,16 @@ export const assertLeft = Effect.fn('ledger.assertLeft')(function* (
 	const held = known.entries;
 	const person = new Map([...known.contract].map(([id, row]) => [id, String(row.employee_id)]));
 	// a stored entry's slots are its captured children; an entry in this batch carries them on `days`
-	const slots = (row: JsonObject) =>
-		[
-			...new Set(
-				[...(known.captures.get(String(row.id)) ?? []), ...(Array.isArray(row.days) ? row.days : [])]
-					.filter(isJsonObject)
-					.map(
-						(day) =>
-							`${person.get(String(row.employment_id))}/${String(day.date ?? day.incurred_on)}/${String(day.part)}`
-					)
-			)
-		];
+	const slots = (row: JsonObject) => [
+		...new Set(
+			[...(known.captures.get(String(row.id)) ?? []), ...(Array.isArray(row.days) ? row.days : [])]
+				.filter(isJsonObject)
+				.map(
+					(day) =>
+						`${person.get(String(row.employment_id))}/${String(day.date ?? day.incurred_on)}/${String(day.part)}`
+				)
+		)
+	];
 	// a reversal frees exactly the slots its child rows name on the original
 	const freed = new Map<string, Set<string>>();
 	for (const row of held) {
@@ -1079,7 +1078,8 @@ export const assertReversals = Effect.fn('ledger.assertReversals')(function* (
 			known.catalog.get(String(entry.catalog_id))?.code !== known.codes.get(String(first.id))
 		)
 			return false;
-		if (model !== LEAVE) return first.payroll_run_id != null && sizeOf(model, entry) <= sizeOf(model, first);
+		if (model !== LEAVE)
+			return first.payroll_run_id != null && sizeOf(model, entry) <= sizeOf(model, first);
 		// only a slot a run has priced is reversible; an unpriced one is corrected by deletion
 		const original = new Set(
 			(known.captures.get(String(first.id)) ?? [])

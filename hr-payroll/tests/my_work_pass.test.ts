@@ -22,15 +22,7 @@ const terms = (residency: string) => ({
 	allowances: {}
 });
 const seedOf = (residency = 'FOREIGNER', expiry: string | null = '2027-03-31') => {
-	const base = pack(
-		'MY',
-		'Asia/Kuala_Lumpur',
-		terms(residency),
-		{},
-		[],
-		[],
-		'2026-06-15'
-	);
+	const base = pack('MY', 'Asia/Kuala_Lumpur', terms(residency), {}, [], [], '2026-06-15');
 	return {
 		...base,
 		employee_contract: (base.employee_contract ?? []).map((row) => ({
@@ -43,11 +35,15 @@ const seedOf = (residency = 'FOREIGNER', expiry: string | null = '2027-03-31') =
 const live = (residency = 'FOREIGNER', expiry: string | null = '2027-03-31') =>
 	workspace({ seed: seedOf(residency, expiry), now: '2026-07-01T02:00:00.000Z' });
 const notices = (t: Kit) =>
-	t.storedQuery({ obligation: { limit: 100 } }).pipe(
-		Effect.map(({ obligation }) =>
-			obligation.rows.filter((row) => String(row.occurrence_key).startsWith('MY:WORK_PASS_RENEWAL:'))
-		)
-	);
+	t
+		.storedQuery({ obligation: { limit: 100 } })
+		.pipe(
+			Effect.map(({ obligation }) =>
+				obligation.rows.filter((row) =>
+					String(row.occurrence_key).startsWith('MY:WORK_PASS_RENEWAL:')
+				)
+			)
+		);
 const touch = (t: Kit) =>
 	t.as(t.admin).act('employee_contract.update', [{ target: CONTRACT, set: { reason: 'Review' } }]);
 
@@ -65,38 +61,36 @@ describe('MY work-pass renewal', () => {
 			);
 			assert.equal(String(raised[0]?.due_on), '2026-12-31');
 			assert.match(String(raised[0]?.title), /pass expires 2027-03-31/);
-		}).pipe(Effect.provide(live()))
-	);
+		}).pipe(Effect.provide(live())));
 	it('a renewed expiry raises a second reminder and keeps the first', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* touch(t);
 			yield* t.runDue();
-			yield* t.as(t.admin).act('employee_contract.update', [
-				{ target: CONTRACT, set: { work_pass_valid_until: PlainDate('2027-06-30') } }
-			]);
+			yield* t
+				.as(t.admin)
+				.act('employee_contract.update', [
+					{ target: CONTRACT, set: { work_pass_valid_until: PlainDate('2027-06-30') } }
+				]);
 			yield* t.runDue();
 			const raised = yield* notices(t);
 			assert.equal(raised.length, 2);
 			const renewed = raised.find((row) => String(row.occurrence_key).endsWith(':2027-06-30'));
 			assert.ok(renewed !== undefined);
 			assert.equal(String(renewed.due_on), '2027-04-01');
-		}).pipe(Effect.provide(live()))
-	);
+		}).pipe(Effect.provide(live())));
 	it('a citizen or a contract without an expiry raises none', () =>
 		Effect.gen(function* () {
 			const citizen = yield* TestWorkspace;
 			yield* touch(citizen);
 			yield* citizen.runDue();
 			assert.equal((yield* notices(citizen)).length, 0);
-		}).pipe(Effect.provide(live('CITIZEN')))
-	);
+		}).pipe(Effect.provide(live('CITIZEN'))));
 	it('a missing expiry raises none', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* touch(t);
 			yield* t.runDue();
 			assert.equal((yield* notices(t)).length, 0);
-		}).pipe(Effect.provide(live('FOREIGNER', null)))
-	);
+		}).pipe(Effect.provide(live('FOREIGNER', null))));
 });

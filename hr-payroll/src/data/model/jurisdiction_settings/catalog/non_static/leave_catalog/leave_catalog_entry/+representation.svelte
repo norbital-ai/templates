@@ -18,7 +18,8 @@
 	let slots = $state<readonly Slot[]>([]);
 	let reversing = $state(false);
 	const captured = $derived(slots.filter((slot) => slot.payroll_run_id != null));
-	const isHr = typeof window === 'undefined' || window.location.pathname.includes('/app/hr_controller/');
+	const isHr =
+		typeof window === 'undefined' || window.location.pathname.includes('/app/hr_controller/');
 	const canReverse = $derived(record !== null && record.reverses == null && captured.length > 0);
 	$effect(() => {
 		const id = record?.id ?? null;
@@ -42,7 +43,7 @@
 					part: String(row.part),
 					payroll_run_id: row.payroll_run_id ?? null
 				}));
-				})();
+			})();
 		});
 	});
 </script>

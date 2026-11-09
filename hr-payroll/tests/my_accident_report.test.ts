@@ -43,11 +43,15 @@ const file = (t: Kit, catalog_id: typeof ACCIDENT, kind: string, inputs: JsonObj
 		}
 	]);
 const reports = (t: Kit) =>
-	t.storedQuery({ obligation: { limit: 100 } }).pipe(
-		Effect.map(({ obligation }) =>
-			obligation.rows.filter((row) => String(row.occurrence_key).startsWith('MY:SOCSO_ACCIDENT_REPORT:'))
-		)
-	);
+	t
+		.storedQuery({ obligation: { limit: 100 } })
+		.pipe(
+			Effect.map(({ obligation }) =>
+				obligation.rows.filter((row) =>
+					String(row.occurrence_key).startsWith('MY:SOCSO_ACCIDENT_REPORT:')
+				)
+			)
+		);
 
 describe('MY SOCSO accident report', () => {
 	it('a workplace accident raises one report due two days after notice', () =>
@@ -59,8 +63,7 @@ describe('MY SOCSO accident report', () => {
 			assert.equal(raised.length, 1);
 			assert.equal(String(raised[0]?.due_on), '2026-06-12');
 			assert.equal(String(raised[0]?.title), 'Report a workplace accident to SOCSO');
-		}).pipe(Effect.provide(live))
-	);
+		}).pipe(Effect.provide(live)));
 	it('a commuting accident counts, and each case has its own report', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -68,23 +71,18 @@ describe('MY SOCSO accident report', () => {
 			yield* file(t, ACCIDENT, 'WORKPLACE_ACCIDENT', { accident_type: 'EMERGENCY' });
 			yield* t.runDue();
 			assert.equal((yield* reports(t)).length, 2);
-		}).pipe(Effect.provide(live))
-	);
+		}).pipe(Effect.provide(live)));
 	it('another case kind raises no accident report', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* file(t, OTHER, 'FLEXIBLE_WORKING_REQUEST', {});
 			yield* t.runDue();
 			assert.equal((yield* reports(t)).length, 0);
-		}).pipe(Effect.provide(live))
-	);
+		}).pipe(Effect.provide(live)));
 	it('an accident without its type is refused', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			const refused = yield* Effect.flip(
-				file(t, ACCIDENT, 'WORKPLACE_ACCIDENT', {})
-			);
+			const refused = yield* Effect.flip(file(t, ACCIDENT, 'WORKPLACE_ACCIDENT', {}));
 			assert.match(String(refused), /CASE_INPUTS_REQUIRED|accident_type/);
-		}).pipe(Effect.provide(live))
-	);
+		}).pipe(Effect.provide(live)));
 });

@@ -8,13 +8,13 @@ Constraint: every recommendation uses existing HRMS mechanisms — model fields,
 
 ## Decisions at a glance
 
-| # | Gap | Decision | Mechanism |
-|---|-----|----------|-----------|
-| 1 | Establishment dates optional | Mandatory at seal, not anchored to entity or contract dates | Entity extension schema `required` + one registered rule on `entity_profile_version` |
-| 2 | Employment type mapping | Derive two booleans from native `engagement` and `signed_contract_period.to`; do not restore a three-value lookup | Registered-effect condition only |
-| 3 | Company rest interval absent | Declare `work_interval_hours` on the entity extension; company value may raise but never lower the driver floor | Entity extension field + one expression change in `ROSTER_REST_INTERVAL` |
-| 4 | Week start absent | Entity owns `week_start`; do not read the shift pattern for the statutory week | Entity extension field + registered rule at seal; existing readers unchanged |
-| 5 | Annual hours absent | Move `normal_hours_per_year` to the contract extension; use annual hours / 12, not weekly × weeks-per-month, when hours vary | Employee extension field + expression change in `MINIMUM_WAGE_CONTRACT` |
+| #   | Gap                          | Decision                                                                                                                     | Mechanism                                                                            |
+| --- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| 1   | Establishment dates optional | Mandatory at seal, not anchored to entity or contract dates                                                                  | Entity extension schema `required` + one registered rule on `entity_profile_version` |
+| 2   | Employment type mapping      | Derive two booleans from native `engagement` and `signed_contract_period.to`; do not restore a three-value lookup            | Registered-effect condition only                                                     |
+| 3   | Company rest interval absent | Declare `work_interval_hours` on the entity extension; company value may raise but never lower the driver floor              | Entity extension field + one expression change in `ROSTER_REST_INTERVAL`             |
+| 4   | Week start absent            | Entity owns `week_start`; do not read the shift pattern for the statutory week                                               | Entity extension field + registered rule at seal; existing readers unchanged         |
+| 5   | Annual hours absent          | Move `normal_hours_per_year` to the contract extension; use annual hours / 12, not weekly × weeks-per-month, when hours vary | Employee extension field + expression change in `MINIMUM_WAGE_CONTRACT`              |
 
 Where a gap affects payroll amounts, a short scenario is included under gaps 4 and 5. Gaps 1–3 are obligation/rule triggers and have no amount test.
 
@@ -55,13 +55,13 @@ Minimal rule shape:
 // ESTABLISHMENT_EVENT_DATES_REQUIRED, target entity_profile_version
 const ext = get(ctx.entry, 'entity_extension_data', {});
 const keys = [
-  'social_insurance_applicable_on',
-  'labour_insurance_established_on',
-  'employment_insurance_established_on'
+	'social_insurance_applicable_on',
+	'labour_insurance_established_on',
+	'employment_insurance_established_on'
 ];
 return keys.every((key) => {
-  const value = get(ext, key, '');
-  return typeof value === 'string' && value !== '';
+	const value = get(ext, key, '');
+	return typeof value === 'string' && value !== '';
 });
 ```
 
@@ -132,12 +132,12 @@ Align `INDEFINITE_CONVERSION_NOTICE` to the same `to != null` fixed-term test. I
 
 ### Trigger tests (no amount)
 
-| Contract | Expected notice |
-|----------|-----------------|
-| `EMPLOYEE`, `signed_contract_period = { from: 2027-04-01, to: null }` | none (indefinite) |
+| Contract                                                                    | Expected notice          |
+| --------------------------------------------------------------------------- | ------------------------ |
+| `EMPLOYEE`, `signed_contract_period = { from: 2027-04-01, to: null }`       | none (indefinite)        |
 | `EMPLOYEE`, `signed_contract_period = { from: 2027-04-01, to: 2028-03-31 }` | `PART_TIME_TERMS_NOTICE` |
-| `PART_TIME`, no signed period | `PART_TIME_TERMS_NOTICE` |
-| `CONTRACTOR`, fixed term | none (not an employee) |
+| `PART_TIME`, no signed period                                               | `PART_TIME_TERMS_NOTICE` |
+| `CONTRACTOR`, fixed term                                                    | none (not an employee)   |
 
 ---
 
@@ -166,9 +166,10 @@ Change the minimum to:
 
 ```js
 const company = Number(get(entityExt, 'work_interval_hours', 0));
-const driverFloor = get(entityExt, 'overtime_sector', 'GENERAL') === 'DRIVER'
-  ? ctx.lookup.default_minimum_rest_hours
-  : 0;
+const driverFloor =
+	get(entityExt, 'overtime_sector', 'GENERAL') === 'DRIVER'
+		? ctx.lookup.default_minimum_rest_hours
+		: 0;
 const minimum = Math.max(company, driverFloor);
 ```
 
@@ -231,10 +232,10 @@ Fixture (synthetic, arithmetic only):
 - Roster: Monday–Friday 8 hours each (40 hours), Sunday 8 hours; Saturday is the rest day. Sunday is a scheduled work day, not the statutory rest day, and the 8 hours are approved overtime (`overtime: 8`).
 - Engine hourly rate: `312000 × 12 / (52 × 40) = 1800`.
 
-| Week start | Sunday treatment | `OVERTIME` | `WITHIN_HOURS_OVERTIME` |
-|------------|------------------|-----------:|------------------------:|
-| Monday (`1`) | 41st–48th hour of the same week | `8 × 1800 × 1.25 = 18,000` | `0` |
-| Sunday (`0`, or field absent) | first 8 hours of a new week | `0` | `8 × 1800 = 14,400` |
+| Week start                    | Sunday treatment                |                 `OVERTIME` | `WITHIN_HOURS_OVERTIME` |
+| ----------------------------- | ------------------------------- | -------------------------: | ----------------------: |
+| Monday (`1`)                  | 41st–48th hour of the same week | `8 × 1800 × 1.25 = 18,000` |                     `0` |
+| Sunday (`0`, or field absent) | first 8 hours of a new week     |                        `0` |     `8 × 1800 = 14,400` |
 
 The wrong start underpays the 25% premium by `3,600`. The overtime catalog's `OVERTIME` multiplier is `1.25` and `WITHIN_HOURS_OVERTIME` is `1.0` in the JP seed. The fixture marks only Sunday as approved overtime; under the wrong start the sixth day is Friday, and that excess is unapproved and separately flagged by `ROSTER_OVERTIME_UNRECORDED`. The table isolates the premium on the approved Sunday hours; a complete run would also correct the Friday approval.
 
@@ -262,9 +263,11 @@ Declare `normal_hours_per_year` on the **employee** extension schema (contract-l
 
 ```js
 const annual = get(ext, 'normal_hours_per_year', null);
-const monthlyHours = annual != null
-  ? Number(annual) / 12
-  : (get(terms, 'normal_hours_per_week', ctx.lookup.standard_weekly_hours) * ctx.lookup.weeks_per_month);
+const monthlyHours =
+	annual != null
+		? Number(annual) / 12
+		: get(terms, 'normal_hours_per_week', ctx.lookup.standard_weekly_hours) *
+			ctx.lookup.weeks_per_month;
 ```
 
 Keep the fallback only for a `STANDARD` regime with a uniform weekly schedule. For `VARIABLE` or `FLEX` (or any contract whose monthly hours vary), require the annual figure. Prefer a small registered rule `MINIMUM_WAGE_HOURS_REQUIRED` on `employee_contract` that refuses the seal with a clear message when the regime varies and the field is absent; `MINIMUM_WAGE_CONTRACT` can then assume the field. If the owner prefers one rule, `MINIMUM_WAGE_CONTRACT` may return false when the annual figure is absent, but its message must then explain that annual hours are missing, not that the wage is below the minimum.
@@ -289,9 +292,9 @@ Use the seeded Tokyo band `2026-10-01: 1,280` (fixture data, not a new statutory
 
 **Annual-hours regression.** Monthly wage `200,000`, `normal_hours_per_week = 40`, `normal_hours_per_year = 1820`, `working_time_regime = VARIABLE`, Tokyo band.
 
-| Conversion | Monthly hours | Hourly | Result vs 1,280 |
-|------------|--------------:|-------:|-----------------|
-| Annual / 12 | `1820 / 12 = 151.6667` | `200000 / 151.6667 = 1,318.68` | pass |
+| Conversion     |              Monthly hours |                         Hourly | Result vs 1,280        |
+| -------------- | -------------------------: | -----------------------------: | ---------------------- |
+| Annual / 12    |     `1820 / 12 = 151.6667` | `200000 / 151.6667 = 1,318.68` | pass                   |
 | Weekly × 52/12 | `40 × 4.333333 = 173.3333` | `200000 / 173.3333 = 1,153.85` | fail (false rejection) |
 
 This is the test that proves the fallback is not a lawful substitute for the annual figure: the same compliant contract flips from pass to fail when the annual field is ignored.

@@ -22,7 +22,11 @@ const terms = {
 	wage_payment_method: 'BANK',
 	allowances: {}
 };
-type Review = { readonly month: string; readonly reference: string; readonly daily_wage_vnd: number };
+type Review = {
+	readonly month: string;
+	readonly reference: string;
+	readonly daily_wage_vnd: number;
+};
 const seedWith = (review: Review): ReturnType<typeof pack> => {
 	const base = pack(
 		'VN',
@@ -82,13 +86,15 @@ const approved = (t: Kit) =>
 		});
 	});
 const line = (t: Kit) =>
-	t.storedQuery({ payslip: { limit: 10 } }).pipe(
-		Effect.map(({ payslip }) =>
-			payslip.rows
-				.flatMap((row) => Schema.decodeUnknownSync(PayslipBreakdown)(row.breakdown).lines)
-				.filter((row) => row.code === 'ANNUAL_LEAVE')
-		)
-	);
+	t
+		.storedQuery({ payslip: { limit: 10 } })
+		.pipe(
+			Effect.map(({ payslip }) =>
+				payslip.rows
+					.flatMap((row) => Schema.decodeUnknownSync(PayslipBreakdown)(row.breakdown).lines)
+					.filter((row) => row.code === 'ANNUAL_LEAVE')
+			)
+		);
 
 describe('a VN exit cash-out', () => {
 	it.live('is refused when the review is not the month before the exit', () => {
@@ -115,13 +121,15 @@ describe('a VN exit cash-out', () => {
 		const seed = midMonthCutoff(seedWith({ ...REVIEW, month: '2027-01' }));
 		return Effect.gen(function* () {
 			const t = yield* TestWorkspace;
-			yield* t.as(t.admin).act('leave_catalog_entry.create', [
-				entry(seed, { days: wholeDays('2027-01-29', '2027-02-23') })
-			]);
+			yield* t
+				.as(t.admin)
+				.act('leave_catalog_entry.create', [
+					entry(seed, { days: wholeDays('2027-01-29', '2027-02-23') })
+				]);
 			yield* approved(t);
-			yield* t.as(t.admin).act('payroll_run.create', [
-				{ entity_id: ENTITY, period: '2027-02', kind: 'ON_CYCLE' }
-			]);
+			yield* t
+				.as(t.admin)
+				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2027-02', kind: 'ON_CYCLE' }]);
 			// model effects run after the write: capture is due work
 			yield* t.runDue();
 			const lines = yield* line(t);
@@ -168,7 +176,9 @@ describe('a VN exit cash-out', () => {
 			'subtotal',
 			String(
 				(seed.subtotal ?? []).find(
-					(row) => row.code === 'FINAL_PAY' && row.settings_id === seed.employee_contract?.[0]?.input_schema_version_id
+					(row) =>
+						row.code === 'FINAL_PAY' &&
+						row.settings_id === seed.employee_contract?.[0]?.input_schema_version_id
 				)?.id
 			)
 		);
@@ -176,7 +186,9 @@ describe('a VN exit cash-out', () => {
 			const t = yield* TestWorkspace;
 			yield* t.as(t.admin).act('leave_catalog_entry.create', [entry(seed)]);
 			yield* approved(t);
-			yield* t.as(t.admin).act('payroll_run.create', [{ entity_id: ENTITY, period: '2027-01', kind: 'ON_CYCLE' }]);
+			yield* t
+				.as(t.admin)
+				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2027-01', kind: 'ON_CYCLE' }]);
 			const lines = yield* line(t);
 			const paid = lines.find((row) => row.direction === 'ADD');
 			assert.ok(paid !== undefined);

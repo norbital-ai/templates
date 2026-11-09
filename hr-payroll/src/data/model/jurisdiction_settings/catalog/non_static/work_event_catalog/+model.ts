@@ -26,11 +26,19 @@ export default model('work_event_catalog', {
 	read: {
 		work_event_catalog: { fields: 'all' },
 		'work_event_catalog.settings_id': { fields: 'all' },
-		'work_event_catalog.subtotal_id': { fields: ['code', 'name'] },
+		'work_event_catalog.subtotal_id': { fields: ['code', 'name'] }
 	},
 	create: {
 		columns: {
-			work_event_catalog: ['settings_id', 'code', 'description', 'subtotal_id', 'references', 'events', 'lookup']
+			work_event_catalog: [
+				'settings_id',
+				'code',
+				'description',
+				'subtotal_id',
+				'references',
+				'events',
+				'lookup'
+			]
 		},
 		transform: function* (rows, ctx) {
 			yield* guardConfigurationRows(

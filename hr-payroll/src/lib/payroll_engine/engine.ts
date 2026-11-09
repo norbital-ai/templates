@@ -907,7 +907,10 @@ export function calculatePayroll(input: PayrollInput): PayrollResult {
 	}
 	results.splice(0, results.length, ...finalResults);
 	const net = results.at(-1)?.value ?? 0;
-	if (net < 0 && lines.some((l) => l.source_id?.model === 'loan_catalog_entry_repayment' && !l.reversal))
+	if (
+		net < 0 &&
+		lines.some((l) => l.source_id?.model === 'loan_catalog_entry_repayment' && !l.reversal)
+	)
 		throw new Refusal({
 			message: `${String(input.employee.name ?? id(input.employee))}: loan recovery would leave net pay at ${net}; reduce the final repayment.`
 		});

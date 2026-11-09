@@ -8,7 +8,20 @@ import { Effect, Schema } from 'effect';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, accountsIn, catalogRow, ledgerRows, measureOf, pack, sealEvents, syncAll, uuid, wholeDays, workspace, leaveCreate } from './kit.ts';
+import {
+	ENTITY,
+	accountsIn,
+	catalogRow,
+	ledgerRows,
+	measureOf,
+	pack,
+	sealEvents,
+	syncAll,
+	uuid,
+	wholeDays,
+	workspace,
+	leaveCreate
+} from './kit.ts';
 
 const NOW = '2026-12-20T02:00:00.000Z';
 const near = (actual: number, expected: number) =>

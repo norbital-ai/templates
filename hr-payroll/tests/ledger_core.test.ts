@@ -181,11 +181,7 @@ describe('eventsOf', () => {
 	it('a multiple birth is one birth event', () => {
 		assert.deepEqual(
 			eventsOf({
-				children: [
-					{ born_on: '2026-04-01' },
-					{ born_on: '2026-04-01' },
-					{ born_on: '2026-08-01' }
-				]
+				children: [{ born_on: '2026-04-01' }, { born_on: '2026-04-01' }, { born_on: '2026-08-01' }]
 			}),
 			[
 				{ kind: 'CHILD_BIRTH', on: '2026-04-01' },

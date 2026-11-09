@@ -45,10 +45,7 @@ const noPay = (t: import('@norbital-ai/bolt-cli/test').Kit, date: string) =>
 		leaveCreate({
 			entity_id: ENTITY,
 			employment_id: CONTRACT,
-			catalog_id: idOf(
-				'leave_catalog',
-				catalogRow(seedOf(1), 'leave_catalog', 'UNPAID_LEAVE')
-			),
+			catalog_id: idOf('leave_catalog', catalogRow(seedOf(1), 'leave_catalog', 'UNPAID_LEAVE')),
 			days: wholeDays(date)
 		})
 	]);
@@ -61,8 +58,7 @@ describe('ID ten-day no-pay open period', () => {
 			yield* t.runDue();
 			const refused = yield* Effect.flip(noPay(t, '2026-02-03'));
 			assert.match(String(refused), /already run/);
-		}).pipe(Effect.provide(live(1)))
-	);
+		}).pipe(Effect.provide(live(1))));
 	it('a cutoff of 25 closes 12 February once the first part ran', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -70,6 +66,5 @@ describe('ID ten-day no-pay open period', () => {
 			yield* t.runDue();
 			const refused = yield* Effect.flip(noPay(t, '2026-02-12'));
 			assert.match(String(refused), /already run/);
-		}).pipe(Effect.provide(live(25)))
-	);
+		}).pipe(Effect.provide(live(25))));
 });

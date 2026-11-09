@@ -6,7 +6,20 @@ import { TestWorkspace, type Kit } from '@norbital-ai/bolt-cli/test';
 import { Effect } from 'effect';
 import type { Accounts } from '../src/lib/ledger/core.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, accountsIn, catalogRow, ledgerRows, measureOf, pack, sealEvents, syncAll, uuid, wholeDays, workspace, leaveCreate } from './kit.ts';
+import {
+	ENTITY,
+	accountsIn,
+	catalogRow,
+	ledgerRows,
+	measureOf,
+	pack,
+	sealEvents,
+	syncAll,
+	uuid,
+	wholeDays,
+	workspace,
+	leaveCreate
+} from './kit.ts';
 
 const NOW = '2026-12-20T02:00:00.000Z';
 const CONTRACT = idOf('employee_contract', uuid(6));
@@ -155,14 +168,12 @@ describe('a posting that runs again', () => {
 			const child = leave_catalog_entry_day.rows[0];
 			assert.ok(child !== undefined);
 			const failed = yield* Effect.flip(
-				t
-					.as(t.admin)
-					.act('leave_catalog_entry.update', [
-						{
-							target: first,
-							set: { leave_catalog_entry_day: { delete: [child.id] } }
-						}
-					])
+				t.as(t.admin).act('leave_catalog_entry.update', [
+					{
+						target: first,
+						set: { leave_catalog_entry_day: { delete: [child.id] } }
+					}
+				])
 			);
 			assert.match(String(failed), /reversal/);
 			assert.equal(yield* used(t), 2);

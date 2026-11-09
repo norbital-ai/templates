@@ -13,7 +13,18 @@ import { entitlementPlans } from '../src/lib/ledger/service.ts';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { objectValue, idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, accountsIn, catalogRow, measureOf, pack, read, sealEvents, wholeDays, workspace, leaveCreate } from './kit.ts';
+import {
+	ENTITY,
+	accountsIn,
+	catalogRow,
+	measureOf,
+	pack,
+	read,
+	sealEvents,
+	wholeDays,
+	workspace,
+	leaveCreate
+} from './kit.ts';
 
 const ROOT = 'seed/public/jurisdiction';
 const rowOf = (code: string, version: number, file: string, name: string) => {
@@ -233,17 +244,18 @@ describe('on a real workspace', () => {
 				'BIR_EMPLOYEE_TIN_REGISTRATION'
 			])
 				assert.equal(
-					obligation.rows.filter((row) => String(row.occurrence_key).startsWith(`${code}:`))
-						.length,
+					obligation.rows.filter((row) => String(row.occurrence_key).startsWith(`${code}:`)).length,
 					1,
 					code
 				);
 			const version = (yield* t.storedQuery({ employee_contract: { limit: 1 } })).employee_contract
 				.rows[0]?.id;
 			assert.ok(version !== undefined);
-			yield* t.as(t.admin).act('employee_contract.update', [
-				{ target: version, set: { employee_name: 'Renamed Worker' } }
-			]);
+			yield* t
+				.as(t.admin)
+				.act('employee_contract.update', [
+					{ target: version, set: { employee_name: 'Renamed Worker' } }
+				]);
 			yield* t.runDue();
 			const after = yield* t.storedQuery({ obligation: { limit: 200 } });
 			assert.equal(
@@ -284,16 +296,17 @@ describe('on a real workspace', () => {
 					1,
 					code
 				);
-			yield* t.as(t.admin).act('employee_contract.update', [
-				{ target: EMPLOYMENT, set: { reason: 'Resignation confirmed' } }
-			]);
+			yield* t
+				.as(t.admin)
+				.act('employee_contract.update', [
+					{ target: EMPLOYMENT, set: { reason: 'Resignation confirmed' } }
+				]);
 			yield* t.runDue();
 			const second = yield* t.storedQuery({ obligation: { limit: 200 } });
 			for (const code of exit)
 				assert.equal(
-					second.obligation.rows.filter((row) =>
-						String(row.occurrence_key).startsWith(`${code}:`)
-					).length,
+					second.obligation.rows.filter((row) => String(row.occurrence_key).startsWith(`${code}:`))
+						.length,
 					1,
 					code
 				);
@@ -311,9 +324,7 @@ describe('on a real workspace', () => {
 			const t = yield* TestWorkspace;
 			yield* t
 				.as(t.admin)
-				.act('payroll_run.create', [
-					{ entity_id: ENTITY, period: '2026-11', kind: 'ON_CYCLE' }
-				]);
+				.act('payroll_run.create', [{ entity_id: ENTITY, period: '2026-11', kind: 'ON_CYCLE' }]);
 			yield* t.runDue();
 			const { obligation } = yield* t.storedQuery({ obligation: { limit: 300 } });
 			for (const code of [
@@ -325,9 +336,7 @@ describe('on a real workspace', () => {
 				'PAGIBIG_LOAN_REMITTANCE'
 			])
 				assert.equal(
-					obligation.rows.filter((row) =>
-						String(row.occurrence_key).startsWith(`${code}:`)
-					).length,
+					obligation.rows.filter((row) => String(row.occurrence_key).startsWith(`${code}:`)).length,
 					0,
 					code
 				);
@@ -350,9 +359,8 @@ describe('on a real workspace', () => {
 				'PERSONAL_DATA_DISPOSAL'
 			])
 				assert.equal(
-					after.obligation.rows.filter((row) =>
-						String(row.occurrence_key).startsWith(`${code}:`)
-					).length,
+					after.obligation.rows.filter((row) => String(row.occurrence_key).startsWith(`${code}:`))
+						.length,
 					0,
 					code
 				);

@@ -8,7 +8,16 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, sealedAdhoc, sealedLeave, uuid, workspace, leaveCreate, reversalSlots } from './kit.ts';
+import {
+	ENTITY,
+	pack,
+	sealedAdhoc,
+	sealedLeave,
+	uuid,
+	workspace,
+	leaveCreate,
+	reversalSlots
+} from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 type Seed = ReturnType<typeof pack>;

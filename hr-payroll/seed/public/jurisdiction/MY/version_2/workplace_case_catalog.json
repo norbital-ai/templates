@@ -108,17 +108,11 @@
 				"properties": {
 					"accident_type": {
 						"type": "string",
-						"enum": [
-							"INDUSTRIAL",
-							"COMMUTING",
-							"EMERGENCY"
-						],
+						"enum": ["INDUSTRIAL", "COMMUTING", "EMERGENCY"],
 						"title": "Accident type"
 					}
 				},
-				"required": [
-					"accident_type"
-				],
+				"required": ["accident_type"],
 				"additionalProperties": false,
 				"description": "opened_on is the date the employer received notice; occurred_on is the accident date; severity is the injury classification."
 			}

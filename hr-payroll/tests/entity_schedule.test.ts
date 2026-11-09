@@ -7,17 +7,25 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { Effect } from 'effect';
 import { ENTITY, pack, workspace } from './kit.ts';
 
-const seed = pack('MY', 'Asia/Kuala_Lumpur', {
-	rate: { amount: 8000, unit: 'MONTHLY' },
-	normal_hours_per_day: 8,
-	normal_hours_per_week: 40,
-	normal_days_per_week: 5,
-	statutory_work_category: 'NON_MANUAL',
-	work_classification: 'EA_COVERED',
-	residency_status: 'CITIZEN',
-	wage_payment_method: 'BANK',
-	allowances: {}
-}, {}, [], [], '2026-01-15');
+const seed = pack(
+	'MY',
+	'Asia/Kuala_Lumpur',
+	{
+		rate: { amount: 8000, unit: 'MONTHLY' },
+		normal_hours_per_day: 8,
+		normal_hours_per_week: 40,
+		normal_days_per_week: 5,
+		statutory_work_category: 'NON_MANUAL',
+		work_classification: 'EA_COVERED',
+		residency_status: 'CITIZEN',
+		wage_payment_method: 'BANK',
+		allowances: {}
+	},
+	{},
+	[],
+	[],
+	'2026-01-15'
+);
 
 const versions = (t: Kit) =>
 	t

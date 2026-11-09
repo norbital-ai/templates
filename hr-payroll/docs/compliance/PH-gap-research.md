@@ -8,16 +8,16 @@ Constraint: every recommendation uses the existing HRMS mechanisms — model fie
 
 ## Decision table
 
-| # | Finding | Decision | Existing mechanism | New field |
-|---|---|---|---|---|
-| 1 | Seal-only dispatch never fires | `events: ['create','update']` + `reads.obligation` guard on the occurrence key; key one-time duties on the person/entity; suppress exit duties when a same-jurisdiction successor continues employment | `registered_effect`, `reads`, obligation | None |
-| 2 | Annual duties are run-triggered | Stay run-triggered: December on-cycle run (13th month: first November/December run); key by entity + covered year; correct the references | `registered_effect`, `reads`, obligation | None |
-| 3 | Occurrence keys use the run id | Key on the statutory period: `CODE:entity_id:YYYY-MM`, `CODE:entity_id:YYYY-Qn`, `CODE:entity_id:YYYY` | `reads`, obligation key | None |
-| 4 | Twin notice fires on every separation | Gate on a just-cause dismissal fact | PH `employee_extension_schema` | `employee_extension_data.just_cause_dismissal` (boolean) |
-| 5 | NPC full report uses 8 days | 5 days from discovery, parallel with the 72-hour notice | lookup `due_days` | None |
-| 6 | Workplace-case tasks use `opened_on` | Use `scheduled_on` for planned-start duties; `opened_on` only for request/knowledge | `scheduled_on`, effect expressions | None (help text only) |
-| 7 | Contribution/loan/1603Q tasks fire without a liability | Gate loans and 1603Q on the actual line; gate contributions on the scheme's presence, never on its amount | `reads.payslip`, `breakdown` | None |
-| 8 | WAIR illness clock uses the wrong date | `occurred_on` is the accident date or the date the illness was established; fall back to `opened_on`; never the exposure date | `occurred_on`, `opened_on` | None (help text only) |
+| #   | Finding                                                | Decision                                                                                                                                                                                               | Existing mechanism                       | New field                                                |
+| --- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------- | -------------------------------------------------------- |
+| 1   | Seal-only dispatch never fires                         | `events: ['create','update']` + `reads.obligation` guard on the occurrence key; key one-time duties on the person/entity; suppress exit duties when a same-jurisdiction successor continues employment | `registered_effect`, `reads`, obligation | None                                                     |
+| 2   | Annual duties are run-triggered                        | Stay run-triggered: December on-cycle run (13th month: first November/December run); key by entity + covered year; correct the references                                                              | `registered_effect`, `reads`, obligation | None                                                     |
+| 3   | Occurrence keys use the run id                         | Key on the statutory period: `CODE:entity_id:YYYY-MM`, `CODE:entity_id:YYYY-Qn`, `CODE:entity_id:YYYY`                                                                                                 | `reads`, obligation key                  | None                                                     |
+| 4   | Twin notice fires on every separation                  | Gate on a just-cause dismissal fact                                                                                                                                                                    | PH `employee_extension_schema`           | `employee_extension_data.just_cause_dismissal` (boolean) |
+| 5   | NPC full report uses 8 days                            | 5 days from discovery, parallel with the 72-hour notice                                                                                                                                                | lookup `due_days`                        | None                                                     |
+| 6   | Workplace-case tasks use `opened_on`                   | Use `scheduled_on` for planned-start duties; `opened_on` only for request/knowledge                                                                                                                    | `scheduled_on`, effect expressions       | None (help text only)                                    |
+| 7   | Contribution/loan/1603Q tasks fire without a liability | Gate loans and 1603Q on the actual line; gate contributions on the scheme's presence, never on its amount                                                                                              | `reads.payslip`, `breakdown`             | None                                                     |
+| 8   | WAIR illness clock uses the wrong date                 | `occurred_on` is the accident date or the date the illness was established; fall back to `opened_on`; never the exposure date                                                                          | `occurred_on`, `opened_on`               | None (help text only)                                    |
 
 The one new field is in section 4. Sections 6 and 8 need field help, not new fields.
 
@@ -55,13 +55,13 @@ No engine change. Apply the MY/SG data pattern to the 27 PH rows in `seed/public
 
 ```js
 // condition
-const key = "CODE:" + ctx.entry.id;             // see the key scope below
-if (get(ctx, "reads.obligation", []).some((o) => o.occurrence_key === key)) return false;
-return ctx.entry.status === "SEALED" /* && the effect-specific condition */;
+const key = 'CODE:' + ctx.entry.id; // see the key scope below
+if (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return false;
+return ctx.entry.status === 'SEALED'; /* && the effect-specific condition */
 
 // effects
-const key = "CODE:" + ctx.entry.id;
-if (get(ctx, "reads.obligation", []).some((o) => o.occurrence_key === key)) return [];
+const key = 'CODE:' + ctx.entry.id;
+if (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];
 return [/* the obligation row */];
 ```
 
@@ -123,17 +123,17 @@ The nine effects (`BIR_YEAR_END_ADJUSTMENT`, `BIR_1604C_ANNUAL_ALPHALIST`, `BIR_
 
 The duty belongs to the covered calendar year, not to a payroll run. The due dates:
 
-| Duty | Statutory due date | Source |
-|---|---|---|
-| 13th-month pay | 24 December of the covered year | PD 851; [DOLE Labor Advisory 16-25 §IV](https://bwc.dole.gov.ph/wp-content/uploads/2025/12/Labor-Advisory-No.-16-25-Guidelines-on-the-Payment-of-the-Thirteenth-Month-Pay.pdf) |
-| 13th-month compliance report | 15 January of the following year | PD 851 IRR s.8; [LA 16-25 §VI](https://bwc.dole.gov.ph/wp-content/uploads/2025/12/Labor-Advisory-No.-16-25-Guidelines-on-the-Payment-of-the-Thirteenth-Month-Pay.pdf) |
-| Year-end adjustment / refund of excess withholding | 25 January of the following year | [RR 11-2018 s.2.79(B)(5)(b)](https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf) |
-| BIR 1604-C and alphalist | 31 January of the following year | [BIR 1604-C guidelines](https://bir-cdn.bir.gov.ph/local/pdf/1604-C%20Jan%202018%20Final.pdf); RMC 160-2022 |
-| BIR 2316 to employees | 31 January of the following year | [RR 11-2018 s.2.83.1](https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf) |
-| Duplicate 2316s with substituted-filing list | 28 February of the following year | [RR 11-2018 s.2.83.1](https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf) |
-| Annual Establishment Report on Wages | Closing date of the annual window; 31 August in the 2025/2026 advisories | [NWPC 2025 AERW FAQs](https://nwpc.dole.gov.ph/2025-aerw-faqs/); [Labor Advisory 08-26](https://nwpc.dole.gov.ph/wp-content/uploads/2026/05/Labor-Advisory-No.-08-26-2025-Annual-Establishment-Report-on-Wages-AERW-1.pdf) |
-| Annual Work Accident/Illness Exposure Data Report | 30 January of the following year | [OSH Standards Rule 1054(2)](https://oshc.dole.gov.ph/wp-content/uploads/2020/02/OSH-Standards-2020-Edition.pdf) |
-| Annual Medical Report | 31 March of the following year | [OSH Standards Rule 1965.01(4)](https://oshc.dole.gov.ph/wp-content/uploads/2020/02/OSH-Standards-2020-Edition.pdf) |
+| Duty                                               | Statutory due date                                                       | Source                                                                                                                                                                                                                     |
+| -------------------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 13th-month pay                                     | 24 December of the covered year                                          | PD 851; [DOLE Labor Advisory 16-25 §IV](https://bwc.dole.gov.ph/wp-content/uploads/2025/12/Labor-Advisory-No.-16-25-Guidelines-on-the-Payment-of-the-Thirteenth-Month-Pay.pdf)                                             |
+| 13th-month compliance report                       | 15 January of the following year                                         | PD 851 IRR s.8; [LA 16-25 §VI](https://bwc.dole.gov.ph/wp-content/uploads/2025/12/Labor-Advisory-No.-16-25-Guidelines-on-the-Payment-of-the-Thirteenth-Month-Pay.pdf)                                                      |
+| Year-end adjustment / refund of excess withholding | 25 January of the following year                                         | [RR 11-2018 s.2.79(B)(5)(b)](https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)                                                                                                                                  |
+| BIR 1604-C and alphalist                           | 31 January of the following year                                         | [BIR 1604-C guidelines](https://bir-cdn.bir.gov.ph/local/pdf/1604-C%20Jan%202018%20Final.pdf); RMC 160-2022                                                                                                                |
+| BIR 2316 to employees                              | 31 January of the following year                                         | [RR 11-2018 s.2.83.1](https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)                                                                                                                                         |
+| Duplicate 2316s with substituted-filing list       | 28 February of the following year                                        | [RR 11-2018 s.2.83.1](https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)                                                                                                                                         |
+| Annual Establishment Report on Wages               | Closing date of the annual window; 31 August in the 2025/2026 advisories | [NWPC 2025 AERW FAQs](https://nwpc.dole.gov.ph/2025-aerw-faqs/); [Labor Advisory 08-26](https://nwpc.dole.gov.ph/wp-content/uploads/2026/05/Labor-Advisory-No.-08-26-2025-Annual-Establishment-Report-on-Wages-AERW-1.pdf) |
+| Annual Work Accident/Illness Exposure Data Report  | 30 January of the following year                                         | [OSH Standards Rule 1054(2)](https://oshc.dole.gov.ph/wp-content/uploads/2020/02/OSH-Standards-2020-Edition.pdf)                                                                                                           |
+| Annual Medical Report                              | 31 March of the following year                                           | [OSH Standards Rule 1965.01(4)](https://oshc.dole.gov.ph/wp-content/uploads/2020/02/OSH-Standards-2020-Edition.pdf)                                                                                                        |
 
 The AERW window is announced annually. The 2025 report was open from 15 May 2026 to 31 August 2026 ([NWPC 2025 AERW FAQs](https://nwpc.dole.gov.ph/2025-aerw-faqs/)). Re-read the NWPC page each May; do not treat 31 August as a permanent statutory date.
 
@@ -195,24 +195,26 @@ One remittance or return covers the period. Two half-month runs do not create tw
 
 Replace the run id with the statutory period and the entity id:
 
-| Effect family | Key | Period expression |
-|---|---|---|
-| SSS, PhilHealth, HDMF, 1601-C, SSS loan, Pag-IBIG loan | `CODE:<entity_id>:<YYYY-MM>` | `salary_coverage.to.slice(0, 7)` |
-| 1603-Q | `CODE:<entity_id>:<YYYY-Qn>` | `salary_coverage.to.slice(0, 4) + '-Q' + Math.ceil(Number(salary_coverage.to.slice(5, 7)) / 3)` |
-| 1604-C, 2316, 2316 list, year-end, 13th month, 13th-month report, AERW, AEDR, AMR | `CODE:<entity_id>:<YYYY>` | `salary_coverage.to.slice(0, 4)` |
+| Effect family                                                                     | Key                          | Period expression                                                                               |
+| --------------------------------------------------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------- |
+| SSS, PhilHealth, HDMF, 1601-C, SSS loan, Pag-IBIG loan                            | `CODE:<entity_id>:<YYYY-MM>` | `salary_coverage.to.slice(0, 7)`                                                                |
+| 1603-Q                                                                            | `CODE:<entity_id>:<YYYY-Qn>` | `salary_coverage.to.slice(0, 4) + '-Q' + Math.ceil(Number(salary_coverage.to.slice(5, 7)) / 3)` |
+| 1604-C, 2316, 2316 list, year-end, 13th month, 13th-month report, AERW, AEDR, AMR | `CODE:<entity_id>:<YYYY>`    | `salary_coverage.to.slice(0, 4)`                                                                |
 
 Declare the same expression in `reads.obligation` and guard the effect body. Example:
 
 ```js
 const to = ctx.entry.salary_coverage.to;
-const key = "SSS_CONTRIBUTION_REMITTANCE:" + ctx.entry.entity_id + ":" + to.slice(0, 7);
-if (get(ctx, "reads.obligation", []).some((o) => o.occurrence_key === key)) return [];
-return [{
-  entity_id: ctx.entry.entity_id,
-  title: "SSS contributions (SS, MPF, EC) for the month",
-  due_on: month_end(add_months(to, 1)),
-  occurrence_key: key
-}];
+const key = 'SSS_CONTRIBUTION_REMITTANCE:' + ctx.entry.entity_id + ':' + to.slice(0, 7);
+if (get(ctx, 'reads.obligation', []).some((o) => o.occurrence_key === key)) return [];
+return [
+	{
+		entity_id: ctx.entry.entity_id,
+		title: 'SSS contributions (SS, MPF, EC) for the month',
+		due_on: month_end(add_months(to, 1)),
+		occurrence_key: key
+	}
+];
 ```
 
 ```json
@@ -357,17 +359,17 @@ The workplace-case effects use `opened_on` for the planned-start and request kin
 
 ### Legal position
 
-| Kind / duty | Statutory clock | Source |
-|---|---|---|
-| Flexible work arrangement: notify the DOLE Regional Office before implementation | Prior to implementation; the 1-day lookup is a recorded buffer, not a statutory period | [DOLE Department Advisory No. 2, s. 2009, Part V](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/11/44022) |
-| Suspension of employment extension: report to the DOLE Regional Office | 10 days prior to effectivity | [DOLE Department Order No. 215-20](https://bwc.dole.gov.ph/issuances/department-orders/); quoted in [Polintan v. Malabanan](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/1/69619) |
-| Telecommuting program: notify the DOLE through the Establishment Report System | On implementation; no fixed advance period | [Revised IRR of RA 11165, s.10](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/96745) |
-| Solo parent flexible work schedule | The employer shall provide it; no notice deadline | [RA 8972 s.6](https://pcw.gov.ph/republic-act-8972-solo-parents-welfare-act-of-2000/) |
-| Certificate of employment | 3 days from the request | [DOLE Labor Advisory 06-20](https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf) |
-| WAIR | 20th day of the month following the accident, or when the illness is established | [OSH Standards Rule 1053.01(1)](https://oshc.dole.gov.ph/wp-content/uploads/2020/02/OSH-Standards-2020-Edition.pdf) |
-| Serious accident notice | 24 hours after occurrence | OSH Standards Rule 1053.01(2) |
-| Dangerous occurrence | Upon occurrence | OSH Standards Rule 1053.02 |
-| Personal data breach | 72 hours / 5 days from knowledge | NPC Circular 16-03 s.17 |
+| Kind / duty                                                                      | Statutory clock                                                                        | Source                                                                                                                                                                                       |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Flexible work arrangement: notify the DOLE Regional Office before implementation | Prior to implementation; the 1-day lookup is a recorded buffer, not a statutory period | [DOLE Department Advisory No. 2, s. 2009, Part V](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/11/44022)                                                                          |
+| Suspension of employment extension: report to the DOLE Regional Office           | 10 days prior to effectivity                                                           | [DOLE Department Order No. 215-20](https://bwc.dole.gov.ph/issuances/department-orders/); quoted in [Polintan v. Malabanan](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/1/69619) |
+| Telecommuting program: notify the DOLE through the Establishment Report System   | On implementation; no fixed advance period                                             | [Revised IRR of RA 11165, s.10](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/96745)                                                                                             |
+| Solo parent flexible work schedule                                               | The employer shall provide it; no notice deadline                                      | [RA 8972 s.6](https://pcw.gov.ph/republic-act-8972-solo-parents-welfare-act-of-2000/)                                                                                                        |
+| Certificate of employment                                                        | 3 days from the request                                                                | [DOLE Labor Advisory 06-20](https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf)     |
+| WAIR                                                                             | 20th day of the month following the accident, or when the illness is established       | [OSH Standards Rule 1053.01(1)](https://oshc.dole.gov.ph/wp-content/uploads/2020/02/OSH-Standards-2020-Edition.pdf)                                                                          |
+| Serious accident notice                                                          | 24 hours after occurrence                                                              | OSH Standards Rule 1053.01(2)                                                                                                                                                                |
+| Dangerous occurrence                                                             | Upon occurrence                                                                        | OSH Standards Rule 1053.02                                                                                                                                                                   |
+| Personal data breach                                                             | 72 hours / 5 days from knowledge                                                       | NPC Circular 16-03 s.17                                                                                                                                                                      |
 
 ### Decision
 
@@ -508,32 +510,32 @@ None; `occurred_on` and `opened_on` with the help text above.
 
 ## Sources
 
-| Source | Used for |
-|---|---|
-| [SSS, Employers](https://www.sss.gov.ph/employer-er/) | R-1A within 30 days of hiring |
-| [SSS, Pay Contribution](https://www.sss.gov.ph/pay-contribution/) | Monthly SSS remittance deadline |
-| [PhilHealth, Reporting Your Employees](https://www.philhealth.gov.ph/partners/employers/report.php) | ER2 within 30 days |
-| [PhilHealth, Pay Procedures](https://www.philhealth.gov.ph/partners/employers/pay_procedures.php) | Monthly premium window |
-| [HDMF Circular 275](https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf) | Pag-IBIG registration and remittance |
-| [HDMF Circular 365](https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf) | Amended Pag-IBIG employer registration, 30 days |
-| [RR 11-2018](https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf) | BIR 1902, 1604-C, 2316, year-end adjustment, 1603-Q |
-| [BIR 1604-C guidelines](https://bir-cdn.bir.gov.ph/local/pdf/1604-C%20Jan%202018%20Final.pdf) | 1604-C and alphalist, 31 January |
-| [BIR Taxpayer's Guide](https://bir-cdn.bir.gov.ph/BIR/pdf/TAX%20GUIDE%20FOR%20OFW%20AS%20OF%201120.pdf) | 1604-C on or before 31 January |
-| [BIR 1601-C guidelines](https://bir-cdn.bir.gov.ph/local/pdf/1601C%20final%20Jan%202018%20with%20DPA.pdf) | Monthly 1601-C, 10th/15th |
-| [DOLE Labor Advisory 06-20](https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf) | Final pay 30 days; COE 3 days |
-| [DOLE Labor Advisory 16-25](https://bwc.dole.gov.ph/wp-content/uploads/2025/12/Labor-Advisory-No.-16-25-Guidelines-on-the-Payment-of-the-Thirteenth-Month-Pay.pdf) | 13th-month pay 24 December; report 15 January |
-| [NWPC 2025 AERW FAQs](https://nwpc.dole.gov.ph/2025-aerw-faqs/) | AERW window and 31 August closing |
-| [Labor Advisory 08-26](https://nwpc.dole.gov.ph/wp-content/uploads/2026/05/Labor-Advisory-No.-08-26-2025-Annual-Establishment-Report-on-Wages-AERW-1.pdf) | 2025 AERW, 15 May–31 August 2026 |
-| [OSH Standards 2020](https://oshc.dole.gov.ph/wp-content/uploads/2020/02/OSH-Standards-2020-Edition.pdf) | Rules 1053.01, 1053.02, 1054(2), 1965.01(4) |
-| [DOLE Department Order 147-15](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/71535) | Twin notice, authorised cause notice |
-| [DOLE Department Advisory 2, s. 2009](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/11/44022) | Flexible work arrangement prior notice |
-| [DOLE Department Order 215-20](https://bwc.dole.gov.ph/issuances/department-orders/) and [Polintan v. Malabanan](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/1/69619) | Suspension extension, 10 days prior |
-| [Revised IRR of RA 11165](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/96745) | Telecommuting notice |
-| [RA 8972](https://pcw.gov.ph/republic-act-8972-solo-parents-welfare-act-of-2000/) | Solo parent flexible schedule |
-| [RA 11199](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333) | SSS contributions and loan remittance |
-| [NPC Circular 16-03](https://privacy.gov.ph/wp-content/uploads/2022/01/sgd-npc-circular-16-03-personal-data-breach-management.pdf) | Breach notification and full report |
-| [NPC Advisory 2026-02](https://privacy.gov.ph/wp-content/uploads/2026/05/Advisory-Clarification-on-the-Submission-of-Personal-Data-Breach-Notification-through-DBNMS_11-May-2026.pdf) | Full report 5 days from discovery |
-| [NPC, Breach Reporting](https://privacy.gov.ph/pips-and-pics/breach-reporting/) | The "from notification" alternative reading |
+| Source                                                                                                                                                                                                                                              | Used for                                            |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| [SSS, Employers](https://www.sss.gov.ph/employer-er/)                                                                                                                                                                                               | R-1A within 30 days of hiring                       |
+| [SSS, Pay Contribution](https://www.sss.gov.ph/pay-contribution/)                                                                                                                                                                                   | Monthly SSS remittance deadline                     |
+| [PhilHealth, Reporting Your Employees](https://www.philhealth.gov.ph/partners/employers/report.php)                                                                                                                                                 | ER2 within 30 days                                  |
+| [PhilHealth, Pay Procedures](https://www.philhealth.gov.ph/partners/employers/pay_procedures.php)                                                                                                                                                   | Monthly premium window                              |
+| [HDMF Circular 275](https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf) | Pag-IBIG registration and remittance                |
+| [HDMF Circular 365](https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf)  | Amended Pag-IBIG employer registration, 30 days     |
+| [RR 11-2018](https://bir-cdn.bir.gov.ph/local/pdf/RR%20No.%2011-2018.pdf)                                                                                                                                                                           | BIR 1902, 1604-C, 2316, year-end adjustment, 1603-Q |
+| [BIR 1604-C guidelines](https://bir-cdn.bir.gov.ph/local/pdf/1604-C%20Jan%202018%20Final.pdf)                                                                                                                                                       | 1604-C and alphalist, 31 January                    |
+| [BIR Taxpayer's Guide](https://bir-cdn.bir.gov.ph/BIR/pdf/TAX%20GUIDE%20FOR%20OFW%20AS%20OF%201120.pdf)                                                                                                                                             | 1604-C on or before 31 January                      |
+| [BIR 1601-C guidelines](https://bir-cdn.bir.gov.ph/local/pdf/1601C%20final%20Jan%202018%20with%20DPA.pdf)                                                                                                                                           | Monthly 1601-C, 10th/15th                           |
+| [DOLE Labor Advisory 06-20](https://www.dole.gov.ph/php_assets/uploads/2020/02/Labor-Advisory-No.-06-20-Guidelines-on-the-Payment-of-Final-Pay-and-Issuance-of-Certificate-of-Emplo.pdf)                                                            | Final pay 30 days; COE 3 days                       |
+| [DOLE Labor Advisory 16-25](https://bwc.dole.gov.ph/wp-content/uploads/2025/12/Labor-Advisory-No.-16-25-Guidelines-on-the-Payment-of-the-Thirteenth-Month-Pay.pdf)                                                                                  | 13th-month pay 24 December; report 15 January       |
+| [NWPC 2025 AERW FAQs](https://nwpc.dole.gov.ph/2025-aerw-faqs/)                                                                                                                                                                                     | AERW window and 31 August closing                   |
+| [Labor Advisory 08-26](https://nwpc.dole.gov.ph/wp-content/uploads/2026/05/Labor-Advisory-No.-08-26-2025-Annual-Establishment-Report-on-Wages-AERW-1.pdf)                                                                                           | 2025 AERW, 15 May–31 August 2026                    |
+| [OSH Standards 2020](https://oshc.dole.gov.ph/wp-content/uploads/2020/02/OSH-Standards-2020-Edition.pdf)                                                                                                                                            | Rules 1053.01, 1053.02, 1054(2), 1965.01(4)         |
+| [DOLE Department Order 147-15](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/71535)                                                                                                                                                    | Twin notice, authorised cause notice                |
+| [DOLE Department Advisory 2, s. 2009](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/11/44022)                                                                                                                                             | Flexible work arrangement prior notice              |
+| [DOLE Department Order 215-20](https://bwc.dole.gov.ph/issuances/department-orders/) and [Polintan v. Malabanan](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/1/69619)                                                                   | Suspension extension, 10 days prior                 |
+| [Revised IRR of RA 11165](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/96745)                                                                                                                                                          | Telecommuting notice                                |
+| [RA 8972](https://pcw.gov.ph/republic-act-8972-solo-parents-welfare-act-of-2000/)                                                                                                                                                                   | Solo parent flexible schedule                       |
+| [RA 11199](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/86333)                                                                                                                                                                         | SSS contributions and loan remittance               |
+| [NPC Circular 16-03](https://privacy.gov.ph/wp-content/uploads/2022/01/sgd-npc-circular-16-03-personal-data-breach-management.pdf)                                                                                                                  | Breach notification and full report                 |
+| [NPC Advisory 2026-02](https://privacy.gov.ph/wp-content/uploads/2026/05/Advisory-Clarification-on-the-Submission-of-Personal-Data-Breach-Notification-through-DBNMS_11-May-2026.pdf)                                                               | Full report 5 days from discovery                   |
+| [NPC, Breach Reporting](https://privacy.gov.ph/pips-and-pics/breach-reporting/)                                                                                                                                                                     | The "from notification" alternative reading         |
 
 ## Implementation status (2026-11-09)
 

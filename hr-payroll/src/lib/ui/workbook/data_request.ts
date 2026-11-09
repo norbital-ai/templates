@@ -403,8 +403,7 @@ const allowanceKeys = (rows: readonly AllowanceFacts[]) => {
 							/allowances\.([A-Z0-9_]+)\.amount/g
 						)
 					].flatMap((match) => (match[1] === undefined ? [] : [match[1]]));
-		for (const key of keys)
-			if (!held.has(key)) held.set(key, human(row.code));
+		for (const key of keys) if (!held.has(key)) held.set(key, human(row.code));
 	}
 	return held;
 };
@@ -901,7 +900,9 @@ export const planDataRequest = (
 			entitySchedules.set(lower(name), {
 				name,
 				payment_schedule: schedule,
-				pay_cutoff_day: Number((entity.payment_schedule as Record<string, unknown> | undefined)?.pay_cutoff_day ?? 1)
+				pay_cutoff_day: Number(
+					(entity.payment_schedule as Record<string, unknown> | undefined)?.pay_cutoff_day ?? 1
+				)
 			});
 		const registrations = registrationsOf(
 			isJsonObject($registration) ? $registration : {},

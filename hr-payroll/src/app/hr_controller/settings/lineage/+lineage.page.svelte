@@ -109,7 +109,6 @@
 	>
 {/snippet}
 
-
 {#snippet general()}{#if version}<RecordShell of="jurisdiction_settings" id={version.id}>
 			{#snippet children(view)}<SettingsForm {view} />{/snippet}
 		</RecordShell>{/if}{/snippet}

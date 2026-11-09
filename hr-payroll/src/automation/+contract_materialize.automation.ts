@@ -97,7 +97,8 @@ export default automation('contract_materialize', {
 							lineage.find((row) => covers(row, on))?.id ?? open.input_schema_version_id ?? null,
 						employee_extension_data: next.employee_extension_data ?? null,
 						service_started_on: next.service_started_on ?? open.service_started_on ?? null,
-						signed_contract_period: next.signed_contract_period ?? open.signed_contract_period ?? null,
+						signed_contract_period:
+							next.signed_contract_period ?? open.signed_contract_period ?? null,
 						effective_range: { from: on, to: null },
 						reason,
 						status: 'DRAFT'

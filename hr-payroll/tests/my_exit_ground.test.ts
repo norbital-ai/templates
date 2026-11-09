@@ -47,27 +47,36 @@ type ExitGround =
 	| 'UNILATERAL'
 	| 'BREACH_BY_EMPLOYER';
 const keys = (t: Kit, prefix: string) =>
-	t.storedQuery({ obligation: { limit: 100 } }).pipe(
-		Effect.map(({ obligation }) =>
-			obligation.rows.filter((row) => String(row.occurrence_key).startsWith(prefix))
-		)
-	);
+	t
+		.storedQuery({ obligation: { limit: 100 } })
+		.pipe(
+			Effect.map(({ obligation }) =>
+				obligation.rows.filter((row) => String(row.occurrence_key).startsWith(prefix))
+			)
+		);
 const setGround = (t: Kit, ground: ExitGround) =>
-	t.as(t.admin).act('employee_contract.update', [{ target: CONTRACT, set: { exit_ground: ground } }]);
+	t
+		.as(t.admin)
+		.act('employee_contract.update', [{ target: CONTRACT, set: { exit_ground: ground } }]);
 
 const settings = JSON.parse(
 	readFileSync(
 		new URL('../seed/public/jurisdiction/MY/version_8/jurisdiction_settings.json', import.meta.url),
 		'utf8'
 	)
- ) as readonly import('../src/lib/payroll_engine/contracts.ts').JsonObject[];
+) as readonly import('../src/lib/payroll_engine/contracts.ts').JsonObject[];
 const benefit = (
 	JSON.parse(
 		readFileSync(
 			new URL('../seed/public/jurisdiction/MY/version_8/adhoc_catalog.json', import.meta.url),
 			'utf8'
 		)
-	) as readonly { code: string; lookup?: Record<string, unknown>; eligibility?: string; conversion?: string }[]
+	) as readonly {
+		code: string;
+		lookup?: Record<string, unknown>;
+		eligibility?: string;
+		conversion?: string;
+	}[]
 ).find((row) => row.code === 'TERMINATION_BENEFIT');
 assert.ok(benefit?.eligibility !== undefined && benefit.conversion !== undefined);
 const lookup = { ...settingsConstants(settings[0]!), ...benefit.lookup };
@@ -134,8 +143,7 @@ describe('MY exit ground', () => {
 			yield* t.runDue();
 			assert.equal((yield* keys(t, 'MY:RETRENCHMENT_NOTIFICATION:')).length, 1);
 			assert.equal((yield* keys(t, 'MY:RETRENCHMENT_FOREIGN_FIRST:')).length, 1);
-		}).pipe(Effect.provide(live()))
-	);
+		}).pipe(Effect.provide(live())));
 	it('a resignation raises no retrenchment duty', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
@@ -143,22 +151,19 @@ describe('MY exit ground', () => {
 			yield* t.runDue();
 			assert.equal((yield* keys(t, 'MY:RETRENCHMENT_NOTIFICATION:')).length, 0);
 			assert.equal((yield* keys(t, 'MY:RETRENCHMENT_FOREIGN_FIRST:')).length, 0);
-		}).pipe(Effect.provide(live()))
-	);
+		}).pipe(Effect.provide(live())));
 	it('retirement below 60 raises the review; at 60 it does not', () =>
 		Effect.gen(function* () {
 			const young = yield* TestWorkspace;
 			yield* setGround(young, 'RETIREMENT');
 			yield* young.runDue();
 			assert.equal((yield* keys(young, 'MY:RETIREMENT_AGE_REVIEW:')).length, 1);
-		}).pipe(Effect.provide(live('1970-06-30')))
-	);
+		}).pipe(Effect.provide(live('1970-06-30'))));
 	it('a retirement at 60 raises no review', () =>
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			yield* setGround(t, 'RETIREMENT');
 			yield* t.runDue();
 			assert.equal((yield* keys(t, 'MY:RETIREMENT_AGE_REVIEW:')).length, 0);
-		}).pipe(Effect.provide(live('1966-06-30')))
-	);
+		}).pipe(Effect.provide(live('1966-06-30'))));
 });

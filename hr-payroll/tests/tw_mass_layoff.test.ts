@@ -5,12 +5,22 @@ import { readFileSync } from 'node:fs';
 import { describe, it } from '@effect/vitest';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 
-type Rule = { readonly code: string; readonly validate?: string; readonly effects?: string; readonly lookup?: Record<string, unknown> };
+type Rule = {
+	readonly code: string;
+	readonly validate?: string;
+	readonly effects?: string;
+	readonly lookup?: Record<string, unknown>;
+};
 const load = <T>(file: string): T =>
 	JSON.parse(
-		readFileSync(new URL(`../seed/public/jurisdiction/TW/version_5/${file}`, import.meta.url), 'utf8')
+		readFileSync(
+			new URL(`../seed/public/jurisdiction/TW/version_5/${file}`, import.meta.url),
+			'utf8'
+		)
 	) as T;
-const effect = load<readonly Rule[]>('registered_effect.json').find((row) => row.code === 'MASS_LAYOFF_PLAN');
+const effect = load<readonly Rule[]>('registered_effect.json').find(
+	(row) => row.code === 'MASS_LAYOFF_PLAN'
+);
 const entityEffect = load<readonly Rule[]>('registered_effect.json').find(
 	(row) => row.code === 'MASS_LAYOFF_PLAN_ENTITY'
 );
@@ -29,7 +39,8 @@ const contract = (id: string, site: string, kind: Kind, ground = 'ARTICLE_11') =
 	status: 'SEALED',
 	engagement: 'EMPLOYEE',
 	terms: { worksite: site },
-	effective_range: kind === 'staff' ? { from: '2026-01-01', to: null } : { from: '2025-01-01', to: EXIT },
+	effective_range:
+		kind === 'staff' ? { from: '2026-01-01', to: null } : { from: '2025-01-01', to: EXIT },
 	employee_extension_data: {
 		...(kind === 'staff' ? {} : { lsa_termination_ground: ground }),
 		...(kind === 'local' ? { fixed_term_category: 'LOCAL_FIXED_TERM' } : {}),
@@ -79,13 +90,18 @@ describe('TW mass layoff plan', () => {
 	it('the entity-wide threshold raises a plan without a site label', () => {
 		const rows = obligations(
 			[
-				...site('A', 40, 100), ...site('B', 40, 100), ...site('C', 40, 100),
-				...site('D', 40, 100), ...site('E', 41, 100)
+				...site('A', 40, 100),
+				...site('B', 40, 100),
+				...site('C', 40, 100),
+				...site('D', 40, 100),
+				...site('E', 41, 100)
 			],
 			undefined,
 			entityEffect
 		);
-		const entity = rows.filter((row) => row.occurrence_key === 'MASS_LAYOFF_PLAN:entity-1:2026-04-16');
+		const entity = rows.filter(
+			(row) => row.occurrence_key === 'MASS_LAYOFF_PLAN:entity-1:2026-04-16'
+		);
 		assert.equal(entity.length, 1);
 		assert.equal(entity[0]?.title, 'Mass layoff plan notified sixty days before');
 	});

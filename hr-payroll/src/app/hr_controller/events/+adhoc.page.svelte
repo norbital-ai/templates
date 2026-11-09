@@ -114,7 +114,6 @@
 	}
 </script>
 
-
 {#snippet sealCell({ value }: { value: unknown })}<SealedBadge sealed={value != null} />{/snippet}
 
 <AppShell
@@ -146,7 +145,7 @@
 				'catalog_id',
 				'description',
 				'quantity',
-				
+
 				'incurred_on',
 				{ field: 'payroll_run_id', cell: sealCell }
 			]}

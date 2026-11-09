@@ -274,9 +274,11 @@ describe('what cannot be done to the ledger, an admin included', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const refused = yield* Effect.flip(
-				t.as(t.admin).act('leave_catalog_entry.create', [
-					{ entity_id: ENTITY, employment_id: CONTRACT, catalog_id: MEDICAL }
-				])
+				t
+					.as(t.admin)
+					.act('leave_catalog_entry.create', [
+						{ entity_id: ENTITY, employment_id: CONTRACT, catalog_id: MEDICAL }
+					])
 			);
 			assert.match(String(refused), /at least one day/);
 		}).pipe(Effect.provide(workspace({ seed, now: NOW })))

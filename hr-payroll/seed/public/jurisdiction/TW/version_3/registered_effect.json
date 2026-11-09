@@ -3,9 +3,7 @@
 		"code": "retract-exit-effects",
 		"name": "Retract Exit Effects",
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -43,9 +41,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -75,9 +71,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -107,9 +101,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -142,9 +134,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -178,9 +168,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -200,9 +188,7 @@
 						}
 					}
 				},
-				"fields": [
-					"breakdown"
-				]
+				"fields": ["breakdown"]
 			}
 		},
 		"condition": "// js\nreturn true;",
@@ -229,9 +215,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -263,10 +247,7 @@
 						}
 					}
 				},
-				"fields": [
-					"payroll_run_id",
-					"breakdown"
-				]
+				"fields": ["payroll_run_id", "breakdown"]
 			}
 		},
 		"condition": "// js\nreturn true;",
@@ -293,9 +274,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -325,9 +304,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -360,9 +337,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -392,9 +367,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -424,9 +397,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -456,9 +427,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -488,9 +457,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -521,9 +488,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -553,9 +518,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -585,10 +548,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -619,10 +579,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -655,10 +612,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -691,10 +645,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -726,10 +677,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -759,9 +707,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -792,9 +738,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -827,9 +771,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -862,9 +804,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -895,9 +835,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -934,9 +872,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -966,9 +902,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -994,12 +928,7 @@
 		"name": "Severance payment",
 		"lookup": {
 			"days": 30,
-			"severance_grounds": [
-				"ARTICLE_11",
-				"ARTICLE_13_PROVISO",
-				"ARTICLE_14",
-				"ARTICLE_20"
-			]
+			"severance_grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20"]
 		},
 		"references": [
 			{
@@ -1007,9 +936,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1035,12 +962,7 @@
 		"name": "LSA retirement payment",
 		"lookup": {
 			"days": 30,
-			"severance_grounds": [
-				"ARTICLE_11",
-				"ARTICLE_13_PROVISO",
-				"ARTICLE_14",
-				"ARTICLE_20"
-			]
+			"severance_grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20"]
 		},
 		"references": [
 			{
@@ -1048,9 +970,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1076,11 +996,7 @@
 		"name": "Layoff report to the authority",
 		"lookup": {
 			"days": 10,
-			"notice_grounds": [
-				"ARTICLE_11",
-				"ARTICLE_13_PROVISO",
-				"ARTICLE_20"
-			]
+			"notice_grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_20"]
 		},
 		"references": [
 			{
@@ -1090,9 +1006,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1117,11 +1031,7 @@
 		"code": "TERMINATION_NOTICE",
 		"name": "Termination notice or pay in lieu",
 		"lookup": {
-			"notice_grounds": [
-				"ARTICLE_11",
-				"ARTICLE_13_PROVISO",
-				"ARTICLE_20"
-			]
+			"notice_grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_20"]
 		},
 		"references": [
 			{
@@ -1135,9 +1045,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1167,9 +1075,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1202,9 +1108,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1238,10 +1142,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1264,10 +1165,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"employee_id",
-					"effective_range"
-				]
+				"fields": ["employee_id", "effective_range"]
 			}
 		},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.subject.employer, 'entity_extension_data.work_rules_approval_reference', '') !== '') return false;\nconst on = ctx.entry.effective_range.from;\nconst staff = ctx.reads.employee_contract\n  .filter((row) => {\n    const to = get(row, 'effective_range.to', null);\n    return to == null || to >= on;\n  })\n  .map((row) => row.employee_id)\n  .filter((id, index, all) => all.indexOf(id) === index).length;\nreturn staff >= ctx.lookup.workers;",
@@ -1288,9 +1186,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1321,9 +1217,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1348,12 +1242,7 @@
 		"code": "INVOLUNTARY_SEPARATION_CERTIFICATE",
 		"name": "Involuntary separation certificate",
 		"lookup": {
-			"severance_grounds": [
-				"ARTICLE_11",
-				"ARTICLE_13_PROVISO",
-				"ARTICLE_14",
-				"ARTICLE_20"
-			]
+			"severance_grounds": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20"]
 		},
 		"references": [
 			{
@@ -1362,9 +1251,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1394,10 +1281,7 @@
 			}
 		],
 		"source_collection": "leave_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1416,13 +1300,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"leave_entry_id",
-					"incurred_on",
-					"part",
-					"payroll_run_id"
-				],
+				"fields": ["id", "leave_entry_id", "incurred_on", "part", "payroll_run_id"],
 				"limit": 10000
 			},
 			"obligation": {
@@ -1457,9 +1335,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1493,9 +1369,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1515,9 +1389,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			}
 		},
@@ -1539,9 +1411,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1577,9 +1447,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1602,10 +1470,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"employee_id",
-					"effective_range"
-				]
+				"fields": ["employee_id", "effective_range"]
 			}
 		},
 		"condition": "const on = ctx.entry.salary_coverage.to;\nconst staff = ctx.reads.employee_contract\n  .filter((row) => {\n    const to = get(row, 'effective_range.to', null);\n    return to == null || to >= on;\n  })\n  .map((row) => row.employee_id)\n  .filter((id, index, all) => all.indexOf(id) === index).length;\nif (staff < ctx.lookup.workers) return false;\nconst counted = Number(get(ctx.subject.employer, 'entity_extension_data.disabled_employees_counted', 0));\nreturn counted < Math.max(1, Math.floor(staff * ctx.lookup.quota_rate));",
@@ -1629,9 +1494,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1665,9 +1528,7 @@
 			}
 		],
 		"source_collection": "payroll_run",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1700,9 +1561,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1727,10 +1586,7 @@
 		"code": "MASS_LAYOFF_PLAN",
 		"name": "Mass layoff plan notified sixty days before",
 		"lookup": {
-			"grounds": [
-				"ARTICLE_11",
-				"ARTICLE_20"
-			],
+			"grounds": ["ARTICLE_11", "ARTICLE_20"],
 			"window_days": 59,
 			"advance_notice_days": 60,
 			"small_site_upper": 30,
@@ -1752,9 +1608,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"employee_contract": {
 				"where": {
@@ -1796,9 +1650,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1818,9 +1670,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			}
 		},
@@ -1846,9 +1696,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1868,9 +1716,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			}
 		},
@@ -1896,9 +1742,7 @@
 			}
 		],
 		"source_collection": "workplace_case_catalog_entry",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1921,9 +1765,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			}
 		},
@@ -1957,9 +1799,7 @@
 			}
 		],
 		"source_collection": "obligation",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -1994,9 +1834,7 @@
 			}
 		],
 		"source_collection": "obligation",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2031,9 +1869,7 @@
 			}
 		],
 		"source_collection": "obligation",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2073,9 +1909,7 @@
 			}
 		],
 		"source_collection": "obligation",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2109,9 +1943,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2142,10 +1974,7 @@
 			}
 		],
 		"source_collection": "work_event",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2165,9 +1994,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			}
 		},
@@ -2193,9 +2020,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -2238,9 +2063,7 @@
 			}
 		],
 		"source_collection": "entity_profile_version",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -2280,10 +2103,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2306,10 +2126,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"employee_id",
-					"effective_range"
-				]
+				"fields": ["employee_id", "effective_range"]
 			}
 		},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.subject.employer, 'entity_extension_data.sexual_harassment_complaint_channel', false) === true) return false;\nconst on = ctx.entry.effective_range.from;\nconst staff = ctx.reads.employee_contract\n  .filter((row) => {\n    const to = get(row, 'effective_range.to', null);\n    return to == null || to >= on;\n  })\n  .map((row) => row.employee_id)\n  .filter((id, index, all) => all.indexOf(id) === index).length;\nreturn staff >= ctx.lookup.workers && staff < ctx.lookup.workers_below;",
@@ -2334,10 +2151,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2360,10 +2174,7 @@
 						"eq": "SEALED"
 					}
 				},
-				"fields": [
-					"employee_id",
-					"effective_range"
-				]
+				"fields": ["employee_id", "effective_range"]
 			}
 		},
 		"condition": "if (ctx.entry.status !== 'SEALED') return false;\nif (get(ctx.subject.employer, 'entity_extension_data.sexual_harassment_prevention_rules', false) === true) return false;\nconst on = ctx.entry.effective_range.from;\nconst staff = ctx.reads.employee_contract\n  .filter((row) => {\n    const to = get(row, 'effective_range.to', null);\n    return to == null || to >= on;\n  })\n  .map((row) => row.employee_id)\n  .filter((id, index, all) => all.indexOf(id) === index).length;\nreturn staff >= ctx.lookup.workers;",
@@ -2388,10 +2199,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"obligation": {
 				"where": {
@@ -2417,9 +2225,7 @@
 		"name": "Follow up a contribution corrected for a closed month",
 		"lookup": {},
 		"source_collection": "adhoc_catalog_entry",
-		"events": [
-			"create"
-		],
+		"events": ["create"],
 		"reads": {
 			"adhoc_catalog": {
 				"where": {
@@ -2429,10 +2235,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code",
-					"lookup"
-				],
+				"fields": ["code", "lookup"],
 				"limit": 1
 			},
 			"obligation": {
@@ -2443,9 +2246,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id"
-				],
+				"fields": ["id"],
 				"limit": 1
 			}
 		},
@@ -2466,10 +2267,7 @@
 		"code": "MASS_LAYOFF_PLAN_ENTITY",
 		"name": "Mass layoff plan for the entity-wide threshold",
 		"lookup": {
-			"grounds": [
-				"ARTICLE_11",
-				"ARTICLE_20"
-			],
+			"grounds": ["ARTICLE_11", "ARTICLE_20"],
 			"window_days": 59,
 			"advance_notice_days": 60,
 			"small_site_upper": 30,
@@ -2491,9 +2289,7 @@
 			}
 		],
 		"source_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"employee_contract": {
 				"where": {

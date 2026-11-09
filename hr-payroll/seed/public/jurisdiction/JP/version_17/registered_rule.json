@@ -3,11 +3,7 @@
 		"code": "MINIMUM_WAGE_CONTRACT",
 		"description": "Refuses a contract whose hourly, daily or monthly rate is below the regional minimum wage in force on the contract's first day.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update",
-			"seal"
-		],
+		"events": ["create", "update", "seal"],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000
@@ -542,10 +538,7 @@
 		"code": "ROSTER_DAILY_8H",
 		"description": "Refuses a day worked beyond 8 hours while no filed 36 agreement covers the date.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000
@@ -589,10 +582,7 @@
 		"code": "ROSTER_WEEKLY_40H",
 		"description": "Refuses a week worked beyond 40 hours (44 for a listed small establishment) while no filed 36 agreement covers the date.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000
@@ -632,10 +622,7 @@
 		"code": "ROSTER_OVERTIME_UNRECORDED",
 		"description": "Refuses a planned ordinary shift longer than 8 hours because the hours beyond 8 are statutory overtime the planned price does not include.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000
@@ -674,10 +661,7 @@
 		"code": "ROSTER_BREAK",
 		"description": "Refuses a shift whose break is under 45 minutes after 6 hours or under one hour after 8 hours.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000
@@ -719,10 +703,7 @@
 		"code": "ROSTER_REST_DAY",
 		"description": "Refuses a week with no rest day.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000
@@ -761,10 +742,7 @@
 		"code": "ROSTER_MINOR_OVERTIME",
 		"description": "Refuses overtime beyond 8 hours or rest-day work recorded for a worker under 18.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000
@@ -804,10 +782,7 @@
 		"code": "ROSTER_MINOR_HOURS",
 		"description": "Refuses a worker under 18 working beyond 8 hours a day or 40 hours a week.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000
@@ -848,10 +823,7 @@
 		"code": "ROSTER_MINOR_NIGHT",
 		"description": "Refuses night work between 22:00 and 05:00 recorded for a worker under 18.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000
@@ -892,10 +864,7 @@
 		"code": "ROSTER_MATERNITY_OVERTIME",
 		"description": "Refuses overtime beyond 8 hours or rest-day work recorded for a pregnant or post-partum worker who asked to be excused.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000
@@ -923,9 +892,7 @@
 		"lookup": {
 			"name": "Overtime beyond 8 hours or rest-day work recorded for a pregnant or post-partum worker who asked to be excused",
 			"message": "Overtime beyond 8 hours a day, or rest-day work, recorded for a pregnant or post-partum worker who asked to be excused (労働基準法 art.66(2)).",
-			"case_kinds": [
-				"PREGNANCY_WORK_LIMIT_REQUEST"
-			],
+			"case_kinds": ["PREGNANCY_WORK_LIMIT_REQUEST"],
 			"standard_daily_hours": 8
 		},
 		"references": [
@@ -940,10 +907,7 @@
 		"code": "ROSTER_MATERNITY_NIGHT",
 		"description": "Refuses night work recorded for a pregnant or post-partum worker who asked to be excused.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000
@@ -971,9 +935,7 @@
 		"lookup": {
 			"name": "A pregnant or post-partum worker who asked to be excused worked at night",
 			"message": "A pregnant or post-partum worker who asked to be excused worked at night (労働基準法 art.66(3)).",
-			"case_kinds": [
-				"PREGNANCY_WORK_LIMIT_REQUEST"
-			],
+			"case_kinds": ["PREGNANCY_WORK_LIMIT_REQUEST"],
 			"night_from": "22:00",
 			"night_to": "05:00"
 		},
@@ -989,10 +951,7 @@
 		"code": "ROSTER_CHILDCARE_OVERTIME",
 		"description": "Refuses work beyond the scheduled hours recorded for a worker who asked to be excused from overtime for childcare or care.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000
@@ -1020,9 +979,7 @@
 		"lookup": {
 			"name": "Overtime approved for a worker who asked not to work beyond the schedule for childcare or care",
 			"message": "Overtime approved for a worker who asked not to work beyond the schedule for childcare or care (育児・介護休業法 arts.16の8, 16の9).",
-			"case_kinds": [
-				"CHILDCARE_NO_OVERTIME_REQUEST"
-			]
+			"case_kinds": ["CHILDCARE_NO_OVERTIME_REQUEST"]
 		},
 		"references": [
 			{
@@ -1036,10 +993,7 @@
 		"code": "ROSTER_CHILDCARE_NIGHT",
 		"description": "Refuses night work recorded for a worker who asked to be excused from night work for childcare or care.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000
@@ -1067,9 +1021,7 @@
 		"lookup": {
 			"name": "A worker who asked to be excused from night work for childcare or care worked between 22:00 and 05:00",
 			"message": "A worker who asked to be excused from night work for childcare or care worked between 22:00 and 05:00 (育児・介護休業法 arts.19, 20).",
-			"case_kinds": [
-				"CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST"
-			],
+			"case_kinds": ["CHILDCARE_NIGHT_WORK_EXEMPTION_REQUEST"],
 			"night_from": "22:00",
 			"night_to": "05:00"
 		},
@@ -1085,10 +1037,7 @@
 		"code": "ROSTER_HAZARDOUS_OVERTIME",
 		"description": "Refuses more than 2 hours of overtime in a day on work harmful to health.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000
@@ -1127,10 +1076,7 @@
 		"code": "ROSTER_REST_INTERVAL",
 		"description": "Refuses less rest between the end of one day's work and the next than the employer's interval or, for drivers, the 9-hour statutory floor.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000
@@ -1169,10 +1115,7 @@
 		"code": "ROSTER_LEAVE_ON_WORKED_DAY",
 		"description": "Refuses leave recorded on a day that also has attendance.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"leave_catalog_entry_day": {
 				"where": {
@@ -1191,10 +1134,7 @@
 						}
 					}
 				},
-				"fields": [
-					"leave_entry_id",
-					"incurred_on"
-				],
+				"fields": ["leave_entry_id", "incurred_on"],
 				"limit": 10000
 			}
 		},
@@ -1216,11 +1156,7 @@
 		"code": "WAGE_PAYMENT_MONTHLY",
 		"description": "Refuses an entity pay frequency other than at least monthly on a fixed day.",
 		"target_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update",
-			"seal"
-		],
+		"events": ["create", "update", "seal"],
 		"validate": "const schedule = get(ctx.subject.employer, 'payment_schedule', {});\nreturn get(schedule, 'frequency', null) !== ctx.lookup.forbidden_frequency;",
 		"order": 31,
 		"lookup": {
@@ -1240,10 +1176,7 @@
 		"code": "JP_SUBSTITUTE_LEAVE_REVIEW",
 		"description": "Refuses to consume a substitute-leave entry until the overtime-month allocation and premium settlement have been reviewed outside the automatic path.",
 		"target_collection": "leave_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"leave_catalog": {
 				"limit": 10000
@@ -1270,10 +1203,7 @@
 		"code": "JP_PRENATAL_WINDOW",
 		"description": "Refuses prenatal leave days outside the 6-week (14-week multiple pregnancy) window before the expected birth.",
 		"target_collection": "leave_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1283,10 +1213,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code",
-					"lookup"
-				],
+				"fields": ["code", "lookup"],
 				"limit": 1
 			}
 		},
@@ -1310,10 +1237,7 @@
 		"code": "JP_ANNUAL_LEAVE_HOURS_CAP",
 		"description": "Refuses annual leave taken in hours beyond 5 days in the grant year.",
 		"target_collection": "leave_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -1323,10 +1247,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code",
-					"lookup"
-				],
+				"fields": ["code", "lookup"],
 				"limit": 1
 			},
 			"employee_contract": {
@@ -1337,10 +1258,7 @@
 						}
 					}
 				},
-				"fields": [
-					"service_started_on",
-					"effective_range"
-				],
+				"fields": ["service_started_on", "effective_range"],
 				"limit": 1
 			},
 			"leave_catalog_entry": {
@@ -1362,10 +1280,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"reverses"
-				],
+				"fields": ["id", "reverses"],
 				"limit": 1000
 			},
 			"leave_catalog_entry_day": {
@@ -1380,10 +1295,7 @@
 						}
 					}
 				},
-				"fields": [
-					"leave_entry_id",
-					"incurred_on"
-				],
+				"fields": ["leave_entry_id", "incurred_on"],
 				"limit": 10000
 			}
 		},
@@ -1407,36 +1319,21 @@
 		"code": "CONTRACT_CATEGORIES",
 		"description": "Refuses a contract whose work classification, statutory work category, residency status or wage payment method is not permitted by the version.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update",
-			"seal"
-		],
+		"events": ["create", "update", "seal"],
 		"validate": "const terms = get(ctx.entry, 'terms', {});\nconst classification = get(terms, 'work_classification', null);\nif (classification != null && !ctx.lookup.work_classifications.includes(classification)) return false;\nconst category = get(terms, 'statutory_work_category', null);\nif (category != null && !ctx.lookup.statutory_work_categories.includes(category)) return false;\nconst residency = get(terms, 'residency_status', null);\nif (residency != null && !ctx.lookup.residency_statuses.includes(residency)) return false;\nconst method = get(terms, 'wage_payment_method', null);\nif (method != null && !ctx.lookup.wage_payment_methods.includes(method)) return false;\nreturn true;",
 		"order": 39,
 		"lookup": {
 			"name": "Use the recorded employment categories",
 			"message": "Select the work classification, statutory work category, residency status and wage payment method permitted by this jurisdiction version.",
-			"work_classifications": [
-				"ORDINARY",
-				"MANAGERIAL",
-				"OFFICER"
-			],
+			"work_classifications": ["ORDINARY", "MANAGERIAL", "OFFICER"],
 			"statutory_work_categories": [
 				"SOCIAL_AND_EMPLOYMENT",
 				"SOCIAL_ONLY",
 				"EMPLOYMENT_ONLY",
 				"NONE"
 			],
-			"residency_statuses": [
-				"RESIDENT",
-				"NON_RESIDENT"
-			],
-			"wage_payment_methods": [
-				"BANK",
-				"DIGITAL",
-				"CASH"
-			]
+			"residency_statuses": ["RESIDENT", "NON_RESIDENT"],
+			"wage_payment_methods": ["BANK", "DIGITAL", "CASH"]
 		},
 		"references": [
 			{
@@ -1452,11 +1349,7 @@
 		"code": "PAYROLL_OFFICE_EVENT_DATE_REQUIRED",
 		"description": "Requires the registered salary-payment office opening date when the entity names a withholding tax office.",
 		"target_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update",
-			"seal"
-		],
+		"events": ["create", "update", "seal"],
 		"validate": "const ext = get(ctx.entry, 'entity_extension_data', {});\nif (get(ext, 'withholding_tax_office', '') === '') return true;\nconst opened = get(ext, 'payroll_office_opened_on', null);\nreturn opened != null && opened !== '';",
 		"order": 46,
 		"lookup": {
@@ -1477,10 +1370,7 @@
 		"code": "BUSINESS_CASE_SUBJECT_AND_REFERENCE",
 		"description": "Requires the employee and a source or request reference on the listed employee business cases.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"validate": "if (!ctx.lookup.case_kinds.includes(ctx.entry.kind)) return true;\nreturn ctx.entry.employment_id != null && get(ctx.entry, 'reference', '') !== '';",
 		"order": 47,
 		"lookup": {
@@ -1509,10 +1399,7 @@
 		"code": "BUSINESS_CASE_EFFECTIVE_INTERVAL",
 		"description": "Requires an effective interval on the listed business cases, beginning on or after receipt and ending no earlier than it starts.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"validate": "if (!ctx.lookup.case_kinds.includes(ctx.entry.kind)) return true;\nconst from = get(ctx.entry.inputs, 'effective_from', null);\nconst to = get(ctx.entry.inputs, 'effective_to', null);\nif (from == null || to == null) return false;\nreturn from >= ctx.entry.opened_on && to >= from;",
 		"order": 48,
 		"lookup": {
@@ -1539,10 +1426,7 @@
 		"code": "BUSINESS_CASE_SIGNED_CONSENT",
 		"description": "Requires a prior signature date and the signed document on a digital wage payment consent.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"validate": "if (ctx.entry.kind !== 'DIGITAL_WAGE_PAYMENT_CONSENT') return true;\nconst signed = get(ctx.entry.inputs, 'signed_on', null);\nif (signed == null) return false;\nif (!(signed <= ctx.entry.opened_on)) return false;\nreturn get(ctx.entry, 'evidence_file', null) != null;",
 		"order": 49,
 		"lookup": {
@@ -1563,10 +1447,7 @@
 		"code": "DIGITAL_CONSENT_EFFECTIVE_DATE",
 		"description": "Requires digital wage payment consent to take effect on or after its receipt.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"validate": "if (ctx.entry.kind !== 'DIGITAL_WAGE_PAYMENT_CONSENT') return true;\nconst from = get(ctx.entry.inputs, 'effective_from', null);\nreturn from != null && from >= ctx.entry.opened_on;",
 		"order": 50,
 		"lookup": {
@@ -1587,11 +1468,7 @@
 		"code": "ESTABLISHMENT_EVENT_DATES_REQUIRED",
 		"description": "Requires the social, labour and employment insurance establishment dates on the sealed entity version.",
 		"target_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update",
-			"seal"
-		],
+		"events": ["create", "update", "seal"],
 		"validate": "const ext = get(ctx.entry, 'entity_extension_data', {});\nreturn ['social_insurance_applicable_on','labour_insurance_established_on','employment_insurance_established_on'].every((key) => {\n\tconst value = get(ext, key, '');\n\treturn typeof value === 'string' && value !== '';\n});",
 		"order": 901,
 		"lookup": {
@@ -1605,11 +1482,7 @@
 		"code": "WORK_WEEK_START_REQUIRED",
 		"description": "Requires the weekday the statutory week opens on, from Sunday (0) to Saturday (6), on the sealed entity version.",
 		"target_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update",
-			"seal"
-		],
+		"events": ["create", "update", "seal"],
 		"validate": "const ext = get(ctx.entry, 'entity_extension_data', {});\nconst start = get(ext, 'week_start', null);\nreturn typeof start === 'number' && start >= 0 && start <= 6;",
 		"order": 902,
 		"lookup": {
@@ -1623,11 +1496,7 @@
 		"code": "MINIMUM_WAGE_HOURS_REQUIRED",
 		"description": "Requires the contract's annual prescribed hours when a variable, flex or deemed schedule makes the monthly minimum-wage conversion impossible.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update",
-			"seal"
-		],
+		"events": ["create", "update", "seal"],
 		"reads": {
 			"entity_profile_version": {
 				"limit": 10000

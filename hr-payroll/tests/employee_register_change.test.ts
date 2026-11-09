@@ -9,11 +9,15 @@ describe('the register-change trigger', () => {
 	) => ({ before, after });
 	it('ignores contact details and counts a changed name or address', () => {
 		assert.equal(
-			registerChanged([change({ name: 'A', address: 'X', phone: '1' }, { name: 'A', address: 'X', phone: '2' })]).length,
+			registerChanged([
+				change({ name: 'A', address: 'X', phone: '1' }, { name: 'A', address: 'X', phone: '2' })
+			]).length,
 			0
 		);
 		assert.equal(
-			registerChanged([change({ name: 'A', address: 'X', email: 'a' }, { name: 'B', address: 'X', email: 'a' })]).length,
+			registerChanged([
+				change({ name: 'A', address: 'X', email: 'a' }, { name: 'B', address: 'X', email: 'a' })
+			]).length,
 			1
 		);
 		assert.equal(

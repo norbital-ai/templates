@@ -57,7 +57,9 @@ describe('seeded minimum wage rules', () => {
 	it('Taiwan monthly and hourly floors', () => {
 		const monthly = ruleOf('TW', 'MINIMUM_WAGE_FLOOR');
 		const hourly = ruleOf('TW', 'MINIMUM_WAGE_HOURLY');
-		const floor = Number((monthly.lookup?.['constants'] as { monthly_wage?: number } | undefined)?.monthly_wage);
+		const floor = Number(
+			(monthly.lookup?.['constants'] as { monthly_wage?: number } | undefined)?.monthly_wage
+		);
 		const hourFloor = Number(hourly.lookup?.['hourly_wage']);
 		const context = (amount: number, unit: string, engagement = 'EMPLOYEE') => ({
 			entry: {

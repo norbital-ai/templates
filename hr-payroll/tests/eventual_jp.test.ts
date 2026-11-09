@@ -8,7 +8,16 @@ import { PlainDate } from '@norbital-ai/std/date';
 import { Effect, Schema } from 'effect';
 import { PayslipBreakdown } from '../src/lib/payroll_engine/payslip_breakdown.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, pack, reversalSlots, sealedAdhoc, sealedLeave, uuid, workspace, leaveCreate } from './kit.ts';
+import {
+	ENTITY,
+	pack,
+	reversalSlots,
+	sealedAdhoc,
+	sealedLeave,
+	uuid,
+	workspace,
+	leaveCreate
+} from './kit.ts';
 
 const CONTRACT = idOf('employee_contract', uuid(6));
 const JUNE = '2026-06-20T02:00:00.000Z';
@@ -416,17 +425,15 @@ describe('a no-pay day', () => {
 	) =>
 		Effect.gen(function* () {
 			const selected = reverses == null ? days : yield* reversalSlots(t, reverses);
-			yield* t
-				.as(t.admin)
-				.act('leave_catalog_entry.create', [
-					leaveCreate({
-						entity_id: ENTITY,
-						employment_id: CONTRACT,
-						catalog_id: noPay(seed),
-						days: selected,
-						reverses
-					})
-				]);
+			yield* t.as(t.admin).act('leave_catalog_entry.create', [
+				leaveCreate({
+					entity_id: ENTITY,
+					employment_id: CONTRACT,
+					catalog_id: noPay(seed),
+					days: selected,
+					reverses
+				})
+			]);
 		});
 	const line = (slip: PayslipBreakdown | undefined) =>
 		slip?.lines.find((row) => row.code === 'UNPAID_LEAVE');

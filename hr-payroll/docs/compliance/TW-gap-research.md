@@ -9,13 +9,13 @@ semantics change, no new helper or framework. Section 0 of the calculation archi
 fixed design; the only model fields proposed are the two the audit questions name
 (`terms.worksite`, `representative_name`), and each is read by an effect. No other field is proposed.
 
-| #   | Gap                         | Decision                                                                                                          | Field to declare                                             |
-| --- | --------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| 1   | Work-accident report inputs | Add the three statutory counts; read the catalog code; make `_UPDATED` a transition-only supplemental report.       | `deaths`, `injured`, `hospitalised` in the TW `OCCUPATIONAL_ACCIDENT` input schema |
-| 2   | Mass-layoff worksite        | Native `terms.worksite`; per-site obligation key; §46 fixed-term exclusion applied to both staff and leavers.       | `terms.worksite` on `employee_contract`                      |
-| 3   | Domestic wage floor         | Skip domestic categories in the general floors; keep `DOMESTIC_MIGRANT_WAGE` as the only domestic floor, with a date gate and monthly/full-time gate. | None; add `lookup.regime_from` to the rule                    |
-| 4   | Responsible-person change   | Add a native versioned `representative_name`; compare it in both unit-change effects.                              | `representative_name` on `entity_profile_version`            |
-| 5   | Reduced-hours notice        | Keep create; add update only for a period extension, keyed by the period end.                                      | None                                                         |
+| #   | Gap                         | Decision                                                                                                                                              | Field to declare                                                                   |
+| --- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| 1   | Work-accident report inputs | Add the three statutory counts; read the catalog code; make `_UPDATED` a transition-only supplemental report.                                         | `deaths`, `injured`, `hospitalised` in the TW `OCCUPATIONAL_ACCIDENT` input schema |
+| 2   | Mass-layoff worksite        | Native `terms.worksite`; per-site obligation key; §46 fixed-term exclusion applied to both staff and leavers.                                         | `terms.worksite` on `employee_contract`                                            |
+| 3   | Domestic wage floor         | Skip domestic categories in the general floors; keep `DOMESTIC_MIGRANT_WAGE` as the only domestic floor, with a date gate and monthly/full-time gate. | None; add `lookup.regime_from` to the rule                                         |
+| 4   | Responsible-person change   | Add a native versioned `representative_name`; compare it in both unit-change effects.                                                                 | `representative_name` on `entity_profile_version`                                  |
+| 5   | Reduced-hours notice        | Keep create; add update only for a period extension, keyed by the period end.                                                                         | None                                                                               |
 
 ## 1. Occupational accident eight-hour report
 
@@ -114,26 +114,26 @@ representable at all. The effect also gates on the free-text `kind` field, not t
 4. **Severity mapping.** `severity` is a UI classification, not the statutory test. The counts above
    are the facts. Use this mapping for labels and for operator guidance:
 
-   | `severity`                    | Statutory reading                                                                 | Report?                                                                 |
-   | ----------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-   | `DEATH`                       | §37(2)(1)                                                                         | Yes when `deaths` ≥ 1. Do not rely on the label alone.                  |
-   | `PERMANENT_TOTAL_DISABILITY`  | §48 永久全失能; counts in `injured`                                                | Only when `injured` ≥ 3 or `hospitalised` ≥ 1.                          |
-   | `SERIOUS_INJURY`              | Likely 永久部分失能 or 暫時全失能; counts in `injured`                             | Only when `injured` ≥ 3 or `hospitalised` ≥ 1.                          |
-   | `MINOR_INJURY`                | Counts only if it is a 暫時全失能                                                  | Only when `injured` ≥ 3 or `hospitalised` ≥ 1.                          |
-   | `NEAR_MISS`, `PROPERTY_DAMAGE`, `N/A` | Not a §37(2)(1)–(3) case                                                | No, unless the central authority has announced it under §37(2)(4).      |
+   | `severity`                            | Statutory reading                                      | Report?                                                            |
+   | ------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------ |
+   | `DEATH`                               | §37(2)(1)                                              | Yes when `deaths` ≥ 1. Do not rely on the label alone.             |
+   | `PERMANENT_TOTAL_DISABILITY`          | §48 永久全失能; counts in `injured`                    | Only when `injured` ≥ 3 or `hospitalised` ≥ 1.                     |
+   | `SERIOUS_INJURY`                      | Likely 永久部分失能 or 暫時全失能; counts in `injured` | Only when `injured` ≥ 3 or `hospitalised` ≥ 1.                     |
+   | `MINOR_INJURY`                        | Counts only if it is a 暫時全失能                      | Only when `injured` ≥ 3 or `hospitalised` ≥ 1.                     |
+   | `NEAR_MISS`, `PROPERTY_DAMAGE`, `N/A` | Not a §37(2)(1)–(3) case                               | No, unless the central authority has announced it under §37(2)(4). |
 
    The other `workplace_case_catalog` codes (`EMERGENCY_OVERTIME`, `CROSS_BORDER_WORK_RECORD`,
    `EXTERNAL_WAGE_RECORD`, `BENEFIT_SERVICE_RECORD`, `FOREIGN_WORKER_ABSENCE`) never raise this duty.
 
 ### Test scenario (obligation only; no payroll figure)
 
-| Inputs (`deaths`/`injured`/`hospitalised`, severity) | Expected                                                                 |
-| ---------------------------------------------------- | ------------------------------------------------------------------------ |
-| 1 / 0 / 0, `DEATH`                                   | 1 `WORK_ACCIDENT_REPORT`; due on the accident/open date                  |
-| 0 / 3 / 0, `MINOR_INJURY`                            | 1 report                                                                 |
-| 0 / 2 / 1, `SERIOUS_INJURY`                          | 1 report                                                                 |
-| 0 / 2 / 0, `MINOR_INJURY`                            | 0 reports                                                                |
-| 0 / 0 / 0, `NEAR_MISS`                               | 0 reports                                                                |
+| Inputs (`deaths`/`injured`/`hospitalised`, severity)       | Expected                                                                       |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 1 / 0 / 0, `DEATH`                                         | 1 `WORK_ACCIDENT_REPORT`; due on the accident/open date                        |
+| 0 / 3 / 0, `MINOR_INJURY`                                  | 1 report                                                                       |
+| 0 / 2 / 1, `SERIOUS_INJURY`                                | 1 report                                                                       |
+| 0 / 2 / 0, `MINOR_INJURY`                                  | 0 reports                                                                      |
+| 0 / 0 / 0, `NEAR_MISS`                                     | 0 reports                                                                      |
 | create 0 / 2 / 0; update 0 / 2 / 1 (later hospitalisation) | 1 `_UPDATED` report, key includes the branch; description-only update raises 0 |
 
 ## 2. Mass-layoff worksite
@@ -206,7 +206,13 @@ would collapse into one task, contrary to the separate-plan rule.
 
    ```js
    const site = get(ctx.entry, 'terms.worksite', '');
-   const key = 'MASS_LAYOFF_PLAN:' + ctx.entry.entity_id + ':' + site + ':' + add_days(ctx.entry.effective_range.to, -ctx.lookup.window_days);
+   const key =
+   	'MASS_LAYOFF_PLAN:' +
+   	ctx.entry.entity_id +
+   	':' +
+   	site +
+   	':' +
+   	add_days(ctx.entry.effective_range.to, -ctx.lookup.window_days);
    ```
 
    Title: `Mass layoff plan for <site> notified sixty days before`. This is required by the separate
@@ -231,15 +237,15 @@ would collapse into one task, contrary to the separate-plan rule.
 
 Unless stated otherwise, two 廠場 with 25 staff each (the `<30` band, rolling threshold >10):
 
-| Case                                                         | Expected                                                                 |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| A: 11 leavers in 60 days; B: 10                                | 1 obligation, key includes A, due `exit - 60`                             |
-| A: 10 leavers; B: 10                                           | 0 obligations                                                            |
-| A: 11 and B: 11, same exit date                                | 2 obligations, distinct keys and titles                                  |
-| Any employment contract with blank `terms.worksite`            | contract create/update refused by the TW rule; no silent merge           |
-| 11 local fixed-term leavers at A                               | counted; 1 obligation                                                    |
-| 11 §46 fixed-term leavers at A                                 | excluded from staff and leavers; 0 obligations                           |
-| Entity-wide: 500 staff across sites, 201 leavers in 60 days    | 1 entity obligation, key/title without a site label                      |
+| Case                                                        | Expected                                                       |
+| ----------------------------------------------------------- | -------------------------------------------------------------- |
+| A: 11 leavers in 60 days; B: 10                             | 1 obligation, key includes A, due `exit - 60`                  |
+| A: 10 leavers; B: 10                                        | 0 obligations                                                  |
+| A: 11 and B: 11, same exit date                             | 2 obligations, distinct keys and titles                        |
+| Any employment contract with blank `terms.worksite`         | contract create/update refused by the TW rule; no silent merge |
+| 11 local fixed-term leavers at A                            | counted; 1 obligation                                          |
+| 11 §46 fixed-term leavers at A                              | excluded from staff and leavers; 0 obligations                 |
+| Entity-wide: 500 staff across sites, 201 leavers in 60 days | 1 entity obligation, key/title without a site label            |
 
 ## 3. Domestic wage floor
 
@@ -314,18 +320,18 @@ refuse a grandfathered pre-2022 contract.
 Using the sealed TW `version_5` lookup values (general monthly 30,900, hourly 205; these are the
 seed’s figures, not a new statutory claim):
 
-| Case                                                               | Expected                                                                 |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| Domestic `EMPLOYEE`, monthly 20,000, `effective_range.from` 2027-01-01 | accepted; full-month payslip gross 20,000                                |
-| Domestic `EMPLOYEE`, monthly 19,999                                | refused by `DOMESTIC_MIGRANT_WAGE`                                       |
-| Domestic `EMPLOYEE`, monthly 17,000, from 2022-07-01               | accepted as grandfathered                                                |
-| Domestic `EMPLOYEE`, monthly 17,000, from 2022-08-10               | refused                                                                  |
-| Domestic `EMPLOYEE`, monthly 20,000 at a 3-year renewal            | accepted; 21,000 is a recommendation, not a floor                        |
-| Domestic `PART_TIME`, monthly 10,000                               | accepted by these rules; no monthly domestic floor asserted              |
-| General `EMPLOYEE`, monthly 30,899                                 | refused by `MINIMUM_WAGE_FLOOR`                                          |
-| General `EMPLOYEE`, monthly 30,900                                 | accepted                                                                 |
-| General hourly 204                                                 | refused by `MINIMUM_WAGE_HOURLY`                                         |
-| General hourly 205                                                 | accepted                                                                 |
+| Case                                                                   | Expected                                                    |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Domestic `EMPLOYEE`, monthly 20,000, `effective_range.from` 2027-01-01 | accepted; full-month payslip gross 20,000                   |
+| Domestic `EMPLOYEE`, monthly 19,999                                    | refused by `DOMESTIC_MIGRANT_WAGE`                          |
+| Domestic `EMPLOYEE`, monthly 17,000, from 2022-07-01                   | accepted as grandfathered                                   |
+| Domestic `EMPLOYEE`, monthly 17,000, from 2022-08-10                   | refused                                                     |
+| Domestic `EMPLOYEE`, monthly 20,000 at a 3-year renewal                | accepted; 21,000 is a recommendation, not a floor           |
+| Domestic `PART_TIME`, monthly 10,000                                   | accepted by these rules; no monthly domestic floor asserted |
+| General `EMPLOYEE`, monthly 30,899                                     | refused by `MINIMUM_WAGE_FLOOR`                             |
+| General `EMPLOYEE`, monthly 30,900                                     | accepted                                                    |
+| General hourly 204                                                     | refused by `MINIMUM_WAGE_HOURLY`                            |
+| General hourly 205                                                     | accepted                                                    |
 
 The key amount assertions are the domestic full-month payslip at 20,000 (not a 30,900 top-up) and
 the general 30,899 refusal. No encashment or reversal path is touched by this gap.
@@ -378,7 +384,8 @@ In both `LI_UNIT_CHANGE` and `NHI_UNIT_CHANGE`, after selecting `previous`, add:
 const representative = (version) => get(version, 'representative_name', null);
 const before = representative(previous[0]);
 const after = representative(ctx.entry);
-if (before != null && before !== '' && after != null && after !== '' && before !== after) return true;
+if (before != null && before !== '' && after != null && after !== '' && before !== after)
+	return true;
 ```
 
 Do not trigger on null→value or value→null; those are data completion/removal, not a proven change
@@ -388,12 +395,12 @@ effective; if the registration change has a different date, use that date.
 
 ### Test scenario (obligation only; no payroll figure)
 
-| Version 1 → version 2, effective 2027-01-01 | Expected                                                   |
-| ------------------------------------------- | ---------------------------------------------------------- |
+| Version 1 → version 2, effective 2027-01-01 | Expected                                                    |
+| ------------------------------------------- | ----------------------------------------------------------- |
 | representative A → B                        | LI obligation due 2027-01-31; NHI obligation due 2027-01-16 |
 | representative A → A, address changes       | existing name/address behavior unchanged; no extra rep task |
-| representative null → B                     | no representative task                                     |
-| representative B → null                     | no representative task                                     |
+| representative null → B                     | no representative task                                      |
+| representative B → null                     | no representative task                                      |
 
 ## 5. Reduced-hours notice
 
@@ -451,14 +458,14 @@ help text on `work_event` saying an extension must be a new event after renewed 
 
 ### Test scenario (notice and pay)
 
-| Case                                                                 | Expected                                                                 |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Create `REDUCED_WORK_AGREEMENT` 2027-01-04 → 2027-01-31              | 1 notice due 2027-01-04                                                  |
-| Update `to` to 2027-02-28                                             | 1 extension notice due 2027-02-01; distinct key from the create notice   |
-| Update description only                                               | 0 new notices                                                            |
-| Full-time monthly 30,900, 4 reduced days in January                   | payslip gross 30,900 (monthly floor), insurance and pension retained     |
-| Extension month February                                              | payslip gross 30,900                                                     |
-| Part-time/hourly worker                                               | no monthly floor asserted; the reduced-hours catalog does not add one    |
+| Case                                                    | Expected                                                               |
+| ------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Create `REDUCED_WORK_AGREEMENT` 2027-01-04 → 2027-01-31 | 1 notice due 2027-01-04                                                |
+| Update `to` to 2027-02-28                               | 1 extension notice due 2027-02-01; distinct key from the create notice |
+| Update description only                                 | 0 new notices                                                          |
+| Full-time monthly 30,900, 4 reduced days in January     | payslip gross 30,900 (monthly floor), insurance and pension retained   |
+| Extension month February                                | payslip gross 30,900                                                   |
+| Part-time/hourly worker                                 | no monthly floor asserted; the reduced-hours catalog does not add one  |
 
 The 30,900 is the sealed `version_5` monthly lookup, not a new statutory figure. The pay assertions
 prove the notice gap does not disturb the existing `monthly_minimum_wage_floor` behavior in

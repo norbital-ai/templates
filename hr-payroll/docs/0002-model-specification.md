@@ -82,28 +82,28 @@ The first row (`previous_id = null`) computes base pay. Later rows accumulate em
 
 ### Definition shape
 
-| Field                                                      | Applies to                    | Contract                                                                                          |
-| ---------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------- |
-| `code`, `description`                                      | all                           | Unique per `settings_id`; `code` is the accounting code; the description is required              |
-| `settings_id`                                              | all                           | Owned sealed jurisdiction version                                                                 |
-| `lookup`                                                   | all                           | Constants, rates and tables for this definition                                                   |
-| `references`                                               | all                           | Research/legal provenance; never on entries                                                       |
-| `off_cycle_eligible`                                       | adhoc                         | An `OFF_CYCLE` run includes the row only when true; every other family is on-cycle only           |
-| `balance_window`                                           | subtotal, statutory           | `MONTH` posts to the month as well as the year; `YEAR` (default) posts to the year only           |
-| `prorate`                                                  | allowance                     | On: the line takes the share of the period paid. Off: it pays whole                               |
+| Field                                                      | Applies to                    | Contract                                                                                           |
+| ---------------------------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------- |
+| `code`, `description`                                      | all                           | Unique per `settings_id`; `code` is the accounting code; the description is required               |
+| `settings_id`                                              | all                           | Owned sealed jurisdiction version                                                                  |
+| `lookup`                                                   | all                           | Constants, rates and tables for this definition                                                    |
+| `references`                                               | all                           | Research/legal provenance; never on entries                                                        |
+| `off_cycle_eligible`                                       | adhoc                         | An `OFF_CYCLE` run includes the row only when true; every other family is on-cycle only            |
+| `balance_window`                                           | subtotal, statutory           | `MONTH` posts to the month as well as the year; `YEAR` (default) posts to the year only            |
+| `prorate`                                                  | allowance                     | On: the line takes the share of the period paid. Off: it pays whole                                |
 | allowance amount source                                    | allowance                     | Conversion reads `terms.allowances.<CODE>.amount` → flat agreed amount; otherwise the row computes |
-| `include_in_rate`                                          | allowance                     | On: the amount is part of the wage a day or hour rate divides                                     |
-| `subtotal_id`                                              | pay producers                 | Nullable: null when the definition creates no pay line                                            |
-| `eligibility`, `conversion`, `incurred_on`                 | pay producers                 | JS expressions; `conversion` is a nonnegative monetary magnitude                                  |
-| `direction`                                                | overtime, leave, claim, adhoc | `ADD`/`DEDUCT`; omitted where the family has one direction                                        |
-| `party`                                                    | allowance, claim, adhoc       | `EMPLOYEE`/`EMPLOYER`; overtime/leave/loan are employee-only                                      |
-| `lookup.opened_by`                                         | leave                         | The contract events that open a row, with `days` to override its `grant_days`                     |
-| `lookup.accounts`                                          | leave, adhoc                  | What a row moves instead of its default: `account`, `code`, `measure`, `operation`, `period`      |
-| `lookup.below_zero`                                        | statutory                     | `REFUND`: a result below zero pays a refund line. Otherwise the row stops at zero                 |
-| `lookup.pay_steps`                                         | leave                         | What share of a day each stretch of an event loses, by `until_month` from the day its event began |
-| `pay_treatment`                                            | leave                         | `PAID` or `UNPAID`; `UNPAID` prorates base pay                                                    |
-| `kind`, `depends_on`, `employee_amount`, `employer_amount` | statutory                     | `CONTRIBUTION`/`TAX`; scheme codes; JS amounts                                                    |
-| `employer_cost_subtotal_id`                                | statutory                     | Optional: where the employer amount lands                                                         |
+| `include_in_rate`                                          | allowance                     | On: the amount is part of the wage a day or hour rate divides                                      |
+| `subtotal_id`                                              | pay producers                 | Nullable: null when the definition creates no pay line                                             |
+| `eligibility`, `conversion`, `incurred_on`                 | pay producers                 | JS expressions; `conversion` is a nonnegative monetary magnitude                                   |
+| `direction`                                                | overtime, leave, claim, adhoc | `ADD`/`DEDUCT`; omitted where the family has one direction                                         |
+| `party`                                                    | allowance, claim, adhoc       | `EMPLOYEE`/`EMPLOYER`; overtime/leave/loan are employee-only                                       |
+| `lookup.opened_by`                                         | leave                         | The contract events that open a row, with `days` to override its `grant_days`                      |
+| `lookup.accounts`                                          | leave, adhoc                  | What a row moves instead of its default: `account`, `code`, `measure`, `operation`, `period`       |
+| `lookup.below_zero`                                        | statutory                     | `REFUND`: a result below zero pays a refund line. Otherwise the row stops at zero                  |
+| `lookup.pay_steps`                                         | leave                         | What share of a day each stretch of an event loses, by `until_month` from the day its event began  |
+| `pay_treatment`                                            | leave                         | `PAID` or `UNPAID`; `UNPAID` prorates base pay                                                     |
+| `kind`, `depends_on`, `employee_amount`, `employer_amount` | statutory                     | `CONTRIBUTION`/`TAX`; scheme codes; JS amounts                                                     |
+| `employer_cost_subtotal_id`                                | statutory                     | Optional: where the employer amount lands                                                          |
 
 `work_event_catalog` and `workplace_case_catalog` carry `events` and a nullable `subtotal_id`. The engine prices neither; a run only seals their entries.
 
@@ -111,17 +111,17 @@ Every catalog row is identified by `code`; `name` is not a field. A catalog tabl
 
 ### Families
 
-| Family                 | Location                                | Entry model                                  |
-| ---------------------- | --------------------------------------- | -------------------------------------------- |
-| allowance              | `static/allowance_catalog`              | none                                         |
-| overtime               | `static/overtime_catalog`               | none                                         |
-| statutory contribution | `static/statutory_contribution_catalog` | none                                         |
-| leave                  | `non_static/leave_catalog`              | `leave_catalog_entry`                        |
-| claim                  | `non_static/claim_catalog`              | `claim_catalog_entry`                        |
-| adhoc                  | `non_static/adhoc_catalog`              | `adhoc_catalog_entry`                        |
+| Family                 | Location                                | Entry model                                          |
+| ---------------------- | --------------------------------------- | ---------------------------------------------------- |
+| allowance              | `static/allowance_catalog`              | none                                                 |
+| overtime               | `static/overtime_catalog`               | none                                                 |
+| statutory contribution | `static/statutory_contribution_catalog` | none                                                 |
+| leave                  | `non_static/leave_catalog`              | `leave_catalog_entry`                                |
+| claim                  | `non_static/claim_catalog`              | `claim_catalog_entry`                                |
+| adhoc                  | `non_static/adhoc_catalog`              | `adhoc_catalog_entry`                                |
 | loan                   | `non_static/loan_catalog`               | `loan_catalog_entry`, `loan_catalog_entry_repayment` |
-| work event             | `non_static/work_event_catalog`         | `work_event`                                 |
-| workplace case         | `non_static/workplace_case_catalog`     | `workplace_case_catalog_entry`               |
+| work event             | `non_static/work_event_catalog`         | `work_event`                                         |
+| workplace case         | `non_static/workplace_case_catalog`     | `workplace_case_catalog_entry`                       |
 
 ### Entries
 
@@ -157,7 +157,6 @@ cancellation; loan repayments do not.
 - Tests must prove: unpaid cancellation leaves no ledger residue; partial paid cancellation posts exactly the inverse
   of the captured subset; a second reversal of the same slot is refused; a reversal beyond the captured set is refused;
   a run prices the reversal once; and the leave balance returns to the correct figure after each step.
-
 
 | Entry             | Fields beyond the shared set                                                                              |
 | ----------------- | --------------------------------------------------------------------------------------------------------- |

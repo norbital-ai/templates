@@ -113,7 +113,6 @@
 	}
 </script>
 
-
 {#snippet sealCell({ value }: { value: unknown })}<SealedBadge sealed={value != null} />{/snippet}
 
 <AppShell

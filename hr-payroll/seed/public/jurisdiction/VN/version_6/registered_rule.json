@@ -3,10 +3,7 @@
 		"code": "MINIMUM_WAGE_FLOOR",
 		"description": "Checks that a monthly contract wage is at least the regional minimum wage for the employer's region on the contract start date.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -40,10 +37,7 @@
 		"code": "OVERTIME_MONTHLY_CAP",
 		"description": "Checks that the month's planned overtime, including the entry being saved, does not exceed 40 hours.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"roster_entry": {
 				"where": {
@@ -74,9 +68,7 @@
 		"code": "OVERTIME_DAILY_CAP",
 		"description": "Checks that actual overtime on a roster day does not exceed 50% of the day's normal hours, or the 12-hour daily ceiling under a weekly-hours arrangement.",
 		"target_collection": "roster_entry",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) > 0;",
 		"validate": "// js\nconst worked = interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) / 60;\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) / 60;\nif (overtime === 0) return true;\nconst normal = worked - overtime;\nreturn normal > 0 ? overtime <= ctx.lookup.share * normal : worked <= ctx.lookup.daily_hours;",
 		"order": 3,
@@ -97,10 +89,7 @@
 		"code": "DAMAGE_DEDUCTION_CEILING",
 		"description": "Checks that a property-damage deduction does not exceed 30% of the latest payslip's net wage.",
 		"target_collection": "adhoc_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"adhoc_catalog": {
 				"where": {
@@ -140,10 +129,7 @@
 		"code": "OVERTIME_ANNUAL_CAP",
 		"description": "Checks that the year's planned overtime does not exceed 200 hours, or 300 hours where the employer is approved for the extended cap.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"roster_entry": {
 				"where": {
@@ -187,10 +173,7 @@
 		"code": "REGION_REQUIRED",
 		"description": "Requires the sealed employer profile covering the contract start date to record a minimum-wage region.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -220,10 +203,7 @@
 		"code": "HOURLY_MINIMUM_WAGE",
 		"description": "Checks an hourly or daily contract rate against the regional hourly minimum, converting a daily rate over the normal hours and days.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -262,10 +242,7 @@
 		"code": "PROBATION_WAGE",
 		"description": "Checks that a probation wage is at least 85% of the wage the job pays at the end of probation.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\nif (get(ctx.entry, 'terms.probation_period', null) === null) return false;\nif (rate === null) return false;\nreturn get(ctx.entry, 'employee_extension_data.probation_job_wage_vnd', null) !== null;",
 		"validate": "// js\nconst job = get(ctx.entry, 'employee_extension_data.probation_job_wage_vnd', null);\nreturn ctx.entry.terms.rate.amount >= ctx.lookup.share * job;",
 		"order": 8,
@@ -286,10 +263,7 @@
 		"code": "PROBATION_PERIOD",
 		"description": "Checks the probation length against the statutory maximum for the job class.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nconst period = get(ctx.entry, 'terms.probation_period', null);\nif (period === null) return false;\nif (period.to === null) return false;\nreturn get(ctx.entry, 'employee_extension_data.probation_class', null) !== null;",
 		"validate": "// js\nconst period = ctx.entry.terms.probation_period;\nconst jobClass = get(ctx.entry, 'employee_extension_data.probation_class', null);\nif (jobClass === 'OTHER')\n\treturn period.to <= add_working_days(period.from, ctx.lookup.other_working_days - 1, [], [6, 0]);\nconst days = calendar_distance_days(period.from, period.to) + 1;\nif (jobClass === 'ENTERPRISE_MANAGER') return days <= ctx.lookup.enterprise_manager_days;\nif (jobClass === 'COLLEGE_OR_ABOVE') return days <= ctx.lookup.college_days;\nreturn days <= ctx.lookup.intermediate_days;",
 		"order": 9,
@@ -312,9 +286,7 @@
 		"code": "PREGNANT_OR_INFANT_NIGHT_OVERTIME",
 		"description": "Checks a roster day with actual work: a pregnant employee has no night work or overtime (no consent exception); one raising a child under 12 months needs the day’s consent for each.",
 		"target_collection": "roster_entry",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) > 0;",
 		"validate": "// js\n// Labour Code art.137(1): pregnancy (a) has no consent exception; an infant under 12 months (b) needs the day's consent.\nconst contract = ctx.subject.employment;\nconst date = ctx.entry.work_date;\nconst consent = get(ctx.entry, 'consent', {});\nconst children = get(contract, 'children', []);\nconst pregnant = children.some((child) => {\n\tconst due = get(child, 'expected_on', null);\n\tconst born = get(child, 'born_on', null);\n\treturn due !== null && born === null && date >= add_months(due, -ctx.lookup.advance_months);\n});\nconst night = clock_window_minutes(\n\tget(ctx.entry, 'actual_worked_intervals', []) ?? [],\n\t\"Asia/Ho_Chi_Minh\",\n\tctx.lookup.night_from,\n\tctx.lookup.night_to\n);\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []);\nif (pregnant) return night === 0 && overtime === 0;\nconst infant = children.some((child) => {\n\tconst born = get(child, 'born_on', null);\n\treturn born !== null && add_months(born, ctx.lookup.infant_months) > date;\n});\nif (!infant) return true;\nreturn (\n\t(night === 0 || get(consent, 'night_work', false) === true) &&\n\t(overtime === 0 || get(consent, 'overtime', false) === true)\n);",
 		"order": 10,
@@ -337,9 +309,7 @@
 		"code": "MINOR_WORKING_TIME",
 		"description": "Checks the daily and weekly hours, overtime and night work of an employee under 18 against the limits for their age and job.",
 		"target_collection": "roster_entry",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"roster_entry": {
 				"where": {
@@ -377,10 +347,7 @@
 		"code": "WEEKLY_REST",
 		"description": "Checks the weekly rest or, where the employer averages rest monthly, the minimum rest days in the roster month.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"roster_entry": {
 				"where": {
@@ -425,10 +392,7 @@
 		"code": "ROSTER_NORMAL_HOURS_DAY",
 		"description": "Checks that normal hours actually worked on a roster day stay within the contract day or the 10-hour weekly-arrangement ceiling.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) > 0;",
 		"validate": "// js\nconst contract = ctx.subject.employment;\nconst agreed = get(contract, 'terms.normal_hours_per_day', ctx.lookup.daily_hours);\nconst cap = agreed > ctx.lookup.daily_hours ? ctx.lookup.weekly_arrangement_hours : ctx.lookup.daily_hours;\nconst worked = interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) / 60;\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) / 60;\nreturn worked - overtime <= cap;",
 		"order": 13,
@@ -449,10 +413,7 @@
 		"code": "ROSTER_NORMAL_HOURS_WEEK",
 		"description": "Checks that normal hours actually worked across the seven-day window stay within 48 hours.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"roster_entry": {
 				"where": {
@@ -483,10 +444,7 @@
 		"code": "ROSTER_OVERTIME_DAY",
 		"description": "Checks that planned overtime on a roster day is at most 50% of the contract's normal day and that normal plus overtime stays within 12 hours.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) > 0;",
 		"validate": "// js\nconst contract = ctx.subject.employment;\nconst normal = Number(get(contract, 'terms.normal_hours_per_day', 0));\nconst overtime = interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) / 60;\nif (!(normal > 0)) return false;\nif (!(overtime <= ctx.lookup.share * normal)) return false;\nreturn normal + overtime <= ctx.lookup.daily_hours;",
 		"order": 15,
@@ -507,9 +465,7 @@
 		"code": "ROSTER_SHIFT_CHANGE_REST",
 		"description": "Checks that a shift worker has at least 12 hours between the end of the previous shift and the start of the next.",
 		"target_collection": "roster_entry",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"roster_entry": {
 				"where": {
@@ -540,10 +496,7 @@
 		"code": "ROSTER_MINOR_WORKING_TIME",
 		"description": "Checks that a roster day with planned overtime is allowed for the employee's age and listed-job status.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) > 0;",
 		"validate": "// js\nconst contract = ctx.subject.employment;\nconst dob = get(contract, 'payroll.date_of_birth', null);\nif (dob === null) return true;\nconst age = age_on(dob, ctx.entry.work_date);\nif (age >= ctx.lookup.young_age) return true;\nconst listed = get(contract, 'employee_extension_data.minor_listed_job', false) === true;\nif (age >= ctx.lookup.child_age && listed) return true;\nreturn false;",
 		"order": 18,
@@ -564,10 +517,7 @@
 		"code": "ROSTER_MATERNITY_NIGHT_OVERTIME",
 		"description": "Checks planned overtime: a pregnant employee has none (no consent exception); one raising a child under 12 months needs the day’s overtime consent.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) > 0;",
 		"validate": "// js\n// Labour Code art.137(1): pregnancy (a) has no consent exception; an infant under 12 months (b) needs the day's consent.\nconst contract = ctx.subject.employment;\nconst date = ctx.entry.work_date;\nconst consent = get(ctx.entry, 'consent', {});\nconst children = get(contract, 'children', []);\nconst pregnant = children.some((child) => {\n\tconst due = get(child, 'expected_on', null);\n\tconst born = get(child, 'born_on', null);\n\treturn due !== null && born === null && date >= add_months(due, -ctx.lookup.advance_months);\n});\nif (pregnant) return false;\nconst infant = children.some((child) => {\n\tconst born = get(child, 'born_on', null);\n\treturn born !== null && add_months(born, ctx.lookup.infant_months) > date;\n});\nif (!infant) return true;\nreturn get(consent, 'overtime', false) === true;",
 		"order": 19,
@@ -588,10 +538,7 @@
 		"code": "ROSTER_UNDER_13",
 		"description": "Checks that work by a child under 13 is limited to approved arts, physical-training or sports work.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nreturn interval_minutes(get(ctx.entry, 'actual_worked_intervals', []) ?? []) > 0 || interval_minutes(get(ctx.entry, 'planned_overtime_intervals', []) ?? []) > 0;",
 		"validate": "// js\nconst contract = ctx.subject.employment;\nconst dob = get(contract, 'payroll.date_of_birth', null);\nif (dob === null) return true;\nif (age_on(dob, ctx.entry.work_date) >= ctx.lookup.age_years) return true;\nreturn get(contract, 'employee_extension_data.child_arts_sports_approved', false) === true;",
 		"order": 20,
@@ -611,10 +558,7 @@
 		"code": "ENCASHMENT_PRIOR_WAGE_REVIEW",
 		"description": "Checks that an exit leave encashment reviews the wage of the month before the exit month and records that month’s daily wage.",
 		"target_collection": "leave_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"leave_catalog": {
 				"where": {
@@ -646,9 +590,7 @@
 		"code": "ANNUAL_SERVICE_EXIT_REVIEW",
 		"description": "Checks that an exiting employee's annual-leave service review covers the exit year and any combining agreement for that employment.",
 		"target_collection": "employee_contract",
-		"events": [
-			"update"
-		],
+		"events": ["update"],
 		"reads": {
 			"workplace_case_catalog_entry": {
 				"where": {
@@ -679,31 +621,14 @@
 		"code": "CONTRACT_CATEGORIES",
 		"description": "Requires a residency status and validates the contract's work classification and work-authorisation category against the jurisdiction lists.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nreturn ctx.entry.engagement !== 'PAYEE';",
 		"validate": "// js\nconst residency = get(ctx.entry, 'terms.residency_status', null);\nconst category = get(ctx.entry, 'terms.statutory_work_category', null);\nif (residency === null) return false;\nif (!ctx.lookup.residency_status.includes(residency)) return false;\nreturn category === null || ctx.lookup.work_classification.includes(category);",
 		"order": 25,
 		"lookup": {
-			"work_classification": [
-				"ORDINARY",
-				"MANAGERIAL",
-				"ARDUOUS",
-				"ESPECIALLY_ARDUOUS"
-			],
-			"residency_status": [
-				"CITIZEN",
-				"PERMANENT_RESIDENT",
-				"RESIDENT",
-				"NON_RESIDENT"
-			],
-			"work_pass_categories": [
-				"PERMIT",
-				"EXEMPTION_CERTIFICATE",
-				"EXEMPT_NOTIFICATION"
-			]
+			"work_classification": ["ORDINARY", "MANAGERIAL", "ARDUOUS", "ESPECIALLY_ARDUOUS"],
+			"residency_status": ["CITIZEN", "PERMANENT_RESIDENT", "RESIDENT", "NON_RESIDENT"],
+			"work_pass_categories": ["PERMIT", "EXEMPTION_CERTIFICATE", "EXEMPT_NOTIFICATION"]
 		},
 		"id": "72b7af2d-95e2-575c-8676-30c5dc86a285",
 		"settings_id": "a2ab6b18-f401-5b45-88cf-6d6a506a9129"
@@ -712,10 +637,7 @@
 		"code": "SHARED_STRUCTURED_EMPLOYEE_INPUTS",
 		"description": "Checks the bounds on structured employee inputs such as normal hours and normal days.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"validate": "// js\nreturn Object.keys(ctx.lookup.bounds).every((path) => {\n\tconst value = get(ctx.entry, path, null);\n\tconst bound = ctx.lookup.bounds[path];\n\tif (value === null) return get(bound, 'required', false) !== true;\n\tconst minimum = get(bound, 'minimum', null);\n\tconst maximum = get(bound, 'maximum', null);\n\tconst allowed = get(bound, 'allowed', null);\n\tif (minimum !== null && value < minimum) return false;\n\tif (maximum !== null && value > maximum) return false;\n\tif (allowed !== null && !allowed.includes(value)) return false;\n\treturn true;\n});",
 		"order": 27,
 		"lookup": {
@@ -738,10 +660,7 @@
 		"code": "SHARED_ORIGINAL_AGREEMENT_INTENT",
 		"description": "Checks that the signed contract period is a real fixed term within the 36-month maximum.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nreturn ctx.entry.engagement !== 'PAYEE';",
 		"validate": "// js\nconst agreement = get(ctx.entry, 'signed_contract_period', null);\nif (agreement === null) return false;\nif (agreement.to === null) return true;\nreturn (\n\tagreement.to >= agreement.from &&\n\tadd_days(agreement.to, 1) <= add_months(agreement.from, ctx.lookup.maximum_fixed_term_months)\n);",
 		"order": 29,
@@ -765,10 +684,7 @@
 		"code": "OPERATIONS_EVENT_DATE_REQUIRED",
 		"description": "Requires an employer profile with a first-employment date to record the date operations started.",
 		"target_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nreturn ctx.entry.status === 'SEALED';",
 		"validate": "// js\nconst firstEmployed = get(ctx.entry, 'entity_extension_data.first_employed_on', null);\nif (firstEmployed === null) return true;\nreturn get(ctx.entry, 'entity_extension_data.operations_started_on', null) !== null;",
 		"order": 30,
@@ -780,10 +696,7 @@
 		"code": "BUSINESS_CASE_SUBJECT_AND_REFERENCE",
 		"description": "Requires an annual-leave combining agreement to name its employment and carry a reference.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nreturn ctx.entry.kind === 'ANNUAL_LEAVE_COMBINING_AGREEMENT';",
 		"validate": "// js\nconst reference = get(ctx.entry, 'reference', null);\nreturn (\n\tget(ctx.entry, 'employment_id', null) !== null &&\n\ttypeof reference === 'string' &&\n\treference.trim() !== ''\n);",
 		"order": 31,
@@ -795,10 +708,7 @@
 		"code": "BUSINESS_CASE_EFFECTIVE_INTERVAL",
 		"description": "Checks that an annual-leave combining agreement has a valid effective interval that starts on or after the case opens.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nreturn ctx.entry.kind === 'ANNUAL_LEAVE_COMBINING_AGREEMENT';",
 		"validate": "// js\nconst from = get(ctx.entry, 'inputs.effective_from', null);\nconst to = get(ctx.entry, 'inputs.effective_to', null);\nif (from === null) return false;\nif (to === null) return false;\nif (!(from >= ctx.entry.opened_on)) return false;\nreturn to >= from;",
 		"order": 32,
@@ -810,10 +720,7 @@
 		"code": "BUSINESS_CASE_DOCUMENT_REQUIRED",
 		"description": "Requires evidence for an annual-leave combining agreement.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nreturn ctx.entry.kind === 'ANNUAL_LEAVE_COMBINING_AGREEMENT';",
 		"validate": "// js\nreturn get(ctx.entry, 'evidence_file', null) !== null;",
 		"order": 33,
@@ -825,10 +732,7 @@
 		"code": "ANNUAL_LEAVE_COMBINING_MAXIMUM",
 		"description": "Checks that an annual-leave combining agreement lasts no more than three years.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nreturn ctx.entry.kind === 'ANNUAL_LEAVE_COMBINING_AGREEMENT';",
 		"validate": "// js\nconst from = get(ctx.entry, 'inputs.effective_from', null);\nconst to = get(ctx.entry, 'inputs.effective_to', null);\nif (from === null) return false;\nif (to === null) return false;\nreturn to <= add_days(add_years(from, ctx.lookup.maximum_years), -1);",
 		"order": 34,
@@ -842,10 +746,7 @@
 		"code": "ROSTER_WARNINGS",
 		"description": "Supplies the roster warning thresholds (daily, weekly, monthly and rest-day limits) used by the roster board; it validates nothing itself.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nreturn true;",
 		"validate": "// js\nreturn true;",
 		"order": 35,

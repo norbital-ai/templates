@@ -370,14 +370,12 @@
 						const keep = new Set(sessions.map((session) => `${session.date}:${session.part}`));
 						const remove = existing.filter(
 							(row) =>
-								row.payroll_run_id == null &&
-								!keep.has(`${String(row.incurred_on)}:${row.part}`)
+								row.payroll_run_id == null && !keep.has(`${String(row.incurred_on)}:${row.part}`)
 						);
 						const add = sessions.filter(
 							(session) =>
 								!existing.some(
-									(row) =>
-										String(row.incurred_on) === session.date && row.part === session.part
+									(row) => String(row.incurred_on) === session.date && row.part === session.part
 								)
 						);
 						return bolt.act('leave_catalog_entry.update', [
@@ -454,20 +452,20 @@
 	{/if}
 	<div class="grid gap-3 sm:grid-cols-2">
 		{#if !fixedEmployment}<Stack gap="xs">
-			<span class="text-xs font-medium text-muted-foreground">Employment</span>
-			<Combobox
-				options={contractOptions}
-				value={chosen}
-				placeholder="Select employment"
-				aria-label="Employment"
-				onChange={(value) => {
-					chosen = value;
-					catalog = null;
-					sessions = [];
-					limitNotice = null;
-				}}
-			/>
-		</Stack>{/if}
+				<span class="text-xs font-medium text-muted-foreground">Employment</span>
+				<Combobox
+					options={contractOptions}
+					value={chosen}
+					placeholder="Select employment"
+					aria-label="Employment"
+					onChange={(value) => {
+						chosen = value;
+						catalog = null;
+						sessions = [];
+						limitNotice = null;
+					}}
+				/>
+			</Stack>{/if}
 		<Stack gap="xs" class={fixedEmployment ? 'relative sm:col-span-2' : 'relative'}>
 			<span class="text-xs font-medium text-muted-foreground">Catalog</span>
 			<Combobox
@@ -544,7 +542,9 @@
 								)
 									? 'border-foreground bg-foreground font-medium text-background'
 									: 'border-border text-muted-foreground hover:border-foreground hover:bg-muted'}"
-								title={isCaptured(date, part) ? 'Captured by payroll; create a reversal to cancel.' : undefined}
+								title={isCaptured(date, part)
+									? 'Captured by payroll; create a reversal to cancel.'
+									: undefined}
 								onclick={() => toggle(date, part)}
 							>
 								{part}

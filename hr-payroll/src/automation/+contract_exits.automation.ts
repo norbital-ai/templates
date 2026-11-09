@@ -8,7 +8,8 @@ import { isJsonObject } from '../lib/payroll_engine/foundation.js';
  * the contract update, so a pay bump or a same-jurisdiction replacement raises none.
  */
 export default automation('contract_exits', {
-	description: 'Record ended employments that have no same-jurisdiction successor; safe to run repeatedly.',
+	description:
+		'Record ended employments that have no same-jurisdiction successor; safe to run repeatedly.',
 	input: { employments: { kind: 'list', of: { kind: 'id', of: 'employee_contract' } } },
 	policies: ['payroll_execution'],
 	concurrency: { max: 1 },
@@ -38,7 +39,13 @@ export default automation('contract_exits', {
 			dynamicRead({
 				employee_contract: {
 					where: { employee_id: { in: employees } },
-					fields: ['id', 'employee_id', 'status', 'effective_range', 'input_schema_version_id'] as const,
+					fields: [
+						'id',
+						'employee_id',
+						'status',
+						'effective_range',
+						'input_schema_version_id'
+					] as const,
 					limit: 10000
 				}
 			})
@@ -57,7 +64,9 @@ export default automation('contract_exits', {
 				}
 			})
 		);
-		const already = new Set((held.contract_exit?.rows ?? []).map((row) => String(row.employment_id)));
+		const already = new Set(
+			(held.contract_exit?.rows ?? []).map((row) => String(row.employment_id))
+		);
 		const codes = new Map(
 			(settings.jurisdiction_settings?.rows ?? []).map((row) => [String(row.id), String(row.code)])
 		);
@@ -105,7 +114,6 @@ export default automation('contract_exits', {
 				}
 			];
 		});
-		if (input.length > 0)
-			yield* ctx.act.checked([{ callable: 'contract_exit.create', input }]);
+		if (input.length > 0) yield* ctx.act.checked([{ callable: 'contract_exit.create', input }]);
 	}
 });

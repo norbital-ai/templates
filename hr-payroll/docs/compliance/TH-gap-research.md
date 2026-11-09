@@ -8,16 +8,16 @@ Mechanism rule for every decision below: use existing model fields, registered r
 
 ## Summary
 
-| # | Decision | Mechanism | New field |
-| - | -------- | --------- | --------- |
-| 1 | Run `NO_PAY_OPEN_PERIOD` on `update` too, and check only days added by the update. The update transform already passes the resulting child rows. | Seed rule: `events`, `reads.fields`, added-day comparison | None |
-| 2 | Count distinct `employee_id`s in force on the effect date, not contract versions. Apply the same expression to every headcount effect. | Seed effect conditions | None |
-| 3 | Key person duties on employee + entity; key employer duties on entity. Set `employee_id`/`employment_id` null for employer duties and change their obligation read filter. | Occurrence keys and `reads.obligation` | None |
-| 4 | Raise only when the run's payslips contain a positive `EWF` statutory line, and read the EWF catalog's `collection_from` switch rather than copying 2027. | `reads.payslip`, `reads.statutory_contribution_catalog` | None |
-| 5 | Filter profile updates to the register particulars at the model boundary; drop email/phone from the trigger. Seed expressions cannot see `ctx.before`/`ctx.after` (the checker's roots omit them). | `employee_profile` model effect + seed key | None |
-| 6 | Refuse a `WORK_INJURY_LEAVE` entry with no day slot; guard the effect against legacy slotless rows. Do not invent a knowledge date. | New registered rule + effect guard | None |
-| 7 | The contract's worksite `terms.work_region` governs; employer region is the fallback. Fix the floor rule and the arrears conversion together. | Rule/catalog expression | None (existing `terms.work_region`) |
-| 8 | Add the weekly 48-hour check (42 hazardous) to `NORMAL_HOURS` over a rolling seven-day window. The contract-level weekly check already exists and stays. | Rule `reads` and lookup | None |
+| #   | Decision                                                                                                                                                                                           | Mechanism                                                 | New field                           |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------- |
+| 1   | Run `NO_PAY_OPEN_PERIOD` on `update` too, and check only days added by the update. The update transform already passes the resulting child rows.                                                   | Seed rule: `events`, `reads.fields`, added-day comparison | None                                |
+| 2   | Count distinct `employee_id`s in force on the effect date, not contract versions. Apply the same expression to every headcount effect.                                                             | Seed effect conditions                                    | None                                |
+| 3   | Key person duties on employee + entity; key employer duties on entity. Set `employee_id`/`employment_id` null for employer duties and change their obligation read filter.                         | Occurrence keys and `reads.obligation`                    | None                                |
+| 4   | Raise only when the run's payslips contain a positive `EWF` statutory line, and read the EWF catalog's `collection_from` switch rather than copying 2027.                                          | `reads.payslip`, `reads.statutory_contribution_catalog`   | None                                |
+| 5   | Filter profile updates to the register particulars at the model boundary; drop email/phone from the trigger. Seed expressions cannot see `ctx.before`/`ctx.after` (the checker's roots omit them). | `employee_profile` model effect + seed key                | None                                |
+| 6   | Refuse a `WORK_INJURY_LEAVE` entry with no day slot; guard the effect against legacy slotless rows. Do not invent a knowledge date.                                                                | New registered rule + effect guard                        | None                                |
+| 7   | The contract's worksite `terms.work_region` governs; employer region is the fallback. Fix the floor rule and the arrears conversion together.                                                      | Rule/catalog expression                                   | None (existing `terms.work_region`) |
+| 8   | Add the weekly 48-hour check (42 hazardous) to `NORMAL_HOURS` over a rolling seven-day window. The contract-level weekly check already exists and stays.                                           | Rule `reads` and lookup                                   | None                                |
 
 ## 1. `NO_PAY_OPEN_PERIOD` runs on `create` only
 
@@ -42,9 +42,7 @@ Apply to every TH version:
 ```js
 const held = ctx.reads.leave_catalog_entry_day;
 const slotKey = (slot) => String(slot.incurred_on) + ':' + String(slot.part);
-const stored = held
-  .filter((slot) => slot.leave_entry_id === entry.id)
-  .map(slotKey);
+const stored = held.filter((slot) => slot.leave_entry_id === entry.id).map(slotKey);
 const added = slots.filter((slot) => !stored.includes(slotKey(slot)));
 ```
 
@@ -52,13 +50,10 @@ const added = slots.filter((slot) => !stored.includes(slotKey(slot)));
 
 ```js
 if (
-  get(ctx.entry, 'reverses', null) != null &&
-  held.some(
-    (slot) =>
-      slot.payroll_run_id == null && dates.includes(String(slot.incurred_on))
-  )
+	get(ctx.entry, 'reverses', null) != null &&
+	held.some((slot) => slot.payroll_run_id == null && dates.includes(String(slot.incurred_on)))
 )
-  throw 'That day has not been paid yet. Delete the entry instead of reversing it.';
+	throw 'That day has not been paid yet. Delete the entry instead of reversing it.';
 ```
 
 5. Check the closed-period branch only on `added`:
@@ -98,19 +93,19 @@ Use one expression in every headcount condition. `at` is the effect's date:
 
 ```js
 const on = (contract) => {
-  const from = get(contract, 'effective_range.from', null);
-  const to = get(contract, 'effective_range.to', null);
-  return from !== null && from <= at && (to === null || at <= to);
+	const from = get(contract, 'effective_range.from', null);
+	const to = get(contract, 'effective_range.to', null);
+	return from !== null && from <= at && (to === null || at <= to);
 };
 const people = get(ctx, 'reads.employee_contract', []).filter(
-  (contract) =>
-    contract.entity_id === entry.entity_id &&
-    contract.status === 'SEALED' &&
-    contract.engagement !== 'PAYEE' &&
-    on(contract)
+	(contract) =>
+		contract.entity_id === entry.entity_id &&
+		contract.status === 'SEALED' &&
+		contract.engagement !== 'PAYEE' &&
+		on(contract)
 );
 const byEmployee = Object.fromEntries(
-  people.map((contract) => [String(contract.employee_id), true])
+	people.map((contract) => [String(contract.employee_id), true])
 );
 const headcount = Object.keys(byEmployee).length;
 ```
@@ -133,14 +128,14 @@ Nine distinct employees in force on 2026-04-01, then seal a renewal for employee
 
 ### Decision
 
-| Code | Legal unit | Occurrence key | Obligation refs |
-| ---- | ---------- | -------------- | --------------- |
-| `SSO_REGISTRATION` | employee + employer | `SSO_REGISTRATION:<entity_id>:<employee_id>` | `employee_id`; `employment_id` may keep the triggering contract for navigation |
-| `PDPA_PRIVACY_NOTICE` | employee + controller | `PDPA_PRIVACY_NOTICE:<entity_id>:<employee_id>` | same |
-| `PDPA_SENSITIVE_DATA_CONSENT` | employee + controller | `PDPA_SENSITIVE_DATA_CONSENT:<entity_id>:<employee_id>` | same |
-| `EMPLOYEE_REGISTER` | employee + employer | `EMPLOYEE_REGISTER:<entity_id>:<employee_id>` | same |
-| `SKILL_DEVELOPMENT_REGISTRATION` | employer | `SKILL_DEVELOPMENT_REGISTRATION:<entity_id>` | `employee_id` and `employment_id` null |
-| `WORK_RULES` | employer | `WORK_RULES:<entity_id>` | `employee_id` and `employment_id` null |
+| Code                             | Legal unit            | Occurrence key                                          | Obligation refs                                                                |
+| -------------------------------- | --------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `SSO_REGISTRATION`               | employee + employer   | `SSO_REGISTRATION:<entity_id>:<employee_id>`            | `employee_id`; `employment_id` may keep the triggering contract for navigation |
+| `PDPA_PRIVACY_NOTICE`            | employee + controller | `PDPA_PRIVACY_NOTICE:<entity_id>:<employee_id>`         | same                                                                           |
+| `PDPA_SENSITIVE_DATA_CONSENT`    | employee + controller | `PDPA_SENSITIVE_DATA_CONSENT:<entity_id>:<employee_id>` | same                                                                           |
+| `EMPLOYEE_REGISTER`              | employee + employer   | `EMPLOYEE_REGISTER:<entity_id>:<employee_id>`           | same                                                                           |
+| `SKILL_DEVELOPMENT_REGISTRATION` | employer              | `SKILL_DEVELOPMENT_REGISTRATION:<entity_id>`            | `employee_id` and `employment_id` null                                         |
+| `WORK_RULES`                     | employer              | `WORK_RULES:<entity_id>`                                | `employee_id` and `employment_id` null                                         |
 
 For the two employer duties, also change `reads.obligation` from `employee_id: { isNull: false }` to `employee_id: { isNull: true }`; otherwise the new null-employee obligation is invisible to the dedupe read. Remove `employee_count_threshold_11` and the `headcount < 11` gate from `WORK_RULES`: with the entity key, `headcount >= 10` is correct, and it does not miss the duty when two hires cross ten in one batch.
 
@@ -188,9 +183,9 @@ const catalog = first(ctx.reads.statutory_contribution_catalog);
 const collectFrom = get(catalog, 'lookup.collection_from', null);
 if (collectFrom == null || entry.salary_coverage.from < collectFrom) return false;
 const positive = get(ctx, 'reads.payslip', []).some((slip) =>
-  get(slip, 'breakdown.statutory', []).some(
-    (row) => row.code === 'EWF' && Number(row.employee) + Number(row.employer) > 0
-  )
+	get(slip, 'breakdown.statutory', []).some(
+		(row) => row.code === 'EWF' && Number(row.employee) + Number(row.employer) > 0
+	)
 );
 return positive;
 ```
@@ -222,16 +217,17 @@ Filter at the model boundary, which already has `before`/`after`:
 ```ts
 // employee_profile/+model.ts, effect.updated
 const registerChanged = changes.filter(
-  ({ before, after }) =>
-    before.name !== after.name || (before.address ?? null) !== (after.address ?? null)
+	({ before, after }) =>
+		before.name !== after.name || (before.address ?? null) !== (after.address ?? null)
 );
 if (registerChanged.length > 0)
-  yield* tap(
-    ctx,
-    'update',
-    { collection: 'employee_profile', ids: registerChanged.map(({ after }) => after.id) },
-    registerChanged
-  );
+	yield *
+		tap(
+			ctx,
+			'update',
+			{ collection: 'employee_profile', ids: registerChanged.map(({ after }) => after.id) },
+			registerChanged
+		);
 ```
 
 Keep the existing rename propagation for all changes. In the seed effect:
@@ -267,7 +263,9 @@ Refuse the entry, do not substitute another date. Add a registered rule on every
 The update path already passes the resulting children (gap 1), so an update that deletes the last day is refused too. Guard the existing effect against legacy rows so it never writes a null due date:
 
 ```js
-const firstSlot = first(ctx.reads.leave_catalog_entry_day.map((slot) => slot.incurred_on).toSorted());
+const firstSlot = first(
+	ctx.reads.leave_catalog_entry_day.map((slot) => slot.incurred_on).toSorted()
+);
 if (firstSlot == null) return [];
 ```
 
@@ -293,13 +291,11 @@ In `MINIMUM_WAGE_FLOOR.validate`, use the contract's `terms.work_region` first, 
 ```js
 const worksite = get(ctx.entry, 'terms.work_region', null);
 const region =
-  typeof worksite === 'string' && worksite !== ''
-    ? worksite
-    : String(get(employer, 'region', ''));
+	typeof worksite === 'string' && worksite !== '' ? worksite : String(get(employer, 'region', ''));
 const floor =
-  get(employer, 'minimum_wage_400_business', false) === true
-    ? ctx.lookup.business_400
-    : get(ctx.lookup.by_region, region, null);
+	get(employer, 'minimum_wage_400_business', false) === true
+		? ctx.lookup.business_400
+		: get(ctx.lookup.by_region, region, null);
 ```
 
 Keep `minimum_wage_exempt` and `minimum_wage_400_business`; both are verified legal overrides. Do not change the 30-day divisor or the hourly/monthly conversions.
@@ -309,9 +305,9 @@ Apply the same region order to the `MINIMUM_WAGE_ARREARS` adhoc catalog, both `e
 ```js
 const employment = ctx.subject.employment;
 const region = get(
-  employment,
-  'terms.work_region',
-  get(employer, 'entity_extension_data.region', '')
+	employment,
+	'terms.work_region',
+	get(employer, 'entity_extension_data.region', '')
 );
 ```
 
@@ -342,33 +338,28 @@ Extend `NORMAL_HOURS`; do not add a duplicate contract rule.
 
 ```js
 const hazardous =
-  get(ctx.subject.employment, 'terms.statutory_work_category', null) === 'HAZARDOUS';
-const weekly = hazardous
-  ? ctx.lookup.weekly_minutes_hazardous
-  : ctx.lookup.weekly_minutes;
+	get(ctx.subject.employment, 'terms.statutory_work_category', null) === 'HAZARDOUS';
+const weekly = hazardous ? ctx.lookup.weekly_minutes_hazardous : ctx.lookup.weekly_minutes;
 const from = add_days(ctx.entry.work_date, -6);
 const siblings = get(ctx, 'reads.roster_entry', []).filter(
-  (day) =>
-    day.id !== ctx.entry.id &&
-    day.work_date >= from &&
-    day.work_date <= ctx.entry.work_date
+	(day) => day.id !== ctx.entry.id && day.work_date >= from && day.work_date <= ctx.entry.work_date
 );
 const days = [...siblings, ctx.entry];
 if (
-  days.some((day) =>
-    get(day, 'actual_worked_intervals', []).some((row) => get(row, 'end', null) == null)
-  )
+	days.some((day) =>
+		get(day, 'actual_worked_intervals', []).some((row) => get(row, 'end', null) == null)
+	)
 )
-  return true;
+	return true;
 // weekly_minutes is minutes: keep the sum in minutes, never divide by 60 here
 const normal_minutes = sum(
-  days.map((day) =>
-    Math.max(
-      0,
-      interval_minutes(get(day, 'actual_worked_intervals', [])) -
-        interval_minutes(get(day, 'planned_overtime_intervals', []))
-    )
-  )
+	days.map((day) =>
+		Math.max(
+			0,
+			interval_minutes(get(day, 'actual_worked_intervals', [])) -
+				interval_minutes(get(day, 'planned_overtime_intervals', []))
+		)
+	)
 );
 return normal_minutes <= weekly;
 ```

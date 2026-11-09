@@ -3,10 +3,7 @@
 		"code": "MINIMUM_WAGE_FLOOR",
 		"description": "Refuses a monthly contract whose basic wage plus fixed allowances is below the provincial or city minimum wage for the contract's worksite.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -42,10 +39,7 @@
 		"code": "BASIC_WAGE_SHARE",
 		"description": "Refuses a monthly contract whose basic wage is below 75% of the wage, with fixed allowances counted in the wage.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(rate, 'unit', '') !== 'MONTHLY') return false;\nreturn monthly > 0;\n",
 		"validate": "// js\nconst rate = get(ctx.entry, 'terms.rate', null);\n// after B5 a contract allowance holds only amount; ID's allowance catalog is fixed-only\nconst monthly =\n\tNumber(get(rate, 'amount', 0)) +\n\tsum(Object.values(get(ctx.entry, 'terms.allowances', {})).map((a) => Number(get(a, 'amount', 0))));\nreturn Number(get(rate, 'amount', 0)) >= ctx.lookup.minimum_share * monthly;\n",
 		"order": 1,
@@ -65,10 +59,7 @@
 		"code": "SECTOR_MINIMUM_WAGE",
 		"description": "Refuses a monthly contract below the governor's sector minimum wage for the worksite's KBLI and declared sector condition.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -8067,10 +8058,7 @@
 		"code": "MINIMUM_WAGE_REGION_UNKNOWN",
 		"description": "Requires the worksite region to be a seeded minimum-wage key, at locality level where one exists.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -8109,10 +8097,7 @@
 		"code": "DAILY_MINIMUM_WAGE",
 		"description": "Refuses a daily rate below the monthly minimum wage divided by the statutory paid days for a five- or six-day week.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -8148,10 +8133,7 @@
 		"code": "HOURLY_MINIMUM_WAGE",
 		"description": "Refuses an hourly rate below the monthly minimum wage divided by the statutory monthly hours (126).",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"entity_profile_version": {
 				"where": {
@@ -8186,10 +8168,7 @@
 		"code": "PKWT_MAXIMUM_TERM",
 		"description": "Refuses a fixed-term contract whose signed term, counting from the first contract start, exceeds five years.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"employee_contract": {
 				"where": {
@@ -8224,10 +8203,7 @@
 		"code": "PROBATION_RULES",
 		"description": "Refuses probation longer than three months and probation on a fixed-term contract.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nreturn ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', '')) && get(ctx.entry, 'terms.probation_period', null) != null;",
 		"validate": "// js\nconst from = get(ctx.entry, 'terms.probation_period.from', '');\nconst to = get(ctx.entry, 'terms.probation_period.to', '');\nif (from === '' || to === '') return false;\nif (get(ctx.entry, 'signed_contract_period.to', null) != null) return false;\nreturn to < add_months(from, ctx.lookup.maximum_months);\n",
 		"order": 7,
@@ -8247,10 +8223,7 @@
 		"code": "PKWT_WRITTEN_INDONESIAN",
 		"description": "Requires every fixed-term contract to record that its signed agreement is in Indonesian and Latin script.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nreturn get(ctx.entry, 'signed_contract_period.to', null) != null;",
 		"validate": "// js\nreturn get(ctx.entry, 'employee_extension_data.written_in_indonesian', null) === true;",
 		"order": 8,
@@ -8271,10 +8244,7 @@
 		"code": "FOREIGN_WORKER_PERSONNEL_POSITION",
 		"description": "Refuses a foreign worker declared to hold a personnel position.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nconst residency = get(ctx.entry, 'terms.residency_status', '');\nif (residency === '') return false;\nif (residency === 'CITIZEN') return false;\nreturn get(ctx.entry, 'employee_extension_data.personnel_position', null) != null;",
 		"validate": "// js\nreturn get(ctx.entry, 'employee_extension_data.personnel_position', false) !== true;",
 		"order": 9,
@@ -8292,10 +8262,7 @@
 		"code": "MINIMUM_AGE",
 		"description": "Refuses a contract for a worker under 13 on the contract start date.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nif (!['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''))) return false;\nif (get(ctx.entry, 'payroll.date_of_birth', '') === '') return false;\nreturn get(ctx.entry, 'effective_range.from', '') !== '';",
 		"validate": "// js\nconst born = get(ctx.entry, 'payroll.date_of_birth', '');\nconst start = get(ctx.entry, 'effective_range.from', '');\nreturn age_on(born, start) >= ctx.lookup.minimum_age_years;\n",
 		"order": 10,
@@ -8316,10 +8283,7 @@
 		"code": "CONTRACT_CATEGORIES",
 		"description": "Requires the engagement, statutory work category and residency status to be declared values.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"validate": "// js\nif (!ctx.lookup.engagement.includes(get(ctx.entry, 'engagement', ''))) return false;\nif (!ctx.lookup.statutory_work_category.includes(get(ctx.entry, 'terms.statutory_work_category', ''))) return false;\nreturn ctx.lookup.residency_status.includes(get(ctx.entry, 'terms.residency_status', ''));\n",
 		"order": 13,
 		"lookup": {
@@ -8332,17 +8296,8 @@
 				"CONSULTANT",
 				"PAYEE"
 			],
-			"statutory_work_category": [
-				"NON_MANUAL",
-				"PIECE_RATE",
-				"TASK_BASIS",
-				"MANAGERIAL"
-			],
-			"residency_status": [
-				"CITIZEN",
-				"RESIDENT_FOREIGNER",
-				"NON_RESIDENT"
-			]
+			"statutory_work_category": ["NON_MANUAL", "PIECE_RATE", "TASK_BASIS", "MANAGERIAL"],
+			"residency_status": ["CITIZEN", "RESIDENT_FOREIGNER", "NON_RESIDENT"]
 		},
 		"id": "0bb7dce4-3627-5ca2-8ed0-545932d23aa7",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
@@ -8351,17 +8306,11 @@
 		"code": "SHARED_STRUCTURED_EMPLOYEE_INPUTS",
 		"description": "Requires a worksite region for wage earners, a passport for foreign residents, and a birth city for non-residents.",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"validate": "// js\nconst residency = get(ctx.entry, 'terms.residency_status', '');\nconst wage = ['EMPLOYEE', 'CONTRACTOR', 'PART_TIME', 'INTERN', 'APPRENTICE'].includes(get(ctx.entry, 'engagement', ''));\nconst text = (path) => String(get(ctx.entry, path, '')).trim();\nif (wage && text('terms.work_region') === '') return false;\nif (ctx.lookup.foreign_residency.includes(residency) && text('payroll.passport_number') === '') return false;\nif (residency === 'NON_RESIDENT' && text('payroll.birth_city') === '') return false;\nreturn true;\n",
 		"order": 15,
 		"lookup": {
-			"foreign_residency": [
-				"RESIDENT_FOREIGNER",
-				"NON_RESIDENT"
-			]
+			"foreign_residency": ["RESIDENT_FOREIGNER", "NON_RESIDENT"]
 		},
 		"id": "7752f9f9-83a7-5b6e-a8ea-36c45e7c84b3",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
@@ -8370,10 +8319,7 @@
 		"code": "SHARED_STRUCTURED_ENTITY_INPUTS",
 		"description": "Requires the company registration number and a 15- or 16-digit tax registration number on a sealed entity profile.",
 		"target_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nreturn get(ctx.entry, 'status', '') === 'SEALED';",
 		"validate": "// js\nconst data = get(ctx.entry, 'entity_extension_data', {});\nconst bad = (value, bounds) => {\n    if (value == null) return get(bounds, 'required', false) === true;\n    const length = String(value).length;\n    if (get(bounds, 'minLength', null) != null && length < Number(bounds.minLength)) return true;\n    if (get(bounds, 'maxLength', null) != null && length > Number(bounds.maxLength)) return true;\n    if (get(bounds, 'integer', false) === true && Number(value) !== Math.trunc(Number(value))) return true;\n    if (get(bounds, 'minimum', null) != null && Number(value) < Number(bounds.minimum)) return true;\n    if (get(bounds, 'maximum', null) != null && Number(value) > Number(bounds.maximum)) return true;\n    const allowed = get(bounds, 'enum', null);\n    return allowed != null && !allowed.includes(value);\n};\nreturn (\n    !bad(get(data, 'registration_number', null), ctx.lookup.registration_number) &&\n    !bad(get(data, 'tax_registration_number', null), ctx.lookup.tax_registration_number)\n);\n",
 		"order": 16,
@@ -8395,18 +8341,12 @@
 		"code": "ESTABLISHMENT_EVENT_DATE_REQUIRED",
 		"description": "Requires an establishment date when the entity declares its first worker or the start of operations.",
 		"target_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "// js\nreturn get(ctx.entry, 'status', '') === 'SEALED';",
 		"validate": "// js\nconst data = get(ctx.entry, 'entity_extension_data', {});\nconst triggers = ctx.lookup.triggers;\nconst hasTrigger = triggers.some((key) => get(data, key, null) != null);\nreturn !hasTrigger || get(data, 'established_on', null) != null;\n",
 		"order": 18,
 		"lookup": {
-			"triggers": [
-				"first_employed_on",
-				"operations_started_on"
-			]
+			"triggers": ["first_employed_on", "operations_started_on"]
 		},
 		"id": "797a96ff-dda0-53d8-86ee-99dde71c236a",
 		"settings_id": "c9c489b8-2858-5782-92e2-db3987ebd4f7"
@@ -8415,10 +8355,7 @@
 		"code": "ROSTER_UNDER_13",
 		"description": "Refuses a roster day for a worker under 13; the same rule supplies the seeded daily and weekly work limits.",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"employee_contract": {
 				"where": {
@@ -8456,10 +8393,7 @@
 		"code": "CASE_INPUTS_REQUIRED",
 		"description": "Requires the inputs the workplace case catalog marks as required.",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"reads": {
 			"workplace_case_catalog": {
 				"where": {
@@ -8469,9 +8403,7 @@
 						}
 					}
 				},
-				"fields": [
-					"lookup"
-				],
+				"fields": ["lookup"],
 				"limit": 1
 			}
 		},

@@ -9,7 +9,12 @@ import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 import { idOf } from '../src/lib/payroll_engine/reads.ts';
 import { pack, uuid, workspace } from './kit.ts';
 
-type Rule = { readonly code: string; readonly validate?: string; readonly lookup?: Record<string, unknown>; readonly reads?: Record<string, unknown> };
+type Rule = {
+	readonly code: string;
+	readonly validate?: string;
+	readonly lookup?: Record<string, unknown>;
+	readonly reads?: Record<string, unknown>;
+};
 const load = <T>(version: number, file: string): T =>
 	JSON.parse(
 		readFileSync(
@@ -18,7 +23,9 @@ const load = <T>(version: number, file: string): T =>
 		)
 	) as T;
 const ruleOf = (version: number, code: string) => {
-	const rule = load<readonly Rule[]>(version, 'registered_rule.json').find((row) => row.code === code);
+	const rule = load<readonly Rule[]>(version, 'registered_rule.json').find(
+		(row) => row.code === code
+	);
 	assert.ok(rule?.validate !== undefined);
 	return rule;
 };
@@ -28,7 +35,11 @@ const allowed = (cases: readonly object[], date = '2026-05-10') =>
 	evaluate(
 		young.validate!,
 		'CALCULATION',
-		{ entry: { work_date: date }, subject: { employment: { entity_id: 'entity-1' } }, reads: { workplace_case_catalog_entry: cases } },
+		{
+			entry: { work_date: date },
+			subject: { employment: { entity_id: 'entity-1' } },
+			reads: { workplace_case_catalog_entry: cases }
+		},
 		young.code
 	);
 const contract = ruleOf(4, 'CONTRACT_CATEGORIES');
@@ -75,7 +86,12 @@ const splDays = (
 					child_leave_allocations:
 						allocated === undefined
 							? children
-							: { SHARED_PARENTAL_LEAVE: { ...children['SHARED_PARENTAL_LEAVE'], [birth]: allocated } }
+							: {
+									SHARED_PARENTAL_LEAVE: {
+										...children['SHARED_PARENTAL_LEAVE'],
+										[birth]: allocated
+									}
+								}
 				}
 			}
 		},
@@ -87,7 +103,9 @@ describe('SG remaining gaps', () => {
 		assert.equal(allowed([permit('2026-05-01', '2026-05-31')]), true);
 		assert.equal(allowed([]), false);
 		assert.equal(allowed([permit('2026-06-01')]), false);
-		const where = (young.reads?.['workplace_case_catalog_entry'] as { where?: Record<string, unknown> }).where ?? {};
+		const where =
+			(young.reads?.['workplace_case_catalog_entry'] as { where?: Record<string, unknown> })
+				.where ?? {};
 		assert.deepEqual(where['kind'], { eq: 'YOUNG_PERSON_REST_DAY_PERMISSION' });
 		assert.deepEqual(where['employment_id'], { eq: { var: 'ctx.entry.employment_id' } });
 		assert.deepEqual(where['entity_id'], { eq: { var: 'ctx.subject.employment.entity_id' } });
@@ -139,18 +157,32 @@ describe('SG remaining gaps', () => {
 			assert.deepEqual(employee_contract.rows[0]?.child_leave_allocations, {
 				SHARED_PARENTAL_LEAVE: { '2026-04-01': 45 }
 			});
-		}).pipe(Effect.provide(workspace({ seed: pack('SG', 'Asia/Singapore', {
-			rate: { amount: 5000, unit: 'MONTHLY' },
-			normal_hours_per_day: 8,
-			normal_hours_per_week: 44,
-			normal_days_per_week: 5,
-			statutory_work_category: 'NON_MANUAL',
-			work_classification: 'EA_COVERED',
-			residency_status: 'CITIZEN',
-			wage_payment_method: 'BANK',
-			allowances: {}
-		}, {}, [], [], '2026-06-15'), now: '2026-07-01T02:00:00.000Z' })))
-	);
+		}).pipe(
+			Effect.provide(
+				workspace({
+					seed: pack(
+						'SG',
+						'Asia/Singapore',
+						{
+							rate: { amount: 5000, unit: 'MONTHLY' },
+							normal_hours_per_day: 8,
+							normal_hours_per_week: 44,
+							normal_days_per_week: 5,
+							statutory_work_category: 'NON_MANUAL',
+							work_classification: 'EA_COVERED',
+							residency_status: 'CITIZEN',
+							wage_payment_method: 'BANK',
+							allowances: {}
+						},
+						{},
+						[],
+						[],
+						'2026-06-15'
+					),
+					now: '2026-07-01T02:00:00.000Z'
+				})
+			)
+		));
 	it('a contract work category must be declared', () => {
 		assert.equal(category('NON_MANUAL'), true);
 		assert.equal(category('MANUAL_LABOUR'), true);

@@ -36,5 +36,7 @@
 			/>
 		</div>
 		<CompanyScope {scope} />{/snippet}
-	{#if scope.id === null}<EmptyState title={bolt.t('app.events.empty_scope')} />{:else}{@render board()}{/if}
+	{#if scope.id === null}<EmptyState
+			title={bolt.t('app.events.empty_scope')}
+		/>{:else}{@render board()}{/if}
 </AppShell>

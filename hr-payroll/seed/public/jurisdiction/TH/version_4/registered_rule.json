@@ -2,10 +2,7 @@
 	{
 		"code": "NORMAL_HOURS",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"minutes_per_day": 480,
 			"roster_warnings": {
@@ -39,12 +36,7 @@
 						}
 					}
 				},
-				"fields": [
-					"id",
-					"work_date",
-					"actual_worked_intervals",
-					"planned_overtime_intervals"
-				],
+				"fields": ["id", "work_date", "actual_worked_intervals", "planned_overtime_intervals"],
 				"limit": 10000
 			}
 		}
@@ -52,10 +44,7 @@
 	{
 		"code": "REST_BREAK",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"elapsed_minutes": 300,
 			"break_minutes": 60
@@ -76,10 +65,7 @@
 	{
 		"code": "CHILD_EMPLOYMENT",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"minimum_age": 15
 		},
@@ -99,10 +85,7 @@
 	{
 		"code": "MINIMUM_WAGE_FLOOR",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"order": 9,
 		"lookup": {
 			"business_400": 400
@@ -123,10 +106,7 @@
 	{
 		"code": "SKILL_STANDARD_WAGE",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "const rate = get(ctx.entry, 'terms.rate', null);\nif (rate == null) return false;\nreturn get(ctx.entry, 'employee_extension_data.skill_standard_day_rate', null) != null;",
 		"lookup": {},
 		"references": [
@@ -145,10 +125,7 @@
 	{
 		"code": "ROSTER_REST_BREAK",
 		"target_collection": "roster_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"elapsed_minutes": 300,
 			"break_minutes": 60
@@ -169,20 +146,11 @@
 	{
 		"code": "CONTRACT_CATEGORIES",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"categories": {
-				"statutory_work_category": [
-					"ORDINARY",
-					"HAZARDOUS"
-				],
-				"residency_status": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"statutory_work_category": ["ORDINARY", "HAZARDOUS"],
+				"residency_status": ["RESIDENT", "NON_RESIDENT"]
 			}
 		},
 		"references": [
@@ -201,15 +169,9 @@
 	{
 		"code": "SHARED_STRUCTURED_EMPLOYEE_INPUTS",
 		"target_collection": "employee_contract",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
-			"overtime_categories": [
-				"MANAGER",
-				"SECTION_65_OTHER"
-			],
+			"overtime_categories": ["MANAGER", "SECTION_65_OTHER"],
 			"pvd_minimum_percent": 2,
 			"pvd_maximum_percent": 15
 		},
@@ -228,10 +190,7 @@
 	{
 		"code": "SHARED_STRUCTURED_ENTITY_INPUTS",
 		"target_collection": "entity_profile_version",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"risk_class_digits": 5
 		},
@@ -250,10 +209,7 @@
 	{
 		"code": "BUSINESS_CASE_EFFECTIVE_INTERVAL",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "return get(ctx.entry, 'kind', null) === 'DEDUCTION_LIMIT_CONSENT';",
 		"lookup": {},
 		"references": [
@@ -272,10 +228,7 @@
 	{
 		"code": "BUSINESS_CASE_SIGNED_CONSENT",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "return get(ctx.entry, 'kind', null) === 'DEDUCTION_LIMIT_CONSENT';",
 		"lookup": {},
 		"references": [
@@ -294,16 +247,10 @@
 	{
 		"code": "BUSINESS_CASE_DOCUMENT_REQUIRED",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "return ctx.lookup.kinds.includes(get(ctx.entry, 'kind', null));",
 		"lookup": {
-			"kinds": [
-				"DEDUCTION_LIMIT_CONSENT",
-				"SECURITY_DEPOSIT_RECEIVED"
-			]
+			"kinds": ["DEDUCTION_LIMIT_CONSENT", "SECURITY_DEPOSIT_RECEIVED"]
 		},
 		"references": [
 			{
@@ -321,10 +268,7 @@
 	{
 		"code": "DEDUCTION_CONSENT_DISTINCT_SCOPE",
 		"target_collection": "workplace_case_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"condition": "return get(ctx.entry, 'kind', null) === 'DEDUCTION_LIMIT_CONSENT';",
 		"lookup": {},
 		"references": [
@@ -344,10 +288,7 @@
 		"code": "WORK_INJURY_DAY_REQUIRED",
 		"description": "A work-injury leave entry needs at least one dated day so the 15-day notification runs from a real injury date (WCA s.48).",
 		"target_collection": "leave_catalog_entry",
-		"events": [
-			"create",
-			"update"
-		],
+		"events": ["create", "update"],
 		"lookup": {
 			"catalog_code": "WORK_INJURY_LEAVE"
 		},
@@ -360,9 +301,7 @@
 						}
 					}
 				},
-				"fields": [
-					"code"
-				],
+				"fields": ["code"],
 				"limit": 1
 			}
 		},

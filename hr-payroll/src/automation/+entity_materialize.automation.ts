@@ -70,9 +70,7 @@ export default automation('entity_materialize', {
 					}
 				});
 				const reason = changes.flatMap((row) => row.notes ?? []).join(' · ') || 'Scheduled change';
-				const held = versions.find(
-					(row) => row.status === 'DRAFT' && fromOf(row) === on
-				);
+				const held = versions.find((row) => row.status === 'DRAFT' && fromOf(row) === on);
 				const draft =
 					held?.id ??
 					(yield* ctx.act.checked([
@@ -90,10 +88,8 @@ export default automation('entity_materialize', {
 										open.input_schema_version_id ??
 										null,
 									time_zone: next.time_zone ?? null,
-									final_pay_loan_floor_percent:
-										next.final_pay_loan_floor_percent ?? 10,
-									overtime_full_award_percent:
-										next.overtime_full_award_percent ?? 100,
+									final_pay_loan_floor_percent: next.final_pay_loan_floor_percent ?? 10,
+									overtime_full_award_percent: next.overtime_full_award_percent ?? 100,
 									bank: next.bank ?? open.bank ?? null,
 									entity_extension_data: next.entity_extension_data ?? {},
 									effective_range: { from: on, to: null },

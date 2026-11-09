@@ -10,7 +10,22 @@ import { entitlementPlans } from '../src/lib/ledger/service.ts';
 import { dateWeekday } from '../src/lib/payroll_engine/time_evidence.ts';
 import type { JsonObject } from '../src/lib/payroll_engine/contracts.ts';
 import { idOf, objectValue } from '../src/lib/payroll_engine/reads.ts';
-import { ENTITY, REST, WORK, accountsIn, catalogRow, measureOf, pack, read, sealEvents, syncAll, uuid, wholeDays, workspace, leaveCreate } from './kit.ts';
+import {
+	ENTITY,
+	REST,
+	WORK,
+	accountsIn,
+	catalogRow,
+	measureOf,
+	pack,
+	read,
+	sealEvents,
+	syncAll,
+	uuid,
+	wholeDays,
+	workspace,
+	leaveCreate
+} from './kit.ts';
 
 const LEAVE = read('seed/public/jurisdiction/JP/version_17/leave_catalog.json');
 const lookupOf = (code: string) => objectValue(LEAVE.find((row) => row.code === code)?.lookup);

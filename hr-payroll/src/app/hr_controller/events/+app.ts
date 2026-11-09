@@ -12,6 +12,6 @@ export default app('hr_controller/events', {
 		adhoc: { title: 'app.adhoc.title', icon: 'lucide:hand-coins' },
 		loans: { title: 'app.loans.title', icon: 'lucide:landmark' },
 		cases: { title: 'app.cases.title', icon: 'lucide:folder-open' },
-		work_events: { title: 'app.work_events.title', icon: 'lucide:cloud-sun' },
+		work_events: { title: 'app.work_events.title', icon: 'lucide:cloud-sun' }
 	}
 });

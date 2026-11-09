@@ -3,7 +3,10 @@ import { tap } from '../../../lib/payroll_engine/taps.js';
 
 /** The s.113 register particulars the template owns on the profile: name and address. */
 export const registerChanged = <
-	T extends { readonly before: { readonly name?: unknown; readonly address?: unknown }; readonly after: { readonly name?: unknown; readonly address?: unknown } }
+	T extends {
+		readonly before: { readonly name?: unknown; readonly address?: unknown };
+		readonly after: { readonly name?: unknown; readonly address?: unknown };
+	}
 >(
 	changes: readonly T[]
 ): readonly T[] =>

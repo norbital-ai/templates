@@ -5,7 +5,11 @@ import { readFileSync } from 'node:fs';
 import { describe, it } from '@effect/vitest';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 
-type Effect = { readonly code: string; readonly effects: string; readonly lookup?: Record<string, unknown> };
+type Effect = {
+	readonly code: string;
+	readonly effects: string;
+	readonly lookup?: Record<string, unknown>;
+};
 const effects = JSON.parse(
 	readFileSync(
 		new URL('../seed/public/jurisdiction/ID/version_3/registered_effect.json', import.meta.url),
@@ -17,7 +21,11 @@ const effectOf = (code: string) => {
 	assert.ok(row !== undefined);
 	return row;
 };
-type Task = { readonly title: string; readonly occurrence_key: string; readonly employee_id?: string };
+type Task = {
+	readonly title: string;
+	readonly occurrence_key: string;
+	readonly employee_id?: string;
+};
 const run = (code: string, entry: object, obligation: readonly object[]) =>
 	evaluate(
 		effectOf(code).effects,

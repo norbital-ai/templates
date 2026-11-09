@@ -5,7 +5,11 @@ import { readFileSync } from 'node:fs';
 import { describe, it } from '@effect/vitest';
 import { evaluate } from '../src/lib/payroll_engine/expressions.ts';
 
-type Rule = { readonly code: string; readonly condition?: string; readonly lookup?: Record<string, unknown> };
+type Rule = {
+	readonly code: string;
+	readonly condition?: string;
+	readonly lookup?: Record<string, unknown>;
+};
 const rules = JSON.parse(
 	readFileSync(
 		new URL('../seed/public/jurisdiction/TW/version_5/registered_effect.json', import.meta.url),
@@ -56,7 +60,10 @@ describe('TW unit-change effects', () => {
 	it('name and address changes still raise them', () => {
 		for (const effect of effects) {
 			const previous = version('v1', '2025-01-01');
-			assert.equal(fires(effect, version('v2', '2026-01-01', { name: 'Acme 2' }), [previous]), true);
+			assert.equal(
+				fires(effect, version('v2', '2026-01-01', { name: 'Acme 2' }), [previous]),
+				true
+			);
 			assert.equal(
 				fires(effect, version('v2', '2026-01-01', { registered_address: 'Kaohsiung' }), [previous]),
 				true
@@ -71,7 +78,10 @@ describe('TW unit-change effects', () => {
 				false,
 				effect.code
 			);
-			assert.equal(fires(effect, version('v2', '2026-01-01', { representative_name: 'Bob' }), []), false);
+			assert.equal(
+				fires(effect, version('v2', '2026-01-01', { representative_name: 'Bob' }), []),
+				false
+			);
 		}
 	});
 	it('compares the immediately preceding version, not an older one', () => {

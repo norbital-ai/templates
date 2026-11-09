@@ -17,13 +17,13 @@ Use:
 
 ```js
 const month = ctx.entry.salary_coverage.from.slice(0, 7); // YYYY-MM
-const year  = ctx.entry.salary_coverage.from.slice(0, 4); // YYYY
+const year = ctx.entry.salary_coverage.from.slice(0, 4); // YYYY
 ```
 
 Do not key an annual obligation on `ctx.entry.period`. The occurrence key must collapse all parts of the month and all repeated runs of the same year:
 
 ```js
-occurrence_key(['ID', code, ctx.entry.entity_id, year])
+occurrence_key(['ID', code, ctx.entry.entity_id, year]);
 ```
 
 That gives one obligation per entity per year, whatever the frequency or part count.
@@ -36,16 +36,16 @@ Known limitation of this event-driven design: if the employer runs no payroll wi
 
 ### Legal position
 
-| Effect | Legal cadence | Source |
-| --- | --- | --- |
-| `PPH21_BPA1_YEAR_END` | Annual BPA1 for employees still employed at year end; due one month after December. A leaver's BPA1 is the separate `PPH21_BPA1_EXIT` (gap 2) | PER-11/PJ/2025 art.7(1)(e)–(g), (2), (4); PMK 168/2023 art.21(1). https://jdih.kemenkeu.go.id/dok/per-11pj2025 ; https://jdih.kemenkeu.go.id/api/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf |
-| `PTKP_STATUS_ANNUAL` | PTKP is determined by circumstances at the beginning of the calendar year (or the first month of a new resident) | PMK 168/2023 art.9(4)–(5). Same PMK URL |
-| `MINIMUM_WAGE_COMPLIANCE` | Minimum wage is adjusted every year and the new provincial rate takes effect 1 January | PP 36/2021 art.26(1), art.29(3), as amended by PP 49/2025. https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf ; https://jdih.kemnaker.go.id/asset/data_puu/2025pp049.pdf |
-| `DISABILITY_QUOTA_REVIEW` | Private companies must employ at least 1% persons with disabilities. The statute sets a continuous quota, not an annual filing | UU 8/2016 art.53(2). https://peraturan.bpk.go.id/Details/37251/uu-no-8-tahun-2016 |
-| `K3_SMK3_P2K3` | SMK3 applies at ≥100 workers or high hazard; P2K3 must be formed at the same threshold and its activity report is every 6 months | PP 50/2012 art.5(2). https://peraturan.bpk.go.id/Details/5263/pp-no-50-tahun-2012 ; Permenaker 13/2025 art.3(2), art.11(1). https://jdih.kemnaker.go.id/peraturan/detail/2788/peraturan-menteri-ketenagakerjaan-nomor-13-tahun-2025 |
-| `WORKER_HEALTH_EXAMINATION` | Periodic health examination at least once a year | Permenakertrans PER.02/MEN/1980 art.3(2). https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf |
-| `WAGE_STRUCTURE_SCALE` | Employer must compile and apply a wage structure and scale, and notify each worker of the scale for their job group. No annual review is prescribed | PP 36/2021 art.21(1)–(3). https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf |
-| `TAX_RECORDS_RETENTION` | Books, records and supporting documents must be kept 10 years. This is a standing retention rule, not an annual return | UU KUP (UU 28/2007) art.28(11). https://www.pajak.go.id/id/undang-undang-nomor-28-tahun-2007 |
+| Effect                      | Legal cadence                                                                                                                                       | Source                                                                                                                                                                                                                              |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PPH21_BPA1_YEAR_END`       | Annual BPA1 for employees still employed at year end; due one month after December. A leaver's BPA1 is the separate `PPH21_BPA1_EXIT` (gap 2)       | PER-11/PJ/2025 art.7(1)(e)–(g), (2), (4); PMK 168/2023 art.21(1). https://jdih.kemenkeu.go.id/dok/per-11pj2025 ; https://jdih.kemenkeu.go.id/api/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf                |
+| `PTKP_STATUS_ANNUAL`        | PTKP is determined by circumstances at the beginning of the calendar year (or the first month of a new resident)                                    | PMK 168/2023 art.9(4)–(5). Same PMK URL                                                                                                                                                                                             |
+| `MINIMUM_WAGE_COMPLIANCE`   | Minimum wage is adjusted every year and the new provincial rate takes effect 1 January                                                              | PP 36/2021 art.26(1), art.29(3), as amended by PP 49/2025. https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf ; https://jdih.kemnaker.go.id/asset/data_puu/2025pp049.pdf                                                       |
+| `DISABILITY_QUOTA_REVIEW`   | Private companies must employ at least 1% persons with disabilities. The statute sets a continuous quota, not an annual filing                      | UU 8/2016 art.53(2). https://peraturan.bpk.go.id/Details/37251/uu-no-8-tahun-2016                                                                                                                                                   |
+| `K3_SMK3_P2K3`              | SMK3 applies at ≥100 workers or high hazard; P2K3 must be formed at the same threshold and its activity report is every 6 months                    | PP 50/2012 art.5(2). https://peraturan.bpk.go.id/Details/5263/pp-no-50-tahun-2012 ; Permenaker 13/2025 art.3(2), art.11(1). https://jdih.kemnaker.go.id/peraturan/detail/2788/peraturan-menteri-ketenagakerjaan-nomor-13-tahun-2025 |
+| `WORKER_HEALTH_EXAMINATION` | Periodic health examination at least once a year                                                                                                    | Permenakertrans PER.02/MEN/1980 art.3(2). https://jdih.kemnaker.go.id/asset/data_puu/1980PermenakertransPER2MEN%20.pdf                                                                                                              |
+| `WAGE_STRUCTURE_SCALE`      | Employer must compile and apply a wage structure and scale, and notify each worker of the scale for their job group. No annual review is prescribed | PP 36/2021 art.21(1)–(3). https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf                                                                                                                                                   |
+| `TAX_RECORDS_RETENTION`     | Books, records and supporting documents must be kept 10 years. This is a standing retention rule, not an annual return                              | UU KUP (UU 28/2007) art.28(11). https://www.pajak.go.id/id/undang-undang-nomor-28-tahun-2007                                                                                                                                        |
 
 Notes that matter:
 
@@ -58,16 +58,16 @@ Notes that matter:
 
 Replace the `endsWith` conditions with coverage-month conditions and year-based keys.
 
-| Effect | New condition (conceptually) | Key | Due |
-| --- | --- | --- | --- |
-| `PPH21_BPA1_YEAR_END` | `salary_coverage.from.slice(0,7) === taxYear + '-12'` | `['ID', code, entity, taxYear]` | `month_end(add_months(taxYear + '-12-01', 1))` = 31 January next year |
-| `PTKP_STATUS_ANNUAL` | `salary_coverage.from.slice(0,7) === year + '-01'` | `['ID', code, entity, year]` | `year + '-01-01'` (status date) |
-| `MINIMUM_WAGE_COMPLIANCE` | same January condition | `['ID', code, entity, year]` | `year + '-01-01'` |
-| `DISABILITY_QUOTA_REVIEW` | same January condition | `['ID', code, entity, year]` | `month_end(year + '-01-01')` = 31 January |
-| `WORKER_HEALTH_EXAMINATION` | same January condition | `['ID', code, entity, year]` | `month_end(year + '-01-01')` = 31 January |
-| `K3_SMK3_P2K3` | first run where the threshold is met and no entity obligation exists | `['ID', code, entity]` | run `salary_coverage.to` |
-| `WAGE_STRUCTURE_SCALE` | first run for the entity (no entity obligation exists) | `['ID', code, entity]` | run `salary_coverage.to` |
-| `TAX_RECORDS_RETENTION` | delete the effect | — | — |
+| Effect                      | New condition (conceptually)                                         | Key                             | Due                                                                   |
+| --------------------------- | -------------------------------------------------------------------- | ------------------------------- | --------------------------------------------------------------------- |
+| `PPH21_BPA1_YEAR_END`       | `salary_coverage.from.slice(0,7) === taxYear + '-12'`                | `['ID', code, entity, taxYear]` | `month_end(add_months(taxYear + '-12-01', 1))` = 31 January next year |
+| `PTKP_STATUS_ANNUAL`        | `salary_coverage.from.slice(0,7) === year + '-01'`                   | `['ID', code, entity, year]`    | `year + '-01-01'` (status date)                                       |
+| `MINIMUM_WAGE_COMPLIANCE`   | same January condition                                               | `['ID', code, entity, year]`    | `year + '-01-01'`                                                     |
+| `DISABILITY_QUOTA_REVIEW`   | same January condition                                               | `['ID', code, entity, year]`    | `month_end(year + '-01-01')` = 31 January                             |
+| `WORKER_HEALTH_EXAMINATION` | same January condition                                               | `['ID', code, entity, year]`    | `month_end(year + '-01-01')` = 31 January                             |
+| `K3_SMK3_P2K3`              | first run where the threshold is met and no entity obligation exists | `['ID', code, entity]`          | run `salary_coverage.to`                                              |
+| `WAGE_STRUCTURE_SCALE`      | first run for the entity (no entity obligation exists)               | `['ID', code, entity]`          | run `salary_coverage.to`                                              |
+| `TAX_RECORDS_RETENTION`     | delete the effect                                                    | —                               | —                                                                     |
 
 Due-date labels: only BPA1 (31 January after the tax year) and the minimum-wage effective date (1 January) come from the statute. The PTKP 1 January date is the statutory status date, not a filing deadline. The 31 January dates for disability and health are internal review dates; do not present them as statutory filing deadlines. WLKP's anniversary month comes from UU 7/1981, but its month-end day is an administrative convention.
 
@@ -377,8 +377,8 @@ Minimal branch in the rule, using the existing `cutoff`, `tenDay`, `shifted` var
 
 ```js
 if (tenDay) {
-  if (cutoff <= 1) return month + '-' + Math.ceil(dayOf / 10);
-  return dayOf < cutoff ? month + '-1' : shifted(month, 1) + '-1';
+	if (cutoff <= 1) return month + '-' + Math.ceil(dayOf / 10);
+	return dayOf < cutoff ? month + '-1' : shifted(month, 1) + '-1';
 }
 ```
 

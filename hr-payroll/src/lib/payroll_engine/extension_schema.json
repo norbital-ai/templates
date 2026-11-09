@@ -16,10 +16,7 @@
 				},
 				"retirement_category": {
 					"type": "string",
-					"enum": [
-						"FEMALE_50",
-						"FEMALE_55"
-					],
+					"enum": ["FEMALE_50", "FEMALE_55"],
 					"title": "Original statutory retirement age (women)",
 					"description": "全国人民代表大会常务委员会《关于实施渐进式延迟法定退休年龄的决定》(2024年9月13日, 自2025年1月1日) 及《国务院关于渐进式延迟法定退休年龄的办法》第二条: 男职工和原法定退休年龄为五十五周岁的女职工每四个月延迟一个月, 分别逐步延迟至六十三周岁和五十八周岁; 原法定退休年龄为五十周岁的女职工每二个月延迟一个月, 逐步延迟至五十五周岁 https://www.gov.cn/yaowen/liebiao/202409/content_6974294.htm. Women record `retirement_category` FEMALE_55 (cadres) or FEMALE_50 (default, workers)."
 				},
@@ -27,12 +24,7 @@
 					"type": "array",
 					"items": {
 						"type": "string",
-						"enum": [
-							"PENSION",
-							"MEDICAL",
-							"UNEMPLOYMENT",
-							"WORK_INJURY"
-						]
+						"enum": ["PENSION", "MEDICAL", "UNEMPLOYMENT", "WORK_INJURY"]
 					},
 					"title": "Schemes exempted by a social-security agreement",
 					"description": "人社部令第16号 and the bilateral agreement: the schemes the certificate of coverage exempts."
@@ -133,12 +125,7 @@
 							"minLength": 1
 						}
 					},
-					"required": [
-						"month",
-						"settlement_on",
-						"excess_nonholiday_hours",
-						"reference"
-					]
+					"required": ["month", "settlement_on", "excess_nonholiday_hours", "reference"]
 				},
 				"annual_leave_year_reviews": {
 					"type": "array",
@@ -519,25 +506,13 @@
 			"properties": {
 				"region": {
 					"type": "string",
-					"enum": [
-						"SH",
-						"KM"
-					],
+					"enum": ["SH", "KM"],
 					"title": "Employer region",
 					"description": "Shanghai (SH) or Kunming (KM); selects the statutory contribution tables and local leave rules."
 				},
 				"risk_class": {
 					"type": "string",
-					"enum": [
-						"1",
-						"2",
-						"3",
-						"4",
-						"5",
-						"6",
-						"7",
-						"8"
-					],
+					"enum": ["1", "2", "3", "4", "5", "6", "7", "8"],
 					"title": "Work-injury industry risk class",
 					"description": "工伤保险条例 第八条; 人社部发〔2015〕71号 行业基准费率 0.2%–1.9%; used when work_injury_rate_percent is not recorded."
 				},
@@ -624,11 +599,7 @@
 				},
 				"wage_zone": {
 					"type": "string",
-					"enum": [
-						"1",
-						"2",
-						"3"
-					],
+					"enum": ["1", "2", "3"],
 					"default": "1",
 					"title": "Minimum-wage zone of the region (最低工资档次)",
 					"description": "The zone key of the region's minimum-wage table (Kunming classes 1–3); blank = the region's default zone. Also the Kunming housing-fund floor."
@@ -690,9 +661,7 @@
 							"description": "Calendar year the first part of this same benefit was paid, including payments before imported payroll history."
 						}
 					},
-					"required": [
-						"first_payment_year"
-					]
+					"required": ["first_payment_year"]
 				},
 				"pension_tax_history": {
 					"type": "object",
@@ -706,9 +675,7 @@
 							"description": "Calendar year the first part of this same benefit was paid, including payments before imported payroll history."
 						}
 					},
-					"required": [
-						"first_payment_year"
-					]
+					"required": ["first_payment_year"]
 				},
 				"jp_continue_after_pension_age": {
 					"type": "boolean",
@@ -746,10 +713,7 @@
 								"description": "Required for a married female employee; true requires the actual local-government statement reference."
 							}
 						},
-						"required": [
-							"as_of",
-							"ptkp_dependents_count"
-						]
+						"required": ["as_of", "ptkp_dependents_count"]
 					}
 				},
 				"worksite_kbli": {
@@ -760,11 +724,7 @@
 				},
 				"umsp_job_category": {
 					"type": "string",
-					"enum": [
-						"BUS_DRIVER_MECHANIC",
-						"NURSING_MIDWIFERY",
-						"MEDICAL_SUPPORT"
-					],
+					"enum": ["BUS_DRIVER_MECHANIC", "NURSING_MIDWIFERY", "MEDICAL_SUPPORT"],
 					"title": "Job category (sector minimum wage)",
 					"description": "DKI Kep. Gubernur 33/2026 rows 58–59 (bus drivers and mechanics of private companies) and 61 (nursing and midwifery, medical support at a class A private hospital)."
 				},
@@ -820,10 +780,7 @@
 				},
 				"pph21_payment_cadence": {
 					"type": "string",
-					"enum": [
-						"MONTHLY",
-						"NON_MONTHLY"
-					],
+					"enum": ["MONTHLY", "NON_MONTHLY"],
 					"title": "Non-permanent worker tax payment cadence",
 					"description": "A non-permanent worker's tax cadence. MONTHLY uses monthly TER without an annual reckoning (PMK 168/2023 art.12(2)(c), annex III.2). NON_MONTHLY uses the daily TER on the average day, or art.17 on 50% above Rp2,500,000 a day (arts.12(2)(a)–(b), 16(2))."
 				},
@@ -974,10 +931,7 @@
 			"properties": {
 				"enterprise_size_class": {
 					"type": "string",
-					"enum": [
-						"OTHER",
-						"MICRO_OR_SMALL"
-					],
+					"enum": ["OTHER", "MICRO_OR_SMALL"],
 					"title": "Enterprise size for BPJS",
 					"description": "Perpres 82/2018 art.32(4)–(5) as amended by Perpres 59/2024: micro and small enterprises are outside the ordinary UMP/UMK contribution floor. Perpres 109/2013 art.6(3), PP 37/2021 art.4(3) as amended: they are outside JP."
 				},
@@ -1072,11 +1026,7 @@
 				},
 				"umsp_bank_category": {
 					"type": "string",
-					"enum": [
-						"PRIVATE_CONVENTIONAL_FOREX",
-						"SYARIAH_FOREX",
-						"OTHER"
-					],
+					"enum": ["PRIVATE_CONVENTIONAL_FOREX", "SYARIAH_FOREX", "OTHER"],
 					"title": "Bank category (sector minimum wage)",
 					"description": "Medan annex XI of Kep. 188.44/909/KPTS/2025: private conventional foreign-exchange bank (printed KBLI 2015 64125, KBLI 2020 64121), foreign-exchange syariah bank (2015 64131, 2020 64122), or another bank. Declare actual licensed status; the broader KBLI 2020 code does not establish it."
 				},
@@ -1087,13 +1037,7 @@
 				},
 				"risk_class": {
 					"type": "string",
-					"enum": [
-						"I",
-						"II",
-						"III",
-						"IV",
-						"V"
-					],
+					"enum": ["I", "II", "III", "IV", "V"],
 					"title": "JKK risk class",
 					"description": "The BPJS Ketenagakerjaan work-accident risk group I–V (PP 44/2015 art.16(1)); it sets the JKK employer rate."
 				},
@@ -1554,11 +1498,7 @@
 			"properties": {
 				"ei_industry_class": {
 					"type": "string",
-					"enum": [
-						"GENERAL",
-						"AGRICULTURE_SAKE",
-						"CONSTRUCTION"
-					],
+					"enum": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 					"default": "GENERAL",
 					"title": "雇用保険の事業の種類",
 					"description": "徴収法 art.12(4): general, agriculture/forestry/fisheries/sake brewing (with the listed exceptions that take the general rate), or construction."
@@ -1600,10 +1540,7 @@
 				},
 				"health_insurer": {
 					"type": "string",
-					"enum": [
-						"KYOKAI",
-						"SOCIETY"
-					],
+					"enum": ["KYOKAI", "SOCIETY"],
 					"default": "KYOKAI",
 					"title": "健康保険の保険者",
 					"description": "協会けんぽ (KYOKAI) or a 健康保険組合 (SOCIETY); a society employer records its own rates below."
@@ -1666,26 +1603,14 @@
 					"type": "string",
 					"title": "労働時間制度",
 					"description": "STANDARD, VARIABLE (変形労働時間制), FLEX (フレックスタイム制, one-month settlement) or DEEMED (みなし・裁量労働).",
-					"enum": [
-						"STANDARD",
-						"VARIABLE",
-						"FLEX",
-						"DEEMED"
-					],
+					"enum": ["STANDARD", "VARIABLE", "FLEX", "DEEMED"],
 					"default": "STANDARD"
 				},
 				"overtime_sector": {
 					"type": "string",
 					"title": "時間外労働の上限規制の区分",
 					"description": "GENERAL, CONSTRUCTION, DRIVER (960 h), DOCTOR_A (960 h), DOCTOR_BC (1,860 h) or NEW_TECH_RD (outside the limits) (労働基準法 arts.36(11), 139–141).",
-					"enum": [
-						"GENERAL",
-						"CONSTRUCTION",
-						"DRIVER",
-						"DOCTOR_A",
-						"DOCTOR_BC",
-						"NEW_TECH_RD"
-					],
+					"enum": ["GENERAL", "CONSTRUCTION", "DRIVER", "DOCTOR_A", "DOCTOR_BC", "NEW_TECH_RD"],
 					"default": "GENERAL"
 				},
 				"disaster_recovery_work": {
@@ -1745,11 +1670,7 @@
 				},
 				"continued_employment_measure": {
 					"type": "string",
-					"enum": [
-						"RAISED_AGE",
-						"CONTINUED_EMPLOYMENT",
-						"NO_RETIREMENT_AGE"
-					],
+					"enum": ["RAISED_AGE", "CONTINUED_EMPLOYMENT", "NO_RETIREMENT_AGE"],
 					"title": "高年齢者雇用確保措置",
 					"description": "高年齢者雇用安定法 art.9(1): the measure securing employment to 65."
 				},
@@ -1874,11 +1795,7 @@
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": [
-							"event_id",
-							"lifetime_number",
-							"notification_requirement_met"
-						],
+						"required": ["event_id", "lifetime_number", "notification_requirement_met"],
 						"properties": {
 							"event_id": {
 								"type": "string",
@@ -2136,10 +2053,7 @@
 								},
 								"tax_residency": {
 									"type": "string",
-									"enum": [
-										"RESIDENT",
-										"NON_RESIDENT"
-									],
+									"enum": ["RESIDENT", "NON_RESIDENT"],
 									"title": "MTD tax residence",
 									"description": "Income Tax Act 1967 s.7: residence for the basis year. Unrecorded, a citizen or permanent resident is charged as resident and a FOREIGNER as non-resident at 30% (s.107(2); MTD Specification 2026 D(a))."
 								},
@@ -2238,9 +2152,7 @@
 									"description": "SKBBK standing only. PERKESO LINDUNG 24 Jam FAQ Q21: contributions are deducted through one employer only, the one the employee chose; false at every other employer."
 								}
 							},
-							"required": [
-								"kind"
-							]
+							"required": ["kind"]
 						}
 					}
 				},
@@ -2275,22 +2187,13 @@
 			"properties": {
 				"hrd_scope": {
 					"type": "string",
-					"enum": [
-						"PART_I",
-						"PART_II_NGO",
-						"OUT_OF_SCOPE"
-					],
+					"enum": ["PART_I", "PART_II_NGO", "OUT_OF_SCOPE"],
 					"title": "HRD employer scope",
 					"description": "Part I industry, listed Part II NGO activity, or excluded employer under the effective First Schedule."
 				},
 				"hrd_registration_class": {
 					"type": "string",
-					"enum": [
-						"COMPULSORY",
-						"OPTIONAL",
-						"NOT_REGISTERED",
-						"DEREGISTERED"
-					],
+					"enum": ["COMPULSORY", "OPTIONAL", "NOT_REGISTERED", "DEREGISTERED"],
 					"title": "HRD employer registration class",
 					"description": "Employer-level HRD Corp standing, retained after a headcount fall until approved deregistration."
 				},
@@ -2448,20 +2351,13 @@
 				},
 				"ebet_program": {
 					"type": "string",
-					"enum": [
-						"GENERAL",
-						"APPRENTICESHIP",
-						"UPSKILLING"
-					],
+					"enum": ["GENERAL", "APPRENTICESHIP", "UPSKILLING"],
 					"title": "Registered EBET programme",
 					"description": "Customer input. RA 12063 (Enterprise-Based Education and Training Framework Act) s.4: the programme an INTERN or APPRENTICE contract is enrolled in — general training (an allowance, no wage floor, s.13(a)), apprenticeship (75% of the floor, s.13(b)), upskilling (the full wage, s.12)."
 				},
 				"mine_worker": {
 					"type": "string",
-					"enum": [
-						"UNDERGROUND",
-						"SURFACE"
-					],
+					"enum": ["UNDERGROUND", "SURFACE"],
 					"title": "Mine worker",
 					"description": "Customer input. RA 8558 / RA 10757: retirement from fifty, compulsory at sixty."
 				},
@@ -2613,11 +2509,7 @@
 				},
 				"student_training_class": {
 					"type": "string",
-					"enum": [
-						"NONE",
-						"LOCAL_APPROVED_TRAINING",
-						"OTHER_REQUIRES_REVIEW"
-					],
+					"enum": ["NONE", "LOCAL_APPROVED_TRAINING", "OTHER_REQUIRES_REVIEW"],
 					"description": "Required for INTERN. NONE means no student-training exemption is claimed; an internship label alone does not exempt. LOCAL_APPROVED_TRAINING requires the institution approval, MOE-subsidy answer, dates and documentary reference below. Other student exemption classes require separately reviewed treatment. OTHER_REQUIRES_REVIEW covers other claimed student exemptions, including overseas-required training or school-holiday cases: their evidence/wage allocation is reviewed before payroll."
 				},
 				"student_training_institution": {
@@ -2766,18 +2658,12 @@
 				},
 				"annual_leave_unpaid_service_policy": {
 					"type": "string",
-					"enum": [
-						"COUNT_APPROVED_UNPAID",
-						"EXCLUDE_REQUIRES_REVIEW"
-					],
+					"enum": ["COUNT_APPROVED_UNPAID", "EXCLUDE_REQUIRES_REVIEW"],
 					"description": "COUNT_APPROVED_UNPAID expressly grants the more generous entitlement. The excluded-service path requires reviewed qualifying-service allocation and is refused instead of using raw calendar months. The seed otherwise grants the more generous calendar-service annual entitlement, counting approved unpaid service; it never silently applies an exclusion."
 				},
 				"leave_year_employment_basis": {
 					"type": "string",
-					"enum": [
-						"CONTINUOUS_SAME_BASIS",
-						"MIXED_REQUIRES_REVIEW"
-					],
+					"enum": ["CONTINUOUS_SAME_BASIS", "MIXED_REQUIRES_REVIEW"],
 					"description": "Mixed full/part-time service in a leave year needs reviewed entitlement allocation, including a worker now full-time."
 				},
 				"comparable_full_time_hours_per_day": {
@@ -2815,11 +2701,7 @@
 				},
 				"ir21_exemption": {
 					"type": "string",
-					"enum": [
-						"SPR_UNDERTAKING",
-						"SHORT_STINT_60_DAYS",
-						"BELOW_21000"
-					],
+					"enum": ["SPR_UNDERTAKING", "SHORT_STINT_60_DAYS", "BELOW_21000"],
 					"description": "IRAS, Tax clearance for employees: no IR21 for an SPR not leaving Singapore permanently who gives a letter of undertaking, for an employment of 60 days or less (not a director), or for income below $21,000 a year under the IRAS conditions. Recorded, the IR21 task is not raised and the final pay is released. Customer input."
 				},
 				"ir21_additional_clearance_on": {
@@ -2975,12 +2857,7 @@
 							"properties": {
 								"sdl_household_role": {
 									"type": "string",
-									"enum": [
-										"NONE",
-										"DOMESTIC_SERVANT",
-										"GARDENER",
-										"CHAUFFEUR"
-									],
+									"enum": ["NONE", "DOMESTIC_SERVANT", "GARDENER", "CHAUFFEUR"],
 									"description": "SDL Act 1979 s.2: a domestic servant, gardener or chauffeur wholly and exclusively employed by an individual otherwise than in connection with a trade, business, profession or vocation is not an “employee” (with sdl_wholly_exclusive and sdl_nonbusiness true)."
 								},
 								"sdl_nonbusiness": {
@@ -3028,10 +2905,7 @@
 								"type": "string"
 							}
 						},
-						"required": [
-							"scheme_code",
-							"number"
-						]
+						"required": ["scheme_code", "number"]
 					}
 				}
 			}
@@ -3046,10 +2920,7 @@
 			"properties": {
 				"work_permit_basis": {
 					"type": "string",
-					"enum": [
-						"ROYAL_ORDINANCE",
-						"SECTION_62"
-					],
+					"enum": ["ROYAL_ORDINANCE", "SECTION_62"],
 					"title": "Basis of a foreign worker's permission to work",
 					"description": "Royal Ordinance on the Management of the Employment of Foreign Workers B.E. 2560 s.62: SECTION_62 when the worker is permitted under the investment-promotion, petroleum or another law the section names; the employer is then exempt from the s.13 notices."
 				},
@@ -3074,10 +2945,7 @@
 				},
 				"overtime_category": {
 					"type": "string",
-					"enum": [
-						"MANAGER",
-						"SECTION_65_OTHER"
-					],
+					"enum": ["MANAGER", "SECTION_65_OTHER"],
 					"title": "Overtime-exempt category (LPA s.65)",
 					"description": "Labour Protection Act B.E. 2541 s.65: MANAGER — power to hire, reward, cut wages or dismiss for the employer (s.65(1)): no overtime or holiday overtime pay, and no holiday pay unless agreed (s.66); SECTION_65_OTHER — the work listed in s.65(2)-(8): paid 1 × the hourly wage for overtime."
 				},
@@ -3111,10 +2979,7 @@
 				},
 				"special_severance_ground": {
 					"type": "string",
-					"enum": [
-						"TECHNOLOGY",
-						"RELOCATION"
-					],
+					"enum": ["TECHNOLOGY", "RELOCATION"],
 					"title": "Special severance ground",
 					"description": "Labour Protection Act B.E. 2541 ss.120-122."
 				},
@@ -3181,9 +3046,7 @@
 									"description": "Provident Fund Act B.E. 2530 (1987) s.10: a member contributes 2% to 15% of wages to the registered fund the employer set up."
 								}
 							},
-							"required": [
-								"kind"
-							]
+							"required": ["kind"]
 						},
 						"PND1": {
 							"type": "object",
@@ -3289,10 +3152,7 @@
 								},
 								"spouse_income_status": {
 									"type": "string",
-									"enum": [
-										"WITHOUT_INCOME",
-										"WITH_INCOME"
-									],
+									"enum": ["WITHOUT_INCOME", "WITH_INCOME"],
 									"title": "PND1: spouse income status",
 									"description": "Revenue Code s.47(1)(b): a 60,000 baht allowance for a spouse without income. s.47(3): a non-resident gets this only for a spouse in Thailand, on the annual return, not in payroll."
 								},
@@ -3310,11 +3170,7 @@
 							"properties": {
 								"kind": {
 									"type": "string",
-									"enum": [
-										"MEMBER",
-										"VOLUNTARY",
-										"EXEMPT"
-									],
+									"enum": ["MEMBER", "VOLUNTARY", "EXEMPT"],
 									"title": "Registration or exemption status"
 								}
 							}
@@ -3408,10 +3264,7 @@
 				},
 				"sso_reviewed_rate_percent": {
 					"type": "number",
-					"enum": [
-						3,
-						5
-					],
+					"enum": [3, 5],
 					"title": "SSO: documented rate for the southern disaster-relief review",
 					"description": "The nine-province rate of 3 percent for December 2025 to May 2026 applies without any entry (Ministry of Labour notification B.E. 2569, Royal Gazette 8 January 2026). Enter 5 only with an SSO assessment showing the employer is registered outside those provinces; the month and reference below must match it."
 				},
@@ -3481,12 +3334,7 @@
 				},
 				"fixed_term_category": {
 					"type": "string",
-					"enum": [
-						"TEMPORARY",
-						"SHORT_TERM",
-						"SEASONAL",
-						"SPECIFIC"
-					],
+					"enum": ["TEMPORARY", "SHORT_TERM", "SEASONAL", "SPECIFIC"],
 					"description": "勞動基準法 §9(1), 施行細則 §6: TEMPORARY 臨時性 (unforeseeable, non-continuing, six months at most); SHORT_TERM 短期性 (expected to finish within six months); SEASONAL 季節性 (nine months at most); SPECIFIC 特定性 (finishable in a set period; over a year needs the authority’s approval). Recorded on the first terms of a fixed-term (CONTRACT) employment."
 				},
 				"under_15_exception_reference": {
@@ -3495,11 +3343,7 @@
 				},
 				"worker_category": {
 					"type": "string",
-					"enum": [
-						"DOMESTIC_CAREGIVER",
-						"DOMESTIC_HELPER",
-						"SHELTERED_EMPLOYMENT"
-					],
+					"enum": ["DOMESTIC_CAREGIVER", "DOMESTIC_HELPER", "SHELTERED_EMPLOYMENT"],
 					"description": "就業服務法 §46(1)(9): a foreign domestic caregiver or helper employed by a household, outside the 勞動基準法 (work_classification NON_EA); the DOMESTIC_MIGRANT_WAGE validation holds the terms to the MOL wage for new and renewed contracts. SHELTERED_EMPLOYMENT is the legally assessed sheltered employment category under Disability Rights Act40-42, with a signed productivity wage agreement filed with the local labour authority. Disability status alone is insufficient."
 				},
 				"responsibility_system_agreement": {
@@ -3528,13 +3372,7 @@
 				},
 				"lsa_termination_ground": {
 					"type": "string",
-					"enum": [
-						"ARTICLE_11",
-						"ARTICLE_13_PROVISO",
-						"ARTICLE_14",
-						"ARTICLE_20",
-						"OTHER"
-					],
+					"enum": ["ARTICLE_11", "ARTICLE_13_PROVISO", "ARTICLE_14", "ARTICLE_20", "OTHER"],
 					"description": "The article the contract ended under. Severance is owed on §11, the §13 proviso, §14 and §20 (勞工退休金條例 §12, 勞基法 §17); notice pay on §11, the §13 proviso (§16) and §20 (which applies the §16 periods). OTHER owes neither. Required where the exit reason alone cannot tell the article: a dismissal (§11 owes severance, §12 does not), a unilateral or mutual termination, and a resignation (§14 owes severance, §15 does not); a redundancy or retrenchment is read as §11, except on a last day inside approved maternity (§50) or occupational injury (§59) leave, where it must be stated. §13 refuses §11 and §20 there; only the §13 proviso may end the contract then. Owner rule 2026-09-28: §13 is read as barring employer terminations (§11, §20), not the worker’s own (§14) nor a §12 dismissal, and every maternity leave entry is treated as the §50 stop."
 				},
 				"old_system_service_months": {
@@ -3571,12 +3409,7 @@
 								},
 								"disability_subsidy": {
 									"type": "number",
-									"enum": [
-										0,
-										25,
-										50,
-										100
-									],
+									"enum": [0, 25, 50, 100],
 									"description": "LI (and EI) or NHI — 身心障礙者權益保障法 §73: the government pays this percentage of the disabled worker’s own premium share (極重度/重度 100, 中度 50, 輕度 25)."
 								},
 								"insured_amount": {
@@ -3598,12 +3431,7 @@
 							"properties": {
 								"disability_subsidy": {
 									"type": "number",
-									"enum": [
-										0,
-										25,
-										50,
-										100
-									],
+									"enum": [0, 25, 50, 100],
 									"description": "LI (and EI) or NHI — 身心障礙者權益保障法 §73: the government pays this percentage of the disabled worker’s own premium share (極重度/重度 100, 中度 50, 輕度 25)."
 								},
 								"enrolled_dependants": {
@@ -3660,10 +3488,7 @@
 								},
 								"pension_system": {
 									"type": "string",
-									"enum": [
-										"NEW",
-										"LSA"
-									],
+									"enum": ["NEW", "LSA"],
 									"default": "NEW",
 									"description": "LABOR_PENSION — 勞工退休金條例 §8–9 (and, from 2026, 外國專業人才延攬及僱用法 §24): LSA where the worker kept the 勞動基準法 (old) pension system; LABOR_PENSION then charges nothing and LABOR_PENSION_RESERVE carries the worker's wages. Unrecorded is the new system."
 								},
@@ -3722,10 +3547,7 @@
 												"description": "The reviewed Income Tax Act7 basis. Citizenship or permanent residence alone does not decide tax residence."
 											},
 											"resident_from": {
-												"type": [
-													"string",
-													"null"
-												],
+												"type": ["string", "null"],
 												"format": "date",
 												"description": "Payments in this tax year on or after this date use resident withholding. Null means nonresident. A supported expectation requires permit/contract evidence and review on early departure."
 											},
@@ -3810,11 +3632,7 @@
 					"additionalProperties": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": [
-							"amount",
-							"reviewed_on",
-							"evidence_reference"
-						],
+						"required": ["amount", "reviewed_on", "evidence_reference"],
 						"properties": {
 							"amount": {
 								"type": "number",
@@ -3911,11 +3729,7 @@
 							"description": "Untaken eligible leave from two years before at the start of this year; allowed only under the three-year combining agreement. Required, including explicit zero, when annual_leave_combined is true."
 						}
 					},
-					"required": [
-						"year",
-						"as_of",
-						"reference"
-					]
+					"required": ["year", "as_of", "reference"]
 				},
 				"domestic_worker": {
 					"type": "boolean",
@@ -3925,22 +3739,13 @@
 				},
 				"probation_class": {
 					"type": "string",
-					"enum": [
-						"ENTERPRISE_MANAGER",
-						"COLLEGE_OR_ABOVE",
-						"INTERMEDIATE_OR_TECHNICAL",
-						"OTHER"
-					],
+					"enum": ["ENTERPRISE_MANAGER", "COLLEGE_OR_ABOVE", "INTERMEDIATE_OR_TECHNICAL", "OTHER"],
 					"title": "Probation job class (Labour Code art.25)",
 					"description": "Labour Code 45/2019/QH14 art.25: probation at most 180 days for an enterprise manager (Law on Enterprises, Law on State Capital), 60 days for a job needing college-level or higher qualifications, 30 days for intermediate-level, technical-worker or clerical jobs, 6 working days for any other job. Record it on probation terms."
 				},
 				"pass_type": {
 					"type": "string",
-					"enum": [
-						"WORK_PERMIT",
-						"INTRA_COMPANY_TRANSFER",
-						"OTHER"
-					],
+					"enum": ["WORK_PERMIT", "INTRA_COMPANY_TRANSFER", "OTHER"],
 					"title": "Work-permit basis",
 					"description": "INTRA_COMPANY_TRANSFER is outside compulsory SI (Law 41/2024/QH15 art.2(2))."
 				},
@@ -3997,11 +3802,7 @@
 							"description": "Insurance agency/employment-wage calculation establishing the month, salary, any suspension and arrears. Partial/split-month stoppage is not approximated."
 						}
 					},
-					"required": [
-						"month",
-						"salary_vnd",
-						"reference"
-					]
+					"required": ["month", "salary_vnd", "reference"]
 				},
 				"encashment_review": {
 					"type": "object",
@@ -4022,10 +3823,7 @@
 							"description": "Contractual daily wage for the month before the exit month (Decree 145/2020 art.67(3)). The exit encashment conversion reads it; zero is refused."
 						}
 					},
-					"required": [
-						"month",
-						"reference"
-					]
+					"required": ["month", "reference"]
 				},
 				"work_authorisation_application_submitted_on": {
 					"type": "string",
@@ -4121,9 +3919,7 @@
 									"description": "SI standing: a foreign employee an international agreement Vietnam is party to exempts (Law 41/2024/QH15 art.2(2))."
 								}
 							},
-							"required": [
-								"kind"
-							]
+							"required": ["kind"]
 						},
 						"HI": {
 							"type": "object",
@@ -4150,9 +3946,7 @@
 									"description": "HI standing only: an applicable international agreement specifically exempts Vietnamese HI under Health Insurance Law art.12(1)(c). SI pension-treaty exemption alone does not establish HI exemption."
 								}
 							},
-							"required": [
-								"kind"
-							]
+							"required": ["kind"]
 						},
 						"UI": {
 							"type": "object",
@@ -4187,9 +3981,7 @@
 									"description": "UI standing: a disabled worker hired from 1 January 2026, registered with the SI agency with the disability certificate; the employer pays 0% UI for 12 months (Decree 374/2025/NĐ-CP art.5)."
 								}
 							},
-							"required": [
-								"kind"
-							]
+							"required": ["kind"]
 						},
 						"UNION_FEE": {
 							"type": "object",
@@ -4207,9 +3999,7 @@
 									"title": "Effective from"
 								}
 							},
-							"required": [
-								"kind"
-							]
+							"required": ["kind"]
 						},
 						"PIT": {
 							"type": "object",
@@ -4267,9 +4057,7 @@
 									"description": "PIT standing: for each registered dependant, the month (YYYY-MM) from which the family deduction applies (Decree 253/2026 art.48(2)(a)); the December finalisation counts each from that month. Leave empty to count the registered dependants for the whole year."
 								}
 							},
-							"required": [
-								"kind"
-							]
+							"required": ["kind"]
 						},
 						"UNION_DUES": {
 							"type": "object",
@@ -4293,9 +4081,7 @@
 									"description": "UNION_DUES standing: a member pays 0.5% of the insurance salary, at most 10% of the reference level (Law 50/2024 art.29(1)(a); Decision 61/QĐ-TLĐ)."
 								}
 							},
-							"required": [
-								"kind"
-							]
+							"required": ["kind"]
 						}
 					}
 				},
@@ -4377,12 +4163,7 @@
 				},
 				"region": {
 					"type": "string",
-					"enum": [
-						"I",
-						"II",
-						"III",
-						"IV"
-					],
+					"enum": ["I", "II", "III", "IV"],
 					"title": "Worksite minimum-wage region",
 					"description": "The regional minimum wage that applies to the worksite (Decree 399/2026/NĐ-CP art.3). Drives the wage floors, the unemployment-insurance cap and the union dues cap."
 				},

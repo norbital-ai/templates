@@ -47,17 +47,15 @@ const entry = (
 ) =>
 	Effect.gen(function* () {
 		const selected = reverses == null ? days : yield* reversalSlots(t, reverses);
-		yield* t
-			.as(t.admin)
-			.act('leave_catalog_entry.create', [
-				leaveCreate({
-					entity_id: ENTITY,
-					employment_id: CONTRACT,
-					catalog_id: noPay(seed),
-					days: selected,
-					reverses
-				})
-			]);
+		yield* t.as(t.admin).act('leave_catalog_entry.create', [
+			leaveCreate({
+				entity_id: ENTITY,
+				employment_id: CONTRACT,
+				catalog_id: noPay(seed),
+				days: selected,
+				reverses
+			})
+		]);
 	});
 const run = (t: Kit, period: string) =>
 	t
@@ -117,9 +115,9 @@ describe('a no-pay day', () => {
 				])
 			);
 			assert.match(String(added), /already run/);
-			yield* t.as(t.admin).act('leave_catalog_entry.update', [
-				{ target: held.id, set: { evidence_file: null } }
-			]);
+			yield* t
+				.as(t.admin)
+				.act('leave_catalog_entry.update', [{ target: held.id, set: { evidence_file: null } }]);
 		}).pipe(Effect.provide(inMonth(seed)));
 	});
 	it.live('a half day is half, a variable allowance stays out', () => {

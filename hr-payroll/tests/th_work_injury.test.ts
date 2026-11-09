@@ -35,9 +35,11 @@ describe('a work-injury leave entry', () => {
 		Effect.gen(function* () {
 			const t = yield* TestWorkspace;
 			const refused = yield* Effect.flip(
-				t.as(t.admin).act('leave_catalog_entry.create', [
-					{ entity_id: ENTITY, employment_id: CONTRACT, catalog_id: CATALOG }
-				])
+				t
+					.as(t.admin)
+					.act('leave_catalog_entry.create', [
+						{ entity_id: ENTITY, employment_id: CONTRACT, catalog_id: CATALOG }
+					])
 			);
 			assert.match(String(refused), /at least one day/);
 		}).pipe(Effect.provide(live))
@@ -85,9 +87,11 @@ describe('a work-injury leave entry', () => {
 			});
 			const ids = leave_catalog_entry_day.rows.map((row) => row.id);
 			const refused = yield* Effect.flip(
-				t.as(t.admin).act('leave_catalog_entry.update', [
-					{ target: entry.id, set: { leave_catalog_entry_day: { delete: ids } } }
-				])
+				t
+					.as(t.admin)
+					.act('leave_catalog_entry.update', [
+						{ target: entry.id, set: { leave_catalog_entry_day: { delete: ids } } }
+					])
 			);
 			assert.match(String(refused), /at least one day/);
 		}).pipe(Effect.provide(live))

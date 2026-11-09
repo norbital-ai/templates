@@ -51,11 +51,13 @@ const file = (t: Kit, values: JsonObject, severity: Severity = 'MINOR_INJURY') =
 		}
 	]);
 const reports = (t: Kit, prefix = 'WORK_ACCIDENT_REPORT:') =>
-	t.storedQuery({ obligation: { limit: 200 } }).pipe(
-		Effect.map(({ obligation }) =>
-			obligation.rows.filter((row) => String(row.occurrence_key).startsWith(prefix))
-		)
-	);
+	t
+		.storedQuery({ obligation: { limit: 200 } })
+		.pipe(
+			Effect.map(({ obligation }) =>
+				obligation.rows.filter((row) => String(row.occurrence_key).startsWith(prefix))
+			)
+		);
 const live = workspace({ seed, now: '2026-06-20T02:00:00.000Z' });
 
 describe('TW occupational accident report', () => {
@@ -111,16 +113,20 @@ describe('TW occupational accident report', () => {
 			assert.ok(id !== undefined);
 			yield* t.runDue();
 			assert.equal((yield* reports(t)).length, 0);
-			yield* t.as(t.admin).act('workplace_case_catalog_entry.update', [
-				{ target: id, set: { inputs: inputs(0, 2, 1), description: 'later hospitalisation' } }
-			]);
+			yield* t
+				.as(t.admin)
+				.act('workplace_case_catalog_entry.update', [
+					{ target: id, set: { inputs: inputs(0, 2, 1), description: 'later hospitalisation' } }
+				]);
 			yield* t.runDue();
 			const updated = yield* reports(t, 'WORK_ACCIDENT_REPORT_UPDATED:');
 			assert.equal(updated.length, 1);
 			assert.match(String(updated[0]?.occurrence_key), /:hospitalised$/);
-			yield* t.as(t.admin).act('workplace_case_catalog_entry.update', [
-				{ target: id, set: { description: 'description only' } }
-			]);
+			yield* t
+				.as(t.admin)
+				.act('workplace_case_catalog_entry.update', [
+					{ target: id, set: { description: 'description only' } }
+				]);
 			yield* t.runDue();
 			assert.equal((yield* reports(t, 'WORK_ACCIDENT_REPORT_UPDATED:')).length, 1);
 		}).pipe(Effect.provide(live))

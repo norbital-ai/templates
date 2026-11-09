@@ -36,7 +36,7 @@ const withPeople = (people: number) => ({
 		...Array.from({ length: people - 1 }, (_, index) => ({
 			id: uuid(200 + index),
 			name: `Person ${index + 1}`
-		})),
+		}))
 	],
 	employee_contract: [contract, ...extras(people - 1)]
 });
@@ -47,11 +47,7 @@ const obligations = (people: number) =>
 		yield* t.runDue();
 		const { obligation } = yield* t.storedQuery({ obligation: { limit: 300 } });
 		return obligation.rows;
-	}).pipe(
-		Effect.provide(
-			workspace({ seed: withPeople(people), now: '2026-06-20T02:00:00.000Z' })
-		)
-	);
+	}).pipe(Effect.provide(workspace({ seed: withPeople(people), now: '2026-06-20T02:00:00.000Z' })));
 const count = (rows: readonly { occurrence_key: string }[], prefix: string) =>
 	rows.filter((row) => String(row.occurrence_key).startsWith(prefix)).length;
 const employee = String(contract.employee_id);
@@ -80,5 +76,4 @@ describe('TH statutory headcount', () => {
 			assert.equal(person(rows, 'EMPLOYEE_REGISTER'), 1);
 		})
 	);
-
 });

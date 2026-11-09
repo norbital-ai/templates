@@ -26,7 +26,7 @@ export default model('workplace_case_catalog', {
 	read: {
 		workplace_case_catalog: { fields: 'all' },
 		'workplace_case_catalog.settings_id': { fields: 'all' },
-		'workplace_case_catalog.subtotal_id': { fields: ['code', 'name'] },
+		'workplace_case_catalog.subtotal_id': { fields: ['code', 'name'] }
 	},
 	create: {
 		columns: {
